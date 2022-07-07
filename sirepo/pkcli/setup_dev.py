@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""setup development directory
+u"""setup development directory
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,14 +15,13 @@ import pathlib
 def default_command():
     global cfg
 
-    assert pkconfig.channel_in("dev"), "Only to be used in dev. channel={}".format(
-        pkconfig.cfg.channel
-    )
+    assert pkconfig.channel_in('dev'), \
+        'Only to be used in dev. channel={}'.format(pkconfig.cfg.channel)
     cfg = pkconfig.init(
         proprietary_code_uri=(
-            f"file://{pathlib.Path.home()}/src/radiasoft/rsconf/proprietary",
+            f'file://{pathlib.Path.home()}/src/radiasoft/rsconf/proprietary',
             str,
-            "root uri of proprietary codes files location",
+            'root uri of proprietary codes files location',
         ),
     )
     _proprietary_codes()
@@ -48,14 +47,14 @@ def _proprietary_codes():
             sirepo.srdb.proprietary_code_dir(s),
         ).join(f)
         # POSIT: download/installers/flash-tarball/radiasoft-download.sh
-        u = f"{cfg.proprietary_code_uri}/{s}-dev.tar.gz"
+        u = f'{cfg.proprietary_code_uri}/{s}-dev.tar.gz'
         try:
             urllib.request.urlretrieve(u, r)
         except urllib.error.URLError as e:
             if not isinstance(e.reason, FileNotFoundError):
                 raise
-            pkdlog("uri={} not found; mocking empty file={}", u, r)
+            pkdlog('uri={} not found; mocking empty file={}', u, r)
             pkio.write_text(
                 r,
-                "mocked by sirepo.pkcli.setup_dev",
+                'mocked by sirepo.pkcli.setup_dev',
             )

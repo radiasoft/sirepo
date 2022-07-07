@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Moderate user roles
+u"""Moderate user roles
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,9 +23,9 @@ import sirepo.uri_router
 import sqlalchemy
 
 _STATUS_TO_SUBJECT = PKDict(
-    approve="{} Access Request Approved",
-    clarify="Sirepo {}: Additional Info?",
-    deny="{} Access Request Denied",
+    approve='{} Access Request Approved',
+    clarify='Sirepo {}: Additional Info?',
+    deny='{} Access Request Denied',
 )
 
 _cfg = None
@@ -34,39 +34,38 @@ _cfg = None
 class API(sirepo.api.Base):
     @sirepo.api_perm.require_adm
     def api_admModerate(self):
+
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
                 recipient=sirepo.auth.user_name(info.uid),
                 subject=_STATUS_TO_SUBJECT[info.status].format(info.app_name),
                 body=pkjinja.render_resource(
-                    f"auth_role_moderation/{info.status}_email",
+                    f'auth_role_moderation/{info.status}_email',
                     PKDict(
                         app_name=info.app_name,
                         display_name=info.display_name,
-                        link=sirepo.uri.app_root(
-                            sirepo.auth_role.sim_type(info.role), external=True
-                        ),
+                        link=sirepo.uri.app_root(sirepo.auth_role.sim_type(info.role), external=True)
                     ),
                 ),
             )
 
         def _set_moderation_status(info):
-            if info.status == "approve":
+            if info.status == 'approve':
                 sirepo.auth_db.UserRole.add_roles(info.uid, [info.role])
             sirepo.auth_db.UserRoleInvite.set_status(
                 info.uid,
                 info.role,
                 info.status,
-                moderator_uid=sirepo.auth.logged_in_user(),
+                moderator_uid=sirepo.auth.logged_in_user()
             )
 
         req = self.parse_post(type=False)
         i = sirepo.auth_db.UserRoleInvite.search_by(token=req.req_data.token)
         if not i:
-            pkdlog(f"No record in UserRoleInvite for token={req.req_data.token}")
+            pkdlog(f'No record in UserRoleInvite for token={req.req_data.token}')
             raise sirepo.util.UserAlert(
-                "Could not find the moderation request; "
-                "refresh your browser to get the latest moderation list.",
+                'Could not find the moderation request; '
+                'refresh your browser to get the latest moderation list.',
             )
         p = PKDict(
             app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
@@ -78,40 +77,34 @@ class API(sirepo.api.Base):
             uid=i.uid,
         )
         _set_moderation_status(p)
-        pkdlog("status={} uid={} role={} token={}", p.status, i.uid, i.role, i.token)
+        pkdlog('status={} uid={} role={} token={}', p.status, i.uid, i.role, i.token)
         _send_moderation_status_email(p)
         return self.reply_ok()
+
 
     @sirepo.api_perm.require_adm
     def api_admModerateRedirect(self):
         t = set(
-            sirepo.feature_config.cfg().sim_types
-            - sirepo.feature_config.auth_controlled_sim_types(),
+            sirepo.feature_config.cfg().sim_types - sirepo.feature_config.auth_controlled_sim_types(),
         ).pop()
-        raise sirepo.util.Redirect(
-            sirepo.uri.local_route(t, route_name="admRoles", external=True)
-        )
+        raise sirepo.util.Redirect(sirepo.uri.local_route(t, route_name='admRoles', external=True))
 
     @sirepo.api_perm.require_adm
     def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
-                rows=[
-                    r.as_pkdict()
-                    for r in sirepo.auth_db.UserRoleInvite.get_moderation_request_rows()
-                ],
+                rows=[r.as_pkdict() for r in sirepo.auth_db.UserRoleInvite.get_moderation_request_rows()],
             ),
         )
+
 
     @sirepo.api_perm.allow_sim_typeless_require_email_user
     def api_saveModerationReason(self):
         def _send_request_email(info):
             sirepo.smtp.send(
                 recipient=_cfg.moderator_email,
-                subject=f"{info.sim_type} Access Request",
-                body=pkjinja.render_resource(
-                    "auth_role_moderation/moderation_email", info
-                ),
+                subject=f'{info.sim_type} Access Request',
+                body=pkjinja.render_resource('auth_role_moderation/moderation_email', info),
             )
 
         req = self.parse_post()
@@ -125,22 +118,16 @@ class API(sirepo.api.Base):
                 sirepo.auth_db.UserRoleInvite(
                     uid=u,
                     role=r,
-                    status="pending",
+                    status='pending',
                     token=sirepo.util.random_base62(32),
                 ).save()
             except sqlalchemy.exc.IntegrityError as e:
-                pkdlog(
-                    "Error={} saving UserRoleInvite for uid={} role={} stack={}",
-                    e,
-                    u,
-                    r,
-                    pkdexc(),
-                )
+                pkdlog('Error={} saving UserRoleInvite for uid={} role={} stack={}', e, u, r, pkdexc())
                 raise sirepo.util.UserAlert(
                     f"You've already submitted a moderation request.",
                 )
 
-        l = sirepo.uri_router.uri_for_api("admModerateRedirect")
+        l = sirepo.uri_router.uri_for_api('admModerateRedirect')
         _send_request_email(
             PKDict(
                 display_name=sirepo.auth.user_display_name(u),
@@ -158,7 +145,5 @@ class API(sirepo.api.Base):
 def init_apis():
     global _cfg
     _cfg = pkconfig.init(
-        moderator_email=pkconfig.Required(
-            str, "The email address to send moderation emails to"
-        ),
+        moderator_email=pkconfig.Required(str, 'The email address to send moderation emails to'),
     )

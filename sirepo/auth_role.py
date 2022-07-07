@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""User roles
+u"""User roles
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -8,11 +8,11 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 import sirepo.feature_config
 
-ROLE_ADM = "adm"
-ROLE_PAYMENT_PLAN_ENTERPRISE = "enterprise"
-ROLE_PAYMENT_PLAN_PREMIUM = "premium"
+ROLE_ADM = 'adm'
+ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
+ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
-_SIM_TYPE_ROLE_PREFIX = "sim_type_"
+_SIM_TYPE_ROLE_PREFIX = 'sim_type_'
 
 
 def for_moderated_sim_types():
@@ -20,7 +20,7 @@ def for_moderated_sim_types():
 
 
 def for_new_user(is_guest):
-    if is_guest and pkconfig.channel_in("dev"):
+    if is_guest and pkconfig.channel_in('dev'):
         return get_all()
     return []
 
@@ -40,4 +40,4 @@ def get_all():
 
 
 def sim_type(role):
-    return role[len(_SIM_TYPE_ROLE_PREFIX) :]
+    return role[len(_SIM_TYPE_ROLE_PREFIX):]

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Type-based simulation operations
+u"""Type-based simulation operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,36 +25,35 @@ import uuid
 cfg = None
 
 #: default compute_model
-_ANIMATION_NAME = "animation"
+_ANIMATION_NAME = 'animation'
 
 #: prefix for auth header of sim_db_file requests
-_AUTH_HEADER_PREFIX = f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} "
+_AUTH_HEADER_PREFIX = f'{sirepo.util.AUTH_HEADER_SCHEME_BEARER} '
 
 #: use to separate components of job_id
-_JOB_ID_SEP = "-"
+_JOB_ID_SEP = '-'
 
-_MODEL_RE = re.compile(r"^[\w-]+$")
+_MODEL_RE = re.compile(r'^[\w-]+$')
 
-_IS_PARALLEL_RE = re.compile("animation", re.IGNORECASE)
+_IS_PARALLEL_RE = re.compile('animation', re.IGNORECASE)
 
 #: separates values in frame id
-_FRAME_ID_SEP = "*"
+_FRAME_ID_SEP = '*'
 
 #: common keys to frame id followed by code-specific values
 _FRAME_ID_KEYS = (
-    "frameIndex",
+    'frameIndex',
     # computeModel when passed from persistent/parallel
     # analysisModel when passe from transient/sequential
     # sim_data.compute_model() is idempotent to this.
-    "frameReport",
-    "simulationId",
-    "simulationType",
-    "computeJobHash",
-    "computeJobSerial",
+    'frameReport',
+    'simulationId',
+    'simulationType',
+    'computeJobHash',
+    'computeJobSerial',
 )
 
-_TEMPLATE_RESOURCE_DIR = "template"
-
+_TEMPLATE_RESOURCE_DIR = 'template'
 
 def get_class(type_or_data):
     """Simulation data class
@@ -64,7 +63,7 @@ def get_class(type_or_data):
     Returns:
         type: simulation data operation class
     """
-    return sirepo.util.import_submodule("sim_data", type_or_data).SimData
+    return sirepo.util.import_submodule('sim_data', type_or_data).SimData
 
 
 def resource_path(filename):
@@ -98,14 +97,14 @@ def parse_frame_id(frame_id):
     """
 
     v = frame_id.split(_FRAME_ID_SEP)
-    res = PKDict(zip(_FRAME_ID_KEYS, v[: len(_FRAME_ID_KEYS)]))
+    res = PKDict(zip(_FRAME_ID_KEYS, v[:len(_FRAME_ID_KEYS)]))
     res.frameIndex = int(res.frameIndex)
     res.computeJobSerial = int(res.computeJobSerial)
     s = get_class(res.simulationType)
     s.frameReport = s.parse_model(res)
     s.simulationId = s.parse_sid(res)
-    # TODO(robnagler) validate these
-    res.update(zip(s._frame_id_fields(res), v[len(_FRAME_ID_KEYS) :]))
+#TODO(robnagler) validate these
+    res.update(zip(s._frame_id_fields(res), v[len(_FRAME_ID_KEYS):]))
     return res, s
 
 
@@ -113,15 +112,15 @@ class SimDataBase(object):
 
     ANALYSIS_ONLY_FIELDS = frozenset()
 
-    WATCHPOINT_REPORT = "watchpointReport"
+    WATCHPOINT_REPORT = 'watchpointReport'
 
-    WATCHPOINT_REPORT_RE = re.compile(r"^{}(\d+)$".format(WATCHPOINT_REPORT))
+    WATCHPOINT_REPORT_RE = re.compile(r'^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
-    _EXAMPLE_RESOURCE_DIR = "examples"
+    _EXAMPLE_RESOURCE_DIR = 'examples'
 
     _EXE_PERMISSIONS = 0o700
 
-    _LIB_RESOURCE_DIR = "lib"
+    _LIB_RESOURCE_DIR = 'lib'
 
     @classmethod
     def compute_job_hash(cls, data):
@@ -139,21 +138,21 @@ class SimDataBase(object):
         """
         cls._assert_server_side()
         c = cls.compute_model(data)
-        if data.get("forceRun") or cls.is_parallel(c):
-            return "HashIsUnused"
-        m = data["models"]
+        if data.get('forceRun') or cls.is_parallel(c):
+            return 'HashIsUnused'
+        m = data['models']
         res = hashlib.md5()
-        fields = sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(
-            data, data.report, c
-        )
+        fields = sirepo.sim_data.get_class(
+            data.simulationType
+        )._compute_job_fields(data, data.report, c)
         # values may be string or PKDict
-        fields.sort(key=lambda x: str(x))
+        fields.sort(key=lambda x:str(x))
         for f in fields:
             # assert isinstance(f, pkconfig.STRING_TYPES), \
             #     'value={} not a string_type'.format(f)
-            # TODO(pjm): work-around for now
+            #TODO(pjm): work-around for now
             if isinstance(f, pkconfig.STRING_TYPES):
-                x = f.split(".")
+                x = f.split('.')
                 value = m[x[0]][x[1]] if len(x) > 1 else m[x[0]]
             else:
                 value = f
@@ -165,13 +164,11 @@ class SimDataBase(object):
                 )
             )
         res.update(
-            "".join(
-                (
-                    str(cls.lib_file_abspath(b, data=data).mtime())
-                    for b in sorted(cls.lib_file_basenames(data))
+            ''.join(
+                (str(cls.lib_file_abspath(b, data=data).mtime()) for b in sorted(
+                    cls.lib_file_basenames(data))
                 ),
-            ).encode()
-        )
+            ).encode())
         return res.hexdigest()
 
     @classmethod
@@ -185,7 +182,7 @@ class SimDataBase(object):
         """
         m = cls.parse_model(model_or_data)
         d = model_or_data if isinstance(model_or_data, dict) else None
-        # TODO(robnagler) is this necesary since m is parsed?
+        #TODO(robnagler) is this necesary since m is parsed?
         return cls.parse_model(cls._compute_model(m, d))
 
     @classmethod
@@ -198,7 +195,7 @@ class SimDataBase(object):
             _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
             cls._EXAMPLE_RESOURCE_DIR,
-            f"*{sirepo.const.JSON_SUFFIX}",
+            f'*{sirepo.const.JSON_SUFFIX}',
         )
 
     @classmethod
@@ -224,9 +221,8 @@ class SimDataBase(object):
         Returns:
             str: combined frame id
         """
-        assert response.frameCount > index, pkdformat(
-            "response={} does not contain enough frames for index={}", response, index
-        )
+        assert response.frameCount > index, \
+            pkdformat('response={} does not contain enough frames for index={}', response, index)
         frame_args = response.copy()
         frame_args.frameReport = model
         m = data.models[model]
@@ -239,8 +235,7 @@ class SimDataBase(object):
                 data.simulationType,
                 response.computeJobHash,
                 str(response.computeJobSerial),
-            ]
-            + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
+            ] + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
         )
 
     @classmethod
@@ -255,8 +250,7 @@ class SimDataBase(object):
         """
         return bool(
             _IS_PARALLEL_RE.search(
-                cls.compute_model(data_or_model)
-                if isinstance(data_or_model, dict)
+                cls.compute_model(data_or_model) if isinstance(data_or_model, dict) \
                 else data_or_model
             ),
         )
@@ -282,10 +276,9 @@ class SimDataBase(object):
         if p:
             return p
         import sirepo.auth
-
         raise sirepo.util.UserAlert(
             'Simulation library file "{}" does not exist'.format(basename),
-            "basename={} not in lib or resource directories uid={}",
+            'basename={} not in lib or resource directories uid={}',
             basename,
             sirepo.auth.logged_in_user(),
         )
@@ -328,20 +321,18 @@ class SimDataBase(object):
         Returns:
             list: sorted list of file names stripped of file_type
         """
-        return sorted(
-            (
-                cls.lib_file_name_without_type(f.basename)
-                for f in cls._lib_file_list("{}.*".format(file_type))
-            )
-        )
+        return sorted((
+            cls.lib_file_name_without_type(f.basename) for f
+            in cls._lib_file_list('{}.*'.format(file_type))
+        ))
 
     @classmethod
     def lib_file_name_with_model_field(cls, model_name, field, filename):
-        return "{}-{}.{}".format(model_name, field, filename)
+        return '{}-{}.{}'.format(model_name, field, filename)
 
     @classmethod
     def lib_file_name_with_type(cls, filename, file_type):
-        return "{}.{}".format(file_type, filename)
+        return '{}.{}'.format(file_type, filename)
 
     @classmethod
     def lib_file_name_without_type(cls, basename):
@@ -354,7 +345,7 @@ class SimDataBase(object):
         Returns:
             str: basename without type prefix
         """
-        return re.sub(r"^.*?-.*?\.(.+\..+)$", r"\1", basename)
+        return re.sub(r'^.*?-.*?\.(.+\..+)$', r'\1', basename)
 
     @classmethod
     def lib_file_resource_path(cls, path):
@@ -433,20 +424,19 @@ class SimDataBase(object):
             name (str): model name
         """
         import copy
-
         res = PKDict()
         for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
-                m = d[1].split(".")
-                if len(m) > 1 and m[0] == "model" and m[1] in cls.schema().model:
+                m = d[1].split('.')
+                if len(m) > 1 and m[0] == 'model' and m[1] in cls.schema().model:
                     res[f] = cls.model_defaults(m[1])
                     for ff, dd in d[2].items():
                         res[f][ff] = copy.deepcopy(d[2][ff])
                     continue
                 res[f] = copy.deepcopy(d[2])
-                if d[1] == "UUID" and not res[f]:
+                if d[1] == 'UUID' and not res[f]:
                     res[f] = str(uuid.uuid4())
-                if d[1] == "RandomId" and not res[f]:
+                if d[1] == 'RandomId' and not res[f]:
                     res[f] = sirepo.util.random_base62(length=16)
         return res
 
@@ -465,13 +455,11 @@ class SimDataBase(object):
         """
         import sirepo.auth
 
-        return _JOB_ID_SEP.join(
-            (
-                uid or sirepo.auth.logged_in_user(),
-                cls.parse_sid(data),
-                cls.compute_model(data),
-            )
-        )
+        return _JOB_ID_SEP.join((
+            uid or sirepo.auth.logged_in_user(),
+            cls.parse_sid(data),
+            cls.compute_model(data),
+        ))
 
     @classmethod
     def parse_model(cls, obj):
@@ -488,12 +476,11 @@ class SimDataBase(object):
         if isinstance(obj, pkconfig.STRING_TYPES):
             res = obj
         elif isinstance(obj, dict):
-            res = obj.get("frameReport") or obj.get("report") or obj.get("computeModel")
+            res = obj.get('frameReport') or obj.get('report') or obj.get('computeModel')
         else:
-            raise AssertionError("obj={} is unsupported type={}", obj, type(obj))
-        assert res and _MODEL_RE.search(res), "invalid model={} from obj={}".format(
-            res, obj
-        )
+            raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
+        assert res and _MODEL_RE.search(res), \
+            'invalid model={} from obj={}'.format(res, obj)
         return res
 
     @classmethod
@@ -510,11 +497,9 @@ class SimDataBase(object):
         if isinstance(obj, pkconfig.STRING_TYPES):
             res = obj
         elif isinstance(obj, dict):
-            res = obj.get("simulationId") or obj.pknested_get(
-                "models.simulation.simulationId"
-            )
+            res = obj.get('simulationId') or obj.pknested_get('models.simulation.simulationId')
         else:
-            raise AssertionError("obj={} is unsupported type={}", obj, type(obj))
+            raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
         return simulation_db.assert_sid(res)
 
     @classmethod
@@ -549,9 +534,7 @@ class SimDataBase(object):
         Returns:
             py.path.local: absolute path to file
         """
-        return sirepo.resource.file_path(
-            _TEMPLATE_RESOURCE_DIR, cls.sim_type(), filename
-        )
+        return sirepo.resource.file_path(_TEMPLATE_RESOURCE_DIR, cls.sim_type(), filename)
 
     @classmethod
     def schema(cls):
@@ -570,7 +553,7 @@ class SimDataBase(object):
                 data.models.simulation.simulationId,
                 b.basename,
                 run_dir,
-                is_exe=b.get("is_exe", False),
+                is_exe=b.get('is_exe', False),
             )
 
     @classmethod
@@ -599,14 +582,13 @@ class SimDataBase(object):
     def watchpoint_id(cls, report):
         m = cls.WATCHPOINT_REPORT_RE.search(report)
         if not m:
-            raise RuntimeError("invalid watchpoint report name: ", report)
+            raise RuntimeError('invalid watchpoint report name: ', report)
         return int(m.group(1))
 
     @classmethod
     def _assert_server_side(cls):
-        assert (
-            not cfg.lib_file_uri
-        ), f"method={pkinspect.caller()} may only be called on server"
+        assert not cfg.lib_file_uri, \
+            f'method={pkinspect.caller()} may only be called on server'
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):
@@ -646,14 +628,14 @@ class SimDataBase(object):
     @classmethod
     def _delete_sim_db_file(cls, uri):
         _request(
-            "DELETE",
+            'DELETE',
             cfg.supervisor_sim_db_file_uri + uri,
         ).raise_for_status()
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
         if names:
-            names = set(list(names) + ["simulation"])
+            names = set(list(names) + ['simulation'])
         for n in names or cls.schema().model:
             cls.update_model_defaults(
                 models.setdefault(n, PKDict()),
@@ -670,7 +652,7 @@ class SimDataBase(object):
             if basename in cfg.lib_file_list:
                 # User generated lib file
                 p = pkio.py_path(basename)
-                r = _request("GET", cfg.lib_file_uri + basename)
+                r = _request('GET', cfg.lib_file_uri + basename)
                 r.raise_for_status()
                 p.write_binary(r.content)
                 return p
@@ -699,9 +681,8 @@ class SimDataBase(object):
         from sirepo import simulation_db
 
         res = PKDict(
-            (
-                (f.basename, f)
-                for f in sirepo.resource.glob_paths(
+            ((f.basename, f) for f in \
+                sirepo.resource.glob_paths(
                     _TEMPLATE_RESOURCE_DIR,
                     cls.sim_type(),
                     cls._LIB_RESOURCE_DIR,
@@ -712,10 +693,10 @@ class SimDataBase(object):
         if want_user_lib_dir:
             # lib_dir overwrites resource_dir
             res.update(
-                (f.basename, f)
-                for f in pkio.sorted_glob(
-                    simulation_db.simulation_lib_dir(cls.sim_type()).join(pat),
-                )
+                (f.basename, f) for f in \
+                    pkio.sorted_glob(
+                        simulation_db.simulation_lib_dir(cls.sim_type()).join(pat),
+                    )
             )
         return res.values()
 
@@ -735,7 +716,6 @@ class SimDataBase(object):
         Returns:
             object: value
         """
-
         @classmethod
         def wrap(cls):
             return value
@@ -763,22 +743,22 @@ class SimDataBase(object):
         s = set(data.models.get(model, {}).keys()) - cls.ANALYSIS_ONLY_FIELDS
         if not s:
             return [model]
-        return sorted(["{}.{}".format(model, x) for x in s])
+        return sorted(['{}.{}'.format(model, x) for x in s])
 
     @classmethod
     def _organize_example(cls, data):
         dm = data.models
-        if dm.simulation.get("isExample") and dm.simulation.folder == "/":
-            dm.simulation.folder = "/Examples"
+        if dm.simulation.get('isExample') and dm.simulation.folder == '/':
+            dm.simulation.folder = '/Examples'
 
     @classmethod
     def _proprietary_code_tarball(cls):
-        return f"{cls.sim_type()}.tar.gz"
+        return f'{cls.sim_type()}.tar.gz'
 
     @classmethod
     def _put_sim_db_file(cls, file_path, uri):
         _request(
-            "PUT",
+            'PUT',
             cfg.supervisor_sim_db_file_uri + uri,
             data=pkio.read_binary(file_path),
         ).raise_for_status()
@@ -789,8 +769,8 @@ class SimDataBase(object):
 
     @classmethod
     def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
-        p = run_dir.join(uri.split("/")[-1])
-        r = _request("GET", cfg.supervisor_sim_db_file_uri + uri)
+        p = run_dir.join(uri.split('/')[-1])
+        r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
         r.raise_for_status()
         p.write_binary(r.content)
         if is_exe:
@@ -808,7 +788,6 @@ class SimDataBase(object):
     @classmethod
     def _sim_file_uri(cls, sim_id, basename):
         from sirepo import simulation_db
-
         return simulation_db.simulation_file_uri(
             cls.sim_type(),
             sim_id,
@@ -818,9 +797,7 @@ class SimDataBase(object):
 
 class SimDbFileNotFound(Exception):
     """A sim db file could not be found"""
-
     pass
-
 
 def split_jid(jid):
     """Split jid into named parts
@@ -830,12 +807,10 @@ def split_jid(jid):
     Returns:
         PKDict: parts named uid, sid, compute_model.
     """
-    return PKDict(
-        zip(
-            ("uid", "sid", "compute_model"),
-            jid.split(_JOB_ID_SEP),
-        )
-    )
+    return PKDict(zip(
+        ('uid', 'sid', 'compute_model'),
+        jid.split(_JOB_ID_SEP),
+    ))
 
 
 def _init():
@@ -843,28 +818,12 @@ def _init():
 
     sirepo.job.init()
     cfg = pkconfig.init(
-        lib_file_resource_only=(False, bool, "used by utility programs"),
-        lib_file_list=(
-            None,
-            lambda v: pkio.read_text(v).split("\n"),
-            "directory listing of remote lib",
-        ),
-        lib_file_uri=(None, str, "where to get files from when remote"),
-        local_share_dir=(
-            "/home/vagrant/.local/share",
-            pkio.py_path,
-            "dir for installed user files",
-        ),
-        supervisor_sim_db_file_uri=(
-            None,
-            str,
-            "where to get/put simulation db files from/to supervisor",
-        ),
-        supervisor_sim_db_file_token=(
-            None,
-            str,
-            "token for supervisor simulation file access",
-        ),
+        lib_file_resource_only=(False, bool, 'used by utility programs'),
+        lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
+        lib_file_uri=(None, str, 'where to get files from when remote'),
+        local_share_dir=('/home/vagrant/.local/share', pkio.py_path, 'dir for installed user files'),
+        supervisor_sim_db_file_uri=(None, str, 'where to get/put simulation db files from/to supervisor'),
+        supervisor_sim_db_file_token=(None, str, 'token for supervisor simulation file access'),
     )
 
 
@@ -874,15 +833,12 @@ def _request(method, uri, data=None):
         uri,
         data=data,
         verify=sirepo.job.cfg.verify_tls,
-        headers=PKDict(
-            {
-                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX
-                + cfg.supervisor_sim_db_file_token,
-            }
-        ),
+        headers=PKDict({
+                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX + cfg.supervisor_sim_db_file_token,
+            })
     )
-    if method == "GET" and r.status_code == 404:
-        raise SimDbFileNotFound(f"uri={uri} not found")
+    if method == 'GET' and r.status_code == 404:
+        raise SimDbFileNotFound(f'uri={uri} not found')
     return r
 
 

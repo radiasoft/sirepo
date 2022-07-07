@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Test pkcli.admin
+u"""Test pkcli.admin
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -9,23 +9,20 @@ import importlib
 import os
 import pytest
 
-
 def setup_module(module):
     from sirepo import srunit
     import os
-
     srunit.setup_srdb_root()
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES='jupyterhublogin',
     )
 
 
 def test_no_user():
     import sirepo.pkcli.admin
     from pykern import pkunit
-
-    u = "xxx"
-    with pkunit.pkexcept(".*no registered user with uid=" + u):
+    u = 'xxx'
+    with pkunit.pkexcept('.*no registered user with uid=' + u):
         sirepo.pkcli.admin.delete_user(u)
 
 
@@ -40,19 +37,17 @@ def test_delete_user():
     import sirepo.srdb
 
     pkio.unchecked_remove(sirepo.srdb.root())
-    pkunit.data_dir().join("db").copy(sirepo.srdb.root())
-    sirepo.pkcli.admin.delete_user("IYgnLlSy")
+    pkunit.data_dir().join('db').copy(sirepo.srdb.root())
+    sirepo.pkcli.admin.delete_user('IYgnLlSy')
     with auth_db.session_and_lock():
         for m, t in (
-            ("sim_api.jupyterhublogin", "JupyterhubUser"),
-            ("auth_db", "UserRegistration"),
-            ("auth_db", "UserRoleInvite"),
+                ('sim_api.jupyterhublogin', 'JupyterhubUser'),
+                ('auth_db', 'UserRegistration'),
+                ('auth_db', 'UserRoleInvite'),
         ):
-            _is_empty(
-                getattr(importlib.import_module("sirepo." + m), t).search_all_by()
-            )
-    _is_empty(pkio.sorted_glob(jupyterhublogin.cfg.user_db_root_d.join("*")))
-    _is_empty(pkio.sorted_glob(simulation_db.user_path().join("*")))
+            _is_empty(getattr(importlib.import_module('sirepo.' + m), t).search_all_by())
+    _is_empty(pkio.sorted_glob(jupyterhublogin.cfg.user_db_root_d.join('*')))
+    _is_empty(pkio.sorted_glob(simulation_db.user_path().join('*')))
 
 
 def _is_empty(result):

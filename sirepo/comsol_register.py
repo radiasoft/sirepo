@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""COMSOL registration routes.
+u"""COMSOL registration routes.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,25 +20,23 @@ class API(sirepo.api.Base):
     @api_perm.allow_visitor
     def api_comsol(self):
         return self.reply_redirect(
-            "https://www.radiasoft.net/services/comsol-certified-consulting/",
+            'https://www.radiasoft.net/services/comsol-certified-consulting/',
         )
 
     @api_perm.allow_visitor
     def api_comsolRegister(self):
         import sirepo.util
-
+    
         req = self.parse_json()
         smtp.send(
             recipient=cfg.mail_recipient_email,
-            subject="Sirepo / COMSOL Registration",
-            body="""
+        subject='Sirepo / COMSOL Registration',
+        body=u'''
 Request for access to Sirepo / COMSOL.
 
 Name: {}
 Email: {}
-""".format(
-                req.name, req.email
-            ),
+'''.format(req.name, req.email),
         )
         return self.reply_ok()
 
@@ -46,7 +44,5 @@ Email: {}
 def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
-        mail_recipient_email=pkconfig.Required(
-            str, "Email to receive registration messages"
-        ),
+        mail_recipient_email=pkconfig.Required(str, 'Email to receive registration messages'),
     )

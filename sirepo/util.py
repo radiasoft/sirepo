@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Support routines and classes, mostly around errors and I/O.
+u"""Support routines and classes, mostly around errors and I/O.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -36,10 +36,10 @@ is_server = False
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
 #: Http auth header name
-AUTH_HEADER = "Authorization"
+AUTH_HEADER = 'Authorization'
 
 #: http auth header scheme bearer
-AUTH_HEADER_SCHEME_BEARER = "Bearer"
+AUTH_HEADER_SCHEME_BEARER = 'Bearer'
 
 #: Lock for operations across Sirepo (flask)
 THREAD_LOCK = threading.RLock()
@@ -49,8 +49,8 @@ TOKEN_SIZE = 16
 
 # See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
 # for reasoning on why define both
-_INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)", re.IGNORECASE)
-_VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
+_INVALID_PYTHON_IDENTIFIER = re.compile(r'\W|^(?=\d)', re.IGNORECASE)
+_VALID_PYTHON_IDENTIFIER = re.compile(r'^[a-z_]\w*$', re.IGNORECASE)
 
 _log_not_flask = _log_not_request = 0
 
@@ -62,21 +62,20 @@ class Reply(Exception):
         sr_args (dict): exception args that Sirepo specific
         log_fmt (str): server side log data
     """
-
     def __init__(self, sr_args, *args, **kwargs):
         super(Reply, self).__init__()
         if args or kwargs:
-            kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
+            kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
             pkdlog(*args, **kwargs)
         self.sr_args = sr_args
 
     def __repr__(self):
         a = self.sr_args
-        return "{}({})".format(
+        return '{}({})'.format(
             self.__class__.__name__,
-            ",".join(
-                ("{}={}".format(k, a[k]) for k in sorted(a.keys())),
-            ),
+            ','.join(
+                ('{}={}'.format(k, a[k]) for k in sorted(a.keys())),
+            )
         )
 
     def __str__(self):
@@ -89,13 +88,17 @@ class Error(Reply):
     Args:
         values (dict or str): values to put in the reply or just the error
     """
-
     def __init__(self, values, *args, **kwargs):
         if isinstance(values, pkconfig.STRING_TYPES):
             values = PKDict(error=values)
         else:
-            assert values.get("error"), 'values={} must contain "error"'.format(values)
-        super(Error, self).__init__(values, *args, **kwargs)
+            assert values.get('error'), \
+                'values={} must contain "error"'.format(values)
+        super(Error, self).__init__(
+            values,
+            *args,
+            **kwargs
+        )
 
 
 class Redirect(Reply):
@@ -105,9 +108,12 @@ class Redirect(Reply):
         uri (str): where to redirect to
         log_fmt (str): server side log data
     """
-
     def __init__(self, uri, *args, **kwargs):
-        super(Redirect, self).__init__(PKDict(uri=uri), *args, **kwargs)
+        super(Redirect, self).__init__(
+            PKDict(uri=uri),
+            *args,
+            **kwargs
+        )
 
 
 class Response(Reply):
@@ -117,9 +123,12 @@ class Response(Reply):
         response (str): what the reply should be
         log_fmt (str): server side log data
     """
-
     def __init__(self, response, *args, **kwargs):
-        super(Response, self).__init__(PKDict(response=response), *args, **kwargs)
+        super(Response, self).__init__(
+            PKDict(response=response),
+            *args,
+            **kwargs
+        )
 
 
 class SRException(Reply):
@@ -133,10 +142,11 @@ class SRException(Reply):
         params (dict): parameters for route and redirect
         log_fmt (str): server side log data
     """
-
     def __init__(self, route_name, params, *args, **kwargs):
         super(SRException, self).__init__(
-            PKDict(routeName=route_name, params=params), *args, **kwargs
+            PKDict(routeName=route_name, params=params),
+            *args,
+            **kwargs
         )
 
 
@@ -147,9 +157,12 @@ class UserAlert(Reply):
         display_text (str): string that user will see
         log_fmt (str): server side log data
     """
-
     def __init__(self, display_text, *args, **kwargs):
-        super(UserAlert, self).__init__(PKDict(error=display_text), *args, **kwargs)
+        super(UserAlert, self).__init__(
+            PKDict(error=display_text),
+            *args,
+            **kwargs
+        )
 
 
 class WWWAuthenticate(Reply):
@@ -158,12 +171,15 @@ class WWWAuthenticate(Reply):
     Args:
         log_fmt (str): server side log data
     """
-
     def __init__(self, *args, **kwargs):
-        super().__init__(PKDict(), *args, **kwargs)
+        super().__init__(
+            PKDict(),
+            *args,
+            **kwargs
+        )
 
 
-def convert_exception(exception, display_text="unexpected error"):
+def convert_exception(exception, display_text='unexpected error'):
     """Convert exception so can be raised
 
     Args:
@@ -174,39 +190,32 @@ def convert_exception(exception, display_text="unexpected error"):
     """
     if isinstance(exception, Reply):
         return exception
-    return UserAlert(
-        display_text,
-        "exception={} str={} stack={}",
-        type(exception),
-        exception,
-        pkdexc(),
-    )
+    return UserAlert(display_text, 'exception={} str={} stack={}', type(exception), exception, pkdexc())
 
 
 def create_token(value):
     if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
         v = base64.b32encode(
-            hashlib.sha256(pkcompat.to_bytes(value + cfg.create_token_secret)).digest()
-        )
+            hashlib.sha256(pkcompat.to_bytes(value + cfg.create_token_secret)).digest())
         return pkcompat.from_bytes(v[:TOKEN_SIZE])
     return random_base62(TOKEN_SIZE)
 
 
-def err(obj, fmt="", *args, **kwargs):
-    return "{}: ".format(obj) + fmt.format(*args, **kwargs)
+
+def err(obj, fmt='', *args, **kwargs):
+    return '{}: '.format(obj) + fmt.format(*args, **kwargs)
 
 
 def files_to_watch_for_reload(*extensions):
     from sirepo import feature_config
-
-    if not pkconfig.channel_in("dev"):
+    if not pkconfig.channel_in('dev'):
         return []
     for e in extensions:
-        for p in set(["sirepo", *feature_config.cfg().package_path]):
+        for p in set(['sirepo', *feature_config.cfg().package_path]):
             d = pykern.pkio.py_path(
-                getattr(importlib.import_module(p), "__file__"),
+                getattr(importlib.import_module(p), '__file__'),
             ).dirname
-            for f in pykern.pkio.sorted_glob(f"{d}/**/*.{e}"):
+            for f in pykern.pkio.sorted_glob(f'{d}/**/*.{e}'):
                 yield f
 
 
@@ -245,27 +254,22 @@ def import_submodule(submodule, type_or_data):
     """
     from sirepo import feature_config
     from sirepo import template
-
     t = template.assert_sim_type(
-        type_or_data.simulationType
-        if isinstance(
+        type_or_data.simulationType if isinstance(
             type_or_data,
             PKDict,
-        )
-        else type_or_data,
+        ) else type_or_data,
     )
     r = feature_config.cfg().package_path
     for p in r:
-        try:
-            return importlib.import_module(f"{p}.{submodule}.{t}")
-        except ModuleNotFoundError:
-            s = pkdexc()
-            pass
+       try:
+        return importlib.import_module(f'{p}.{submodule}.{t}')
+       except ModuleNotFoundError:
+           s = pkdexc()
+           pass
     # gives more debugging info (perhaps more confusion)
     pkdc(s)
-    raise AssertionError(
-        f"cannot find submodule={submodule} for sim_type={t} in package_path={r}"
-    )
+    raise AssertionError(f'cannot find submodule={submodule} for sim_type={t} in package_path={r}')
 
 
 def in_flask_request():
@@ -274,18 +278,18 @@ def in_flask_request():
     # The number 10 below doesn't need to be exact. Just something greater than
     # "a few" so we see logging once the app is initialized and serving requests.
     global _log_not_flask, _log_not_request
-    f = sys.modules.get("flask")
+    f = sys.modules.get('flask')
     if not f:
         if _log_not_flask < 10:
             _log_not_flask += 1
-            pkdlog("flask is not imported")
+            pkdlog('flask is not imported')
         return False
     if not f.request:
         if _log_not_request < 10:
             _log_not_request += 1
             if is_server:
                 # This will help debug https://github.com/radiasoft/sirepo/issues/3727
-                pkdlog("flask.request is False")
+                pkdlog('flask.request is False')
         return False
     return True
 
@@ -313,19 +317,19 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
 
 
 def raise_bad_request(*args, **kwargs):
-    _raise("BadRequest", *args, **kwargs)
+    _raise('BadRequest', *args, **kwargs)
 
 
 def raise_forbidden(*args, **kwargs):
-    _raise("Forbidden", *args, **kwargs)
+    _raise('Forbidden', *args, **kwargs)
 
 
 def raise_not_found(*args, **kwargs):
-    _raise("NotFound", *args, **kwargs)
+    _raise('NotFound', *args, **kwargs)
 
 
 def raise_unauthorized(*args, **kwargs):
-    _raise("Unauthorized", *args, **kwargs)
+    _raise('Unauthorized', *args, **kwargs)
 
 
 def random_base62(length=32):
@@ -337,7 +341,7 @@ def random_base62(length=32):
         str: random base62 characters
     """
     r = random.SystemRandom()
-    return "".join(r.choice(numconv.BASE62) for x in range(length))
+    return ''.join(r.choice(numconv.BASE62) for x in range(length))
 
 
 def read_zip(path_or_bytes):
@@ -354,7 +358,7 @@ def read_zip(path_or_bytes):
     p = path_or_bytes
     if isinstance(p, bytes):
         p = six.BytesIO(p)
-    with zipfile.ZipFile(p, "r") as z:
+    with zipfile.ZipFile(p, 'r') as z:
         for i in z.infolist():
             if i.is_dir():
                 continue
@@ -365,7 +369,8 @@ def read_zip(path_or_bytes):
 
 def safe_path(*paths):
     p = werkzeug.utils.safe_join(*paths)
-    assert p is not None, f"could not join in a safe manner paths={paths}"
+    assert p is not None, \
+        f'could not join in a safe manner paths={paths}'
     return p
 
 
@@ -383,7 +388,7 @@ def sanitize_string(string):
     """
     if is_python_identifier(string):
         return string
-    return _INVALID_PYTHON_IDENTIFIER.sub("_", string)
+    return _INVALID_PYTHON_IDENTIFIER.sub('_', string)
 
 
 def secure_filename(path):
@@ -399,11 +404,11 @@ def setattr_imports(imports):
 
 
 def split_comma_delimited_string(s, f_type):
-    return [f_type(x) for x in re.split(r"\s*,\s*", s)]
+    return [f_type(x) for x in re.split(r'\s*,\s*', s)]
 
 
 def to_comma_delimited_string(arr):
-    return ",".join([str(x) for x in arr])
+    return ','.join([str(x) for x in arr])
 
 
 def url_safe_hash(value):
@@ -413,11 +418,11 @@ def url_safe_hash(value):
 def _raise(exc, fmt, *args, **kwargs):
     import werkzeug.exceptions
 
-    kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
+    kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()
 
 
 cfg = pkconfig.init(
-    create_token_secret=("oh so secret!", str, "used for internal test only"),
+    create_token_secret=('oh so secret!', str, 'used for internal test only'),
 )

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""simulation data operations
+u"""simulation data operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,6 +10,7 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+
     @classmethod
     def fixup_old_data(cls, data):
         cls._init_models(data.models)
@@ -18,7 +19,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_job_fields(cls, data, *args, **kwargs):
         return [
             data.report,
-            "dog",
+            'dog',
         ]
 
     @classmethod

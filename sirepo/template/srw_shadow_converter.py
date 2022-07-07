@@ -351,14 +351,7 @@ class Converter:
                         ),
                     )
                 )
-            # elif item.type == 'emptyElement':
-            #     self.__decrement_beamline_ids(shadow, shadow.beamline.index(item))
         return self.beamline
-
-    # def __decrement_beamline_ids(self, shadow, index):
-    #     for i, e in enumerate(shadow.beamline):
-    #         if i > index:
-    #             shadow.beamline[i].id = shadow.beamline[i].id - 1
 
     def __crl_to_srw(self, item):
         res = _SRW.model_defaults(item.type)
