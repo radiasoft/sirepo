@@ -114,9 +114,9 @@ def jupyterhub():
     # POSIT: versions same in container-beamsim-jupyter/build.sh
     # Order is important: jupyterlab-server should be last so it isn't
     # overwritten with a newer version.
-    for m, v in ("jupyterhub", "1.1.0"), (
+    for m, v in ("jupyterhub", "1.4.2"), (
         "jupyterlab",
-        "2.1.0 jupyterlab-server==1.2.0",
+        "3.1.14 jupyterlab-server==2.8.2",
     ):
         try:
             importlib.import_module(m)
