@@ -2937,7 +2937,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 }
                 else {
                     $scope.showWarning = true;
-                    $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+                    $scope.warningText = 'Server reported an error, please contact support@sirepo.com.';
                 }
             }
 
@@ -3056,10 +3056,8 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             function genSimURL(data) {
                 $scope.newSimURL = requestSender.formatUrlLocal(
                     'beamline',
-                    {
-                        'simulationId': data.models.simulation.simulationId
-                    },
-                    data.simulationType
+                    { 'simulationId': data.models.simulation.simulationId},
+                    data.simulationType,
                 );
             }
 
@@ -3073,9 +3071,14 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             };
 
             $scope.openConvertedSimulation = function() {
-                const d = appState.models;
-                d.method = $scope.convMethod;
-                requestSender.sendStatefulCompute(appState, createNewSim, d);
+                requestSender.sendStatefulCompute(
+                    appState,
+                    createNewSim,
+                    {
+                        method: $scope.convMethod,
+                        ...appState.models,
+                    }
+                );
                 return false;
             };
 
