@@ -5,11 +5,13 @@
 set -euo pipefail
 
 test_err() {
-    test_msg "$@"
+    echo "$@" 1>&2
     return 1
 }
 
 test_js() {
+    local jsfiles=( sirepo/package_data/static/js/*.js )
+    test_no_prints '\s(srdbg|console.log|console.trace)\(' "${jsfiles[@]}"
     jshint --config=etc/jshint.conf "${jsfiles[@]}"
     if [[ ! ${sirepo_test_no_karma:-} ]]; then
         karma start etc/karma-conf.js
@@ -17,20 +19,9 @@ test_js() {
 }
 
 test_main() {
-    local pyfiles=( $(find sirepo -name \*.py | sort) )
-    pykern ci check_prints
-    local jsfiles=( sirepo/package_data/static/js/*.js )
-    test_no_prints '\s(srdbg|console.log|console.trace)\(' "${jsfiles[@]}"
-    test_no_h5py
     test_js
-    pykern test
-    if [[ -n ${PKSETUP_PYPI_PASSWORD:+hide-secret} ]]; then
-        python setup.py pkdeploy
-    fi
-}
-
-test_msg() {
-    echo "$@" 1>&2
+    test_no_h5py
+    pykern ci run
 }
 
 test_no_h5py() {
