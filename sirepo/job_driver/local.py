@@ -29,7 +29,7 @@ class LocalDriver(job_driver.DriverBase):
         super().__init__(op)
         self.update(
             _agent_exec_dir=pkio.py_path(op.msg.userDir).join(
-                'agent-local',
+                "agent-local",
                 self._agentId,
             ),
             _agent_exit=tornado.locks.Event(),
@@ -68,21 +68,23 @@ class LocalDriver(job_driver.DriverBase):
             agent_starting_secs=(
                 cls._AGENT_STARTING_SECS_DEFAULT,
                 int,
-                'how long to wait for agent start',
+                "how long to wait for agent start",
             ),
             slots=dict(
-                parallel=(1, int, 'max parallel slots'),
-                sequential=(1, int, 'max sequential slots'),
+                parallel=(1, int, "max parallel slots"),
+                sequential=(1, int, "max sequential slots"),
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
         )
-        cls.__cpu_slot_q.update({k: job_supervisor.SlotQueue(cls.cfg.slots[k]) for k in job.KINDS})
+        cls.__cpu_slot_q.update(
+            {k: job_supervisor.SlotQueue(cls.cfg.slots[k]) for k in job.KINDS}
+        )
         return cls
 
     async def kill(self):
-        if 'subprocess' not in self:
+        if "subprocess" not in self:
             return
-        pkdlog('{} pid={}', self, self.subprocess.proc.pid)
+        pkdlog("{} pid={}", self, self.subprocess.proc.pid)
         self.subprocess.proc.terminate()
         self.kill_timeout = tornado.ioloop.IOLoop.current().call_later(
             job_driver.KILL_TIMEOUT_SECS,
@@ -98,18 +100,18 @@ class LocalDriver(job_driver.DriverBase):
 
     def _agent_on_exit(self, returncode):
         self._agent_exit.set()
-        self.pkdel('subprocess')
-        k = self.pkdel('kill_timeout')
+        self.pkdel("subprocess")
+        k = self.pkdel("kill_timeout")
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
-        pkdlog('{} returncode={}', self, returncode)
+        pkdlog("{} returncode={}", self, returncode)
         self._agent_exec_dir.remove(rec=True, ignore_errors=True)
 
     async def _do_agent_start(self, op):
         stdin = None
         try:
             cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
-            pkdlog('{} agent_exec_dir={}', self, self._agent_exec_dir)
+            pkdlog("{} agent_exec_dir={}", self, self._agent_exec_dir)
             # since this is local, we can make the directory; useful for debugging
             pkio.mkdir_parent(self._agent_exec_dir)
             self.subprocess = tornado.process.Subprocess(

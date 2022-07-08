@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""test missing cookies
+"""test missing cookies
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,5 +14,5 @@ def test_srw_missing_cookies(fc):
     import json
 
     fc.cookie_jar.clear()
-    with pkexcept('missingCookies'):
-        fc.sr_post('/simulation-list', {'simulationType': fc.sr_sim_type})
+    with pkexcept("missingCookies"):
+        fc.sr_post("/simulation-list", {"simulationType": fc.sr_sim_type})

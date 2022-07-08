@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Common execution template.
+"""Common execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,26 +25,37 @@ import types
 DEFAULT_INTENSITY_DISTANCE = 20
 
 #: Input json file
-INPUT_BASE_NAME = 'in'
+INPUT_BASE_NAME = "in"
 
 #: Test if value is numeric text
-NUMERIC_RE = re.compile(r'^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$')
+NUMERIC_RE = re.compile(r"^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$")
 
 #: Output json file
-OUTPUT_BASE_NAME = 'out'
+OUTPUT_BASE_NAME = "out"
 
 #: Python file (not all simulations)
-PARAMETERS_PYTHON_FILE = 'parameters.py'
+PARAMETERS_PYTHON_FILE = "parameters.py"
 
 #: stderr and stdout
-RUN_LOG = 'run.log'
+RUN_LOG = "run.log"
 
 _HISTOGRAM_BINS_MAX = 500
 
-_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+_PLOT_LINE_COLOR = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+]
 
 
-class ModelUnits():
+class ModelUnits:
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
     Examples::
@@ -88,21 +99,22 @@ class ModelUnits():
         self.unit_def = unit_def
 
     def scale_from_native(self, name, model):
-        """ Scale values from native values into sirepo units. """
+        """Scale values from native values into sirepo units."""
         return self.__scale_model(name, model, True)
 
     def scale_to_native(self, name, model):
-        """ Scale values from sirepo units to native values. """
+        """Scale values from sirepo units to native values."""
         return self.__scale_model(name, model, False)
 
     @classmethod
     def scale_value(cls, value, scale_type, is_native):
-        """ Scale one value using the specified handler. """
+        """Scale one value using the specified handler."""
         handler = cls._COMMON_HANDLERS.get(scale_type, scale_type)
         if isinstance(handler, float):
             return float(value) * (handler if is_native else 1 / handler)
-        assert isinstance(handler, types.FunctionType), \
-            'Unknown unit scale: {}'.format(handler)
+        assert isinstance(handler, types.FunctionType), "Unknown unit scale: {}".format(
+            handler
+        )
         return handler(value, is_native)
 
     def __scale_model(self, name, model, is_native):
@@ -111,17 +123,16 @@ class ModelUnits():
                 if field not in model:
                     continue
                 model[field] = self.scale_value(
-                    model[field],
-                    self.unit_def[name][field],
-                    is_native)
+                    model[field], self.unit_def[name][field], is_native
+                )
         return model
 
 
-class NamelistParser():
+class NamelistParser:
     def parse_text(self, text):
         import f90nml
 
-        text = str(text.encode('ascii', 'ignore'), 'UTF-8')
+        text = str(text.encode("ascii", "ignore"), "UTF-8")
         parser = f90nml.Parser()
         parser.global_start_index = 1
         return parser.reads(text)
@@ -129,10 +140,11 @@ class NamelistParser():
 
 class NoH5PathError(KeyError):
     """The given path into an h5 file does not exist"""
+
     pass
 
 
-class ParticleEnergy():
+class ParticleEnergy:
     """Computes the energy related fields for a particle from one field.
     Units:
         mass [GeV/c^2]
@@ -140,18 +152,19 @@ class ParticleEnergy():
         energy [GeV]
         brho [Tm]
     """
-    SPEED_OF_LIGHT = 299792458 # [m/s]
+
+    SPEED_OF_LIGHT = 299792458  # [m/s]
 
     ENERGY_PRIORITY = PKDict(
-        opal=['gamma', 'energy', 'pc'],
-        madx=['energy', 'pc', 'gamma', 'beta', 'brho'],
+        opal=["gamma", "energy", "pc"],
+        madx=["energy", "pc", "gamma", "beta", "brho"],
     )
 
     # defaults unless constants.particleMassAndCharge is set in the schema
     PARTICLE_MASS_AND_CHARGE = PKDict(
         # mass [GeV]
         antiproton=[0.938272046, -1],
-        electron=[5.10998928e-4,-1],
+        electron=[5.10998928e-4, -1],
         muon=[0.1056583755, -1],
         positron=[5.10998928e-4, 1],
         proton=[0.938272046, 1],
@@ -166,11 +179,11 @@ class ParticleEnergy():
         for f in cls.ENERGY_PRIORITY[sim_type]:
             if f in energy and energy[f] != 0:
                 v = energy[f]
-                handler = '_ParticleEnergy__set_from_{}'.format(f)
+                handler = "_ParticleEnergy__set_from_{}".format(f)
                 getattr(cls, handler)(p, energy)
                 energy[f] = v
                 return energy
-        assert False, 'missing energy field: {}'.format(energy)
+        assert False, "missing energy field: {}".format(energy)
 
     @classmethod
     def get_charge(cls, sim_type, particle, beam):
@@ -182,9 +195,13 @@ class ParticleEnergy():
 
     @classmethod
     def __particle_info(cls, sim_type, particle, beam):
-        mass_and_charge = sirepo.sim_data.get_class(sim_type).schema().constants.get(
-            'particleMassAndCharge',
-            cls.PARTICLE_MASS_AND_CHARGE,
+        mass_and_charge = (
+            sirepo.sim_data.get_class(sim_type)
+            .schema()
+            .constants.get(
+                "particleMassAndCharge",
+                cls.PARTICLE_MASS_AND_CHARGE,
+            )
         )
         if particle in mass_and_charge:
             return mass_and_charge[particle]
@@ -192,9 +209,10 @@ class ParticleEnergy():
 
     @classmethod
     def __set_from_beta(cls, particle, energy):
-        assert energy.beta >= 0 or energy.beta < 1, \
-            'energy beta out of range: {}'.format(energy.beta)
-        energy.gamma = 1 / math.sqrt(1 - energy.beta ** 2)
+        assert (
+            energy.beta >= 0 or energy.beta < 1
+        ), "energy beta out of range: {}".format(energy.beta)
+        energy.gamma = 1 / math.sqrt(1 - energy.beta**2)
         cls.__set_from_gamma(particle, energy)
 
     @classmethod
@@ -209,17 +227,16 @@ class ParticleEnergy():
 
     @classmethod
     def __set_from_gamma(cls, particle, energy):
-        assert energy.gamma >= 1, \
-            'energy gamma out of range: {}'.format(energy.gamma)
+        assert energy.gamma >= 1, "energy gamma out of range: {}".format(energy.gamma)
         energy.energy = energy.gamma * particle.mass
         energy.kinetic_energy = energy.energy - particle.mass
-        energy.beta = math.sqrt(1.0 - 1.0 / (energy.gamma ** 2))
+        energy.beta = math.sqrt(1.0 - 1.0 / (energy.gamma**2))
         energy.pc = energy.gamma * energy.beta * particle.mass
         energy.brho = energy.pc / (abs(particle.charge) * cls.SPEED_OF_LIGHT * 1e-9)
 
     @classmethod
     def __set_from_pc(cls, particle, energy):
-        r2 = energy.pc ** 2 / (particle.mass ** 2)
+        r2 = energy.pc**2 / (particle.mass**2)
         energy.beta = math.sqrt(r2 / (1 + r2))
         cls.__set_from_beta(particle, energy)
 
@@ -228,30 +245,32 @@ def analysis_job_dispatch(data):
     t = sirepo.template.import_module(data.simulationType)
     return getattr(
         t,
-        f'analysis_job_{_validate_method(t, data)}',
+        f"analysis_job_{_validate_method(t, data)}",
     )(data)
 
 
 def compute_field_range(args, compute_range):
-    """ Computes the fieldRange values for all parameters across all animation files.
+    """Computes the fieldRange values for all parameters across all animation files.
     Caches the value on the animation input file. compute_range() is called to
     read the simulation specific datafiles and extract the ranges by field.
     """
     from sirepo import simulation_db
 
-    run_dir = simulation_db.simulation_run_dir(PKDict(
-        simulationType=args['simulationType'],
-        simulationId=args['simulationId'],
-        report='animation',
-    ))
+    run_dir = simulation_db.simulation_run_dir(
+        PKDict(
+            simulationType=args["simulationType"],
+            simulationId=args["simulationId"],
+            report="animation",
+        )
+    )
     data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
     res = None
-    model_name = args['modelName']
+    model_name = args["modelName"]
     if model_name in data.models:
-        if 'fieldRange' in data.models[model_name]:
+        if "fieldRange" in data.models[model_name]:
             res = data.models[model_name].fieldRange
         else:
-            #TODO(pjm): second arg was never used
+            # TODO(pjm): second arg was never used
             res = compute_range(run_dir, None)
             data.models[model_name].fieldRange = res
             simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
@@ -259,19 +278,19 @@ def compute_field_range(args, compute_range):
 
 
 def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
-    """ For parameter plots, assign each plot a color and compute the full y_range.
+    """For parameter plots, assign each plot a color and compute the full y_range.
     If a fixed range is provided, use that instead
     """
     y_range = fixed_y_range
     colors = plot_colors if plot_colors is not None else _PLOT_LINE_COLOR
     for i in range(len(plots)):
         plot = plots[i]
-        plot['color'] = colors[i % len(colors)]
-        if not plot['points']:
+        plot["color"] = colors[i % len(colors)]
+        if not plot["points"]:
             y_range = [0, 0]
         elif fixed_y_range is None:
-            vmin = min(plot['points'])
-            vmax = max(plot['points'])
+            vmin = min(plot["points"])
+            vmax = max(plot["points"])
             if y_range:
                 if vmin < y_range[0]:
                     y_range[0] = vmin
@@ -280,15 +299,18 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
             else:
                 y_range = [vmin, vmax]
     # color child plots the same as parent
-    for child in [p for p in plots if '_parent' in p]:
-        parent = next((pr for pr in plots if 'label' in pr and pr['label'] == child['_parent']), None)
+    for child in [p for p in plots if "_parent" in p]:
+        parent = next(
+            (pr for pr in plots if "label" in pr and pr["label"] == child["_parent"]),
+            None,
+        )
         if parent:
-            child['color'] = parent['color'] if 'color' in parent else '#000000'
+            child["color"] = parent["color"] if "color" in parent else "#000000"
     return y_range
 
 
 def write_dict_to_h5(d, file_path, h5_path=None):
-    """ Store the contents of a dict in an h5 file starting at the provided path.
+    """Store the contents of a dict in an h5 file starting at the provided path.
     Stores the data recursively so that
         {a: A, b: {c: C, d: D}}
     maps the data to paths
@@ -301,30 +323,30 @@ def write_dict_to_h5(d, file_path, h5_path=None):
     import h5py
 
     if h5_path is None:
-        h5_path = ''
+        h5_path = ""
     try:
         for i in range(len(d)):
-            p = f'{h5_path}/{i}'
+            p = f"{h5_path}/{i}"
             try:
-                with h5py.File(file_path, 'a') as f:
+                with h5py.File(file_path, "a") as f:
                     f.create_dataset(p, data=d[i])
             except TypeError:
                 write_dict_to_h5(d[i], file_path, h5_path=p)
     except KeyError:
         for k in d:
-            p = f'{h5_path}/{k}'
+            p = f"{h5_path}/{k}"
             try:
-                with h5py.File(file_path, 'a') as f:
+                with h5py.File(file_path, "a") as f:
                     f.create_dataset(p, data=d[k])
             except TypeError:
                 write_dict_to_h5(d[k], file_path, h5_path=p)
 
 
 def enum_text(schema, name, value):
-    for e in schema['enum'][name]:
+    for e in schema["enum"][name]:
         if e[0] == str(value):
             return e[1]
-    assert False, 'unknown {} enum value: {}'.format(name, value)
+    assert False, "unknown {} enum value: {}".format(name, value)
 
 
 def exec_parameters(path=None):
@@ -339,7 +361,7 @@ def exec_parameters_with_mpi():
     return mpi.run_script(pkio.read_text(PARAMETERS_PYTHON_FILE))
 
 
-def file_extension_ok(file_path, white_list=None, black_list=['py', 'pyc']):
+def file_extension_ok(file_path, white_list=None, black_list=["py", "pyc"]):
     """Determine whether a file has an acceptable extension
 
     Args:
@@ -369,13 +391,13 @@ def file_extension_ok(file_path, white_list=None, black_list=['py', 'pyc']):
     return True
 
 
-def flatten_data(d, res, prefix=''):
+def flatten_data(d, res, prefix=""):
     """Takes a nested dictionary and converts it to a single level dictionary with
     flattened keys."""
     for k in d:
         v = d[k]
         if isinstance(v, dict):
-            flatten_data(v, res, prefix + k + '_')
+            flatten_data(v, res, prefix + k + "_")
         elif isinstance(v, list):
             pass
         else:
@@ -386,10 +408,10 @@ def flatten_data(d, res, prefix=''):
 def generate_parameters_file(data, is_run_mpi=False):
     from sirepo import mpi
 
-    v = flatten_data(data['models'], PKDict())
+    v = flatten_data(data["models"], PKDict())
     v.notes = _get_notes(v)
-    v.mpi = mpi.abort_on_signal_code() if is_run_mpi else ''
-    return render_jinja(None, v, name='common-header.py'), v
+    v.mpi = mpi.abort_on_signal_code() if is_run_mpi else ""
+    return render_jinja(None, v, name="common-header.py"), v
 
 
 def get_exec_parameters_cmd(is_mpi=False):
@@ -401,7 +423,7 @@ def get_exec_parameters_cmd(is_mpi=False):
 def h5_to_dict(hf, path=None):
     d = PKDict()
     if path is None:
-        path = '/'
+        path = "/"
     try:
         for k in hf[path]:
             try:
@@ -410,7 +432,7 @@ def h5_to_dict(hf, path=None):
                 # AttributeErrors occur when invoking tolist() on non-arrays
                 # TypeErrors occur when accessing a group with [()]
                 # in each case we recurse one step deeper into the path
-                p = '{}/{}'.format(path, k)
+                p = "{}/{}".format(path, k)
                 d[k] = h5_to_dict(hf, path=p)
     except TypeError:
         # this TypeError occurs when hf[path] is not iterable (e.g. a string)
@@ -441,20 +463,20 @@ def heatmap(values, model, plot_fields=None):
     import numpy
 
     r = None
-    if 'plotRangeType' in model:
-        if model['plotRangeType'] == 'fixed':
+    if "plotRangeType" in model:
+        if model["plotRangeType"] == "fixed":
             r = [
-                _plot_range(model, 'horizontal'),
-                _plot_range(model, 'vertical'),
+                _plot_range(model, "horizontal"),
+                _plot_range(model, "vertical"),
             ]
-        elif model['plotRangeType'] == 'fit' and 'fieldRange' in model:
+        elif model["plotRangeType"] == "fit" and "fieldRange" in model:
             r = [
-                model.fieldRange[model['x']],
-                model.fieldRange[model['y']],
+                model.fieldRange[model["x"]],
+                model.fieldRange[model["y"]],
             ]
     hist, edges = numpy.histogramdd(
         values,
-        histogram_bins(model['histogramBins']),
+        histogram_bins(model["histogramBins"]),
         range=r,
     )
     res = PKDict(
@@ -479,7 +501,7 @@ def histogram_bins(nbins):
 
 def jinja_filename(filename):
     # append .jinja, because file may already have an extension
-    return filename + '.jinja'
+    return filename + ".jinja"
 
 
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
@@ -489,18 +511,18 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
         plots=plots,
         y_range=compute_plot_color_and_range(plots, plot_colors),
     )
-    if 'plotRangeType' in model:
-        if model.plotRangeType == 'fixed':
-            res['x_range'] = _plot_range(model, 'horizontal')
-            res['y_range'] = _plot_range(model, 'vertical')
-        elif model.plotRangeType == 'fit' and 'fieldRange' in model:
-            res['x_range'] = model.fieldRange[model.x]
+    if "plotRangeType" in model:
+        if model.plotRangeType == "fixed":
+            res["x_range"] = _plot_range(model, "horizontal")
+            res["y_range"] = _plot_range(model, "vertical")
+        elif model.plotRangeType == "fit" and "fieldRange" in model:
+            res["x_range"] = model.fieldRange[model.x]
             for i in range(len(plots)):
-                r = model.fieldRange[plots[i]['field']]
-                if r[0] < res['y_range'][0]:
-                    res['y_range'][0] = r[0]
-                if r[1] > res['y_range'][1]:
-                    res['y_range'][1] = r[1]
+                r = model.fieldRange[plots[i]["field"]]
+                if r[0] < res["y_range"][0]:
+                    res["y_range"][0] = r[0]
+                if r[1] > res["y_range"][1]:
+                    res["y_range"][1] = r[1]
     if plot_fields:
         res.update(plot_fields)
     return res
@@ -521,7 +543,7 @@ def parse_mpi_log(run_dir):
     f = run_dir.join(sirepo.const.MPI_LOG)
     if f.exists():
         m = re.search(
-            r'^Traceback .*?^\w*Error: (.*?)\n',
+            r"^Traceback .*?^\w*Error: (.*?)\n",
             pkio.read_text(f),
             re.MULTILINE | re.DOTALL,
         )
@@ -533,16 +555,16 @@ def parse_mpi_log(run_dir):
 def read_last_csv_line(path):
     # for performance, don't read whole file if only last line is needed
     if not path.exists():
-        return ''
+        return ""
     try:
-        with open(str(path), 'rb') as f:
+        with open(str(path), "rb") as f:
             f.readline()
             f.seek(-2, os.SEEK_END)
-            while f.read(1) != b'\n':
+            while f.read(1) != b"\n":
                 f.seek(-2, os.SEEK_CUR)
             return pkcompat.from_bytes(f.readline())
     except IOError:
-        return ''
+        return ""
 
 
 def read_sequential_result(run_dir):
@@ -572,10 +594,11 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     """
     b = jinja_filename(name)
     return pkjinja.render_file(
-        sirepo.sim_data.get_class(sim_type).resource_path(b) if sim_type \
-            else sirepo.sim_data.resource_path(b),
+        sirepo.sim_data.get_class(sim_type).resource_path(b)
+        if sim_type
+        else sirepo.sim_data.resource_path(b),
         v,
-        jinja_env=jinja_env
+        jinja_env=jinja_env,
     )
 
 
@@ -588,11 +611,11 @@ def sim_frame(frame_id, op, sapi):
     try:
         x = op(f)
     except Exception as e:
-        pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
-        raise sirepo.util.convert_exception(e, display_text='Report not generated')
+        pkdlog("error generating report frame_id={} stack={}", frame_id, pkdexc())
+        raise sirepo.util.convert_exception(e, display_text="Report not generated")
     r = sapi.reply_json(x)
-    if 'error' not in x and s.want_browser_frame_cache(s.frameReport):
-        r.headers['Cache-Control'] = 'private, max-age=31536000'
+    if "error" not in x and s.want_browser_frame_cache(s.frameReport):
+        r.headers["Cache-Control"] = "private, max-age=31536000"
     else:
         http_reply.headers_for_no_cache(r)
     return r
@@ -609,25 +632,28 @@ def sim_frame_dispatch(frame_args):
         ),
     )
     t = sirepo.template.import_module(frame_args.simulationType)
-    o = getattr(t, 'sim_frame_' + frame_args.frameReport, None) \
-        or getattr(t, 'sim_frame')
+    o = getattr(t, "sim_frame_" + frame_args.frameReport, None) or getattr(
+        t, "sim_frame"
+    )
     res = o(frame_args)
     if res is None:
-        raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
+        raise RuntimeError(
+            "unsupported simulation_frame model={}".format(frame_args.frameReport)
+        )
     return res
 
 
 def stateful_compute_dispatch(data):
     t = sirepo.template.import_module(data.simulationType)
     m = _validate_method(t, data)
-    if re.search(r'(?:^rpn|_rpn)_', m):
-        assert getattr(t, 'code_var')(data.variables).get_application_data(
-            data, getattr(t, 'SCHEMA'), getattr(t, 'CODE_VAR_IGNORE_ARRAY_VALUES', True)
-        ), f'unexpected false return data={data}'
+    if re.search(r"(?:^rpn|_rpn)_", m):
+        assert getattr(t, "code_var")(data.variables).get_application_data(
+            data, getattr(t, "SCHEMA"), getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True)
+        ), f"unexpected false return data={data}"
         return data
     return getattr(
         t,
-        f'stateful_compute_{m}',
+        f"stateful_compute_{m}",
     )(data)
 
 
@@ -635,7 +661,7 @@ def stateless_compute_dispatch(data):
     t = sirepo.template.import_module(data.simulationType)
     return getattr(
         t,
-        f'stateless_compute_{_validate_method(t, data)}',
+        f"stateless_compute_{_validate_method(t, data)}",
     )(data)
 
 
@@ -661,20 +687,19 @@ def subprocess_output(cmd, env=None):
         if p.wait() != 0:
             raise subprocess.CalledProcessError(returncode=p.returncode, cmd=cmd)
     except subprocess.CalledProcessError as e:
-        pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
+        pkdlog("{}: exit={} err={}", cmd, e.returncode, err)
         return None
     if out:
         out = pkcompat.from_bytes(out)
         return out.strip()
-    return ''
+    return ""
 
 
 def text_data_file(filename, run_dir):
-    """Return a datafile with a .txt extension so the text/plain mimetype is used.
-    """
+    """Return a datafile with a .txt extension so the text/plain mimetype is used."""
     return PKDict(
         filename=run_dir.join(filename, abs=1),
-        uri=filename + '.txt',
+        uri=filename + ".txt",
     )
 
 
@@ -688,29 +713,34 @@ def validate_model(model_data, model_schema, enum_info):
         elif len(model_schema[k]) > 2:
             value = model_schema[k][2]
         else:
-            raise Exception('no value for field "{}" and no default value in schema'.format(k))
+            raise Exception(
+                'no value for field "{}" and no default value in schema'.format(k)
+            )
         if field_type in enum_info:
             if str(value) not in enum_info[field_type]:
                 # Check a comma-delimited string against the enumeration
-                for item in re.split(r'\s*,\s*', str(value)):
+                for item in re.split(r"\s*,\s*", str(value)):
                     if item not in enum_info[field_type]:
-                        assert item in enum_info[field_type], \
-                            '{}: invalid enum "{}" value for field "{}"'.format(item, field_type, k)
-        elif field_type == 'Float':
+                        assert (
+                            item in enum_info[field_type]
+                        ), '{}: invalid enum "{}" value for field "{}"'.format(
+                            item, field_type, k
+                        )
+        elif field_type == "Float":
             if not value:
                 value = 0
             v = float(value)
-            if re.search(r'\[m(m|rad)]', label):
+            if re.search(r"\[m(m|rad)]", label):
                 v /= 1000
-            elif re.search(r'\[n(m|rad)]', label) or re.search(r'\[nm/pixel\]', label):
+            elif re.search(r"\[n(m|rad)]", label) or re.search(r"\[nm/pixel\]", label):
                 v /= 1e09
-            elif re.search(r'\[ps]', label):
+            elif re.search(r"\[ps]", label):
                 v /= 1e12
-            #TODO(pjm): need to handle unicode in label better (mu)
-            elif re.search('\\[\xb5(m|rad)]', label) or re.search(r'\[mm-mrad]', label):
+            # TODO(pjm): need to handle unicode in label better (mu)
+            elif re.search("\\[\xb5(m|rad)]", label) or re.search(r"\[mm-mrad]", label):
                 v /= 1e6
             model_data[k] = float(v)
-        elif field_type == 'Integer':
+        elif field_type == "Integer":
             if not value:
                 value = 0
             model_data[k] = int(value)
@@ -723,17 +753,17 @@ def validate_model(model_data, model_schema, enum_info):
 
 def validate_models(model_data, model_schema):
     """Validate top-level models in the schema. Returns enum_info."""
-    enum_info = parse_enums(model_schema['enum'])
-    for k in model_data['models']:
-        if k in model_schema['model']:
+    enum_info = parse_enums(model_schema["enum"])
+    for k in model_data["models"]:
+        if k in model_schema["model"]:
             validate_model(
-                model_data['models'][k],
-                model_schema['model'][k],
+                model_data["models"][k],
+                model_schema["model"][k],
                 enum_info,
             )
-    if 'beamline' in model_data['models']:
-        for m in model_data['models']['beamline']:
-            validate_model(m, model_schema['model'][m['type']], enum_info)
+    if "beamline" in model_data["models"]:
+        for m in model_data["models"]["beamline"]:
+            validate_model(m, model_schema["model"][m["type"]], enum_info)
     return enum_info
 
 
@@ -749,8 +779,7 @@ def write_sequential_result(result, run_dir=None):
     if not run_dir:
         run_dir = pkio.py_path()
     f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
-    assert not f.exists(), \
-        '{} file exists'.format(OUTPUT_BASE_NAME)
+    assert not f.exists(), "{} file exists".format(OUTPUT_BASE_NAME)
     simulation_db.write_json(f, result)
     t = sirepo.template.import_module(
         simulation_db.read_json(
@@ -760,34 +789,35 @@ def write_sequential_result(result, run_dir=None):
             ),
         ),
     )
-    if hasattr(t, 'clean_run_dir'):
+    if hasattr(t, "clean_run_dir"):
         t.clean_run_dir(run_dir)
 
 
 def _escape(v):
-    return re.sub(r'([^\\])[\"\']', r'\1', str(v))
+    return re.sub(r"([^\\])[\"\']", r"\1", str(v))
 
 
 def _get_notes(data):
     notes = []
     for key in data.keys():
-        match = re.search(r'^(.+)_notes$', key)
+        match = re.search(r"^(.+)_notes$", key)
         if match and data[key]:
             n_key = match.group(1)
             k = n_key[0].capitalize() + n_key[1:]
-            k_words = [word for word in re.split(r'([A-Z][a-z]*)', k) if word != '']
-            notes.append((' '.join(k_words), data[key]))
+            k_words = [word for word in re.split(r"([A-Z][a-z]*)", k) if word != ""]
+            notes.append((" ".join(k_words), data[key]))
     return sorted(notes, key=lambda n: n[0])
 
 
 def _plot_range(report, axis):
-    half_size = float(report['{}Size'.format(axis)]) / 2.0
-    midpoint = float(report['{}Offset'.format(axis)])
+    half_size = float(report["{}Size".format(axis)]) / 2.0
+    midpoint = float(report["{}Offset".format(axis)])
     return [midpoint - half_size, midpoint + half_size]
 
 
 def _validate_method(template, data):
     m = data.method
-    assert re.search(r'^\w{1,35}$', m), \
-        f'method={m} not a valid python function name or too long'
+    assert re.search(
+        r"^\w{1,35}$", m
+    ), f"method={m} not a valid python function name or too long"
     return m

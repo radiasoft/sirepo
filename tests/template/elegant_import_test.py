@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""PyTest for :mod:`sirepo.importer`
+"""PyTest for :mod:`sirepo.importer`
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,27 +16,32 @@ def test_importer(import_req):
     from sirepo.template import elegant
     import sirepo.lib
 
-    for fn in pkio.sorted_glob(pkunit.data_dir().join('*')):
-        if not pkio.has_file_extension(fn, ('ele', 'lte')) \
-            or fn.basename.endswith('.ele.lte'):
+    for fn in pkio.sorted_glob(pkunit.data_dir().join("*")):
+        if not pkio.has_file_extension(fn, ("ele", "lte")) or fn.basename.endswith(
+            ".ele.lte"
+        ):
             continue
         k = PKDict()
-        pkdlog('file={}', fn)
-        if fn.basename.startswith('deviance-'):
+        pkdlog("file={}", fn)
+        if fn.basename.startswith("deviance-"):
             try:
                 data = elegant.import_file(import_req(fn))
             except Exception as e:
-                k.actual = f'{e}\n'
+                k.actual = f"{e}\n"
             else:
-                k.actual = 'did not raise exception'
-        elif fn.ext == '.lte':
+                k.actual = "did not raise exception"
+        elif fn.ext == ".lte":
             data = elegant.import_file(import_req(fn))
-            data['models']['commands'] = []
+            data["models"]["commands"] = []
             g = elegant._Generate(data)
             g.sim()
-            j =  g.jinja_env
+            j = g.jinja_env
             k.actual = j.rpn_variables + j.lattice
         else:
-            f = sirepo.lib.Importer('elegant').parse_file(fn).write_files(pkunit.work_dir())
+            f = (
+                sirepo.lib.Importer("elegant")
+                .parse_file(fn)
+                .write_files(pkunit.work_dir())
+            )
             k.actual_path = f.commands
-        pkunit.file_eq(fn.basename + '.txt', **k)
+        pkunit.file_eq(fn.basename + ".txt", **k)

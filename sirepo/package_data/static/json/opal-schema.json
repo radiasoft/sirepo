@@ -177,7 +177,7 @@
             ["CARBONCYCL", "CARBONCYCL"],
             ["CYCIAE", "CYCIAE"],
             ["AVFEQ", "AVFEQ"],
-            ["FFAG", "FFA"],
+            ["FFA", "FFA"],
             ["BANDRF", "BANDRF"],
             ["PSI", "PSI"]
         ],
@@ -692,11 +692,6 @@
             "freq": ["FREQ [MHz]", "RPNValue", 0, "RF frequency"],
             "lag": ["LAG [rad]", "RPNValue", 0, "Phase lag"],
             "dlag": ["DLAG [rad]", "RPNValue", 0, "Phase lag error"],
-            "harmon": ["HARMON", "RPNValue", 0, "Harmonic number"],
-            "betrf": ["BETRF", "RPNValue", 0, "beta_RF"],
-            "pg": ["PG [MW]", "RPNValue", 0, "RF power"],
-            "shunt": ["SHUNT [MOhm]", "RPNValue", 0, "Shunt impedance"],
-            "tfill": ["TFILL [microseconds]", "RPNValue", 0, "Fill time"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Filename of the fieldmap"],
             "geometry": ["GEOMETRY", "GeometryList", "", "BoundaryGeometry for Cavities"],
             "fast": ["FAST", "Boolean", "1", "Faster but less accurate"],
@@ -726,7 +721,7 @@
             "symmetry": ["SYMMETRY", "RPNValue", 0, "The rotational symmetry of the lattice."],
             "scale": ["SCALE", "RPNValue", 1, "Scale the fields by a multiplicative factor"],
             "rffreq": ["RFFREQ [MHz]", "RPNValue", 0, "The nominal RF frequency of the ring"],
-            "is_closed": ["IS_CLOSED", "OptionalString", "", "Set to 'false' to disable checking for closure of the ring"],
+            "is_closed": ["IS_CLOSED", "Boolean", "0", "Set to 'false' to disable checking for closure of the ring"],
             "min_r": ["MIN_R [m]", "RPNValue", 0, "Minimum allowed radius during tracking. If not defined, any radius is allowed. If MIN_R is defined, MAX_R must also be defined."],
             "max_r": ["MAX_R [m]", "RPNValue", 0, "Maximum allowed radius during tracking. If not defined, any radius is allowed. If MAX_R is defined, MIN_R must also be defined."]
         },
@@ -796,7 +791,8 @@
         "SOURCE": {
             "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "distribution": ["DISTRIBUTION", "DistributionList", "", "List of particle distributions to be used"]
+            "distribution": ["DISTRIBUTION", "DistributionList", "", "List of particle distributions to be used"],
+            "transparent": ["TRANSPARENT", "Boolean", "0", "Make the source element transparent to impacting elements"]
         },
         "TRAVELINGWAVE": {
             "_super": ["_", "model", "_ELEMENT"],
@@ -806,11 +802,6 @@
             "freq": ["FREQ [MHz]", "RPNValue", 0, "RF frequency"],
             "lag": ["LAG [rad]", "RPNValue", 0, "Phase lag"],
             "dlag": ["DLAG [rad]", "RPNValue", 0, "Phase lag error"],
-            "harmon": ["HARMON", "RPNValue", 0, "Harmonic number"],
-            "betrf": ["BETRF", "RPNValue", 0, "beta_RF"],
-            "pg": ["PG [MW]", "RPNValue", 0, "RF power"],
-            "shunt": ["SHUNT [MOhm]", "RPNValue", 0, "Shunt impedance"],
-            "tfill": ["TFILL [microseconds]", "RPNValue", 0, "Fill time"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Filename for the fieldmap"],
             "fast": ["FAST", "Boolean", "1", "Faster but less accurate"],
             "apveto": ["APVETO", "Boolean", "0", "Do not use this cavity in the Autophase procedure"],
@@ -831,6 +822,46 @@
             "rmin": ["RMIN [mm]", "RPNValue", 0, "Minimum radius"],
             "rmax": ["RMAX [mm]", "RPNValue", 0, "Maximum radius"],
             "slptc": ["SLPTC", "RPNValue", 0, "Slopes of the rising edge [1/mm] (for PSI-BFIELD-MIRRORED)"]
+        },
+        "UNDULATOR": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""],
+            "k": ["K [unitless]", "RPNValue", 1, "Undulator strength parameter"],
+            "lambda": ["LAMBDA [m]", "RPNValue", 0, "Undulator period"],
+            "numperiods": ["NUMPERIODS", "RPNValue", 0, "Number of undulator periods."],
+            "angle": ["ANGLE [rad]", "RPNValue", 0, "Polarisation angle of the undulator magnetic field"],
+            "fname": ["FNAME", "InputFile", "", "Jobfile specifying the output data from the undulator."],
+            "meshlength": ["MESHLENGTH [m]", "RPNValue", 0, "Size of computational mesh"],
+            "meshresolution": ["MESHRESOLUTION [m]", "RPNValue", 0, "{dx, dy, dz} of the mesh"],
+            "trunorder": ["TRUNORDER", "RPNValue", 2, "Order of absorbing boundary conditions. 1st or 2nd."],
+            "totaltime": ["TOTALTIME [s]", "RPNValue", 0, "Total time of the full-wave simulation"],
+            "dtbunch": ["DTBUNCH [s]", "RPNValue", 0, "Time step for the particle update can be smaller than the field update step"],
+            "outfn": ["OUTFN", "OutputFile", "", "Output filename"]
+        },
+        "VACUUM": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""],
+            "pressure": ["PRESSURE [mbar]", "RPNValue", 0, "Pressure in the accelerator,"],
+            "temperature": ["TEMPERATURE [K]", "RPNValue", 0, "Temperature of the accelerator,"],
+            "pmapfn": ["PMAPFN", "InputFile", "", "Filename for the Pressure fieldmap"],
+            "pscale": ["PSCALE", "RPNValue", 1, "Scale factor for the P-field"],
+            "gas": ["GAS", "OptionalString", "{AIR, H2}", "The composition of residual gas"],
+            "stop": ["STOP", "Boolean", "1", "Option Whether stop tracking after beam stripping"],
+            "outfn": ["OUTFN", "OutputFile", "", "Output filename"]
+        },
+        "VERTICALFFAMAGNET": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""],
+            "b0": ["B0 [T]", "RPNValue", 0, "The nominal dipole field of the magnet at zero height"],
+            "field_index": ["FIELD_INDEX [m^(-1)]", "RPNValue", 0, "Exponent term in the field index"],
+            "width": ["WIDTH", "RPNValue", 0, "The full width of the magnet. Particles moving more than WIDTH/2 horizontally, in either direction, are out of the aperture."],
+            "max_horizontal_power": ["MAX_HORIZONTAL_POWER", "RPNValue", 0, "The maximum power in horizontal coordinate that will be considered in the field expansion."],
+            "end_length": ["END_LENGTH [m]", "RPNValue", 0, "The end length of the FFA fringe field"],
+            "centre_length": ["CENTRE_LENGTH [m]", "RPNValue", 0, "The centre length of the FFA (i.e. length of the flat top)"],
+            "bb_length": ["BB_LENGTH [m]", "RPNValue", 0, "Determines the length of the bounding box. Magnet is situated symmetrically in the bounding box."],
+            "height_pos_extent": ["HEIGHT_POS_EXTENT [m]", "RPNValue", 0, "Height of the magnet above z=0. Particles moving upwards more than HEIGHT_POS_EXTENT are out of the aperture"],
+            "height_neg_extent": ["HEIGHT_NEG_EXTENT [m]", "RPNValue", 0, "Height of the magnet below z=0. Particles moving downwards more than HEIGHT_NEG_EXTENT are out of the aperture"],
+            "outfn": ["OUTFN", "OutputFile", "", "Output filename"]
         },
         "VARIABLE_RF_CAVITY": {
             "_super": ["_", "model", "_ELEMENT"],
@@ -909,6 +940,8 @@
             "pxmult": ["PXMULT", "RPNValue", 1, "Multiplier for px dimension."],
             "pymult": ["PYMULT", "RPNValue", 1, "Multiplier for py dimension."],
             "pzmult": ["PZMULT", "RPNValue", 1, "Multiplier for pz dimension."],
+            "npeaks": ["NPEAKS", "RPNValue", 0, "Number of Gaussian  pulses in MultiGauss distribution."],
+            "outfn": ["OUTFN", "OutputFile", "", "Output filename"],
             "offsetx": ["OFFSETX", "RPNValue", 0, "Average x offset of distribution."],
             "offsety": ["OFFSETY", "RPNValue", 0, "Average y offset of distribution."],
             "offsetz": ["OFFSETZ", "RPNValue", 0, "Average z offset of distribution."],
@@ -922,6 +955,7 @@
             "sigmar": ["SIGMAR [m]", "RPNValue", 0, "SIGMAr"],
             "sigmaz": ["SIGMAZ [m]", "RPNValue", 0, "SIGMAz"],
             "sigmat": ["SIGMAT [m]", "RPNValue", 0, "SIGMAt"],
+            "seppeaks": ["SEPPEAKS", "RPNValue", 0, "Separation between Gaussian peaks in MultiGauss distribution."],
             "tpulsefwhm": ["TPULSEFWHM", "RPNValue", 0, "Pulse FWHM for emitted distribution."],
             "trise": ["TRISE", "RPNValue", 0, "Rise time for emitted distribution."],
             "tfall": ["TFALL", "RPNValue", 0, "Fall time for emitted distribution."],
@@ -958,35 +992,48 @@
             "rotate90": ["ROTATE90", "Boolean", "0", "Rotate laser profile 90 degrees counter clockwise"],
             "rotate180": ["ROTATE180", "Boolean", "0", "Rotate laser profile 180 degrees counter clockwise"],
             "rotate270": ["ROTATE270", "Boolean", "0", "Rotate laser profile 270 degrees counter clockwise"],
-            "npdarkcur": ["NPDARKCUR", "RPNValue", 1000, "Number of dark current particles."],
-            "inwardmargin": ["INWARDMARGIN", "RPNValue", 0.001, "Inward margin of initialized dark current particle positions."],
-            "einithr": ["EINITHR", "RPNValue", 0, "E field threshold (MV/m), only in position r with E(r)>EINITHR that particles will be initialized."],
-            "fna": ["FNA", "RPNValue", 1.54e-06, "Empirical constant A for Fowler-Nordheim emission model."],
-            "fnb": ["FNB", "RPNValue", 6830000000, "Empirical constant B for Fowler-Nordheim emission model."],
-            "fny": ["FNY", "RPNValue", 3.795e-05, "Constant for image charge effect parameter y(E) in Fowler-Nordheim emission model."],
-            "fnvyzero": ["FNVYZERO", "RPNValue", 0.9632, "Zero order constant for v(y) function in Fowler-Nordheim emission model."],
-            "fnvysecond": ["FNVYSECOND", "RPNValue", 1.065, "Second order constant for v(y) function in Fowler-Nordheim emission model."],
-            "fnphiw": ["FNPHIW [eV]", "RPNValue", 4.65, "Work function of gun surface material"],
-            "fnbeta": ["FNBETA", "RPNValue", 50, "Field enhancement factor for Fowler-Nordheim emission."],
-            "fnfieldthr": ["FNFIELDTHR [MV/m]", "RPNValue", 30, "Field threshold for Fowler-Nordheim emission"],
-            "fnmaxemi": ["FNMAXEMI", "RPNValue", 20, "Maximum number of electrons emitted from a single triangle for Fowler-Nordheim emission."],
-            "secondaryflag": ["SECONDARYFLAG", "RPNValue", 0, "Select the secondary model type 0:no secondary emission; 1:Furman-Pivi; 2 or larger: Vaughan's model."],
-            "nemissionmode": ["NEMISSIONMODE", "Boolean", "1", "Secondary emission mode type true: emit n true secondaries; false: emit one particle with n times charge."],
-            "vseyzero": ["VSEYZERO", "RPNValue", 0.5, "Sey_0 in Vaughan's model."],
-            "vezero": ["VEZERO [eV]", "RPNValue", 12.5, "Energy related to sey_0 in Vaughan's model"],
-            "vseymax": ["VSEYMAX", "RPNValue", 2.22, "Sey max in Vaughan's model."],
-            "vemax": ["VEMAX [eV]", "RPNValue", 165, "Emax in Vaughan's model"],
-            "vkenergy": ["VKENERGY", "RPNValue", 1, "Fitting parameter denotes the roughness of surface for impact energy in Vaughan's model."],
-            "vktheta": ["VKTHETA", "RPNValue", 1, "Fitting parameter denotes the roughness of surface for impact angle in Vaughan's model."],
-            "vvthermal": ["VVTHERMAL", "RPNValue", 726892.9821, "Thermal velocity of Maxwellian distribution of secondaries in Vaughan's model."],
-            "vw": ["VW", "RPNValue", 1, "VW denote the velocity scalar for parallel plate benchmark."],
-            "surfmaterial": ["SURFMATERIAL", "RPNValue", 0, "Material type number of the cavity surface for Furman-Pivi's model, 0 for copper, 1 for stainless steel."],
             "id1": ["ID1", "RPNValue", 0, "User defined particle with ID=1"],
             "id2": ["ID2", "RPNValue", 0, "User defined particle with ID=2"],
             "scalable": ["SCALABLE", "Boolean", "0", "If true then distribution is scalable with respect of number of particles and number of cores"],
             "sbin": ["SBIN", "RPNValue", 100, "Number of sample bins to use per energy bin when emitting a distribution."],
             "sigmapt": ["SIGMAPT", "RPNValue", 0, "SIGMApt"],
             "cutoff": ["CUTOFF", "RPNValue", 3, "Longitudinal cutoff for Gaussian in units of sigma."]
+        },
+        "command_dumpemfields": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "file_name": ["FILE_NAME", "OutputFile", "", "Name of the file to which field data is dumped"],
+            "coordinate_system": ["COORDINATE_SYSTEM", "OptionalString", "{CARTESIAN, CYLINDRICAL}, CARTESIAN", "Choose to use CARTESIAN or CYLINDRICAL coordinates"],
+            "x_start": ["X_START [m]", "RPNValue", 0, "(Cartesian) Start point in the grid in x"],
+            "dx": ["DX [m]", "RPNValue", 0, "(Cartesian) Grid step size in x"],
+            "x_steps": ["X_STEPS [x]", "RPNValue", 0, "(Cartesian) Number of steps"],
+            "y_start": ["Y_START [m]", "RPNValue", 0, "(Cartesian) Start point in the grid in y"],
+            "dy": ["DY [m]", "RPNValue", 0, "(Cartesian) Grid step size in y"],
+            "y_steps": ["Y_STEPS [y]", "RPNValue", 0, "(Cartesian) Number of steps"],
+            "z_start": ["Z_START [m]", "RPNValue", 0, "Start point in the grid in z"],
+            "dz": ["DZ [m]", "RPNValue", 0, "Grid step size in z"],
+            "z_steps": ["Z_STEPS [z]", "RPNValue", 0, "Number of steps"],
+            "t_start": ["T_START [ns]", "RPNValue", 0, "Start point in the grid in time"],
+            "dt": ["DT [ns]", "RPNValue", 0, "Grid step size in time"],
+            "t_steps": ["T_STEPS [time]", "RPNValue", 0, "Number of steps"],
+            "r_start": ["R_START [m]", "RPNValue", 0, "(Cylindrical) Start point in the grid in radius"],
+            "dr": ["DR [m]", "RPNValue", 0, "(Cylindrical) Grid step size in radius"],
+            "r_steps": ["R_STEPS [radius]", "RPNValue", 0, "(Cylindrical) Number of steps"],
+            "phi_start": ["PHI_START [rad]", "RPNValue", 0, "(Cylindrical) Start point in the grid in phi"],
+            "dphi": ["DPHI [rad]", "RPNValue", 0, "(Cylindrical) Grid step size in phi"],
+            "phi_steps": ["PHI_STEPS [phi]", "RPNValue", 0, "(Cylindrical) Number of steps"]
+        },
+        "command_dumpfields": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "file_name": ["FILE_NAME", "OutputFile", "", "Name of the file to which field data is dumped"],
+            "x_start": ["X_START [m]", "RPNValue", 0, "Start point in the grid in x"],
+            "dx": ["DX [m]", "RPNValue", 0, "Grid step size in x"],
+            "x_steps": ["X_STEPS [x]", "RPNValue", 0, "Number of steps"],
+            "y_start": ["Y_START [m]", "RPNValue", 0, "Start point in the grid in y"],
+            "dy": ["DY [m]", "RPNValue", 0, "Grid step size in y"],
+            "y_steps": ["Y_STEPS [y]", "RPNValue", 0, "Number of steps"],
+            "z_start": ["Z_START [m]", "RPNValue", 0, "Start point in the grid in z"],
+            "dz": ["DZ [m]", "RPNValue", 0, "Grid step size in z"],
+            "z_steps": ["Z_STEPS [z]", "RPNValue", 0, "Number of steps"]
         },
         "command_fieldsolver": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1027,6 +1074,7 @@
             "name": ["NAME", "ValidatedString", "", ""],
             "fgeom": ["FGEOM [h5fed]", "InputFile", "", "Specifies the geometry file"],
             "topo": ["TOPO", "GeometryTopo", "ELLIPTIC", "BOX, BOXCORNER, ELLIPTIC if FGEOM is selected topo is over-written"],
+            "insidepoint": ["INSIDEPOINT", "RPNValue", 0, "A point inside the geometry"],
             "length": ["LENGTH [m]", "RPNValue", 1, "Specifies the length of a tube shaped elliptic beam pipe"],
             "s": ["S [m]", "RPNValue", 0, "Specifies the start of a tube shaped elliptic beam pipe"],
             "a": ["A [m]", "RPNValue", 0.025, "Specifies the major semi-axis of a tube shaped elliptic beam pipe"],
@@ -1034,16 +1082,15 @@
             "l1": ["L1 [m]", "RPNValue", 0.5, "In case of BOXCORNER Specifies first part with hight == B"],
             "l2": ["L2 [m]", "RPNValue", 0.2, "In case of BOXCORNER Specifies first second with hight == B-C"],
             "c": ["C [m]", "RPNValue", 0.01, "In case of BOXCORNER Specifies hight of corner C"],
-            "distr": ["DISTR", "DistributionList", "", "Distribution to be generated on the surface"],
-            "distrs": ["DISTRS", "OptionalString", "", "Distribution array to be generated on the surface"],
             "xyzscale": ["XYZSCALE", "RPNValue", 1, "Multiplicative scaling factor for coordinates"],
             "xscale": ["XSCALE", "RPNValue", 1, "Multiplicative scaling factor for X coordinates"],
             "yscale": ["YSCALE", "RPNValue", 1, "Multiplicative scaling factor for Y coordinates"],
             "zscale": ["ZSCALE", "RPNValue", 1, "Multiplicative scaling factor for Z coordinates"],
-            "zshift": ["ZSHIFT", "RPNValue", 0, "Shift in z direction"],
-            "aperture": ["APERTURE", "RPNValue", 0, "The element aperture"]
+            "zshift": ["ZSHIFT", "RPNValue", 0, "Shift in z direction"]
         },
         "command_option": {
+            "enablevtk": ["ENABLEVTK", "Boolean", "1", "If true, writing of VTK files are enabled"],
+            "delpartfreq": ["DELPARTFREQ", "RPNValue", 0, "The frequency to delete particles, i.e. delete when step%delPartFreq == 0"],
             "name": ["NAME", "ValidatedString", "", ""],
             "echo": ["ECHO", "Boolean", "0", "If true, give echo of input"],
             "info": ["INFO", "Boolean", "1", "If true, print information messages"],
@@ -1067,8 +1114,6 @@
             "ebdump": ["EBDUMP", "Boolean", "0", "If true, in addition to the phase space the E and B field at each particle is also dumped into the H5 file)"],
             "csrdump": ["CSRDUMP", "Boolean", "0", "If true, the csr E field, line density and the line density derivative is dumped into the data directory)"],
             "autophase": ["AUTOPHASE", "RPNValue", 6, "If greater than zero OPAL is scanning the phases of each rf structure in order to get maximum acceleration. Defines the number of refinements of the search range"],
-            "ppdebug": ["PPDEBUG", "Boolean", "0", "If true, use special initial velocity distribution for parallel plate and print special debug output"],
-            "surfdumpfreq": ["SURFDUMPFREQ", "RPNValue", -1, "The frequency to dump surface-partcle interaction data"],
             "czero": ["CZERO", "Boolean", "0", "If set to true a symmetric distribution is created -> centroid == 0.0"],
             "rngtype": ["RNGTYPE", "OptionRngtype", "RANDOM", "RANDOM (default), Quasi-random number generators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)"],
             "clotuneonly": ["CLOTUNEONLY", "Boolean", "0", "If set to true stop after CLO and tune calculation"],
@@ -1086,6 +1131,7 @@
         },
         "command_particlematterinteraction": {
             "name": ["NAME", "ValidatedString", "", ""],
+            "lowenergythr": ["LOWENERGYTHR [MeV]", "RPNValue", 0.01, "Lower Energy threshold for energy loss calculation"],
             "type": ["TYPE", "ParticlematterinteractionType", "", "Specifies the particle mater interaction handler: Collimator"],
             "material": ["MATERIAL", "ParticlematterinteractionMaterial", "", "The material of the surface"],
             "enablerutherford": ["ENABLERUTHERFORD", "Boolean", "1", "Enable large angle scattering"]
@@ -1101,7 +1147,6 @@
             "fieldsolver": ["FIELDSOLVER", "FieldsolverList", "", "Field solver to be used"],
             "boundarygeometry": ["BOUNDARYGEOMETRY [default]", "GeometryList", "", "Boundary geometry to be used NONE"],
             "distribution": ["DISTRIBUTION", "DistributionList", "", "List of particle distributions to be used"],
-            "multipacting": ["MULTIPACTING", "Boolean", "0", "Multipacting flag, default: false. Set true to initialize primary particles according to BoundaryGeometry"],
             "trackback": ["TRACKBACK", "Boolean", "0", "Track in reverse direction, default: false"]
         },
         "command_select": {
@@ -1113,15 +1158,6 @@
             "class": ["CLASS", "OptionalString", "", "Name of class to be selected (default: all classes)"],
             "type": ["TYPE", "OptionalString", "", "The type name of elements to be selected (default: all types)"],
             "pattern": ["PATTERN", "OptionalString", "", "Regular expression for matching names (default: all names)"]
-        },
-        "command_start": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "x": ["X [m]", "RPNValue", 0, "Initial horizontal position"],
-            "px": ["PX [1]", "RPNValue", 0, "Initial horizontal momentum"],
-            "y": ["Y [m]", "RPNValue", 0, "Initial horizontal position"],
-            "py": ["PY [1]", "RPNValue", 0, "Initial horizontal momentum"],
-            "t": ["T [m]", "RPNValue", 0, "Initial horizontal position"],
-            "pt": ["PT [1]", "RPNValue", 0, "Initial horizontal momentum"]
         },
         "command_title": {
             "string": ["STRING", "String", "", ""]
@@ -1150,7 +1186,6 @@
             "run_fieldsolver": ["FIELDSOLVER", "FieldsolverList", "", "Field solver to be used"],
             "run_boundarygeometry": ["BOUNDARYGEOMETRY [default]", "GeometryList", "", "Boundary geometry to be used NONE"],
             "run_distribution": ["DISTRIBUTION", "DistributionList", "", "List of particle distributions to be used"],
-            "run_multipacting": ["MULTIPACTING", "Boolean", "0", "Multipacting flag, default: false. Set true to initialize primary particles according to BoundaryGeometry"],
             "run_trackback": ["TRACKBACK", "Boolean", "0", "Track in reverse direction, default: false"]
         },
         "command_wake": {
@@ -1160,7 +1195,6 @@
             "const_length": ["CONST_LENGTH", "Boolean", "0", "True if the length of the Bunch is considered as constant"],
             "conduct": ["CONDUCT", "WakeConduct", "", "Conductivity: DC, AC"],
             "z0": ["Z0", "RPNValue", 0, "Impedance of the beam pipe"],
-            "form": ["FORM", "WakeForm", "ROUND", "The form of the  beam pipe: ROUND"],
             "radius": ["RADIUS [m]", "RPNValue", 0, "The radius of the beam pipe"],
             "sigma": ["SIGMA", "RPNValue", 0, "Material constant dependant on the  beam pipe material"],
             "tau": ["TAU", "RPNValue", 0, "Material constant dependant on the  beam pipe material"],
@@ -1824,11 +1858,6 @@
                 "freq",
                 "lag",
                 "dlag",
-                "harmon",
-                "betrf",
-                "pg",
-                "shunt",
-                "tfill",
                 "fmapfn",
                 "geometry",
                 "fast",
@@ -2063,6 +2092,7 @@
                 "name",
                 "l",
                 "distribution",
+                "transparent",
                 "aperture",
                 "wakef",
                 "particlematterinteraction",
@@ -2089,11 +2119,6 @@
                 "freq",
                 "lag",
                 "dlag",
-                "harmon",
-                "betrf",
-                "pg",
-                "shunt",
-                "tfill",
                 "fmapfn",
                 "fast",
                 "apveto",
@@ -2131,6 +2156,66 @@
                 "rmin",
                 "rmax",
                 "slptc"
+            ]
+        },
+        "UNDULATOR": {
+            "title": "UNDULATOR",
+            "description": "The UNDULATOR element defines an undulator or wiggler.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "k",
+                "lambda",
+                "numperiods",
+                "angle",
+                "fname",
+                "meshlength",
+                "meshresolution",
+                "trunorder",
+                "totaltime",
+                "dtbunch",
+                "aperture",
+                "wakef",
+                "particlematterinteraction",
+                "theta",
+                "phi",
+                "psi",
+                "dx",
+                "dy",
+                "dz",
+                "dtheta",
+                "dphi",
+                "dpsi",
+                "outfn"
+            ]
+        },
+        "VACUUM": {
+            "title": "VACUUM",
+            "description": "The VACUUM element defines the vacuum conditions for beam stripping interactions",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "pressure",
+                "temperature",
+                "pmapfn",
+                "pscale",
+                "gas",
+                "stop",
+                "aperture",
+                "wakef",
+                "particlematterinteraction",
+                "theta",
+                "phi",
+                "psi",
+                "dx",
+                "dy",
+                "dz",
+                "dtheta",
+                "dphi",
+                "dpsi",
+                "outfn"
             ]
         },
         "VARIABLE_RF_CAVITY": {
@@ -2187,6 +2272,37 @@
                 "dtheta",
                 "dphi",
                 "dpsi"
+            ]
+        },
+        "VERTICALFFAMAGNET": {
+            "title": "VERTICALFFAMAGNET",
+            "description": "",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "b0",
+                "field_index",
+                "width",
+                "max_horizontal_power",
+                "end_length",
+                "centre_length",
+                "bb_length",
+                "height_pos_extent",
+                "height_neg_extent",
+                "aperture",
+                "wakef",
+                "particlematterinteraction",
+                "theta",
+                "phi",
+                "psi",
+                "dx",
+                "dy",
+                "dz",
+                "dtheta",
+                "dphi",
+                "dpsi",
+                "outfn"
             ]
         },
         "VKICKER": {
@@ -2356,6 +2472,52 @@
                 ]]
             ]
         },
+        "command_dumpemfields": {
+            "title": "dumpemfields",
+            "description": "The DUMPEMFIELDS statement dumps a field map to a user-defined field file, for checking that fields are generated correctly. The fields are written out on a grid in space and time.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "file_name",
+                "coordinate_system",
+                "x_start",
+                "dx",
+                "x_steps",
+                "y_start",
+                "dy",
+                "y_steps",
+                "z_start",
+                "dz",
+                "z_steps",
+                "t_start",
+                "dt",
+                "t_steps",
+                "r_start",
+                "dr",
+                "r_steps",
+                "phi_start",
+                "dphi",
+                "phi_steps"
+            ]
+        },
+        "command_dumpfields": {
+            "title": "dumpfields",
+            "description": "The DUMPFIELDS statement dumps a field map to a user-defined field file, for checking that fields are read in correctly from disk. The fields are written out on a Cartesian grid.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "file_name",
+                "x_start",
+                "dx",
+                "x_steps",
+                "y_start",
+                "dy",
+                "y_steps",
+                "z_start",
+                "dz",
+                "z_steps"
+            ]
+        },
         "command_fieldsolver": {
             "title": "fieldsolver",
             "description": "The FIELDSOLVER statement defines data for a the field solver",
@@ -2424,14 +2586,11 @@
                 "l1",
                 "l2",
                 "c",
-                "distr",
-                "distrs",
                 "xyzscale",
                 "xscale",
                 "yscale",
                 "zscale",
-                "zshift",
-                "aperture"
+                "zshift"
             ]
         },
         "command_option": {
@@ -2453,7 +2612,6 @@
                     "rhodump",
                     "ebdump",
                     "csrdump",
-                    "ppdebug",
                     "logbendtrajectory"
                 ]],
                 ["Output Frequency", [
@@ -2463,7 +2621,6 @@
                     "repartfreq",
                     "rebinfreq",
                     "scsolvefreq",
-                    "surfdumpfreq",
                     "boundpdestroyfq"
                 ]],
                 ["Misc", [
@@ -2511,20 +2668,6 @@
                 "pattern"
             ]
         },
-        "command_start": {
-            "title": "start",
-            "description": "The START sub-command defines one particle for tracking through the given lattice.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "x",
-                "px",
-                "y",
-                "py",
-                "t",
-                "pt"
-            ]
-        },
         "command_track": {
             "title": "track",
             "description": "The TRACK command initiates tracking.",
@@ -2568,7 +2711,6 @@
                 "const_length",
                 "conduct",
                 "z0",
-                "form",
                 "radius",
                 "sigma",
                 "tau",

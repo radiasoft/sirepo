@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""PyTest for :mod:`sirepo.template.madx_parser`
+"""PyTest for :mod:`sirepo.template.madx_parser`
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,19 +15,16 @@ def test_extract_tfs_pages():
     from pykern.pkunit import pkeq
     from sirepo.template import madx_parser
 
-    path = pkunit.data_dir().join('ptc_track.file.tfs')
+    path = pkunit.data_dir().join("ptc_track.file.tfs")
     header = madx_parser.parse_tfs_file(path, header_only=True)
-    pkeq(
-        header,
-        ['number', 'turn', 'x', 'px', 'y', 'py', 't', 'pt', 's', 'e']
-    )
+    pkeq(header, ["number", "turn", "x", "px", "y", "py", "t", "pt", "s", "e"])
     info = madx_parser.parse_tfs_page_info(path)
     pkeq(
         info[3],
         dict(
-            name='BPMY1',
-            turn='1',
-            s='2.72',
+            name="BPMY1",
+            turn="1",
+            s="2.72",
         ),
     )
     res = madx_parser.parse_tfs_file(path, want_page=3)
@@ -43,12 +40,13 @@ def test_parse_madx_file():
     from sirepo.template import madx, madx_parser
 
     with pkunit.save_chdir_work():
-        for name in ('particle_track', 'alba'):
-            actual = madx_parser.parse_file(pkio.read_text(
-                pkunit.data_dir().join(f'{name}.madx')))
-            del actual['version']
-            actual.models.simulation.pkdel('lastModified')
-            outfile = f'{name}.json'
+        for name in ("particle_track", "alba"):
+            actual = madx_parser.parse_file(
+                pkio.read_text(pkunit.data_dir().join(f"{name}.madx"))
+            )
+            del actual["version"]
+            actual.models.simulation.pkdel("lastModified")
+            outfile = f"{name}.json"
             pkjson.dump_pretty(actual, outfile)
             expect = pkjson.load_any(pkunit.data_dir().join(outfile))
             pkeq(expect, actual)
@@ -57,22 +55,27 @@ def test_parse_madx_file():
 def test_parse_madx_file_downcase():
     from sirepo.template import madx_parser
     import re
-    parsed = madx_parser.parse_file('''
+
+    parsed = madx_parser.parse_file(
+        """
         REAL energy = 1.6;
         REAL gamma = (ENERGY + 0.0005109989) / 0.0005109989;
-    ''', True)
-    assert re.search(r'energy', str(parsed))
-    assert not re.search(r'ENERGY', str(parsed))
+    """,
+        True,
+    )
+    assert re.search(r"energy", str(parsed))
+    assert not re.search(r"ENERGY", str(parsed))
+
 
 def test_parse_tfs_file():
     from pykern.pkunit import pkeq
     from sirepo.template import madx_parser
 
-    path = pkunit.data_dir().join('twiss.file.tfs')
+    path = pkunit.data_dir().join("twiss.file.tfs")
     res = madx_parser.parse_tfs_file(path)
     pkeq(
         res.betx,
-        ['11.639', '14.73204923'],
+        ["11.639", "14.73204923"],
     )
     pkeq(
         res.name,
@@ -80,9 +83,9 @@ def test_parse_tfs_file():
     )
     pkeq(
         res.sig44,
-        ['1.048547761e-07', '1.048547761e-07'],
+        ["1.048547761e-07", "1.048547761e-07"],
     )
     pkeq(
         res.n1,
-        ['0', '0'],
+        ["0", "0"],
     )

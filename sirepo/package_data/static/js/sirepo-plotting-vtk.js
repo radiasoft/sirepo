@@ -2616,6 +2616,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.init = function() {
                 const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 const body = angular.element($($document).find('body'))[0];
+                const view = angular.element($($document).find('.sr-view-content'))[0];
                 hdlrs = $scope.eventHandlers || {};
 
                 // vtk adds keypress event listeners to the BODY of the entire document, not the render
@@ -2645,12 +2646,17 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     }
                 });
                 Object.keys(eventHandlers).forEach(function (k) {
-                    rw[k] = function (evt) {
+                    const f = function (evt) {
                         eventHandlers[k](evt);
                         if (hdlrs[k]) {
                             hdlrs[k](evt);
                         }
                     };
+                    if (k == 'onpointermove') {
+                        view[k] = f;
+                        return;
+                    }
+                    rw[k] = f;
                 });
                 // remove global VTK key listeners
                 for (const n of ['KeyPress', 'KeyDown', 'KeyUp']) {

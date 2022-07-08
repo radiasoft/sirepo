@@ -10,7 +10,7 @@ import sirepo.auth_db
 import sirepo.events
 import sirepo.srcontext
 import sirepo.srtime
-import sirepo.uri_router  #TODO(rorour) remove
+import sirepo.uri_router  # TODO(rorour) remove
 import sirepo.util
 import sqlalchemy
 
@@ -20,7 +20,7 @@ _SRCONTEXT_KEY = __name__
 
 _Session = None
 
-_USER_AGENT_ID_HEADER = 'X-Sirepo-UserAgentId'
+_USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
 
 
 @contextlib.contextmanager
@@ -42,10 +42,14 @@ def begin(sreq):
 
     def _update_session(user_agent_id):
         s = _Session.search_by(user_agent_id=user_agent_id)
-        assert s, f'No session for user_agent_id={user_agent_id}'
+        assert s, f"No session for user_agent_id={user_agent_id}"
         l = sirepo.auth.is_logged_in()
         t = s.request_time
-        if sirepo.srtime.utc_now() - t > datetime.timedelta(seconds=_RENEW_SESSION_TIMEOUT_SECS) and l:
+        if (
+            sirepo.srtime.utc_now() - t
+            > datetime.timedelta(seconds=_RENEW_SESSION_TIMEOUT_SECS)
+            and l
+        ):
             _begin()
         s.login_state = l
         s.request_time = sirepo.srtime.utc_now()
@@ -64,18 +68,17 @@ def begin(sreq):
 
 
 def init():
-    sirepo.events.register(PKDict(
-        end_api_call=_event_end_api_call
-    ))
+    sirepo.events.register(PKDict(end_api_call=_event_end_api_call))
     sirepo.auth_db.init_model(_init_model)
 
 
 def _begin():
     from sirepo import job_api
+
     try:
         job_api.begin_session()
     except Exception as e:
-        pkdlog('error={} trying job_api.begin_session stack={}', e, pkdexc())
+        pkdlog("error={} trying job_api.begin_session stack={}", e, pkdexc())
 
 
 def _event_end_api_call(kwargs):
@@ -86,8 +89,9 @@ def _event_end_api_call(kwargs):
 
 def _init_model(base):
     global _Session
+
     class _Session(base):
-        __tablename__ = 'session_t'
+        __tablename__ = "session_t"
         user_agent_id = sqlalchemy.Column(base.STRING_ID, unique=True, primary_key=True)
         login_state = sqlalchemy.Column(sqlalchemy.Boolean(), nullable=False)
         uid = sqlalchemy.Column(base.STRING_ID)

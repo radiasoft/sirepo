@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""PyTest for :mod:`sirepo.importer`
+"""PyTest for :mod:`sirepo.importer`
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -19,17 +19,19 @@ def test_import():
         return flash_parser.ConfigParser().parse(pkio.read_text(fn))
 
     def _parse_par(fn):
-        data_file = fn.basename.replace('-flash.par', '')
+        data_file = fn.basename.replace("-flash.par", "")
         return flash_parser.ParameterParser().parse(
-            pkjson.load_any(pkio.read_text(pkunit.data_dir().join(f'{data_file}-sirepo-data.json'))),
+            pkjson.load_any(
+                pkio.read_text(pkunit.data_dir().join(f"{data_file}-sirepo-data.json"))
+            ),
             pkio.read_text(fn),
         )
 
     with pkunit.save_chdir_work():
-        for fn in pkio.sorted_glob(pkunit.data_dir().join('*')):
-            if re.search(r'-Config$', fn.basename):
+        for fn in pkio.sorted_glob(pkunit.data_dir().join("*")):
+            if re.search(r"-Config$", fn.basename):
                 parser = _parse_config
-            elif re.search(r'flash.par$', fn.basename):
+            elif re.search(r"flash.par$", fn.basename):
                 parser = _parse_par
             else:
                 continue
@@ -38,7 +40,7 @@ def test_import():
             except Exception as e:
                 pkdlog(pkdexc())
                 actual = str(e)
-            outfile = f'{fn.basename}.out'
+            outfile = f"{fn.basename}.out"
             pkio.write_text(outfile, actual)
             expect = pkio.read_text(pkunit.data_dir().join(outfile))
             pkeq(expect, actual)

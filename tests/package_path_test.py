@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Using a sim type that lives in a package outside of sirepo.
+"""Using a sim type that lives in a package outside of sirepo.
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,9 +15,9 @@ def test_run():
 
     with _install():
         fc = _fc()
-        r = fc.sr_login_as_guest(sim_type='code1')
-        d = fc.sr_sim_data(sim_type='code1', sim_name='Secret sauce')
-        pkunit.pkeq('green', d.models.sauce.color)
+        r = fc.sr_login_as_guest(sim_type="code1")
+        d = fc.sr_sim_data(sim_type="code1", sim_name="Secret sauce")
+        pkunit.pkeq("green", d.models.sauce.color)
 
 
 def _fc():
@@ -27,9 +27,9 @@ def _fc():
 
     fc = srunit.flask_client(
         cfg=PKDict(
-            SIREPO_FEATURE_CONFIG_PACKAGE_PATH='sirepo_test_package_path:sirepo',
+            SIREPO_FEATURE_CONFIG_PACKAGE_PATH="sirepo_test_package_path:sirepo",
         ),
-        sim_types='code1',
+        sim_types="code1",
         no_chdir_work=True,
     )
     return fc
@@ -43,8 +43,8 @@ def _install():
     import sys
 
     with pkunit.save_chdir_work() as d:
-        pkunit.data_dir().join('sirepo_test_package_path.tar.gz').copy(d)
-        subprocess.run('tar xzf sirepo_test_package_path.tar.gz', shell=True)
-        with pkio.save_chdir('sirepo_test_package_path') as d:
+        pkunit.data_dir().join("sirepo_test_package_path.tar.gz").copy(d)
+        subprocess.run("tar xzf sirepo_test_package_path.tar.gz", shell=True)
+        with pkio.save_chdir("sirepo_test_package_path") as d:
             sys.path.append(str(d))
             yield
