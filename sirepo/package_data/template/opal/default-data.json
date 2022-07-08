@@ -103,7 +103,7 @@
                 "npart": 30000,
                 "nslice": 0,
                 "particle": "PROTON",
-                "pc": 0
+                "pc": 1
             },
             {
                 "_id": 4,
