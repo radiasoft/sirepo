@@ -474,7 +474,7 @@ class Convert:
                     f_mosaic="0",
                     braggMinEnergy=item.energy - 500,
                     braggMaxEnergy=item.energy + 500,
-                    f_refract="0" if item.useCase == "1" else "1",
+                    f_refrac="0" if item.useCase == "1" else "1",
                     braggEnergyStep=50,
                     alpha=rotate,
                 ),
@@ -498,7 +498,7 @@ class Convert:
                                 horizontalOffset=item.offz if o == "horizontal" else 0,
                                 verticalOffset=item.offz if o == "vertical" else 0,
                                 type="crystal",
-                                useCase="2" if item.f_refract == "1" else "1",
+                                useCase="2" if item.f_refrac == "1" else "1",
                                 material=material_map.get(
                                     item.braggMaterial, "Si (SRW)"
                                 ),
