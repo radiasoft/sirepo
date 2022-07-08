@@ -291,6 +291,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         command,
         work_dir,
         log_file,
+        err_subject,
         regex,
     ):
         p = pkio.py_path(log_file)
@@ -318,7 +319,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     r = "\n".join(m)
                 else:
                     r = c.splitlines()[-1]
-                raise sirepo.util.UserAlert(r, "{}", e)
+                raise sirepo.util.UserAlert(f"FLASH {err_subject} Error:\n{r}", "{}", e)
 
     @classmethod
     def __run_make(cls, make_dir):
@@ -328,6 +329,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             ["make", f"-j{sirepo.mpi.cfg.cores}"],
             make_dir,
             cls.COMPILE_LOG,
+            "Compile",
             r"^(?:Error): (.*)",
         )
 
@@ -358,6 +360,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             c,
             s,
             cls.SETUP_LOG,
+            "Setup",
             r"(.*PPDEFINE.*$)|(^\s+\*.*$(\n\w+.*)?)",
         )
         return s.join(cls.__flash_app_name())

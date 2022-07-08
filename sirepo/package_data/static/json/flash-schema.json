@@ -126,8 +126,8 @@
             "hdf5typeio": ["HDF5 Parallel IO Output", "SetupArgumentShortcut", "0", "Use  hdf5 with parallel io capability for compatible binary IO output (+hdf5typeio)."],
             "laser": ["Laser", "SetupArgumentShortcut", "0", "Use source terms for energy deposition (+laser)."],
             "maxblocks": ["Maximum Blocks", "OptionalInteger", "", "Maximum number of blocks per process (maxblocks)."],
-            "mgd": ["Magento Gas Dynamics", "SetupArgumentShortcut", "0", "Use the MGD (magneto gas dynamic) radiative transfermodule (+mgd)."],
-            "mgd_meshgroups": ["Magneto Gas Dynamics Mesh Groups", "NoDashInteger", 0, "mgd ̇meshgroups * meshCopyCount sets the MAXIMUM number of radiation groups that can be used in a simulation (mgd_meshgroups)."],
+            "mgd": ["Multigroup Diffusion", "SetupArgumentShortcut", "0", "Use the MGD (multigroup diffusion) radiative transfermodule (+mgd)."],
+            "mgd_meshgroups": ["Multigroup Diffusion Mesh Groups", "NoDashInteger", 0, "mgd ̇meshgroups * meshCopyCount sets the MAXIMUM number of radiation groups that can be used in a simulation (mgd_meshgroups)."],
             "mtmmmt": ["MultiTemp/MultiType and Tabulated EOSes", "SetupArgumentShortcut", "0", "Use the MultiTemp/MultiType and Tabulated EOSes (for HEDPsimulations) (+mtmmmt)."],
             "nofbs": ["Uniform Grid - Non-Fixed Block Size", "SetupArgumentShortcut", "0", "Use the uniform grid in a non-fixed block size mode (+nofbs)."],
             "noio": ["No IO", "SetupArgumentShortcut", "0", "Disable IO (+noio)."],
@@ -232,7 +232,7 @@
                     "ed_maxPulses"
 
                 ]],
-                ["Magneto Gas Dynamics", [
+                ["Multigroup Diffusion", [
                     "mgd",
                     "mgd_meshgroups"
                 ]]
