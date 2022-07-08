@@ -830,7 +830,7 @@
             "lambda": ["LAMBDA [m]", "RPNValue", 0, "Undulator period"],
             "numperiods": ["NUMPERIODS", "RPNValue", 0, "Number of undulator periods."],
             "angle": ["ANGLE [rad]", "RPNValue", 0, "Polarisation angle of the undulator magnetic field"],
-            "fname": ["FNAME", "OptionalString", "", "Jobfile specifying the output data from the undulator."],
+            "fname": ["FNAME", "InputFile", "", "Jobfile specifying the output data from the undulator."],
             "meshlength": ["MESHLENGTH [m]", "RPNValue", 0, "Size of computational mesh"],
             "meshresolution": ["MESHRESOLUTION [m]", "RPNValue", 0, "{dx, dy, dz} of the mesh"],
             "trunorder": ["TRUNORDER", "RPNValue", 2, "Order of absorbing boundary conditions. 1st or 2nd."],
