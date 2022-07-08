@@ -59,7 +59,7 @@ class GeometryUtils {
      */
     static nextAxis(axis) {
         const b = GeometryUtils.BASIS();
-        return b[b.indexOf(axis) + 1 % b.length];
+        return b[(b.indexOf(axis) + 1) % b.length];
     }
 
     /**
