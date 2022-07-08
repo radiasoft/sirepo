@@ -40,10 +40,6 @@ def set_optics(v, names=None, want_final_propagation=True):
 {% if forRSOpt %}
 from pykern.pkdebug import pkdlog
 import numpy
-
-# This function is required by rsopt to generate data but is a noop otherwise
-def set_rsopt_params_dummy({{ rsOptFuctionSignature() }}):
-    return 0
 {% endif %}
 
 varParam = [

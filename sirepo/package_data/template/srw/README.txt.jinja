@@ -1,8 +1,9 @@
 These files facilitate the generation and use of input data for machine learning for SRW. They include:
 
-{{ shFileName }}: a shell script that generates input data
-{{ pyFileName }}: a python script that runs SRW using the generated data
+{{ shFileName }}: a shell script that generates input data and runs SRW with it
+{{ pyFileName }}: the SRW python script
 {{ ymlFileName }}: a YML configuration file for rsopt
+{{ postProcFileName }}: python post-processing
 {{ readmeFileName }}: this README
 
 {% if libFiles %}
@@ -10,17 +11,13 @@ Also included are auxiliary files required for the specific SRW simulation:
 {{ libFiles }}
 {% endif %}
 
-To generate the data, run
+To generate the input data and execute SRW, run
     'bash {{ shFileName }}'.
 
-This creates a new directory based on the current time and stores the data in the numpy file
-    {{ fileBase }}.npy
-
-The script will prompt you to then run SRW with that data. To do so later, run
-    'python {{ pyFileName }} rsopt_run {{ fileBase }}.npy'
+The script creates a new directory based on the current time and runs rsopt within it.
 
 Please note:
-    - rsopt does the job of running SRW with the stored input data
+    - rsopt generates the data and runs SRW in one step
     - If the machine running SRW has N cores, rsopt will attempt execute in parallel on N - 1 cores
     - SRW will run {{ totalSamples }} times; use caution
 
@@ -32,14 +29,14 @@ It has the following structure:
     - "/beamIntensities": array of size {{ totalSamples }} containing the propagated single-electron intensity
         distribution vs horizontal and vertical position for each run
 
-Intermediate output is also available:
+Intermediate output is also available under the ensemble/worker[n]/sim[m] directories:
 
-data_files/res_int_pr_se_[n].dat:
+res_int_pr_se.dat:
     propagated single-e intensity distribution vs horizontal and vertical position
 
-beams/beam_[n].npy:
-    same information as in "data_files", but in numpy format
+beam.npy:
+    same information as in res_int_pr_se.dat, but in numpy format
 
-parameters/values_[n].npy:
+params/values.npy:
     values of the parameters
 
