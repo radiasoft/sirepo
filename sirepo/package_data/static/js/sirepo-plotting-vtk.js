@@ -1527,6 +1527,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             var ELEVATION_INFO = {
                 front: {
+                    axis: 'z',
                     class: '.plot-viewport elevation-front',
                     coordPlane: 'xy',
                     name: ELEVATIONS.front,
@@ -1538,6 +1539,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     }
                 },
                 side: {
+                    axis: 'x',
                     class: '.plot-viewport elevation-side',
                     coordPlane: 'yz',
                     name: ELEVATIONS.side,
@@ -1549,6 +1551,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     }
                 },
                 top: {
+                    axis: 'y',
                     class: '.plot-viewport elevation-top',
                     coordPlane: 'zx',
                     name: ELEVATIONS.top,
@@ -1958,19 +1961,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 );
             }
 
-            function shapePoints(shape, dim) {
-                if (! shape.points) {
-                    return null;
-                }
-                srdbg(shape.points);
-                const labDim = shape.elev[dim].axis;
-                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(labDim);
+            function shapePoints(shape) {
                 let pts = '';
-                for (const p of shape.points[labDim]) {
-                    let pp = p.slice();
-                    pp.splice(i, 1);
-                    //pts += (pp.map(x => axes[dim].scale(x)).join(',') + ' ');
-                    pts += (pp.join(',') + ' ');
+                for (const p of shape.points[shape.elev.axis]) {
+                    //pts += `${axes.x.scale(p[0])},${axes.y.scale(p[1])} `;
+                    pts += (p.join(',') + ' ');
                 }
                 srdbg('pts', pts);
                 return pts;
@@ -2037,7 +2032,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         return d.href ? `#${d.href}` : '';
                     })
                     .attr('points', function(d) {
-                        return shapePoints(d, 'x');
+                        return $.isEmptyObject(d.points || {}) ? null : shapePoints(d);
                     })
                     .attr('x', function(d) {
                         return shapeOrigin(d, 'x') - (d.outlineOffset || 0);
