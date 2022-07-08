@@ -4,12 +4,16 @@
 {%- if p in e -%}
 {%- for x in e[p].initial -%}
 {%- if e[p].offsets[loop.index0] != 0 -%}
-    {% if addQuotes %}'{% endif %}{{ e.title }}_{{ e[p].fieldNames[loop.index0] }}{% if addQuotes %}'{% endif %},
+    {% if addQuotes %}'{% endif %}{{ fixSpaces(e.title) }}_{{ e[p].fieldNames[loop.index0] }}{% if addQuotes %}'{% endif %},
 {%- endif -%}
 {%- endfor -%}
 {%- endif -%}
 {%- endfor -%}
 {%- endfor -%}
+{%- endmacro -%}
+
+{%- macro fixSpaces(t) -%}
+{{ t | replace(" ", "_") }}
 {%- endmacro -%}
 
 import os
@@ -467,9 +471,9 @@ def _rsopt_set_params({{ rsOptFuctionSignature() }}):
     {% if p in e %}
     {% for x in e[p].initial %}
     {% if e[p].offsets[loop.index0] != 0 %}
-    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e[p].fieldNames[loop.index0] }}')
+    p = _get_beamline_param(vp, 'op_{{ fixSpaces(e.title) }}', '{{ e[p].fieldNames[loop.index0] }}')
     if p:
-        p[2] = {{ e.title }}_{{ e[p].fieldNames[loop.index0] }}
+        p[2] = {{ fixSpaces(e.title) }}_{{ e[p].fieldNames[loop.index0] }}
     {% endif %}
     {% endfor %}
     {% endif %}
@@ -480,12 +484,12 @@ def _rsopt_set_params({{ rsOptFuctionSignature() }}):
     a = [0.0, 0.0, 0.0]
     {% for t in e.rotation.initial %}
     {% if e.rotation.offsets[loop.index0] != 0 %}
-    a[{{ loop.index0 }}] = {{ e.title }}_{{ e.rotation.fieldNames[loop.index0] }}
+    a[{{ loop.index0 }}] = {{ fixSpaces(e.title) }}_{{ e.rotation.fieldNames[loop.index0] }}
     {% endif %}
     {% endfor %}
     n = _apply_rotation(a, {{ e.rotation.initial }})
     {% for t in e.rotation.fieldNames %}
-    t = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ t }}')
+    t = _get_beamline_param(vp, 'op_{{ fixSpaces(e.title) }}', '{{ t }}')
     if t:
         t[2] = n[{{ loop.index0 }}]
     {% endfor %}
