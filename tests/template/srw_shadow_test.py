@@ -15,7 +15,7 @@ def test_conversion():
     from sirepo.template.srw_shadow import Convert
 
     for d in pkunit.case_dirs():
-        if 'to_shadow' in str(d):
+        if "to_shadow" in str(d):
             _write_converted_data(
                 Convert().to_shadow,
                 d.join("srw.json"),
@@ -28,12 +28,8 @@ def test_conversion():
                 d.join("srw.json"),
             )
 
+
 def _write_converted_data(conversion_function, in_path, out_path):
     from pykern import pkjson
 
-    pkjson.dump_pretty(
-        conversion_function(
-            pkjson.load_any(in_path)
-        ).models,
-        out_path
-    )
+    pkjson.dump_pretty(conversion_function(pkjson.load_any(in_path)).models, out_path)

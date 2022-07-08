@@ -260,7 +260,6 @@ class Convert:
         res = simulation_db.default_data(sirepo.sim_data.get_class("srw").sim_type())
         self.beamline = res.models.beamline
         self.__sim_to_srw(data, res.models)
-        res.models.simulation.sourceType = data.simulation.sourceType
         PKDict(
             u=self.__undulator_to_srw,
             g=self.__geometric_source_to_srw,
@@ -773,7 +772,7 @@ class Convert:
         shadow.initialIntensityReport.colorMap = srw.initialIntensityReport.colorMap
 
     def __sim_to_srw(self, shadow, srw):
-        shadow.simulation.update(
+        srw.simulation.update(
             sourceType=self.__invert_dict(self._SOURCE_TYPE)[
                 shadow.simulation.sourceType
             ],
