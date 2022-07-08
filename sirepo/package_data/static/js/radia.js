@@ -3708,7 +3708,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     ];
 
     $scope.whenSelected = function() {
-        srdbg('WHEN SEL GO', appState.models.geomObject, 'MD', appState.models[$scope.modelName])
         modelType = appState.models.geomObject.type;
         $scope.modelData = appState.models[$scope.modelName];
         editedModels = radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
@@ -3716,33 +3715,34 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     };
 
     $scope.$on('geomObject.changed', () => {
+        srdbg('GO CH', editedModels);
         if (editedModels.includes('extrudedPoly')) {
             $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
             $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
+            centerPoints();
             updateSize();
         }
         appState.saveQuietly($scope.modelName);
-        editedModels = [];
+        //editedModels = [];
     });
 
     function setPoints(data) {
-        const ctr = utilities.splitCommaDelimitedString($scope.modelData.center, parseFloat);
-        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.widthAxis);
-        const j = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.heightAxis);
-        $scope.modelData.points = data.points.map(x => [x[0] + ctr[i], x[1] + ctr[j]]);
+        $scope.modelData.points = data.points;
+        centerPoints();
         updateSize();
         appState.saveChanges(editedModels);
         updateShapeEditor();
     }
 
-    // the points 
-    function updateSize() {
-        const sz = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat);
-        [$scope.modelData.widthAxis, $scope.modelData.heightAxis].forEach((dim, i) => {
-            const p = $scope.modelData.points.map(x => x[i]);
-            sz[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
-        });
-        $scope.modelData.size = sz.join(',');
+    // the points
+    function centerPoints() {
+        srdbg('CTR');
+        const ctr = utilities.splitCommaDelimitedString($scope.modelData.center, parseFloat);
+        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.widthAxis);
+        const j = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.heightAxis);
+        const p = $scope.modelData.points.map(x => [x[0] + ctr[i], x[1] + ctr[j]]);
+        srdbg('new p', p);
+        //$scope.modelData.points = p;
     }
 
     // the cross-sectional size is determined by the points
