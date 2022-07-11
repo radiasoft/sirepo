@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Flash Config parser.
+"""Flash Config parser.
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,7 +12,8 @@ from sirepo.template import flash_views
 import os.path
 import re
 
-class ConfigParser():
+
+class ConfigParser:
 
     # D <name> <comment> or D & <comment>
     # DATAFILES <wildcard>
@@ -34,15 +35,15 @@ class ConfigParser():
     def parse(self, config_text):
         idx = 1
         self.stack = [PKDict(statements=[])]
-        for line in config_text.split('\n'):
-            line = re.sub(r'#.*$', '', line)
-            line = re.sub(r'(TYPE:)(\S)', r'\1 \2', line)
+        for line in config_text.split("\n"):
+            line = re.sub(r"#.*$", "", line)
+            line = re.sub(r"(TYPE:)(\S)", r"\1 \2", line)
             p = line.split()
             if not p:
                 continue
-            method = f'_parse_{p[0].lower()}'
+            method = f"_parse_{p[0].lower()}"
             if not hasattr(self, method):
-                pkdlog('skipping line={}', line)
+                pkdlog("skipping line={}", line)
                 continue
             m = PKDict(
                 _id=idx,
@@ -52,20 +53,18 @@ class ConfigParser():
             item = getattr(self, method)(p, m)
             if item:
                 self.stack[-1].statements.append(item)
-        assert len(self.stack) == 1, \
-            'improper IF/ENDIF nesting'
+        assert len(self.stack) == 1, "improper IF/ENDIF nesting"
         return self.__move_descriptions_to_parameters(self.stack[0])
 
     def _parse_d(self, parts, model):
-        if parts[1] == '&':
+        if parts[1] == "&":
             prev = self.stack[-1].statements[-1]
-            assert prev._type == 'D', \
-                'expected multiline description for D &'
-            prev.comment += ' {}'.format(' '.join(parts[2:]))
+            assert prev._type == "D", "expected multiline description for D &"
+            prev.comment += " {}".format(" ".join(parts[2:]))
             return None
         return model.pkupdate(
             name=parts[1],
-            comment=' '.join(parts[2:]),
+            comment=" ".join(parts[2:]),
         )
 
     def _parse_datafiles(self, parts, model):
@@ -99,33 +98,35 @@ class ConfigParser():
     def _parse_mass_scalar(self, parts, model):
         for i in range(2, len(parts), 2):
             n = parts[i]
-            m = re.search(r'^(EOSMAP(IN|OUT)?):$', n)
-            assert m, f'unknown MASS_SCALAR arg: {n}'
+            m = re.search(r"^(EOSMAP(IN|OUT)?):$", n)
+            assert m, f"unknown MASS_SCALAR arg: {n}"
             model[m.group(1).lower()] = parts[i + 1]
         return model.pkupdate(
             name=parts[1],
         )
 
     def _parse_parameter(self, parts, model):
-        assert re.search(r'^(REAL|INTEGER|STRING|BOOLEAN)$', parts[2]), \
-            f'invalid Config type: {parts[2]}'
-        if parts[3] == 'CONSTANT':
+        assert re.search(
+            r"^(REAL|INTEGER|STRING|BOOLEAN)$", parts[2]
+        ), f"invalid Config type: {parts[2]}"
+        if parts[3] == "CONSTANT":
             del parts[3]
-            model.isConstant = '1'
+            model.isConstant = "1"
         else:
-            model.isConstant = '0'
-        model.range = ''
+            model.isConstant = "0"
+        model.range = ""
         if len(parts) > 4:
-            model.range = re.sub(r'\[|\]', '', ' '.join(parts[4:]))
+            model.range = re.sub(r"\[|\]", "", " ".join(parts[4:]))
         return model.pkupdate(
             name=parts[1],
             type=parts[2],
-            default=re.sub(r'"', '', parts[3]),
+            default=re.sub(r'"', "", parts[3]),
         )
 
     def _parse_particlemap(self, parts, model):
-        assert parts[1] == 'TO' and parts[3] == 'FROM', \
-            f'invalid PARTICLEMAP def: {" ".join(parts)}'
+        assert (
+            parts[1] == "TO" and parts[3] == "FROM"
+        ), f'invalid PARTICLEMAP def: {" ".join(parts)}'
         return model.pkupdate(
             partname=parts[2],
             pvartype=parts[4],
@@ -139,19 +140,20 @@ class ConfigParser():
         )
 
     def _parse_particletype(self, parts, model):
-        assert parts[2] == 'INITMETHOD' and parts[4] == 'MAPMETHOD', \
-            f'invalid PARTICLETYPE def: {" ".join(parts)}'
+        assert (
+            parts[2] == "INITMETHOD" and parts[4] == "MAPMETHOD"
+        ), f'invalid PARTICLETYPE def: {" ".join(parts)}'
         return model.pkupdate(
             particletype=parts[1],
             initmethod=parts[3],
             mapmethod=parts[5],
-            advmethod=parts[7] if len(parts) > 6 and parts[6] == 'ADVMETHOD' else '',
+            advmethod=parts[7] if len(parts) > 6 and parts[6] == "ADVMETHOD" else "",
         )
 
     def _parse_ppdefine(self, parts, model):
         return model.pkupdate(
             sym=parts[1],
-            val=' '.join(parts[2:]) if len(parts) > 2 else '',
+            val=" ".join(parts[2:]) if len(parts) > 2 else "",
         )
 
     def _parse_requires(self, parts, model):
@@ -171,59 +173,58 @@ class ConfigParser():
 
     def _parse_species(self, parts, model):
         if len(parts) > 2:
-            assert parts[2] == 'TO', \
-                f'invalid SPECIES: {" ".join(parts)}'
+            assert parts[2] == "TO", f'invalid SPECIES: {" ".join(parts)}'
             model.numberOfIons = parts[3]
         return model.pkupdate(
             name=parts[1],
         )
 
     def _parse_usesetupvars(self, parts, model):
-        return model.pkupdate(
-            vars=' '.join(parts[1:])
-        )
+        return model.pkupdate(vars=" ".join(parts[1:]))
 
     def _parse_variable(self, parts, model):
-        model.vartype = ''
+        model.vartype = ""
         if len(parts) > 2:
-            assert parts[2] == 'TYPE:', \
-                f'invalid VARIABLE line: {" ".join(parts)}'
+            assert parts[2] == "TYPE:", f'invalid VARIABLE line: {" ".join(parts)}'
             model.vartype = parts[3]
         return model.pkupdate(
             name=parts[1],
         )
 
     def __move_descriptions_to_parameters(self, item):
-
         def _find_all(item, search_type, do_remove=False, res=None):
             if res is None:
                 res = PKDict()
-            if '_type' in item and item._type == search_type:
+            if "_type" in item and item._type == search_type:
                 res[item.name] = item
-            if 'statements' in item:
+            if "statements" in item:
                 for stmt in item.statements:
                     _find_all(stmt, search_type, do_remove, res)
                 if do_remove:
-                    item.statements = list(filter(lambda x: x._type != search_type, item.statements))
+                    item.statements = list(
+                        filter(lambda x: x._type != search_type, item.statements)
+                    )
             return res
 
-        descriptions = _find_all(item, 'D', do_remove=True)
-        parameters = _find_all(item, 'PARAMETER')
+        descriptions = _find_all(item, "D", do_remove=True)
+        parameters = _find_all(item, "PARAMETER")
         for name in descriptions:
             if name in parameters:
                 parameters[name].comment = descriptions[name].comment
         return item.statements
 
     def __new_stack(self, model, condition=None):
-        self.stack[-1].statements.append(model.pkupdate(
-            statements=[],
-        ))
+        self.stack[-1].statements.append(
+            model.pkupdate(
+                statements=[],
+            )
+        )
         if condition:
             model.condition = condition
         self.stack.append(model)
 
 
-class ParameterParser():
+class ParameterParser:
     def parse(self, sim_in, par_text):
         self.schema = sim_in.models.flashSchema
         self.field_map = self.__field_to_model_map()
@@ -238,9 +239,9 @@ class ParameterParser():
 
     def __parse_text(self, par_text):
         res = PKDict()
-        for line in par_text.split('\n'):
-            line = re.sub(r'#.*$', '', line)
-            m = re.search(r'^(\w.*?)\s*=\s*(.*?)\s*$', line)
+        for line in par_text.split("\n"):
+            line = re.sub(r"#.*$", "", line)
+            m = re.search(r"^(\w.*?)\s*=\s*(.*?)\s*$", line)
             if m:
                 f, v = m.group(1, 2)
                 res[f.lower()] = v
@@ -253,81 +254,105 @@ class ParameterParser():
         res = PKDict()
         for (f, v) in fields.items():
             if f not in self.field_map:
-                pkdlog(f'Unknown field: {f}: {v}')
+                pkdlog(f"Unknown field: {f}: {v}")
                 continue
             m, fn = self.field_map[f]
             ftype = self.schema.model[m][fn][1]
             if ftype in self.schema.enum:
-                v = re.sub(r'"', '', v).strip()
-                assert v.lower() in enum_map[ftype], \
-                    f'Unknown enum value for field: {ftype}: {v} values: {enum_map[ftype].keys()}'
+                v = re.sub(r'"', "", v).strip()
+                assert (
+                    v.lower() in enum_map[ftype]
+                ), f"Unknown enum value for field: {ftype}: {v} values: {enum_map[ftype].keys()}"
                 res[fn] = enum_map[ftype][v.lower()]
-            elif ftype == 'Boolean':
+            elif ftype == "Boolean":
                 v = SetupParameterParser.remove_quotes(v)
-                m = re.search(r'^\.(true|false)\.$', v, re.IGNORECASE)
-                assert m, f'invalid boolean for field {f}: {v}'
-                res[fn] = '1' if m.group(1).lower() == 'true' else '0'
+                m = re.search(r"^\.(true|false)\.$", v, re.IGNORECASE)
+                assert m, f"invalid boolean for field {f}: {v}"
+                res[fn] = "1" if m.group(1).lower() == "true" else "0"
             else:
                 res[fn] = SetupParameterParser.parse_string_or_number(
-                    ftype, fields[f], maybe_quoted=True)
+                    ftype, fields[f], maybe_quoted=True
+                )
         return res
 
 
-class SetupParameterParser():
+class SetupParameterParser:
     _HUGE = PKDict(
         Integer=2147483647,
-        Float=3.40282347E+38,
+        Float=3.40282347e38,
     )
     _MAX_VAR_COUNT = 20
     _SPECIAL_TYPES = PKDict(
-        Grid_GridMain=PKDict({
-            k: 'GridBoundaryType' for k in (
-                'xl_boundary_type', 'xr_boundary_type',
-                'yl_boundary_type', 'yr_boundary_type',
-                'zl_boundary_type', 'zr_boundary_type',
-            )
-        }),
-        Grid_GridMain_paramesh=PKDict({
-            f'refine_var_{v}': 'VariableNameOptional' for v in range(1, _MAX_VAR_COUNT)
-        }),
-        IO_IOMain=PKDict({
-            f'plot_var_{v}': 'VariableNameOptional' for v in range(1, _MAX_VAR_COUNT)
-        }),
-        physics_Diffuse_DiffuseMain=PKDict({
-            k: 'DiffuseBoundaryType' for k in (
-                'diff_eleXlBoundaryType', 'diff_eleXrBoundaryType',
-                'diff_eleYlBoundaryType', 'diff_eleYrBoundaryType',
-                'diff_eleZlBoundaryType', 'diff_eleZrBoundaryType',
-            )
-        }),
+        Grid_GridMain=PKDict(
+            {
+                k: "GridBoundaryType"
+                for k in (
+                    "xl_boundary_type",
+                    "xr_boundary_type",
+                    "yl_boundary_type",
+                    "yr_boundary_type",
+                    "zl_boundary_type",
+                    "zr_boundary_type",
+                )
+            }
+        ),
+        Grid_GridMain_paramesh=PKDict(
+            {
+                f"refine_var_{v}": "VariableNameOptional"
+                for v in range(1, _MAX_VAR_COUNT)
+            }
+        ),
+        IO_IOMain=PKDict(
+            {f"plot_var_{v}": "VariableNameOptional" for v in range(1, _MAX_VAR_COUNT)}
+        ),
+        physics_Diffuse_DiffuseMain=PKDict(
+            {
+                k: "DiffuseBoundaryType"
+                for k in (
+                    "diff_eleXlBoundaryType",
+                    "diff_eleXrBoundaryType",
+                    "diff_eleYlBoundaryType",
+                    "diff_eleYrBoundaryType",
+                    "diff_eleZlBoundaryType",
+                    "diff_eleZrBoundaryType",
+                )
+            }
+        ),
         physics_Gravity=PKDict(
-            grav_boundary_type='GravityBoundaryType',
+            grav_boundary_type="GravityBoundaryType",
         ),
         physics_Gravity_GravityMain_Constant=PKDict(
-            gdirec='GravityDirection',
+            gdirec="GravityDirection",
         ),
-        physics_Hydro_HydroMain_unsplit=PKDict(
-            RiemannSolver='RiemannSolver'
+        physics_Hydro_HydroMain_unsplit=PKDict(RiemannSolver="RiemannSolver"),
+        physics_RadTrans_RadTransMain_MGD=PKDict(
+            {
+                k: "RadTransMGDBoundaryType"
+                for k in (
+                    "rt_mgdXlBoundaryType",
+                    "rt_mgdXrBoundaryType",
+                    "rt_mgdYlBoundaryType",
+                    "rt_mgdYrBoundaryType",
+                    "rt_mgdZlBoundaryType",
+                    "rt_mgdZrBoundaryType",
+                )
+            }
         ),
-        physics_RadTrans_RadTransMain_MGD=PKDict({
-            k: 'RadTransMGDBoundaryType' for k in (
-                'rt_mgdXlBoundaryType', 'rt_mgdXrBoundaryType',
-                'rt_mgdYlBoundaryType', 'rt_mgdYrBoundaryType',
-                'rt_mgdZlBoundaryType', 'rt_mgdZrBoundaryType',
-            )
-        }),
-        physics_sourceTerms_EnergyDeposition_EnergyDepositionMain_Laser=PKDict({
-            f'ed_crossSectionFunctionType_{v}': 'LaserCrossSectionOptional' for v in range(1, _MAX_VAR_COUNT)
-        }),
+        physics_sourceTerms_EnergyDeposition_EnergyDepositionMain_Laser=PKDict(
+            {
+                f"ed_crossSectionFunctionType_{v}": "LaserCrossSectionOptional"
+                for v in range(1, _MAX_VAR_COUNT)
+            }
+        ),
     )
     _TINY = PKDict(
-        Float=1.17549435E-38,
+        Float=1.17549435e-38,
     )
     _TYPE_MAP = PKDict(
-        BOOLEAN='Boolean',
-        INTEGER='Integer',
-        REAL='Float',
-        STRING='String',
+        BOOLEAN="Boolean",
+        INTEGER="Integer",
+        REAL="Float",
+        STRING="String",
     )
 
     def __add_enum(self, enums, name, values):
@@ -337,11 +362,11 @@ class SetupParameterParser():
         self.setup_dir = setup_dir
 
     def generate_schema(self):
-        with pkio.open_text(self.setup_dir.join('setup_vars')) as f:
+        with pkio.open_text(self.setup_dir.join("setup_vars")) as f:
             self.var_names = self.__parse_vars(f)
-        with pkio.open_text(self.setup_dir.join('setup_params')) as f:
+        with pkio.open_text(self.setup_dir.join("setup_params")) as f:
             self.models, self.views = self.__parse_setup(f)
-        with pkio.open_text(self.setup_dir.join('setup_datafiles')) as f:
+        with pkio.open_text(self.setup_dir.join("setup_datafiles")) as f:
             self.datafiles = self.__parse_datafiles(f)
         return self.__format_schema()
 
@@ -349,33 +374,35 @@ class SetupParameterParser():
     def model_name_from_flash_unit_name(cls, text):
         # TODO(e-carlin): discuss with pjm. Main units have different vars than the non-main
         # return '_'.join(filter(lambda x: not re.search(r'Main$', x), text.split('/')))
-        return '_'.join(text.split('/'))
+        return "_".join(text.split("/"))
 
     @classmethod
     def parse_string_or_number(cls, field_type, value, maybe_quoted=False):
-        if field_type == 'String' or field_type == 'OptionalString':
+        if field_type == "String" or field_type == "OptionalString":
             return cls.__parse_string(value)
         if maybe_quoted:
             value = cls.remove_quotes(value)
-        if re.search(r'^(-)?(HUGE|TINY)', value):
+        if re.search(r"^(-)?(HUGE|TINY)", value):
             return cls.__parse_special_number(field_type, value)
-        if field_type == 'Integer':
-            assert re.search(r'^([\-|+])?\d+$', str(value)), \
-                f'{field.name} invalid flash integer: {value}'
+        if field_type == "Integer":
+            assert re.search(
+                r"^([\-|+])?\d+$", str(value)
+            ), f"{field.name} invalid flash integer: {value}"
             return int(value)
-        if field_type == 'Float':
-            value = re.sub(r'\+$', '', value)
-            assert template_common.NUMERIC_RE.search(value), \
-                f'invalid flash float: {value}'
+        if field_type == "Float":
+            value = re.sub(r"\+$", "", value)
+            assert template_common.NUMERIC_RE.search(
+                value
+            ), f"invalid flash float: {value}"
             return float(value)
-        if field_type == 'Constant':
+        if field_type == "Constant":
             return value
-        assert False, f'unknown field type: {field_type}, value: {value}'
+        assert False, f"unknown field type: {field_type}, value: {value}"
 
     @classmethod
     def remove_quotes(cls, value):
         # any value may be quoted
-        return re.sub(r'^"(.*)"$', r'\1', value)
+        return re.sub(r'^"(.*)"$', r"\1", value)
 
     def __create_views(self, schema):
         schema.view = self.views
@@ -388,21 +415,20 @@ class SetupParameterParser():
 
     def __field_default(self, field):
         if field.is_constant:
-            assert field.default, f'missing constant value: {field.name}'
+            assert field.default, f"missing constant value: {field.name}"
             return field.default
         return self.__value_for_type(field, field.default)
 
     def __field_type(self, field, model_name, enums):
-        assert field.type in self._TYPE_MAP, \
-            f'unknown field type: {field.type}'
+        assert field.type in self._TYPE_MAP, f"unknown field type: {field.type}"
         field.type = self._TYPE_MAP[field.type]
         if field.is_constant:
-            field.type = 'Constant'
+            field.type = "Constant"
             return
         if self.__is_file_field(field):
-            field.type = 'SetupDatafilesOptional'
+            field.type = "SetupDatafilesOptional"
             if field.default == '"-none-"' or field.default == '"NOT SPECIFIED"':
-                field.default = 'none'
+                field.default = "none"
             field.enum = [v[0] for v in enums[field.type]]
             return
         if model_name in self._SPECIAL_TYPES:
@@ -411,16 +437,15 @@ class SetupParameterParser():
                 field.type = ftype
                 field.enum = [v[0] for v in enums[ftype]]
                 return
-        if 'valid_values' in field:
+        if "valid_values" in field:
             self.__valid_values(field)
-        if 'enum' in field:
-            enum_name = f'{model_name}{field.name}'
-            assert enum_name not in enums, \
-                f'duplicate enum: {enum_name}'
+        if "enum" in field:
+            enum_name = f"{model_name}{field.name}"
+            assert enum_name not in enums, f"duplicate enum: {enum_name}"
             self.__add_enum(enums, enum_name, field.enum)
             field.type = enum_name
-        elif field.type == 'String' and field.default == '""':
-            field.type = 'OptionalString'
+        elif field.type == "String" and field.default == '""':
+            field.type = "OptionalString"
 
     def __format_schema(self):
         res = self.__init_schema()
@@ -434,14 +459,14 @@ class SetupParameterParser():
                 fields[fname] = [fname, field.type, self.__field_default(field)]
                 if field.description:
                     fields[fname].append(field.description)
-                if 'min' in field:
+                if "min" in field:
                     if not field.description:
-                        fields[fname].append('')
+                        fields[fname].append("")
                     if field.min is None:
                         fields[fname].append(None)
                     else:
                         fields[fname].append(self.__value_for_type(field, field.min))
-                    if 'max' in field:
+                    if "max" in field:
                         fields[fname].append(self.__value_for_type(field, field.max))
             res.model[name] = fields
         self.__create_views(res)
@@ -450,34 +475,49 @@ class SetupParameterParser():
     def __init_schema(self):
         enums = PKDict()
         for (name, values) in PKDict(
-            DiffuseBoundaryType=['dirichlet', 'neumann', 'outflow', 'zero-gradient'],
+            DiffuseBoundaryType=["dirichlet", "neumann", "outflow", "zero-gradient"],
             GridBoundaryType=[
-                'reflect',
-                'axisymmetric',
-                'eqtsymmetric',
-                'outflow',
-                'diode',
-                'extrapolate',
-                'neumann_ins',
-                'dirichlet',
-                'hydrostatic-f2+nvout',
-                'hydrostatic-f2+nvdiode',
-                'hydrostatic-f2+nvrefl',
-                'hydrostatic+nvout',
-                'hydrostatic+nvdiode',
-                'hydrostatic+nvrefl',
-                'periodic',
-                'user',
+                "reflect",
+                "axisymmetric",
+                "eqtsymmetric",
+                "outflow",
+                "diode",
+                "extrapolate",
+                "neumann_ins",
+                "dirichlet",
+                "hydrostatic-f2+nvout",
+                "hydrostatic-f2+nvdiode",
+                "hydrostatic-f2+nvrefl",
+                "hydrostatic+nvout",
+                "hydrostatic+nvdiode",
+                "hydrostatic+nvrefl",
+                "periodic",
+                "user",
             ],
-            GravityBoundaryType=['dirichlet', 'isolated', 'periodic'],
-            GravityDirection=['x', 'y', 'z'],
-            LaserCrossSectionOptional=['none', 'gaussian1D', 'gaussian2D', 'uniform'],
-            RadTransMGDBoundaryType=['dirichlet', 'neumann', 'outflow', 'outstream', 'reflecting', 'vacuum'],
-            RiemannSolver=['Roe', 'HLL', 'HLLC', 'Marquina', 'MarquinaModified', 'Hybrid', 'HLLD'],
+            GravityBoundaryType=["dirichlet", "isolated", "periodic"],
+            GravityDirection=["x", "y", "z"],
+            LaserCrossSectionOptional=["none", "gaussian1D", "gaussian2D", "uniform"],
+            RadTransMGDBoundaryType=[
+                "dirichlet",
+                "neumann",
+                "outflow",
+                "outstream",
+                "reflecting",
+                "vacuum",
+            ],
+            RiemannSolver=[
+                "Roe",
+                "HLL",
+                "HLLC",
+                "Marquina",
+                "MarquinaModified",
+                "Hybrid",
+                "HLLD",
+            ],
             SetupDatafiles=self.datafiles,
-            SetupDatafilesOptional=['none', *sorted(self.datafiles)],
+            SetupDatafilesOptional=["none", *sorted(self.datafiles)],
             VariableName=sorted(self.var_names),
-            VariableNameOptional=['none', *sorted(self.var_names)],
+            VariableNameOptional=["none", *sorted(self.var_names)],
         ).items():
             self.__add_enum(enums, name, values)
         return PKDict(
@@ -486,9 +526,10 @@ class SetupParameterParser():
         )
 
     def __is_file_field(self, field):
-        #TODO(pjm): there may be other cases of datafile selection
-        return re.search(r'^eos_.*?TableFile$', field.name) \
-            or re.search(r'^op_.*?FileName$', field.name)
+        # TODO(pjm): there may be other cases of datafile selection
+        return re.search(r"^eos_.*?TableFile$", field.name) or re.search(
+            r"^op_.*?FileName$", field.name
+        )
 
     def __parse_datafiles(self, in_stream):
         res = []
@@ -500,18 +541,18 @@ class SetupParameterParser():
 
     def __parse_description(self, text, field):
         if not field.description:
-            m = re.search(r'^Valid Values:\s+(.*)', text)
+            m = re.search(r"^Valid Values:\s+(.*)", text)
             if m:
-                assert 'valid_values' not in field, \
-                    f'duplicate valid value def: {text}'
+                assert "valid_values" not in field, f"duplicate valid value def: {text}"
                 field.valid_values = m.group(1)
                 return
             if re.search(r'^"', text):
-                assert 'valid_values' in field, \
-                    f'expected previous valid values def: {text}'
-                field.valid_values += ' ' + text
+                assert (
+                    "valid_values" in field
+                ), f"expected previous valid values def: {text}"
+                field.valid_values += " " + text
                 return
-        field.description += (' ' if field.description else '') + text
+        field.description += (" " if field.description else "") + text
 
     def __parse_field(self, text, model):
         # [BOOLEAN] CONSTANT [FALSE]
@@ -519,20 +560,20 @@ class SetupParameterParser():
         # [INTEGER] [2]
         # [REAL] [1.0]
         assert model is not None
-        m = re.search(r'^(.*?)\s\[(.*?)\]\s(CONSTANT)?\s*\[(.*?)\](.*)', text)
-        assert m, f'unparsable field: {text}'
+        m = re.search(r"^(.*?)\s\[(.*?)\]\s(CONSTANT)?\s*\[(.*?)\](.*)", text)
+        assert m, f"unparsable field: {text}"
         name = m.group(1)
-        assert name not in model, f'duplicate field: {name}'
+        assert name not in model, f"duplicate field: {name}"
         ftype = m.group(2)
-        is_constant = m.group(3) == 'CONSTANT'
+        is_constant = m.group(3) == "CONSTANT"
         fdefault = m.group(4)
-        assert not m.group(5), f'extra values in field def: {line}'
+        assert not m.group(5), f"extra values in field def: {line}"
         model[name] = PKDict(
             name=name,
             type=ftype,
             is_constant=is_constant,
             default=fdefault,
-            description='',
+            description="",
         )
         return model[name]
 
@@ -551,18 +592,18 @@ class SetupParameterParser():
         model = None
         field = None
         for line in in_stream:
-            if line == '\n':
+            if line == "\n":
                 continue
-            m = re.search(r'(^\w.*)', line)
+            m = re.search(r"(^\w.*)", line)
             if m:
                 model = self.__parse_model(m.group(1), models, views)
                 continue
-            m = re.search(r'^\s{4}(\w.*)', line)
+            m = re.search(r"^\s{4}(\w.*)", line)
             if m:
-                if m.group(1) != '__doc__':
+                if m.group(1) != "__doc__":
                     field = self.__parse_field(m.group(1), model)
                 continue
-            m = re.search(r'^\s{8}(\S.*)', line)
+            m = re.search(r"^\s{8}(\S.*)", line)
             if m:
                 self.__parse_description(m.group(1), field)
                 continue
@@ -571,83 +612,87 @@ class SetupParameterParser():
 
     @classmethod
     def __parse_special_number(cls, field_type, value):
-        res = cls._HUGE[field_type] if re.search(r'.*?HUGE', value) \
+        res = (
+            cls._HUGE[field_type]
+            if re.search(r".*?HUGE", value)
             else cls._TINY[field_type]
-        if re.search(r'^-', value):
-            return - res
+        )
+        if re.search(r"^-", value):
+            return -res
         return res
 
     @classmethod
     def __parse_string(cls, value):
-        assert re.search(r'^".*"$', value), \
-            f'invalid string: {value}'
+        assert re.search(r'^".*"$', value), f"invalid string: {value}"
         return cls.remove_quotes(value)
 
     def __parse_vars(self, in_stream):
         res = set()
-        state = 'name'
+        state = "name"
         for line in in_stream:
-            if line == '\n':
-                if state == 'newline':
-                    state = 'name'
+            if line == "\n":
+                if state == "newline":
+                    state = "name"
                 continue
-            if state == 'name':
-                m = re.search(r'^Name: (.*)\s*$', line)
-                assert m, f'expected var name: {line}'
+            if state == "name":
+                m = re.search(r"^Name: (.*)\s*$", line)
+                assert m, f"expected var name: {line}"
                 res.add(m.group(1))
-                state = 'newline'
+                state = "newline"
         return res
 
     def __valid_values(self, field):
         vv = field.valid_values
-        if vv == 'Unconstrained':
+        if vv == "Unconstrained":
             return
-        m = re.search(r'^([\-0-9\.]+) to ([\-0-9\.]+)$', vv)
+        m = re.search(r"^([\-0-9\.]+) to ([\-0-9\.]+)$", vv)
         if m:
             field.min = m.group(1)
             field.max = m.group(2)
             return
-        if re.search(r'^([\-0-9]+,\s*)+[\-0-9]+$', vv):
+        if re.search(r"^([\-0-9]+,\s*)+[\-0-9]+$", vv):
             # integer pick list
-            field.enum = re.split(r',\s*', vv)
+            field.enum = re.split(r",\s*", vv)
             return
         if re.search(r'^(".*?",\s*)*".*?"+$', vv):
             # string pick list
-            field.enum = [self.__parse_string(v) for v in re.split(r',\s*', vv)]
+            field.enum = [self.__parse_string(v) for v in re.split(r",\s*", vv)]
             return
-        m = re.search(r'^(\S+) to INFTY$', vv)
+        m = re.search(r"^(\S+) to INFTY$", vv)
         if m:
             field.min = m.group(1)
             return
-        m = re.search(r'^-INFTY to (\S+)$', vv)
+        m = re.search(r"^-INFTY to (\S+)$", vv)
         if m:
             field.min = None
             field.max = m.group(1)
             return
-        m = re.search(r'\sto\s([\-0-9]+)$', vv)
+        m = re.search(r"\sto\s([\-0-9]+)$", vv)
         if m:
             field.min = None
             field.max = m.group(1)
-            field.description = f'Valid Values: {field.description}'
+            field.description = f"Valid Values: {field.description}"
             return
-        if re.search(r'\sto\sINFTY$', vv) or re.search(r'^([\-0-9.]+,\s*)+[\-0-9.]+$', vv):
+        if re.search(r"\sto\sINFTY$", vv) or re.search(
+            r"^([\-0-9.]+,\s*)+[\-0-9.]+$", vv
+        ):
             # restore valid value info to description
-            field.description = f'Valid Values: {field.description}'
+            field.description = f"Valid Values: {field.description}"
             return
-        assert False, f'unhandled Valid Values for {field.name}: {vv}'
+        assert False, f"unhandled Valid Values for {field.name}: {vv}"
 
     def __value_for_type(self, field, value):
-        if 'enum' in field:
+        if "enum" in field:
             if re.search(r'"', value):
                 value = self.__parse_string(value)
-            if field.type.endswith('Optional'):
-                if not value or value == ' ':
+            if field.type.endswith("Optional"):
+                if not value or value == " ":
                     value = field.enum[0]
-            assert value in field.enum, \
-                f'enum: {value} not in list: {field.enum}'
+            assert value in field.enum, f"enum: {value} not in list: {field.enum}"
             return value
-        if field.type == 'Boolean':
-            assert re.search(r'^(true|false)$', value, re.IGNORECASE), \
-                f'{field.name} invalid flash boolean: {value}'
-            return '1' if value.lower() == 'true' else '0'
+        if field.type == "Boolean":
+            assert re.search(
+                r"^(true|false)$", value, re.IGNORECASE
+            ), f"{field.name} invalid flash boolean: {value}"
+            return "1" if value.lower() == "true" else "0"
         return self.parse_string_or_number(field.type, value)

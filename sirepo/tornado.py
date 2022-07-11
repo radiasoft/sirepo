@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Wrappers for Tornado
+"""Wrappers for Tornado
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -9,13 +9,14 @@ import sirepo.util
 import tornado.locks
 import tornado.queues
 
+
 class Event(tornado.locks.Event):
     """Event with ordered waiters.
 
     When the event is set the waiters are awoken in a FIFO order.
     """
-    class _OrderedWaiters(list):
 
+    class _OrderedWaiters(list):
         def add(self, val):
             self.append(val)
 
@@ -33,7 +34,6 @@ def error_not_found():
 
 
 class Queue(tornado.queues.Queue):
-
     async def get(self):
         """Implements a cancelable Queue.get
 
@@ -69,7 +69,7 @@ class Queue(tornado.queues.Queue):
                         # It's an unlikely situation, but definitely a
                         # bug in the code.
                         pkdlog(
-                            'exception={} unable to put back result={} stack={}',
+                            "exception={} unable to put back result={} stack={}",
                             e,
                             r,
                             pkdexc(),

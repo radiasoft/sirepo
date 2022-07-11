@@ -37,49 +37,51 @@ def create_predefined(out_dir=None):
             ),
         ).dirpath(b)
 
-    sim_data = sirepo.sim_data.get_class('srw')
+    sim_data = sirepo.sim_data.get_class("srw")
     beams = []
     for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
         info = beam[1]
         # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
         beams.append(
-            srw_common.process_beam_parameters(PKDict(
-                name=beam[0],
-                current=info[0],
-                energy=info[1],
-                rmsSpread=info[2],
-                horizontalEmittance=sim_data.srw_format_float(info[3] * 1e9),
-                horizontalBeta=info[4],
-                horizontalAlpha=info[5],
-                horizontalDispersion=info[6],
-                horizontalDispersionDerivative=info[7],
-                verticalEmittance=sim_data.srw_format_float(info[8] * 1e9),
-                verticalBeta=info[9],
-                verticalAlpha=info[10],
-                verticalDispersion=0,
-                verticalDispersionDerivative=0,
-                energyDeviation=0,
-                horizontalPosition=0,
-                verticalPosition=0,
-                drift=0.0,
-                isReadOnly=True,
-            )),
+            srw_common.process_beam_parameters(
+                PKDict(
+                    name=beam[0],
+                    current=info[0],
+                    energy=info[1],
+                    rmsSpread=info[2],
+                    horizontalEmittance=sim_data.srw_format_float(info[3] * 1e9),
+                    horizontalBeta=info[4],
+                    horizontalAlpha=info[5],
+                    horizontalDispersion=info[6],
+                    horizontalDispersionDerivative=info[7],
+                    verticalEmittance=sim_data.srw_format_float(info[8] * 1e9),
+                    verticalBeta=info[9],
+                    verticalAlpha=info[10],
+                    verticalDispersion=0,
+                    verticalDispersionDerivative=0,
+                    energyDeviation=0,
+                    horizontalPosition=0,
+                    verticalPosition=0,
+                    drift=0.0,
+                    isReadOnly=True,
+                )
+            ),
         )
 
     n = predefined_json_path(out_dir)
     pykern.pkjson.dump_pretty(
         PKDict(
             beams=beams,
-            magnetic_measurements=lib_file_path('undulatorTable'),
-            mirrors=lib_file_path('mirror'),
-            sample_images=lib_file_path('sample'),
+            magnetic_measurements=lib_file_path("undulatorTable"),
+            mirrors=lib_file_path("mirror"),
+            sample_images=lib_file_path("sample"),
         ),
         filename=n,
     )
-    return 'Created {}'.format(n)
+    return "Created {}".format(n)
 
 
-def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
+def python_to_json(run_dir=".", in_py="in.py", out_json="out.json"):
     """Run importer in run_dir trying to import py_file
 
     Args:
@@ -91,9 +93,9 @@ def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
 
     with pkio.save_chdir(run_dir):
         out = srw_importer.python_to_json(in_py)
-        with open(out_json, 'w') as f:
+        with open(out_json, "w") as f:
             f.write(out)
-    return 'Created: {}'.format(out_json)
+    return "Created: {}".format(out_json)
 
 
 def run(cfg_dir):
@@ -103,15 +105,16 @@ def run(cfg_dir):
         cfg_dir (str): directory to run srw in
     """
     import sirepo.template.srw
+
     sirepo.job.init()
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = template_common.exec_parameters()
     # special case for importing python code
     m = sim_in.report
-    if m == 'backgroundImport':
-        template_common.write_sequential_result(PKDict(
-            {sirepo.template.srw.PARSED_DATA_ATTR: r.parsed_data}
-        ))
+    if m == "backgroundImport":
+        template_common.write_sequential_result(
+            PKDict({sirepo.template.srw.PARSED_DATA_ATTR: r.parsed_data})
+        )
     else:
         template_common.write_sequential_result(
             sirepo.template.srw.extract_report_data(sim_in),

@@ -19,13 +19,13 @@ import tornado.ioloop
 import tornado.process
 
 #: prefix all container names. Full format looks like: srj-p-uid
-_CNAME_PREFIX = 'srj'
+_CNAME_PREFIX = "srj"
 
 #: separator for container names
-_CNAME_SEP = '-'
+_CNAME_SEP = "-"
 
 #: parse cotnainer names. POSIT: matches _cname_join()
-_CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)')))
+_CNAME_RE = re.compile(_CNAME_SEP.join(("^" + _CNAME_PREFIX, r"([a-z]+)", "(.+)")))
 
 # default is unlimited so put some real constraint
 # TODO(e-carlin): max open files for local or nersc?
@@ -52,7 +52,7 @@ class DockerDriver(job_driver.DriverBase):
         self.cpu_slot_q = host.cpu_slot_q[self.kind]
         self.__users.setdefault(self.uid, PKDict())[self.kind] = self
         self._agent_exec_dir = self._user_dir.join(
-            'agent-docker',
+            "agent-docker",
             self.host.name,
             self._cname,
         )
@@ -81,25 +81,35 @@ class DockerDriver(job_driver.DriverBase):
             agent_starting_secs=(
                 cls._AGENT_STARTING_SECS_DEFAULT + 3,
                 int,
-                'how long to wait for agent start',
+                "how long to wait for agent start",
             ),
-            aux_volumes=(tuple(), tuple, 'Additional volumes mounted in the container (ex. raydata)'),
-            constrain_resources=(True, bool, 'apply --cpus and --memory constraints'),
-            dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
-            hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
-            idle_check_secs=pkconfig.ReplacedBy('sirepo.job_driver.idle_check_secs'),
-            image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
+            aux_volumes=(
+                tuple(),
+                tuple,
+                "Additional volumes mounted in the container (ex. raydata)",
+            ),
+            constrain_resources=(True, bool, "apply --cpus and --memory constraints"),
+            dev_volumes=(
+                pkconfig.channel_in("dev"),
+                bool,
+                "mount ~/.pyenv, ~/.local and ~/src for development",
+            ),
+            hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, "execution hosts"),
+            idle_check_secs=pkconfig.ReplacedBy("sirepo.job_driver.idle_check_secs"),
+            image=("radiasoft/sirepo", str, "docker image to run all jobs"),
             parallel=dict(
-                cores=(2, int, 'cores per parallel job'),
-                gigabytes=(1, int, 'gigabytes per parallel job'),
-                slots_per_host=(1, int, 'parallel slots per node'),
+                cores=(2, int, "cores per parallel job"),
+                gigabytes=(1, int, "gigabytes per parallel job"),
+                slots_per_host=(1, int, "parallel slots per node"),
             ),
             sequential=dict(
-                gigabytes=(1, int, 'gigabytes per sequential job'),
-                slots_per_host=(1, int, 'sequential slots per node'),
+                gigabytes=(1, int, "gigabytes per sequential job"),
+                slots_per_host=(1, int, "sequential slots per node"),
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
-            tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
+            tls_dir=pkconfig.RequiredUnlessDev(
+                None, _cfg_tls_dir, "directory containing host certs"
+            ),
         )
         if not cls.cfg.tls_dir or not cls.cfg.hosts:
             cls._init_dev_hosts()
@@ -107,47 +117,44 @@ class DockerDriver(job_driver.DriverBase):
         return cls
 
     async def kill(self):
-        c = self.pkdel('_cid')
-        pkdlog('{} cid={:.12}', self, c)
+        c = self.pkdel("_cid")
+        pkdlog("{} cid={:.12}", self, c)
         try:
             # TODO(e-carlin): This can possibly hang and needs to be handled
             # Ex. docker daemon is not responsive
             await self._cmd(
-                (
-                    'stop',
-                    '--time={}'.format(job_driver.KILL_TIMEOUT_SECS),
-                    self._cname
-                ),
+                ("stop", "--time={}".format(job_driver.KILL_TIMEOUT_SECS), self._cname),
             )
         except sirepo.util.ASYNC_CANCELED_ERROR:
             # CanceledErrors need to make it back out to be handled
             # by callers (ex job_supervisor.api_runSimulation)
             raise
         except Exception as e:
-            if not c and 'No such container' in str(e):
+            if not c and "No such container" in str(e):
                 # Make kill response idempotent
                 return
-            pkdlog('{} error={} stack={}', self, e, pkdexc())
+            pkdlog("{} error={} stack={}", self, e, pkdexc())
 
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
-            op.msg.mpiCores = self.cfg[self.kind].get('cores', 1)
+            op.msg.mpiCores = self.cfg[self.kind].get("cores", 1)
         return await super().prepare_send(op)
 
     @classmethod
     def _cmd_prefix(cls, host, tls_d):
         args = [
-            'docker',
+            "docker",
             # docker TLS port is hardwired
-            '--host=tcp://{}:2376'.format(host),
-            '--tlsverify',
+            "--host=tcp://{}:2376".format(host),
+            "--tlsverify",
         ]
         # POSIT: rsconf.component.docker creates {cacert,cert,key}.pem
-        for x in 'cacert', 'cert', 'key':
-            f = tls_d.join(x + '.pem')
-            assert f.check(), \
-                'tls file does not exist for host={} file={}'.format(host, f)
-            args.append('--tls{}={}'.format(x, f))
+        for x in "cacert", "cert", "key":
+            f = tls_d.join(x + ".pem")
+            assert f.check(), "tls file does not exist for host={} file={}".format(
+                host, f
+            )
+            args.append("--tls{}={}".format(x, f))
         return tuple(args)
 
     def _cname_join(self):
@@ -161,38 +168,43 @@ class DockerDriver(job_driver.DriverBase):
         if not self.cfg.constrain_resources:
             return tuple()
         return (
-            '--cpus={}'.format(cfg_kind.get('cores', 1)),
-            '--memory={}g'.format(cfg_kind.gigabytes),
+            "--cpus={}".format(cfg_kind.get("cores", 1)),
+            "--memory={}g".format(cfg_kind.gigabytes),
         )
 
     async def _do_agent_start(self, op):
         cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
-        pkdlog('{} agent_exec_dir={}', self, self._agent_exec_dir)
+        pkdlog("{} agent_exec_dir={}", self, self._agent_exec_dir)
         pkio.mkdir_parent(self._agent_exec_dir)
         c = self.cfg[self.kind]
         p = (
-            'run',
-            # attach to stdin for writing
-            '--attach=stdin',
-            '--init',
-            # keeps stdin open so we can write to it
-            '--interactive',
-            '--name={}'.format(self._cname),
-            '--network=host',
-            '--rm',
-            '--ulimit=core=0',
-            '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
-            # do not use a "name", but a uid, because /etc/password is image specific, but
-            # IDs are universal.
-            '--user={}'.format(os.getuid()),
-        ) + self._constrain_resources(c) + self._volumes() + (self._image,)
+            (
+                "run",
+                # attach to stdin for writing
+                "--attach=stdin",
+                "--init",
+                # keeps stdin open so we can write to it
+                "--interactive",
+                "--name={}".format(self._cname),
+                "--network=host",
+                "--rm",
+                "--ulimit=core=0",
+                "--ulimit=nofile={}".format(_MAX_OPEN_FILES),
+                # do not use a "name", but a uid, because /etc/password is image specific, but
+                # IDs are universal.
+                "--user={}".format(os.getuid()),
+            )
+            + self._constrain_resources(c)
+            + self._volumes()
+            + (self._image,)
+        )
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
         self.driver_details.pkupdate(host=self.host.name)
-        pkdlog('{} cname={} cid={:.12}', self, self._cname, self._cid)
+        pkdlog("{} cname={} cid={:.12}", self, self._cname, self._cid)
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
         c = self.__hosts[self.host.name].cmd_prefix + cmd
-        pkdc('{} running: {}', self, ' '.join(c))
+        pkdc("{} running: {}", self, " ".join(c))
         try:
             p = tornado.process.Subprocess(
                 c,
@@ -202,48 +214,55 @@ class DockerDriver(job_driver.DriverBase):
                 env=env,
             )
         except Exception as e:
-            pkdlog('{} error={} cmd={} stack={}', self, e, c, pkdexc())
+            pkdlog("{} error={} cmd={} stack={}", self, e, c, pkdexc())
         finally:
-            assert isinstance(stdin, io.BufferedRandom) or isinstance(stdin, int), \
-                'type(stdin)={} expected io.BufferedRandom or int'.format(type(stdin))
+            assert isinstance(stdin, io.BufferedRandom) or isinstance(
+                stdin, int
+            ), "type(stdin)={} expected io.BufferedRandom or int".format(type(stdin))
             if isinstance(stdin, io.BufferedRandom):
                 stdin.close()
-        o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
+        o = (await p.stdout.read_until_close()).decode("utf-8").rstrip()
         r = await p.wait_for_exit(raise_error=False)
         # TODO(e-carlin): more robust handling
-        assert r == 0, \
-            '{}: failed: exit={} output={}'.format(c, r, o)
+        assert r == 0, "{}: failed: exit={} output={}".format(c, r, o)
         return o
 
-    #TODO(robnagler) probably should push this to pykern also in rsconf
+    # TODO(robnagler) probably should push this to pykern also in rsconf
     def _get_image(self):
         res = self.cfg.image
-        if ':' in res:
+        if ":" in res:
             return res
-        return res + ':' + pkconfig.cfg.channel
+        return res + ":" + pkconfig.cfg.channel
 
     @classmethod
     def _init_dev_hosts(cls):
-        assert pkconfig.channel_in('dev')
+        assert pkconfig.channel_in("dev")
 
         from sirepo import srdb
-        assert not (cls.cfg.tls_dir or cls.cfg.hosts), \
-            'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'
+
+        assert not (
+            cls.cfg.tls_dir or cls.cfg.hosts
+        ), "neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config"
         # dev mode only; see _cfg_tls_dir and _cfg_hosts
-        cls.cfg.tls_dir = srdb.root().join('docker_tls')
-        cls.cfg.hosts = ('localhost.localdomain',)
+        cls.cfg.tls_dir = srdb.root().join("docker_tls")
+        cls.cfg.hosts = ("localhost.localdomain",)
         d = cls.cfg.tls_dir.join(cls.cfg.hosts[0])
         if d.check(dir=True):
             return
-        pkdlog('initializing docker dev env; initial docker pull will take a few minutes...')
+        pkdlog(
+            "initializing docker dev env; initial docker pull will take a few minutes..."
+        )
         d.ensure(dir=True)
-        for f in 'key.pem', 'cert.pem':
-            o = subprocess.check_output(['sudo', 'cat', '/etc/docker/tls/' + f]).decode('utf-8')
-            assert o.startswith('-----BEGIN'), \
-                'incorrect tls file={} content={}'.format(f, o)
+        for f in "key.pem", "cert.pem":
+            o = subprocess.check_output(["sudo", "cat", "/etc/docker/tls/" + f]).decode(
+                "utf-8"
+            )
+            assert o.startswith(
+                "-----BEGIN"
+            ), "incorrect tls file={} content={}".format(f, o)
             d.join(f).write(o)
         # we just reuse the same cert as the docker server since it's local host
-        d.join('cacert.pem').write(o)
+        d.join("cacert.pem").write(o)
 
     @classmethod
     def _init_hosts(cls, job_supervisor):
@@ -253,24 +272,31 @@ class DockerDriver(job_driver.DriverBase):
                 cmd_prefix=cls._cmd_prefix(h, d),
                 instances=PKDict({k: [] for k in job.KINDS}),
                 name=h,
-                cpu_slot_q=PKDict({k: job_supervisor.SlotQueue(cls.cfg[k].slots_per_host) for k in job.KINDS}),
+                cpu_slot_q=PKDict(
+                    {
+                        k: job_supervisor.SlotQueue(cls.cfg[k].slots_per_host)
+                        for k in job.KINDS
+                    }
+                ),
             )
-        assert len(cls.__hosts) > 0, \
-            '{}: no docker hosts found in directory'.format(cls.cfg.tls_d)
+        assert len(cls.__hosts) > 0, "{}: no docker hosts found in directory".format(
+            cls.cfg.tls_d
+        )
 
     def _volumes(self):
         res = []
+
         def _res(vol, mode=None):
             t = s = pkio.py_path(vol)
             if mode:
-                t += f':{mode}'
-            res.append('--volume={}:{}'.format(s, t))
+                t += f":{mode}"
+            res.append("--volume={}:{}".format(s, t))
 
         if self.cfg.dev_volumes:
             # POSIT: radiasoft/download/installers/rpm-code/codes.sh
             #   these are all the local environ directories.
-            for v in '~/src', '~/.pyenv', '~/.local':
-                _res(v, mode='ro')
+            for v in "~/src", "~/.pyenv", "~/.local":
+                _res(v, mode="ro")
             for v in self.cfg.aux_volumes:
                 _res(v)
         # SECURITY: Must only mount the user's directory
@@ -283,6 +309,5 @@ CLASS = DockerDriver
 
 def _cfg_tls_dir(value):
     res = pkio.py_path(value)
-    assert res.check(dir=True), \
-        'directory does not exist; value={}'.format(value)
+    assert res.check(dir=True), "directory does not exist; value={}".format(value)
     return res

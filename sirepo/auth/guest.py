@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Guest login
+"""Guest login
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -26,13 +26,13 @@ AUTH_METHOD_VISIBLE = True
 this_module = pkinspect.this_module()
 
 #: time to recheck login against db (prefix is "sraz", because github is "srag")
-_COOKIE_EXPIRY_TIMESTAMP = 'srazt'
+_COOKIE_EXPIRY_TIMESTAMP = "srazt"
 
 _ONE_DAY = datetime.timedelta(days=1)
 
 
 class API(sirepo.api.Base):
-    @api_perm.require_cookie_sentinel
+    @sirepo.api.Spec("require_cookie_sentinel")
     def api_authGuestLogin(self, simulation_type):
         """You have to be an anonymous or logged in user at this point"""
         req = self.parse_params(type=simulation_type)
@@ -40,7 +40,7 @@ class API(sirepo.api.Base):
         if auth.user_if_logged_in(AUTH_METHOD):
             auth.login_success_response(req.type, self)
         auth.login(this_module, sim_type=req.type, sapi=self)
-        raise AssertionError('auth.login returned unexpectedly')
+        raise AssertionError("auth.login returned unexpectedly")
 
 
 def is_login_expired(res=None):
@@ -88,9 +88,9 @@ def validate_login():
     msg = PKDict()
     if is_login_expired(msg):
         raise sirepo.util.SRException(
-            'loginFail',
-            PKDict({':method': 'guest', ':reason': 'guest-expired'}),
-            'expired uid={uid}, expiry={expiry} now={now}',
+            "loginFail",
+            PKDict({":method": "guest", ":reason": "guest-expired"}),
+            "expired uid={uid}, expiry={expiry} now={now}",
             **msg
         )
 
@@ -104,5 +104,5 @@ def _cfg_login_days(value):
 
 
 cfg = pkconfig.init(
-    expiry_days=(None, _cfg_login_days, 'when auth login expires'),
+    expiry_days=(None, _cfg_login_days, "when auth login expires"),
 )

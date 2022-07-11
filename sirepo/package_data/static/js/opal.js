@@ -6,29 +6,29 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
     SIREPO.SINGLE_FRAME_ANIMATION = ['beamline3dAnimation', 'plotAnimation', 'plot2Animation'];
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>',
-        '</div>',
-        '<div data-ng-switch-when="FieldsolverList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="fieldsolver"></div>',
-        '</div>',
-        '<div data-ng-switch-when="DistributionList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="distribution"></div>',
-        '</div>',
-        '<div data-ng-switch-when="ParticlematterinteractionList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="particlematterinteraction"></div>',
-        '</div>',
-        '<div data-ng-switch-when="WakeList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="wake"></div>',
-        '</div>',
-        '<div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>',
-        '</div>',
-    ].join('');
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="BeamList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>
+        </div>
+        <div data-ng-switch-when="FieldsolverList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="fieldsolver"></div>
+        </div>
+        <div data-ng-switch-when="DistributionList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="distribution"></div>
+        </div>
+        <div data-ng-switch-when="ParticlematterinteractionList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="particlematterinteraction"></div>
+        </div>
+        <div data-ng-switch-when="WakeList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="wake"></div>
+        </div>
+        <div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>
+        </div>
+    `;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+    `;
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {
@@ -45,7 +45,7 @@ SIREPO.app.config(function() {
             magnet: ['CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
                      'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                     'TRIMCOIL', 'VKICKER', 'WIRE'],
+                     'TRIMCOIL', 'UNDULATOR', 'VACUUM', 'VERTICALFFAMAGNET', 'VKICKER', 'WIRE'],
             malign: [],
             mirror: [],
             rf: ['RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
@@ -127,7 +127,7 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'beam', 'distribution', 'fieldsolver', 'filter', 'geometry',
+        'beam', 'distribution', 'dumpemfields', 'dumpfields', 'fieldsolver', 'filter', 'geometry',
         'option', 'particlematterinteraction', 'select', 'track', 'wake',
     ];
     self.advancedNames = [];
@@ -158,7 +158,7 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
         'HKICKER', 'KICKER', 'LOCAL_CARTESIAN_OFFSET', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET',
         'OCTUPOLE', 'PROBE', 'RBEND', 'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
         'SCALINGFFAMAGNET', 'SEPTUM', 'SEXTUPOLE', 'SBEND', 'TRAVELINGWAVE',
-        'TRIMCOIL', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
+        'TRIMCOIL', 'UNDULATOR', 'VACUUM', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VERTICALFFAMAGNET', 'VKICKER',
     ];
     self.basicNames = [
         'DRIFT', 'ECOLLIMATOR', 'MARKER', 'QUADRUPOLE', 'RFCAVITY', 'SOLENOID', 'SOURCE',
@@ -592,7 +592,7 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
               <div data-ng-repeat="info in missingFiles">
                 <div data-ng-if="! info.hasFile" class="col-sm-11 col-sm-offset-1">
                   <span data-ng-if="info.invalidFilename" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="info.invalidFilename" class="text-danger">Filename does not match, expected: </span>
-                  <label>{{ info.filename }}</label> 
+                  <label>{{ info.filename }}</label>
                   ({{ info.label + ": " + info.type }})
                   <input id="file-import" type="file" data-file-model="info.file">
                   <div data-ng-if="uploadDatafile(info)"></div>
@@ -682,7 +682,7 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
     };
 });
 
-SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plotting, vtkPlotting, vtkToPNG) {
+SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting) {
     return {
         restrict: 'A',
         scope: {
@@ -751,10 +751,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 vtkScene.resetView();
 
                 if ($scope.axisObj) {
-                    panelState.waitForUI(() => {
-                        $scope.$broadcast('axes.refresh');
-                        vtkScene.refreshCanvas();
-                    });
+                    panelState.waitForUI(() => $scope.$broadcast('axes.refresh'));
                 }
             }
 
@@ -778,6 +775,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 if (data) {
                     buildScene();
                 }
+                plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
             $scope.load = (json) => {
@@ -785,17 +783,6 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 if (renderer) {
                     buildScene();
                 }
-            };
-
-            $scope.vtkCanvasGeometry = () => {
-                const vtkCanvasHolder = getVtkElement();
-                return {
-                    pos: vtkCanvasHolder.position(),
-                    size: {
-                        width: vtkCanvasHolder.width(),
-                        height: vtkCanvasHolder.height()
-                    }
-                };
             };
         },
         link: function link(scope, element) {

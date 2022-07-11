@@ -122,6 +122,7 @@
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
+        "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
         "comsol": "/comsol",
@@ -135,7 +136,6 @@
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
         "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
-        "exportRSOptConfig": "/export-rsopt-config/<simulation_type>/<simulation_id>/<filename>",
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
@@ -165,6 +165,7 @@
         "saveSimulationData": "/save-simulation",
         "sbatchLogin": "/sbatch-login",
         "serverStatus": "/server-status",
+        "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
@@ -179,6 +180,7 @@
     "common": {
         "adm": {
             "userRoleInviteColumns": [
+              ["email", "Email"],
               ["uid", "uid"],
               ["role", "Role"],
               ["token", "Token"],
@@ -245,7 +247,7 @@
                     "bootstrap-toggle.min.js",
                     "ngDraggable.js",
                     "colorbar.js",
-                    "canvg-and-dependencies.js",
+                    "html2canvas.js",
                     "FileSaver.js",
                     "Blob.js",
                     "canvas-toBlob.js",

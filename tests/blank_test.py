@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""A blank test so Tox is happy.
+"""A blank test so Tox is happy.
 
 We need to figure out how to do container deployments to test infrastructure.
 
@@ -8,6 +8,7 @@ We need to figure out how to do container deployments to test infrastructure.
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+
 
 def test_nothing():
     pass

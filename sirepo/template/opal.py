@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""OPAL execution template.
+"""OPAL execution template.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -28,9 +28,9 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-OPAL_INPUT_FILE = 'opal.in'
-OPAL_OUTPUT_FILE = 'opal.out'
-OPAL_POSITION_FILE = 'opal-vtk.py'
+OPAL_INPUT_FILE = "opal.in"
+OPAL_OUTPUT_FILE = "opal.out"
+OPAL_POSITION_FILE = "opal-vtk.py"
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -45,28 +45,28 @@ _OPAL_CONSTANTS = PKDict(
     degrad=_OPAL_PI / 180.0,
     e=2.7182818284590452354,
     emass=0.51099892e-03,
-    pmass=0.93827204e+00,
-    hmmass=0.939277e+00,
-    umass=238 * 0.931494027e+00,
-    cmass=12 * 0.931494027e+00,
+    pmass=0.93827204e00,
+    hmmass=0.939277e00,
+    umass=238 * 0.931494027e00,
+    cmass=12 * 0.931494027e00,
     mmass=0.10565837,
-    dmass=2*0.931494027e+00,
-    xemass=124*0.931494027e+00,
+    dmass=2 * 0.931494027e00,
+    xemass=124 * 0.931494027e00,
     clight=299792458.0,
     p0=1,
     seed=123456789,
 )
-_OPAL_H5_FILE = 'opal.h5'
-_OPAL_SDDS_FILE = 'opal.stat'
-_OPAL_VTK_FILE = 'opal_ElementPositions.vtk'
-_ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
-_HEADER_COMMANDS = ('option', 'filter', 'geometry', 'particlematterinteraction', 'wake')
+_OPAL_H5_FILE = "opal.h5"
+_OPAL_SDDS_FILE = "opal.stat"
+_OPAL_VTK_FILE = "opal_ElementPositions.vtk"
+_ELEMENTS_WITH_TYPE_FIELD = ("CYCLOTRON", "MONITOR", "RFCAVITY")
+_HEADER_COMMANDS = ("option", "filter", "geometry", "particlematterinteraction", "wake")
 
 
 class LibAdapter(sirepo.lib.LibAdapterBase):
-
     def parse_file(self, path):
         from sirepo.template import opal_parser
+
         data, input_files = opal_parser.parse_file(
             pkio.read_text(path),
             filename=path.basename,
@@ -83,7 +83,6 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         """
 
         class _G(_Generate):
-
             def _input_file(self, model_name, field, filename):
                 return f'"{filename}"'
 
@@ -94,26 +93,30 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         r = PKDict(commands=dest_dir.join(source_path.basename))
         pkio.write_text(r.commands, g.sim())
         self._write_input_files(data, source_path, dest_dir)
-        r.output_files = LatticeUtil(data, SCHEMA).iterate_models(
-            OpalOutputFileIterator(preserve_output_filenames=True),
-        ).result.keys_in_order
+        r.output_files = (
+            LatticeUtil(data, SCHEMA)
+            .iterate_models(
+                OpalOutputFileIterator(preserve_output_filenames=True),
+            )
+            .result.keys_in_order
+        )
         return r
 
 
 class OpalElementIterator(lattice.ElementIterator):
-
     def __init__(self, formatter, visited=None):
         super().__init__(None, formatter)
         self.visited = visited
 
     def end(self, model):
         if self.visited:
-            if '_id' in model and model._id not in self.visited:
+            if "_id" in model and model._id not in self.visited:
                 return
         super().end(model)
 
     def is_ignore_field(self, field):
-        return field == 'name'
+        return field == "name"
+
 
 class OpalOutputFileIterator(lattice.ModelIterator):
     def __init__(self, preserve_output_filenames=False):
@@ -126,11 +129,11 @@ class OpalOutputFileIterator(lattice.ModelIterator):
     def field(self, model, field_schema, field):
         self.field_index += 1
         # for now only interested in element outfn output files
-        if field == 'outfn' and field_schema[1] == 'OutputFile':
+        if field == "outfn" and field_schema[1] == "OutputFile":
             if self.preserve_output_filenames:
                 filename = model[field]
             else:
-                filename = '{}.{}.h5'.format(model.name, field)
+                filename = "{}.{}.h5".format(model.name, field)
             k = LatticeUtil.file_id(model._id, self.field_index)
             self.result[k] = filename
             self.result.keys_in_order.append(k)
@@ -143,78 +146,102 @@ class OpalOutputFileIterator(lattice.ModelIterator):
         else:
             self.model_index[self.model_name] = 1
 
+
 class OpalMadxConverter(MadxConverter):
     _FIELD_MAP = [
-        ['DRIFT',
-            ['DRIFT', 'l'],
+        [
+            "DRIFT",
+            ["DRIFT", "l"],
         ],
-        ['SBEND',
-            ['SBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+        [
+            "SBEND",
+            ["SBEND", "l", "angle", "e1", "e2", "gap=hgap", "psi=tilt"],
         ],
-        ['RBEND',
-            ['RBEND', 'l', 'angle', 'e1', 'gap=hgap', 'psi=tilt'],
+        [
+            "RBEND",
+            ["RBEND", "l", "angle", "e1", "gap=hgap", "psi=tilt"],
         ],
-        ['QUADRUPOLE',
-            ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
+        [
+            "QUADRUPOLE",
+            ["QUADRUPOLE", "l", "k1", "k1s", "psi=tilt"],
         ],
-        ['SEXTUPOLE',
-            ['SEXTUPOLE', 'l', 'k2', 'k2s', 'psi=tilt'],
+        [
+            "SEXTUPOLE",
+            ["SEXTUPOLE", "l", "k2", "k2s", "psi=tilt"],
         ],
-        ['OCTUPOLE',
-            ['OCTUPOLE', 'l', 'k3', 'k3s', 'psi=tilt'],
+        [
+            "OCTUPOLE",
+            ["OCTUPOLE", "l", "k3", "k3s", "psi=tilt"],
         ],
-        ['SOLENOID',
-         #TODO(pjm): compute dks from ksi?
-            ['SOLENOID', 'l', 'ks'],
+        [
+            "SOLENOID",
+            # TODO(pjm): compute dks from ksi?
+            ["SOLENOID", "l", "ks"],
         ],
-        ['MULTIPOLE',
-         #TODO(pjm): compute kn, ks from knl, ksl?
-            ['MULTIPOLE', 'psi=tilt'],
+        [
+            "MULTIPOLE",
+            # TODO(pjm): compute kn, ks from knl, ksl?
+            ["MULTIPOLE", "psi=tilt"],
         ],
-        ['HKICKER',
-            ['HKICKER', 'l', 'kick', 'psi=tilt'],
+        [
+            "HKICKER",
+            ["HKICKER", "l", "kick", "psi=tilt"],
         ],
-        ['VKICKER',
-            ['VKICKER', 'l', 'kick', 'psi=tilt'],
+        [
+            "VKICKER",
+            ["VKICKER", "l", "kick", "psi=tilt"],
         ],
-        ['KICKER',
-            ['KICKER', 'l', 'hkick', 'vkick', 'psi=tilt'],
+        [
+            "KICKER",
+            ["KICKER", "l", "hkick", "vkick", "psi=tilt"],
         ],
-        ['MARKER',
-            ['MARKER'],
+        [
+            "MARKER",
+            ["MARKER"],
         ],
-        ['PLACEHOLDER',
-            ['DRIFT', 'l'],
+        [
+            "PLACEHOLDER",
+            ["DRIFT", "l"],
         ],
-        ['INSTRUMENT',
-            ['DRIFT', 'l'],
+        [
+            "INSTRUMENT",
+            ["DRIFT", "l"],
         ],
-        ['ECOLLIMATOR',
-            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        [
+            "ECOLLIMATOR",
+            ["ECOLLIMATOR", "l", "xsize", "ysize"],
         ],
-        ['RCOLLIMATOR',
-            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        [
+            "RCOLLIMATOR",
+            ["RCOLLIMATOR", "l", "xsize", "ysize"],
         ],
-        ['COLLIMATOR apertype=ELLIPSE',
-            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        [
+            "COLLIMATOR apertype=ELLIPSE",
+            ["ECOLLIMATOR", "l", "xsize", "ysize"],
         ],
-        ['COLLIMATOR apertype=RECTANGLE',
-            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        [
+            "COLLIMATOR apertype=RECTANGLE",
+            ["RCOLLIMATOR", "l", "xsize", "ysize"],
         ],
-        ['RFCAVITY',
-            ['RFCAVITY', 'l', 'volt', 'lag', 'harmon', 'freq'],
+        [
+            "RFCAVITY",
+            ["RFCAVITY", "l", "volt", "lag", "harmon", "freq"],
         ],
-        ['TWCAVITY',
-            ['TRAVELINGWAVE', 'l', 'volt', 'lag', 'freq', 'dlag=delta_lag'],
+        [
+            "TWCAVITY",
+            ["TRAVELINGWAVE", "l", "volt", "lag", "freq", "dlag=delta_lag"],
         ],
-        ['HMONITOR',
-            ['MONITOR', 'l'],
+        [
+            "HMONITOR",
+            ["MONITOR", "l"],
         ],
-        ['VMONITOR',
-            ['MONITOR', 'l'],
+        [
+            "VMONITOR",
+            ["MONITOR", "l"],
         ],
-        ['MONITOR',
-            ['MONITOR', 'l'],
+        [
+            "MONITOR",
+            ["MONITOR", "l"],
         ],
     ]
 
@@ -222,29 +249,32 @@ class OpalMadxConverter(MadxConverter):
         super().__init__(SIM_TYPE, self._FIELD_MAP)
 
     def to_madx(self, data):
-
         def _get_len_by_id(data, id):
             for e in data.models.elements:
                 if e._id == id:
                     return e.l
-            raise AssertionError(f'id={id} not found in elements={data.models.elements}')
+            raise AssertionError(
+                f"id={id} not found in elements={data.models.elements}"
+            )
 
         def _get_element_type(data, id):
             for e in data.models.elements:
                 if e._id == id:
                     return e.type
-            raise AssertionError(f'id={id} not found in elements={data.models.elements}')
+            raise AssertionError(
+                f"id={id} not found in elements={data.models.elements}"
+            )
 
         def _get_drift(distance):
             for e in data.models.elements:
-                if e.l == distance and e.type == 'DRIFT':
+                if e.l == distance and e.type == "DRIFT":
                     return e
             return False
 
         def _insert_drift(distance, beam_idx, items_idx, pos, length):
             d = _get_drift(distance)
             n = LatticeUtil.max_id(data) + 1
-            m = 'D' + str(n)
+            m = "D" + str(n)
             if d:
                 n = d._id
                 m = d.name
@@ -252,112 +282,131 @@ class OpalMadxConverter(MadxConverter):
                 _id=n,
                 l=distance,
                 name=m,
-                type='DRIFT',
+                type="DRIFT",
             )
             if not d:
                 data.models.elements.append(new_drift)
-            data.models.beamlines[beam_idx]['items'].insert(items_idx + 1, new_drift._id)
-            data.models.beamlines[beam_idx]['positions'].insert(
-                items_idx + 1,
-                PKDict(elemedge=str(float(pos) + length[0]))
+            data.models.beamlines[beam_idx]["items"].insert(
+                items_idx + 1, new_drift._id
+            )
+            data.models.beamlines[beam_idx]["positions"].insert(
+                items_idx + 1, PKDict(elemedge=str(float(pos) + length[0]))
             )
 
         def _get_distance_and_insert_drift(beamline, beam_idx):
-            for i, e in enumerate(beamline['items']):
-                    if i + 1 == len(beamline['items']):
-                        break
-                    if _get_element_type(data, e) == 'DRIFT':
-                        continue
-                    p = beamline.positions[i].elemedge
-                    n = beamline.positions[i + 1].elemedge
-                    l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
-                    d = round(float(n) - float(p) - l[0], 10)
-                    if d > 0:
-                        _insert_drift(d, beam_idx, i, p, l)
+            for i, e in enumerate(beamline["items"]):
+                if i + 1 == len(beamline["items"]):
+                    break
+                if _get_element_type(data, e) == "DRIFT":
+                    continue
+                p = beamline.positions[i].elemedge
+                n = beamline.positions[i + 1].elemedge
+                l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
+                d = round(float(n) - float(p) - l[0], 10)
+                if d > 0:
+                    _insert_drift(d, beam_idx, i, p, l)
 
-        if data.models.simulation.elementPosition == 'absolute':
+        if data.models.simulation.elementPosition == "absolute":
             for j, b in enumerate(data.models.beamlines):
                 _get_distance_and_insert_drift(b, j)
         madx = super().to_madx(data)
-        mb = LatticeUtil.find_first_command(madx, 'beam')
-        ob = LatticeUtil.find_first_command(data, 'beam')
+        mb = LatticeUtil.find_first_command(madx, "beam")
+        ob = LatticeUtil.find_first_command(data, "beam")
         for f in ob:
             if f in mb and f in SCHEMA.model.command_beam:
                 mb[f] = ob[f]
-                if f in ('gamma', 'energy', 'pc') and mb[f]:
+                if f in ("gamma", "energy", "pc") and mb[f]:
                     madx.models.bunch.beamDefinition = f
-        od = LatticeUtil.find_first_command(data, 'distribution')
-        #TODO(pjm): save dist in vars
+        od = LatticeUtil.find_first_command(data, "distribution")
+        # TODO(pjm): save dist in vars
         return madx
 
     def from_madx(self, madx):
         data = self.fill_in_missing_constants(super().from_madx(madx), _OPAL_CONSTANTS)
-        data.models.simulation.elementPosition = 'relative'
-        mb = LatticeUtil.find_first_command(madx, 'beam')
-        LatticeUtil.find_first_command(data, 'option').version = 20000
-        LatticeUtil.find_first_command(data, 'beam').particle = mb.particle.upper()
-        LatticeUtil.find_first_command(data, 'beam').pc = self.particle_energy.pc
-        LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+        data.models.simulation.elementPosition = "relative"
+        mb = LatticeUtil.find_first_command(madx, "beam")
+        LatticeUtil.find_first_command(data, "option").version = 20000
+        LatticeUtil.find_first_command(data, "beam").particle = mb.particle.upper()
+        LatticeUtil.find_first_command(data, "beam").pc = self.particle_energy.pc
+        LatticeUtil.find_first_command(
+            data, "track"
+        ).line = data.models.simulation.visualizationBeamlineId
         self.__fixup_distribution(madx, data)
         return data
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
-        if self.from_class.sim_type()  == SIM_TYPE:
+        if self.from_class.sim_type() == SIM_TYPE:
             pass
         else:
-            if element_in.type == 'SBEND':
+            if element_in.type == "SBEND":
                 angle = self.__val(element_in.angle)
                 if angle != 0:
                     length = self.__val(element_in.l)
-                    d1 = 2 * length / angle;
+                    d1 = 2 * length / angle
                     element_out.l = d1 * math.sin(length / d1)
-            if element_in.type in ('SBEND', 'RBEND'):
+            if element_in.type in ("SBEND", "RBEND"):
                 # kenetic energy in MeV
                 element_out.designenergy = round(
-                    (math.sqrt(self.particle_energy.energy ** 2 + self.beam.mass ** 2) - self.beam.mass) * 1e3,
+                    (
+                        math.sqrt(
+                            self.particle_energy.energy**2 + self.beam.mass**2
+                        )
+                        - self.beam.mass
+                    )
+                    * 1e3,
                     6,
                 )
                 element_out.gap = 2 * self.__val(element_in.hgap)
-                element_out.fmapfn = 'hard_edge_profile.txt'
-            if element_in.type == 'QUADRUPOLE':
+                element_out.fmapfn = "hard_edge_profile.txt"
+            if element_in.type == "QUADRUPOLE":
                 k1 = self.__val(element_out.k1)
                 if self.beam.charge < 0:
                     k1 *= -1
-                element_out.k1 = '{} * {}'.format(k1, self._var_name('brho'))
+                element_out.k1 = "{} * {}".format(k1, self._var_name("brho"))
 
     def __fixup_distribution(self, madx, data):
-        mb = LatticeUtil.find_first_command(madx, 'beam')
-        dist = LatticeUtil.find_first_command(data, 'distribution')
+        mb = LatticeUtil.find_first_command(madx, "beam")
+        dist = LatticeUtil.find_first_command(data, "distribution")
         beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
-        self._replace_var(data, 'brho', self.particle_energy.brho)
-        self._replace_var(data, 'gamma', self.particle_energy.gamma)
-        self._replace_var(data, 'beta', 'sqrt(1 - (1 / ({} * {})))'.format(
-            self._var_name('gamma'),
-            self._var_name('gamma'),
-        ))
-        for dim in ('x', 'y'):
-            self._replace_var(data, f'emit_{dim}', mb[f'e{dim}'])
-            beta = self._find_var(madx, f'beta_{dim}')
+        self._replace_var(data, "brho", self.particle_energy.brho)
+        self._replace_var(data, "gamma", self.particle_energy.gamma)
+        self._replace_var(
+            data,
+            "beta",
+            "sqrt(1 - (1 / ({} * {})))".format(
+                self._var_name("gamma"),
+                self._var_name("gamma"),
+            ),
+        )
+        for dim in ("x", "y"):
+            self._replace_var(data, f"emit_{dim}", mb[f"e{dim}"])
+            beta = self._find_var(madx, f"beta_{dim}")
             if beta:
-                dist[f'sigma{dim}'] = 'sqrt({} * {})'.format(
-                    self._var_name(f'emit_{dim}'), self._var_name(f'beta_{dim}'))
-                dist[f'sigmap{dim}'] = 'sqrt({} * {}) * {} * {}'.format(
-                    self._var_name(f'emit_{dim}'), self._var_name(f'gamma_{dim}'),
-                    self._var_name('beta'), self._var_name('gamma'))
-                dist[f'corr{dim}'] = '-{}/sqrt(1 + {} * {})'.format(
-                    self._var_name(f'alpha_{dim}'),
-                    self._var_name(f'alpha_{dim}'),
-                    self._var_name(f'alpha_{dim}'),
+                dist[f"sigma{dim}"] = "sqrt({} * {})".format(
+                    self._var_name(f"emit_{dim}"), self._var_name(f"beta_{dim}")
                 )
-        if self._find_var(madx, 'dp_s_coupling'):
-            dist.corrz = self._var_name('dp_s_coupling')
-        ob = LatticeUtil.find_first_command(data, 'beam')
+                dist[f"sigmap{dim}"] = "sqrt({} * {}) * {} * {}".format(
+                    self._var_name(f"emit_{dim}"),
+                    self._var_name(f"gamma_{dim}"),
+                    self._var_name("beta"),
+                    self._var_name("gamma"),
+                )
+                dist[f"corr{dim}"] = "-{}/sqrt(1 + {} * {})".format(
+                    self._var_name(f"alpha_{dim}"),
+                    self._var_name(f"alpha_{dim}"),
+                    self._var_name(f"alpha_{dim}"),
+                )
+        if self._find_var(madx, "dp_s_coupling"):
+            dist.corrz = self._var_name("dp_s_coupling")
+        ob = LatticeUtil.find_first_command(data, "beam")
         ob.bcurrent = mb.bcurrent
-        if self._find_var(madx, 'n_particles_per_bunch'):
-            ob.npart = self._var_name('n_particles_per_bunch')
+        if self._find_var(madx, "n_particles_per_bunch"):
+            ob.npart = self._var_name("n_particles_per_bunch")
         dist.sigmaz = self.__val(mb.sigt)
-        dist.sigmapz = '{} * {} * {}'.format(mb.sige, self._var_name('beta'), self._var_name('gamma'))
+        dist.sigmapz = "{} * {} * {}".format(
+            mb.sige, self._var_name("beta"), self._var_name("gamma")
+        )
 
     def __val(self, var_value):
         return self.vars.eval_var_with_assert(var_value)
@@ -370,10 +419,10 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        #TODO(pjm): determine total frame count and set percentComplete
+        # TODO(pjm): determine total frame count and set percentComplete
         res.frameCount = _read_frame_count(run_dir) - 1
         return res
-    if run_dir.join('{}.json'.format(template_common.INPUT_BASE_NAME)).exists():
+    if run_dir.join("{}.json".format(template_common.INPUT_BASE_NAME)).exists():
         res.frameCount = _read_frame_count(run_dir)
         if res.frameCount > 0:
             res.percentComplete = 100
@@ -383,7 +432,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 def code_var(variables):
     class _P(code_variable.PurePythonEval):
-        #TODO(pjm): parse from opal files into schema
+        # TODO(pjm): parse from opal files into schema
         _OPAL_PI = _OPAL_PI
         _OPAL_CONSTANTS = _OPAL_CONSTANTS
 
@@ -391,10 +440,11 @@ def code_var(variables):
             super().__init__(self._OPAL_CONSTANTS)
 
         def eval_var(self, expr, depends, variables):
-            if re.match(r'^\{.+\}$', expr):
+            if re.match(r"^\{.+\}$", expr):
                 # It is an array of values
                 return expr, None
             return super().eval_var(expr, depends, variables)
+
     return code_variable.CodeVar(
         variables,
         _P(),
@@ -403,48 +453,50 @@ def code_var(variables):
 
 
 def get_application_data(data, **kwargs):
-    if data.method == 'compute_particle_ranges':
+    if data.method == "compute_particle_ranges":
         return template_common.compute_field_range(data, _compute_range_across_frames)
-    if code_var(data.variables).get_application_data(data, SCHEMA, ignore_array_values=True):
+    if code_var(data.variables).get_application_data(
+        data, SCHEMA, ignore_array_values=True
+    ):
         return data
 
 
 def get_data_file(run_dir, model, frame, options):
     if frame < 0:
         return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
-    if model in ('bunchAnimation', 'plotAnimation') or 'bunchReport' in model:
+    if model in ("bunchAnimation", "plotAnimation") or "bunchReport" in model:
         return _OPAL_H5_FILE
-    if model == 'plot2Animation':
+    if model == "plot2Animation":
         return _OPAL_SDDS_FILE
-    if model == 'beamline3dAnimation':
+    if model == "beamline3dAnimation":
         return _OPAL_VTK_FILE
-    if 'elementAnimation' in model:
+    if "elementAnimation" in model:
         return _file_name_for_element_animation(run_dir, model)
-    raise AssertionError('unknown model={}'.format(model))
+    raise AssertionError("unknown model={}".format(model))
 
 
 def import_file(req, unit_test_mode=False, **kwargs):
     from sirepo.template import opal_parser
 
     text = pkcompat.from_bytes(req.file_stream.read())
-    if re.search(r'\.in$', req.filename, re.IGNORECASE):
-        data, input_files = opal_parser.parse_file(
-            text,
-            filename=req.filename)
+    if re.search(r"\.in$", req.filename, re.IGNORECASE):
+        data, input_files = opal_parser.parse_file(text, filename=req.filename)
         missing_files = []
         for infile in input_files:
             if not _SIM_DATA.lib_file_exists(infile.lib_filename):
                 missing_files.append(infile)
         if missing_files:
             return PKDict(
-                error='Missing data files',
+                error="Missing data files",
                 missingFiles=missing_files,
             )
-    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
+    elif re.search(r"\.madx$", req.filename, re.IGNORECASE):
         data = OpalMadxConverter().from_madx_text(text)
-        data.models.simulation.name = re.sub(r'\.madx$', '', req.filename, flags=re.IGNORECASE)
+        data.models.simulation.name = re.sub(
+            r"\.madx$", "", req.filename, flags=re.IGNORECASE
+        )
     else:
-        raise IOError('invalid file extension, expecting .in or .madx')
+        raise IOError("invalid file extension, expecting .in or .madx")
     return data
 
 
@@ -453,10 +505,7 @@ def new_simulation(data, new_simulation_data):
 
 
 def post_execution_processing(
-        success_exit=True,
-        is_parallel=True,
-        run_dir=None,
-        **kwargs
+    success_exit=True, is_parallel=True, run_dir=None, **kwargs
 ):
     if success_exit:
         return None
@@ -471,8 +520,8 @@ def prepare_for_client(data):
 
 
 def prepare_sequential_output_file(run_dir, data):
-    report = data['report']
-    if 'bunchReport' in report:
+    report = data["report"]
+    if "bunchReport" in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -484,7 +533,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 def python_source_for_model(data, model):
-    if model == 'madx':
+    if model == "madx":
         return OpalMadxConverter().to_madx_text(data)
     return _generate_parameters_file(data)
 
@@ -492,11 +541,11 @@ def python_source_for_model(data, model):
 def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
-    if 'bunchReport' in data.report:
+    if "bunchReport" in data.report:
         res = _bunch_plot(report, run_dir, 0)
-        res.title = ''
+        res.title = ""
     else:
-        raise AssertionError('unknown report: {}'.format(report))
+        raise AssertionError("unknown report: {}".format(report))
     template_common.write_sequential_result(
         res,
         run_dir=run_dir,
@@ -515,7 +564,7 @@ def sim_frame(frame_args):
 
 def sim_frame_beamline3dAnimation(frame_args):
     res = PKDict(
-        title=' ',
+        title=" ",
         points=[],
         polys=[],
         colors=[],
@@ -524,25 +573,25 @@ def sim_frame_beamline3dAnimation(frame_args):
     state = None
     with pkio.open_text(_OPAL_VTK_FILE) as f:
         for line in f:
-            if line == '\n':
+            if line == "\n":
                 continue
-            if line.startswith('POINTS '):
-                state = 'points'
+            if line.startswith("POINTS "):
+                state = "points"
                 continue
-            if line.startswith('CELLS '):
-                state = 'polys'
+            if line.startswith("CELLS "):
+                state = "polys"
                 continue
-            if line.startswith('CELL_TYPES'):
+            if line.startswith("CELL_TYPES"):
                 state = None
                 continue
-            if line.startswith('COLOR_SCALARS'):
-                state = 'colors'
+            if line.startswith("COLOR_SCALARS"):
+                state = "colors"
                 continue
-            if state == 'points' or state == 'colors':
-                for v in line.split(' '):
+            if state == "points" or state == "colors":
+                for v in line.split(" "):
                     res[state].append(float(v))
-            elif state == 'polys':
-                for v in line.split(' '):
+            elif state == "polys":
+                for v in line.split(" "):
                     res[state].append(int(v))
     return res
 
@@ -554,7 +603,6 @@ def sim_frame_bunchAnimation(frame_args):
 
 
 def sim_frame_plotAnimation(frame_args):
-
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res.values():
@@ -563,11 +611,10 @@ def sim_frame_plotAnimation(frame_args):
             for field in res.values():
                 _units_from_hdf5(h5file, field)
 
-
     res = PKDict()
-    for dim in 'x', 'y1', 'y2', 'y3':
-        parts = frame_args[dim].split(' ')
-        if parts[0] == 'none':
+    for dim in "x", "y1", "y2", "y3":
+        parts = frame_args[dim].split(" ")
+        if parts[0] == "none":
             continue
         res[dim] = PKDict(
             label=frame_args[dim],
@@ -579,7 +626,7 @@ def sim_frame_plotAnimation(frame_args):
     _iterate_hdf5_steps(frame_args.run_dir.join(_OPAL_H5_FILE), _walk_file, res)
     plots = []
     for field in res.values():
-        if field.dim != 'x':
+        if field.dim != "x":
             plots.append(field)
     return template_common.parameter_plot(
         res.x.points,
@@ -587,8 +634,8 @@ def sim_frame_plotAnimation(frame_args):
         PKDict(),
         PKDict(
             dynamicYLabel=True,
-            title='',
-            y_label='',
+            title="",
+            y_label="",
             x_label=res.x.label,
         ),
     )
@@ -599,32 +646,39 @@ def sim_frame_plot2Animation(frame_args):
 
     x = None
     plots = []
-    for f in ('x', 'y1', 'y2', 'y3'):
-        name = frame_args[f].replace(' ', '_')
-        if name == 'none':
+    for f in ("x", "y1", "y2", "y3"):
+        name = frame_args[f].replace(" ", "_")
+        if name == "none":
             continue
-        col = sdds_util.extract_sdds_column(str(frame_args.run_dir.join(_OPAL_SDDS_FILE)), name, 0)
+        col = sdds_util.extract_sdds_column(
+            str(frame_args.run_dir.join(_OPAL_SDDS_FILE)), name, 0
+        )
         if col.err:
             return col.err
         field = PKDict(
-            points=col['values'],
+            points=col["values"],
             label=frame_args[f],
         )
         _field_units(col.column_def[1], field)
-        if f == 'x':
+        if f == "x":
             x = field
         else:
             plots.append(field)
     # independent reads of file may produce more columns, trim to match x length
     for p in plots:
         if len(x.points) < len(p.points):
-            p.points = p.points[:len(x.points)]
-    return template_common.parameter_plot(x.points, plots, {}, {
-        'title': '',
-        'dynamicYLabel': True,
-        'y_label': '',
-        'x_label': x.label,
-    })
+            p.points = p.points[: len(x.points)]
+    return template_common.parameter_plot(
+        x.points,
+        plots,
+        {},
+        {
+            "title": "",
+            "dynamicYLabel": True,
+            "y_label": "",
+            "x_label": x.label,
+        },
+    )
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -635,13 +689,12 @@ def write_parameters(data, run_dir, is_parallel):
     if is_parallel:
         pkio.write_text(
             run_dir.join(OPAL_POSITION_FILE),
-            'import os\n' \
+            "import os\n"
             + 'os.system("python data/opal_ElementPositions.py --export-vtk")\n',
         )
 
 
 class _Generate(sirepo.lib.GenerateBase):
-
     def __init__(self, data):
         self.data = data
         self._schema = SCHEMA
@@ -650,15 +703,15 @@ class _Generate(sirepo.lib.GenerateBase):
         d = self.data
         self.jinja_env = template_common.flatten_data(d.models, PKDict())
         self._code_var = code_var(d.models.rpnVariables)
-        if 'bunchReport' in d.get('report', ''):
+        if "bunchReport" in d.get("report", ""):
             return self._bunch_simulation()
         return self._full_simulation()
 
     def _bunch_simulation(self):
         v = self.jinja_env
         # keep only first distribution and beam in command list
-        beam = LatticeUtil.find_first_command(self.data, 'beam')
-        distribution = LatticeUtil.find_first_command(self.data, 'distribution')
+        beam = LatticeUtil.find_first_command(self.data, "beam")
+        distribution = LatticeUtil.find_first_command(self.data, "distribution")
         v.beamName = beam.name
         v.distributionName = distribution.name
         # these need to get set to default or distribution won't generate in 1 step
@@ -667,35 +720,37 @@ class _Generate(sirepo.lib.GenerateBase):
         distribution.emissionsteps = 1
         distribution.offsetz = 0
         self.data.models.commands = [
-            LatticeUtil.find_first_command(self.data, 'option'),
+            LatticeUtil.find_first_command(self.data, "option"),
             beam,
             distribution,
         ]
         self._generate_commands_and_variables()
-        return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
+        return template_common.render_jinja(SIM_TYPE, v, "bunch.in")
 
     def _format_field_value(self, state, model, field, el_type):
         value = model[field]
-        if el_type == 'Boolean':
-            value = 'true' if value == '1' else 'false'
-        elif el_type == 'RPNValue':
+        if el_type == "Boolean":
+            value = "true" if value == "1" else "false"
+        elif el_type == "RPNValue":
             value = _fix_opal_float(value)
-        elif el_type == 'InputFile':
-            value = self._input_file(LatticeUtil.model_name_for_data(model), field, value)
-        elif el_type == 'OutputFile':
+        elif el_type == "InputFile":
+            value = self._input_file(
+                LatticeUtil.model_name_for_data(model), field, value
+            )
+        elif el_type == "OutputFile":
             value = self._output_file(model, field)
-        elif re.search(r'List$', el_type):
+        elif re.search(r"List$", el_type):
             value = state.id_map[int(value)].name
-        elif re.search(r'String', el_type):
+        elif re.search(r"String", el_type):
             if str(value):
-                if not re.search(r'^\s*\{.*\}$', value):
+                if not re.search(r"^\s*\{.*\}$", value):
                     value = '"{}"'.format(value)
         elif LatticeUtil.is_command(model):
-            if el_type != 'RPNValue' and str(value):
+            if el_type != "RPNValue" and str(value):
                 value = '"{}"'.format(value)
         elif not LatticeUtil.is_command(model):
-            if model.type in _ELEMENTS_WITH_TYPE_FIELD and '_type' in field:
-                return ['type', value]
+            if model.type in _ELEMENTS_WITH_TYPE_FIELD and "_type" in field:
+                return ["type", value]
         if str(value):
             return [field, value]
         return None
@@ -707,26 +762,27 @@ class _Generate(sirepo.lib.GenerateBase):
             self._code_var,
             LatticeUtil.find_first_command(
                 self.util.data,
-                'track',
-            ).line or self.util.select_beamline().id,
+                "track",
+            ).line
+            or self.util.select_beamline().id,
         )
         v.use_beamline = self.util.select_beamline().name
         self._generate_commands_and_variables()
-        return template_common.render_jinja(SIM_TYPE, v, 'parameters.in')
+        return template_common.render_jinja(SIM_TYPE, v, "parameters.in")
 
     def _generate_commands(self, util, is_header):
         # reorder command so OPTION and list commands come first
         commands = []
         key = None
         if is_header:
-            key = 'header_commands'
+            key = "header_commands"
             # add header commands in order, with option first
             for ctype in _HEADER_COMMANDS:
                 for c in util.data.models.commands:
                     if c._type == ctype:
                         commands.append(c)
         else:
-            key = 'other_commands'
+            key = "other_commands"
             for c in util.data.models.commands:
                 if c._type not in _HEADER_COMMANDS:
                     commands.append(c)
@@ -737,69 +793,79 @@ class _Generate(sirepo.lib.GenerateBase):
                 key,
             ).result,
             quote_name=True,
-            want_semicolon=True)
+            want_semicolon=True,
+        )
         # separate run from track, add endtrack
-        #TODO(pjm): better to have a custom element generator for this case
+        # TODO(pjm): better to have a custom element generator for this case
         lines = []
         for line in res.splitlines():
-            m = re.match('(.*?: track,.*?)(run_.*?)(;|,[^r].*)', line)
+            m = re.match("(.*?: track,.*?)(run_.*?)(;|,[^r].*)", line)
             if m:
-                lines.append('{}{}'.format(re.sub(r',$', '', m.group(1)), m.group(3)))
-                lines.append(' run, {};'.format(re.sub(r'run_', '', m.group(2))))
-                lines.append('endtrack;')
+                lines.append("{}{}".format(re.sub(r",$", "", m.group(1)), m.group(3)))
+                lines.append(" run, {};".format(re.sub(r"run_", "", m.group(2))))
+                lines.append("endtrack;")
             else:
                 lines.append(line)
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
     def _generate_commands_and_variables(self):
-        self.jinja_env.update(dict(
-            variables=self._code_var.generate_variables(self._generate_variable),
-            header_commands=self._generate_commands(self.util, True),
-            commands=self._generate_commands(self.util, False),
-        ))
+        self.jinja_env.update(
+            dict(
+                variables=self._code_var.generate_variables(self._generate_variable),
+                header_commands=self._generate_commands(self.util, True),
+                commands=self._generate_commands(self.util, False),
+            )
+        )
 
     def _generate_lattice(self, util, code_var, beamline_id):
-        if util.data.models.simulation.elementPosition == 'absolute':
+        if util.data.models.simulation.elementPosition == "absolute":
             beamline, visited = _generate_absolute_beamline(util, beamline_id)
         else:
-            beamline, _, names, visited = _generate_beamline(util, code_var, beamline_id)
-            beamline += '{}: LINE=({});\n'.format(
-                util.id_map[beamline_id].name,
-                ','.join(names),
+            beamline, _, names, visited = _generate_beamline(
+                util, code_var, beamline_id
             )
-        res = util.render_lattice(
-            util.iterate_models(
-                OpalElementIterator(self._format_field_value, visited),
-                'elements',
-            ).result,
-            quote_name=True,
-            want_semicolon=True,
-        ) + '\n'
+            beamline += "{}: LINE=({});\n".format(
+                util.id_map[beamline_id].name,
+                ",".join(names),
+            )
+        res = (
+            util.render_lattice(
+                util.iterate_models(
+                    OpalElementIterator(self._format_field_value, visited),
+                    "elements",
+                ).result,
+                quote_name=True,
+                want_semicolon=True,
+            )
+            + "\n"
+        )
         res += beamline
         return res
 
     def _generate_variable(self, name, variables, visited):
-        res = ''
+        res = ""
         if name not in visited:
-            res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
+            res += "REAL {} = {};\n".format(name, _fix_opal_float(variables[name]))
             visited[name] = True
         return res
 
     def _input_file(self, model_name, field, filename):
-        return '"{}"'.format(_SIM_DATA.lib_file_name_with_model_field(
-            model_name,
-            field,
-            filename,
-        ))
+        return '"{}"'.format(
+            _SIM_DATA.lib_file_name_with_model_field(
+                model_name,
+                field,
+                filename,
+            )
+        )
 
     def _output_file(self, model, field):
-        ext = 'dat' if model.get('_type', '') == 'list' else 'h5'
+        ext = "dat" if model.get("_type", "") == "list" else "h5"
         return '"{}.{}.{}"'.format(model.name, field, ext)
 
 
 def _compute_3d_bounds(run_dir):
     res = []
-    p = run_dir.join('data/opal_ElementPositions.txt')
+    p = run_dir.join("data/opal_ElementPositions.txt")
     with pkio.open_text(p) as f:
         for line in f:
             m = re.search(r'^".*?"\s+(\S*?)\s+(\S*?)\s+(\S*?)\s*$', line)
@@ -819,29 +885,35 @@ def _generate_parameters_file(data):
 
 def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
     res = PKDict()
-    title = 'Step {}'.format(idx)
-    with h5py.File(str(run_dir.join(filename)), 'r') as f:
-        for field in ('x', 'y'):
+    title = "Step {}".format(idx)
+    with h5py.File(str(run_dir.join(filename)), "r") as f:
+        for field in ("x", "y"):
             res[field] = PKDict(
                 name=report[field],
-                points=np.array(f['/Step#{}/{}'.format(idx, report[field])]),
+                points=np.array(f["/Step#{}/{}".format(idx, report[field])]),
                 label=report[field],
             )
             _units_from_hdf5(f, res[field])
-        if 'SPOS' in f['/Step#{}'.format(idx)].attrs:
-            title += ', SPOS {0:.5f}m'.format(f['/Step#{}'.format(idx)].attrs['SPOS'][0])
-    return template_common.heatmap([res.x.points, res.y.points], report, PKDict(
-        x_label=res.x.label,
-        y_label=res.y.label,
-        title=title,
-    ))
+        if "SPOS" in f["/Step#{}".format(idx)].attrs:
+            title += ", SPOS {0:.5f}m".format(
+                f["/Step#{}".format(idx)].attrs["SPOS"][0]
+            )
+    return template_common.heatmap(
+        [res.x.points, res.y.points],
+        report,
+        PKDict(
+            x_label=res.x.label,
+            y_label=res.y.label,
+            title=title,
+        ),
+    )
 
 
 def _compute_range_across_frames(run_dir, data):
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res:
-                v = np.array(h5file['/{}/{}'.format(key, field)])
+                v = np.array(h5file["/{}/{}".format(key, field)])
                 min1, max1 = v.min(), v.max()
                 if res[field]:
                     if res[field][0] > min1:
@@ -850,6 +922,7 @@ def _compute_range_across_frames(run_dir, data):
                         res[field][1] = max1
                 else:
                     res[field] = [min1, max1]
+
     res = PKDict()
     for v in SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = None
@@ -858,7 +931,7 @@ def _compute_range_across_frames(run_dir, data):
 
 def _column_data(col, col_names, rows):
     idx = col_names.index(col)
-    assert idx >= 0, 'invalid col: {}'.format(col)
+    assert idx >= 0, "invalid col: {}".format(col)
     res = []
     for row in rows:
         res.append(float(row[idx]))
@@ -866,22 +939,22 @@ def _column_data(col, col_names, rows):
 
 
 def _field_units(units, field):
-    if units == '1':
-        units = ''
-    elif units[0] == 'M' and len(units) > 1:
-        units = re.sub(r'^.', '', units)
+    if units == "1":
+        units = ""
+    elif units[0] == "M" and len(units) > 1:
+        units = re.sub(r"^.", "", units)
         field.points = (np.array(field.points) * 1e6).tolist()
-    elif units[0] == 'G' and len(units) > 1:
-        units = re.sub(r'^.', '', units)
+    elif units[0] == "G" and len(units) > 1:
+        units = re.sub(r"^.", "", units)
         field.points = (np.array(field.points) * 1e9).tolist()
-    elif units == 'ns':
-        units = 's'
+    elif units == "ns":
+        units = "s"
         field.points = (np.array(field.points) / 1e9).tolist()
     if units:
-        if re.search(r'^#', units):
-            field.label += ' ({})'.format(units)
+        if re.search(r"^#", units):
+            field.label += " ({})".format(units)
         else:
-            field.label += ' [{}]'.format(units)
+            field.label += " [{}]".format(units)
     field.units = units
 
 
@@ -890,14 +963,14 @@ def _file_name_for_element_animation(frame_args):
     for info in _output_info(frame_args.run_dir):
         if info.modelKey == r:
             return info.filename
-    raise AssertionError(f'no output file for frameReport={r}')
+    raise AssertionError(f"no output file for frameReport={r}")
 
 
 def _find_run_method(commands):
     for command in commands:
-        if command._type == 'track' and command.run_method:
+        if command._type == "track" and command.run_method:
             return command.run_method
-    return 'THIN'
+    return "THIN"
 
 
 def _fix_opal_float(value):
@@ -913,84 +986,92 @@ def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=N
     if visited is None:
         visited = set()
     names = []
-    res = ''
+    res = ""
     beamline = util.id_map[abs(beamline_id)]
-    items = beamline['items']
+    items = beamline["items"]
     for idx in range(len(items)):
         item_id = items[idx]
         item = util.id_map[abs(item_id)]
         name = item.name.upper()
         if name not in count_by_name:
             count_by_name[name] = 0
-        if 'type' in item:
+        if "type" in item:
             # element
             name = '"{}#{}"'.format(name, count_by_name[name])
             count_by_name[item.name.upper()] += 1
             pos = beamline.positions[idx]
-            res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), pos.elemedge)
+            res += '{}: "{}",elemedge={};\n'.format(
+                name, item.name.upper(), pos.elemedge
+            )
             names.append(name)
             visited.add(item_id)
-        else :
+        else:
             if item_id not in visited:
-                text, visited = _generate_absolute_beamline(util, item_id, count_by_name, visited)
+                text, visited = _generate_absolute_beamline(
+                    util, item_id, count_by_name, visited
+                )
                 res += text
-            names.append('{}'.format(name))
+            names.append("{}".format(name))
 
     has_orientation = False
-    for f in ('x', 'y', 'z', 'theta', 'phi', 'psi'):
+    for f in ("x", "y", "z", "theta", "phi", "psi"):
         if f in beamline and beamline[f]:
             has_orientation = True
             break
-    orientation = ''
+    orientation = ""
     if has_orientation:
-        orientation = ', ORIGIN={}, ORIENTATION={}'.format(
-            '{}{}, {}, {}{}'.format('{', beamline.x, beamline.y, beamline.z, '}'),
-            '{}{}, {}, {}{}'.format('{', beamline.theta, beamline.phi, beamline.psi, '}'),
+        orientation = ", ORIGIN={}, ORIENTATION={}".format(
+            "{}{}, {}, {}{}".format("{", beamline.x, beamline.y, beamline.z, "}"),
+            "{}{}, {}, {}{}".format(
+                "{", beamline.theta, beamline.phi, beamline.psi, "}"
+            ),
         )
-    res += '{}: LINE=({}){};\n'.format(
+    res += "{}: LINE=({}){};\n".format(
         beamline.name,
-        ','.join(names),
+        ",".join(names),
         orientation,
     )
     return res, visited
 
 
-def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, names=None, visited=None):
+def _generate_beamline(
+    util, code_var, beamline_id, count_by_name=None, edge=0, names=None, visited=None
+):
     if count_by_name is None:
         count_by_name = PKDict()
     if names is None:
         names = []
     if visited is None:
         visited = set()
-    res = ''
+    res = ""
     run_method = _find_run_method(util.data.models.commands)
     beamline = util.id_map[abs(beamline_id)]
-    items = beamline['items']
+    items = beamline["items"]
     if beamline_id < 0:
         items = list(reversed(items))
     for idx in range(len(items)):
         item_id = items[idx]
         item = util.id_map[abs(item_id)]
-        if 'type' in item:
+        if "type" in item:
             # element
             name = item.name.upper()
             if name not in count_by_name:
                 count_by_name[name] = 0
             name = '"{}#{}"'.format(name, count_by_name[name])
             count_by_name[item.name.upper()] += 1
-            if run_method == 'OPAL-CYCL' or run_method == 'CYCLOTRON-T':
+            if run_method == "OPAL-CYCL" or run_method == "CYCLOTRON-T":
                 res += '"{}": {};\n'.format(name, item.name.upper())
                 names.append(name)
                 visited.add(item_id)
                 continue
             length = code_var.eval_var(item.l)[0]
-            if item.type == 'DRIFT' and length < 0:
+            if item.type == "DRIFT" and length < 0:
                 # don't include reverse drifts, for positioning only
                 pass
             else:
                 res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), edge)
                 names.append(name)
-                if item.type == 'SBEND' and run_method == 'THICK':
+                if item.type == "SBEND" and run_method == "THICK":
                     # use arclength for SBEND with THICK tracker (only?)
                     angle = code_var.eval_var_with_assert(item.angle)
                     length = angle * length / (2 * math.sin(angle / 2))
@@ -998,56 +1079,60 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
             edge += length
         else:
             # beamline
-            text, edge, names, visited = _generate_beamline(util, code_var, item_id, count_by_name, edge, names, visited)
+            text, edge, names, visited = _generate_beamline(
+                util, code_var, item_id, count_by_name, edge, names, visited
+            )
             res += text
     return res, edge, names, visited
 
 
 def _iterate_hdf5_steps(path, callback, state):
-    with h5py.File(str(path), 'r') as f:
+    with h5py.File(str(path), "r") as f:
         step = 0
-        key = 'Step#{}'.format(step)
+        key = "Step#{}".format(step)
         while key in f:
             callback(f, key, step, state)
             step += 1
-            key = 'Step#{}'.format(step)
+            key = "Step#{}".format(step)
         callback(f, None, -1, state)
     return state
 
 
 def _output_info(run_dir):
-    #TODO(pjm): cache to file with version, similar to template.elegant
+    # TODO(pjm): cache to file with version, similar to template.elegant
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     files = LatticeUtil(data, SCHEMA).iterate_models(OpalOutputFileIterator()).result
     res = []
     for k in files.keys_in_order:
         if run_dir.join(files[k]).exists():
-            res.append(PKDict(
-                modelKey='elementAnimation{}'.format(k),
-                filename=files[k],
-                isHistogram=True,
-            ))
+            res.append(
+                PKDict(
+                    modelKey="elementAnimation{}".format(k),
+                    filename=files[k],
+                    isHistogram=True,
+                )
+            )
     return res
 
 
 def _parse_opal_log(run_dir):
-    res = ''
+    res = ""
     p = run_dir.join((OPAL_OUTPUT_FILE))
     if not p.exists():
         return res
     with pkio.open_text(p) as f:
-        prev_line = ''
+        prev_line = ""
         for line in f:
-            if re.search(r'^Error.*?>', line):
-                line = re.sub(r'^Error.*?>\s*\**\s*', '', line.rstrip())
-                if re.search(r'1DPROFILE1-DEFAULT', line):
+            if re.search(r"^Error.*?>", line):
+                line = re.sub(r"^Error.*?>\s*\**\s*", "", line.rstrip())
+                if re.search(r"1DPROFILE1-DEFAULT", line):
                     continue
                 if line and line != prev_line:
-                    res += line + '\n'
+                    res += line + "\n"
                 prev_line = line
     if res:
         return res
-    return 'An unknown error occurred'
+    return "An unknown error occurred"
 
 
 def _read_data_file(path):
@@ -1056,24 +1141,24 @@ def _read_data_file(path):
     with pkio.open_text(str(path)) as f:
         col_names = []
         rows = []
-        mode = ''
+        mode = ""
         for line in f:
-            if '---' in line:
-                if mode == 'header':
-                    mode = 'data'
-                elif mode == 'data':
+            if "---" in line:
+                if mode == "header":
+                    mode = "data"
+                elif mode == "data":
                     break
                 if not mode:
-                    mode = 'header'
+                    mode = "header"
                 continue
-            line = re.sub('\0', '', line)
-            if mode == 'header':
-                col_names = re.split(r'\s+', line.lower())
-            elif mode == 'data':
-                #TODO(pjm): separate overlapped columns. Instead should explicitly set field dimensions
-                line = re.sub(r'(\d)(\-\d)', r'\1 \2', line)
-                line = re.sub(r'(\.\d{3})(\d+\.)', r'\1 \2', line)
-                rows.append(re.split(r'\s+', line))
+            line = re.sub("\0", "", line)
+            if mode == "header":
+                col_names = re.split(r"\s+", line.lower())
+            elif mode == "data":
+                # TODO(pjm): separate overlapped columns. Instead should explicitly set field dimensions
+                line = re.sub(r"(\d)(\-\d)", r"\1 \2", line)
+                line = re.sub(r"(\.\d{3})(\d+\.)", r"\1 \2", line)
+                rows.append(re.split(r"\s+", line))
     return col_names, rows
 
 
@@ -1081,6 +1166,7 @@ def _read_frame_count(run_dir):
     def _walk_file(h5file, key, step, res):
         if key:
             res[0] = step + 1
+
     try:
         return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0])[0]
     except IOError:
@@ -1089,4 +1175,6 @@ def _read_frame_count(run_dir):
 
 
 def _units_from_hdf5(h5file, field):
-    return _field_units(pkcompat.from_bytes(h5file.attrs['{}Unit'.format(field.name)]), field)
+    return _field_units(
+        pkcompat.from_bytes(h5file.attrs["{}Unit".format(field.name)]), field
+    )

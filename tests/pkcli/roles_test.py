@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Test role management operations
+"""Test role management operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -8,9 +8,10 @@ from __future__ import absolute_import, division, print_function
 import os
 import pytest
 
+
 def setup_module(module):
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES='flash',
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="flash",
     )
 
 
@@ -23,9 +24,9 @@ def test_flash_change_role_change_lib_files(auth_fc):
     import sirepo.srdb
 
     def _change_role(add=True):
-        f = getattr(sirepo.pkcli.roles, 'add_roles')
+        f = getattr(sirepo.pkcli.roles, "add_roles")
         if not add:
-            f = getattr(sirepo.pkcli.roles, 'delete_roles')
+            f = getattr(sirepo.pkcli.roles, "delete_roles")
         f(
             fc.sr_auth_state().uid,
             sirepo.auth_role.for_sim_type(fc.sr_sim_type),
@@ -37,12 +38,13 @@ def test_flash_change_role_change_lib_files(auth_fc):
             [x.basename for x in pkio.walk_tree(fc.sr_user_dir(), _proprietary_file)],
         )
 
-    pkunit.data_dir().join('db').copy(sirepo.srdb.root())
-    _proprietary_file = 'flash.tar.gz'
+    pkunit.data_dir().join("db").copy(sirepo.srdb.root())
+    _proprietary_file = "flash.tar.gz"
     fc = auth_fc
-    fc.sr_email_register('a@b.c', sim_type='flash')
-
-    r = fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type}, raw_response=True)
+    fc.sr_email_register("a@b.c", sim_type="flash")
+    r = fc.sr_post(
+        "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
+    )
     pkunit.pkeq(403, r.status_code)
 
     _check_file(exists=False)
@@ -56,9 +58,9 @@ def test_flash_list_role_by_email(auth_fc):
     from pykern import pkunit
     import sirepo.pkcli.roles
 
-    e = 'a@b.c'
-    r = ['premium']
-    auth_fc.sr_email_register(e, sim_type='flash')
+    e = "a@b.c"
+    r = ["premium"]
+    auth_fc.sr_email_register(e, sim_type="flash")
     sirepo.pkcli.roles.add_roles(e, *r)
     pkunit.pkeq(r, sirepo.pkcli.roles.list_roles(e))
     pkunit.pkeq(r, sirepo.pkcli.roles.list_roles(auth_fc.sr_auth_state().uid))

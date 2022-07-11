@@ -9,8 +9,10 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
 import re
 
+
 def run(cfg_dir):
     from sirepo.template.flash import sort_problem_files
+
     # this is called for initZipReport only
     cfg_dir = pkio.py_path(cfg_dir)
     r = template_common.exec_parameters()
@@ -23,4 +25,5 @@ def run(cfg_dir):
 
 def _sim_data():
     import sirepo.sim_data
-    return sirepo.sim_data.get_class('flash')
+
+    return sirepo.sim_data.get_class("flash")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Raydata execution template.
+"""Raydata execution template.
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,16 +22,17 @@ import sirepo.util
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-_DEFAULT_COLUMNS = ['start', 'stop', 'suid']
+_DEFAULT_COLUMNS = ["start", "stop", "suid"]
 
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
 
-_NON_DISPLAY_SCAN_FIELDS = ('uid')
+_NON_DISPLAY_SCAN_FIELDS = "uid"
 
-_OUTPUT_FILE = 'out.ipynb'
+_OUTPUT_FILE = "out.ipynb"
 
-_BLUESKY_POLL_TIME_FILE = 'bluesky-poll-time.txt'
+_BLUESKY_POLL_TIME_FILE = "bluesky-poll-time.txt"
+
 
 def analysis_job_output_files(data):
     def _filename_and_image(path):
@@ -41,13 +42,13 @@ def analysis_job_output_files(data):
                 base64.b64encode(
                     pkio.read_binary(path),
                 ),
-            )
+            ),
         )
 
     def _paths():
         d = _dir_for_scan_uuid(_parse_scan_uuid(data))
 
-        for f in glob.glob(str(d.join('/**/*.png')), recursive=True):
+        for f in glob.glob(str(d.join("/**/*.png")), recursive=True):
             yield pkio.py_path(f)
 
     return PKDict(data=[_filename_and_image(p) for p in _paths()])
@@ -55,7 +56,7 @@ def analysis_job_output_files(data):
 
 def background_percent_complete(report, run_dir, is_running):
     r = PKDict(percentComplete=0 if is_running else 100)
-    if report != 'pollBlueskyForScansAnimation':
+    if report != "pollBlueskyForScansAnimation":
         return r
     d = sirepo.simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     try:
@@ -66,28 +67,32 @@ def background_percent_complete(report, run_dir, is_running):
         t = d.models.pollBlueskyForScansAnimation.start
 
     s = []
-    for k, v in catalog(d.models.scans).search({'time': {'$gte': t}}).items():
-        t = max(t, v.metadata['start']['time'])
-        s.append(_scan_info(
-            k,
-            d.models.scans,
-            metadata=v.metadata,
-        ))
+    for k, v in catalog(d.models.scans).search({"time": {"$gte": t}}).items():
+        t = max(t, v.metadata["start"]["time"])
+        s.append(
+            _scan_info(
+                k,
+                d.models.scans,
+                metadata=v.metadata,
+            )
+        )
     pkio.atomic_write(run_dir.join(_BLUESKY_POLL_TIME_FILE), t)
     return r.pkupdate(**_scan_info_result(s).data)
 
 
 def catalog(scans_data_or_catalog_name):
     return databroker.catalog[
-        scans_data_or_catalog_name.catalogName if isinstance(
+        scans_data_or_catalog_name.catalogName
+        if isinstance(
             scans_data_or_catalog_name,
             PKDict,
-        ) else scans_data_or_catalog_name
+        )
+        else scans_data_or_catalog_name
     ]
 
 
 def stateless_compute_scan_fields(data):
-    return PKDict(columns=list(catalog(data)[-1].metadata['start'].keys()))
+    return PKDict(columns=list(catalog(data)[-1].metadata["start"].keys()))
 
 
 def stateless_compute_scan_info(data):
@@ -95,17 +100,24 @@ def stateless_compute_scan_info(data):
 
 
 def stateless_compute_scans(data):
-    assert data.searchStartTime and data.searchStopTime, \
-        pkdformat('must have both searchStartTime and searchStopTime data={}', data)
+    assert data.searchStartTime and data.searchStopTime, pkdformat(
+        "must have both searchStartTime and searchStopTime data={}", data
+    )
     s = []
-    for i, v in enumerate(catalog(data).search(databroker.queries.TimeRange(
-            since=data.searchStartTime,
-            until=data.searchStopTime,
-            timezone='utc',
-    )).items()):
+    for i, v in enumerate(
+        catalog(data)
+        .search(
+            databroker.queries.TimeRange(
+                since=data.searchStartTime,
+                until=data.searchStopTime,
+                timezone="utc",
+            )
+        )
+        .items()
+    ):
         if i > _MAX_NUM_SCANS:
             raise sirepo.util.UserAlert(
-                f'More than {_MAX_NUM_SCANS} scans found. Please reduce your query.',
+                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
             )
         s.append(_scan_info(v[0], data, metadata=v[1].metadata))
     return _scan_info_result(s)
@@ -124,20 +136,25 @@ def _dir_for_scan_uuid(scan_uuid):
     )
 
 
-
 def _generate_parameters_file(data, run_dir):
-    if data.get('report') == 'pollBlueskyForScansAnimation':
+    if data.get("report") == "pollBlueskyForScansAnimation":
         return template_common.render_jinja(
             SIM_TYPE,
             PKDict(poll_secs=data.models.pollBlueskyForScansAnimation.minutes * 60),
-            'poll_bluesky.py'
+            "poll_bluesky.py",
         )
     s = _parse_scan_uuid(data)
-    m = run_dir.join(_SIM_DATA.lib_file_name_with_model_field(
-                'inputFiles',
-                'mask',
+    m = (
+        run_dir.join(
+            _SIM_DATA.lib_file_name_with_model_field(
+                "inputFiles",
+                "mask",
                 data.models.inputFiles.mask,
-        )) if data.models.inputFiles.mask else ''
+            )
+        )
+        if data.models.inputFiles.mask
+        else ""
+    )
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
@@ -152,13 +169,13 @@ def _generate_parameters_file(data, run_dir):
 
 def _scan_info(scan_uuid, scans_data, metadata=None):
     def _get_start(metadata):
-        return metadata['start']['time']
+        return metadata["start"]["time"]
 
     def _get_stop(metadata):
-        return metadata['stop']['time']
+        return metadata["stop"]["time"]
 
     def _get_suid(metadata):
-        return _suid(metadata['start']['uid'])
+        return _suid(metadata["start"]["uid"])
 
     m = metadata
     if not m:
@@ -166,22 +183,27 @@ def _scan_info(scan_uuid, scans_data, metadata=None):
     # POSIT: uid is no displayed but all of the code expects uid field to exist
     d = PKDict(uid=scan_uuid)
     for c in _DEFAULT_COLUMNS:
-        d[c] = locals()[f'_get_{c}'](m)
+        d[c] = locals()[f"_get_{c}"](m)
 
     for c in scans_data.selectedColumns:
-        d[c] = m['start'].get(c)
+        d[c] = m["start"].get(c)
     return d
 
 
 def _scan_info_result(scans):
-    return PKDict(data=PKDict(
-        scans=sorted(scans, key=lambda e: e.start),
-        cols=[k for k in scans[0].keys() if k not in _NON_DISPLAY_SCAN_FIELDS] if scans else [],
-    ))
+    return PKDict(
+        data=PKDict(
+            scans=sorted(scans, key=lambda e: e.start),
+            cols=[k for k in scans[0].keys() if k not in _NON_DISPLAY_SCAN_FIELDS]
+            if scans
+            else [],
+        )
+    )
 
 
 def _parse_scan_uuid(data):
     return data.report
 
+
 def _suid(scan_uuid):
-    return scan_uuid.split('-')[0]
+    return scan_uuid.split("-")[0]

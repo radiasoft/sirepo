@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Jupyter utilities
+"""Jupyter utilities
 
 :copyright: Copyright (c) 2018-2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -27,47 +27,50 @@ class Notebook(PKDict):
     """
 
     _MARKDOWN_HEADERS = [
-        '', '#', '##', '###', '####', '#####', '######',
+        "",
+        "#",
+        "##",
+        "###",
+        "####",
+        "#####",
+        "######",
     ]
 
     _PYPLOT_STYLE_MAP = PKDict(
-        line='-',
-        scatter='.',
+        line="-",
+        scatter=".",
     )
 
     @classmethod
     def _append_newline(cls, s):
-        return s + ('\n' if not s.endswith('\n') else '')
+        return s + ("\n" if not s.endswith("\n") else "")
 
     def __init__(self, data):
         super().__init__(
             cells=[],
             metadata=PKDict(
                 kernelspec=PKDict(
-                    display_name='Python 3',
-                    language='python',
-                    name='python3'
+                    display_name="Python 3", language="python", name="python3"
                 ),
                 language_info=PKDict(
-                    codemirror_mode=PKDict(
-                        name='ipython',
-                        version=3
-                    ),
-                    file_extension='.py',
-                    mimetype='text/x-python',
-                    name='python',
-                    nbconvert_exporter='python',
-                    pygments_lexer='ipython3',
-                    version='3.7.2'
-                )
+                    codemirror_mode=PKDict(name="ipython", version=3),
+                    file_extension=".py",
+                    mimetype="text/x-python",
+                    name="python",
+                    nbconvert_exporter="python",
+                    pygments_lexer="ipython3",
+                    version="3.7.2",
+                ),
             ),
-            nbformat = 4,
-            nbformat_minor = 4,
+            nbformat=4,
+            nbformat_minor=4,
         )
 
-        self.add_markdown_cell(f'{data.simulationType} - {data.models.simulation.name}', 1)
+        self.add_markdown_cell(
+            f"{data.simulationType} - {data.models.simulation.name}", 1
+        )
         # commenting this out for now - may want a monolothic imports cell later
-        #self.add_markdown_cell('Imports', 2)
+        # self.add_markdown_cell('Imports', 2)
 
     def add_code_cell(self, list_or_str, hide=False):
         """Adds a cell containing arbitrary python
@@ -78,7 +81,7 @@ class Notebook(PKDict):
             hide (bool): hide the cell when the notebook loads.  Useful for long data
                 arrays etc.
         """
-        self._add_cell('code', list_or_str, hide=hide)
+        self._add_cell("code", list_or_str, hide=hide)
 
     def add_markdown_cell(self, list_or_str, header_level=0):
         """Adds a cell containing arbitrary markdown
@@ -90,14 +93,14 @@ class Notebook(PKDict):
                 list
         """
         if header_level == 0:
-            self._add_cell('markdown', list_or_str)
+            self._add_cell("markdown", list_or_str)
             return
-        l0 = f'{self._MARKDOWN_HEADERS[max(0, min(header_level, 6))]} {list_or_str[0]}'
+        l0 = f"{self._MARKDOWN_HEADERS[max(0, min(header_level, 6))]} {list_or_str[0]}"
         if isinstance(list_or_str, pkconfig.STRING_TYPES):
-            self._add_cell('markdown', l0 + list_or_str[1:])
+            self._add_cell("markdown", l0 + list_or_str[1:])
             return
         list_or_str[0] = l0
-        self._add_cell('markdown', list_or_str)
+        self._add_cell("markdown", list_or_str)
 
     def add_report(self, params):
         """Adds a pyplot graph of x values vs. one or more arrays of y values
@@ -114,29 +117,29 @@ class Notebook(PKDict):
                     y_var (array): y values to plot
                     y_label (str): label for the y axis or legend
         """
-        self.add_code_cell([
-            'from matplotlib import pyplot'
-        ])
+        self.add_code_cell(["from matplotlib import pyplot"])
         legends = []
         code = [
-            'pyplot.figure()',
+            "pyplot.figure()",
             f"pyplot.xlabel('{params.x_label}')",
             f"pyplot.title('{params.title}')",
         ]
         for y_params in params.y_info:
-            x_pts_var = y_params.x_points if 'x_points' in y_params else params.x_var
+            x_pts_var = y_params.x_points if "x_points" in y_params else params.x_var
             code.append(
-                (f'pyplot.plot('
-                    f'{x_pts_var}, '
-                    f'{y_params.y_var}, '
-                    f"'{self._PYPLOT_STYLE_MAP[y_params.style]}')")
+                (
+                    f"pyplot.plot("
+                    f"{x_pts_var}, "
+                    f"{y_params.y_var}, "
+                    f"'{self._PYPLOT_STYLE_MAP[y_params.style]}')"
+                )
             )
             legends.append(f"{y_params.y_label}")
         if len(params.y_info) == 1:
             code.append(f"pyplot.ylabel('{params.y_info[0].y_label}')")
         else:
-            code.append(f'pyplot.legend({legends!r})')
-        code.append('pyplot.show()')
+            code.append(f"pyplot.legend({legends!r})")
+        code.append("pyplot.show()")
         self.add_code_cell(code)
 
     def _add_cell(self, cell_type, list_or_str, hide=False):
@@ -145,13 +148,10 @@ class Notebook(PKDict):
             return
         c = PKDict(
             cell_type=cell_type,
-            metadata=PKDict(
-                jupyter=PKDict(source_hidden=hide)
-            ),
-            source=[Notebook._append_newline(s) for s in list_or_str]
+            metadata=PKDict(jupyter=PKDict(source_hidden=hide)),
+            source=[Notebook._append_newline(s) for s in list_or_str],
         )
-        if cell_type == 'code':
+        if cell_type == "code":
             c.execution_count = 0
-            c.outputs=[]
+            c.outputs = []
         self.cells.append(c)
-

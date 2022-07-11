@@ -4,14 +4,10 @@ build_vars() {
     export sirepo_db_dir=/sirepo
     export sirepo_port=8000
     : ${build_image_base:=radiasoft/beamsim}
-    export build_passenv='TRAVIS_BRANCH TRAVIS_COMMIT'
-    : ${TRAVIS_BRANCH:=}
-    : ${TRAVIS_COMMIT:=}
     local boot_dir=$build_run_user_home/.radia-run
     sirepo_boot=$boot_dir/start
     build_is_public=1
     build_docker_cmd='["'"$sirepo_boot"'"]'
-    build_dockerfile_aux="USER $build_run_user"
 }
 
 build_as_root() {
@@ -19,9 +15,7 @@ build_as_root() {
     build_yum config-manager \
         --add-repo \
         https://download.docker.com/linux/fedora/docker-ce.repo
-    build_yum install fedora-workstation-repositories
-    build_yum config-manager --set-enabled google-chrome
-    build_yum install google-chrome-stable docker-ce-cli
+    build_yum install docker-ce-cli
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
@@ -32,32 +26,18 @@ build_as_run_user() {
     umask 022
     sirepo_boot_init
     git clone -q --depth=50 https://github.com/radiasoft/pykern
-    git clone -q --depth=50 "--branch=${TRAVIS_BRANCH:-master}" \
-        https://github.com/radiasoft/sirepo
+    git clone -q --depth=50 https://github.com/radiasoft/sirepo
     cd sirepo
-    if [[ ${TRAVIS_COMMIT:+1} ]]; then
-        git checkout -qf "$TRAVIS_COMMIT"
-    fi
-    local p
     sirepo_fix_srw
     cd ../pykern
     pip uninstall -y pykern || true
     pip install .
     cd ../sirepo
-    pip install -r requirements.txt
     pip install -e .
     sirepo srw create_predefined
     pip uninstall -y sirepo
     pip install .
-    PYKERN_PKCLI_TEST_MAX_FAILURES=1 \
-        PYKERN_PKDEBUG_WANT_PID_TIME=1 \
-        SIREPO_PYTEST_SKIP=animation_test \
-        bash test.sh
     cd ..
-}
-
-build_clean_as_root() {
-    build_yum remove fedora-workstation-repositories google-chrome-stable
 }
 
 sirepo_boot_init() {

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""?
+"""?
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -48,20 +48,28 @@ def create_examples():
     import sirepo.server
 
     sirepo.server.init()
-    for d in pkio.sorted_glob(simulation_db.user_path().join('*')):
+    for d in pkio.sorted_glob(simulation_db.user_path().join("*")):
         if _is_src_dir(d):
-            continue;
+            continue
         uid = simulation_db.uid_from_dir_name(d)
-        with sirepo.auth_db.session_and_lock(), \
-             auth.set_user_outside_of_http_request(uid):
+        with sirepo.auth_db.session_and_lock(), auth.set_user_outside_of_http_request(
+            uid
+        ):
             for sim_type in feature_config.cfg().sim_types:
-                names = [x.name for x in simulation_db.iterate_simulation_datafiles(
-                    sim_type, simulation_db.process_simulation_list, {
-                        'simulation.isExample': True,
-                    })]
+                names = [
+                    x.name
+                    for x in simulation_db.iterate_simulation_datafiles(
+                        sim_type,
+                        simulation_db.process_simulation_list,
+                        {
+                            "simulation.isExample": True,
+                        },
+                    )
+                ]
                 for example in simulation_db.examples(sim_type):
                     if example.models.simulation.name not in names:
                         _create_example(example)
+
 
 # TODO(e-carlin): more than uid (ex email)
 def delete_user(uid):
@@ -72,51 +80,61 @@ def delete_user(uid):
     this script runs all records are blown away from the db's so if you
     forget to configure something you will have to delete manually.
 
+    Does nothing if `uid` does not exist.
+
     Args:
-        uid: UID of the user to delete
+        uid (str): user to delete
     """
     import sirepo.server
     import sirepo.template
+
     sirepo.server.init()
-    with auth_db.session_and_lock(), \
-         auth.set_user_outside_of_http_request(uid):
-        if sirepo.template.is_sim_type('jupyterhublogin'):
-            from sirepo.sim_api import jupyterhublogin
-            jupyterhublogin.delete_user_dir(uid)
-        simulation_db.delete_user(uid)
-        # This needs to be done last so we have access to the records in
-        # previous steps.
-        auth_db.UserDbBase.delete_user(uid)
+    with auth_db.session_and_lock():
+        if auth.unchecked_get_user(uid) is None:
+            return
+        with auth.set_user_outside_of_http_request(uid):
+            if sirepo.template.is_sim_type("jupyterhublogin"):
+                from sirepo.sim_api import jupyterhublogin
+
+                jupyterhublogin.delete_user_dir(uid)
+            simulation_db.delete_user(uid)
+            # This needs to be done last so we have access to the records in
+            # previous steps.
+            auth_db.UserDbBase.delete_user(uid)
 
 
-def move_user_sims(target_uid=''):
+def move_user_sims(target_uid=""):
     """Moves non-example sims and lib files into the target user's directory.
     Must be run in the source uid directory."""
-    assert target_uid, 'missing target_uid'
-    assert os.path.exists('srw/lib'), 'must run in user dir'
-    assert os.path.exists('../{}'.format(target_uid)), 'missing target user dir: ../{}'.format(target_uid)
+    assert target_uid, "missing target_uid"
+    assert os.path.exists("srw/lib"), "must run in user dir"
+    assert os.path.exists(
+        "../{}".format(target_uid)
+    ), "missing target user dir: ../{}".format(target_uid)
     sim_dirs = []
     lib_files = []
 
-    for path in glob.glob('*/*/sirepo-data.json'):
+    for path in glob.glob("*/*/sirepo-data.json"):
         with open(path) as f:
             data = json.loads(f.read())
-        sim = data['models']['simulation']
-        if 'isExample' in sim and sim['isExample']:
+        sim = data["models"]["simulation"]
+        if "isExample" in sim and sim["isExample"]:
             continue
         sim_dirs.append(os.path.dirname(path))
 
-    for path in glob.glob('*/lib/*'):
+    for path in glob.glob("*/lib/*"):
         lib_files.append(path)
 
     for sim_dir in sim_dirs:
-        target = '../{}/{}'.format(target_uid, sim_dir)
-        assert not os.path.exists(target), 'target sim already exists: {}'.format(target)
+        target = "../{}/{}".format(target_uid, sim_dir)
+        assert not os.path.exists(target), "target sim already exists: {}".format(
+            target
+        )
         pkdlog(sim_dir)
         shutil.move(sim_dir, target)
 
     for lib_file in lib_files:
-        target = '../{}/{}'.format(target_uid, lib_file)
+        target = "../{}/{}".format(target_uid, lib_file)
         if os.path.exists(target):
             continue
         pkdlog(lib_file)
@@ -128,4 +146,4 @@ def _create_example(example):
 
 
 def _is_src_dir(d):
-    return re.search(r'/src$', str(d))
+    return re.search(r"/src$", str(d))

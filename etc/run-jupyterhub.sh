@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Start Sirepo Jupyterhub with email login
+# If $SIREPO_AUTH_GITHUB_KEY and $SIREPO_AUTH_GITHUB_SECRET, then
+# add github authentication to test SIREPO_SIM_API_JUPYTERHUBLOGIN_RS_JUPYTER_MIGRATE.
+#
 set -eou pipefail
 
 if [[ ! -d ~/mail ]]; then
@@ -33,15 +38,10 @@ export SIREPO_FROM_NAME='RadiaSoft Support'
 export SIREPO_SMTP_SERVER='localhost'
 export SIREPO_SMTP_SEND_DIRECTLY=1
 
-if [[ ! ${SIREPO_AUTH_METHODS:-} ]]; then
-    export SIREPO_AUTH_METHODS=email
-elif [[ ! $SIREPO_AUTH_METHODS =~ 'email' ]]; then
-    export SIREPO_AUTH_METHODS=$SIREPO_AUTH_METHODS:email
-fi
-
-if [[ ${SIREPO_AUTH_GITHUB_KEY:-} || ${SIREPO_AUTH_GITHUB_SECRET:-} ]]; then
+export SIREPO_AUTH_METHODS=${SIREPO_AUTH_METHODS:+$SIREPO_AUTH_METHODS:}email
+if [[ ${SIREPO_AUTH_GITHUB_KEY:-} && ${SIREPO_AUTH_GITHUB_SECRET:-} ]]; then
+    export SIREPO_AUTH_METHODS=$SIREPO_AUTH_METHODS:github
     export SIREPO_AUTH_GITHUB_METHOD_VISIBLE=0
-    export SIREPO_AUTH_METHODS="$SIREPO_AUTH_METHODS:github"
     export SIREPO_SIM_API_JUPYTERHUBLOGIN_RS_JUPYTER_MIGRATE=1
 fi
 

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-u"""test simulation list
+"""test simulation list
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+
 
 def test_copy_non_session(fc):
     from pykern.pkcollections import PKDict
@@ -18,17 +19,17 @@ def test_copy_non_session(fc):
     fc.sr_logout()
     fc.sr_login_as_guest()
     r = fc.sr_get_json(
-        'simulationData',
+        "simulationData",
         PKDict(
             simulation_type=fc.sr_sim_type,
-            pretty='0',
+            pretty="0",
             simulation_id=i,
         ),
     )
     pkeq(i, r.redirect.simulationId)
     pkeq(None, r.redirect.userCopySimulationId)
     d = fc.sr_post(
-        'copyNonSessionSimulation',
+        "copyNonSessionSimulation",
         PKDict(
             simulationId=i,
             simulationType=fc.sr_sim_type,
@@ -37,10 +38,10 @@ def test_copy_non_session(fc):
     pkeq(i, d.models.simulation.outOfSessionSimulationId)
     # Try again
     r = fc.sr_get_json(
-        'simulationData',
+        "simulationData",
         PKDict(
             simulation_type=fc.sr_sim_type,
-            pretty='0',
+            pretty="0",
             simulation_id=i,
         ),
     )
@@ -55,17 +56,17 @@ def test_illegals(fc):
 
     d = fc.sr_sim_data()
     for x in (
-        (PKDict(name='new/sim'), ('newsim', '/folder')),
-        (PKDict(name='some*sim'), ('somesim', '/folder')),
-        (PKDict(folder='.foo'), ('name', '/foo')),
-        (PKDict(name='s|&+?\'"im***\\'), ('sim', '/folder')),
-        (PKDict(folder=''), 'blank folder'),
-        (PKDict(name=''), 'blank name'),
-        (PKDict(name='***'), 'blank name'),
+        (PKDict(name="new/sim"), ("newsim", "/folder")),
+        (PKDict(name="some*sim"), ("somesim", "/folder")),
+        (PKDict(folder=".foo"), ("name", "/foo")),
+        (PKDict(name="s|&+?'\"im***\\"), ("sim", "/folder")),
+        (PKDict(folder=""), "blank folder"),
+        (PKDict(name=""), "blank name"),
+        (PKDict(name="***"), "blank name"),
     ):
-        c = d.copy().pkupdate(folder='folder', name='name')
-        r = fc.sr_post('newSimulation', c.pkupdate(x[0]))
-        if 'error' in r:
+        c = d.copy().pkupdate(folder="folder", name="name")
+        r = fc.sr_post("newSimulation", c.pkupdate(x[0]))
+        if "error" in r:
             pkre(x[1], r.error)
         else:
             pkeq(r.models.simulation.name, x[1][0])
@@ -80,20 +81,20 @@ def test_rename_folder(fc):
 
     d = fc.sr_sim_data()
     d.pkupdate(
-        name='new sim 1',
-        folder='first folder',
+        name="new sim 1",
+        folder="first folder",
     )
-    r = fc.sr_post('newSimulation', d)
-    pkeq('/' + d.folder, r.models.simulation.folder)
+    r = fc.sr_post("newSimulation", d)
+    pkeq("/" + d.folder, r.models.simulation.folder)
     d2 = copy.deepcopy(d)
     d2.pkupdate(
-        name='new sim 2',
-        folder='first folder no-match',
+        name="new sim 2",
+        folder="first folder no-match",
     )
-    r2 = fc.sr_post('newSimulation', d2)
-    n = 'new dir'
+    r2 = fc.sr_post("newSimulation", d2)
+    n = "new dir"
     fc.sr_post(
-        'updateFolder',
+        "updateFolder",
         PKDict(
             newName=n,
             oldName=d.folder,
@@ -101,8 +102,8 @@ def test_rename_folder(fc):
         ),
     )
     x = fc.sr_sim_data(d.name)
-    pkeq('/' + n, x.models.simulation.folder)
-    x = fc.sr_sim_data('new sim 2')
+    pkeq("/" + n, x.models.simulation.folder)
+    x = fc.sr_sim_data("new sim 2")
     pkeq(r2.models.simulation.folder, x.models.simulation.folder)
 
 
@@ -114,34 +115,34 @@ def test_srw_discard_example(fc):
     from pykern.pkunit import pkok
 
     # See https://github.com/radiasoft/sirepo/issues/1972
-    n = 'Undulator Radiation'
+    n = "Undulator Radiation"
     d = fc.sr_sim_data(n)
     fc.sr_post(
-        'deleteSimulation',
+        "deleteSimulation",
         PKDict(
             simulationType=fc.sr_sim_type,
             simulationId=d.models.simulation.simulationId,
         ),
     )
     r = fc.sr_get(
-        'findByNameWithAuth',
+        "findByNameWithAuth",
         PKDict(
             simulation_type=fc.sr_sim_type,
-            application_mode='default',
-            simulation_name=n
+            application_mode="default",
+            simulation_name=n,
         ),
         redirect=False,
     )
-    i = r.headers['Location'].split('/').pop()
+    i = r.headers["Location"].split("/").pop()
     r = fc.sr_get(
-        'pythonSource',
+        "pythonSource",
         PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=i,
         ),
     )
     pkok(
-        'srwl_bl.SRWLBeamline' in pkcompat.from_bytes(r.data),
-        'incomplete python={}',
+        "srwl_bl.SRWLBeamline" in pkcompat.from_bytes(r.data),
+        "incomplete python={}",
         r.data,
     )

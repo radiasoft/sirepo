@@ -114,7 +114,7 @@ class VTKScene {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
-            listenWindowResize: false,
+            listenWindowResize: true,
         });
 
         this.container = this.fsRenderer.getContainer();
@@ -158,16 +158,6 @@ class VTKScene {
      */
     addActor(actor) {
         this.renderer.addActor(actor);
-    }
-
-    addSnapshotCanvas(snapshotCanvas) {
-        this.snapshotCanvas = snapshotCanvas;
-    }
-
-    refreshCanvas() {
-        if (this.snapshotCanvas) {
-            this.snapshotCanvas.copyCanvas(null, true);
-        }
     }
 
     /**
@@ -216,7 +206,6 @@ class VTKScene {
      */
     render() {
         this.renderWindow.render();
-        this.refreshCanvas();
     }
 
     /**
@@ -324,9 +313,6 @@ class VTKScene {
         this.refreshMarker(false);
         this.fsRenderer.getInteractor().unbindEvents();
         this.fsRenderer.delete();
-        if (this.snapshotCanvas) {
-            this.snapshotCanvas.destroy();
-        }
     }
 }
 
@@ -750,8 +736,7 @@ class ViewPortObject {
     }
 
     /**
-     * Translates a 2-dimensional Point in the viewport corresponding to the given 3-dimensional point in the vtk
-     * world
+     * Translates a 3-dimensional Point in the vttk world corresponding to the given 2-dimensional point in the viewport
      * @param {Point} worldPoint
      * @returns {Point}
      */
@@ -2287,7 +2272,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             });
 
             var axisCfg = axisCfgDefault;
-            let cacheCanvas = null;
 
             var d3self = select();
             var lastSize = [1, 1];
@@ -2496,7 +2480,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     axes[dim].svgAxis.tickSize(0);
                 }
                 rebuildAxes();
-                cacheCanvas = document.createElement('canvas');
             }
 
             function rebuildAxes() {
@@ -2560,7 +2543,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkToPNG, vtkUtils, utilities, $document, $window) {
+SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities, $document, $window) {
 
     return {
         restrict: 'A',
@@ -2586,7 +2569,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.modeText = {};
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
-            $scope.ortho = false;
+            $scope.isOrtho = false;
             $scope.selection = null;
 
             let didPan = false;
@@ -2595,7 +2578,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             let isDragging = false;
             let isPointerUp = true;
 
-            const resize = utilities.debounce(refresh, 250);
+            const canvasHolder = $($element).find('.vtk-canvas-holder').eq(0);
 
             // supplement or override these event handlers
             let eventHandlers = {
@@ -2615,15 +2598,9 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 onpointerup: function (evt) {
                     isDragging = false;
                     isPointerUp = true;
-                    refresh(true);
+                    refresh();
                 },
-                onwheel: function (evt) {
-                    utilities.debounce(
-                        function() {
-                            refresh(true);
-                        },
-                        100)();
-                }
+                onwheel: utilities.debounce(refresh, 100),
             };
 
             function ondblclick() {
@@ -2632,9 +2609,14 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.$apply();
             }
 
+            function resize() {
+                refresh(true);
+            }
+
             $scope.init = function() {
                 const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 const body = angular.element($($document).find('body'))[0];
+                const view = angular.element($($document).find('.sr-view-content'))[0];
                 hdlrs = $scope.eventHandlers || {};
 
                 // vtk adds keypress event listeners to the BODY of the entire document, not the render
@@ -2664,26 +2646,35 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     }
                 });
                 Object.keys(eventHandlers).forEach(function (k) {
-                    rw[k] = function (evt) {
+                    const f = function (evt) {
                         eventHandlers[k](evt);
                         if (hdlrs[k]) {
                             hdlrs[k](evt);
                         }
                     };
+                    if (k == 'onpointermove') {
+                        view[k] = f;
+                        return;
+                    }
+                    rw[k] = f;
                 });
-                $scope.vtkScene.addSnapshotCanvas(
-                    vtkToPNG.pngCanvas($scope.reportId, $scope.vtkScene.fsRenderer, $element)
-                );
+                // remove global VTK key listeners
+                for (const n of ['KeyPress', 'KeyDown', 'KeyUp']) {
+                    document.removeEventListener(
+                        n.toLowerCase(),
+                        $scope.vtkScene.fsRenderer.getInteractor()[`handle${n}`],
+                    );
+                }
                 $scope.$emit('vtk-init', $scope.vtkScene);
+                resize();
             };
 
             $scope.canvasGeometry = function() {
-                const vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
                 return {
-                    pos: $(vtkCanvasHolder).position(),
+                    pos: $(canvasHolder).position(),
                     size: {
-                        width: Math.max(0, $(vtkCanvasHolder).width()),
-                        height: Math.max(0, $(vtkCanvasHolder).height()),
+                        width: Math.max(0, $(canvasHolder).width()),
+                        height: Math.max(0, $(canvasHolder).height()),
                     }
                 };
             };
@@ -2693,10 +2684,16 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.$emit('vtkScene.interactionMode', mode);
             };
 
+            $scope.showSide = side => {
+                $scope.vtkScene.showSide(side);
+                refresh(true);
+            };
+
             $scope.toggleOrtho = () => {
-                $scope.ortho = ! $scope.ortho;
-                $scope.vtkScene.cam.setParallelProjection($scope.ortho);
+                $scope.isOrtho = ! $scope.isOrtho;
+                $scope.vtkScene.cam.setParallelProjection($scope.isOrtho);
                 $scope.vtkScene.render();
+                refresh(true);
             };
 
             $scope.$on('$destroy', function() {
@@ -2705,12 +2702,9 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.vtkScene.teardown();
             });
 
-            function refresh(doCacheCanvas) {
+            function refresh() {
                 if ($scope.axisObj) {
                     $scope.$broadcast('axes.refresh');
-                }
-                if (doCacheCanvas) {
-                    $scope.vtkScene.refreshCanvas();
                 }
             }
 
@@ -2740,68 +2734,6 @@ SIREPO.app.service('vtkService', function(appState, panelState, requestSender, f
     let svc = {};
     return svc;
 });
-
-//TODO(pjm): share with warpvnd
-SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
-
-    /**
-     * Cleans out interpolated and other undesirable attributes and elements.
-     * This is not complete because angular can hide some things in weird ways
-     * @param element
-     */
-    function cleanElement(element) {
-        // if this element has opacity 0 remove it entirely
-        if (parseFloat($(element).css('opacity')) === 0) {
-            element.remove();
-            return;
-        }
-        for (let i = element.attributes.length - 1; i >= 0; --i) {
-            const a = element.attributes[i];
-            if (a.value.match(/{{.*}}/)) {
-                element.removeAttribute(a.name);
-            }
-        }
-        for (let i = element.children.length - 1; i >= 0 ; --i) {
-            cleanElement(element.children[i]);
-        }
-    }
-
-    this.pngCanvas = function(reportId, vtkRenderer, panel) {
-        const canvas = document.createElement('canvas');
-        const res = {
-            copyCanvas: function(event, doTraverse) {
-                panelState.waitForUI(function() {
-                    const canvas3d = $(panel).find('canvas')[0];
-                    const c = $(panel).find('svg.sr-vtk-axes')[0];
-                    let axesCanvas = null;
-                    if (c) {
-                        axesCanvas = c.cloneNode(true);
-                        cleanElement(axesCanvas);
-                    }
-                    canvas.width = parseInt(canvas3d.getAttribute('width'));
-                    canvas.height = parseInt(canvas3d.getAttribute('height'));
-                    if (doTraverse) {
-                        vtkRenderer.getApiSpecificRenderWindow().traverseAllPasses();
-                    }
-                    else {
-                        vtkRenderer.getRenderWindow().render();
-                    }
-                    canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
-                    if (axesCanvas) {
-                        canvas.getContext('2d').drawSvg(axesCanvas.outerHTML, 0, 0, canvas.width, canvas.height);
-                    }
-                });
-            },
-            destroy: function() {
-                panel.off();
-                plotToPNG.removeCanvas(reportId);
-            },
-        };
-        plotToPNG.addCanvas(canvas, reportId);
-        return res;
-    };
-});
-
 
 SIREPO.app.factory('vtkUtils', function() {
 
