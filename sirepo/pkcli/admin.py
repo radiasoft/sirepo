@@ -5,6 +5,7 @@ u"""?
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from xml.dom.minidom import Attr
 from pykern import pkio, pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
@@ -62,6 +63,41 @@ def create_examples():
                 for example in simulation_db.examples(sim_type):
                     if example.models.simulation.name not in names:
                         _create_example(example)
+
+
+def reset_examples():
+    import sirepo.auth_db
+
+    for d in pkio.sorted_glob(simulation_db.user_path().join('*')):
+        if _is_src_dir(d):
+            continue;
+        uid = simulation_db.uid_from_dir_name(d)
+        with sirepo.auth_db.session_and_lock(), \
+             auth.set_user_outside_of_http_request(uid):
+            sim_ids = []
+            for sim_type in feature_config.cfg().sim_types:
+            #     sims = [x for x in simulation_db.iterate_simulation_datafiles(
+            #             sim_type,
+            #             simulation_db.process_simulation_list,
+            #             {'simulation.isExample': True},
+            #         )
+            #     ]
+            #     print(f'\n\n\n sims: {sims}')
+            #     for sim in sims:
+            #         sim_ids.append(sim.simulationId)
+            # TODO (gurhar1133): if sim from above not in below, then remove
+            # TODO (gurhar1133): need to find simulationId for some of these examples...
+                example_ids = []
+                for example in simulation_db.examples(sim_type):
+                    try:
+                        if example.models.simulation.isExample:
+
+                            print(f'EXAMPLE: {example}')
+
+                    except AttributeError as e:
+                        continue
+
+
 
 # TODO(e-carlin): more than uid (ex email)
 def delete_user(uid):
