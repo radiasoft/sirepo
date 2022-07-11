@@ -48,27 +48,37 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
         # Returning True/False is what the jupyterhub API expects and jupyterhub
         # will handle re-authenticating the user if needed.
         # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.refresh_user
-        return bool(self._check_permissions(handler).get("username"))
+        try:
+            return bool(
+                self._check_permissions(handler, should_redirect=False).get("username")
+            )
+        except _UserIsUnauthenticated:
+            return False
 
-    def _check_permissions(self, handler):
+    def _check_permissions(self, handler, should_redirect=True):
         def _cookies(response):
             for k, v in response.cookies.get_dict().items():
                 handler.set_cookie(k, v)
 
-        def _maybe_html_redirect(response):
+        def _handle_unauthenticated(redirect_uri):
+            if should_redirect:
+                self._redirect(handler, redirect_uri)
+                raise AssertionError("self._redirect should always raise")
+            raise _UserIsUnauthenticated()
+
+        def _maybe_html(response):
             m = re.search(
                 r'window.location = "(.*)"', pkcompat.from_bytes(response.content)
             )
-            m and self._redirect(handler, m.group(1))
+            m and _handle_unauthenticated(m.group(1))
 
-        def _maybe_srexception_redirect(response):
+        def _maybe_srexception(response):
             if "srException" not in response:
                 return
             from sirepo import uri
 
             e = PKDict(response.srException)
-            self._redirect(
-                handler,
+            _handle_unauthenticated(
                 uri.local_route(
                     _SIM_TYPE,
                     route_name=e.routeName,
@@ -87,12 +97,16 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
         if r.status_code == requests.codes.forbidden:
             return PKDict()
         r.raise_for_status()
-        _maybe_html_redirect(r)
+        _maybe_html(r)
         res = PKDict(r.json())
-        _maybe_srexception_redirect(res)
+        _maybe_srexception(res)
         assert "username" in res, f"unexpected response={res}"
         return res
 
     def _redirect(self, handler, uri):
         handler.redirect(uri)
         raise tornado.web.Finish()
+
+
+class _UserIsUnauthenticated(Exception):
+    pass
