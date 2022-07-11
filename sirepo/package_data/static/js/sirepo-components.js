@@ -3057,7 +3057,7 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
                 $scope.newSimURL = requestSender.formatUrlLocal(
                     'beamline',
                     { 'simulationId': data.models.simulation.simulationId},
-                    data.simulationType,
+                    data.simulationType
                 );
             }
 
@@ -3071,13 +3071,12 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             };
 
             $scope.openConvertedSimulation = function() {
+                const d = appState.models;
+                d.method = $scope.convMethod;
                 requestSender.sendStatefulCompute(
                     appState,
                     createNewSim,
-                    {
-                        method: $scope.convMethod,
-                        ...appState.models,
-                    }
+                    d
                 );
                 return false;
             };
