@@ -147,6 +147,25 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         })[0];
     };
 
+    self.centerExtrudedPoints = o =>  {
+        srdbg('CTR');
+        const ctr = utilities.splitCommaDelimitedString(o.center, parseFloat);
+        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(o.widthAxis);
+        const j = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(o.heightAxis);
+        const p = o.points.map(x => [x[0] + ctr[i], x[1] + ctr[j]]);
+        srdbg('new p', p);
+        //$scope.modelData.points = p;
+    }
+
+    self.updateExtrudedSize = o => {
+        const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
+        [o.widthAxis, o.heightAxis].forEach((dim, i) => {
+            const p = o.points.map(x => x[i]);
+            sz[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
+        });
+        o.size = sz.join(',');
+    }
+
     self.createPathModel = function(type) {
         var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
         var model = {};
@@ -3715,21 +3734,20 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     };
 
     $scope.$on('geomObject.changed', () => {
-        srdbg('GO CH', editedModels);
-        if (editedModels.includes('extrudedPoly')) {
-            $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
-            $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
-            centerPoints();
-            updateSize();
-        }
-        appState.saveQuietly($scope.modelName);
+        //if (editedModels.includes('extrudedPoly')) {
+        //    $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
+        //    $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
+        //    centerPoints();
+        //    updateSize();
+        //}
+        //appState.saveQuietly($scope.modelName);
         //editedModels = [];
     });
 
     function setPoints(data) {
         $scope.modelData.points = data.points;
-        centerPoints();
-        updateSize();
+        radiaService.centerPoints($scope.modelData);
+        radiaService.updateExtrudedSize($scope.modelData);
         appState.saveChanges(editedModels);
         updateShapeEditor();
     }
@@ -3827,8 +3845,15 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     $scope.$on('geomObject.changed', () => {
+        if (editedModels.includes('extrudedPoly')) {
+            $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
+            $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
+            radiaService.centerExtrudedPoints($scope.modelData);
+            radiaService.updateExtrudedSize($scope.modelData);
+        }
         editedModels = [];
     });
+
 
     function updateObjectEditor() {
         const o = $scope.modelData;
