@@ -2927,7 +2927,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 }
                 else {
                     $scope.showWarning = true;
-                    $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+                    $scope.warningText = 'Server reported an error, please contact support@sirepo.com.';
                 }
             }
 
@@ -2997,6 +2997,87 @@ SIREPO.app.directive('commonFooter', function() {
     };
 });
 
+
+SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            convMethod: '@',
+        },
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-python=""></div>
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openConvertedSimulation()">
+              <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
+              <div data-ng-if="displayLink()">
+                {{ title }} simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.newSimURL = false;
+            $scope.title = $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';
+
+            function createNewSim(data) {
+                requestSender.sendRequest(
+                    'newSimulation',
+                    simData => {
+                        ['simulationId', 'simulationSerial'].forEach(function(f) {
+                            data.models.simulation[f] = simData.models.simulation[f];
+                        });
+                        data.version = simData.version;
+                        requestSender.sendRequest(
+                            'saveSimulationData',
+                            genSimURL,
+                            data);
+                    },
+                    newSimData(data));
+            }
+
+            function newSimData(data) {
+                const res = appState.clone(data.models.simulation);
+                res.simulationType = data.simulationType;
+                if (! res.name){
+                    res.name = 'newSim';
+                }
+                return res;
+            }
+
+            function genSimURL(data) {
+                $scope.newSimURL = requestSender.formatUrlLocal(
+                    'beamline',
+                    { 'simulationId': data.models.simulation.simulationId},
+                    data.simulationType
+                );
+            }
+
+            $scope.closeModal = function() {
+                $('#sr-conv-dialog').modal('hide');
+                $scope.resetURL();
+            };
+
+            $scope.resetURL = function() {
+                $scope.newSimURL = false;
+            };
+
+            $scope.openConvertedSimulation = function() {
+                const d = appState.models;
+                d.method = $scope.convMethod;
+                requestSender.sendStatefulCompute(
+                    appState,
+                    createNewSim,
+                    d
+                );
+                return false;
+            };
+
+            $scope.displayLink = function() {
+                return Boolean($scope.newSimURL);
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('simulationStatusTimer', function() {
     return {
         restrict: 'A',
@@ -3037,12 +3118,12 @@ SIREPO.app.directive('downloadStatus', function() {
                           <div>{{ label }}{{ simState.dots }}</div>
                           <div class="progress">
                             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-                          </div>                          
+                          </div>
                         </div>
                       </div>
                       <div class="row">
                         <div class="col-sm-12 col-sm-offset-4">
-                          <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>                      
+                          <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>
                         </div>
                       </div>
                     </div>
