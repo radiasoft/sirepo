@@ -87,15 +87,14 @@ def reset_examples():
             #         sim_ids.append(sim.simulationId)
             # TODO (gurhar1133): if sim from above not in below, then remove
             # TODO (gurhar1133): need to find simulationId for some of these examples...
-                example_ids = []
+                # example_ids = []
                 for example in simulation_db.examples(sim_type):
                     try:
-                        if example.models.simulation.isExample:
-
+                        if example.models.simulation.simulationId:
                             print(f'EXAMPLE: {example}')
 
                     except AttributeError as e:
-                        continue
+                        print('SIMULATION ID MISSING')
 
 
 
