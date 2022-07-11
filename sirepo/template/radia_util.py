@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Utilities and wrappers for calling Radia functions
+"""Utilities and wrappers for calling Radia functions
 
 :copyright: Copyright (c) 2017-2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,7 +14,7 @@ from numpy import linalg
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 
-AXES = ['x', 'y', 'z']
+AXES = ["x", "y", "z"]
 
 AXIS_VECTORS = PKDict(
     x=numpy.array([1, 0, 0]),
@@ -23,27 +23,32 @@ AXIS_VECTORS = PKDict(
 )
 
 
-FIELD_TYPE_MAG_A = 'A'
-FIELD_TYPE_MAG_B = 'B'
-FIELD_TYPE_MAG_H = 'H'
-FIELD_TYPE_MAG_I = 'I'
-FIELD_TYPE_MAG_J = 'J'
-FIELD_TYPE_MAG_M = 'M'
+FIELD_TYPE_MAG_A = "A"
+FIELD_TYPE_MAG_B = "B"
+FIELD_TYPE_MAG_H = "H"
+FIELD_TYPE_MAG_I = "I"
+FIELD_TYPE_MAG_J = "J"
+FIELD_TYPE_MAG_M = "M"
 FIELD_TYPES = [FIELD_TYPE_MAG_M]
 POINT_FIELD_TYPES = [
-    FIELD_TYPE_MAG_B, FIELD_TYPE_MAG_A, FIELD_TYPE_MAG_H, FIELD_TYPE_MAG_J
+    FIELD_TYPE_MAG_B,
+    FIELD_TYPE_MAG_A,
+    FIELD_TYPE_MAG_H,
+    FIELD_TYPE_MAG_J,
 ]
 FIELD_TYPES.extend(POINT_FIELD_TYPES)
 INTEGRABLE_FIELD_TYPES = [FIELD_TYPE_MAG_B, FIELD_TYPE_MAG_H, FIELD_TYPE_MAG_I]
 
 # these might be available from radia
-FIELD_UNITS = PKDict({
-    FIELD_TYPE_MAG_A: 'T mm',
-    FIELD_TYPE_MAG_B: 'T',
-    FIELD_TYPE_MAG_H: 'A/m',
-    FIELD_TYPE_MAG_J: 'A/m^2',
-    FIELD_TYPE_MAG_M: 'A/m',
-})
+FIELD_UNITS = PKDict(
+    {
+        FIELD_TYPE_MAG_A: "T mm",
+        FIELD_TYPE_MAG_B: "T",
+        FIELD_TYPE_MAG_H: "A/m",
+        FIELD_TYPE_MAG_J: "A/m^2",
+        FIELD_TYPE_MAG_M: "A/m",
+    }
+)
 
 
 _MU_0 = 4 * numpy.pi / 1e7
@@ -56,20 +61,21 @@ class MPI:
         self._uti_mpi = lambda x: None
         try:
             import mpi4py.MPI
+
             if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
                 self._uti_mpi = radia.UtiMPI
         except Exception:
             pass
 
     def __enter__(self):
-        self._uti_mpi('in')
+        self._uti_mpi("in")
         return self
 
     def __exit__(self, t, value, traceback):
-        self._uti_mpi('off')
+        self._uti_mpi("off")
 
     def barrier(self):
-        self._uti_mpi('barrier')
+        self._uti_mpi("barrier")
 
 
 def _apply_clone(g_id, xform):
@@ -78,19 +84,19 @@ def _apply_clone(g_id, xform):
     xf = radia.TrfTrsl([0, 0, 0])
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
-        if cxf.model == 'translateClone':
+        if cxf.model == "translateClone":
             txf = radia.TrfTrsl(
                 sirepo.util.split_comma_delimited_string(cxf.distance, float)
             )
             xf = radia.TrfCmbL(xf, txf)
-        if cxf.model == 'rotateClone':
+        if cxf.model == "rotateClone":
             rxf = radia.TrfRot(
                 sirepo.util.split_comma_delimited_string(cxf.center, float),
                 sirepo.util.split_comma_delimited_string(cxf.axis, float),
-                numpy.pi * float(cxf.angle) / 180.
+                numpy.pi * float(cxf.angle) / 180.0,
             )
             xf = radia.TrfCmbL(xf, rxf)
-    if xform.alternateFields != '0':
+    if xform.alternateFields != "0":
         xf = radia.TrfCmbL(xf, radia.TrfInv())
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)
 
@@ -109,8 +115,8 @@ def _apply_rotation(g_id, xform):
         radia.TrfRot(
             sirepo.util.split_comma_delimited_string(xform.center, float),
             sirepo.util.split_comma_delimited_string(xform.axis, float),
-            numpy.pi * float(xform.angle) / 180.
-        )
+            numpy.pi * float(xform.angle) / 180.0,
+        ),
     )
 
 
@@ -123,9 +129,9 @@ def _apply_symmetry(g_id, xform):
     xform = PKDict(xform)
     plane = sirepo.util.split_comma_delimited_string(xform.symmetryPlane, float)
     point = sirepo.util.split_comma_delimited_string(xform.symmetryPoint, float)
-    if xform.symmetryType == 'parallel':
+    if xform.symmetryType == "parallel":
         radia.TrfZerPara(g_id, point, plane)
-    if xform.symmetryType == 'perpendicular':
+    if xform.symmetryType == "perpendicular":
         radia.TrfZerPerp(g_id, point, plane)
 
 
@@ -133,7 +139,7 @@ def _apply_translation(g_id, xform):
     xform = PKDict(xform)
     radia.TrfOrnt(
         g_id,
-        radia.TrfTrsl(sirepo.util.split_comma_delimited_string(xform.distance, float))
+        radia.TrfTrsl(sirepo.util.split_comma_delimited_string(xform.distance, float)),
     )
 
 
@@ -146,7 +152,7 @@ def _geom_bounds(g_id):
 
 
 def _radia_material(material_type, magnetization_magnitude, h_m_curve):
-    if material_type == 'custom':
+    if material_type == "custom":
         return radia.MatSatIsoTab(
             [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
         )
@@ -157,11 +163,11 @@ _TRANSFORMS = PKDict(
     cloneTransform=_apply_clone,
     symmetryTransform=_apply_symmetry,
     rotate=_apply_rotation,
-    translate=_apply_translation
+    translate=_apply_translation,
 )
 
 
-#TODO(mvk): simplify input params with dict/kwargs, clarify the edge-indexed arrays
+# TODO(mvk): simplify input params with dict/kwargs, clarify the edge-indexed arrays
 def apply_bevel(g_id, obj_ctr, obj_size, bevel):
 
     b = numpy.array(bevel.cutDir)
@@ -180,7 +186,9 @@ def apply_bevel(g_id, obj_ctr, obj_size, bevel):
     vg2 = numpy.dot(h_offset, h_offset)
     v2 = numpy.dot(v, v)
 
-    plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
+    plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][
+        e
+    ] * numpy.sqrt(vx2 / v2)
     pt = corner + w_offset
 
     # object id, plane normal, point in plane - returns a new id in an array for some reason
@@ -196,7 +204,7 @@ def multiply_vector_by_matrix(v, m):
 
 
 def apply_transform(g_id, xform):
-    _TRANSFORMS[xform['model']](g_id, xform)
+    _TRANSFORMS[xform["model"]](g_id, xform)
 
 
 def build_cuboid(**kwargs):
@@ -213,15 +221,17 @@ def build_container(g_ids):
 
 def build_racetrack(**kwargs):
     d = PKDict(kwargs)
-    return radia.ObjRaceTrk(d.center, d.radii, d.sides, d.height, d.num_segs, d.curr_density, d.calc, d.axis)
+    return radia.ObjRaceTrk(
+        d.center, d.radii, d.sides, d.height, d.num_segs, d.curr_density, d.calc, d.axis
+    )
 
 
 def dump(g_id):
-    return radia.UtiDmp(g_id, 'asc')
+    return radia.UtiDmp(g_id, "asc")
 
 
 def dump_bin(g_id):
-    return radia.UtiDmp(g_id, 'bin')
+    return radia.UtiDmp(g_id, "bin")
 
 
 def extrude(**kwargs):
@@ -234,7 +244,7 @@ def extrude(**kwargs):
         numpy.full((len(d.points), 2), [1, 1]).tolist(),
         d.extrusion_axis,
         d.magnetization,
-        f'TriAreaMax->{0.125 * d.area * (1.04 - d.t_level)}' if d.t_level > 0 else ''
+        f"TriAreaMax->{0.125 * d.area * (1.04 - d.t_level)}" if d.t_level > 0 else "",
     )
     _apply_segments(g_id, d.segments)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
@@ -243,15 +253,14 @@ def extrude(**kwargs):
 
 # only i (?), m, h
 def field_integral(g_id, f_type, p1, p2):
-    return radia.FldInt(g_id, 'inf', f_type, p1, p2)
+    return radia.FldInt(g_id, "inf", f_type, p1, p2)
 
 
 def free_symmetries(g_id):
-    return radia.ObjDpl(g_id, 'FreeSym->True')
+    return radia.ObjDpl(g_id, "FreeSym->True")
 
 
 def geom_to_data(g_id, name=None, divide=True):
-
     def _to_pkdict(d):
         if not isinstance(d, dict):
             return d
@@ -260,9 +269,9 @@ def geom_to_data(g_id, name=None, divide=True):
             rv[k] = _to_pkdict(v)
         return rv
 
-    n = (name if name is not None else str(g_id)) + '.Geom'
+    n = (name if name is not None else str(g_id)) + ".Geom"
     pd = PKDict(name=n, id=g_id, data=[])
-    d = _to_pkdict(radia.ObjDrwVTK(g_id, 'Axes->No'))
+    d = _to_pkdict(radia.ObjDrwVTK(g_id, "Axes->No"))
     d.update(_geom_bounds(g_id))
     n_verts = len(d.polygons.vertices)
     c = radia.ObjCntStuf(g_id)
@@ -277,7 +286,7 @@ def geom_to_data(g_id, name=None, divide=True):
         for g in c:
             # for fully recursive array
             # for g in get_all_geom(geom):
-            s_d = _to_pkdict(radia.ObjDrwVTK(g, 'Axes->No'))
+            s_d = _to_pkdict(radia.ObjDrwVTK(g, "Axes->No"))
             s_d.update(_geom_bounds(g))
             n_s_verts += len(s_d.polygons.vertices)
             s_d.id = g
@@ -340,12 +349,28 @@ def get_magnetization(g_id):
 
 
 def kick_map(
-        g_id, begin, dir_long, num_periods, period_length, dir_trans, range_trans_1,
-        num_pts_trans_1, range_trans_2, num_pts_trans_2
-    ):
+    g_id,
+    begin,
+    dir_long,
+    num_periods,
+    period_length,
+    dir_trans,
+    range_trans_1,
+    num_pts_trans_1,
+    range_trans_2,
+    num_pts_trans_2,
+):
     km = radia.FldFocKickPer(
-        g_id, begin, dir_long, period_length, num_periods, dir_trans, range_trans_1,
-        num_pts_trans_1, range_trans_2, num_pts_trans_2
+        g_id,
+        begin,
+        dir_long,
+        period_length,
+        num_periods,
+        dir_trans,
+        range_trans_1,
+        num_pts_trans_1,
+        range_trans_2,
+        num_pts_trans_2,
     )
     return km
 
@@ -380,7 +405,7 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     v_data.id = g_id
     v_data.vectors.lengths = []
     v_data.vectors.colors = []
-    v_max = 0.
+    v_max = 0.0
     v_min = sys.float_info.max
     for i in range(len(pv_arr)):
         p = pv_arr[i][0]
@@ -388,7 +413,7 @@ def vector_field_to_data(g_id, name, pv_arr, units):
         n = numpy.linalg.norm(v)
         v_max = max(v_max, n)
         v_min = min(v_min, n)
-        nv = (numpy.array(v) / (n if n > 0 else 1.)).tolist()
+        nv = (numpy.array(v) / (n if n > 0 else 1.0)).tolist()
         v_data.vectors.vertices.extend(p)
         v_data.vectors.directions.extend(nv)
         v_data.vectors.magnitudes.append(n)
@@ -396,7 +421,5 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     v_data.vectors.units = units
 
     return PKDict(
-        name=name + '.Field',
-        id=g_id, data=[v_data],
-        bounds=radia.ObjGeoLim(g_id)
+        name=name + ".Field", id=g_id, data=[v_data], bounds=radia.ObjGeoLim(g_id)
     )

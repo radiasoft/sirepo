@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-u"""simulation data manipulations
+"""simulation data manipulations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+
 
 def fixup_package_data_json():
     import pykern.pkconfig
@@ -26,29 +27,29 @@ def fixup_package_data_json():
 
     i = 0
     for f in pykern.pkio.sorted_glob(
-        pykern.pkio.py_path().join('*', 'examples', '*.json'),
+        pykern.pkio.py_path().join("*", "examples", "*.json"),
     ) + pykern.pkio.sorted_glob(
-        pykern.pkio.py_path().join('*', 'default-data.json'),
+        pykern.pkio.py_path().join("*", "default-data.json"),
     ):
         if not any(x for x in sirepo.feature_config.cfg().sim_types if x in str(f)):
             continue
         pkdlog(f)
         d = sirepo.simulation_db.json_load(f)
-        if f.basename != 'default-data.json':
+        if f.basename != "default-data.json":
             d.models.pksetdefault(simulation=PKDict).simulation.isExample = True
         d = sirepo.simulation_db.fixup_old_data(d, force=True)[0]
         pykern.pkcollections.unchecked_del(
             d.models.simulation,
-            'lastModified',
-            'simulationId',
-            'simulationSerial',
+            "lastModified",
+            "simulationId",
+            "simulationSerial",
         )
-        d.pkdel('version')
-        d.models.pkdel('simulationStatus')
+        d.pkdel("version")
+        d.models.pkdel("simulationStatus")
         for m in d.models.values():
             if isinstance(m, dict):
-                m.pkdel('startTime')
+                m.pkdel("startTime")
         sirepo.util.json_dump(d, path=f, pretty=True)
         i += 1
     if i <= 0:
-        pykern.pkcli.command_error('must be run from package_data/template')
+        pykern.pkcli.command_error("must be run from package_data/template")

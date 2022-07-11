@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Common values for elegant
+"""Common values for elegant
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,7 +11,7 @@ from sirepo.template import template_common
 import sirepo.sim_data
 import os
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals('elegant')
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("elegant")
 
 
 def subprocess_env():
@@ -21,7 +21,7 @@ def subprocess_env():
         dict: copy of env
     """
     return PKDict(os.environ).pkupdate(
-        RPN_DEFNS=str(_SIM_DATA.resource_path('defns.rpn')),
+        RPN_DEFNS=str(_SIM_DATA.resource_path("defns.rpn")),
     )
 
 

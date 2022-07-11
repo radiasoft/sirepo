@@ -38,16 +38,18 @@ def create_user(email, display_name):
         u = module.unchecked_user_by_user_name(email)
         if u:
             # Fully registered email user
-            assert sirepo.auth_db.UserRegistration.search_by(uid=u).display_name, \
-                f'uid={u} authorized AuthEmailUser record but no UserRegistration.display_name'
+            assert sirepo.auth_db.UserRegistration.search_by(
+                uid=u
+            ).display_name, f"uid={u} authorized AuthEmailUser record but no UserRegistration.display_name"
             return u
         m = module.AuthEmailUser.search_by(unverified_email=email)
         if m:
             # Email user that needs to complete registration (no display_name but have unverified_email)
-            assert sirepo.auth.need_complete_registration(m), \
-                'email={email} has no display_name but does not need to complete registration'
+            assert sirepo.auth.need_complete_registration(
+                m
+            ), "email={email} has no display_name but does not need to complete registration"
             pkcli.command_error(
-                'email={} needs complete registration but we do not have their uid (in cookie)',
+                "email={} needs complete registration but we do not have their uid (in cookie)",
                 email,
             )
         # Completely new Sirepo user
@@ -63,16 +65,18 @@ def create_user(email, display_name):
         return u
 
     if not pyisemail.is_email(email):
-        pkcli.command_error('invalid email={}', email)
+        pkcli.command_error("invalid email={}", email)
     sirepo.server.init()
-    sirepo.template.assert_sim_type('jupyterhublogin')
+    sirepo.template.assert_sim_type("jupyterhublogin")
     with sirepo.auth_db.session_and_lock():
         u = maybe_create_sirepo_user(
-            sirepo.auth.get_module('email'),
+            sirepo.auth.get_module("email"),
             email,
             display_name,
         )
         with sirepo.auth.set_user_outside_of_http_request(u):
             n = sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)
-        sirepo.auth_db.UserRole.add_roles(u, [sirepo.auth_role.for_sim_type('jupyterhublogin')])
+        sirepo.auth_db.UserRole.add_roles(
+            u, sirepo.auth_role.for_sim_type("jupyterhublogin")
+        )
         return PKDict(email=email, jupyterhub_user_name=n)

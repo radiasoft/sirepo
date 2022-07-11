@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Radia examples.
+"""Radia examples.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -41,10 +41,12 @@ def dipole_example():
         lz1 = 20
         l1 = [lx1, ly1, lz1]
 
-        k1 = [[thick / 4. - chamfer / 2., 0, gap / 2.],
-              [thick / 2. - chamfer, ly1 - 2. * chamfer]]
-        k2 = [[thick / 4., 0., gap / 2. + chamfer], [thick / 2., ly1]]
-        k3 = [[thick / 4., 0., gap / 2. + lz1], [thick / 2, ly1]]
+        k1 = [
+            [thick / 4.0 - chamfer / 2.0, 0, gap / 2.0],
+            [thick / 2.0 - chamfer, ly1 - 2.0 * chamfer],
+        ]
+        k2 = [[thick / 4.0, 0.0, gap / 2.0 + chamfer], [thick / 2.0, ly1]]
+        k3 = [[thick / 4.0, 0.0, gap / 2.0 + lz1], [thick / 2, ly1]]
         g1 = radia.ObjMltExtRtg([k1, k2, k3])
         radia.ObjDivMag(g1, n1)
         radia.ObjDrwAtr(g1, ironcolor)
@@ -71,11 +73,11 @@ def dipole_example():
             [p3[0], p3[1] + ly3 / 2, p3[2] - lz3 / 2],
             [1, 0, 0],
             [p3[0], p3[1] - ly3 / 2, p3[2] - lz3 / 2],
-            lz3 / ly3
+            lz3 / ly3,
         ]
 
         if circ == 1:
-            radia.ObjDivMag(g3, [nbr, nbp, n3[1]], 'cyl', typ)
+            radia.ObjDivMag(g3, [nbr, nbp, n3[1]], "cyl", typ)
         else:
             radia.ObjDivMag(g3, n3)
         radia.ObjDrwAtr(g3, ironcolor)
@@ -102,11 +104,11 @@ def dipole_example():
             [p5[0], p5[1] - ly5 / 2, p5[2] - lz5 / 2],
             [1, 0, 0],
             [p5[0], p5[1] + ly5 / 2, p5[2] - lz5 / 2],
-            lz5 / ly5
+            lz5 / ly5,
         ]
 
         if circ == 1:
-            radia.ObjDivMag(g5, [nbr, nbp, n5[0]], 'cyl', typ)
+            radia.ObjDivMag(g5, [nbr, nbp, n5[0]], "cyl", typ)
         else:
             radia.ObjDivMag(g5, n5)
         radia.ObjDrwAtr(g5, ironcolor)
@@ -141,8 +143,8 @@ def dipole_example():
         radia.TrfZerPerp(g, [0, 0, 0], [1, 0, 0])
         radia.TrfZerPara(g, [0, 0, 0], [0, 0, 1])
         return t, {
-            g: '1c3a32be-c19b-42f8-a303-28fecaa5c1f0',
-            coil: 'f904f1d1-93d5-4a84-bafb-cebf9efa0b35',
+            g: "1c3a32be-c19b-42f8-a303-28fecaa5c1f0",
+            coil: "f904f1d1-93d5-4a84-bafb-cebf9efa0b35",
         }
 
     # Define full magnet
@@ -172,7 +174,7 @@ def undulator_example():
 
     # pole-tip segmentation
     nsp = [2, 2, 5]
-    #cp = [1, 0, 0]
+    # cp = [1, 0, 0]
     ll = period / 2 - lp[1]
 
     # parameters for the magnet blocks
@@ -180,27 +182,89 @@ def undulator_example():
     lm = [65, ll, 45]
 
     # magnet-block segmentation
-    nsm = [1 ,3, 1]
-    cm = [0, 1, 1]    # assign color
+    nsm = [1, 3, 1]
+    cm = [0, 1, 1]  # assign color
 
     # ~iron type Va Permendur
     iron_h = [
-        0.8, 1.5, 2.2, 3.6, 5.0, 6.8, 9.8, 18.0,
-        28.0, 37.5, 42.0, 55.0, 71.5, 80.0, 85.0, 88.0,
-        92.0, 100.0, 120.0, 150.0, 200.0, 300.0, 400.0, 600.0,
-        800.0, 1000.0, 2000.0, 4000.0, 6000.0, 10000.0, 25000.0, 40000.0
+        0.8,
+        1.5,
+        2.2,
+        3.6,
+        5.0,
+        6.8,
+        9.8,
+        18.0,
+        28.0,
+        37.5,
+        42.0,
+        55.0,
+        71.5,
+        80.0,
+        85.0,
+        88.0,
+        92.0,
+        100.0,
+        120.0,
+        150.0,
+        200.0,
+        300.0,
+        400.0,
+        600.0,
+        800.0,
+        1000.0,
+        2000.0,
+        4000.0,
+        6000.0,
+        10000.0,
+        25000.0,
+        40000.0,
     ]
     iron_m = [
-        0.000998995, 0.00199812, 0.00299724, 0.00499548, 0.00699372, 0.00999145,
-        0.0149877, 0.0299774, 0.0499648, 0.0799529, 0.0999472, 0.199931, 0.49991,
-        0.799899, 0.999893, 1.09989, 1.19988, 1.29987, 1.41985, 1.49981, 1.59975,
-        1.72962, 1.7995, 1.89925, 1.96899, 1.99874, 2.09749, 2.19497, 2.24246, 2.27743,
-        2.28958,  2.28973
+        0.000998995,
+        0.00199812,
+        0.00299724,
+        0.00499548,
+        0.00699372,
+        0.00999145,
+        0.0149877,
+        0.0299774,
+        0.0499648,
+        0.0799529,
+        0.0999472,
+        0.199931,
+        0.49991,
+        0.799899,
+        0.999893,
+        1.09989,
+        1.19988,
+        1.29987,
+        1.41985,
+        1.49981,
+        1.59975,
+        1.72962,
+        1.7995,
+        1.89925,
+        1.96899,
+        1.99874,
+        2.09749,
+        2.19497,
+        2.24246,
+        2.27743,
+        2.28958,
+        2.28973,
     ]
 
     def undulator(
-            pole_lengths, pole_props, pole_segs, block_lengths, block_props,
-            block_segs, gap_height, gap_offset, num_periods
+        pole_lengths,
+        pole_props,
+        pole_segs,
+        block_lengths,
+        block_props,
+        block_segs,
+        gap_height,
+        gap_offset,
+        num_periods,
     ):
         """
         create hybrid undulator magnet
@@ -232,7 +296,11 @@ def undulator_example():
         pole = radia.ObjFullMag(
             [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
             [pole_lengths[0] / 2, pole_lengths[1] / 2, pole_lengths[2]],
-            zero, pole_segs, grp, pole_props, c_pole
+            zero,
+            pole_segs,
+            grp,
+            pole_props,
+            c_pole,
         )
         y += pole_lengths[1] / 4
 
@@ -246,18 +314,24 @@ def undulator_example():
                 [
                     block_lengths[0] / 4,
                     y,
-                    -block_lengths[2] / 2 - gap_height / 2 - gap_offset
+                    -block_lengths[2] / 2 - gap_height / 2 - gap_offset,
                 ],
-                [
-                    block_lengths[0] / 2, block_lengths[1], block_lengths[2]
-                ],
-                init_m, block_segs, grp, block_props, c_block
+                [block_lengths[0] / 2, block_lengths[1], block_lengths[2]],
+                init_m,
+                block_segs,
+                grp,
+                block_props,
+                c_block,
             )
             y += (block_lengths[1] + pole_lengths[1]) / 2
             pole = radia.ObjFullMag(
                 [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
                 [pole_lengths[0] / 2, pole_lengths[1], pole_lengths[2]],
-                zero, pole_segs, grp, pole_props, c_pole
+                zero,
+                pole_segs,
+                grp,
+                pole_props,
+                c_pole,
             )
             y += pole_lengths[1] / 2
 
@@ -268,12 +342,15 @@ def undulator_example():
             [
                 block_lengths[0] / 4,
                 y,
-                -block_lengths[2] / 2 - gap_height / 2 - gap_offset
+                -block_lengths[2] / 2 - gap_height / 2 - gap_offset,
             ],
-            [
-                block_lengths[0] / 2, block_lengths[1] / 2, block_lengths[2]
-            ],
-            init_m, block_segs, grp, block_props, c_block)
+            [block_lengths[0] / 2, block_lengths[1] / 2, block_lengths[2]],
+            init_m,
+            block_segs,
+            grp,
+            block_props,
+            c_block,
+        )
 
         # use mirror symmetry to define the full undulator
         radia.TrfZerPerp(grp, zero, [1, 0, 0])  # reflect in the (y,z) plane
@@ -304,7 +381,7 @@ def undulator_example():
     # -- magnetic materials
     # pole tips: ~iron type Va Permendur
     # permanent magnets: NdFeB with 1.2 Tesla remanent magnetization
-    mp, mm = materials(iron_h, iron_m, 'NdFeB', 1.2)
+    mp, mm = materials(iron_h, iron_m, "NdFeB", 1.2)
 
     # then build the undulator
     und, pl, mg = undulator(lp, mp, nsp, lm, mm, nsm, gap, offset, n_periods)
@@ -324,14 +401,14 @@ def wiggler_example():
     # create 5 racetrack coils above the mid-plane:
     #   lower inside, lower outside, upper inside, upper outside, and circular
     # radia.ObjRaceTrk[ctr:[x,y,z], rad:[r1,r2], lstr:[lx,ly], ht, nseg, j]
-    rt1 = radia.ObjRaceTrk([0., 0., 38.], [9.5, 24.5], [120., 0.], 36, n1, j1)
-    rt2 = radia.ObjRaceTrk([0., 0., 38.], [24.5, 55.5], [120., 0.], 36, n1, j2)
-    rt3 = radia.ObjRaceTrk([0., 0., 76.], [10.0, 25.0], [90., 0.], 24, n1, j1)
-    rt4 = radia.ObjRaceTrk([0., 0., 76.], [25.0, 55.0], [90., 0.], 24, n1, j2)
-    rt5 = radia.ObjRaceTrk([0., 0., 60.], [150.0, 166.3], [0., 0.], 39, n2, -j2)
+    rt1 = radia.ObjRaceTrk([0.0, 0.0, 38.0], [9.5, 24.5], [120.0, 0.0], 36, n1, j1)
+    rt2 = radia.ObjRaceTrk([0.0, 0.0, 38.0], [24.5, 55.5], [120.0, 0.0], 36, n1, j2)
+    rt3 = radia.ObjRaceTrk([0.0, 0.0, 76.0], [10.0, 25.0], [90.0, 0.0], 24, n1, j1)
+    rt4 = radia.ObjRaceTrk([0.0, 0.0, 76.0], [25.0, 55.0], [90.0, 0.0], 24, n1, j2)
+    rt5 = radia.ObjRaceTrk([0.0, 0.0, 60.0], [150.0, 166.3], [0.0, 0.0], 39, n2, -j2)
 
-    c1 = [0.0,1.0,1.0] # blue/green
-    c2 = [1.0,0.4,0.0] # orange-red
+    c1 = [0.0, 1.0, 1.0]  # blue/green
+    c2 = [1.0, 0.4, 0.0]  # orange-red
     thcn = 0.001
     radia.ObjDrwAtr(rt1, c1, thcn)
     radia.ObjDrwAtr(rt2, c2, thcn)
@@ -346,12 +423,11 @@ def wiggler_example():
     radia.TrfZerPara(geom, [0, 0, 0], [0, 0, 1])
 
     return geom, {
-        geom: '48022af9-3b43-424f-b43b-5cbeb0d36bd6',
+        geom: "48022af9-3b43-424f-b43b-5cbeb0d36bd6",
     }
 
 
 EXAMPLES = {
-    'Dipole': dipole_example,
-    'Wiggler': wiggler_example,
+    "Dipole": dipole_example,
+    "Wiggler": wiggler_example,
 }
-

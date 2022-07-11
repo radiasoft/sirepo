@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""
+"""
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,16 +23,17 @@ def test_basic(auth_fc, monkeypatch):
 
     auth_fc.cookie_jar.clear()
     # monkeypatch so status doesn't take so long
-    sirepo.status._SIM_TYPE = 'myapp'
-    sirepo.status._SIM_NAME = 'Scooby Doo'
-    sirepo.status._SIM_REPORT = 'heightWeightReport'
-    pkeq(401, auth_fc.sr_get('serverStatus').status_code)
+    sirepo.status._SIM_TYPE = "myapp"
+    sirepo.status._SIM_NAME = "Scooby Doo"
+    sirepo.status._SIM_REPORT = "heightWeightReport"
+    pkeq(401, auth_fc.sr_get("serverStatus").status_code)
     r = auth_fc.sr_get_json(
-        'serverStatus',
+        "serverStatus",
         headers=PKDict(
-            Authorization='Basic ' + pkcompat.from_bytes(
-                base64.b64encode(pkcompat.to_bytes(u + ':' + 'pass')),
+            Authorization="Basic "
+            + pkcompat.from_bytes(
+                base64.b64encode(pkcompat.to_bytes(u + ":" + "pass")),
             ),
         ),
     )
-    pkeq('ok', r.state)
+    pkeq("ok", r.state)

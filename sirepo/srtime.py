@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""time functions (artificial time)
+"""time functions (artificial time)
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,6 +24,7 @@ _timedelta = None
 #: Whether or not this module has been initilaized
 _initialized = False
 
+
 def adjust_time(days, sapi=None):
     """Shift the system time by days
 
@@ -42,24 +43,26 @@ def adjust_time(days, sapi=None):
     if sapi:
         if not _timedelta:
             days = 0
-        sapi.call_api('adjustSupervisorSrtime', kwargs=PKDict(days=days))
+        sapi.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
 
 
 class API(sirepo.api.Base):
-    @api_perm.internal_test
+    @sirepo.api.Spec("internal_test")
     def api_adjustTime(self, days=None):
         """Shift the system time by days and get the adjusted time
-    
+
         Args:
             days (str): must be integer. If None or 0, no adjustment.
         """
         from sirepo import http_reply
 
         adjust_time(days, sapi=self)
-        return self.reply_ok({
-            'adjustedNow': utc_now().isoformat(),
-            'systemNow': datetime.datetime.utcnow().isoformat(),
-        })
+        return self.reply_ok(
+            {
+                "adjustedNow": utc_now().isoformat(),
+                "systemNow": datetime.datetime.utcnow().isoformat(),
+            }
+        )
 
 
 def init():

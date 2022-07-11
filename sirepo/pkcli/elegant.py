@@ -45,15 +45,15 @@ def run_background(cfg_dir):
 def run_elegant(with_mpi=False):
     # also used by pkcli.rcscon
     r = template_common.exec_parameters()
-    pkio.write_text('elegant.lte', r.lattice_file)
-    ele = 'elegant.ele'
+    pkio.write_text("elegant.lte", r.lattice_file)
+    ele = "elegant.ele"
     pkio.write_text(ele, r.elegant_file)
     kwargs = {
-        'output': ELEGANT_LOG_FILE,
-        'env': elegant_common.subprocess_env(),
+        "output": ELEGANT_LOG_FILE,
+        "env": elegant_common.subprocess_env(),
     }
-    #TODO(robnagler) Need to handle this specially, b/c different binary
-    if r.execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
-        mpi.run_program(['Pelegant', ele], **kwargs)
+    # TODO(robnagler) Need to handle this specially, b/c different binary
+    if r.execution_mode == "parallel" and with_mpi and mpi.cfg.cores > 1:
+        mpi.run_program(["Pelegant", ele], **kwargs)
     else:
-        pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdlog, **kwargs)
+        pksubprocess.check_call_with_signals(["elegant", ele], msg=pkdlog, **kwargs)

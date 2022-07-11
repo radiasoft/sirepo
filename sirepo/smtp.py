@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""SMTP connection to send emails
+"""SMTP connection to send emails
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,19 +12,19 @@ from pykern.pkcollections import PKDict
 import email
 import smtplib
 
-_DEV_SMTP_SERVER = 'dev'
+_DEV_SMTP_SERVER = "dev"
 _SEND = None
 cfg = None
 
 
 def send(recipient, subject, body):
     if cfg.server == _DEV_SMTP_SERVER:
-        pkdlog('DEV configuration so not sending to {}', recipient)
+        pkdlog("DEV configuration so not sending to {}", recipient)
         return False
     m = email.message.EmailMessage()
-    m['From'] = f'{cfg.from_name} <{cfg.from_email}>'
-    m['To'] = recipient
-    m['Subject'] = subject
+    m["From"] = f"{cfg.from_name} <{cfg.from_email}>"
+    m["To"] = recipient
+    m["Subject"] = subject
     m.set_content(body)
     _SEND(m)
     return True
@@ -33,10 +33,10 @@ def send(recipient, subject, body):
 def _mx(msg):
     import dns.resolver
 
-    h = msg['To'].split('@')[1]
+    h = msg["To"].split("@")[1]
     try:
         for x in sorted(
-            dns.resolver.resolve(h, 'MX'),
+            dns.resolver.resolve(h, "MX"),
             key=lambda x: x.preference,
         ):
             yield str(x.exchange)
@@ -71,26 +71,27 @@ def _init():
     if cfg:
         return
     cfg = pkconfig.init(
-        from_email=('support@sirepo.com', str, 'Email address of sender'),
-        from_name=('Sirepo Support', str, 'Name of email sender'),
-        password=(None, str, 'SMTP password'),
-        port=(587, int, 'SMTP Port'),
-        send_directly=(False, bool, 'Send directly to the server in the recipient'),
-        server=(None, str, 'SMTP TLS server'),
-        user=(None, str, 'SMTP user'),
+        from_email=("support@sirepo.com", str, "Email address of sender"),
+        from_name=("Sirepo Support", str, "Name of email sender"),
+        password=(None, str, "SMTP password"),
+        port=(587, int, "SMTP Port"),
+        send_directly=(False, bool, "Send directly to the server in the recipient"),
+        server=(None, str, "SMTP TLS server"),
+        user=(None, str, "SMTP user"),
     )
     if cfg.send_directly:
-        cfg.server = 'not ' + _DEV_SMTP_SERVER
+        cfg.server = "not " + _DEV_SMTP_SERVER
         _SEND = _send_directly
         return
     _SEND = _send_with_auth
-    if pkconfig.channel_in('dev'):
+    if pkconfig.channel_in("dev"):
         if cfg.server is None:
             cfg.server = _DEV_SMTP_SERVER
         return
     if cfg.server is None or cfg.user is None or cfg.password is None:
         pkconfig.raise_error(
-            f'server={cfg.server}, user={cfg.user}, and password={cfg.password} must be defined',
+            f"server={cfg.server}, user={cfg.user}, and password={cfg.password} must be defined",
         )
+
 
 _init()

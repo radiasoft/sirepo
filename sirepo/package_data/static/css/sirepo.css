@@ -798,6 +798,12 @@ input[type='color'].sr-color-button {
     width: 32px;
 }
 
+div.sr-hover-row .sr-hover-button {
+  display: none;
+}
+div.sr-hover-row:hover .sr-hover-button {
+  display: inline;
+}
 .sr-button-bar-parent {
   display: none;
   position: relative;

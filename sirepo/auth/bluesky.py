@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""NSLS-II BlueSky Login
+"""NSLS-II BlueSky Login
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,7 +21,7 @@ import sirepo.http_request
 import time
 
 
-AUTH_METHOD = 'bluesky'
+AUTH_METHOD = "bluesky"
 
 #: bots only
 AUTH_METHOD_VISIBLE = False
@@ -31,17 +31,17 @@ this_module = pkinspect.this_module()
 
 #: separates the values of the clear text for the hash
 # POSIT: ':' not part of simulationType or simulationId
-_AUTH_HASH_SEPARATOR = ':'
+_AUTH_HASH_SEPARATOR = ":"
 
 #: half the window length for replay attacks
 _AUTH_NONCE_REPLAY_SECS = 10
 
 #: separates the time stamp from the uniqifier in the nonce
-_AUTH_NONCE_SEPARATOR = '-'
+_AUTH_NONCE_SEPARATOR = "-"
 
 
 class API(sirepo.api.Base):
-    @api_perm.allow_cookieless_set_user
+    @sirepo.api.Spec("allow_cookieless_set_user")
     def api_authBlueskyLogin(self):
         req = self.parse_post(id=True)
         auth_hash(req.req_data, verify=True)
@@ -61,9 +61,8 @@ class API(sirepo.api.Base):
                 schema=simulation_db.get_schema(req.type),
             ),
         )
-    
-    
-    @api_perm.allow_cookieless_set_user
+
+    @sirepo.api.Spec("allow_cookieless_set_user")
     def api_blueskyAuth(self):
         """Deprecated use `api_authBlueskyLogin`"""
         return self.api_authBlueskyLogin()
@@ -71,20 +70,24 @@ class API(sirepo.api.Base):
 
 def auth_hash(req, verify=False):
     now = int(time.time())
-    if not 'authNonce' in req:
+    if not "authNonce" in req:
         if verify:
-           util.raise_unauthorized('authNonce: missing field in request')
+            util.raise_unauthorized("authNonce: missing field in request")
         req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
     h = hashlib.sha256()
     h.update(
-        pkcompat.to_bytes(_AUTH_HASH_SEPARATOR.join([
-            req.authNonce,
-            req.simulationType,
-            req.simulationId,
-            cfg.secret,
-        ])),
+        pkcompat.to_bytes(
+            _AUTH_HASH_SEPARATOR.join(
+                [
+                    req.authNonce,
+                    req.simulationType,
+                    req.simulationId,
+                    cfg.secret,
+                ]
+            )
+        ),
     )
-    res = 'v1:' + pkcompat.from_bytes(
+    res = "v1:" + pkcompat.from_bytes(
         base64.urlsafe_b64encode(h.digest()),
     )
     if not verify:
@@ -92,7 +95,7 @@ def auth_hash(req, verify=False):
         return
     if res != req.authHash:
         util.raise_unauthorized(
-            '{}: hash mismatch expected={} nonce={}',
+            "{}: hash mismatch expected={} nonce={}",
             req.authHash,
             res,
             req.authNonce,
@@ -102,14 +105,14 @@ def auth_hash(req, verify=False):
         t = int(t)
     except ValueError as e:
         util.raise_unauthorized(
-            '{}: auth_nonce prefix not an int: nonce={}',
+            "{}: auth_nonce prefix not an int: nonce={}",
             t,
             req.authNonce,
         )
     delta = now - t
     if abs(delta) > _AUTH_NONCE_REPLAY_SECS:
         util.raise_unauthorized(
-            '{}: auth_nonce time outside replay window={} now={} nonce={}',
+            "{}: auth_nonce time outside replay window={} now={} nonce={}",
             t,
             _AUTH_NONCE_REPLAY_SECS,
             now,
@@ -120,6 +123,6 @@ def auth_hash(req, verify=False):
 cfg = pkconfig.init(
     secret=pkconfig.Required(
         str,
-        'Shared secret between Sirepo and BlueSky server',
+        "Shared secret between Sirepo and BlueSky server",
     ),
 )
