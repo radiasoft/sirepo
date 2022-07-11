@@ -32,4 +32,6 @@ def test_conversion():
 def _write_converted_data(conversion_function, in_path, out_path):
     from pykern import pkjson
 
-    pkjson.dump_pretty(conversion_function(pkjson.load_any(in_path)).models, out_path)
+    c = conversion_function(pkjson.load_any(in_path)).models
+    c.simulation.lastModified = ""
+    pkjson.dump_pretty(c, out_path)
