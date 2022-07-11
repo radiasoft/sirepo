@@ -3118,12 +3118,12 @@ SIREPO.app.directive('downloadStatus', function() {
                           <div>{{ label }}{{ simState.dots }}</div>
                           <div class="progress">
                             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-                          </div>                          
+                          </div>
                         </div>
                       </div>
                       <div class="row">
                         <div class="col-sm-12 col-sm-offset-4">
-                          <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>                      
+                          <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>
                         </div>
                       </div>
                     </div>
@@ -3620,11 +3620,7 @@ SIREPO.app.directive('moderationPending', function(appState, panelState) {
         restrict: 'A',
         template: `
           <div>Your request to access {{ appName }} has been received. For additional information, contact
-<<<<<<< HEAD
-            <a href="mailto:support@sirepo.com">support@sirepo.com</a>.
-=======
             <a href="mailto:support@radiasoft.net">support@radiasoft.net</a>.
->>>>>>> master
           </div>
         `,
         controller: function(requestSender, $scope) {
