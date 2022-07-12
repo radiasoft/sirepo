@@ -28,6 +28,10 @@
             ["gmix", "Gaussian Mixture"],
             ["kmeans", "KMeans"]
         ],
+        "DataOrigin": [
+            ["file", "File"],
+            ["url", "URL"]
+        ],
         "InputOutputClass": [
             ["input", "Input"],
             ["output", "Output"],
@@ -255,9 +259,11 @@
         },
         "dataFile": {
             "appMode": ["Application Mode", "AppMode", "regression"],
+            "dataOrigin": ["Data Origin", "DataOrigin", "file"],
             "file": ["Data File", "InputFile"],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
-            "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
+            "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
+            "url": ["Data URL", "String", ""]
         },
         "dtClassifierClassificationMetricsAnimation": {},
         "dtClassifierConfusionMatrixAnimation": {
@@ -421,7 +427,9 @@
             "title": "Data Source",
             "basic": [
                 "appMode",
+                "dataOrigin",
                 "file",
+                "url",
                 "inputsScaler",
                 "outputsScaler"
             ],
