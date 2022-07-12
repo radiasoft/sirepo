@@ -88,6 +88,8 @@ def reset_examples():
                         print(f'NAME IN QUESTION: {sim.name}')
                         print(f'sim_type: {sim_type}')
                         remove.append((sim, sim_type))
+            # TODO (gurhar1133): revert functionality
+            # TODO (gurhar1133): work out the revert vs remove logic
             if remove:
                 print(f'REMOVE: {remove}')
                 for s, t in remove:
