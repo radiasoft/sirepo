@@ -90,12 +90,12 @@ def reset_examples():
                         print(f'sim_type: {sim_type}')
                         remove.append((sim, sim_type))
                     else:
+                        if sim.simulation.simulationId == "4bWBte7s":
+                            print(f'target sim lastMod: {sim.simulation.lastModified}')
+                        delta =  time.time() - sim.simulation.lastModified/1000
+                        print(f'? months: {delta/2.628e+6}')
 
-                        end_date = datetime.datetime.fromtimestamp(sim.simulation.lastModified/1000)
-                        start_date = datetime.datetime.fromtimestamp(time.time())
-                        num_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
-                        print(f'num_months: {num_months}')
-
+            # TODO (gurha1133): convert delta into months
             # TODO (gurhar1133): revert functionality
             # TODO (gurhar1133): work out the revert vs remove logic
             if remove:
