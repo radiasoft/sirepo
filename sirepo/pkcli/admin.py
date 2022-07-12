@@ -76,7 +76,6 @@ def reset_examples():
              auth.set_user_outside_of_http_request(uid):
             remove = []
             for sim_type in feature_config.cfg().sim_types:
-                print(f'SIM TYPE: {sim_type}')
                 sims = [x for x in simulation_db.iterate_simulation_datafiles(
                         sim_type,
                         simulation_db.process_simulation_list,
@@ -84,14 +83,16 @@ def reset_examples():
                     )
                 ]
                 names = [n.models.simulation.name for n in simulation_db.examples(sim_type)]
-                sim_names = [sim.name for sim in sims]
                 for sim in sims:
                     if sim.name not in names:
-                        remove.append(sim)
-                # TODO (gurhar1133): if sim from sims name not in names, then remove
-                print(f'REMOVE:\n {remove}')
-                print(f'NAMES: {names}')
-                print(f'SIM_NAMES: {sim_names}')
+                        print(f'NAME IN QUESTION: {sim.name}')
+                        print(f'sim_type: {sim_type}')
+                        remove.append((sim, sim_type))
+            if remove:
+                print(f'REMOVE: {remove}')
+                for s, t in remove:
+                    print('REMOVING...')
+                    simulation_db.delete_simulation(t, s.simulationId)
 
 
 

@@ -134,7 +134,11 @@ def default_data(sim_type):
 def delete_simulation(simulation_type, sid):
     """Deletes the simulation's directory.
     """
-    pkio.unchecked_remove(simulation_dir(simulation_type, sid))
+    d = simulation_dir(simulation_type, sid)
+    print(f'simulation type: {simulation_type}')
+    print(f'id of removed: {sid}')
+    print(f'DIR TO BE REMOVED: {d}')
+    pkio.unchecked_remove(d)
 
 
 def delete_user(uid):
