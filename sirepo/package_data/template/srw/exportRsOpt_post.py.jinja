@@ -19,15 +19,16 @@
 def main():
     import h5py
     import numpy
-    data = numpy.load("{{ fileBase }}.npy")
     beams = []
-    for r in data:
+    param_vals = []
+    for r in numpy.load("{{ fileBase }}.npy"):
         beams.append(
             numpy.load(f"ensemble/worker{r['sim_worker']}/sim{r['sim_id']}/beam.npy").tolist()
         )
+        param_vals.append(r["x"])
     with h5py.File("results.h5", "w") as f:
         f.create_dataset("params", data=[{{ rsOptFuctionSignature(true) }}])
-        f.create_dataset("paramVals", data=list(map(lambda x: x["x"], data)))
+        f.create_dataset("paramVals", data=param_vals)
         f.create_dataset("beamIntensities", data=beams)
 
 
