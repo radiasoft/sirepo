@@ -151,10 +151,15 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.centerExtrudedPoints = o =>  {
         const ctr = utilities.splitCommaDelimitedString(o.center, parseFloat);
+        const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
+        const i = self.axisIndex(o.widthAxis);
+        const j = self.axisIndex(o.heightAxis);
+        const mi = SIREPO.UTILS.minForIndex(o.referencePoints, i);
+        const mj = SIREPO.UTILS.minForIndex(o.referencePoints, j);
         o.points = o.referencePoints.map(
             x => [
-                x[0] + ctr[self.axisIndex(o.widthAxis)],
-                x[1] + ctr[self.axisIndex(o.heightAxis)]
+                x[0] + ctr[i] - (mi + sz[i] / 2.0),
+                x[1] + ctr[j] - (mj + sz[j] / 2.0)
             ]
         );
     }
@@ -600,6 +605,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
+        // initial dragged polygons have no points defined
         if (! o.points) {
             o.layoutShape = 'rect';
         }

@@ -62,6 +62,13 @@ class SirepoUtils {
         return uniqueArr;
     }
 
+    static maxForIndex(arr, i) {
+        return Math.max(...arr.map(x => x[i]));
+    }
+
+    static minForIndex(arr, i) {
+        return Math.min(...arr.map(x => x[i]));
+    }
 }
 
 SIREPO.UTILS = SirepoUtils;
