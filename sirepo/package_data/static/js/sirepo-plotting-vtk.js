@@ -1964,10 +1964,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function shapePoints(shape) {
                 let pts = '';
                 for (const p of shape.points[shape.elev.axis]) {
-                    //pts += `${axes.x.scale(p[0])},${axes.y.scale(p[1])} `;
-                    pts += (p.join(',') + ' ');
+                    pts += `${axes.x.scale(p[0])},${axes.y.scale(p[1])} `;
                 }
-                srdbg('pts', pts);
                 return pts;
             }
 
@@ -2250,7 +2248,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             </svg>
         `,
         controller: function($scope, $element) {
-
             $scope.axesMargins = {
                 x: { width: 16.0, height: 0.0 },
                 y: { width: 0.0, height: 16.0 }

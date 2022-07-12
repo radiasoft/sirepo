@@ -673,6 +673,7 @@
         "extrudedPoints": {
             "_super": ["_", "model", "extrudedPoly"],
             "pointsFile": ["File", "InputFile", "", ""],
+            "referencePoints": ["Points", "Points", []],
             "type": ["_", "ObjectType", "extrudedPoints"]
         },
         "extrudedPoly": {
@@ -1291,7 +1292,7 @@
                 ]],
                 ["Point Editor", [
                     "extrudedPoints.pointsFile",
-                    "extrudedPoints.points"
+                    "extrudedPoints.referencePoints"
                 ]],
                 ["Modifications", [
                     "bevels"

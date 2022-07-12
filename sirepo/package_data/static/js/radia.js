@@ -141,6 +141,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return d;
     };
 
+    self.axisIndex = axis => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
+
     self.calcWidthAxis = (depthAxis, heightAxis) => {
         return self.axes.filter((a) => {
             return a !== depthAxis && a !== heightAxis;
@@ -148,20 +150,20 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.centerExtrudedPoints = o =>  {
-        srdbg('CTR');
         const ctr = utilities.splitCommaDelimitedString(o.center, parseFloat);
-        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(o.widthAxis);
-        const j = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(o.heightAxis);
-        const p = o.points.map(x => [x[0] + ctr[i], x[1] + ctr[j]]);
-        srdbg('new p', p);
-        //$scope.modelData.points = p;
+        o.points = o.referencePoints.map(
+            x => [
+                x[0] + ctr[self.axisIndex(o.widthAxis)],
+                x[1] + ctr[self.axisIndex(o.heightAxis)]
+            ]
+        );
     }
 
     self.updateExtrudedSize = o => {
         const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
         [o.widthAxis, o.heightAxis].forEach((dim, i) => {
             const p = o.points.map(x => x[i]);
-            sz[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
+            sz[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
         });
         o.size = sz.join(',');
     }
@@ -598,10 +600,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
+        if (! o.points) {
+            o.layoutShape = 'rect';
+        }
         let pts = {};
         if (o.layoutShape === 'polygon') {
-        //if (appState.superClasses(o.type).includes('extrudedPoly')) {
-            pts[o.extrusionAxis] = o.points;
+            const [k, i, j] = [o.extrusionAxis, o.widthAxis, o.heightAxis].map(radiaService.axisIndex);
+            const scaledPts = o.points.map(p => p.map(x => SIREPO.APP_SCHEMA.constants.objectScale* x));
+            pts[o.extrusionAxis] = scaledPts;
+            const cp = center[k] + size[k] / 2.0;
+            const cm = center[k] - size[k] / 2.0;
+            let p = scaledPts.map(x => x[j]);
+            let mx = Math.max(...p);
+            let mn = Math.min(...p);
+            pts[o.widthAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
+            p = scaledPts.map(x => x[i]);
+            mx = Math.max(...p);
+            mn = Math.min(...p);
+            pts[o.heightAxis] = [[mx, cm], [mx, cp], [mn, cp], [mn, cm]];
         }
         const shape = vtkPlotting.plotShape(
             o.id, o.name,
@@ -2787,7 +2803,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     }
                 }
 
-                const boundsBox = $scope.vtkScene.sceneBoundingBox(0.02);
+                const boundsBox = $scope.vtkScene.sceneBoundingBox();
                 const bounds = boundsBox.actor.getBounds();
                 $scope.vtkScene.addActor(boundsBox.actor);
                 $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, $scope.vtkScene.renderer);
@@ -3737,7 +3753,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         //if (editedModels.includes('extrudedPoly')) {
         //    $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
         //    $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
-        //    centerPoints();
+        //    centerExtrudedPoints();
         //    updateSize();
         //}
         //appState.saveQuietly($scope.modelName);
@@ -3745,22 +3761,11 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     });
 
     function setPoints(data) {
-        $scope.modelData.points = data.points;
-        radiaService.centerPoints($scope.modelData);
+        $scope.modelData.referencePoints = data.points;
+        radiaService.centerExtrudedPoints($scope.modelData);
         radiaService.updateExtrudedSize($scope.modelData);
         appState.saveChanges(editedModels);
         updateShapeEditor();
-    }
-
-    // the points
-    function centerPoints() {
-        srdbg('CTR');
-        const ctr = utilities.splitCommaDelimitedString($scope.modelData.center, parseFloat);
-        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.widthAxis);
-        const j = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.heightAxis);
-        const p = $scope.modelData.points.map(x => [x[0] + ctr[i], x[1] + ctr[j]]);
-        srdbg('new p', p);
-        //$scope.modelData.points = p;
     }
 
     // the cross-sectional size is determined by the points
@@ -3776,6 +3781,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     function loadPoints() {
         if (! $scope.modelData.pointsFile) {
             $scope.modelData.points = [];
+            $scope.modelData.referencePoints = [];
             return;
         }
         requestSender.sendStatefulCompute(
@@ -3822,7 +3828,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
                 hasField || appState.isSubclass(modelType, m[0])
             );
         });
-        panelState.showField('extrudedPoints', 'points', ($scope.modelData.points || []).length > 0);
+        panelState.showField('extrudedPoints', 'referencePoints', ($scope.modelData.referencePoints || []).length > 0);
     }
 
     buildTriangulationLevelDelegate();
