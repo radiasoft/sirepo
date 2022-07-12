@@ -248,7 +248,7 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
     };
 });
 
-SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope) {
+SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope, $window) {
     var self = this;
     var currentFile = null;
     self.subplots = null;
@@ -297,6 +297,10 @@ SIREPO.app.controller('AnalysisController', function (appState, mlService, panel
         }
         $scope.$on('dataFile.changed', function() {
             let dataFile = appState.models.dataFile;
+            if (dataFile.dataOrigin === 'url') {
+
+            }
+
             if (currentFile != dataFile.file) {
                 currentFile = dataFile.file;
                 if (currentFile) {
@@ -1927,8 +1931,17 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, $scope) {
             appMode == 'regression');
     }
 
-    $scope.whenSelected = processAppMode;
+    function updateEditor() {
+        panelState.showField('dataFile', 'file', appState.models.dataFile.dataOrigin === 'file');
+        panelState.showField('dataFile', 'url', appState.models.dataFile.dataOrigin === 'url');
+    }
     $scope.watchFields = [
         ['dataFile.appMode'], processAppMode,
+        ['dataFile.dataOrigin'], updateEditor,
     ];
+
+    $scope.whenSelected = () => {
+        processAppMode();
+        updateEditor();
+    }
 });
