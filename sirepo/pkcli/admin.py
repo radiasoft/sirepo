@@ -67,6 +67,7 @@ def create_examples():
 
 def reset_examples():
     import sirepo.auth_db
+    import time
 
     for d in pkio.sorted_glob(simulation_db.user_path().join('*')):
         if _is_src_dir(d):
@@ -88,6 +89,13 @@ def reset_examples():
                         print(f'NAME IN QUESTION: {sim.name}')
                         print(f'sim_type: {sim_type}')
                         remove.append((sim, sim_type))
+                    else:
+
+                        end_date = datetime.datetime.fromtimestamp(sim.simulation.lastModified/1000)
+                        start_date = datetime.datetime.fromtimestamp(time.time())
+                        num_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
+                        print(f'num_months: {num_months}')
+
             # TODO (gurhar1133): revert functionality
             # TODO (gurhar1133): work out the revert vs remove logic
             if remove:
