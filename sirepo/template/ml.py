@@ -287,6 +287,19 @@ def stateful_compute_compute_column_info(data):
     return _compute_column_info(data.dataFile)
 
 
+def stateless_compute_get_remote_data(data):
+    return _get_remote_data(data.url)
+
+
+def _get_remote_data(url):
+    import http
+    from http import client
+    c = http.client.HTTPConnection(url)
+    c.request("GET", "/")
+    r = c.getresponse()
+    
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
