@@ -24,6 +24,9 @@ import re
 import shutil
 
 
+_SECONDS_PER_MONTH = 2.628e+6
+
+
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
 
@@ -76,6 +79,7 @@ def reset_examples():
         with sirepo.auth_db.session_and_lock(), \
              auth.set_user_outside_of_http_request(uid):
             remove = []
+            revert = []
             for sim_type in feature_config.cfg().sim_types:
                 sims = [x for x in simulation_db.iterate_simulation_datafiles(
                         sim_type,
@@ -90,14 +94,23 @@ def reset_examples():
                         print(f'sim_type: {sim_type}')
                         remove.append((sim, sim_type))
                     else:
-                        if sim.simulation.simulationId == "4bWBte7s":
-                            print(f'target sim lastMod: {sim.simulation.lastModified}')
-                        delta =  time.time() - sim.simulation.lastModified/1000
-                        print(f'? months: {delta/2.628e+6}')
+                        months =  (time.time() - sim.simulation.lastModified/1000) / _SECONDS_PER_MONTH
+                        if months > 6:
+                            print(f'simulation.name: {sim.name} is too old: {months} months old')
+                            revert.append((sim, sim_type))
 
-            # TODO (gurha1133): convert delta into months
             # TODO (gurhar1133): revert functionality
             # TODO (gurhar1133): work out the revert vs remove logic
+            if revert:
+                print(f'REVERT: {revert}')
+                for r in revert:
+                    # TODO (gurhar1133): need to get the sim by id
+                    id = r[0].simulationId
+                    print(f'id: {id}')
+                    s = [x for x in simulation_db.examples(r[1])]
+                    print(f's: {s[0]}')
+                    assert 0
+                    _create_example(s)
             if remove:
                 print(f'REMOVE: {remove}')
                 for s, t in remove:
