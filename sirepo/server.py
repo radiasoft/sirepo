@@ -209,12 +209,7 @@ class API(sirepo.api.Base):
     ):
         req = self.parse_params(type=simulation_type)
         # TODO(pjm): need to unquote when redirecting from saved cookie redirect?
-        if hasattr(urllib, "unquote"):
-            # python2
-            simulation_name = urllib.unquote(simulation_name)
-        else:
-            # python3
-            simulation_name = urllib.parse.unquote(simulation_name)
+        simulation_name = urllib.parse.unquote(simulation_name)
         # use the existing named simulation, or copy it from the examples
         rows = simulation_db.iterate_simulation_datafiles(
             req.type,
