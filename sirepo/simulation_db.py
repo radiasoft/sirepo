@@ -512,7 +512,6 @@ def save_new_example(data, uid=None):
 
 def save_new_simulation(data, do_validate=True, uid=None):
     d = simulation_dir(data.simulationType, uid=uid)
-    print(f'directory: {d}')
     sid = _random_id(d, data.simulationType, uid=uid).id
     data.models.simulation.simulationId = sid
     return save_simulation_json(
@@ -576,7 +575,6 @@ def save_simulation_json(data, fixup, do_validate=True, uid=None, modified=False
         pkcollections.unchecked_del(d.models, 'simulationStatus', 'computeJobCacheKey')
         if modified:
             d.models.simulation.lastModified = srtime.utc_now_as_milliseconds()
-            print(f'new lastModified={d.models.simulation.lastModified}')
         write_json(fn, d)
     return data
 

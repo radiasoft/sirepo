@@ -51,6 +51,23 @@ def audit_proprietary_lib_files(*uid):
 
 def create_examples():
     """Adds missing app examples to all users"""
+
+    def _create():
+        for sim_type in feature_config.cfg().sim_types:
+            names = [x.name for x in simulation_db.iterate_simulation_datafiles(
+                    sim_type,
+                    simulation_db.process_simulation_list,
+                    {'simulation.isExample': True},
+                )
+            ]
+            for example in simulation_db.examples(sim_type):
+                if example.models.simulation.name not in names:
+                    _create_example(example)
+
+    _access_sim_db_and_callback(_create)
+
+
+def _access_sim_db_and_callback(callback):
     import sirepo.auth_db
     import sirepo.server
 
@@ -61,62 +78,44 @@ def create_examples():
         uid = simulation_db.uid_from_dir_name(d)
         with sirepo.auth_db.session_and_lock(), \
              auth.set_user_outside_of_http_request(uid):
-            for sim_type in feature_config.cfg().sim_types:
-                names = [x.name for x in simulation_db.iterate_simulation_datafiles(
-                    sim_type, simulation_db.process_simulation_list, {
-                        'simulation.isExample': True,
-                    })]
-                for example in simulation_db.examples(sim_type):
-                    if example.models.simulation.name not in names:
-                        _create_example(example)
+            callback()
 
 
 def reset_examples():
-    import sirepo.auth_db
 
-    for d in pkio.sorted_glob(simulation_db.user_path().join('*')):
-        if _is_src_dir(d):
-            continue;
-        uid = simulation_db.uid_from_dir_name(d)
-        with sirepo.auth_db.session_and_lock(), \
-             auth.set_user_outside_of_http_request(uid):
-            d = []
-            r = []
-            for sim_type in feature_config.cfg().sim_types:
-                sims = [x for x in simulation_db.iterate_simulation_datafiles(
-                        sim_type,
-                        simulation_db.process_simulation_list,
-                        {'simulation.isExample': True},
-                    )
-                ]
-                _build_delete_and_revert_lists(d, r, sims, sim_type)
-            _revert_sims(r)
-            _delete_sims(d)
+    def _reset():
+        c = []
+        r = []
+        for sim_type in feature_config.cfg().sim_types:
+            sims = [x for x in simulation_db.iterate_simulation_datafiles(
+                    sim_type,
+                    simulation_db.process_simulation_list,
+                    {'simulation.isExample': True},
+                )
+            ]
+            _build_delete_and_revert_lists(c, r, sims, sim_type)
+        _revert_sims(r)
+        _delete_sims(c)
+
+    _access_sim_db_and_callback(_reset)
+
 
 def _build_delete_and_revert_lists(delete_list, revert_list, simulations, sim_type):
     n = [n.models.simulation.name for n in simulation_db.examples(sim_type)]
     for sim in simulations:
-        t =  (srtime.utc_now_as_milliseconds() - sim.simulation.lastModified) / _MILISECONDS_PER_MONTH
+        t = (srtime.utc_now_as_milliseconds() - sim.simulation.lastModified) / _MILISECONDS_PER_MONTH
         if sim.name not in n:
-            delete_list.append((
-                    sim,
-                    sim_type
-                )
-            )
+            delete_list.append((sim, sim_type))
         elif t > _MAXIMUM_SIM_AGE_IN_MONTHS:
-                revert_list.append(PKDict(
-                        name=sim.name,
-                        type=sim_type
-                    )
-                )
+                revert_list.append((sim.name, sim_type))
                 delete_list.append((sim, sim_type))
 
 
 def _revert_sims(revert_list):
     print(f'REVERT LIST: {revert_list}')
-    for r in revert_list:
+    for n, t in revert_list:
         _create_example(
-            _get_example_by_name(r.name, r.type)
+            _get_example_by_name(n, t)
         )
 
 
