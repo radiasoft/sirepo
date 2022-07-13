@@ -27,6 +27,7 @@ import shutil
 
 
 _MILISECONDS_PER_MONTH = 2.628e+9
+_MAXIMUM_SIM_AGE_IN_MONTHS = 6
 
 
 def audit_proprietary_lib_files(*uid):
@@ -70,16 +71,8 @@ def create_examples():
                         _create_example(example)
 
 
-def _get_example_by_name(name, sim_type):
-    for example in simulation_db.examples(sim_type):
-        if example.models.simulation.name == name:
-            return example
-    raise AssertionError(f"Failed to find example simulation with name={name}")
-
-
 def reset_examples():
     import sirepo.auth_db
-    import time
 
     for d in pkio.sorted_glob(simulation_db.user_path().join('*')):
         if _is_src_dir(d):
@@ -87,8 +80,8 @@ def reset_examples():
         uid = simulation_db.uid_from_dir_name(d)
         with sirepo.auth_db.session_and_lock(), \
              auth.set_user_outside_of_http_request(uid):
-            remove = []
-            revert = []
+            d = []
+            r = []
             for sim_type in feature_config.cfg().sim_types:
                 sims = [x for x in simulation_db.iterate_simulation_datafiles(
                         sim_type,
@@ -96,39 +89,41 @@ def reset_examples():
                         {'simulation.isExample': True},
                     )
                 ]
-                names = [n.models.simulation.name for n in simulation_db.examples(sim_type)]
-                for sim in sims:
-                    if sim.name not in names:
-                        print(f'NAME IN QUESTION: {sim.name}')
-                        print(f'sim_type: {sim_type}')
-                        remove.append((sim, sim_type))
-                    else:
-                        months =  (srtime.utc_now_as_milliseconds() - sim.simulation.lastModified) / _MILISECONDS_PER_MONTH
-                        if months > 6:
-                            print(f'simulation.name: {sim.name} is too old: {months} months old')
-                            revert.append(PKDict(
-                                name=sim.name,
-                                type=sim_type
-                                )
-                            )
-                            remove.append((sim, sim_type))
+                _build_delete_and_revert_lists(d, r, sims, sim_type)
+            _revert_sims(r)
+            _delete_sims(d)
 
-            # TODO (gurhar1133): revert functionality
-            # TODO (gurhar1133): work out the revert vs remove logic
-            if revert:
-                print(f'REVERT: {revert}')
-                # assert 0
-                for r in revert:
-                    _create_example(
-                        _get_example_by_name(r.name, r.type)
+def _build_delete_and_revert_lists(delete_list, revert_list, simulations, sim_type):
+    n = [n.models.simulation.name for n in simulation_db.examples(sim_type)]
+    for sim in simulations:
+        t =  (srtime.utc_now_as_milliseconds() - sim.simulation.lastModified) / _MILISECONDS_PER_MONTH
+        if sim.name not in n:
+            delete_list.append((
+                    sim,
+                    sim_type
+                )
+            )
+        elif t > _MAXIMUM_SIM_AGE_IN_MONTHS:
+                revert_list.append(PKDict(
+                        name=sim.name,
+                        type=sim_type
                     )
+                )
+                delete_list.append((sim, sim_type))
 
-            if remove:
-                print(f'REMOVE: {remove}')
-                for s, t in remove:
-                    print('REMOVING...')
-                    simulation_db.delete_simulation(t, s.simulationId)
 
+def _revert_sims(revert_list):
+    print(f'REVERT LIST: {revert_list}')
+    for r in revert_list:
+        _create_example(
+            _get_example_by_name(r.name, r.type)
+        )
+
+
+def _delete_sims(delete_list):
+    print(f'DELETE LIST: {delete_list}')
+    for s, t in delete_list:
+        simulation_db.delete_simulation(t, s.simulationId)
 
 
 # TODO(e-carlin): more than uid (ex email)
@@ -198,6 +193,13 @@ def move_user_sims(target_uid=''):
 
 def _create_example(example):
     simulation_db.save_new_example(example)
+
+
+def _get_example_by_name(name, sim_type):
+    for example in simulation_db.examples(sim_type):
+        if example.models.simulation.name == name:
+            return example
+    raise AssertionError(f"Failed to find example simulation with name={name}")
 
 
 def _is_src_dir(d):
