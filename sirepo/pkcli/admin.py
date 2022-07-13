@@ -7,6 +7,7 @@ u"""?
 from __future__ import absolute_import, division, print_function
 from xml.dom.minidom import Attr
 from pykern import pkio, pkconfig
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 from sirepo import auth_db
@@ -14,6 +15,7 @@ from sirepo import feature_config
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import srdb
+from sirepo import srtime
 from sirepo import util
 from sirepo.template import template_common
 import datetime
@@ -24,7 +26,7 @@ import re
 import shutil
 
 
-_SECONDS_PER_MONTH = 2.628e+6
+_MILISECONDS_PER_MONTH = 2.628e+9
 
 
 def audit_proprietary_lib_files(*uid):
@@ -68,6 +70,13 @@ def create_examples():
                         _create_example(example)
 
 
+def _get_example_by_name(name, sim_type):
+    for example in simulation_db.examples(sim_type):
+        if example.models.simulation.name == name:
+            return example
+    raise AssertionError(f"Failed to find example simulation with name={name}")
+
+
 def reset_examples():
     import sirepo.auth_db
     import time
@@ -94,23 +103,26 @@ def reset_examples():
                         print(f'sim_type: {sim_type}')
                         remove.append((sim, sim_type))
                     else:
-                        months =  (time.time() - sim.simulation.lastModified/1000) / _SECONDS_PER_MONTH
+                        months =  (srtime.utc_now_as_milliseconds() - sim.simulation.lastModified) / _MILISECONDS_PER_MONTH
                         if months > 6:
                             print(f'simulation.name: {sim.name} is too old: {months} months old')
-                            revert.append((sim, sim_type))
+                            revert.append(PKDict(
+                                name=sim.name,
+                                type=sim_type
+                                )
+                            )
+                            remove.append((sim, sim_type))
 
             # TODO (gurhar1133): revert functionality
             # TODO (gurhar1133): work out the revert vs remove logic
             if revert:
                 print(f'REVERT: {revert}')
+                # assert 0
                 for r in revert:
-                    # TODO (gurhar1133): need to get the sim by id
-                    id = r[0].simulationId
-                    print(f'id: {id}')
-                    s = [x for x in simulation_db.examples(r[1])]
-                    print(f's: {s[0]}')
-                    assert 0
-                    _create_example(s)
+                    _create_example(
+                        _get_example_by_name(r.name, r.type)
+                    )
+
             if remove:
                 print(f'REMOVE: {remove}')
                 for s, t in remove:
