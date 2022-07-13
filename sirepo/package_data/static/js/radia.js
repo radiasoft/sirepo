@@ -162,7 +162,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
                 x[1] + ctr[j] - (mj + sz[j] / 2.0)
             ]
         );
-    }
+    };
+
+    self.updateExtruded = o => {
+        self.updateExtrudedSize(o);
+        self.centerExtrudedPoints(o);
+    };
 
     self.updateExtrudedSize = o => {
         const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
@@ -171,7 +176,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             sz[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
         });
         o.size = sz.join(',');
-    }
+    };
 
     self.createPathModel = function(type) {
         var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
@@ -563,8 +568,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.saveObject = function(id, callback) {
-        if (! self.selectObjectWithId(id)) {
+        const o = self.selectObjectWithId(id)
+        if (! o) {
             return;
+        }
+        if (o.layoutShape === 'polygon') {
+            radiaService.updateExtruded(o);
         }
         appState.saveChanges('geomObject', function (d) {
             transformShapesForObjects();
@@ -3768,8 +3777,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     function setPoints(data) {
         $scope.modelData.referencePoints = data.points;
-        radiaService.centerExtrudedPoints($scope.modelData);
-        radiaService.updateExtrudedSize($scope.modelData);
+        radiaService.updateExtruded($scope.modelData);
         appState.saveChanges(editedModels);
         updateShapeEditor();
     }
@@ -3860,8 +3868,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         if (editedModels.includes('extrudedPoly')) {
             $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
             $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
-            radiaService.centerExtrudedPoints($scope.modelData);
-            radiaService.updateExtrudedSize($scope.modelData);
+            radiaService.updateExtruded($scope.modelData);
         }
         editedModels = [];
     });

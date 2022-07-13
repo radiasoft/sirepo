@@ -1614,20 +1614,19 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function d3DragEndShape(shape) {
-                $scope.$applyAsync(function() {
+                $scope.$applyAsync(() => {
                     if (isShapeInBounds(shape)) {
-                        var o = $scope.source.getObject(shape.id);
+                        const o = $scope.source.getObject(shape.id);
                         if (! o) {
                             return;
                         }
-                        var ctr = stringToFloatArray(o.center);
                         o.center = floatArrayToString([
-                            shape.center.x ,
+                            shape.center.x,
                             shape.center.y,
                             shape.center.z
                         ]);
                         $scope.source.saveObject(shape.id, function () {
-                            //TODO(mvk): this will re-apply transforms to objects!  Need a way around tat
+                            //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
                             refresh();
                         });
                     }
