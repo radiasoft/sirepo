@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from xml.dom.minidom import Attr
 from pykern import pkio, pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -201,7 +200,7 @@ def _create_example(example):
     try:
         simulation_db.save_new_example(example)
     except Exception as e:
-        pkdp("Failed to create example: {} error={}", example.models.simulation.name, e)
+        pkdlog("Failed to create example: {} error={}", example.models.simulation.name, e)
 
 
 def _get_example_by_name(name, sim_type):
