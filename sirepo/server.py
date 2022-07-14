@@ -60,7 +60,7 @@ _app = None
 
 
 class API(sirepo.api.Base):
-    @sirepo.api.Spec("require_user", sid='SimId')
+    @sirepo.api.Spec("require_user", sid="SimId")
     def api_copyNonSessionSimulation(self):
         req = self.parse_post(id=True, template=True)
         src = pkio.py_path(
@@ -91,7 +91,7 @@ class API(sirepo.api.Base):
         #     req.template.copy_related_files(data, str(src), str(target))
         return res
 
-    @sirepo.api.Spec("require_user", sid='SimId', folder='Folder', name='SimName')
+    @sirepo.api.Spec("require_user", sid="SimId", folder="Folder", name="SimName")
     def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
         req = self.parse_post(id=True, folder=True, name=True, template=True)
@@ -121,13 +121,15 @@ class API(sirepo.api.Base):
         pkio.unchecked_remove(_lib_file_write_path(req))
         return self.reply_ok()
 
-    @sirepo.api.Spec("require_user", sid='SimId')
+    @sirepo.api.Spec("require_user", sid="SimId")
     def api_deleteSimulation(self):
         req = self.parse_post(id=True)
         simulation_db.delete_simulation(req.type, req.id)
         return self.reply_ok()
 
-    @sirepo.api.Spec("require_user", sid='SimId', filename='FileName', sim_data='SimData')
+    @sirepo.api.Spec(
+        "require_user", sid="SimId", filename="FileName", sim_data="SimData"
+    )
     def api_downloadFile(self, simulation_type, simulation_id, filename):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, filename=filename)
@@ -140,7 +142,7 @@ class API(sirepo.api.Base):
                 sirepo.util.raise_not_found("lib_file={} not found", p)
             raise
 
-    @sirepo.api.Spec("allow_visitor", error='PKDict')
+    @sirepo.api.Spec("allow_visitor", error="PKDict")
     def api_errorLogging(self):
         ip = flask.request.remote_addr
         try:
@@ -158,7 +160,7 @@ class API(sirepo.api.Base):
             )
         return self.reply_ok()
 
-    @sirepo.api.Spec("require_user", sid="SimId", filename='FileName')
+    @sirepo.api.Spec("require_user", sid="SimId", filename="FileName")
     def api_exportArchive(self, simulation_type, simulation_id, filename):
         req = self.parse_params(
             template=True,
@@ -183,7 +185,9 @@ class API(sirepo.api.Base):
     def api_forbidden(self):
         sirepo.util.raise_forbidden("app forced forbidden")
 
-    @sirepo.api.Spec("require_user", sid="SimId", file_type="FileType", sim_data="SimData")
+    @sirepo.api.Spec(
+        "require_user", sid="SimId", file_type="FileType", sim_data="SimData"
+    )
     def api_listFiles(self, simulation_type, simulation_id, file_type):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, file_type=file_type)
@@ -191,7 +195,9 @@ class API(sirepo.api.Base):
             req.sim_data.lib_file_names_for_type(req.file_type),
         )
 
-    @sirepo.api.Spec("allow_visitor", application_mode="AppMode", simulation_name="SimName")
+    @sirepo.api.Spec(
+        "allow_visitor", application_mode="AppMode", simulation_name="SimName"
+    )
     def api_findByName(self, simulation_type, application_mode, simulation_name):
         req = self.parse_params(type=simulation_type)
         return self.reply_redirect_for_local_route(
@@ -203,7 +209,9 @@ class API(sirepo.api.Base):
             ),
         )
 
-    @sirepo.api.Spec("require_user", application_mode="AppMode", simulation_name="SimName")
+    @sirepo.api.Spec(
+        "require_user", application_mode="AppMode", simulation_name="SimName"
+    )
     def api_findByNameWithAuth(
         self, simulation_type, application_mode, simulation_name
     ):
@@ -579,7 +587,13 @@ class API(sirepo.api.Base):
             simulation_db.save_simulation_json(r, fixup=False)
         return self.reply_ok()
 
-    @sirepo.api.Spec("require_user", sid="SimId", file_type="FileType", filename="FileName", sim_data="SimData")
+    @sirepo.api.Spec(
+        "require_user",
+        sid="SimId",
+        file_type="FileType",
+        filename="FileName",
+        sim_data="SimData",
+    )
     def api_uploadFile(self, simulation_type, simulation_id, file_type):
         f = flask.request.files["file"]
         req = self.parse_params(
