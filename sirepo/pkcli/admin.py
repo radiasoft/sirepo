@@ -198,7 +198,10 @@ def move_user_sims(target_uid=""):
 
 
 def _create_example(example):
-    simulation_db.save_new_example(example)
+    try:
+        simulation_db.save_new_example(example)
+    except Exception as e:
+        pkdp("Failed to create example: {} error={}", example.models.simulation.name, e)
 
 
 def _get_example_by_name(name, sim_type):
