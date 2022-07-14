@@ -63,8 +63,9 @@ class Base:
 
 
 class Spec:
-    def __init__(self, perm):
+    def __init__(self, perm, **kwargs):
         self.perm = perm
+        self.args = kwargs
 
     def __call__(self, func):
         import sirepo.api_perm
