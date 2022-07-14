@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""SILAS simulation data operations
+"""SILAS simulation data operations
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -9,24 +9,24 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 
-class SimData(sirepo.sim_data.SimDataBase):
 
+class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         cls._init_models(
             dm,
             (
-                'crystalAnimation',
-                'crystal3dAnimation',
-                'crystalCylinder',
-                'crystalSettings',
-                'gaussianBeam',
-                'plotAnimation',
-                'plot2Animation',
-                'simulation',
-                'simulationSettings',
-                'wavefrontSummaryAnimation',
+                "crystalAnimation",
+                "crystal3dAnimation",
+                "crystalCylinder",
+                "crystalSettings",
+                "gaussianBeam",
+                "plotAnimation",
+                "plot2Animation",
+                "simulation",
+                "simulationSettings",
+                "wavefrontSummaryAnimation",
             ),
         )
         for m in dm.beamline:
@@ -34,8 +34,13 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        if analysis_model in ('crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'):
-            return 'crystalAnimation'
+        if analysis_model in (
+            "crystalAnimation",
+            "crystal3dAnimation",
+            "plotAnimation",
+            "plot2Animation",
+        ):
+            return "crystalAnimation"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod

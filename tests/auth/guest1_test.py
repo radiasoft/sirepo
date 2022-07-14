@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Test auth.guest
+"""Test auth.guest
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,19 +17,19 @@ def test_happy_path(auth_fc):
     from pykern.pkdebug import pkdp
     import re
 
-    fc.sr_get('authGuestLogin', {'simulation_type': fc.sr_sim_type})
-    fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
+    fc.sr_get("authGuestLogin", {"simulation_type": fc.sr_sim_type})
+    fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
     fc.sr_auth_state(
         avatarUrl=None,
-        displayName='Guest User',
+        displayName="Guest User",
         guestIsOnlyMethod=False,
         isGuestUser=True,
         isLoggedIn=True,
         isLoginExpired=False,
-        method='guest',
+        method="guest",
         needCompleteRegistration=False,
         userName=None,
-        visibleMethods=['email'],
+        visibleMethods=["email"],
     )
 
 
@@ -42,21 +42,21 @@ def test_timeout(auth_fc):
     from pykern.pkunit import pkok, pkre, pkeq, pkexcept
     import re
 
-    r = fc.sr_get('authGuestLogin', {'simulation_type': fc.sr_sim_type}, redirect=False)
+    r = fc.sr_get("authGuestLogin", {"simulation_type": fc.sr_sim_type}, redirect=False)
     pkeq(200, r.status_code)
     d = pkjson.load_any(r.data)
     pkeq(True, d.authState.isLoggedIn)
-    fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
+    fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
     fc.sr_auth_state(
         isGuestUser=True,
         isLoggedIn=True,
         isLoginExpired=False,
     )
-    fc.sr_get_json('adjustTime', params={'days': '2'})
+    fc.sr_get_json("adjustTime", params={"days": "2"})
     fc.sr_auth_state(
         isGuestUser=True,
         isLoggedIn=True,
         isLoginExpired=True,
     )
-    with pkexcept('SRException.*guest-expired'):
-        fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
+    with pkexcept("SRException.*guest-expired"):
+        fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})

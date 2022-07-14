@@ -126,6 +126,7 @@ def _delete_sims(delete_list):
         simulation_db.delete_simulation(t, s.simulationId)
 
 
+
 # TODO(e-carlin): more than uid (ex email)
 def delete_user(uid):
     """Delete a user and all of their data across Sirepo and Jupyter

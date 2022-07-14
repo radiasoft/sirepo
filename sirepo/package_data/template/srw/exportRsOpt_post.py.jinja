@@ -1,0 +1,39 @@
+{%- macro rsOptFuctionSignature(addQuotes) -%}
+{%- for e in rsOptElements -%}
+{%- for p in rsOptParams -%}
+{%- if p in e -%}
+{%- for x in e[p].initial -%}
+{%- if e[p].offsets[loop.index0] != 0 -%}
+    {% if addQuotes %}"{% endif %}{{ fixSpaces(e.title) }}_{{ e[p].fieldNames[loop.index0] }}{% if addQuotes %}"{% endif %},
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endfor -%}
+{%- endmacro -%}
+
+{%- macro fixSpaces(t) -%}
+{{ t | replace(" ", "_") }}
+{%- endmacro -%}
+
+def main():
+    import h5py
+    import numpy
+    beams = []
+    param_vals = []
+    for r in numpy.load("{{ fileBase }}.npy"):
+        beams.append(
+            numpy.load(f"ensemble/worker{r['sim_worker']}/sim{r['sim_id']}/beam.npy").tolist()
+        )
+        param_vals.append(r["x"])
+    with h5py.File("results.h5", "w") as f:
+        f.create_dataset("params", data=[{{ rsOptFuctionSignature(true) }}])
+        f.create_dataset("paramVals", data=param_vals)
+        f.create_dataset("beamIntensities", data=beams)
+
+
+if __name__ == "__main__":
+    main()
+
+
+

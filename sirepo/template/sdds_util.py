@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""SDDS utilities.
+"""SDDS utilities.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,20 +17,20 @@ import threading
 
 # elegant mux and muy are computed in sddsprocess below
 _ELEGANT_TO_MADX_COLUMNS = [
-    ['ElementName', 'NAME'],
-    ['ElementType', 'TYPE'],
-    ['s', 'S'],
-    ['betax', 'BETX'],
-    ['alphax', 'ALFX'],
-    ['mux', 'MUX'],
-    ['etax', 'DX'],
-    ['etaxp', 'DPX'],
-    ['betay', 'BETY'],
-    ['alphay', 'ALFY'],
-    ['muy', 'MUY'],
-    ['etay', 'DY'],
-    ['etayp', 'DPY'],
-    ['ElementOccurence', 'COUNT'],
+    ["ElementName", "NAME"],
+    ["ElementType", "TYPE"],
+    ["s", "S"],
+    ["betax", "BETX"],
+    ["alphax", "ALFX"],
+    ["mux", "MUX"],
+    ["etax", "DX"],
+    ["etaxp", "DPX"],
+    ["betay", "BETY"],
+    ["alphay", "ALFY"],
+    ["muy", "MUY"],
+    ["etay", "DY"],
+    ["etayp", "DPY"],
+    ["ElementOccurence", "COUNT"],
 ]
 
 MADX_TWISS_COLUMS = map(lambda row: row[1], _ELEGANT_TO_MADX_COLUMNS)
@@ -42,49 +42,47 @@ _sdds_lock = threading.RLock()
 
 
 def extract_sdds_column(filename, field, page_index):
-    """ Returns values from one column on one page.
-    """
+    """Returns values from one column on one page."""
     return process_sdds_page(filename, page_index, _sdds_column, field)
 
 
 def process_sdds_page(filename, page_index, callback, *args, **kwargs):
-    """ Invokes callback on one page of data.
-    """
+    """Invokes callback on one page of data."""
     sdds_index = _next_index()
     try:
         if sdds.sddsdata.InitializeInput(sdds_index, filename) != 1:
-            pkdlog('{}: cannot access'.format(filename))
+            pkdlog("{}: cannot access".format(filename))
             # In normal execution, the file may not yet be available over NFS
-            err = _sdds_error(sdds_index, 'Output file is not yet available.')
+            err = _sdds_error(sdds_index, "Output file is not yet available.")
         else:
-            #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
+            # TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
             for _ in range(page_index + 1):
                 if sdds.sddsdata.ReadPage(sdds_index) <= 0:
-                    #TODO(robnagler) is this an error?
+                    # TODO(robnagler) is this an error?
                     break
             try:
-                kwargs['sdds_index'] = sdds_index
+                kwargs["sdds_index"] = sdds_index
                 return callback(*args, **kwargs)
             except SystemError as e:
-                pkdlog('{}: page not found in {}'.format(page_index, filename))
+                pkdlog("{}: page not found in {}".format(page_index, filename))
                 err = _sdds_error(
                     sdds_index,
-                    'Output page {} not found'.format(page_index) \
-                    if page_index \
-                    else 'No output was generated for this report.')
+                    "Output page {} not found".format(page_index)
+                    if page_index
+                    else "No output was generated for this report.",
+                )
     finally:
         try:
             sdds.sddsdata.Terminate(sdds_index)
         except Exception:
             pass
     return {
-        'err': err,
+        "err": err,
     }
 
 
 def read_sdds_pages(filename, column_names, group_by_page_number=False):
-    """ Returns values from all pages, keyed by column name.
-    """
+    """Returns values from all pages, keyed by column name."""
     sdds_index = _next_index()
     res = PKDict()
     try:
@@ -110,24 +108,36 @@ def read_sdds_pages(filename, column_names, group_by_page_number=False):
 
 
 def twiss_to_madx(elegant_twiss_file, madx_twiss_file):
-    outfile = 'sdds_output.txt'
-    twiss_file = 'twiss-with-mu.sdds'
+    outfile = "sdds_output.txt"
+    twiss_file = "twiss-with-mu.sdds"
     # convert elegant psix to mad-x MU, rad --> rad / 2pi
-    pksubprocess.check_call_with_signals([
-        'sddsprocess',
-        elegant_twiss_file,
-        '-define=column,mux,psix 2 pi * /',
-        '-define=column,muy,psiy 2 pi * /',
-        twiss_file,
-    ], output=outfile, env=elegant_common.subprocess_env())
-    pksubprocess.check_call_with_signals([
-        'sdds2stream',
-        twiss_file,
-        '-columns={}'.format(','.join(map(lambda x: x[0], _ELEGANT_TO_MADX_COLUMNS))),
-    ], output=outfile, env=elegant_common.subprocess_env())
-    lines = pkio.read_text(outfile).split('\n')
-    header = '* {}\n$ \n'.format(' '.join(map(lambda x: x[1], _ELEGANT_TO_MADX_COLUMNS)))
-    pkio.write_text(madx_twiss_file, header + '\n'.join(lines) + '\n')
+    pksubprocess.check_call_with_signals(
+        [
+            "sddsprocess",
+            elegant_twiss_file,
+            "-define=column,mux,psix 2 pi * /",
+            "-define=column,muy,psiy 2 pi * /",
+            twiss_file,
+        ],
+        output=outfile,
+        env=elegant_common.subprocess_env(),
+    )
+    pksubprocess.check_call_with_signals(
+        [
+            "sdds2stream",
+            twiss_file,
+            "-columns={}".format(
+                ",".join(map(lambda x: x[0], _ELEGANT_TO_MADX_COLUMNS))
+            ),
+        ],
+        output=outfile,
+        env=elegant_common.subprocess_env(),
+    )
+    lines = pkio.read_text(outfile).split("\n")
+    header = "* {}\n$ \n".format(
+        " ".join(map(lambda x: x[1], _ELEGANT_TO_MADX_COLUMNS))
+    )
+    pkio.write_text(madx_twiss_file, header + "\n".join(lines) + "\n")
 
 
 def _next_index():
@@ -148,7 +158,9 @@ def _safe_sdds_value(v):
 
 def _sdds_column(field, sdds_index=0):
     column_names = sdds.sddsdata.GetColumnNames(sdds_index)
-    assert field in column_names, 'field not in sdds columns: {}: {}'.format(field, column_names)
+    assert field in column_names, "field not in sdds columns: {}: {}".format(
+        field, column_names
+    )
     column_def = sdds.sddsdata.GetColumnDefinition(sdds_index, field)
     values = sdds.sddsdata.GetColumn(
         sdds_index,
@@ -162,7 +174,7 @@ def _sdds_column(field, sdds_index=0):
     )
 
 
-def _sdds_error(sdds_idx, error_text='invalid data file'):
+def _sdds_error(sdds_idx, error_text="invalid data file"):
     sdds.sddsdata.Terminate(sdds_idx)
     return PKDict(
         error=error_text,

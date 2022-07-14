@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Simulation schema
+"""Simulation schema
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,8 +15,8 @@ import sirepo.resource
 
 # keep sirepo-components.js "safePath" in sync with these values
 _NAME_ILLEGALS = r'\/|&:+?\'*"<>'
-_NAME_ILLEGALS_RE = re.compile(r'[' + re.escape(_NAME_ILLEGALS) + ']')
-_NAME_ILLEGAL_PERIOD = re.compile(r'^\.|\.$')
+_NAME_ILLEGALS_RE = re.compile(r"[" + re.escape(_NAME_ILLEGALS) + "]")
+_NAME_ILLEGAL_PERIOD = re.compile(r"^\.|\.$")
 
 
 def get_enums(schema, name):
@@ -36,12 +36,12 @@ def parse_folder(folder):
         str: cleaned up folder name
     """
     if folder is None or len(folder) == 0:
-        raise util.Error('blank folder', 'blank folder={}', folder)
+        raise util.Error("blank folder", "blank folder={}", folder)
     res = []
-    for f in folder.split('/'):
+    for f in folder.split("/"):
         if len(f):
             res.append(parse_name(f))
-    return '/' + '/'.join(res)
+    return "/" + "/".join(res)
 
 
 def parse_name(name):
@@ -54,16 +54,16 @@ def parse_name(name):
     """
     n = name
     if n is None:
-        n = ''
+        n = ""
     else:
         # ignore leading and trailing spaces
         n = name.strip()
     # don't raise an error on invalid name - the client is not looking for them
     # instead, remove illegal characters and throw an error if nothing is left
-    n = re.sub(_NAME_ILLEGALS_RE, '', n)
-    n = re.sub(_NAME_ILLEGAL_PERIOD, '', n)
+    n = re.sub(_NAME_ILLEGALS_RE, "", n)
+    n = re.sub(_NAME_ILLEGAL_PERIOD, "", n)
     if len(n) == 0:
-        raise util.Error('blank name', 'blank name={}', name)
+        raise util.Error("blank name", "blank name={}", name)
     return n
 
 
@@ -91,7 +91,7 @@ def validate_fields(data, schema):
             if field_name not in sch_model:
                 continue
             val = model_data[field_name]
-            if val == '':
+            if val == "":
                 continue
             sch_field_info = sch_model[field_name]
             _validate_enum(val, sch_field_info, sch_enums)
@@ -117,9 +117,11 @@ def validate_name(data, data_files, max_copies):
     i = 2
     n2 = data.models.simulation.name
     while n2 in starts_with:
-        n2 = '{} {}'.format(data.models.simulation.name, i)
+        n2 = "{} {}".format(data.models.simulation.name, i)
         i += 1
-    assert i - 1 <= max_copies, util.err(n, 'Too many copies: {} > {}', i - 1, max_copies)
+    assert i - 1 <= max_copies, util.err(
+        n, "Too many copies: {} > {}", i - 1, max_copies
+    )
     data.models.simulation.name = n2
 
 
@@ -143,7 +145,13 @@ def validate(schema):
     for name in sch_enums:
         for values in sch_enums[name]:
             if not isinstance(values[0], pkconfig.STRING_TYPES):
-                raise AssertionError(util.err(name, 'enum values must be keyed by a string value: {}', type(values[0])))
+                raise AssertionError(
+                    util.err(
+                        name,
+                        "enum values must be keyed by a string value: {}",
+                        type(values[0]),
+                    )
+                )
     for model_name in sch_models:
         _validate_model_name(model_name)
         sch_model = sch_models[model_name]
@@ -153,13 +161,17 @@ def validate(schema):
             if len(sch_field_info) <= 2:
                 continue
             field_default = sch_field_info[2]
-            if field_default == '' or field_default is None:
+            if field_default == "" or field_default is None:
                 continue
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
     for n in sch_ntfy:
-        if 'cookie' not in sch_ntfy[n] or sch_ntfy[n].cookie not in sch_cookies:
-            raise AssertionError(util.err(sch_ntfy[n], 'notification must reference a cookie in the schema'))
+        if "cookie" not in sch_ntfy[n] or sch_ntfy[n].cookie not in sch_cookies:
+            raise AssertionError(
+                util.err(
+                    sch_ntfy[n], "notification must reference a cookie in the schema"
+                )
+            )
     for sc in sch_cookies:
         _validate_cookie_def(sch_cookies[sc])
     for t in schema.dynamicModules:
@@ -179,16 +191,18 @@ def _validate_cookie_def(c_def):
     Args:
         data (PKDict): cookie definition object from the schema
     """
-    c_delims = '|:;='
-    c_delim_re = re.compile('[{}]'.format(c_delims))
+    c_delims = "|:;="
+    c_delim_re = re.compile("[{}]".format(c_delims))
     if c_delim_re.search(str(c_def.name) + str(c_def.value)):
-        raise AssertionError(util.err(c_def, 'cookie name/value cannot include delimiters {}', c_delims))
-    if 'valType' in c_def:
-        if c_def.valType == 'b':
+        raise AssertionError(
+            util.err(c_def, "cookie name/value cannot include delimiters {}", c_delims)
+        )
+    if "valType" in c_def:
+        if c_def.valType == "b":
             pkconfig.parse_bool(c_def.value)
-        if c_def.valType == 'n':
+        if c_def.valType == "n":
             float(c_def.value)
-    if 'timeout' in c_def:
+    if "timeout" in c_def:
         float(c_def.timeout)
 
 
@@ -204,20 +218,23 @@ def _validate_enum(val, sch_field_info, sch_enums):
     if not type in sch_enums:
         return
     if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
-        raise AssertionError(util.err(sch_enums, 'enum {} value {} not in schema', type, val))
+        raise AssertionError(
+            util.err(sch_enums, "enum {} value {} not in schema", type, val)
+        )
 
 
 def _validate_job_run_mode(field_name, schema):
-    if field_name != 'jobRunMode':
+    if field_name != "jobRunMode":
         return
     from sirepo import pkcli
+
     t = schema.simulationType
     m = pkcli.import_module(t)
-    if hasattr(m, 'run_background'):
+    if hasattr(m, "run_background"):
         raise AssertionError(
-            f'simulation_type={t} cannot have'
-            + ' pkcli.run_background because it supports slurm. Slurm only'
-            + ' supports running a code through `python parameters.py` ',
+            f"simulation_type={t} cannot have"
+            + " pkcli.run_background because it supports slurm. Slurm only"
+            + " supports running a code through `python parameters.py` ",
         )
 
 
@@ -229,7 +246,9 @@ def _validate_model_name(model_name):
     """
 
     if not util.is_python_identifier(model_name):
-        raise AssertionError(util.err(model_name, 'model name must be a Python identifier'))
+        raise AssertionError(
+            util.err(model_name, "model name must be a Python identifier")
+        )
 
 
 def _validate_number(val, sch_field_info):
@@ -250,20 +269,25 @@ def _validate_number(val, sch_field_info):
     except (ValueError, TypeError):
         return
     if fv < fmin:
-        raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+        raise AssertionError(
+            util.err(sch_field_info, "numeric value {} out of range", val)
+        )
     if len(sch_field_info) > 5:
         try:
             fmax = float(sch_field_info[5])
         except ValueError:
             return
         if fv > fmax:
-            raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+            raise AssertionError(
+                util.err(sch_field_info, "numeric value {} out of range", val)
+            )
 
 
 def _validate_strings(strings):
     c = 3
     d = strings.simulationDataType[:c]
     p = strings.simulationDataTypePlural[:c]
-    assert d == p, \
-        (f'strings.simulationDataType={d} does not appear to be the same as' +
-         f'strings.simulationDataTypePlural={p}')
+    assert d == p, (
+        f"strings.simulationDataType={d} does not appear to be the same as"
+        + f"strings.simulationDataTypePlural={p}"
+    )

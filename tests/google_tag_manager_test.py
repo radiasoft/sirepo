@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 import pytest
 import os
 
-_TEST_ID = '__NO_SUCH_STRING_IN_PAGE__'
+_TEST_ID = "__NO_SUCH_STRING_IN_PAGE__"
 
 
 def setup_module(module):
@@ -24,16 +24,13 @@ def test_injection(fc):
     import re
 
     # test non-static page
-    r = fc.get('myapp')
+    r = fc.get("myapp")
     pkok(
-        not re.search(
-            r'googletag',
-            pkcompat.from_bytes(r.data)
-        ),
-        'Unexpected injection of googletag data={}',
-        r.data
+        not re.search(r"googletag", pkcompat.from_bytes(r.data)),
+        "Unexpected injection of googletag data={}",
+        r.data,
     )
 
     # test successful injection
-    r = fc.get('/en/landing.html')
+    r = fc.get("/en/landing.html")
     pkre(_TEST_ID, pkcompat.from_bytes(r.data))

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""HTTP Basic Auth Login
+"""HTTP Basic Auth Login
 
 :copyright: Copyright (c) 2019 Bivio Software, Inc.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,7 +10,7 @@ from pykern import pkconfig
 import flask
 
 
-AUTH_METHOD = 'basic'
+AUTH_METHOD = "basic"
 
 #: bots only
 AUTH_METHOD_VISIBLE = False
@@ -19,26 +19,27 @@ AUTH_METHOD_VISIBLE = False
 def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
-        uid=pkconfig.Required(_cfg_uid, 'single user allowed to login with basic auth'),
-        password=pkconfig.Required(str, 'password for uid'),
+        uid=pkconfig.Required(_cfg_uid, "single user allowed to login with basic auth"),
+        password=pkconfig.Required(str, "password for uid"),
     )
 
 
 def require_user():
-    """Check for basic auth credentials against cfg
-    """
+    """Check for basic auth credentials against cfg"""
     v = flask.request.authorization
-    if v and v.type == 'basic' and _check(v):
+    if v and v.type == "basic" and _check(v):
         return cfg.uid
     return None
 
 
 def _cfg_uid(value):
     from sirepo import simulation_db
-    if value and value == 'dev-no-validate' and pkconfig.channel_in_internal_test():
+
+    if value and value == "dev-no-validate" and pkconfig.channel_in_internal_test():
         return value
-    assert simulation_db.user_path(value).check(dir=True), \
-        'uid={} does not exist'.format(value)
+    assert simulation_db.user_path(value).check(
+        dir=True
+    ), "uid={} does not exist".format(value)
     return value
 
 

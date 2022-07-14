@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""simulation data operations
+"""simulation data operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,24 +12,32 @@ import scipy.constants
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes', 'aspectRatio'))
+    ANALYSIS_ONLY_FIELDS = frozenset(("colorMap", "notes", "aspectRatio"))
 
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls._init_models(dm, (
-            'beamStatisticsReport',
-            'bendingMagnet',
-            'initialIntensityReport',
-            'plotXYReport',
-            'undulator',
-            'undulatorBeam',
-        ))
-        if 'magneticField' not in dm.bendingMagnet:
-            dm.bendingMagnet.magneticField = 1e9 / scipy.constants.c * float(dm.electronBeam.bener) / float(dm.bendingMagnet.r_magnet)
+        cls._init_models(
+            dm,
+            (
+                "beamStatisticsReport",
+                "bendingMagnet",
+                "initialIntensityReport",
+                "plotXYReport",
+                "undulator",
+                "undulatorBeam",
+            ),
+        )
+        if "magneticField" not in dm.bendingMagnet:
+            dm.bendingMagnet.magneticField = (
+                1e9
+                / scipy.constants.c
+                * float(dm.electronBeam.bener)
+                / float(dm.bendingMagnet.r_magnet)
+            )
         for m in dm:
             if cls.is_watchpoint(m):
-                cls.update_model_defaults(dm[m], 'watchpointReport')
+                cls.update_model_defaults(dm[m], "watchpointReport")
         for m in dm.beamline:
             cls.update_model_defaults(m, m.type)
         cls._organize_example(data)
@@ -37,34 +45,34 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def shadow_simulation_files(cls, data):
         m = data.models
-        if m.simulation.sourceType == 'wiggler' and m.wiggler.b_from in ('1', '2'):
+        if m.simulation.sourceType == "wiggler" and m.wiggler.b_from in ("1", "2"):
             return [cls.shadow_wiggler_file(m.wiggler.trajFile)]
         return []
 
     @classmethod
     def shadow_wiggler_file(cls, value):
-        return cls.lib_file_name_with_model_field('wiggler', 'trajFile', value)
+        return cls.lib_file_name_with_model_field("wiggler", "trajFile", value)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = cls._non_analysis_fields(data, r) + [
-            'bendingMagnet',
-            'electronBeam',
-            'geometricSource',
-            'rayFilter',
-            'simulation.istar1',
-            'simulation.npoint',
-            'simulation.sourceType',
-            'sourceDivergence',
-            'undulator',
-            'undulatorBeam',
-            'wiggler',
+            "bendingMagnet",
+            "electronBeam",
+            "geometricSource",
+            "rayFilter",
+            "simulation.istar1",
+            "simulation.npoint",
+            "simulation.sourceType",
+            "sourceDivergence",
+            "undulator",
+            "undulatorBeam",
+            "wiggler",
         ]
-        if r == 'initialIntensityReport' and data['models']['beamline']:
-            res.append([data['models']['beamline'][0]['position']])
-        #TODO(pjm): only include items up to the current watchpoint
-        if cls.is_watchpoint(r) or r == 'beamStatisticsReport':
-            res.append('beamline')
+        if r == "initialIntensityReport" and data["models"]["beamline"]:
+            res.append([data["models"]["beamline"][0]["position"]])
+        # TODO(pjm): only include items up to the current watchpoint
+        if cls.is_watchpoint(r) or r == "beamStatisticsReport":
+            res.append("beamline")
         return res
 
     @classmethod
