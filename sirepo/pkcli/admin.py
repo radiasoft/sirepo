@@ -126,7 +126,6 @@ def _delete_sims(delete_list):
         simulation_db.delete_simulation(t, s.simulationId)
 
 
-
 # TODO(e-carlin): more than uid (ex email)
 def delete_user(uid):
     """Delete a user and all of their data across Sirepo and Jupyter
@@ -201,7 +200,9 @@ def _create_example(example):
     try:
         simulation_db.save_new_example(example)
     except Exception as e:
-        pkdlog("Failed to create example: {} error={}", example.models.simulation.name, e)
+        pkdlog(
+            "Failed to create example: {} error={}", example.models.simulation.name, e
+        )
 
 
 def _get_example_by_name(name, sim_type):
