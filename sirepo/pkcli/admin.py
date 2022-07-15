@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio, pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -25,7 +24,7 @@ import re
 import shutil
 
 
-_MILISECONDS_PER_MONTH = 2.628e9
+_MILLISECONDS_PER_MONTH = 30.4167 * 24 * 60 * 60 * 1000
 _MAXIMUM_SIM_AGE_IN_MONTHS = 6
 
 
@@ -53,14 +52,14 @@ def create_examples():
 
     def _create():
         for sim_type in feature_config.cfg().sim_types:
-            names = [
+            names = set([
                 x.name
                 for x in simulation_db.iterate_simulation_datafiles(
                     sim_type,
                     simulation_db.process_simulation_list,
                     {"simulation.isExample": True},
                 )
-            ]
+            ])
             for example in simulation_db.examples(sim_type):
                 if example.models.simulation.name not in names:
                     _create_example(example)
@@ -87,16 +86,16 @@ def reset_examples():
     def _reset():
         c = []
         r = []
-        for sim_type in feature_config.cfg().sim_types:
+        for t in feature_config.cfg().sim_types:
             sims = [
                 x
                 for x in simulation_db.iterate_simulation_datafiles(
-                    sim_type,
+                    t,
                     simulation_db.process_simulation_list,
                     {"simulation.isExample": True},
                 )
             ]
-            _build_delete_and_revert_lists(c, r, sims, sim_type)
+            _build_delete_and_revert_lists(c, r, sims, t)
         _revert_sims(r)
         _delete_sims(c)
 
@@ -104,16 +103,22 @@ def reset_examples():
 
 
 def _build_delete_and_revert_lists(delete_list, revert_list, simulations, sim_type):
-    n = [n.models.simulation.name for n in simulation_db.examples(sim_type)]
+    n = set([n.models.simulation.name for n in simulation_db.examples(sim_type)])
     for sim in simulations:
-        t = (
-            srtime.utc_now_as_milliseconds() - sim.simulation.lastModified
-        ) / _MILISECONDS_PER_MONTH
         if sim.name not in n:
             delete_list.append((sim, sim_type))
-        elif t > _MAXIMUM_SIM_AGE_IN_MONTHS:
+        elif _example_is_too_old(sim.simulation.lastModified):
             revert_list.append((sim.name, sim_type))
             delete_list.append((sim, sim_type))
+
+
+def _example_is_too_old(last_modified):
+    t = (
+            srtime.utc_now_as_milliseconds() - last_modified
+        ) / _MILLISECONDS_PER_MONTH
+    if t > _MAXIMUM_SIM_AGE_IN_MONTHS:
+        return True
+    return False
 
 
 def _revert_sims(revert_list):
