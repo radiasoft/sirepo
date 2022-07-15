@@ -1,12 +1,30 @@
-from keras.models import Sequential
-from keras.layers import Dense
+from keras.models import Model, Sequential
+from keras.layers import Dense, Input
 {% for name in layerImplementationNames if not name == 'Dense' %}
 from keras.layers import {{ name }}
 {% endfor %}
 
-model = Sequential()
+
+input_args = Input(shape=({{ inputDim }},))
 {% for layer in neuralNetLayers %}
-model.add({{ layer.layer }}(
+{% if loop.index0 == 0 %}
+x = {{ layer.layer }}({{ layer.denseDimensionality }}, activation="{{ layer.denseActivation }}")(input_args)
+{% else %}
+x = {{ layer.layer }}({{ layer.denseDimensionality }}, activation="{{ layer.denseActivation }}")(x)
+{% endif %}
+{% endfor %}
+x = Dense({{ outputDim }}, activation="linear")(x)
+model = Model(input_args, x)
+
+{#
+TODO (gurhar1133): use if logic below to conditionally add dropout, noise and flatten layers
+TODO (gurhar1133): normalization, and skip layers?
+#}
+
+
+{# m = Sequential()
+{% for layer in neuralNetLayers %}
+m.add({{ layer.layer }}(
     {%- if layer.layer == 'Activation' -%}
     "{{ layer.activationActivation }}"
     {%- elif layer.layer == 'AlphaDropout' -%}
@@ -23,4 +41,4 @@ model.add({{ layer.layer }}(
     {%- endif -%}
     {%- if loop.index0 == 0 -%}, input_dim={{ inputDim }} {%- endif -%}))
 {% endfor %}
-model.add(Dense({{ outputDim }}, activation="linear"))
+m.add(Dense({{ outputDim }}, activation="linear")) #}
