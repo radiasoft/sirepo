@@ -91,7 +91,7 @@ class API(sirepo.api.Base):
         #     req.template.copy_related_files(data, str(src), str(target))
         return res
 
-    @sirepo.api.Spec("require_user", sid="SimId", folder="Folder", name="SimName")
+    @sirepo.api.Spec("require_user", sid="SimId", folder="FolderName", name="SimName")
     def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
         req = self.parse_post(id=True, folder=True, name=True, template=True)
@@ -128,7 +128,7 @@ class API(sirepo.api.Base):
         return self.reply_ok()
 
     @sirepo.api.Spec(
-        "require_user", sid="SimId", filename="FileName", sim_data="SimData"
+        "require_user", sid="SimId optional", filename="FileName", sim_data="SimData"
     )
     def api_downloadFile(self, simulation_type, simulation_id, filename):
         # TODO(pjm): simulation_id is an unused argument
@@ -142,7 +142,7 @@ class API(sirepo.api.Base):
                 sirepo.util.raise_not_found("lib_file={} not found", p)
             raise
 
-    @sirepo.api.Spec("allow_visitor", error="PKDict")
+    @sirepo.api.Spec("allow_visitor", error="String all_input", client_ip="IPAddress optional")
     def api_errorLogging(self):
         ip = flask.request.remote_addr
         try:
@@ -186,7 +186,7 @@ class API(sirepo.api.Base):
         sirepo.util.raise_forbidden("app forced forbidden")
 
     @sirepo.api.Spec(
-        "require_user", sid="SimId", file_type="FileType", sim_data="SimData"
+        "require_user", sid="SimId optional", file_type="FileType", sim_data="SimData"
     )
     def api_listFiles(self, simulation_type, simulation_id, file_type):
         # TODO(pjm): simulation_id is an unused argument
@@ -254,7 +254,7 @@ class API(sirepo.api.Base):
             query=m.includeMode and PKDict(application_mode=application_mode),
         )
 
-    @sirepo.api.Spec("require_user", filename="FileName", req_data="ReqData")
+    @sirepo.api.Spec("require_user", filename="FileName", data="SimData all_input")
     def api_getApplicationData(self, filename=None):
         """Get some data from the template
 
@@ -375,13 +375,13 @@ class API(sirepo.api.Base):
             }
         )
 
-    @sirepo.api.Spec("allow_visitor", path_info="PathInfo")
+    @sirepo.api.Spec("allow_visitor", path_info="PathInfo optional")
     def api_homePage(self, path_info=None):
         return self.call_api(
             "staticFile", kwargs=PKDict(path_info="en/" + (path_info or "landing.html"))
         )
 
-    @sirepo.api.Spec("require_user", sid="SimId", model="Model", title="NbTitle")
+    @sirepo.api.Spec("require_user", sid="SimId", model="Model optional", title="NbTitle")
     def api_exportJupyterNotebook(
         self, simulation_type, simulation_id, model=None, title=None
     ):
@@ -394,7 +394,7 @@ class API(sirepo.api.Base):
             content_type="application/json",
         )
 
-    @sirepo.api.Spec("require_user", folder="Folder", name="Name")
+    @sirepo.api.Spec("require_user", folder="FolderName", name="SimName")
     def api_newSimulation(self):
         req = self.parse_post(template=True, folder=True, name=True)
         d = simulation_db.default_data(req.type)
@@ -454,7 +454,7 @@ class API(sirepo.api.Base):
             return self.reply_redirect(u)
         sirepo.util.raise_not_found(f"unknown path={path_info}")
 
-    @sirepo.api.Spec("require_user", sid="SimId", req_data="ReqData")
+    @sirepo.api.Spec("require_user", sid="SimId", data="SimData all_input")
     def api_saveSimulationData(self):
         # do not fixup_old_data yet
         req = self.parse_post(id=True, template=True)
@@ -465,7 +465,7 @@ class API(sirepo.api.Base):
             simulation_db.save_simulation_json(d, fixup=True, modified=True),
         )
 
-    @sirepo.api.Spec("require_user", sid="SimId", pretty="Bool", section="Section")
+    @sirepo.api.Spec("require_user", sid="SimId", pretty="Bool optional", section="Section")
     def api_simulationData(
         self, simulation_type, simulation_id, pretty=False, section=None
     ):
@@ -485,7 +485,7 @@ class API(sirepo.api.Base):
                 e.sr_response["redirect"]["section"] = section
             return http_reply.headers_for_no_cache(self.reply_json(e.sr_response))
 
-    @sirepo.api.Spec("require_user", req_data="ReqData")
+    @sirepo.api.Spec("require_user", data="SimData all_input")
     def api_listSimulations(self):
         req = self.parse_post()
         return self.reply_json(
@@ -555,7 +555,7 @@ class API(sirepo.api.Base):
             return self.reply_html(p)
         return flask.send_file(p, conditional=True)
 
-    @sirepo.api.Spec("require_user", req_data="ReqData")
+    @sirepo.api.Spec("require_user", data="SimData all_input")
     def api_updateFolder(self):
         # TODO(robnagler) Folder should have a serial, or should it be on data
         req = self.parse_post()
@@ -593,6 +593,7 @@ class API(sirepo.api.Base):
         file_type="FileType",
         filename="FileName",
         sim_data="SimData",
+        file="FileArg input",
     )
     def api_uploadFile(self, simulation_type, simulation_id, file_type):
         f = flask.request.files["file"]
