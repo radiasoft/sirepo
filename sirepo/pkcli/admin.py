@@ -47,21 +47,27 @@ def audit_proprietary_lib_files(*uid):
             sirepo.auth_db.audit_proprietary_lib_files(u)
 
 
+def _get_named_sims():
+    res = PKDict()
+    for sim_type in feature_config.cfg().sim_types:
+        res[sim_type] = PKDict()
+        for x in simulation_db.iterate_simulation_datafiles(
+            sim_type,
+            simulation_db.process_simulation_list,
+            {"simulation.isExample": True},
+        ):
+            res[sim_type].update({x.name: x})
+    return res
+
+
 def create_examples():
     """Adds missing app examples to all users"""
 
     def _create():
-        for sim_type in feature_config.cfg().sim_types:
-            names = set([
-                x.name
-                for x in simulation_db.iterate_simulation_datafiles(
-                    sim_type,
-                    simulation_db.process_simulation_list,
-                    {"simulation.isExample": True},
-                )
-            ])
-            for example in simulation_db.examples(sim_type):
-                if example.models.simulation.name not in names:
+        s = _get_named_sims()
+        for t in s.keys():
+            for example in simulation_db.examples(t):
+                if example.models.simulation.name not in s[t].keys():
                     _create_example(example)
 
     _access_sim_db_and_callback(_create)
@@ -84,50 +90,40 @@ def _access_sim_db_and_callback(callback):
 
 def reset_examples():
     def _reset():
-        c = []
-        r = []
-        for t in feature_config.cfg().sim_types:
-            sims = [
-                x
-                for x in simulation_db.iterate_simulation_datafiles(
-                    t,
-                    simulation_db.process_simulation_list,
-                    {"simulation.isExample": True},
-                )
-            ]
-            _build_delete_and_revert_lists(c, r, sims, t)
-        _revert_sims(r)
-        _delete_sims(c)
+        ops = PKDict(delete=[], revert=[])
+        s = _get_named_sims()
+        for t in s.keys():
+            _build_ops(ops, list(s[t].values()), t)
+        _revert(ops)
+        _delete(ops)
 
     _access_sim_db_and_callback(_reset)
 
 
-def _build_delete_and_revert_lists(delete_list, revert_list, simulations, sim_type):
+def _build_ops(ops, simulations, sim_type):
     n = set([n.models.simulation.name for n in simulation_db.examples(sim_type)])
     for sim in simulations:
         if sim.name not in n:
-            delete_list.append((sim, sim_type))
+            ops.delete.append((sim, sim_type))
         elif _example_is_too_old(sim.simulation.lastModified):
-            revert_list.append((sim.name, sim_type))
-            delete_list.append((sim, sim_type))
+            ops.revert.append((sim.name, sim_type))
+            ops.delete.append((sim, sim_type))
 
 
 def _example_is_too_old(last_modified):
-    t = (
-            srtime.utc_now_as_milliseconds() - last_modified
-        ) / _MILLISECONDS_PER_MONTH
+    t = (srtime.utc_now_as_milliseconds() - last_modified) / _MILLISECONDS_PER_MONTH
     if t > _MAXIMUM_SIM_AGE_IN_MONTHS:
         return True
     return False
 
 
-def _revert_sims(revert_list):
-    for n, t in revert_list:
+def _revert(ops):
+    for n, t in ops.revert:
         _create_example(_get_example_by_name(n, t))
 
 
-def _delete_sims(delete_list):
-    for s, t in delete_list:
+def _delete(ops):
+    for s, t in ops.delete:
         simulation_db.delete_simulation(t, s.simulationId)
 
 
