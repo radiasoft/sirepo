@@ -63,17 +63,15 @@ def _get_named_sims():
 def create_examples():
     """Adds missing app examples to all users"""
 
-    def _create():
+    for _ in _iterate_all_users():
         s = _get_named_sims()
         for t in s.keys():
             for example in simulation_db.examples(t):
                 if example.models.simulation.name not in s[t].keys():
                     _create_example(example)
 
-    _access_sim_db_and_callback(_create)
 
-
-def _access_sim_db_and_callback(callback):
+def _iterate_all_users():
     import sirepo.auth_db
     import sirepo.server
 
@@ -85,19 +83,16 @@ def _access_sim_db_and_callback(callback):
         with sirepo.auth_db.session_and_lock(), auth.set_user_outside_of_http_request(
             uid
         ):
-            callback()
-
+            yield d
 
 def reset_examples():
-    def _reset():
+    for _ in _iterate_all_users():
         ops = PKDict(delete=[], revert=[])
         s = _get_named_sims()
         for t in s.keys():
             _build_ops(ops, list(s[t].values()), t)
         _revert(ops)
         _delete(ops)
-
-    _access_sim_db_and_callback(_reset)
 
 
 def _build_ops(ops, simulations, sim_type):
