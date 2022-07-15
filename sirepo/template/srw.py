@@ -430,6 +430,50 @@ def extract_report_data(sim_in):
     return res
 
 
+def export_rsopt_config(data, filename):
+    v = _rsopt_jinja_context(data.models.exportRsOpt)
+
+    fz = pkio.py_path(filename)
+    f = re.sub(r"[^\w.]+", "-", fz.purebasename).strip("-")
+    v.runDir = f"{f}_scan"
+    v.fileBase = f
+    tf = {k: PKDict(file=f"{f}.{k}") for k in ["py", "sh", "yml"]}
+    for t in tf:
+        v[f"{t}FileName"] = tf[t].file
+    v.outFileName = f"{f}.out"
+    v.readmeFileName = "README.txt"
+    v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
+    v.hasLibFiles = len(v.libFiles) > 0
+    v.randomSeed = (
+        data.models.exportRsOpt.randomSeed
+        if data.models.exportRsOpt.randomSeed is not None
+        else ""
+    )
+
+    # do this in a second loop so v is fully updated
+    # note that the rsopt context is regenerated in python_source_for_model()
+    for t in tf:
+        tf[t].content = (
+            python_source_for_model(data, "rsoptExport", plot_reports=False)
+            if t == "py"
+            else template_common.render_jinja(SIM_TYPE, v, f"rsoptExport.{t}")
+        )
+    readme = template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
+
+    with zipfile.ZipFile(
+        fz,
+        mode="w",
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for t in tf:
+            z.writestr(tf[t].file, tf[t].content)
+        z.writestr(v.readmeFileName, readme)
+        for d in _SIM_DATA.lib_files_for_export(data):
+            z.write(d, d.basename)
+    return fz
+
+
 def get_application_data(data, **kwargs):
     if data.method == "model_list":
         res = []
@@ -442,9 +486,9 @@ def get_application_data(data, **kwargs):
                 srw_common.process_beam_parameters(beam)
         return PKDict(modelList=res)
     if data.method == "create_shadow_simulation":
-        from sirepo.template.srw_shadow_converter import SRWShadowConverter
+        from sirepo.template.srw_shadow import Convert
 
-        return SRWShadowConverter().srw_to_shadow(data)
+        return Convert().to_shadow(data)
     if data.method == "delete_user_models":
         return _delete_user_models(data.electron_beam, data.tabulated_undulator)
     elif data.method == "compute_undulator_length":
@@ -790,9 +834,9 @@ def stateful_compute_compute_undulator_length(data):
 
 
 def stateful_compute_create_shadow_simulation(data):
-    from sirepo.template.srw_shadow_converter import SRWShadowConverter
+    from sirepo.template.srw_shadow import Convert
 
-    return SRWShadowConverter().srw_to_shadow(data)
+    return Convert().to_shadow(data)
 
 
 def stateful_compute_delete_user_models(data):
@@ -2511,13 +2555,16 @@ def _write_rsopt_zip(data, ctx):
             f = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
             ctx[f"{t}FileName"] = f
             files.append(f)
+        f = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
+        files.append(f)
+        ctx["postProcFileName"] = f
         return files
 
     def _write(zip_file, path):
         zip_file.writestr(
             path,
             python_source_for_model(data, ctx.fileBase, plot_reports=False)
-            if path.endswith(".py")
+            if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
             else template_common.render_jinja(SIM_TYPE, ctx, path),
         )
 
