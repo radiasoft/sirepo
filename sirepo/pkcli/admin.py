@@ -88,6 +88,8 @@ def _iterate_all_users():
 def reset_examples():
     for _ in _iterate_all_users():
         ops = PKDict(delete=[], revert=[])
+        # TODO (gurhar1133): move ops out of loop and
+        # move s = _get ... and for t in s.keys() into generator??
         s = _get_named_sims()
         for t in s.keys():
             _build_ops(ops, list(s[t].values()), t)
