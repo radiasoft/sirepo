@@ -63,15 +63,13 @@ def _get_named_sims():
 def create_examples():
     """Adds missing app examples to all users"""
 
-    for _ in _iterate_all_users():
-        s = _get_named_sims()
-        for t in s.keys():
-            for example in simulation_db.examples(t):
-                if example.models.simulation.name not in s[t].keys():
-                    _create_example(example)
+    for t, s in _iterate_sims_by_users():
+        for example in simulation_db.examples(t):
+            if example.models.simulation.name not in s[t].keys():
+                _create_example(example)
 
 
-def _iterate_all_users():
+def _iterate_sims_by_users():
     import sirepo.auth_db
     import sirepo.server
 
@@ -83,18 +81,18 @@ def _iterate_all_users():
         with sirepo.auth_db.session_and_lock(), auth.set_user_outside_of_http_request(
             uid
         ):
-            yield d
+            s = _get_named_sims()
+            for t in s.keys():
+                yield (t, s)
+
 
 def reset_examples():
-    for _ in _iterate_all_users():
-        ops = PKDict(delete=[], revert=[])
-        # TODO (gurhar1133): move ops out of loop and
-        # move s = _get ... and for t in s.keys() into generator??
-        s = _get_named_sims()
-        for t in s.keys():
-            _build_ops(ops, list(s[t].values()), t)
+    ops = PKDict(delete=[], revert=[])
+    for t, s in _iterate_sims_by_users():
+        _build_ops(ops, list(s[t].values()), t)
         _revert(ops)
         _delete(ops)
+        ops = PKDict(delete=[], revert=[])
 
 
 def _build_ops(ops, simulations, sim_type):
