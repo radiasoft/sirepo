@@ -87,12 +87,11 @@ def _iterate_sims_by_users():
 
 
 def reset_examples():
-    ops = PKDict(delete=[], revert=[])
     for t, s in _iterate_sims_by_users():
+        ops = PKDict(delete=[], revert=[])
         _build_ops(ops, list(s[t].values()), t)
         _revert(ops)
         _delete(ops)
-        ops = PKDict(delete=[], revert=[])
 
 
 def _build_ops(ops, simulations, sim_type):
