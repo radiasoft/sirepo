@@ -142,7 +142,9 @@ class API(sirepo.api.Base):
                 sirepo.util.raise_not_found("lib_file={} not found", p)
             raise
 
-    @sirepo.api.Spec("allow_visitor", error="String all_input", client_ip="IPAddress optional")
+    @sirepo.api.Spec(
+        "allow_visitor", error="String all_input", client_ip="IPAddress optional"
+    )
     def api_errorLogging(self):
         ip = flask.request.remote_addr
         try:
@@ -381,7 +383,9 @@ class API(sirepo.api.Base):
             "staticFile", kwargs=PKDict(path_info="en/" + (path_info or "landing.html"))
         )
 
-    @sirepo.api.Spec("require_user", sid="SimId", model="Model optional", title="NbTitle")
+    @sirepo.api.Spec(
+        "require_user", sid="SimId", model="Model optional", title="NbTitle"
+    )
     def api_exportJupyterNotebook(
         self, simulation_type, simulation_id, model=None, title=None
     ):
@@ -465,7 +469,9 @@ class API(sirepo.api.Base):
             simulation_db.save_simulation_json(d, fixup=True, modified=True),
         )
 
-    @sirepo.api.Spec("require_user", sid="SimId", pretty="Bool optional", section="Section")
+    @sirepo.api.Spec(
+        "require_user", sid="SimId", pretty="Bool optional", section="Section"
+    )
     def api_simulationData(
         self, simulation_type, simulation_id, pretty=False, section=None
     ):

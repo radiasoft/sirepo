@@ -49,7 +49,13 @@ class API(sirepo.api.Base):
     def api_analysisJob(self):
         return self.request()
 
-    @sirepo.api.Spec("require_user", sid="SimId", model="Model", frame="Frame", suffix="String optional")
+    @sirepo.api.Spec(
+        "require_user",
+        sid="SimId",
+        model="Model",
+        frame="Frame",
+        suffix="String optional",
+    )
     def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
