@@ -297,10 +297,6 @@ SIREPO.app.controller('AnalysisController', function (appState, mlService, panel
         }
         $scope.$on('dataFile.changed', function() {
             let dataFile = appState.models.dataFile;
-            if (dataFile.dataOrigin === 'url') {
-
-            }
-
             if (currentFile != dataFile.file) {
                 currentFile = dataFile.file;
                 if (currentFile) {
@@ -1919,29 +1915,72 @@ SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('dataFileView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
+
+    const modelName = $scope.modelName
+    const model = appState.models[modelName];
+    const self = this;
+
 
     function processAppMode() {
-        const appMode = appState.models.dataFile.appMode;
+        const appMode = model.appMode;
         panelState.showField(
-            'dataFile', 'inputsScaler',
+            modelName, 'inputsScaler',
             ['regression', 'classification'].includes(appMode));
         panelState.showField(
-            'dataFile', 'outputsScaler',
+            modelName, 'outputsScaler',
             appMode == 'regression');
     }
 
     function updateEditor() {
-        panelState.showField('dataFile', 'file', appState.models.dataFile.dataOrigin === 'file');
-        panelState.showField('dataFile', 'url', appState.models.dataFile.dataOrigin === 'url');
+        const o = model.dataOrigin;
+        panelState.showField(modelName, 'file', o === 'file');
+        panelState.showField(modelName, 'url', o === 'url');
     }
+
+    function getRemoteData(headersOnly, callback) {
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                if (d.error) {
+                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
+                }
+                if (callback) {
+                    callback(d);
+                }
+            },
+            {
+                method: 'get_remote_data',
+                url: model.url,
+                headers_only: headersOnly
+            }
+        );
+    }
+
+    function updateData() {
+        if (model.dataOrigin === 'url') {
+            // two stages?
+            getRemoteData(true, d => {
+                srdbg('HDRS', d.headers.split('\n'));
+                srdbg('FETCH FROM URL TO SERVER');
+                delete model.file;
+                getRemoteData(false, d => {
+                    model.file = d.file;
+                    appState.saveQuietly(modelName);
+                });
+            });
+        }
+    }
+
     $scope.watchFields = [
-        ['dataFile.appMode'], processAppMode,
-        ['dataFile.dataOrigin'], updateEditor,
+        [`${modelName}.appMode`], processAppMode,
+        [`${modelName}.dataOrigin`], updateEditor,
     ];
 
     $scope.whenSelected = () => {
         processAppMode();
         updateEditor();
     }
+
+    $scope.$on( `${modelName}.changed`, updateData);
 });

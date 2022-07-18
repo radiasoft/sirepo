@@ -288,15 +288,26 @@ def stateful_compute_compute_column_info(data):
 
 
 def stateless_compute_get_remote_data(data):
-    return _get_remote_data(data.url)
+    return _get_remote_data(data.url, data.headers_only)
 
 
-def _get_remote_data(url):
-    import http
-    from http import client
-    c = http.client.HTTPConnection(url)
-    c.request("GET", "/")
-    r = c.getresponse()
+def _get_remote_data(url, headers_only):
+    import os
+    import urllib
+    from urllib import parse
+    from urllib import request
+    filename = os.path.basename(urllib.parse.urlparse(url).path)
+    try:
+        with urllib.request.urlopen(url) as r:
+            if headers_only:
+                return PKDict(headers=r.info())
+            with open(_SIM_DATA.lib_file_write_path(
+                    _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", filename)
+            ), 'wb') as f:
+                f.write(r.read())
+    except urllib.error.HTTPError as e:
+        return PKDict(error=e.code)
+    return PKDict(filename=filename)
     
 
 
