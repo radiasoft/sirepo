@@ -161,9 +161,7 @@ def _delete(ops):
 
 def _example_is_too_old(last_modified):
     t = (srtime.utc_now_as_milliseconds() - last_modified) / _MILLISECONDS_PER_MONTH
-    if t > _MAXIMUM_SIM_AGE_IN_MONTHS:
-        return True
-    return False
+    return t > _MAXIMUM_SIM_AGE_IN_MONTHS
 
 
 def _get_example_by_name(name, sim_type):
@@ -174,23 +172,27 @@ def _get_example_by_name(name, sim_type):
 
 
 def _get_examples_by_type():
-    e = PKDict()
-    for t in feature_config.cfg().sim_types:
-        e[t] = simulation_db.examples(t)
-    return e
+    return PKDict(
+        {t: simulation_db.examples(t) for t in feature_config.cfg().sim_types}
+    )
 
 
 def _get_named_sims(all_sim_types):
-    res = PKDict()
-    for t in all_sim_types:
-        res[t] = PKDict()
-        for x in simulation_db.iterate_simulation_datafiles(
-            t,
-            simulation_db.process_simulation_list,
-            {"simulation.isExample": True},
-        ):
-            res[t].update({x.name: x})
-    return res
+    return PKDict(
+        {
+            t: PKDict(
+                {
+                    x.name: x
+                    for x in simulation_db.iterate_simulation_datafiles(
+                        t,
+                        simulation_db.process_simulation_list,
+                        {"simulation.isExample": True},
+                    )
+                }
+            )
+            for t in all_sim_types
+        }
+    )
 
 
 def _is_src_dir(d):
