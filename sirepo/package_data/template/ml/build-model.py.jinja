@@ -10,35 +10,23 @@ input_args = Input(shape=({{ inputDim }},))
 {% if loop.index0 == 0 %}
 x = {{ layer.layer }}({{ layer.denseDimensionality }}, activation="{{ layer.denseActivation }}")(input_args)
 {% else %}
-x = {{ layer.layer }}({{ layer.denseDimensionality }}, activation="{{ layer.denseActivation }}")(x)
+x = {{ layer.layer }}(
+{%- if layer.layer == 'Activation' -%}
+"{{ layer.activationActivation }}"
+{%- elif layer.layer == 'AlphaDropout' -%}
+{{ layer.alphaDropoutRate }}
+{%- elif layer.layer == 'Dense' -%}
+{{ layer.denseDimensionality }}, activation="{{ layer.denseActivation }}"
+{%- elif layer.layer == 'Dropout' -%}
+{{ layer.dropoutRate }}
+{%- elif layer.layer == 'Flatten' -%}
+{%- elif layer.layer == 'GaussianDropout' -%}
+{{ layer.gaussianDropoutRate }}
+{%- elif layer.layer == 'GaussianNoise' -%}
+{{ layer.gaussianNoiseStddev }}
+{%- endif -%}
+)(x)
 {% endif %}
 {% endfor %}
 x = Dense({{ outputDim }}, activation="linear")(x)
 model = Model(input_args, x)
-
-{#
-TODO (gurhar1133): use if logic below to conditionally add dropout, noise and flatten layers
-TODO (gurhar1133): normalization, and skip layers?
-#}
-
-
-{# m = Sequential()
-{% for layer in neuralNetLayers %}
-m.add({{ layer.layer }}(
-    {%- if layer.layer == 'Activation' -%}
-    "{{ layer.activationActivation }}"
-    {%- elif layer.layer == 'AlphaDropout' -%}
-    {{ layer.alphaDropoutRate }}
-    {%- elif layer.layer == 'Dense' -%}
-    {{ layer.denseDimensionality }}, activation="{{ layer.denseActivation }}"
-    {%- elif layer.layer == 'Dropout' -%}
-    {{ layer.dropoutRate }}
-    {%- elif layer.layer == 'Flatten' -%}
-    {%- elif layer.layer == 'GaussianDropout' -%}
-    {{ layer.gaussianDropoutRate }}
-    {%- elif layer.layer == 'GaussianNoise' -%}
-    {{ layer.gaussianNoiseStddev }}
-    {%- endif -%}
-    {%- if loop.index0 == 0 -%}, input_dim={{ inputDim }} {%- endif -%}))
-{% endfor %}
-m.add(Dense({{ outputDim }}, activation="linear")) #}
