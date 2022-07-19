@@ -34,7 +34,7 @@ _ACTIVE = frozenset(
 
 
 class API(sirepo.api.Base):
-    @sirepo.api.Spec("require_adm", token="Token", status="ModerationStatus")
+    @sirepo.api.Spec("require_adm", token="AuthModerationToken", status="AuthModerationStatus")
     def api_admModerate(self):
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
@@ -102,7 +102,7 @@ class API(sirepo.api.Base):
             ),
         )
 
-    @sirepo.api.Spec("allow_sim_typeless_require_email_user", reason="String")
+    @sirepo.api.Spec("allow_sim_typeless_require_email_user", reason="AuthModerationReason")
     def api_saveModerationReason(self):
         def _send_request_email(info):
             sirepo.smtp.send(

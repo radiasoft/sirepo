@@ -104,7 +104,7 @@ class API(sirepo.api.Base):
         )
         return self._save_new_and_reply(req, d)
 
-    @sirepo.api.Spec("require_user", filename="FileName", file_type="FileType")
+    @sirepo.api.Spec("require_user", filename="SimFileName", file_type="SimFileType")
     def api_deleteFile(self):
         req = self.parse_post(filename=True, file_type=True)
         e = _simulations_using_file(req)
@@ -128,7 +128,7 @@ class API(sirepo.api.Base):
         return self.reply_ok()
 
     @sirepo.api.Spec(
-        "require_user", sid="SimId optional", filename="FileName", sim_data="SimData"
+        "require_user", sid="SimId optional", filename="SimFileName", sim_data="SimData"
     )
     def api_downloadFile(self, simulation_type, simulation_id, filename):
         # TODO(pjm): simulation_id is an unused argument
@@ -162,7 +162,7 @@ class API(sirepo.api.Base):
             )
         return self.reply_ok()
 
-    @sirepo.api.Spec("require_user", sid="SimId", filename="FileName")
+    @sirepo.api.Spec("require_user", sid="SimId", filename="SimFileName")
     def api_exportArchive(self, simulation_type, simulation_id, filename):
         req = self.parse_params(
             template=True,
@@ -256,7 +256,7 @@ class API(sirepo.api.Base):
             query=m.includeMode and PKDict(application_mode=application_mode),
         )
 
-    @sirepo.api.Spec("require_user", filename="FileName", data="SimData all_input")
+    @sirepo.api.Spec("require_user", filename="SimFileName", data="SimData all_input")
     def api_getApplicationData(self, filename=None):
         """Get some data from the template
 
@@ -535,7 +535,7 @@ class API(sirepo.api.Base):
         v.op()
         return self.reply_ok()
 
-    @sirepo.api.Spec("allow_visitor", path_info="PathInfo")
+    @sirepo.api.Spec("allow_visitor", path_info="FilePath")
     def api_staticFile(self, path_info=None):
         """flask.send_from_directory for static folder.
 
@@ -595,11 +595,11 @@ class API(sirepo.api.Base):
 
     @sirepo.api.Spec(
         "require_user",
-        sid="SimId",
-        file_type="FileType",
-        filename="FileName",
-        sim_data="SimData",
         file="FileArg input",
+        file_type="FileType",
+        filename="SimFileName",
+        sid="SimId",
+        sim_data="SimData",
     )
     def api_uploadFile(self, simulation_type, simulation_id, file_type):
         f = flask.request.files["file"]

@@ -23,7 +23,7 @@ class API(sirepo.api.Base):
             "https://www.radiasoft.net/services/comsol-certified-consulting/",
         )
 
-    @sirepo.api.Spec("allow_visitor", name="Name", email="Email")
+    @sirepo.api.Spec("allow_visitor", name="UserDisplayName", email="Email")
     def api_comsolRegister(self):
         req = self.parse_json()
         smtp.send(

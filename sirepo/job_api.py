@@ -31,7 +31,7 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 
 
 class API(sirepo.api.Base):
-    @sirepo.api.Spec("internal_test", days="Days")
+    @sirepo.api.Spec("internal_test", days="TimeDeltaDays")
     def api_adjustSupervisorSrtime(self, days):
         return self.request(
             api_name="not used",
@@ -52,9 +52,9 @@ class API(sirepo.api.Base):
     @sirepo.api.Spec(
         "require_user",
         sid="SimId",
-        model="Model",
-        frame="Frame",
-        suffix="String optional",
+        model="AnalysisModel",
+        frame="DataFileIndex",
+        suffix="FileSuffix optional",
     )
     def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
@@ -141,7 +141,7 @@ class API(sirepo.api.Base):
         # Always true from the client's perspective
         return self.reply_json({"state": "canceled"})
 
-    @sirepo.api.Spec("require_user", data="PKDict all_input")
+    @sirepo.api.Spec("require_user", data="SimData all_input")
     def api_runMulti(self):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
@@ -180,7 +180,7 @@ class API(sirepo.api.Base):
         r.sbatchCredentials = r.pkdel("data")
         return self.request(_request_content=r)
 
-    @sirepo.api.Spec("require_user", frame_id="FrameId")
+    @sirepo.api.Spec("require_user", frame_id="SimFrameId")
     def api_simulationFrame(self, frame_id):
         return template_common.sim_frame(
             frame_id,

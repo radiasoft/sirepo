@@ -46,7 +46,7 @@ class API(sirepo.api.Base):
             u = create_user()
         return self.reply_ok(PKDict(username=u))
 
-    @sirepo.api.Spec("require_user", data="PKDict all_input")
+    @sirepo.api.Spec("require_user", data="SimData all_input")
     def api_migrateJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         if not cfg.rs_jupyter_migrate:
