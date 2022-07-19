@@ -32,7 +32,10 @@ SIREPO.app.config(function() {
         </div>
         <div data-ng-switch-when="URL" class="col-sm-5">
           <input type="text" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />          
-          {{ model.contentLength }} bytes
+          <span>{{ model.contentLength }} bytes</span>
+          <div class="progress">
+            <div data-ng-show="! model.file" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
+          </div>
         </div>
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
@@ -1963,15 +1966,14 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     function updateData() {
         if (model.dataOrigin === 'url') {
-            // two stages?
+            // two stages now; should be a single ansync call but not a "simulation"
             getRemoteData(true, d => {
-                // use length for progress bar, content type for fetching data
+                // use length for progress bar, content type for fetching data from file
                 const len = parseInt(d.headers['Content-Length']);
                 const t = d.headers['Content-Type'];
-                srdbg(len, t);
-                delete model.file;
+                delete appState.models[modelName].file;
                 getRemoteData(false, d => {
-                    appState.models[modelName].file = d.file;
+                    appState.models[modelName].file = d.filename;
                     appState.models[modelName].contentType = t;
                     appState.models[modelName].contentLength = len;
                     appState.saveQuietly(modelName);
