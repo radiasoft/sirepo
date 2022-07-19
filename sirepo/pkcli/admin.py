@@ -24,7 +24,7 @@ import re
 import shutil
 
 
-_MILLISECONDS_PER_MONTH = 30.4167 * 24 * 60 * 60 * 1000
+_MILLISECONDS_PER_MONTH = 30 * 24 * 60 * 60 * 1000
 _MAXIMUM_SIM_AGE_IN_MONTHS = 6
 
 
@@ -49,20 +49,19 @@ def audit_proprietary_lib_files(*uid):
 
 def create_examples():
     """Adds missing app examples to all users"""
-    e = _get_examples_by_type()
-    for t, s in _iterate_sims_by_users(e.keys()):
-        for example in e[t]:
-            if example.models.simulation.name not in s[t].keys():
-                _create_example(example)
+    examples = _get_examples_by_type()
+    for t, s in _iterate_sims_by_users(examples.keys()):
+        for e in examples[t]:
+            if e.models.simulation.name not in s[t].keys():
+                _create_example(e)
 
 
 def reset_examples():
     e = _get_examples_by_type()
     for t, s in _iterate_sims_by_users(e.keys()):
-        ops = PKDict(delete=[], revert=[])
-        _build_ops(ops, list(s[t].values()), t, e)
-        _revert(ops)
-        _delete(ops)
+        o = _build_ops(list(s[t].values()), t, e)
+        _revert(o, e)
+        _delete(o)
 
 
 # TODO(e-carlin): more than uid (ex email)
@@ -135,7 +134,8 @@ def move_user_sims(target_uid=""):
         shutil.move(lib_file, target)
 
 
-def _build_ops(ops, simulations, sim_type, examples):
+def _build_ops(simulations, sim_type, examples):
+    ops = PKDict(delete=[], revert=[])
     n = set([x.models.simulation.name for x in examples[sim_type]])
     for sim in simulations:
         if sim.name not in n:
@@ -143,15 +143,11 @@ def _build_ops(ops, simulations, sim_type, examples):
         elif _example_is_too_old(sim.simulation.lastModified):
             ops.revert.append((sim.name, sim_type))
             ops.delete.append((sim, sim_type))
+    return ops
 
 
 def _create_example(example):
-    try:
-        simulation_db.save_new_example(example)
-    except Exception as e:
-        pkdlog(
-            "Failed to create example: {} error={}", example.models.simulation.name, e
-        )
+    simulation_db.save_new_example(example)
 
 
 def _delete(ops):
@@ -160,14 +156,15 @@ def _delete(ops):
 
 
 def _example_is_too_old(last_modified):
-    t = (srtime.utc_now_as_milliseconds() - last_modified) / _MILLISECONDS_PER_MONTH
-    return t > _MAXIMUM_SIM_AGE_IN_MONTHS
+    return (
+        (srtime.utc_now_as_milliseconds() - last_modified) / _MILLISECONDS_PER_MONTH
+    ) > _MAXIMUM_SIM_AGE_IN_MONTHS
 
 
-def _get_example_by_name(name, sim_type):
-    for example in simulation_db.examples(sim_type):
-        if example.models.simulation.name == name:
-            return example
+def _get_example_by_name(name, sim_type, examples):
+    for e in examples[sim_type]:
+        if e.models.simulation.name == name:
+            return e
     raise AssertionError(f"Failed to find example simulation with name={name}")
 
 
@@ -177,7 +174,7 @@ def _get_examples_by_type():
     )
 
 
-def _get_named_sims(all_sim_types):
+def _get_named_example_sims(all_sim_types):
     return PKDict(
         {
             t: PKDict(
@@ -211,11 +208,11 @@ def _iterate_sims_by_users(all_sim_types):
         with sirepo.auth_db.session_and_lock(), auth.set_user_outside_of_http_request(
             uid
         ):
-            s = _get_named_sims(all_sim_types)
+            s = _get_named_example_sims(all_sim_types)
             for t in s.keys():
                 yield (t, s)
 
 
-def _revert(ops):
+def _revert(ops, examples):
     for n, t in ops.revert:
-        _create_example(_get_example_by_name(n, t))
+        _create_example(_get_example_by_name(n, t, examples))
