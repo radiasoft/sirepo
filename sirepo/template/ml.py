@@ -291,6 +291,12 @@ def stateless_compute_get_remote_data(data):
     return _get_remote_data(data.url, data.headers_only)
 
 
+def _header_str_to_dict(h):
+    d = {k: v for k, v in h.items()}
+    pkdp("HDRS {}", d)
+    return d
+
+
 def _get_remote_data(url, headers_only):
     import os
     import urllib
@@ -300,7 +306,7 @@ def _get_remote_data(url, headers_only):
     try:
         with urllib.request.urlopen(url) as r:
             if headers_only:
-                return PKDict(headers=r.info())
+                return PKDict(headers=_header_str_to_dict(r.headers))
             with open(_SIM_DATA.lib_file_write_path(
                     _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", filename)
             ), 'wb') as f:

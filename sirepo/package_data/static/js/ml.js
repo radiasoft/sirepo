@@ -30,6 +30,10 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="TrimButton" class="col-sm-5">
           <div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="URL" class="col-sm-5">
+          <input type="text" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />          
+          {{ model.contentLength }} bytes
+        </div>
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
@@ -1961,11 +1965,15 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         if (model.dataOrigin === 'url') {
             // two stages?
             getRemoteData(true, d => {
-                srdbg('HDRS', d.headers.split('\n'));
-                srdbg('FETCH FROM URL TO SERVER');
+                // use length for progress bar, content type for fetching data
+                const len = parseInt(d.headers['Content-Length']);
+                const t = d.headers['Content-Type'];
+                srdbg(len, t);
                 delete model.file;
                 getRemoteData(false, d => {
-                    model.file = d.file;
+                    appState.models[modelName].file = d.file;
+                    appState.models[modelName].contentType = t;
+                    appState.models[modelName].contentLength = len;
                     appState.saveQuietly(modelName);
                 });
             });

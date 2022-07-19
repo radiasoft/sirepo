@@ -263,7 +263,7 @@
             "file": ["Data File", "InputFile"],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
-            "url": ["Data URL", "String", ""]
+            "url": ["Data URL", "URL", ""]
         },
         "dtClassifierClassificationMetricsAnimation": {},
         "dtClassifierConfusionMatrixAnimation": {
