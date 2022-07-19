@@ -410,6 +410,7 @@ SIREPO.viewLogic('geometricSourceView', function(appState, panelState, shadowSer
     ];
 });
 
+
 SIREPO.app.directive('appFooter', function() {
     return {
         restrict: 'A',
@@ -419,9 +420,11 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-dialog=""></div>
+            <div data-sim-conversion-modal="" data-conv-method="convert_to_srw"></div>
         `,
     };
 });
+
 
 SIREPO.app.directive('appHeader', function() {
     return {
@@ -440,6 +443,7 @@ SIREPO.app.directive('appHeader', function() {
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div><a href data-ng-click="openSRWConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New SRW Simulation</a></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -448,8 +452,14 @@ SIREPO.app.directive('appHeader', function() {
               </app-header-right-sim-list>
             </div>
         `,
+        controller: function($scope) {
+            $scope.openSRWConfirm = function() {
+                $('#sr-conv-dialog').modal('show');
+            };
+        }
     };
 });
+
 
 SIREPO.app.directive('reflectivityMaterial', function() {
     return {

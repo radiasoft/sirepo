@@ -849,77 +849,16 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     });
 });
 
-SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) {
+
+SIREPO.app.directive('appFooter', function() {
     return {
         restrict: 'A',
         scope: {
             nav: '=appFooter',
         },
         template: `
-            <div data-common-footer="nav"></div>
-            <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-is-required="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openShadowSimulation()">
-              <div data-ng-if="!displayLink()"> Create a Shadow simulation with an equivalent beamline? </div>
-              <div data-ng-if="displayLink()">
-                Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
-              </div>
-            </div>
-            <div data-download-status="" data-sim-state="" data-label="" data-title="">
-            </div>
+            <div data-sim-conversion-modal="" data-conv-method="create_shadow_simulation"></div>
         `,
-        controller: function($scope) {
-            $scope.newSimURL = false;
-
-            function createNewSim(data) {
-                requestSender.sendRequest(
-                    'newSimulation',
-                    function(shadowData) {
-                        var sim = shadowData.models.simulation;
-                        ['simulationId', 'simulationSerial'].forEach(function(f) {
-                            data.models.simulation[f] = sim[f];
-                        });
-                        data.version = shadowData.version;
-                        requestSender.sendRequest(
-                            'saveSimulationData',
-                            genSimURL,
-                            data);
-                    },
-                    newSimData(data));
-            }
-
-            function newSimData(data) {
-                var res = appState.clone(data.models.simulation);
-                res.simulationType = data.simulationType;
-                return res;
-            }
-
-            function genSimURL(data) {
-                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
-            }
-
-            $scope.closeModal = function() {
-                $('#sr-shadow-dialog').modal('hide');
-                $scope.resetURL();
-            };
-
-            $scope.resetURL = function() {
-                $scope.newSimURL = false;
-            };
-
-            $scope.openShadowSimulation = function() {
-                const d = appState.models;
-                d.method = 'create_shadow_simulation';
-                requestSender.sendStatefulCompute(appState, createNewSim, d);
-                return false;
-            };
-
-            $scope.displayLink = function() {
-                if ($scope.newSimURL) {
-                    return true;
-                }
-                return false;
-            };
-        },
     };
 });
 
@@ -1005,7 +944,6 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
         ]);
         panelState.showField('simulation', 'photonEnergy', isSource);
     }
-
     var modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
     $scope.whenSelected = updateSelected;
     $scope.watchFields = [
@@ -1668,7 +1606,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             };
 
             $scope.openShadowConfirm = function() {
-                $('#sr-shadow-dialog').modal('show');
+                $('#sr-conv-dialog').modal('show');
             };
 
             $scope.openExportRsOpt = function() {
@@ -2015,7 +1953,7 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
     $scope.export = () => {
         self.startSimulation($scope.modelName);
     };
-    
+
     $scope.whenSelected = () => {
         // set form dirty so user does not have to change anything to export
         $scope.$parent.form.$setDirty();

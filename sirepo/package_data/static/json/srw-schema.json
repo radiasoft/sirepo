@@ -768,7 +768,7 @@
         },
         "initialIntensityReport": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"]
         },
@@ -781,7 +781,7 @@
             "verticalPosition": ["Vertical Position [mm]", "Float"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float", 0.01],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
@@ -1075,8 +1075,8 @@
         },
         "watchpointReport": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"]
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"],
+            "characteristic": ["Characteristic to be Extracted", "Characteristic", "0"]
         },
         "zonePlate": {
             "title": ["Element Name", "String", "Zone Plate"],

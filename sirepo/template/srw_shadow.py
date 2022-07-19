@@ -16,8 +16,7 @@ _SRW = sirepo.sim_data.get_class("srw")
 _SHADOW = sirepo.sim_data.get_class("shadow")
 
 
-class SRWShadowConverter:
-
+class Convert:
     __FIELD_MAP = [
         # [shadow model, srw model, field map (field=field or field=[field, scale])
         [
@@ -218,23 +217,69 @@ class SRWShadowConverter:
         ],
     ]
 
+    _MATERIAL_MAP = PKDict(
+        {
+            "Germanium (X0h)": "Ge",
+            "Diamond (X0h)": "Diamond",
+        }
+    )
+
+    _MIRROR_SHAPE = PKDict(
+        mirror="5",
+        ellipsoidMirror="2",
+        sphericalMirror="1",
+        toroidalMirror="3",
+    )
+
+    _SOURCE_TYPE = PKDict(
+        g="geometricSource",
+        u="undulator",
+        m="bendingMagnet",
+    )
+
     def __init__(self):
-        pass
+        self._CONVERSION_DIRECTION = None
 
-    def shadow_to_srw(self, data):
-        # TODO(pjm): implement this
-        pass
+    def __invert_field_map(self):
+        res = []
+        for o in self.__FIELD_MAP:
+            res.append([o[1], o[0], self.__invert_dict(o[2])])
+        return res
 
-    def srw_to_shadow(self, models):
+    def __invert_dict(self, field_map):
+        n = PKDict()
+        for k in field_map:
+            if type(field_map[k]) == list:
+                n[field_map[k][0]] = [k, 1 / field_map[k][1]]
+            else:
+                n[field_map[k]] = k
+        return n
+
+    def to_srw(self, data):
+        self._CONVERSION_DIRECTION = "srw"
+        res = simulation_db.default_data(sirepo.sim_data.get_class("srw").sim_type())
+        self.beamline = res.models.beamline
+        self.__sim_to_srw(data, res.models)
+        PKDict(
+            u=self.__undulator_to_srw,
+            g=self.__geometric_source_to_srw,
+            m=self.__multipole_to_srw,
+        )[res.models.simulation.sourceType](data, res.models)
+        self.__beamline_to_srw(data, res.models)
+        res.models.beamline = self.beamline
+        _SRW.fixup_old_data(res)
+        return res
+
+    def to_shadow(self, models):
+        self._CONVERSION_DIRECTION = "shadow"
         res = simulation_db.default_data(_SHADOW.sim_type())
         self.beamline = res.models.beamline
         self.__simulation_to_shadow(models, res.models)
-        if res.models.simulation.sourceType == "geometricSource":
-            self.__beam_to_shadow(models, res.models)
-        elif res.models.simulation.sourceType == "undulator":
-            self.__undulator_to_shadow(models, res.models)
-        elif res.models.simulation.sourceType == "bendingMagnet":
-            self.__multipole_to_shadow(models, res.models)
+        PKDict(
+            geometricSource=self.__beam_to_shadow,
+            undulator=self.__undulator_to_shadow,
+            bendingMagnet=self.__multipole_to_shadow,
+        )[res.models.simulation.sourceType](models, res.models)
         self.__beamline_to_shadow(models, res.models)
         if res.models.simulation.sourceType == "undulator":
             self.__fix_undulator_gratings(res.models)
@@ -255,6 +300,71 @@ class SRWShadowConverter:
             vdiv2=0,
         )
         self.photon_energy = shadow.geometricSource.singleEnergyValue
+
+    def __geometric_source_to_srw(self, shadow, srw):
+        self.__copy_model_fields("gaussianBeam", shadow, srw)
+        srw.simulation.photonEnergy = shadow.geometricSource.singleEnergyValue
+        srw.gaussianBeam.photonEnergy = srw.simulation.photonEnergy
+        srw.sourceIntensityReport.distanceFromSource = (
+            shadow.plotXYReport.distanceFromSource
+        )
+        srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
+        srw.sourceIntensityReport.horizontalRange = 2
+        srw.sourceIntensityReport.verticalRange = 2
+        srw.simulation.horizontalRange = 2
+        srw.simulation.verticalRange = 2
+        srw.simulation.sampleFactor = 2
+
+    def __beamline_to_srw(self, shadow, srw):
+        for item in shadow.beamline:
+            if item.type in ("aperture", "obstacle"):
+                ap = self.__copy_item(item)
+                # in srw rect = r, circle = c in shadow rect = 0, circle = 1
+                ap.shape = "r" if ap.shape == "0" else "c"
+                self.beamline.append(ap)
+            elif item.type == "watch":
+                watch = self.__copy_item(item)
+                self.beamline.append(watch)
+                srw[f"watchpointReport{watch.id}"] = PKDict(
+                    colorMap=shadow[f"watchpointReport{item.id}"].colorMap,
+                )
+            elif item.type == "crl":
+                srw_crl = self.__crl_to_srw(item)
+                self.beamline.append(srw_crl)
+            elif item.type == "zonePlate":
+                self.beamline.append(self.__zoneplate_to_srw(item))
+            elif item.type == "crystal":
+                self.__crystal_to_srw(item)
+            elif item.type == "mirror":
+                self.__mirror_to_srw(item)
+            elif item.type == "grating":
+                self.__grating_to_srw(item)
+            elif item.type == "lens":
+                self.beamline.append(
+                    self.__copy_item(
+                        item,
+                        PKDict(
+                            type="lens",
+                            verticalOffset=0,
+                            horizontalOffset=0,
+                        ),
+                    )
+                )
+        return self.beamline
+
+    def __crl_to_srw(self, item):
+        res = _SRW.model_defaults(item.type)
+        res.pkupdate(
+            PKDict(
+                attenuationLength=1e-2 / float(item.attenuationCoefficient),
+                shape="1" if item.fmirr == "4" else "2",
+                refractiveIndex=1 - item.refractionIndex,
+                focalDistance=float(item.position)
+                * (item.focalDistance)
+                / (float(item.position) + (item.focalDistance)),
+            )
+        )
+        return self.__copy_item(item, res)
 
     def __beamline_to_shadow(self, srw, shadow):
         for item in srw.beamline:
@@ -347,12 +457,7 @@ class SRWShadowConverter:
         return res
 
     def __crystal_to_shadow(self, item):
-        material_map = PKDict(
-            {
-                "Germanium (X0h)": "Ge",
-                "Diamond (X0h)": "Diamond",
-            }
-        )
+        material_map = self._MATERIAL_MAP
         angle, rotate, offset = self.__compute_angle(
             "vertical"
             if item.diffractionAngle == "0" or item.diffractionAngle == "3.14159265"
@@ -368,12 +473,42 @@ class SRWShadowConverter:
                     f_mosaic="0",
                     braggMinEnergy=item.energy - 500,
                     braggMaxEnergy=item.energy + 500,
+                    f_refrac="0" if item.useCase == "1" else "1",
                     braggEnergyStep=50,
                     alpha=rotate,
                 ),
             )
         )
         self.__reset_rotation(rotate, item.position)
+
+    def __crystal_to_srw(self, item):
+        material_map = self.__invert_dict(self._MATERIAL_MAP)
+        o = self.__get_orientation(item)
+        n = self.__copy_item(
+            item,
+            sirepo.template.srw._compute_grazing_orientation(
+                sirepo.template.srw._compute_crystal_orientation(
+                    sirepo.template.srw._compute_crystal_init(
+                        _SRW.model_defaults(item.type).pkupdate(
+                            PKDict(
+                                grazingAngle=((math.pi * (90 - item.t_incidence)) / 180)
+                                * 1000,
+                                autocomputeVectors=o,
+                                horizontalOffset=item.offz if o == "horizontal" else 0,
+                                verticalOffset=item.offz if o == "vertical" else 0,
+                                type="crystal",
+                                useCase="2" if item.f_refrac == "1" else "1",
+                                material=material_map.get(
+                                    item.braggMaterial, "Si (SRW)"
+                                ),
+                                energy=item.braggMinEnergy + 500,
+                            )
+                        )
+                    )
+                )
+            ),
+        )
+        self.beamline.append(n)
 
     def __compute_angle(self, orientation, item):
         rotate = 0
@@ -389,26 +524,36 @@ class SRWShadowConverter:
         angle = 90 - (abs(float(item.grazingAngle)) * 180 / math.pi / 1e3)
         return angle, rotate, offset
 
-    def __copy_fields(self, name, srw, shadow, is_item):
-        for m in self.__FIELD_MAP:
+    def __copy_fields(self, name, input, out, is_item):
+        self.__validate_conversion_direction()
+        fmap = (
+            self.__FIELD_MAP
+            if self._CONVERSION_DIRECTION == "shadow"
+            else self.__invert_field_map()
+        )
+        for m in fmap:
             if m[0] != name:
                 continue
-            _, srw_name, fields = m
-            if is_item and srw.type != srw_name:
+            _, from_name, fields = m
+            if is_item and input.type != from_name:
                 continue
-            schema = _SRW.schema().model[srw_name]
+            if self._CONVERSION_DIRECTION == "shadow":
+                schema = _SRW.schema().model[from_name]
+            else:
+                schema = _SHADOW.schema().model[from_name]
+
             for f in fields:
                 if isinstance(fields[f], list):
-                    srw_f, scale = fields[f]
+                    from_f, scale = fields[f]
                 else:
-                    srw_f, scale = fields[f], 1
-                v = srw[srw_f] if is_item else srw[srw_name][srw_f]
-                if schema[srw_f][1] == "Float":
+                    from_f, scale = fields[f], 1
+                v = input[from_f] if is_item else input[from_name][from_f]
+                if schema[from_f][1] == "Float":
                     v = float(v) * scale
                 if is_item:
-                    shadow[f] = v
+                    out[f] = v
                 else:
-                    shadow[name][f] = v
+                    out[name][f] = v
 
     def __copy_item(self, item, attrs=None):
         res = PKDict(
@@ -424,11 +569,11 @@ class SRWShadowConverter:
         self.__copy_item_fields(item, res)
         return res
 
-    def __copy_item_fields(self, srw, shadow):
-        self.__copy_fields(shadow.type, srw, shadow, True)
+    def __copy_item_fields(self, input, out):
+        self.__copy_fields(out.type, input, out, True)
 
-    def __copy_model_fields(self, name, srw, shadow):
-        self.__copy_fields(name, srw, shadow, False)
+    def __copy_model_fields(self, name, input, out):
+        self.__copy_fields(name, input, out, False)
 
     def __grating_to_shadow(self, item, shadow):
         angle, rotate, offset = self.__compute_angle(
@@ -458,6 +603,25 @@ class SRWShadowConverter:
         )
         self.__reset_rotation(rotate, item.position)
 
+    def __get_orientation(self, item):
+        if item.alpha == 0 or item.alpha == 180:
+            return "vertical"
+        return "horizontal"
+
+    def __grating_to_srw(self, item):
+        o = self.__get_orientation(item)
+        n = self.__copy_item(
+            item,
+            _SRW.model_defaults(item.type).pkupdate(
+                PKDict(
+                    type="grating",
+                    grazingAngle=((math.pi * (90 - item.t_incidence)) / 180) * 1000,
+                    autocomputeVectors=o,
+                )
+            ),
+        )
+        self.beamline.append(n)
+
     def __fix_undulator_gratings(self, shadow):
         # fix target photon energy on any gratings to exact photon energy value
         for item in shadow.beamline:
@@ -475,18 +639,13 @@ class SRWShadowConverter:
             "sphericalMirror",
             "toroidalMirror",
         ):
-            mirror_shape = PKDict(
-                mirror="5",
-                ellipsoidMirror="2",
-                sphericalMirror="1",
-                toroidalMirror="3",
-            )
+
             self.beamline.append(
                 self.__copy_item(
                     item,
                     PKDict(
                         type="mirror",
-                        fmirr=mirror_shape[item.type],
+                        fmirr=self._MIRROR_SHAPE[item.type],
                         t_incidence=angle,
                         alpha=rotate,
                         fhit_c="1",
@@ -500,6 +659,26 @@ class SRWShadowConverter:
             )
         self.__reset_rotation(rotate, item.position)
         # TODO(pjm): set vars: offx, offy, x_rot, y_rot, z_rot, cil_ang
+
+    def __mirror_to_srw(self, item):
+        o = self.__get_orientation(item)
+        n = self.__copy_item(
+            item,
+            _SRW.model_defaults(item.type).pkupdate(
+                sirepo.template.srw._compute_grazing_orientation(
+                    PKDict(
+                        type=self.__invert_dict(self._MIRROR_SHAPE)[item.fmirr],
+                        grazingAngle=((math.pi * (90 - item.t_incidence)) / 180) * 1000,
+                        autocomputeVectors=o,
+                        horizontalOffset=item.offz if o == "horizontal" else 0,
+                        verticalOffset=item.offz if o == "vertical" else 0,
+                        title=item.title,
+                        heightProfileFile="",
+                    )
+                )
+            ),
+        )
+        self.beamline.append(n)
 
     def __multipole_to_shadow(self, srw, shadow):
         self.__copy_model_fields("bendingMagnet", srw, shadow)
@@ -521,6 +700,49 @@ class SRWShadowConverter:
             1e9 / scipy.constants.c * srw.electronBeam.energy / f
         )
 
+    def __multipole_to_srw(self, shadow, srw):
+        self.__set_srw_simfields(shadow, srw)
+        srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
+        srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
+        self.__set_srw_electronBeam(shadow, srw)
+        self.__set_source_distance(shadow, srw)
+        srw.multipole.by = (srw.electronBeam.energy * 1e9) / (
+            scipy.constants.c * shadow.bendingMagnet.r_magnet
+        )
+
+    def __set_srw_simfields(self, shadow, srw):
+        srw.simulation.horizontalRange = shadow.rayFilter.x2 - shadow.rayFilter.x1
+        srw.simulation.verticalRange = shadow.rayFilter.z2 - shadow.rayFilter.z1
+        srw.simulation.photonEnergy = shadow.bendingMagnet.ph1
+
+    def __get_model(self, shadow_name, srw_name):
+        self.__validate_conversion_direction()
+        map = self.__FIELD_MAP
+        if self._CONVERSION_DIRECTION == "srw":
+            map = self.__invert_field_map()
+        for n in map:
+            if n[0] == srw_name and n[1] == shadow_name:
+                return n[2]
+        raise AssertionError(
+            f"No match in the field map for shadow_name: {shadow_name} srw_name: {srw_name}"
+        )
+
+    def __set_srw_electronBeam(self, shadow, srw):
+        e = self.__get_model("electronBeam", "electronBeam")
+        for k in e:
+            srw.electronBeam[k] = shadow.electronBeam[e[k]]
+
+    def __set_source_distance(self, shadow, srw):
+        for n in (
+            "coherentModesAnimation",
+            "fluxReport",
+            "intensityReport",
+            "powerDensityReport",
+            "simulation",
+            "sourceIntensityReport",
+        ):
+            srw[n]["distanceFromSource"] = shadow.beamline[0].position
+
     def __next_id(self):
         res = 0
         for item in self.beamline:
@@ -541,18 +763,23 @@ class SRWShadowConverter:
             )
 
     def __simulation_to_shadow(self, srw, shadow):
-        _SOURCE_TYPE = PKDict(
-            g="geometricSource",
-            u="undulator",
-            m="bendingMagnet",
-        )
         shadow.simulation.update(
-            sourceType=_SOURCE_TYPE[srw.simulation.sourceType],
+            sourceType=self._SOURCE_TYPE[srw.simulation.sourceType],
             name=f"{srw.simulation.name} (from SRW)",
             npoint=100000,
         )
         shadow.plotXYReport.distanceFromSource = srw.simulation.distanceFromSource
         shadow.initialIntensityReport.colorMap = srw.initialIntensityReport.colorMap
+
+    def __sim_to_srw(self, shadow, srw):
+        srw.simulation.update(
+            sourceType=self.__invert_dict(self._SOURCE_TYPE)[
+                shadow.simulation.sourceType
+            ],
+            name=f"{shadow.simulation.name} (from shadow)",
+        )
+        srw.simulation.distanceFromSource = shadow.plotXYReport.distanceFromSource
+        srw.initialIntensityReport.colorMap = shadow.initialIntensityReport.colorMap
 
     def __undulator_to_shadow(self, srw, shadow):
         self.__copy_model_fields("undulator", srw, shadow)
@@ -567,6 +794,15 @@ class SRWShadowConverter:
         )
         self.photon_energy = energy
 
+    def __undulator_to_srw(self, shadow, srw):
+        self.__copy_model_fields("undulator", shadow, srw)
+        self.__copy_model_fields("electronBeam", shadow, srw)
+        srw.simulation.photonEnergy = shadow.undulator.photon_energy
+
+    def __validate_conversion_direction(self):
+        if not self._CONVERSION_DIRECTION:
+            raise AssertionError("Conversion direction has not been established")
+
     def __zoneplate_to_shadow(self, item, shadow):
         # TODO(pjm): map User-defined matrials to defaults
         self.beamline.append(
@@ -580,4 +816,15 @@ class SRWShadowConverter:
                     * 1e6,
                 ),
             )
+        )
+
+    def __zoneplate_to_srw(self, item):
+        res = _SRW.model_defaults(item.type)
+        return self.__copy_item(
+            item,
+            res.pkupdate(
+                PKDict(
+                    type="zonePlate",
+                )
+            ),
         )
