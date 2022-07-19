@@ -4,6 +4,10 @@ on:
     branches:
       - main
       - master
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
   ci-pull-request:
