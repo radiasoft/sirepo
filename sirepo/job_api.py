@@ -39,7 +39,7 @@ class API(sirepo.api.Base):
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
         )
 
-    @sirepo.api.Spec("require_adm", data="PKDict all_input")
+    @sirepo.api.Spec("require_adm")
     def api_admJobs(self):
         return self.request(
             _request_content=PKDict(**self.parse_post()),
@@ -124,7 +124,7 @@ class API(sirepo.api.Base):
             e = "unexpected exception"
         return PKDict(state="error", error=e)
 
-    @sirepo.api.Spec("require_user", data="PKDict all_input")
+    @sirepo.api.Spec("require_user")
     def api_ownJobs(self):
         return self.request(
             _request_content=PKDict(
@@ -141,7 +141,7 @@ class API(sirepo.api.Base):
         # Always true from the client's perspective
         return self.reply_json({"state": "canceled"})
 
-    @sirepo.api.Spec("require_user", data="SimData all_input")
+    @sirepo.api.Spec("require_user", data="RunMultiSpec")
     def api_runMulti(self):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
