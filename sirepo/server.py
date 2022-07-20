@@ -535,8 +535,7 @@ class API(sirepo.api.Base):
         """
         if not path_info:
             sirepo.util.raise_not_found("empty path info")
-        pkdp(path_info)
-        self._proxy_react('static/' + path_info)
+        self._proxy_react("static/" + path_info)
         p = sirepo.resource.static(sirepo.util.safe_path(path_info))
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
             return http_reply.headers_for_cache(
@@ -633,13 +632,13 @@ class API(sirepo.api.Base):
         if not cfg.react_server:
             return
         if path is not None and path not in (
-            'manifest.json',
-            'myapp-schema.json',
-            'static/js/bundle.js',
-            'static/js/bundle.js.map',
+            "manifest.json",
+            "myapp-schema.json",
+            "static/js/bundle.js",
+            "static/js/bundle.js.map",
         ):
             return
-        r = requests.get(cfg.react_server + (path or ''))
+        r = requests.get(cfg.react_server + (path or ""))
         # We want to throw an exception here, because it shouldn't happen
         r.raise_for_status()
         raise sirepo.util.Response(self.reply_as_proxy(r))
@@ -702,11 +701,16 @@ def _cfg_react_server(value):
     if value is None:
         return None
     if not pkconfig.channel_in("dev"):
-        pkconfig.raise_error('invalid channel={}; must be dev', pkconfig.cfg.channel)
+        pkconfig.raise_error("invalid channel={}; must be dev", pkconfig.cfg.channel)
     u = urllib.parse.urlparse(value)
-    if u.scheme and u.netloc and u.path == '/' and len(u.params + u.query + u.fragment) == 0:
+    if (
+        u.scheme
+        and u.netloc
+        and u.path == "/"
+        and len(u.params + u.query + u.fragment) == 0
+    ):
         return value
-    pkconfig.raise_error('invalid url={}, must be http://netloc/', value)
+    pkconfig.raise_error("invalid url={}, must be http://netloc/", value)
 
 
 def _handle_error(error):
