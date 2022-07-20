@@ -15,6 +15,7 @@ def test_importer(import_req):
     from sirepo.template import opal_parser
     import re
 
+    # TODO (gurhar1133): switch to case_dirs test
     with pkunit.save_chdir_work():
         for fn in pkio.sorted_glob(pkunit.data_dir().join("*.in")):
             error = None
