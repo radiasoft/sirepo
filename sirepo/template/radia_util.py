@@ -207,6 +207,10 @@ def apply_transform(g_id, xform):
     _TRANSFORMS[xform["model"]](g_id, xform)
 
 
+def build_container(g_ids):
+    return radia.ObjCnt(g_ids)
+
+
 def build_cuboid(**kwargs):
     d = PKDict(kwargs)
     g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
@@ -215,8 +219,19 @@ def build_cuboid(**kwargs):
     return g_id
 
 
-def build_container(g_ids):
-    return radia.ObjCnt(g_ids)
+def build_cylinder(**kwargs):
+    d = PKDict(kwargs)
+    g_id = radia.ObjCylMag(
+        d.center,
+        d.radius,
+        d.size[AXES.index(d.extrusion_axis)],
+        d.num_sides,
+        d.extrusion_axis,
+        d.magnetization
+    )
+    _apply_segments(g_id, [d.segments, 1, 1])
+    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
+    return g_id
 
 
 def build_racetrack(**kwargs):

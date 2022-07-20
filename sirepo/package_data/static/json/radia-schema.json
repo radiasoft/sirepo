@@ -303,6 +303,7 @@
         ],
         "ObjectType": [
             ["cuboid", "Cuboid"],
+            ["cylinder", "Cylinder"],
             ["cee", "Extruded C-Bend"],
             ["ell", "Extruded L-Bend"],
             ["jay", "Extruded J-Bend"],
@@ -379,6 +380,12 @@
         "cuboid": {
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "cuboid"]
+        },
+        "cylinder": {
+            "_super": ["_", "model", "extrudedObject"],
+            "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
+            "radius": ["Radius", "Float", 5.0, "", 0.0],
+            "type": ["_", "ObjectType", "cylinder"]
         },
         "cee": {
             "_super": ["_", "model", "stemmed"],
@@ -654,11 +661,14 @@
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "ell"]
         },
-        "extrudedPoly": {
+        "extrudedObject": {
             "_super": ["_", "model", "geomObject"],
-            "area": ["_", "Float", 0,0],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
-            "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
+            "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1]
+        },
+        "extrudedPoly": {
+            "_super": ["_", "model", "extrudedObject"],
+            "area": ["_", "Float", 0,0],
             "heightAxis": ["_", "BeamAxis", "y"],
             "points": ["Points", "Points", []],
             "triangulationLevel": ["Triangulation Detail", "Range", 0.5, "Governs the max size of triangles used to subdivide the shape, from coarse to fine. Smaller triangles gain accuracy at the expense of longer solve times.", 0.0, 1.0],
@@ -1252,8 +1262,10 @@
                 ["Dimensions", [
                     "type",
                     "color",
-                    "stemmed.extrusionAxis",
-                    "extrudedPoly.extrusionAxisSegments",
+                    "cylinder.radius",
+                    "extrudedObject.extrusionAxis",
+                    "cylinder.numSides",
+                    "extrudedObject.extrusionAxisSegments",
                     "extrudedPoly.triangulationLevel",
                     "stemmed.armHeight",
                     "stemmed.armPosition",
