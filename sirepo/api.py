@@ -58,6 +58,13 @@ class Base:
     def reply_html(self, path):
         return http_reply.render_html(path)
 
+    def reply_as_proxy(self, response):
+        r = http_reply.gen_response(response.content)
+        # TODO(robnagler) requests seems to return content-encoding gzip, but
+        # it doesn't seem to be coming from npm
+        r.headers["Content-Type"] = response.headers["Content-Type"]
+        return http_reply.headers_for_no_cache(r)
+
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
