@@ -16,7 +16,8 @@ def test_importer(import_req):
     import re
 
     for d in pkunit.case_dirs():
-        data, files = opal_parser.parse_file(pkio.read_text(d.join("opal.in")), filename=d.join("opal.in"))
+        data, files = opal_parser.parse_file(
+            pkio.read_text(d.join("opal.in")), filename=d.join("opal.in")
+        )
         data["report"] = "animation"
-        actual = opal.python_source_for_model(data, None)
-        pkio.write_text(d.join("opal.txt"), actual)
+        pkio.write_text(d.join("opal.txt"), opal.python_source_for_model(data, None))
