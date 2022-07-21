@@ -627,32 +627,24 @@ def _generate_parameters_file(data):
 
 def _build_model_py(v):
     def _import_layers(v):
-        i = ", ".join(n for n in v.layerImplementationNames if not n == "Dense")
-        if i:
-            return "," + i
-        return ""
+        return "".join(", " + n for n in v.layerImplementationNames if not n == "Dense")
 
     def _layer_args(layer):
-        l = layer.layer
-        if l == "Activation":
-            return layer.activationActivation
-        if l == "AlphaDropout":
-            return layer.alphaDropoutRate
-        if l == "Dense":
-            return f'{layer.denseDimensionality}, activation="{layer.denseActivation}"'
-        if l == "Dropout":
-            return layer.dropoutRate
-        if l == "Flatten":
-            return ""
-        if l == "GaussianDropout":
-            return layer.gaussianDropoutRate
-        if l == "GaussianNoise":
-            return layer.gaussianNoiseStddev
-        raise ValueError(f"invalid layer.layer={l}")
+        d = PKDict(
+            Activation=f'"{layer.activationActivation}"',
+            AlphaDropout=layer.alphaDropoutRate,
+            Dense=f'{layer.denseDimensionality}, activation="{layer.denseActivation}"',
+            Dropout=layer.dropoutRate,
+            Flatten="",
+            GaussianDropout=layer.gaussianDropoutRate,
+            GaussianNoise=layer.gaussianNoiseStddev,
+        )
+        assert layer.layer in d, ValueError(f"invalid layer.layer={layer.layer}")
+        return d[layer.layer]
 
-    def _build_layers(v):
+    def _build_layers(layers):
         res = ""
-        for i, l in enumerate(v.neuralNetLayers):
+        for i, l in enumerate(layers):
             if i == 0:
                 c = f'({l.denseDimensionality}, activation="{l.denseActivation}")(input_args)'
             else:
@@ -662,10 +654,10 @@ def _build_model_py(v):
 
     return f"""
 from keras.models import Model, Sequential
-from keras.layers import Dense, Input {_import_layers(v)}
+from keras.layers import Dense, Input{_import_layers(v)}
 
 input_args = Input(shape=({v.inputDim},))
-{_build_layers(v)}
+{_build_layers(v.neuralNetLayers)}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
 """
