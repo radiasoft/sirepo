@@ -129,7 +129,7 @@ def test_synergia_data_file(fc):
         ),
     )
     pkunit.pkeq("pending", run.state, "not pending, run={}", run)
-    for _ in range(20):
+    for _ in range(40):
         if run.state == "completed":
             break
         run = fc.sr_post("runStatus", run.nextRequest)

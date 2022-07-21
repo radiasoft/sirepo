@@ -36,7 +36,7 @@ def test_myapp_cancel(fc):
             ),
         )
         pkdlog(r2)
-        for _ in range(20):
+        for _ in range(40):
             pkunit.pkok(r2.state != "error", "unexpected error state: {}")
             if r2.state == "running":
                 break
@@ -60,7 +60,7 @@ def test_myapp_cancel(fc):
             simulationType=d.simulationType,
         ),
     )
-    for _ in range(50):
+    for _ in range(100):
         pkdlog(r1)
         pkunit.pkok(r1.state != "error", "unexpected error state: {}")
         if r1.state == "running":
@@ -72,7 +72,7 @@ def test_myapp_cancel(fc):
 
     t2 = threading.Thread(target=_t2)
     t2.start()
-    time.sleep(0.1)
+    time.sleep(0.5)
     pkdlog("runCancel")
     c = fc.sr_post("runCancel", r1.nextRequest)
     pkunit.pkeq("canceled", c.state)
@@ -88,7 +88,7 @@ def test_myapp_cancel(fc):
             simulationType=d.simulationType,
         ),
     )
-    for _ in range(10):
+    for _ in range(20):
         pkunit.pkok(r1.state != "error", "unexpected error state: {}")
         if r1.state == "running":
             break
@@ -136,7 +136,7 @@ def test_elegant_concurrent_sim_frame(fc):
                 simulationType=d.simulationType,
             ),
         )
-        for _ in range(10):
+        for _ in range(20):
             pkunit.pkok(r1.state != "error", "unexpected error state: {}")
             if r1.state == "completed":
                 break
