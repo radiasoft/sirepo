@@ -291,6 +291,26 @@ def stateless_compute_get_remote_data(data):
     return _get_remote_data(data.url, data.headers_only)
 
 
+def stateless_compute_remote_data_bytes_loaded(data):
+    return _remote_data_bytes_loaded(data.filename)
+
+
+def _remote_data_bytes_loaded(filename):
+    import os
+    try:
+        return PKDict(
+            bytesLoaded=os.path.getsize(
+                _SIM_DATA.lib_file_abspath(
+                    _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", filename)
+                )
+            )
+        )
+    except Exception as e:
+        return PKDict(
+            error=e
+        )
+
+
 # if this conversion is not done, the header gets returned as a newline-delimited string
 # EmailMessage headers pseduo-dicts and can have duplicated keys, which we ignore
 def _header_str_to_dict(h):

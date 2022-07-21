@@ -30,11 +30,12 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="TrimButton" class="col-sm-5">
           <div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="URL" class="col-sm-5">
-          <input type="text" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />          
-          <span>{{ model.bytesLoaded || 0 }}/{{ model.contentLength }} bytes</span>
-          <div data-ng-show="! model.bytesLoaded" class="progress">
-            <div data-ng-show="! model.file" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
+        <div data-ng-switch-when="URL" class="col-sm-5" data-field-class="fieldClass">
+          <input type="text" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" />          
+          <span style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength }} bytes</span>
+          <div class="sr-input-warning"></div>
+          <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
           </div>
         </div>
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
@@ -333,7 +334,7 @@ SIREPO.app.controller('DataController', function (appState, panelState, requestS
     };
 
     self.isTextData = () => {
-        return self.hasDataFile() && appState.applicationState().dataFile.contentType.includes('text/');
+        return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'text';
     };
 
     //appState.whenModelsLoaded($scope, function() {
@@ -1869,7 +1870,7 @@ SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
+SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimulation, requestSender, validationService, $rootScope, $scope) {
 
     const modelName = $scope.modelName;
     const self = this;
@@ -1884,8 +1885,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         if (dataFile.file === dataFile.oldFile) {
             return;
         }
-        // placeholder - we'll ge the content type for files from the serveer
-        dataFile.contentType = 'text/csv';
         dataFile.oldFile = dataFile.file;
         appState.saveQuietly('dataFile');
         requestSender.sendStatefulCompute(
@@ -1944,9 +1943,44 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function updateEditor() {
-        const o = appState.models[modelName].dataOrigin;
+        const dataFile = appState.models[modelName];
+        const o = dataFile.dataOrigin;
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
+        validateURL();
+        getBytesLoaded();
+    }
+
+    function validateURL() {
+        const dataFile = appState.models[modelName];
+        validationService.validateField(
+            modelName,
+            'url',
+            'input',
+            dataFile.dataOrigin === 'file' || ! ! dataFile.url,
+            'Enter a url'
+        );
+    }
+
+    function getBytesLoaded() {
+        const dataFile = appState.models[modelName];
+        if (dataFile.dataOrigin === 'file' || ! dataFile.file) {
+            return;
+        }
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                if (d.error) {
+                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
+                }
+                appState.models[modelName].bytesLoaded = d.bytesLoaded;
+                appState.saveQuietly(modelName);
+            },
+            {
+                method: 'remote_data_bytes_loaded',
+                filename: dataFile.file,
+            }
+        );
     }
 
     function getRemoteData(headersOnly, callback) {
@@ -1964,32 +1998,35 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 method: 'get_remote_data',
                 url: appState.models[modelName].url,
                 headers_only: headersOnly
+            },
+            {
+                onError: data => {
+                    // cancel
+                }
             }
         );
     }
 
     function updateData() {
-        const dataFile = appState.models[modelName]
+        const dataFile = appState.models[modelName];
+        dataFile.contentLength = 0;
+        dataFile.bytesLoaded = 0;
+        appState.saveQuietly(modelName);
         if (dataFile.dataOrigin === 'url') {
             if (dataFile.oldURL === dataFile.url && dataFile.bytesLoaded === dataFile.contentLength) {
                 return;
             }
-            dataFile.contentLength = 0;
-            dataFile.bytesLoaded = 0;
-            appState.saveQuietly(modelName);
-            // two stages now; should be a single ansync call but not a "simulation"
+            //TODO(mvk): two stages now; should be a single background call but not a "simulation"
+            // write in chunks on server and send updates - can we use websockets?
             getRemoteData(true, d => {
-                // use length for progress bar, content type for fetching data from file
-                // actually we can read text or image data from a zip, so we'll use
-                // user input to determine the type
-                // can we write in chunks?
-                const len = parseInt(d.headers['Content-Length']);
-                const t = d.headers['Content-Type'];
+                // use length for progress bar
+                dataFile.contentLength = parseInt(d.headers['Content-Length']);
+                appState.saveQuietly(modelName);
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
-                    dataFile.contentType = t;
-                    dataFile.contentLength = len;
-                    dataFile.bytesLoaded = len;
+                    dataFile.bytesLoaded = dataFile.contentLength;
+                    // placeholder to keep columns from showing up until we can read from zips, tarballs
+                    dataFile.dataFormat = 'image';
                     appState.saveQuietly(modelName);
                 });
             });
@@ -2000,6 +2037,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     $scope.watchFields = [
         [`${modelName}.appMode`], processAppMode,
         [`${modelName}.dataOrigin`], updateEditor,
+        [`${modelName}.url`], validateURL,
     ];
 
     $scope.whenSelected = () => {
