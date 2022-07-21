@@ -293,7 +293,6 @@ def stateless_compute_get_remote_data(data):
 
 def _header_str_to_dict(h):
     d = {k: v for k, v in h.items()}
-    pkdp("HDRS {}", d)
     return d
 
 

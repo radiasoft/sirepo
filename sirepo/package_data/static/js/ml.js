@@ -326,74 +326,21 @@ SIREPO.app.controller('AnalysisController', function (appState, mlService, panel
 });
 
 SIREPO.app.controller('DataController', function (appState, panelState, requestSender, $scope) {
-    var self = this;
-
-    function computeColumnInfo() {
-        var dataFile = appState.models.dataFile;
-        if (! dataFile.file) {
-            appState.models.columnReports = [];
-            appState.saveChanges('columnReports');
-            return;
-        }
-        if (dataFile.file == dataFile.oldFile) {
-            return;
-        }
-        dataFile.oldFile = dataFile.file;
-        appState.saveQuietly('dataFile');
-        requestSender.sendStatefulCompute(
-            appState,
-            function(data) {
-                appState.models.columnInfo = data;
-                computeDefaultPartition();
-                appState.models.columnReports = [];
-                appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
-            },
-            {
-                method: 'compute_column_info',
-                dataFile: dataFile,
-            }
-        );
-    }
-
-    function computeDefaultPartition() {
-        var size = appState.models.columnInfo.rowCount;
-        var partition = appState.models.partition;
-        if (! partition.cutoff0 || ! partition.cutoff1
-            || partition.cutoff0 > size
-            || partition.cutoff1 > size) {
-            partition.cutoff0 = parseInt(0.125 * size);
-            partition.cutoff1 = parseInt((1 - 0.125) * size);
-        }
-    }
-
-    function dataFileChanged() {
-        computeColumnInfo();
-        const dataFile = appState.models.dataFile;
-        const partition = appState.models.partition;
-        if (dataFile.appMode == 'regression'
-            && partition.training + partition.testing >= 100) {
-            ['training', 'testing', 'validation'].forEach(function(f) {
-                delete partition[f];
-            });
-            appState.setModelDefaults(partition, 'partition');
-        }
-        else if (dataFile.appMode == 'classification') {
-            if (partition.training + partition.testing < 100) {
-                partition.testing = 100 - partition.training;
-            }
-        }
-        appState.saveQuietly('partition');
-    }
+    const self = this;
 
     self.hasDataFile = function() {
         return appState.isLoaded() && appState.applicationState().dataFile.file;
     };
 
-    appState.whenModelsLoaded($scope, function() {
-        $scope.$on('dataFile.changed', dataFileChanged);
-        //TODO(pjm): enable when analysis tab is completed
-        //panelState.showEnum('dataFile', 'appMode', 'analysis', false);
-    });
+    self.isTextData = () => {
+        return self.hasDataFile() && appState.applicationState().dataFile.contentType.includes('text/');
+    };
+
+    //appState.whenModelsLoaded($scope, function() {
+    //    $scope.$on('dataFile.changed', dataFileChanged);
+    //    //TODO(pjm): enable when analysis tab is completed
+    //    //panelState.showEnum('dataFile', 'appMode', 'analysis', false);
+    //});
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
@@ -1928,6 +1875,64 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     const model = appState.models[modelName];
     const self = this;
 
+    function computeColumnInfo() {
+        const dataFile = appState.models.dataFile;
+        if (! dataFile.file) {
+            appState.models.columnReports = [];
+            appState.saveChanges('columnReports');
+            return;
+        }
+        if (dataFile.file === dataFile.oldFile) {
+            return;
+        }
+        // placeholder - we'll ge the content type for files from the serveer
+        dataFile.contentType = 'text/csv';
+        dataFile.oldFile = dataFile.file;
+        appState.saveQuietly('dataFile');
+        requestSender.sendStatefulCompute(
+            appState,
+            function(data) {
+                appState.models.columnInfo = data;
+                computeDefaultPartition();
+                appState.models.columnReports = [];
+                appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
+            },
+            {
+                method: 'compute_column_info',
+                dataFile: dataFile,
+            }
+        );
+    }
+
+    function computeDefaultPartition() {
+        const size = appState.models.columnInfo.rowCount;
+        const partition = appState.models.partition;
+        if (! partition.cutoff0 || ! partition.cutoff1
+            || partition.cutoff0 > size
+            || partition.cutoff1 > size) {
+            partition.cutoff0 = parseInt(0.125 * size);
+            partition.cutoff1 = parseInt((1 - 0.125) * size);
+        }
+    }
+
+    function dataFileChanged() {
+        computeColumnInfo();
+        const dataFile = appState.models.dataFile;
+        const partition = appState.models.partition;
+        if (dataFile.appMode == 'regression'
+            && partition.training + partition.testing >= 100) {
+            ['training', 'testing', 'validation'].forEach(function(f) {
+                delete partition[f];
+            });
+            appState.setModelDefaults(partition, 'partition');
+        }
+        else if (dataFile.appMode == 'classification') {
+            if (partition.training + partition.testing < 100) {
+                partition.testing = 100 - partition.training;
+            }
+        }
+        appState.saveQuietly('partition');
+    }
 
     function processAppMode() {
         const appMode = model.appMode;
@@ -1980,6 +1985,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 });
             });
         }
+        dataFileChanged();
     }
 
     $scope.watchFields = [
