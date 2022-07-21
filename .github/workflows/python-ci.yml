@@ -1,13 +1,17 @@
-name: ci-pull-request
+name: python-ci
 on:
   pull_request:
     branches:
       - main
       - master
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
-  ci-pull-request:
+  python-ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: curl -LsS https://radia.run | bash -s ci-pull-request
+      - run: curl -LsS https://radia.run | bash -s python-ci

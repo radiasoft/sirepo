@@ -121,8 +121,8 @@ class API(sirepo.api.Base):
     @sirepo.api.Spec("require_user")
     def api_ownJobs(self):
         return self.request(
-            _request_content=PKDict(
-                uid=sirepo.auth.logged_in_user(), **self.parse_post()
+            _request_content=self.parse_post().pkupdate(
+                uid=sirepo.auth.logged_in_user(),
             ),
         )
 
