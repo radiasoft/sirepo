@@ -15,8 +15,8 @@ _MAX_SECS_PARALLEL_PREMIUM = "4"
 def setup_module(module):
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_MAX_SECS_PARALLEL_PREMIUM=_MAX_SECS_PARALLEL_PREMIUM,
-        SIREPO_JOB_SUPERVISOR_MAX_SECS_ANALYSIS="3",
-        SIREPO_JOB_SUPERVISOR_MAX_SECS_IO="3",
+        SIREPO_JOB_SUPERVISOR_MAX_SECS_ANALYSIS="6",
+        SIREPO_JOB_SUPERVISOR_MAX_SECS_IO="6",
     )
 
 
@@ -71,6 +71,8 @@ def test_myapp_analysis(fc):
     from pykern.pkdebug import pkdp
 
     d = fc.sr_sim_data()
+    # If a machine is slow, this might timeout on getting the heightWeightReport
+    # in analysis when we want the timeout below.
     r = fc.sr_run_sim(d, "heightWeightReport", expect_completed=True)
     r = fc.sr_get(
         "downloadDataFile",
