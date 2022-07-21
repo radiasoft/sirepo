@@ -40,7 +40,7 @@ def test_srw(fc):
         if r.state == "completed":
             return r
         cancel = r.get("nextRequest")
-        for _ in range(10):
+        for _ in range(20):
             if r.state == "canceled":
                 pkunit.pkeq(
                     int(_MAX_SECS_PARALLEL_PREMIUM),

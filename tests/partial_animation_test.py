@@ -32,7 +32,7 @@ def test_synergia(fc):
             ),
         )
         cancel = r.nextRequest
-        for _ in range(100):
+        for _ in range(200):
             if r.state in ("completed", "error"):
                 pkdlog(r.state)
                 cancel = None
