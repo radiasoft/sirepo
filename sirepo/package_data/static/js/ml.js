@@ -33,7 +33,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="URL" class="col-sm-5">
           <input type="text" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />          
           <span>{{ model.bytesLoaded || 0 }}/{{ model.contentLength }} bytes</span>
-          <div class="progress">
+          <div data-ng-show="! model.bytesLoaded" class="progress">
             <div data-ng-show="! model.file" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
           </div>
         </div>
@@ -1969,22 +1969,27 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function updateData() {
-        if (appState.models[modelName].dataOrigin === 'url') {
-            appState.models[modelName].contentLength = 0;
-            appState.models[modelName].bytesLoaded = 0;
+        const dataFile = appState.models[modelName]
+        if (dataFile.dataOrigin === 'url') {
+            if (dataFile.oldURL === dataFile.url && dataFile.bytesLoaded === dataFile.contentLength) {
+                return;
+            }
+            dataFile.contentLength = 0;
+            dataFile.bytesLoaded = 0;
             appState.saveQuietly(modelName);
             // two stages now; should be a single ansync call but not a "simulation"
             getRemoteData(true, d => {
                 // use length for progress bar, content type for fetching data from file
+                // actually we can read text or image data from a zip, so we'll use
+                // user input to determine the type
                 // can we write in chunks?
                 const len = parseInt(d.headers['Content-Length']);
                 const t = d.headers['Content-Type'];
-                delete appState.models[modelName].file;
                 getRemoteData(false, d => {
-                    appState.models[modelName].file = d.filename;
-                    appState.models[modelName].contentType = t;
-                    appState.models[modelName].contentLength = len;
-                    appState.models[modelName].bytesLoaded = len;
+                    dataFile.file = d.filename;
+                    dataFile.contentType = t;
+                    dataFile.contentLength = len;
+                    dataFile.bytesLoaded = len;
                     appState.saveQuietly(modelName);
                 });
             });
