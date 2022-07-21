@@ -28,6 +28,10 @@
             ["gmix", "Gaussian Mixture"],
             ["kmeans", "KMeans"]
         ],
+        "DataFormat": [
+            ["image", "Image"],
+            ["text", "Text"]
+        ],
         "DataOrigin": [
             ["file", "File"],
             ["url", "URL"]
@@ -260,6 +264,7 @@
         "dataFile": {
             "appMode": ["Application Mode", "AppMode", "regression"],
             "dataOrigin": ["Data Origin", "DataOrigin", "file"],
+            "dataFormat": ["Data Format", "DataFormat", "text"],
             "file": ["Data File", "InputFile"],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
@@ -430,6 +435,7 @@
                 "dataOrigin",
                 "file",
                 "url",
+                "dataFormat",
                 "inputsScaler",
                 "outputsScaler"
             ],
