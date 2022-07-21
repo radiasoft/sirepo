@@ -291,6 +291,8 @@ def stateless_compute_get_remote_data(data):
     return _get_remote_data(data.url, data.headers_only)
 
 
+# if this conversion is not done, the header gets returned as a newline-delimited string
+# EmailMessage headers pseduo-dicts and can have duplicated keys, which we ignore
 def _header_str_to_dict(h):
     d = {k: v for k, v in h.items()}
     return d

@@ -32,7 +32,7 @@ SIREPO.app.config(function() {
         </div>
         <div data-ng-switch-when="URL" class="col-sm-5">
           <input type="text" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />          
-          <span>{{ model.contentLength }} bytes</span>
+          <span>{{ model.bytesLoaded || 0 }}/{{ model.contentLength }} bytes</span>
           <div class="progress">
             <div data-ng-show="! model.file" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
           </div>
@@ -1871,8 +1871,7 @@ SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
 
 SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
 
-    const modelName = $scope.modelName
-    const model = appState.models[modelName];
+    const modelName = $scope.modelName;
     const self = this;
 
     function computeColumnInfo() {
@@ -1919,14 +1918,14 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         computeColumnInfo();
         const dataFile = appState.models.dataFile;
         const partition = appState.models.partition;
-        if (dataFile.appMode == 'regression'
+        if (dataFile.appMode === 'regression'
             && partition.training + partition.testing >= 100) {
             ['training', 'testing', 'validation'].forEach(function(f) {
                 delete partition[f];
             });
             appState.setModelDefaults(partition, 'partition');
         }
-        else if (dataFile.appMode == 'classification') {
+        else if (dataFile.appMode === 'classification') {
             if (partition.training + partition.testing < 100) {
                 partition.testing = 100 - partition.training;
             }
@@ -1935,17 +1934,17 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function processAppMode() {
-        const appMode = model.appMode;
+        const appMode = appState.models[modelName].appMode;
         panelState.showField(
             modelName, 'inputsScaler',
             ['regression', 'classification'].includes(appMode));
         panelState.showField(
             modelName, 'outputsScaler',
-            appMode == 'regression');
+            appMode === 'regression');
     }
 
     function updateEditor() {
-        const o = model.dataOrigin;
+        const o = appState.models[modelName].dataOrigin;
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
     }
@@ -1963,17 +1962,21 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 method: 'get_remote_data',
-                url: model.url,
+                url: appState.models[modelName].url,
                 headers_only: headersOnly
             }
         );
     }
 
     function updateData() {
-        if (model.dataOrigin === 'url') {
+        if (appState.models[modelName].dataOrigin === 'url') {
+            appState.models[modelName].contentLength = 0;
+            appState.models[modelName].bytesLoaded = 0;
+            appState.saveQuietly(modelName);
             // two stages now; should be a single ansync call but not a "simulation"
             getRemoteData(true, d => {
                 // use length for progress bar, content type for fetching data from file
+                // can we write in chunks?
                 const len = parseInt(d.headers['Content-Length']);
                 const t = d.headers['Content-Type'];
                 delete appState.models[modelName].file;
@@ -1981,6 +1984,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                     appState.models[modelName].file = d.filename;
                     appState.models[modelName].contentType = t;
                     appState.models[modelName].contentLength = len;
+                    appState.models[modelName].bytesLoaded = len;
                     appState.saveQuietly(modelName);
                 });
             });
