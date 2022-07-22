@@ -101,13 +101,6 @@ def _apply_clone(g_id, xform):
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)
 
 
-def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
-    xf = radia.TrfTrsl(distance)
-    if alternate_fields:
-        xf = radia.TrfCmbL(xf, radia.TrfInv())
-    radia.TrfMlt(g_id, xf, num_copies + 1)
-
-
 def _apply_rotation(g_id, xform):
     xform = PKDict(xform)
     radia.TrfOrnt(
@@ -120,9 +113,21 @@ def _apply_rotation(g_id, xform):
     )
 
 
-def _apply_segments(g_id, segments):
+def _apply_segments(g_id, segments, seg_type="pln", **kwargs):
     if segments and any([s > 1 for s in segments]):
-        radia.ObjDivMag(g_id, segments)
+        if seg_type == "pln":
+            radia.ObjDivMag(g_id, segments)
+        # cylindrical division does not seem to work properly in the local frame if the
+        # axis is not "x" and the center is not [0, 0, 0]
+        if seg_type == "cyl":
+            d = PKDict(kwargs)
+            radia.ObjDivMag(
+                g_id,
+                segments,
+                seg_type,
+                [d.center, d.axis, d.perp_axis, 1.0,],
+                "Frame->Lab"
+            )
 
 
 def _apply_symmetry(g_id, xform):
@@ -141,6 +146,17 @@ def _apply_translation(g_id, xform):
         g_id,
         radia.TrfTrsl(sirepo.util.split_comma_delimited_string(xform.distance, float)),
     )
+
+
+def _axes_index(axis):
+    return AXES.index(axis)
+
+
+def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
+    xf = radia.TrfTrsl(distance)
+    if alternate_fields:
+        xf = radia.TrfCmbL(xf, radia.TrfInv())
+    radia.TrfMlt(g_id, xf, num_copies + 1)
 
 
 def _geom_bounds(g_id):
@@ -221,15 +237,23 @@ def build_cuboid(**kwargs):
 
 def build_cylinder(**kwargs):
     d = PKDict(kwargs)
+    axis = d.extrusion_axis
     g_id = radia.ObjCylMag(
         d.center,
         d.radius,
-        d.size[AXES.index(d.extrusion_axis)],
+        d.size[_axes_index(axis)],
         d.num_sides,
         d.extrusion_axis,
         d.magnetization
     )
-    _apply_segments(g_id, [d.segments, 1, 1])
+    _apply_segments(
+        g_id,
+        [d.segments, 8, 4],
+        seg_type="cyl",
+        center=d.center,
+        axis=AXIS_VECTORS[axis].tolist(),
+        perp_axis=(d.radius * AXIS_VECTORS[next_axis(axis)] + d.center).tolist(),
+    )
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
 
@@ -400,6 +424,10 @@ def new_geom_object():
         polygons=PKDict(colors=[], lengths=[], vertices=[]),
         vectors=PKDict(directions=[], magnitudes=[], vertices=[]),
     )
+
+
+def next_axis(axis):
+    return AXES[(AXES.index(axis) + 1) % len(AXES)]
 
 
 def reset():
