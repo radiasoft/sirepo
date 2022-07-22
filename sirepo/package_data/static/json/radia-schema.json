@@ -123,6 +123,13 @@
                     },
                     {
                         "isButton": false,
+                        "layoutShape": "circle",
+                        "model": "cylinder",
+                        "title": "Cylinder",
+                        "type": "cylinder"
+                    },
+                    {
+                        "isButton": false,
                         "layoutShape": "rect",
                         "model": "ell",
                         "title": "L-Bend",
