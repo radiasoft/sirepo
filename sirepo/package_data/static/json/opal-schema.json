@@ -291,9 +291,8 @@
         ],
         "ParticlematterinteractionType": [
             ["", "NOT SELECTED"],
-            ["CCOLLIMATOR", "CCOLLIMATOR"],
-            ["COLLIMATOR", "COLLIMATOR"],
-            ["DEGRADER", "DEGRADER"]
+            ["SCATTERING", "SCATTERING"],
+            ["BEAMSTRIPPING", "BEAMSTRIPPING"]
         ],
         "RfcavityRfcavity_type": [
             ["", "NOT SELECTED"],
