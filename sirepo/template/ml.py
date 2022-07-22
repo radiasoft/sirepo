@@ -643,6 +643,7 @@ def _build_model_py(v):
     """
 
     def _layer_args(layer):
+        # TODO (gurhar1133): make this constant outside this function with PKDict of lambda funcs?
         d = PKDict(
             Activation=f'"{layer.activationActivation}"',
             AlphaDropout=layer.alphaDropoutRate,
