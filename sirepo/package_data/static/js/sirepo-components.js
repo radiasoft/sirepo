@@ -1985,7 +1985,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
         },
         template: `
             <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
-            <label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>
+            <label data-text-with-math="valueLabels[$index] || \'Plane \' + $index" style="margin-right: 1ex"></label>
             <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />
             </div>
         `,
