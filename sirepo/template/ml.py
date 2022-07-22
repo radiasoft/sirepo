@@ -590,8 +590,6 @@ def _generate_parameters_file(data):
         neuralNetLayers=dm.neuralNet.layers,
         outputDim=dm.columnInfo.inputOutput.count("output"),
     ).pkupdate(_OUTPUT_FILE)
-    for l in dm.neuralNet.layers:
-        pkdp('\n\n\n l: {}', l)
     v.columnTypes = (
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
@@ -629,36 +627,40 @@ def _generate_parameters_file(data):
 
 def _build_model_py(v):
     def _import_layers(v):
-        return "".join(", " + _handle_name(n) for n in v.layerImplementationNames)
+        return "".join(", " + n for n in v.layerImplementationNames)
 
     def _conv_args(layer):
         if layer.layer not in ("Conv2D", "Transpose", "SeparableConv2D"):
             return
-        d = layer.layer[0].lower() + layer.layer[1:]
-        return f"""{layer[d + "Dimensionality"]},
-    activation="{layer[d + "Activation"]}",
-    kernel_size=({layer[d + "Kernel"]}, {layer[d + "Kernel"]}),
-    strides={layer[d + "Strides"]},
-    padding="{layer[d + "Padding"]}"
+        return f"""{layer.dimensionality},
+    activation="{layer.activation}",
+    kernel_size=({layer.kernel}, {layer.kernel}),
+    strides={layer.strides},
+    padding="{layer.padding}"
     """
+    # TODO (gurhar1133): test all types of layers out
+    args_map = PKDict(
+            Activation=lambda layer: f'"{layer.activationActivation}"',
+            AlphaDropout=lambda layer: layer.alphaDropoutRate,
+            Conv2D=lambda layer: _conv_args(layer),
+            Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
+            Dropout=lambda layer: layer.dropoutRate,
+            Flatten=lambda layer: "",
+            GaussianDropout= lambda layer:layer.gaussianDropoutRate,
+            GaussianNoise=lambda layer: layer.stddev,
+            GlobalAveragePooling2D=lambda layer: "",
+            MaxPooling2D=lambda layer: f'''pool_size=({layer.maxPooling2DPoolSize}, {layer.maxPooling2DPoolSize}),
+    strides={layer.maxPooling2DStrides},
+    padding="{layer.maxPooling2DPadding}"''',
+            SeparableConv2D=lambda layer: _conv_args(layer),
+            Conv2DTranspose=lambda layer: _conv_args(layer),
+            UpSampling2D=lambda layer: f'size={layer.upSampling2DSize}, interpolation="{layer.upSampling2DInterpolation}"',
+            ZeroPadding2D=lambda layer: f"padding=({layer.zeroPadding2DPadding}, {layer.zeroPadding2DPadding})",
+        )
 
     def _layer_args(layer):
-        # TODO (gurhar1133): make this constant outside this function with PKDict of lambda funcs?
-        d = PKDict(
-            Activation=f'"{layer.activationActivation}"',
-            AlphaDropout=layer.alphaDropoutRate,
-            Conv2D=_conv_args(layer),
-            Dense=f'{layer.denseDimensionality}, activation="{layer.denseActivation}"',
-            Dropout=layer.dropoutRate,
-            Flatten="",
-            GaussianDropout=layer.gaussianDropoutRate,
-            GaussianNoise=layer.gaussianNoiseStddev,
-            SeparableConv2D=_conv_args(layer),
-            Transpose=_conv_args(layer),
-            ZeroPadding2D=f"padding=({layer.zeroPadding2DPadding}, {layer.zeroPadding2DPadding})",
-        )
-        assert layer.layer in d, ValueError(f"invalid layer.layer={layer.layer}")
-        return d[layer.layer]
+        assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
+        return args_map[layer.layer](layer)
 
     def _build_layers(layers):
         res = ""
@@ -667,16 +669,8 @@ def _build_model_py(v):
                 c = f"({_layer_args(l)})(input_args)"
             else:
                 c = f"({_layer_args(l)})(x)"
-            res += f"x = {_handle_name(l.layer)}{c}\n"
+            res += f"x = {l.layer}{c}\n"
         return res
-
-    def _handle_name(name):
-        d = PKDict(
-            Transpose="Conv2DTranspose",
-        )
-        if name in d:
-            return d[name]
-        return name
 
     return f"""
 from keras.models import Model, Sequential
