@@ -627,35 +627,52 @@ def _generate_parameters_file(data):
 
 def _build_model_py(v):
     def _import_layers(v):
-        return "".join(", " + n for n in v.layerImplementationNames if not n == "Dense")
-
+        return "".join(", " + _handle_name(n) for n in v.layerImplementationNames)
+    def _conv_args(layer):
+        if layer.layer not in ("Conv2D", "Transpose", "SeparableConv2D"):
+            return
+        d = layer.layer[0].lower() + layer.layer[1:]
+        return f'''{layer[d + "Dimensionality"]},
+    activation="{layer[d + "Activation"]}",
+    kernel_size=({layer[d + "Kernel"]}, {layer[d + "Kernel"]}),
+    strides={layer[d + "Strides"]},
+    padding="{layer[d + "Padding"]}"
+    '''
     def _layer_args(layer):
         d = PKDict(
             Activation=f'"{layer.activationActivation}"',
             AlphaDropout=layer.alphaDropoutRate,
+            Conv2D=_conv_args(layer),
             Dense=f'{layer.denseDimensionality}, activation="{layer.denseActivation}"',
             Dropout=layer.dropoutRate,
             Flatten="",
             GaussianDropout=layer.gaussianDropoutRate,
             GaussianNoise=layer.gaussianNoiseStddev,
+            SeparableConv2D=_conv_args(layer),
+            Transpose=_conv_args(layer),
+            ZeroPadding2D=f"padding=({layer.zeroPadding2DPadding}, {layer.zeroPadding2DPadding})",
         )
         assert layer.layer in d, ValueError(f"invalid layer.layer={layer.layer}")
         return d[layer.layer]
-
     def _build_layers(layers):
         res = ""
         for i, l in enumerate(layers):
             if i == 0:
-                c = f'({l.denseDimensionality}, activation="{l.denseActivation}")(input_args)'
+                c = f"({_layer_args(l)})(input_args)"
             else:
                 c = f"({_layer_args(l)})(x)"
-            res += f"x = {l.layer}{c}\n"
+            res += f"x = {_handle_name(l.layer)}{c}\n"
         return res
-
+    def _handle_name(name):
+        d = PKDict(
+            Transpose='Conv2DTranspose',
+        )
+        if name in d:
+            return d[name]
+        return name
     return f"""
 from keras.models import Model, Sequential
-from keras.layers import Dense, Input{_import_layers(v)}
-
+from keras.layers import Input{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
 {_build_layers(v.neuralNetLayers)}
 x = Dense({v.outputDim}, activation="linear")(x)
