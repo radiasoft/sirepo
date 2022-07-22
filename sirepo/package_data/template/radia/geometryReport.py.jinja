@@ -57,7 +57,7 @@ def _add_object(o, radia_objs, id_map):
             num_sides=o.numSides,
             radius=o.radius,
             rem_mag=o.remanentMag,
-            segments=o.extrusionAxisSegments,
+            segments=segs,
             size=sz,
         )
     if _MODEL_EXTRUDED_POLY in sc:

@@ -248,7 +248,7 @@ def build_cylinder(**kwargs):
     )
     _apply_segments(
         g_id,
-        [d.segments, 8, 4],
+        d.segments,
         seg_type="cyl",
         center=d.center,
         axis=AXIS_VECTORS[axis].tolist(),
