@@ -50,13 +50,24 @@
             ["softsign", "Softsign"]
         ],
         "NeuralNetLayer": [
-            ["Activation", "Activation Function"],
+            ["Activation", "Activation Funciton"],
+            ["Add", "Add layer"],
             ["AlphaDropout", "Alpha Noise Dropout"],
+            ["AveragePooling2D", "Average Pooling"],
+            ["MaxPooling2D", "Max Pooling"],
+            ["BatchNormalization", "Batch Normalization"],
+            ["Conv2D", "Conv2D Layer"],
+            ["Transpose", "Conv2DTranspose layer"],
+            ["SeparableConv2D", "Separable Conv2D Layer"],
             ["Dense", "Densely Connected NN"],
             ["Dropout", "Dropout"],
             ["Flatten", "Flatten"],
+            ["MaxPool2D", "Max Pooling"],
             ["GaussianDropout", "Gaussian Noise Dropout"],
-            ["GaussianNoise", "Gaussian Noise"]
+            ["GaussianNoise", "Gaussian Noise"],
+            ["GlobalAveragePooling2D", "Global Average Pooling 2D"],
+            ["UpSampling2D", "UpSampling2D Layer"],
+            ["ZeroPadding2D", "Zero Padding Layer"]
         ],
         "NeuralNetLosses": [
             ["binary_crossentropy", "Binary Cross-Entropy"],
