@@ -681,12 +681,12 @@
         },
         "extrudedObject": {
             "_super": ["_", "model", "geomObject"],
-            "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
-            "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1]
+            "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"]
         },
         "extrudedPoly": {
             "_super": ["_", "model", "extrudedObject"],
             "area": ["_", "Float", 0,0],
+            "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
             "heightAxis": ["_", "BeamAxis", "y"],
             "points": ["Points", "Points", []],
             "triangulationLevel": ["Triangulation Detail", "Range", 0.5, "Governs the max size of triangles used to subdivide the shape, from coarse to fine. Smaller triangles gain accuracy at the expense of longer solve times.", 0.0, 1.0],
@@ -1283,7 +1283,7 @@
                     "cylinder.radius",
                     "extrudedObject.extrusionAxis",
                     "cylinder.numSides",
-                    "extrudedObject.extrusionAxisSegments",
+                    "extrudedPoly.extrusionAxisSegments",
                     "extrudedPoly.triangulationLevel",
                     "stemmed.armHeight",
                     "stemmed.armPosition",
