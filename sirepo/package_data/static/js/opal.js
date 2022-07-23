@@ -6,29 +6,29 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
     SIREPO.SINGLE_FRAME_ANIMATION = ['beamline3dAnimation', 'plotAnimation', 'plot2Animation'];
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>',
-        '</div>',
-        '<div data-ng-switch-when="FieldsolverList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="fieldsolver"></div>',
-        '</div>',
-        '<div data-ng-switch-when="DistributionList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="distribution"></div>',
-        '</div>',
-        '<div data-ng-switch-when="ParticlematterinteractionList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="particlematterinteraction"></div>',
-        '</div>',
-        '<div data-ng-switch-when="WakeList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="wake"></div>',
-        '</div>',
-        '<div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>',
-        '</div>',
-    ].join('');
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="BeamList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>
+        </div>
+        <div data-ng-switch-when="FieldsolverList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="fieldsolver"></div>
+        </div>
+        <div data-ng-switch-when="DistributionList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="distribution"></div>
+        </div>
+        <div data-ng-switch-when="ParticlematterinteractionList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="particlematterinteraction"></div>
+        </div>
+        <div data-ng-switch-when="WakeList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="wake"></div>
+        </div>
+        <div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>
+        </div>
+    `;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+    `;
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {
@@ -45,7 +45,7 @@ SIREPO.app.config(function() {
             magnet: ['CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
                      'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                     'TRIMCOIL', 'VKICKER', 'WIRE'],
+                     'TRIMCOIL', 'UNDULATOR', 'VACUUM', 'VERTICALFFAMAGNET', 'VKICKER', 'WIRE'],
             malign: [],
             mirror: [],
             rf: ['RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
@@ -127,7 +127,7 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'beam', 'distribution', 'fieldsolver', 'filter', 'geometry',
+        'beam', 'distribution', 'dumpemfields', 'dumpfields', 'fieldsolver', 'filter', 'geometry',
         'option', 'particlematterinteraction', 'select', 'track', 'wake',
     ];
     self.advancedNames = [];
@@ -158,7 +158,7 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
         'HKICKER', 'KICKER', 'LOCAL_CARTESIAN_OFFSET', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET',
         'OCTUPOLE', 'PROBE', 'RBEND', 'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
         'SCALINGFFAMAGNET', 'SEPTUM', 'SEXTUPOLE', 'SBEND', 'TRAVELINGWAVE',
-        'TRIMCOIL', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
+        'TRIMCOIL', 'UNDULATOR', 'VACUUM', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VERTICALFFAMAGNET', 'VKICKER',
     ];
     self.basicNames = [
         'DRIFT', 'ECOLLIMATOR', 'MARKER', 'QUADRUPOLE', 'RFCAVITY', 'SOLENOID', 'SOURCE',
@@ -592,7 +592,7 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
               <div data-ng-repeat="info in missingFiles">
                 <div data-ng-if="! info.hasFile" class="col-sm-11 col-sm-offset-1">
                   <span data-ng-if="info.invalidFilename" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="info.invalidFilename" class="text-danger">Filename does not match, expected: </span>
-                  <label>{{ info.filename }}</label> 
+                  <label>{{ info.filename }}</label>
                   ({{ info.label + ": " + info.type }})
                   <input id="file-import" type="file" data-file-model="info.file">
                   <div data-ng-if="uploadDatafile(info)"></div>
@@ -682,7 +682,7 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
     };
 });
 
-SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plotting, vtkPlotting, vtkToPNG) {
+SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting) {
     return {
         restrict: 'A',
         scope: {
@@ -692,11 +692,12 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
         template: `
             <div class="row">
               <div data-ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
-                <div data-vtk-display="" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj"></div>
+                <div data-vtk-display="" data-report-id="reportId" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-reset-side="y"></div>
               </div>
             </div>`,
         controller: function($scope, $element) {
-            let data, pngCanvas, renderer, renderWindow, vtkAPI;
+            let data, renderer, vtkScene;
+            const coordMapper = new SIREPO.VTK.CoordMapper();
 
             function createAxes(bounds) {
                 const pb = renderer.computeVisiblePropBounds();
@@ -708,24 +709,11 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                         pb[5] = bounds[0][1];
                     }
                 }
-                const padPct = 0.01;
-                const bndBox = vtkPlotting.coordMapper().buildBox(
-                    [
-                        Math.abs(pb[1] - pb[0]),
-                        Math.abs(pb[3] - pb[2]),
-                        Math.abs(pb[5] - pb[4])
-                    ].map(function (c) {
-                        return (1 + padPct) * c;
-                    }),
-                    [(pb[1] + pb[0]) / 2, (pb[3] + pb[2]) / 2, (pb[5] + pb[4]) / 2]);
-                bndBox.actor.getProperty().setRepresentationToWireframe();
-                renderer.addActor(bndBox.actor);
-
-                $scope.axisObj = vtkPlotting.vpBox(bndBox.source, renderer);
-                $scope.axisObj.initializeWorld({});
-
+                const b = SIREPO.VTK.VTKUtils.buildBoundingBox(pb, 0.01);
+                vtkScene.addActor(b.actor);
+                $scope.axisObj = new SIREPO.VTK.ViewPortBox(b.source, vtkScene.renderer);
                 $scope.axisCfg = {};
-                geometry.basis.forEach((dim) => {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     const idx = geometry.basis.indexOf(dim);
                     $scope.axisCfg[dim] = {
                         label: dim + ' [m]',
@@ -743,7 +731,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
             }
 
             function buildScene() {
-                removeActors();
+                vtkScene.removeActors();
                 let pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(new window.Float32Array(data.points), 3);
                 pd.getPolys().setData(new window.Uint32Array(data.polys));
@@ -756,51 +744,38 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                     values: colors,
                     dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
                 }));
-                let mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-                let actor = vtk.Rendering.Core.vtkActor.newInstance();
-                mapper.setInputData(pd);
-                actor.setMapper(mapper);
-                renderer.addActor(actor);
+                const b = coordMapper.buildActorBundle();
+                b.mapper.setInputData(pd);
+                vtkScene.addActor(b.actor);
                 createAxes(data.bounds);
-                vtkAPI.showSide('y');
-                pngCanvas.copyCanvas();
+                vtkScene.resetView();
 
                 if ($scope.axisObj) {
-                    panelState.waitForUI(() => {
-                        $scope.$broadcast('axes.refresh');
-                    });
+                    panelState.waitForUI(() => $scope.$broadcast('axes.refresh'));
                 }
-            }
-
-            function removeActors() {
-                renderer.getActors().forEach(actor => renderer.removeActor(actor));
             }
 
             $scope.destroy = () => {
                 getVtkElement().off();
-                pngCanvas.destroy();
             };
 
             $scope.init = $scope.resize = () => {};
 
             $scope.$on('vtk-init', (e, d) => {
-                renderer = d.objects.renderer;
-                renderWindow = d.objects.window;
-                vtkAPI = d.api;
-                vtkAPI.axisDirs.y.camViewUp = [1, 0, 0];
-                vtkAPI.resetSide = 'y';
-                const orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
-                    interactor: renderWindow.getInteractor()
-                });
-                orientationMarker.setViewportCorner(
-                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                vtkScene = d;
+                vtkScene.setCamProperty('y', 'viewUp', [1, 0, 0]);
+                renderer = vtkScene.renderer;
+                vtkScene.setMarker(
+                    SIREPO.VTK.VTKUtils.buildOrientationMarker(
+                        vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                        vtkScene.renderWindow.getInteractor(),
+                        vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                    )
                 );
-                vtkAPI.setMarker(orientationMarker);
-                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, d.objects.fsRenderer, $element);
                 if (data) {
                     buildScene();
                 }
+                plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
             $scope.load = (json) => {
@@ -808,17 +783,6 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 if (renderer) {
                     buildScene();
                 }
-            };
-
-            $scope.vtkCanvasGeometry = () => {
-                const vtkCanvasHolder = getVtkElement();
-                return {
-                    pos: vtkCanvasHolder.position(),
-                    size: {
-                        width: vtkCanvasHolder.width(),
-                        height: vtkCanvasHolder.height()
-                    }
-                };
             };
         },
         link: function link(scope, element) {

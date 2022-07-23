@@ -1,0 +1,2 @@
+"ZWAKE": WAKE, inputfile="distr/wake.sdds", tcolumn="t", wcolumn="W"
+"BL1": LINE=("ZWAKE")

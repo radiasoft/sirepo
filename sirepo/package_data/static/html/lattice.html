@@ -15,8 +15,8 @@
             <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
               <g ng-repeat="item in ::group.items track by item.trackHash" ng-click="itemClicked(item.element)" ng-dblclick="itemDblClicked(item.element)">
                 <g ng-if="::item.picType == 'aperture'">
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - 2 * item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.title }}</title></rect>
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y + item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.title }}</title></rect>
+                  <rect ng-if="::item.openSide != 'left'" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - 2 * item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.title }}</title></rect>
+                  <rect ng-if="::item.openSide != 'right'" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y + item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.title }}</title></rect>
                 </g>
                 <line ng-if="::item.picType == 'zeroLength'" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x1="{{ ::item.x }}" ng-attr-y1="{{ ::item.y - item.height }}" ng-attr-x2="{{ ::item.x }}" ng-attr-y2="{{ ::item.y + item.height }}" ng-attr-style="stroke: {{ ::item.color }}; stroke-width: 0.05"><title>{{ ::item.title }}</title></line>
               </g>

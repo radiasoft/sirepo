@@ -1,4 +1,7 @@
 {
+    "constants": {
+        "helpUserManualURL": "https://forge.epn-campus.eu/attachments/download/996/Shadow3Primer.pdf"
+    },
     "enum": {
         "AbsoluteOrigin": [
             ["0", "Absolute"],

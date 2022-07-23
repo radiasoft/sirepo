@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Public functions from sirepo
+"""Public functions from sirepo
 
 Use this to call sirepo from other packages or Python notebooks.
 
@@ -22,10 +22,11 @@ import sirepo.util
 class LibAdapterBase:
     """Common functionality between code specific LibAdapter implementations."""
 
-    def __init__(self):
+    def __init__(self, ignore_files):
         m = inspect.getmodule(self)
         self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
         self._code_var = m.code_var
+        self._ignore_files = ignore_files
 
     def _convert(self, data):
         def _model(model, name):
@@ -36,51 +37,57 @@ class LibAdapterBase:
                 for k, x in s.items():
                     t = x[1]
                     v = model[k] if k in model else x[2]
-                    if t == 'RPNValue':
-                        t = 'Float'
+                    if t == "RPNValue":
+                        t = "Float"
                         if cv.is_var_value(v):
                             model[k] = cv.eval_var_with_assert(v)
                             continue
-                    if t == 'Float':
-                        model[k] = float(v) if v else 0.
-                    elif t == 'Integer':
+                    if t == "Float":
+                        model[k] = float(v) if v else 0.0
+                    elif t == "Integer":
                         model[k] = int(v) if v else 0
             except Exception as e:
-                pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+                pkdlog(
+                    "model={} field={} decl={} value={} exception={}", name, k, x, v, e
+                )
                 raise
 
         cv = self._code_var(data.models.rpnVariables)
-        for x in  data.models.rpnVariables:
+        for x in data.models.rpnVariables:
             x.value = cv.eval_var_with_assert(x.value)
         for k, v in data.models.items():
             if k in self._schema.model:
                 _model(v, k)
-        for x in ('elements', 'commands'):
+        for x in ("elements", "commands"):
             for m in data.models[x]:
                 _model(m, LatticeUtil.model_name_for_data(m))
         for bl in data.models.beamlines:
-            if 'positions' in bl:
+            if "positions" in bl:
                 for p in bl.positions:
                     p.elemedge = cv.eval_var_with_assert(p.elemedge)
         return data
 
     def _verify_files(self, path, filenames):
         for f in filenames:
-            assert sirepo.util.secure_filename(f) == f, \
-                f'file={f} must be a simple name'
+            if f in self._ignore_files:
+                continue
             p = path.dirpath().join(f)
-            assert p.check(file=True), \
-                f'file={f} missing'
+            assert p.check(file=True), f"file={f} missing"
 
     def _write_input_files(self, data, source_path, dest_dir):
         for f in set(
-            LatticeUtil(data, self._schema).iterate_models(
+            LatticeUtil(data, self._schema)
+            .iterate_models(
                 lattice.InputFileIterator(self._sim_data, update_filenames=False),
-            ).result,
+            )
+            .result,
         ):
             f = self._sim_data.lib_file_name_without_type(f)
             try:
-                dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
+                d = dest_dir.join(f)
+                pykern.pkio.mkdir_parent_only(d)
+                if f not in self._ignore_files:
+                    d.mksymlinkto(source_path.dirpath().join(f), absolute=False)
             except py.error.EEXIST:
                 pass
 
@@ -92,17 +99,26 @@ class GenerateBase:
     def util(self):
         from sirepo.template.lattice import LatticeUtil
 
-        if not hasattr(self, '_util'):
+        if not hasattr(self, "_util"):
             self._util = LatticeUtil(self.data, self._schema)
         return self._util
 
 
 class Importer:
+    """
+    Imports a code's native files into Sirepo representation
 
-    def __init__(self, sim_type):
+    Args:
+        sim_type (str): type of simulation (eg. 'elegant' or 'madx')
+        ignore_files (list): files ignored during verification and symlink routines [None]
+    """
+
+    def __init__(self, sim_type, ignore_files=None):
         import sirepo.template
 
-        self.__adapter = sirepo.template.import_module(sim_type).LibAdapter()
+        self.__adapter = sirepo.template.import_module(sim_type).LibAdapter(
+            ignore_files or []
+        )
 
     def parse_file(self, path):
         p = pykern.pkio.py_path(path)
@@ -119,7 +135,7 @@ class SimData(PKDict):
 
     def __init__(self, data, source, adapter):
         super().__init__(data)
-        self.pkdel('report')
+        self.pkdel("report")
         self.__source = source
         self.__adapter = adapter
 

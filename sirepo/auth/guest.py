@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-u"""Guest login
+"""Guest login
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
@@ -12,9 +11,9 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
 from sirepo import cookie
-from sirepo import http_request
 from sirepo import srtime
 import datetime
+import sirepo.api
 import sirepo.util
 
 
@@ -27,20 +26,21 @@ AUTH_METHOD_VISIBLE = True
 this_module = pkinspect.this_module()
 
 #: time to recheck login against db (prefix is "sraz", because github is "srag")
-_COOKIE_EXPIRY_TIMESTAMP = 'srazt'
+_COOKIE_EXPIRY_TIMESTAMP = "srazt"
 
 _ONE_DAY = datetime.timedelta(days=1)
 
 
-@api_perm.require_cookie_sentinel
-def api_authGuestLogin(simulation_type):
-    """You have to be an anonymous or logged in user at this point"""
-    req = http_request.parse_params(type=simulation_type)
-    # if already logged in as guest, just redirect
-    if auth.user_if_logged_in(AUTH_METHOD):
-        auth.login_success_response(req.type)
-    auth.login(this_module, sim_type=req.type)
-    raise AssertionError('auth.login returned unexpectedly')
+class API(sirepo.api.Base):
+    @sirepo.api.Spec("require_cookie_sentinel")
+    def api_authGuestLogin(self, simulation_type):
+        """You have to be an anonymous or logged in user at this point"""
+        req = self.parse_params(type=simulation_type)
+        # if already logged in as guest, just redirect
+        if auth.user_if_logged_in(AUTH_METHOD):
+            auth.login_success_response(req.type, self)
+        auth.login(this_module, sim_type=req.type, sapi=self)
+        raise AssertionError("auth.login returned unexpectedly")
 
 
 def is_login_expired(res=None):
@@ -88,9 +88,9 @@ def validate_login():
     msg = PKDict()
     if is_login_expired(msg):
         raise sirepo.util.SRException(
-            'loginFail',
-            PKDict({':method': 'guest', ':reason': 'guest-expired'}),
-            'expired uid={uid}, expiry={expiry} now={now}',
+            "loginFail",
+            PKDict({":method": "guest", ":reason": "guest-expired"}),
+            "expired uid={uid}, expiry={expiry} now={now}",
             **msg
         )
 
@@ -104,5 +104,5 @@ def _cfg_login_days(value):
 
 
 cfg = pkconfig.init(
-    expiry_days=(None, _cfg_login_days, 'when auth login expires'),
+    expiry_days=(None, _cfg_login_days, "when auth login expires"),
 )

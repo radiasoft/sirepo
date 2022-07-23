@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-u"""Authentication
+"""Authentication
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
@@ -15,52 +14,58 @@ from sirepo import auth_db
 from sirepo import cookie
 from sirepo import events
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import job
 from sirepo import util
 import contextlib
 import datetime
 import importlib
+import pyisemail
+import sirepo.api
 import sirepo.auth_role
 import sirepo.feature_config
+import sirepo.session
 import sirepo.template
 import sirepo.uri
 import werkzeug.exceptions
 
 
 #: what routeName to return in the event user is logged out in require_user
-LOGIN_ROUTE_NAME = 'login'
+LOGIN_ROUTE_NAME = "login"
 
 #: Guest is a special method
-METHOD_GUEST = 'guest'
+METHOD_GUEST = "guest"
 
 #: key for auth method for login state
-_COOKIE_METHOD = 'sram'
+_COOKIE_METHOD = "sram"
 
 #: There will always be this value in the cookie, if there is a cookie.
-_COOKIE_STATE = 'sras'
+_COOKIE_STATE = "sras"
 
 #: Identifies the user in the cookie
-_COOKIE_USER = 'srau'
+_COOKIE_USER = "srau"
 
-_GUEST_USER_DISPLAY_NAME = 'Guest User'
+_GUEST_USER_DISPLAY_NAME = "Guest User"
 
-_PAYMENT_PLAN_BASIC = 'basic'
+_PAYMENT_PLAN_BASIC = "basic"
 _PAYMENT_PLAN_ENTERPRISE = sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE
 _PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM
-_ALL_PAYMENT_PLANS = (_PAYMENT_PLAN_BASIC, _PAYMENT_PLAN_ENTERPRISE, _PAYMENT_PLAN_PREMIUM)
+_ALL_PAYMENT_PLANS = (
+    _PAYMENT_PLAN_BASIC,
+    _PAYMENT_PLAN_ENTERPRISE,
+    _PAYMENT_PLAN_PREMIUM,
+)
 
-_STATE_LOGGED_IN = 'li'
-_STATE_LOGGED_OUT = 'lo'
-_STATE_COMPLETE_REGISTRATION = 'cr'
+_STATE_LOGGED_IN = "li"
+_STATE_LOGGED_OUT = "lo"
+_STATE_COMPLETE_REGISTRATION = "cr"
 
 #: name to module object
 _METHOD_MODULES = pkcollections.Dict()
 
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
-_UWSGI_LOG_KEY_USER = 'sirepo_user'
+_UWSGI_LOG_KEY_USER = "sirepo_user"
 
-#TODO(robnagler) probably from the schema
+# TODO(robnagler) probably from the schema
 #: For formatting the size parameter to an avatar_uri
 _AVATAR_SIZE = 40
 
@@ -78,52 +83,64 @@ uri_router = None
 
 cfg = None
 
-@api_perm.require_cookie_sentinel
-def api_authCompleteRegistration():
-    # Needs to be explicit, because we would need a special permission
-    # for just this API.
-    if not _is_logged_in():
-        raise util.SRException(LOGIN_ROUTE_NAME, None)
-    complete_registration(
-        _parse_display_name(http_request.parse_json().get('displayName')),
-    )
-    return http_reply.gen_json_ok()
+
+class API(sirepo.api.Base):
+    @sirepo.api.Spec("require_cookie_sentinel")
+    def api_authCompleteRegistration(self):
+        # Needs to be explicit, because we would need a special permission
+        # for just this API.
+        if not is_logged_in():
+            raise util.SRException(LOGIN_ROUTE_NAME, None)
+        complete_registration(
+            _parse_display_name(self.parse_json().get("displayName")),
+        )
+        return self.reply_ok()
+
+    @sirepo.api.Spec("allow_visitor")
+    def api_authState(self):
+        return self.reply_static_jinja(
+            "auth-state",
+            "js",
+            PKDict(auth_state=_auth_state()),
+        )
+
+    @sirepo.api.Spec("allow_visitor")
+    def api_authLogout(self, simulation_type=None):
+        """Set the current user as logged out.
+
+        Redirects to root simulation page.
+        """
+        req = None
+        if simulation_type:
+            try:
+                req = self.parse_params(type=simulation_type)
+            except AssertionError:
+                pass
+        if is_logged_in():
+            events.emit("auth_logout", PKDict(uid=_get_user()))
+            cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
+            _set_log_user()
+        return self.reply_redirect_for_app_root(req and req.type)
 
 
-@api_perm.allow_visitor
-def api_authState():
-    return http_reply.render_static_jinja(
-        'auth-state',
-        'js',
-        PKDict(auth_state=_auth_state()),
-    )
+def check_sim_type_role(sim_type):
+    from sirepo import oauth
+    from sirepo import auth_role_moderation
 
-
-@api_perm.allow_visitor
-def api_authLogout(simulation_type=None):
-    """Set the current user as logged out.
-
-    Redirects to root simulation page.
-    """
-    req = None
-    if simulation_type:
-        try:
-            req = http_request.parse_params(type=simulation_type)
-        except AssertionError:
-            pass
-    if _is_logged_in():
-        events.emit('auth_logout', PKDict(uid=_get_user()))
-        cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
-        _set_log_user()
-    return http_reply.gen_redirect_for_app_root(req and req.type)
-
-
-def check_user_has_role(uid, role, raise_forbidden=True):
-    if auth_db.UserRole.has_role(uid, role):
-        return True
-    if raise_forbidden:
-        sirepo.util.raise_forbidden('uid={} role={} not found'.format(uid, role))
-    return False
+    t = sirepo.template.assert_sim_type(sim_type)
+    if t not in sirepo.feature_config.auth_controlled_sim_types():
+        return
+    if not uri_router.maybe_sim_type_required_for_api():
+        return
+    u = logged_in_user()
+    r = sirepo.auth_role.for_sim_type(t)
+    if auth_db.UserRole.has_role(u, r) and not auth_db.UserRole.is_expired(u, r):
+        return
+    elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
+        oauth.raise_authorize_redirect(sirepo.auth_role.sim_type(r))
+    if r in sirepo.auth_role.for_moderated_sim_types():
+        auth_role_moderation.raise_control_for_user(u, r)
+    sirepo.util.raise_forbidden(f"uid={u} does not have access to sim_type={t}")
 
 
 def complete_registration(name=None):
@@ -133,9 +150,12 @@ def complete_registration(name=None):
     u = _get_user()
     with util.THREAD_LOCK:
         r = user_registration(u)
-        if cookie.unchecked_get_value(_COOKIE_METHOD) is METHOD_GUEST:
-            assert name is None, \
-                'Cookie method is {} and name is {}. Expected name to be None'.format(METHOD_GUEST, name)
+        if cookie.unchecked_get_value(_COOKIE_METHOD) == METHOD_GUEST:
+            assert (
+                name is None
+            ), "Cookie method is {} and name is {}. Expected name to be None".format(
+                METHOD_GUEST, name
+            )
         r.display_name = name
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
@@ -143,6 +163,7 @@ def complete_registration(name=None):
 
 def create_new_user(uid_generated_callback, module):
     import sirepo.simulation_db
+
     u = sirepo.simulation_db.user_create()
     uid_generated_callback(u)
     _create_roles_for_new_user(u, module.AUTH_METHOD)
@@ -151,7 +172,7 @@ def create_new_user(uid_generated_callback, module):
 
 def guest_uids():
     """All of the uids corresponding to guest users."""
-    return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
+    return auth_db.UserRegistration.search_all_for_column("uid", display_name=None)
 
 
 def get_module(name):
@@ -160,22 +181,34 @@ def get_module(name):
 
 def init_apis(*args, **kwargs):
     global uri_router
-    assert not cfg.logged_in_user, \
-        'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
-    uri_router = importlib.import_module('sirepo.uri_router')
+    assert not cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
+    uri_router = importlib.import_module("sirepo.uri_router")
     for m in _METHOD_MODULES.values():
         uri_router.register_api_module(m)
     import sirepo.simulation_db
+
     s = list(sirepo.simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
-    assert sorted(s) == sorted(_ALL_PAYMENT_PLANS), \
-        f'payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}'
+    assert sorted(s) == sorted(
+        _ALL_PAYMENT_PLANS
+    ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
+
+
+def is_logged_in(state=None):
+    """Logged in is either needing to complete registration or done
+
+    Args:
+        state (str): logged in state [None: from cookie]
+    Returns:
+        bool: is in one of the logged in states
+    """
+    s = state or cookie.unchecked_get_value(_COOKIE_STATE)
+    return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
 
 
 def is_premium_user():
-    return check_user_has_role(
+    return auth_db.UserRole.has_role(
         logged_in_user(),
         sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
-        raise_forbidden=False,
     )
 
 
@@ -188,25 +221,34 @@ def logged_in_user(check_path=True):
         str: uid of authenticated user
     """
     u = _get_user()
-    if not _is_logged_in():
+    if not is_logged_in():
         raise util.SRException(
-            'login',
+            LOGIN_ROUTE_NAME,
             None,
-            'user not logged in uid={}',
+            "user not logged in uid={}",
             u,
         )
-    assert u, \
-        'no user in cookie: state={} method={}'.format(
-            cookie.unchecked_get_value(_COOKIE_STATE),
-            cookie.unchecked_get_value(_COOKIE_METHOD),
-        )
+    assert u, "no user in cookie: state={} method={}".format(
+        cookie.unchecked_get_value(_COOKIE_STATE),
+        cookie.unchecked_get_value(_COOKIE_METHOD),
+    )
     if check_path:
         import sirepo.simulation_db
+
         sirepo.simulation_db.user_path(u, check=True)
     return u
 
 
-def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
+def login(
+    module,
+    uid=None,
+    model=None,
+    sim_type=None,
+    sapi=None,
+    display_name=None,
+    is_mock=False,
+    want_redirect=False,
+):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -224,24 +266,24 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
         # if previously cookied as a guest, move the non-example simulations into uid below
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
         if m == METHOD_GUEST and module.AUTH_METHOD != METHOD_GUEST:
-            guest_uid = _get_user() if _is_logged_in() else None
+            guest_uid = _get_user() if is_logged_in() else None
     if uid:
         _login_user(module, uid)
     if module.AUTH_METHOD in cfg.deprecated_methods:
-        pkdlog('deprecated auth method={} uid={}'.format(module.AUTH_METHOD, uid))
+        pkdlog("deprecated auth method={} uid={}".format(module.AUTH_METHOD, uid))
         if not uid:
             # No user so clear cookie so this method is removed
             reset_state()
         # We are logged in with a deprecated method, and now the user
         # needs to login with an allowed method.
-        login_fail_redirect(sim_type, module, 'deprecated', reload_js=not uid)
+        login_fail_redirect(sim_type, module, "deprecated", reload_js=not uid)
     if not uid:
         # No user in the cookie and method didn't provide one so
         # the user might be switching methods (e.g. github to email or guest to email).
         # Not allowed to go to guest from other methods, because there's
         # no authentication for guest.
         # Or, this is just a new user, and we'll create one.
-        uid = _get_user() if _is_logged_in() else None
+        uid = _get_user() if is_logged_in() else None
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
         if uid and module.AUTH_METHOD not in (m, METHOD_GUEST):
             # switch this method to this uid (even for methods)
@@ -260,27 +302,28 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
     if sim_type:
         if guest_uid and guest_uid != uid:
             import sirepo.simulation_db
+
             sirepo.simulation_db.move_user_simulations(guest_uid, uid)
-        login_success_response(sim_type, want_redirect)
+        login_success_response(sim_type, sapi, want_redirect)
     assert not module.AUTH_METHOD_VISIBLE
 
 
 def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False):
     raise util.SRException(
-        'loginFail',
+        "loginFail",
         PKDict(
             method=module.AUTH_METHOD,
             reason=reason,
             reload_js=reload_js,
             sim_type=sim_type,
         ),
-        'login failed: reason={} method={}',
+        "login failed: reason={} method={}",
         reason,
         module.AUTH_METHOD,
     )
 
 
-def login_success_response(sim_type, want_redirect=False):
+def login_success_response(sim_type, sapi, want_redirect=False):
     r = None
     if (
         cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
@@ -288,12 +331,14 @@ def login_success_response(sim_type, want_redirect=False):
     ):
         complete_registration()
     if want_redirect:
-        r = 'completeRegistration' if (
-            cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
-        ) else None
+        r = (
+            "completeRegistration"
+            if (cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION)
+            else None
+        )
         raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
     raise sirepo.util.Response(
-        response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
+        response=sapi.reply_ok(PKDict(authState=_auth_state())),
     )
 
 
@@ -316,86 +361,88 @@ def need_complete_registration(model):
 
 
 @contextlib.contextmanager
-def process_request(unit_test=None):
-    with auth_db.session(), cookie.process_header(unit_test):
+def process_request(sreq, unit_test=None):
+    with auth_db.session(), cookie.process_header(unit_test), sirepo.session.begin(
+        sreq
+    ):
         # Logging happens after the return to Flask so the log user must persist
         # beyond the life of process_request
         _set_log_user()
         yield
 
 
+def require_adm():
+    u = require_user()
+    if not auth_db.UserRole.has_role(u, sirepo.auth_role.ROLE_ADM):
+        sirepo.util.raise_forbidden(f"uid={u} role=ROLE_ADM not found")
+
+
 def require_auth_basic():
-    m = _METHOD_MODULES['basic']
+    m = _METHOD_MODULES["basic"]
     _validate_method(m)
     uid = m.require_user()
     if not uid:
-        raise sirepo.util.Response(
-            http_reply.gen_response(
-                status=401,
-                headers={'WWW-Authenticate': 'Basic realm="*"'},
-            ),
-        )
+        raise sirepo.util.WWWAuthenticate()
     cookie.set_sentinel()
     login(m, uid=uid)
 
 
-def require_sim_type(sim_type):
-    if sim_type not in sirepo.feature_config.auth_controlled_sim_types():
-        return
-    if not _is_logged_in():
-        # If a user is not logged in, we allow any sim_type, because
-        # the GUI has to be able to get access to certain APIs before
-        # logging in.
-        return
-    check_user_has_role(
-        logged_in_user(),
-        sirepo.auth_role.for_sim_type(sim_type),
-    )
+def require_email_user():
+    i = require_user()
+    u = user_name(i)
+    if not pyisemail.is_email(u):
+        util.raise_forbidden(f"uid={i} username={u} is not an email")
 
 
 def require_user():
+    """Asserts whether user is logged in
+
+    Returns:
+        str: user id
+    """
     e = None
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
     p = None
-    r = 'login'
+    r = LOGIN_ROUTE_NAME
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     u = _get_user()
     if s is None:
         pass
     elif s == _STATE_LOGGED_IN:
         if m in cfg.methods:
-            f = getattr(_METHOD_MODULES[m], 'validate_login', None)
+
+            f = getattr(_METHOD_MODULES[m], "validate_login", None)
             if f:
-                pkdc('validate_login method={}', m)
+                pkdc("validate_login method={}", m)
                 f()
-            return
+            return u
         if m in cfg.deprecated_methods:
-            e = 'deprecated'
+            e = "deprecated"
         else:
-            e = 'invalid'
+            e = "invalid"
             reset_state()
             p = PKDict(reload_js=True)
-        e = 'auth_method={} is {}, forcing login: uid='.format(m, e, u)
+        e = "auth_method={} is {}, forcing login: uid=".format(m, e, u)
     elif s == _STATE_LOGGED_OUT:
-        e = 'logged out uid={}'.format(u)
+        e = "logged out uid={}".format(u)
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
-            r = 'loginWith'
-            p = PKDict({':method': m})
-            e = 'forced {}={} uid={}'.format(m, r, p)
+            r = "loginWith"
+            p = PKDict({":method": m})
+            e = "forced {}={} uid={}".format(m, r, p)
     elif s == _STATE_COMPLETE_REGISTRATION:
         if m == METHOD_GUEST:
-            pkdc('guest completeRegistration={}', u)
+            pkdc("guest completeRegistration={}", u)
             complete_registration()
-            return
-        r = 'completeRegistration'
-        e = 'uid={} needs to complete registration'.format(u)
+            return u
+        r = "completeRegistration"
+        e = "uid={} needs to complete registration".format(u)
     else:
-        cookie.reset_state('uid={} state={} invalid, cannot continue'.format(s, u))
+        cookie.reset_state("uid={} state={} invalid, cannot continue".format(s, u))
         p = PKDict(reload_js=True)
-        e = 'invalid cookie state={} uid={}'.format(s, u)
-    pkdc('SRException uid={} route={} params={} method={} error={}', u, r, p, m, e)
-    raise util.SRException(r, p, *(('user not logged in: {}', e) if e else ()))
+        e = "invalid cookie state={} uid={}".format(s, u)
+    pkdc("SRException uid={} route={} params={} method={} error={}", u, r, p, m, e)
+    raise util.SRException(r, p, *(("user not logged in: {}", e) if e else ()))
 
 
 def reset_state():
@@ -405,13 +452,13 @@ def reset_state():
     _set_log_user()
 
 
-
 @contextlib.contextmanager
 def set_user_outside_of_http_request(uid):
     """A user set explicitly outside of flask request cycle
 
     This will try to guess the auth method the user used to authenticate.
     """
+
     def _auth_module():
         for m in cfg.methods:
             a = _METHOD_MODULES[m]
@@ -422,16 +469,16 @@ def set_user_outside_of_http_request(uid):
         # we use it so calls like `user_name` work.
         for m in cfg.methods:
             a = _METHOD_MODULES[m]
-            if not hasattr(a, 'UserModel'):
+            if not hasattr(a, "UserModel"):
                 return a
         raise AssertionError(
-            f'no module found for uid={uid} in cfg.methods={cfg.methods}',
+            f"no module found for uid={uid} in cfg.methods={cfg.methods}",
         )
 
-    assert not util.in_flask_request(), \
-        'Only call from outside a flask request context'
-    assert auth_db.UserRegistration.search_by(uid=uid), \
-        f'no registered user with uid={uid}'
+    assert not util.in_flask_request(), "Only call from outside a flask request context"
+    assert auth_db.UserRegistration.search_by(
+        uid=uid
+    ), f"no registered user with uid={uid}"
     with cookie.set_cookie_outside_of_flask_request():
         _login_user(
             _auth_module(),
@@ -466,11 +513,15 @@ def user_dir_not_found(user_dir, uid):
             u.delete()
     reset_state()
     raise util.Redirect(
-        sirepo.uri.ROOT,
-        'simulation_db dir={} not found, deleted uid={}',
+        uri_router.uri_for_api("root", external=False),
+        "simulation_db dir={} not found, deleted uid={}",
         user_dir,
         uid,
     )
+
+
+def user_display_name(uid):
+    return auth_db.UserRegistration.search_by(uid=uid).display_name
 
 
 def user_if_logged_in(method):
@@ -479,7 +530,7 @@ def user_if_logged_in(method):
     Args:
         method (str): method must be logged in as
     """
-    if not _is_logged_in():
+    if not is_logged_in():
         return None
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
     if m != method:
@@ -487,18 +538,17 @@ def user_if_logged_in(method):
     return _get_user()
 
 
-def user_name():
+def user_name(uid=None):
+    if not uid:
+        uid = logged_in_user()
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
-    u = getattr(
-        _METHOD_MODULES[m],
-        'UserModel',
-    )
+    u = getattr(_METHOD_MODULES[m], "UserModel", None)
     if u:
         with util.THREAD_LOCK:
-            return  u.search_by(uid=logged_in_user()).user_name
-    raise AssertionError(
-        f'user_name not found for uid={logged_in_user()} with method={m}',
-    )
+            return u.search_by(uid=uid).user_name
+    elif m == METHOD_GUEST:
+        return "guest-" + uid
+    raise AssertionError(f"user_name not found for uid={uid} with method={m}")
 
 
 def user_registration(uid, display_name=None):
@@ -538,7 +588,7 @@ def _auth_hook_from_header(values):
         if m and m not in valid_methods:
             # invalid method (changed config), reset state
             pkdlog(
-                'possibly misconfigured server: invalid cookie_method={}, clearing values={}',
+                "possibly misconfigured server: invalid cookie_method={}, clearing values={}",
                 m,
                 values,
             )
@@ -549,23 +599,23 @@ def _auth_hook_from_header(values):
                 _COOKIE_STATE,
             )
         return values
-    u = values.get('sru') or values.get('uid')
+    u = values.get("sru") or values.get("uid")
     if not u:
         # normal case: new visitor, and no user/state; set logged out
         # and return all values
         values[_COOKIE_STATE] = _STATE_LOGGED_OUT
         return values
     # Migrate
-    o = values.get('sros') or values.get('oauth_login_state')
+    o = values.get("sros") or values.get("oauth_login_state")
     s = _STATE_COMPLETE_REGISTRATION
-    if o is None or o in ('anonymous', 'a'):
+    if o is None or o in ("anonymous", "a"):
         m = METHOD_GUEST
-    elif o in ('logged_in', 'li', 'logged_out', 'lo'):
-        m = 'github'
-        if 'i' not in o:
+    elif o in ("logged_in", "li", "logged_out", "lo"):
+        m = "github"
+        if "i" not in o:
             s = _STATE_LOGGED_OUT
     else:
-        pkdlog('unknown cookie values, clearing, not migrating: {}', values)
+        pkdlog("unknown cookie values, clearing, not migrating: {}", values)
         return {}
     # Upgrade cookie to current structure. Set the sentinel, too.
     values = {
@@ -574,29 +624,34 @@ def _auth_hook_from_header(values):
         _COOKIE_STATE: s,
     }
     cookie.set_sentinel(values)
-    pkdlog('migrated cookie={}', values)
+    pkdlog("migrated cookie={}", values)
     return values
 
 
 def _auth_state():
+    def get_slack_uri():
+        return sirepo.feature_config.cfg().slack_uri + (_get_user() or "")
+
     import sirepo.simulation_db
+
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     v = pkcollections.Dict(
         avatarUrl=None,
         displayName=None,
         guestIsOnlyMethod=not non_guest_methods,
         isGuestUser=False,
-        isLoggedIn=_is_logged_in(s),
+        isLoggedIn=is_logged_in(s),
         isLoginExpired=False,
         jobRunModeMap=sirepo.simulation_db.JOB_RUN_MODE_MAP,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
         roles=[],
+        slackUri=get_slack_uri(),
         userName=None,
         visibleMethods=visible_methods,
     )
-    if 'sbatch' in v.jobRunModeMap:
-        v.sbatchQueueMaxes=job.NERSC_QUEUE_MAX
+    if "sbatch" in v.jobRunModeMap:
+        v.sbatchQueueMaxes = job.NERSC_QUEUE_MAX
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
@@ -616,7 +671,7 @@ def _auth_state():
     if pkconfig.channel_in_internal_test():
         # useful for testing/debugging
         v.uid = u
-    pkdc('state={}', v)
+    pkdc("state={}", v)
     return v
 
 
@@ -636,14 +691,15 @@ def _init():
     if cfg:
         return
     cfg = pkconfig.init(
-        methods=((METHOD_GUEST,), set, 'for logging in'),
-        deprecated_methods=(set(), set, 'for migrating to methods'),
-        logged_in_user=(None, str, 'Only for sirepo.job_supervisor'),
+        methods=((METHOD_GUEST,), set, "for logging in"),
+        deprecated_methods=(set(), set, "for migrating to methods"),
+        logged_in_user=(None, str, "Only for sirepo.job_supervisor"),
     )
     if cfg.logged_in_user:
         _init_logged_in_user()
     else:
         _init_full()
+
 
 def _init_full():
     global visible_methods, valid_methods, non_guest_methods
@@ -670,22 +726,10 @@ def _init_logged_in_user():
 
     def user_dir_not_found(user_dir, *args, **kwargs):
         # can't raise in a lambda so do something like this
-        raise AssertionError('user_dir={} not found'.format(user_dir))
+        raise AssertionError("user_dir={} not found".format(user_dir))
 
     cfg.deprecated_methods = set()
     cfg.methods = set((METHOD_GUEST,))
-
-
-def _is_logged_in(state=None):
-    """Logged in is either needing to complete registration or done
-
-    Args:
-        state (str): logged in state [None: from cookie]
-    Returns:
-        bool: is in one of the logged in states
-    """
-    s = state or cookie.unchecked_get_value(_COOKIE_STATE)
-    return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
 
 
 def _login_user(module, uid):
@@ -712,27 +756,30 @@ def _login_user(module, uid):
 
 def _method_auth_state(values, uid):
     if values.method not in _METHOD_MODULES:
-        pkdlog('auth state method: "{}" not present in supported methods: {}', values.method, _METHOD_MODULES.keys())
+        pkdlog(
+            'auth state method: "{}" not present in supported methods: {}',
+            values.method,
+            _METHOD_MODULES.keys(),
+        )
         return
     m = _METHOD_MODULES[values.method]
     u = _method_user_model(m, uid)
     if not u:
         return
     values.userName = u.user_name
-    if hasattr(m, 'avatar_uri'):
+    if hasattr(m, "avatar_uri"):
         values.avatarUrl = m.avatar_uri(u, _AVATAR_SIZE)
 
 
 def _method_user_model(module, uid):
-    if not hasattr(module, 'UserModel'):
+    if not hasattr(module, "UserModel"):
         return None
     return module.UserModel.search_by(uid=uid)
 
 
 def _parse_display_name(value):
     res = value.strip()
-    assert res, \
-        'invalid post data: displayName={}'.format(value)
+    assert res, "invalid post data: displayName={}".format(value)
     return res
 
 
@@ -760,17 +807,17 @@ def _set_log_user():
         return
     u = _get_user()
     if u:
-        u = cookie.unchecked_get_value(_COOKIE_STATE) + '-' + u
+        u = cookie.unchecked_get_value(_COOKIE_STATE) + "-" + u
     else:
-        u = '-'
+        u = "-"
     a.sirepo_uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
 
 
 def _validate_method(module, sim_type=None):
     if module.AUTH_METHOD in valid_methods:
         return None
-    pkdlog('invalid auth method={}'.format(module.AUTH_METHOD))
-    login_fail_redirect(sim_type, module, 'invalid-method', reload_js=True)
+    pkdlog("invalid auth method={}".format(module.AUTH_METHOD))
+    login_fail_redirect(sim_type, module, "invalid-method", reload_js=True)
 
 
 _init()

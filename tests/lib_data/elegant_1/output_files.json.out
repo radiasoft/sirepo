@@ -1,0 +1,21 @@
+[
+    "%s.cen",
+    "%s.fin",
+    "%s.mag",
+    "%s.param",
+    "%s.sig",
+    "%s.twi",
+    "%s_save.lte",
+    "matrix_output.sdds",
+    "%s_out.matrix",
+    "%s.BM1.csr",
+    "%s.BM2.csr",
+    "%s.B1.csr",
+    "%s.B2.csr",
+    "%s.B3.csr",
+    "%s.B4.csr",
+    "%s.ddin",
+    "LEAbeam.sdds",
+    "%s.w0",
+    "%s.w0"
+]

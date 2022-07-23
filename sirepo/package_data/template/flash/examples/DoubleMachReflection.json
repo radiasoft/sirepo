@@ -1,0 +1,21 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "DoubleMachReflection"
+        },
+        "setupArguments": {
+            "auto": "1"
+        },
+        "simulation": {
+            "name": "DoubleMachReflection",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "var": "dens"
+        },
+        "IO_IOMain": {
+            "plotFileIntervalTime": 0.01
+        }
+    },
+    "simulationType": "flash"
+}

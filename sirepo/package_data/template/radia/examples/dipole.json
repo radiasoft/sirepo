@@ -4,7 +4,10 @@
             "colorMap": "jet",
             "scaling": "uniform"
         },
-         "fieldPaths": {
+        "fieldLineoutReport": {
+            "plotAxis": "x"
+        },
+        "fieldPaths": {
             "path": "line",
             "paths": [
                 {

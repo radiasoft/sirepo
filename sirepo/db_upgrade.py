@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Database upgrade management
+"""Database upgrade management
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,19 +21,20 @@ import sirepo.template
 import sirepo.util
 
 #: checked before running upgrade and raises if found
-_PREVENT_DB_UPGRADE_FILE = 'prevent-db-upgrade'
+_PREVENT_DB_UPGRADE_FILE = "prevent-db-upgrade"
 
 
 def do_all():
-    assert not _prevent_db_upgrade_file().exists(), \
-        f'prevent_db_upgrade_file={_prevent_db_upgrade_file()} found'
+    assert (
+        not _prevent_db_upgrade_file().exists()
+    ), f"prevent_db_upgrade_file={_prevent_db_upgrade_file()} found"
 
     with sirepo.auth_db.session():
-        a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
-        f = pkinspect.module_functions('_2')
+        a = sirepo.auth_db.DbUpgrade.search_all_for_column("name")
+        f = pkinspect.module_functions("_2")
         for n in sorted(set(f.keys()) - set(a)):
             with _backup_db_and_prevent_upgrade_on_error():
-                pkdlog('running upgrade {}', n)
+                pkdlog("running upgrade {}", n)
                 f[n]()
                 sirepo.auth_db.DbUpgrade(
                     name=n,
@@ -41,22 +42,23 @@ def do_all():
                 ).save()
 
 
-
 def _20210211_add_flash_proprietary_lib_files(force=False):
     """Add proprietary lib files to existing FLASH users' lib dir"""
 
-    if not sirepo.template.is_sim_type('flash'):
+    if not sirepo.template.is_sim_type("flash"):
         return
     for u in sirepo.auth_db.all_uids():
         # Remove the existing rpm
         pkio.unchecked_remove(
             sirepo.simulation_db.simulation_lib_dir(
-                'flash',
+                "flash",
                 uid=u,
-            ).join('flash.rpm'),
+            ).join("flash.rpm"),
         )
         # Add's the flash proprietary lib files (unpacks flash.tar.gz)
-        sirepo.auth_db.audit_proprietary_lib_files(u, force=force, sim_types=set(('flash',)))
+        sirepo.auth_db.audit_proprietary_lib_files(
+            u, force=force, sim_types=set(("flash",))
+        )
 
 
 def _20210211_upgrade_runner_to_job_db():
@@ -96,7 +98,9 @@ def _20210211_upgrade_runner_to_job_db():
         c = sirepo.sim_data.get_class(i.simulationType)
         d = PKDict(
             computeJid=c.parse_jid(i, u),
-            computeJobHash=c.compute_job_hash(i), # TODO(e-carlin): Another user cookie problem
+            computeJobHash=c.compute_job_hash(
+                i
+            ),  # TODO(e-carlin): Another user cookie problem
             computeJobSerial=t,
             computeJobStart=t,
             computeModel=c.compute_model(i),
@@ -120,17 +124,16 @@ def _20210211_upgrade_runner_to_job_db():
         sirepo.util.json_dump(d, path=_db_file(d.computeJid))
 
     def _db_file(computeJid):
-        return db_dir.join(computeJid + '.json')
+        return db_dir.join(computeJid + ".json")
 
     def _load_in_json(run_dir):
         p = sirepo.simulation_db.json_filename(
-            sirepo.template.template_common.INPUT_BASE_NAME,
-            run_dir
+            sirepo.template.template_common.INPUT_BASE_NAME, run_dir
         )
         c = sirepo.simulation_db.read_json(p)
-        return c, c.computeJobCacheKey.computeJobStart if \
-            c.get('computejobCacheKey') else \
-            int(p.mtime())
+        return c, c.computeJobCacheKey.computeJobStart if c.get(
+            "computejobCacheKey"
+        ) else int(p.mtime())
 
     db_dir = sirepo.srdb.supervisor_dir()
     if not sirepo.simulation_db.user_path().exists():
@@ -138,26 +141,25 @@ def _20210211_upgrade_runner_to_job_db():
         return
     if db_dir.exists():
         return
-    pkdlog('db_dir={}', db_dir)
+    pkdlog("db_dir={}", db_dir)
     c = 0
     pkio.mkdir_parent(db_dir)
     for f in pkio.walk_tree(
-            sirepo.simulation_db.user_path(),
-            '^(?!.*src/).*/{}$'.format(sirepo.job.RUNNER_STATUS_FILE),
-
+        sirepo.simulation_db.user_path(),
+        "^(?!.*src/).*/{}$".format(sirepo.job.RUNNER_STATUS_FILE),
     ):
         try:
             _create_supervisor_state_file(pkio.py_path(f.dirname))
         except Exception as e:
             c += 1
             k = PKDict(run_dir=f)
-            s = 'run_dir={run_dir}'
+            s = "run_dir={run_dir}"
             if c < 50:
                 k.stack = pkdexc()
-                s += ' stack={stack}'
+                s += " stack={stack}"
             else:
-                k.error = getattr(e, 'args', []) or e
-                s += ' error={error}'
+                k.error = getattr(e, "args", []) or e
+                s += " error={error}"
             pkdlog(s, **k)
 
 
@@ -166,25 +168,36 @@ def _20210218_add_flash_proprietary_lib_files_force():
 
 
 def _20210301_migrate_role_jupyterhub():
-    r = sirepo.auth_role.for_sim_type('jupyterhublogin')
-    if not sirepo.template.is_sim_type('jupyterhublogin') or \
-       r in sirepo.auth_db.UserRole.all_roles():
+    r = sirepo.auth_role.for_sim_type("jupyterhublogin")
+    if (
+        not sirepo.template.is_sim_type("jupyterhublogin")
+        or r in sirepo.auth_db.UserRole.all_roles()
+    ):
         return
     for u in sirepo.auth_db.all_uids():
-        sirepo.auth_db.UserRole.add_roles(u, [r])
+        sirepo.auth_db.UserRole.add_roles(u, r)
+
+
+def _20220609_add_expiration_column_to_user_role_t():
+    sirepo.auth_db.UserDbBase.add_column_if_not_exists(
+        sirepo.auth_db.UserRole,
+        "expiration",
+        "datetime",
+    )
 
 
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
-    b = sirepo.auth_db.db_filename() + '.bak'
+    b = sirepo.auth_db.db_filename() + ".bak"
     sirepo.auth_db.db_filename().copy(b)
     try:
         yield
         pkio.unchecked_remove(b)
     except Exception:
-        pkdlog('original db={}', b)
+        pkdlog("original db={}", b)
         _prevent_db_upgrade_file().ensure()
         raise
+
 
 def _prevent_db_upgrade_file():
     return sirepo.srdb.root().join(_PREVENT_DB_UPGRADE_FILE)

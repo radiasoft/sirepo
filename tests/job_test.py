@@ -19,7 +19,7 @@ import os
 #   - send kill to uknown agent
 
 
-_REPORT = 'heightWeightReport'
+_REPORT = "heightWeightReport"
 
 
 def test_runCancel(fc):
@@ -28,9 +28,9 @@ def test_runCancel(fc):
     import time
 
     d = fc.sr_sim_data()
-    d.models.simulation.name = 'srunit_long_run'
+    d.models.simulation.name = "srunit_long_run"
     d = fc.sr_post(
-        'runSimulation',
+        "runSimulation",
         dict(
             forceRun=False,
             models=d.models,
@@ -40,25 +40,25 @@ def test_runCancel(fc):
         ),
     )
     for _ in range(10):
-        assert d.state != 'error'
-        if d.state == 'running':
+        assert d.state != "error"
+        if d.state == "running":
             break
         time.sleep(d.nextRequestSeconds)
-        d = fc.sr_post('runStatus', d.nextRequest)
+        d = fc.sr_post("runStatus", d.nextRequest)
     else:
-        pkunit.pkfail('runStatus: failed to start running: {}', d)
+        pkunit.pkfail("runStatus: failed to start running: {}", d)
 
     x = d.nextRequest
     d = fc.sr_post(
-        'runCancel',
+        "runCancel",
         x,
     )
-    assert d.state == 'canceled'
+    assert d.state == "canceled"
     d = fc.sr_post(
-        'runStatus',
+        "runStatus",
         x,
     )
-    assert d.state == 'canceled'
+    assert d.state == "canceled"
 
 
 def test_runSimulation(fc):
@@ -69,7 +69,7 @@ def test_runSimulation(fc):
 
     d = fc.sr_sim_data()
     d = fc.sr_post(
-        'runSimulation',
+        "runSimulation",
         dict(
             forceRun=False,
             models=d.models,
@@ -80,15 +80,15 @@ def test_runSimulation(fc):
     )
     for _ in range(10):
         pkdlog(d)
-        assert d.state != 'error'
-        if d.state == 'completed':
+        assert d.state != "error"
+        if d.state == "completed":
             break
         time.sleep(d.nextRequestSeconds)
-        d = fc.sr_post('runStatus', d.nextRequest)
+        d = fc.sr_post("runStatus", d.nextRequest)
     else:
-        pkunit.pkfail('runStatus: failed to complete: {}', d)
+        pkunit.pkfail("runStatus: failed to complete: {}", d)
     # Just double-check it actually worked
-    assert u'plots' in d
+    assert "plots" in d
 
 
 def test_remove_srw_report_dir(fc):
@@ -96,10 +96,10 @@ def test_remove_srw_report_dir(fc):
     from pykern import pkunit
     import sirepo.srdb
 
-    m = 'intensityReport'
-    data = fc.sr_sim_data('NSLS-II ESM beamline')
+    m = "intensityReport"
+    data = fc.sr_sim_data("NSLS-II ESM beamline")
     fc.sr_run_sim(data, m)
-    g = pkio.sorted_glob(sirepo.srdb.root().join('user', fc.sr_uid, 'srw', '*', m))
+    g = pkio.sorted_glob(sirepo.srdb.root().join("user", fc.sr_uid, "srw", "*", m))
     pkunit.pkeq(1, len(g))
     pkio.unchecked_remove(*g)
     fc.sr_run_sim(data, m)

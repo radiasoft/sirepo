@@ -1,0 +1,73 @@
+# -*- python -*-
+
+from pykern import pkio
+from pykern.pkcollections import PKDict
+import glob
+import re
+import sirepo.sim_data
+import tarfile
+import zipfile
+
+
+def extract_zip(in_zip, target_name):
+    files = []
+    required = PKDict({
+        'Config': False,
+        'flash.par': False,
+    })
+    with zipfile.ZipFile(pkio.py_path(in_zip)) as zin:
+        with zipfile.ZipFile(target_name, 'w') as zout:
+            for f in zin.infolist():
+                {% if initialParFile %}
+                if f.filename == '{{ initialParFile }}':
+                    f.filename = 'flash.par'
+                {% endif %}
+                if is_par_file(f.filename) and f.filename != 'flash.par':
+                    continue
+                if f.is_dir():
+                    continue
+                zout.writestr(f.filename, zin.read(f))
+                files.append(PKDict(name=f.filename))
+                if f.filename in required:
+                    required[f.filename] = True
+    if not all(required.values()):
+        raise AssertionError(
+            'Problem file archive is missing required Config and/or flash.par file')
+    sirepo.sim_data.get_class('flash').put_sim_file(
+        '{{ simulationId }}',
+        target_name,
+        target_name,
+    )
+    return PKDict(
+        files=files,
+    )
+
+
+def is_par_file(filename):
+    return re.search(r'\.par$', filename) \
+        or re.search(r'\.par\.', filename)
+
+{% if flashExampleName %}
+
+def create_example_zip(example_name):
+    d = f'flash/source/Simulation/SimulationMain/{example_name}'
+    with tarfile.open('flash.tar.gz', 'r:gz') as t:
+        t.extractall(
+            members=[
+                i for i in t.getmembers()
+                if i.name.startswith(d)
+            ],
+        )
+    with zipfile.ZipFile('{{ flashExampleName }}.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+        for f in (glob.glob(f'{d}/*')):
+            z.write(f, arcname=pkio.py_path(f).basename)
+
+
+create_example_zip('{{ flashExampleName }}')
+results = extract_zip('{{ flashExampleName }}.zip', '{{ appArchiveName }}')
+
+{% else %}
+
+results = extract_zip('{{ problemFileArchive }}', '{{ appArchiveName }}')
+
+{% endif %}

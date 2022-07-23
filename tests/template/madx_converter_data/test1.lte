@@ -1,6 +1,6 @@
 % 9.25 sto LT
 % 1.01 sto sr_gamma
-% 1 1 sr_gamma sr_gamma * / - sqrt sto sr_beta
+% 1 1 sr_gamma 2 pow / - sqrt sto sr_beta
 
 B-0: DRIFT
 "M/DL-D.00": EDRIFT,l=1.750

@@ -1,0 +1,31 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "LaserSlab",
+            "initialParFile": "coldstart_2d_3lasers.par"
+        },
+        "physics_Hydro_HydroMain": {
+            "cfl": 0.4
+        },
+        "setupArguments": {
+            "auto": "1",
+            "hdf5typeio": "1",
+            "laser": "1",
+            "mgd": "1",
+            "mgd_meshgroups": 6,
+            "mtmmmt": "1",
+            "nxb": 16,
+            "nyb": 16,
+            "species": "cham,targ",
+            "usm3t": "1"
+        },
+        "simulation": {
+            "name": "LaserSlab",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "var": "tele"
+        }
+    },
+    "simulationType": "flash"
+}

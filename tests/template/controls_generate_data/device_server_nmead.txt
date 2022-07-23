@@ -1,0 +1,341 @@
+#!/usr/bin/env python
+# -*- python -*-
+from pykern import pkio
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdlog
+from sirepo.sim_data.controls import AmpConverter
+from sirepo.template import particle_beam
+import numpy
+import os
+import re
+import requests
+import scipy.optimize
+import sirepo.template.madx
+import subprocess
+import time
+
+_FAIL_COST = 1e24
+
+targets = numpy.array([
+    # [target value, weight]
+    [0, 0.1],
+    [0, 0.1],
+    [0, 0.2],
+    [0, 0.2],
+    [0, 0.3],
+    [0, 0.3],
+    [0, 0.4],
+    [0, 0.4],
+    [0, 0.5],
+    [0, 0.5],
+])
+
+
+_DEVICE_SERVER_BASEPATH = 'http://localhost:5000/DeviceServer'
+
+context_id = None
+
+value_regexp = [
+    r'^\s*(\[.*?\])\s*,?',
+    r'^\s*(.+?)\s*(?:,|$)',
+]
+
+read_properties = [
+    PKDict(
+        device='power.kh1',
+        name='readbackM',
+        type='KICKER',
+        index=0,
+    ),
+    PKDict(
+        device='power.kv1',
+        name='readbackM',
+        type='KICKER',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mh1',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mv1',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='power.kh2',
+        name='readbackM',
+        type='KICKER',
+        index=0,
+    ),
+    PKDict(
+        device='power.kv2',
+        name='readbackM',
+        type='KICKER',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mh2',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mv2',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='power.quadf1',
+        name='readbackM',
+        type='QUADRUPOLE',
+        index=0,
+    ),
+    PKDict(
+        device='power.quadd1',
+        name='readbackM',
+        type='QUADRUPOLE',
+        index=0,
+    ),
+    PKDict(
+        device='power.kh3',
+        name='readbackM',
+        type='KICKER',
+        index=0,
+    ),
+    PKDict(
+        device='power.kv3',
+        name='readbackM',
+        type='KICKER',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mh3',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mv3',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='power.kh4',
+        name='readbackM',
+        type='KICKER',
+        index=0,
+    ),
+    PKDict(
+        device='power.kv4',
+        name='readbackM',
+        type='KICKER',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mh4',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mv4',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='power.quadf2',
+        name='readbackM',
+        type='QUADRUPOLE',
+        index=0,
+    ),
+    PKDict(
+        device='power.quadd2',
+        name='readbackM',
+        type='QUADRUPOLE',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mh5',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+    PKDict(
+        device='bpms.mv5',
+        name='tbtOrbPositionM',
+        type='MONITOR',
+        index=0,
+    ),
+]
+write_properties = [
+    PKDict(
+        device='power.kh1',
+        name='currentS',
+        type='KICKER',
+    ),
+    PKDict(
+        device='power.kv1',
+        name='currentS',
+        type='KICKER',
+    ),
+    PKDict(
+        device='power.kh2',
+        name='currentS',
+        type='KICKER',
+    ),
+    PKDict(
+        device='power.kv2',
+        name='currentS',
+        type='KICKER',
+    ),
+    PKDict(
+        device='power.kh3',
+        name='currentS',
+        type='KICKER',
+    ),
+    PKDict(
+        device='power.kv3',
+        name='currentS',
+        type='KICKER',
+    ),
+    PKDict(
+        device='power.kh4',
+        name='currentS',
+        type='KICKER',
+    ),
+    PKDict(
+        device='power.kv4',
+        name='currentS',
+        type='KICKER',
+    ),
+]
+
+def _assert_update_and_read_results(correctors, failure_message):
+    readings, cost = _update_and_read_results(correctors)
+    if cost == _FAIL_COST:
+        raise AssertionError(failure_message)
+    return readings, cost
+
+def _failed_sim_results():
+    return numpy.full(10, _FAIL_COST), _FAIL_COST
+
+
+def _update_summary_csv(correctors, readings):
+    cost = numpy.sqrt(numpy.mean(((readings - targets[:,0]) * 1000) ** 2 * targets[:,1] / numpy.sum(targets[:,1])))
+    with open('summary.csv', 'a') as f:
+        f.write('{},{}\n'.format(','.join([str(x) for x in correctors + readings]), cost))
+    return readings, cost
+
+
+def _nelder_mead_cost_function(correctors):
+    return _update_and_read_results(correctors)[1]
+
+
+def _optimize_nelder_mead(initial_correctors):
+    opt = scipy.optimize.minimize(
+        _nelder_mead_cost_function,
+        initial_correctors,
+        method='Nelder-Mead',
+        options={
+            'maxiter': 500,
+            'maxfev': 500,
+        },
+        tol=0.001,
+    )
+    res = {
+        'message': opt.message,
+        'success': opt.success,
+    }
+    if 'x' in opt and len(opt.x) == len(initial_correctors):
+        res['result'] = opt.x
+        # run one last time with optimal settings
+        _assert_update_and_read_results(opt.x, 'Final optimization failed')
+    return res
+
+
+def _next_value(text):
+    def parse_array(text):
+        if text[0] == '[':
+            text = re.sub(r'\[|\]', '', text)
+            return list(re.split(' ', text))
+        return text
+    for regexp in value_regexp:
+        m = re.search(regexp, text)
+        if m:
+            v = m.group(1)
+            assert v
+            text = re.sub(regexp, '', text).strip()
+            return text, parse_array(v)
+    raise AssertionError(f'Un-parse-able value: "{text}"')
+
+
+def _read_device_server():
+    # call DeviceServer to read all process variables
+    # write to summaryCSV
+    # return monitor values
+    url = _DEVICE_SERVER_BASEPATH + '/api/device/list/value?' \
+        + 'names=' + ','.join([v['device'] for v in read_properties]) \
+        + '&props=' + ','.join([v['name'] for v in read_properties])
+    response = requests.get(url)
+    if response.status_code != requests.codes.ok:
+        return _failed_sim_results()
+    assert 'sirepo-dev' in response.headers \
+        and response.headers['sirepo-dev'] == '1', \
+        'ATTEMPT TO RUN SIREPO AGAINST NON-DEV DEVICE SERVER'
+    values = _read_values(response.text)
+    correctors = []
+    readings = []
+    for idx in range(len(values)):
+        prop = read_properties[idx]
+        v = values[idx]
+        if 'index' in prop:
+            v = v[prop['index']]
+        if 'MONITOR' in prop['type']:
+            readings += [float(v) * 1e-6]
+        elif 'KICKER' in prop['type'] or prop['type'] == 'QUADRUPOLE':
+            correctors += [float(v)]
+    return _update_summary_csv(correctors, readings)
+
+def _read_values(text):
+    res = []
+    while True:
+        text, v = _next_value(text.strip())
+        res.append(v)
+        if not text:
+            break
+    return res
+
+def _update_and_read_results(correctors):
+    global context_id
+    if not context_id:
+        url = _DEVICE_SERVER_BASEPATH + '/api/device/context?user=testuser&procName=RadiaSoft-Sirepo&procId=123456&machine=host02'
+        response = requests.get(url)
+        if response.status_code != requests.codes.ok:
+            raise AssertionError(f'set context request failed: {response.text}')
+        context_id = response.text.strip()
+    url = _DEVICE_SERVER_BASEPATH + '/api/device/list/value?' \
+        + 'names=' + ','.join([v['device'] for v in write_properties]) \
+        + '&props=' + ','.join([v['name'] for v in write_properties]) \
+        + '&values=' + ','.join([str(v) for v in correctors.tolist()]) \
+        + '&context=' + context_id
+    response = requests.put(url)
+    if response.status_code != requests.codes.ok:
+        raise AssertionError(f'set values request failed: {response.text}')
+    return _read_device_server()
+
+
+with open('summary.csv', 'w') as f:
+    f.write('{}\n'.format('el_102.current_hkick,el_102.current_vkick,el_103.current_hkick,el_103.current_vkick,el_108.current_k1,el_107.current_k1,el_104.current_hkick,el_104.current_vkick,el_105.current_hkick,el_105.current_vkick,el_159.current_k1,el_162.current_k1,el_106.x,el_106.y,el_135.x,el_135.y,el_147.x,el_147.y,el_155.x,el_155.y,el_165.x,el_165.y,cost'))
+
+# check connectivity to DeviceServer first with a read
+if _read_device_server()[1] == _FAIL_COST:
+    raise AssertionError('Initial DeviceServer read failed')
+
+res = _optimize_nelder_mead([0,0,0,0,0,0,0,0])

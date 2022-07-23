@@ -1,0 +1,190 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "geometry"
+        }
+    },
+    "constants": {
+        "volumeProperties": ["color", "opacity"]
+    },
+    "enum": {
+        "DensityUnits": [
+            ["g/cm3", "g/cm3"],
+            ["g/cc", "g/cc"],
+            ["kg/m3", "kg/m3"],
+            ["atom/b-cm", "atom/b-cm"],
+            ["atom/cm3", "atom/cm3"],
+            ["sum", "sum"],
+            ["macro", "macro"]
+        ],
+        "EnrichmentType": [
+            ["none", ""],
+            ["ao", "ao"],
+            ["wo", "wo"]
+        ],
+        "MaterialComponent": [
+            ["add_element", "Element"],
+            ["add_elements_from_formula", "Elements from Formula"],
+            ["add_macroscopic", "Macroscopic"],
+            ["add_nuclide", "Nuclide"],
+            ["add_s_alpha_beta", "S alpha beta"]
+        ],
+        "PercentType": [
+            ["ao", "ao"],
+            ["wo", "wo"]
+        ],
+        "SourceSpace": [
+            ["box", "Box"],
+            ["fission", "Fissionable Box"],
+            ["point", "Point"],
+            ["cartesian", "Cartesian"],
+            ["cylindrical", "Cylindrical"],
+            ["spherical", "Spherical"]
+        ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "css": [
+                "vtk.css"
+            ],
+            "js": [
+                "cloudmc.js",
+                "sirepo-geometry.js",
+                "sirepo-plotting-vtk.js"
+            ]
+        }
+    },
+    "localRoutes": {
+        "geometry": {
+            "route": "/geometry/:simulationId",
+            "config": {
+                "controller": "GeometryController as geometry",
+                "templateUrl": "/static/html/cloudmc-geometry.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/cloudmc-visualization.html"
+            }
+        }
+    },
+    "model": {
+        "dagmcAnimation": {},
+
+        "materialComponent": {
+            "component": ["Component", "MaterialComponent", "add_element"],
+            "name": ["Name", "ComponentName", ""],
+            "percent_with_type": ["Percent", "PercentWithType", "", "Atom weight (ao) or Weight percent (wo)"],
+            "percent": ["Percent", "Float", 1.0],
+            "percent_type": ["Percent Type", "PercentType", "ao"],
+            "enrichment_with_type": ["Enrichment", "EnrichmentWithType", "", "Atom weight (ao) or Weight percent (wo)"],
+            "enrichment": ["Enrichment", "OptionalFloat"],
+            "enrichment_type": ["Enrichment Type", "EnrichmentType", "none"],
+            "enrichment_target": ["Enrichment Target", "OptionalString"],
+            "fraction": ["Fraction", "Float", 1.0, "The fraction of relevant nuclei that are affected by the $S(\\alpha, \\beta)$ table."]
+        },
+        "geometryInput": {
+            "dagmcFile": ["DAGMC File", "InputFile", ""]
+        },
+        "geometry3DReport": {
+            "bgColor": ["Background Color", "Color", [1, 0.97647, 0.929412]],
+            "opacity": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
+            "showEdges": ["Show Edges", "Boolean", "0"]
+        },
+        "material": {
+            "name": ["Name", "String", ""],
+            "temperature": ["Temperature [K] (Optional)", "OptionalFloat"],
+            "density_with_units": ["Density", "DensityWithUnits"],
+            "density": ["Density", "Float"],
+            "density_units": ["Density Units", "DensityUnits", "g/cm3"],
+            "depletable": ["Depletable", "Boolean", "0"],
+            "volume": ["Volume [$cm^3$] (Optional)", "OptionalFloat"],
+            "components": ["", "MaterialComponents"]
+        },
+        "openmcSettings": {
+            "batches": ["Number of batches to simulation", "Integer", 1],
+            "inactive": ["Number of inactive batches", "Integer", 0],
+            "particles": ["Number of particles per generation", "Integer", 5000]
+        },
+        "openmcSource": {
+            "spaceType": ["Type", "SourceSpace", "box"],
+            "boxLowerLeft": ["Lower Left", "Float3", "-1, -1, -1", "", "X, Y, Z"],
+            "boxUpperRight": ["Upper Right", "Float3", "1, 1, 1", "", "X, Y, Z"]
+        },
+        "tally": {
+            "name": ["Name", "String"],
+            "scores": ["Scores", "TallyScores", ""]
+        },
+        "tallyFilter": {
+            "type": ["Filter Type", "FilterType", "CellFilter"]
+        },
+        "openmcAnimation": {},
+        "simulationStatus": {},
+        "volumes": {}
+    },
+    "view": {
+        "geometryInput": {
+            "title": "Geometry Input",
+            "basic": [
+                "dagmcFile"
+            ],
+            "advanced": []
+        },
+        "geometry3DReport": {
+            "title": "DAGMC Geometry",
+            "basic": [
+                "opacity",
+                "bgColor",
+                "showEdges"
+            ],
+            "advanced": [
+                "opacity",
+                "bgColor",
+                "showEdges"
+            ]
+        },
+        "material": {
+            "title": "Material",
+            "advanced": [
+                "name",
+                "density_with_units",
+                "depletable",
+                "temperature",
+                "volume",
+                "components"
+            ]
+        },
+        "openmcSettings": {
+            "title": "Settings",
+            "basic": [
+                ["Main", [
+                    "batches",
+                    "inactive",
+                    "particles"
+                ]],
+                ["Source", [
+                    "openmcSource.spaceType",
+                    "openmcSource.boxLowerLeft",
+                    "openmcSource.boxUpperRight"
+                ]]
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": [],
+            "basic": []
+        },
+        "volumes": {
+            "title": "Volumes",
+            "advanced": []
+        }
+    }
+}

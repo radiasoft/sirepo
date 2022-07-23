@@ -35,6 +35,12 @@ describe('plotting: plotAxis', function() {
         values = tickValues('p (mec)', [1091.8533911592672, 1102.8071108461356], { width: 423, height: 423}, 'y', 'left');
         expect(values).toEqual(['1092', '1094', '1096', '1098', '1100', '1102']);
 
+        values = tickValues('Particles', [9900, 9950, 10000], {width: 423, height: 423}, 'y', 'left');
+        expect(values).toEqual(['9.90e+3', '9.92e+3', '9.94e+3', '9.96e+3', '9.98e+3', '1.00e+4']);
+
+        values = tickValues('Particles', [7500, 8000, 8500, 9000, 9500, 10000], {width: 423, height: 423}, 'y', 'left');
+        expect(values).toEqual(['7.5e+3', '8.0e+3', '8.5e+3', '9.0e+3', '9.5e+3', '1.0e+4']);
+
         values = tickValues('t [s]', [1.2281523024139837e-7, 1.2281730720114474e-7], {width: 468, height: 468}, 'x', 'bottom');
         expect(values).toEqual(['-0.8', '-0.6', '-0.4', '-0.2', '0', '0.2', '0.4', '0.6', '0.8', '1.0']);
         expect(formattedBase).toEqual('< t > = 122.8162ns');

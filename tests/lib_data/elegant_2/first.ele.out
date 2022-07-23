@@ -1,0 +1,18 @@
+
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  expand_for = "distr/distribution.sdds",
+  lattice = "lattice.lte",
+  use_beamline = "BL1",
+&end
+
+&run_control
+&end
+
+&sdds_beam
+  input = "distr/distribution.sdds",
+&end

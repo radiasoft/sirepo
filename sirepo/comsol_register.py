@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""COMSOL registration routes.
+"""COMSOL registration routes.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,39 +10,43 @@ from pykern import pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import smtp
+import sirepo.api
 
 cfg = None
 
 
-@api_perm.allow_visitor
-def api_comsol():
-    return http_reply.gen_redirect(
-        'https://www.radiasoft.net/services/comsol-certified-consulting/',
-    )
+class API(sirepo.api.Base):
+    @sirepo.api.Spec("allow_visitor")
+    def api_comsol(self):
+        return self.reply_redirect(
+            "https://www.radiasoft.net/services/comsol-certified-consulting/",
+        )
 
+    @sirepo.api.Spec("allow_visitor")
+    def api_comsolRegister(self):
+        import sirepo.util
 
-@api_perm.allow_visitor
-def api_comsolRegister():
-    import sirepo.util
-
-    req = http_request.parse_json()
-    smtp.send(
-        recipient=cfg.mail_recipient_email,
-        subject='Sirepo / COMSOL Registration',
-        body=u'''
+        req = self.parse_json()
+        smtp.send(
+            recipient=cfg.mail_recipient_email,
+            subject="Sirepo / COMSOL Registration",
+            body="""
 Request for access to Sirepo / COMSOL.
 
 Name: {}
 Email: {}
-'''.format(req.name, req.email),
-    )
-    return http_reply.gen_json_ok()
+""".format(
+                req.name, req.email
+            ),
+        )
+        return self.reply_ok()
 
 
 def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
-        mail_recipient_email=pkconfig.Required(str, 'Email to receive registration messages'),
+        mail_recipient_email=pkconfig.Required(
+            str, "Email to receive registration messages"
+        ),
     )

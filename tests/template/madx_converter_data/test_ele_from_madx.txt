@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+# test1
+execution_mode = 'serial'
+
+lattice_file = """
+% pi 180 / sto degrad
+% 9.25 sto lt
+% 180 pi / sto raddeg
+% -1 sto sr_alpha_x
+% -0.0 sto sr_alpha_y
+% 1.01 sto sr_gamma
+% 1 1 sr_gamma 2 pow / - sqrt sto sr_beta
+% 1.1 sto sr_beta_x
+% 0.7 sto sr_beta_y
+% -0.09950371902099893 sto sr_dp_s_coupling
+% 1 sr_alpha_x sr_alpha_x * + sr_beta_x / sto sr_gamma_x
+% 1 sr_alpha_y sr_alpha_y * + sr_beta_y / sto sr_gamma_y
+% 5000 sto sr_n_particles_per_bunch
+% pi 2 * sto twopi
+
+"B_0": DRIF
+"M_DL_D.00": DRIF,l=1.75
+"T_AR_D.01": DRIF,l="LT 10 pi * 180 / 3 * -"
+"BL1": LINE=("B_0","M_DL_D.00","T_AR_D.01")
+
+"""
+
+elegant_file = """
+
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  centroid = "run_setup.centroid.sdds",
+  lattice = "elegant.lte",
+  output = "run_setup.output.sdds",
+  p_central_mev = 1001.0000000000001,
+  parameters = "run_setup.parameters.sdds",
+  sigma = "run_setup.sigma.sdds",
+&end
+
+&run_control
+&end
+
+&twiss_output
+  filename = "twiss_output.filename.sdds",
+  matched = 0,
+&end
+
+&bunched_beam
+  alpha_x = -1,
+  beta_x = 1.1,
+  beta_y = 0.7,
+  distribution_cutoff[0] = 3, 3, 3,
+  dp_s_coupling = -0.09950371902099893,
+  emit_x = 1.4e-06,
+  emit_y = 1.5e-06,
+  enforce_rms_values[0] = 1, 1, 1,
+  n_particles_per_bunch = 5000,
+  sigma_dp = 0.004280050616574745,
+  sigma_s = 0.002981166677631146,
+&end
+
+&track
+&end
+
+"""
+
+with open('elegant.lte', 'w') as f:
+    f.write(lattice_file)
+
+with open('elegant.ele', 'w') as f:
+    f.write(elegant_file)
+
+import os
+os.system('elegant elegant.ele')

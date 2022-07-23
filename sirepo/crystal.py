@@ -11,7 +11,7 @@ import re
 
 import requests
 
-X0H_SERVER = 'https://x-server.gmca.aps.anl.gov/cgi/x0h_form.exe'
+X0H_SERVER = "https://x-server.gmca.aps.anl.gov/cgi/x0h_form.exe"
 
 
 def calc_bragg_angle(d, energy_eV, n=1):
@@ -35,11 +35,11 @@ def calc_bragg_angle(d, energy_eV, n=1):
 
     lamda = 1239.84193 / energy_eV  # lamda in [nm]
     bragg_angle = math.asin(n * lamda / (2 * d * 0.1))  # convert d from [A] to [nm].
-    bragg_angle_deg = 180. / math.pi * bragg_angle
+    bragg_angle_deg = 180.0 / math.pi * bragg_angle
     return {
-        'lamda': lamda,
-        'bragg_angle': bragg_angle,
-        'bragg_angle_deg': bragg_angle_deg,
+        "lamda": lamda,
+        "bragg_angle": bragg_angle,
+        "bragg_angle_deg": bragg_angle_deg,
     }
 
 
@@ -93,25 +93,25 @@ def _get_crystal_parameters(content, miller_indices=None):
     xrh_list = []
     xih_list = []
     for row in content:
-        if re.search('a1=', row):
+        if re.search("a1=", row):
             a1_list.append(row)
-        elif re.search(' d=', row):
+        elif re.search(" d=", row):
             d_server_list.append(row)
-        elif re.search('QB=', row):
+        elif re.search("QB=", row):
             bragg_angle_list.append(row)
-        elif re.search('xr0=', row):
+        elif re.search("xr0=", row):
             xr0_list.append(row)
-        elif re.search('xi0=', row):
+        elif re.search("xi0=", row):
             xi0_list.append(row)
-        elif re.search('xrh', row):
+        elif re.search("xrh", row):
             xrh_list.append(row)
-        elif re.search('xih', row):
+        elif re.search("xih", row):
             xih_list.append(row)
     assert len(a1_list) > 0
     a1 = _parse_xr_xi(a1_list[0])
     d_calculated = a1
     if miller_indices:
-        d_calculated /= (sum(n ** 2 for n in miller_indices)) ** 0.5
+        d_calculated /= (sum(n**2 for n in miller_indices)) ** 0.5
 
     assert len(d_server_list) > 0
     d_server = _parse_xr_xi(d_server_list[0])
@@ -126,15 +126,15 @@ def _get_crystal_parameters(content, miller_indices=None):
     xih = _parse_xr_xi(xih_list[0])
 
     return {
-        'a1': a1,
-        'd': d_calculated,
-        'd_calculated': d_calculated,
-        'd_server': d_server,
-        'bragg_angle_deg': bragg_angle_deg,
-        'xr0': xr0,
-        'xi0': xi0,
-        'xrh': xrh,
-        'xih': xih,
+        "a1": a1,
+        "d": d_calculated,
+        "d_calculated": d_calculated,
+        "d_server": d_server,
+        "bragg_angle_deg": bragg_angle_deg,
+        "xr0": xr0,
+        "xi0": xi0,
+        "xrh": xrh,
+        "xih": xih,
     }
 
 
@@ -150,21 +150,21 @@ def _get_server_data(energy, material, h, k, l):
     :return content: split server's response.
     """
     payload = {
-        'xway': 2,
-        'wave': energy,
-        'coway': 0,
-        'code': material,
-        'i1': h,
-        'i2': k,
-        'i3': l,
-        'df1df2': -1,
-        'modeout': 1,
+        "xway": 2,
+        "wave": energy,
+        "coway": 0,
+        "code": material,
+        "i1": h,
+        "i2": k,
+        "i3": l,
+        "df1df2": -1,
+        "modeout": 1,
     }
     r = requests.get(X0H_SERVER, params=payload, timeout=5)
     content = r.text
-    content = content.split('\n')
+    content = content.split("\n")
     return content
 
 
 def _parse_xr_xi(string):
-    return float(string.split('=')[-1].strip())
+    return float(string.split("=")[-1].strip())

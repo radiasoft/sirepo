@@ -1,0 +1,13 @@
+SDDS1
+!# little-endian
+&parameter name=Charge, type=double, units="C", &end
+&column name=x, type=double, units="m",  &end
+&column name=xp, type=double,  &end
+&column name=y, type=double, units="m",  &end
+&column name=yp, type=double,  &end
+&column name=t, type=double, units="s",  &end
+&column name=p, type=double, units="m$be$nc",  &end
+&data mode=ascii, &end
+1
+1
+1 1 1 1 1 1

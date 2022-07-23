@@ -1,0 +1,339 @@
+#!/usr/bin/env python
+# -*- python -*-
+from pykern import pkio
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdlog
+from sirepo.sim_data.controls import AmpConverter
+from sirepo.template import particle_beam
+import numpy
+import os
+import re
+import requests
+import scipy.optimize
+import sirepo.template.madx
+import subprocess
+import time
+
+_FAIL_COST = 1e24
+
+targets = numpy.array([
+    # [target value, weight]
+    [0, 0.1],
+    [0, 0.1],
+    [0, 0.2],
+    [0, 0.2],
+    [0, 0.3],
+    [0, 0.3],
+    [0, 0.4],
+    [0, 0.4],
+    [0, 0.5],
+    [0, 0.5],
+])
+
+
+def _assert_update_and_read_results(correctors, failure_message):
+    readings, cost = _update_and_read_results(correctors)
+    if cost == _FAIL_COST:
+        raise AssertionError(failure_message)
+    return readings, cost
+
+
+def _failed_sim_results():
+    return numpy.full(10, _FAIL_COST), _FAIL_COST
+
+
+def _update_summary_csv(correctors, readings):
+    cost = numpy.sqrt(numpy.mean(((readings - targets[:,0]) * 1000) ** 2 * targets[:,1] / numpy.sum(targets[:,1])))
+    with open('summary.csv', 'a') as f:
+        f.write('{},{}\n'.format(','.join([str(x) for x in correctors + readings]), cost))
+    return readings, cost
+
+
+def _optimize_polyfit(variable_count):
+    settings_0 = numpy.zeros(variable_count)
+    sets = numpy.identity(variable_count)
+    M = numpy.zeros([variable_count, len(targets)])
+    sets_a = numpy.linspace(-5, 5, 5) * 0.00001
+    readings = numpy.zeros([len(targets), 5])
+    for i in range(0, len(settings_0)):
+        for j in range(0, len(sets_a)):
+            setting_test = sets[i,:] * sets_a[j]
+            r, cost = _assert_update_and_read_results(setting_test, 'Linear optimization step failed')
+            readings[:,j] = r
+        for k in range(0, len(targets)):
+            M[i,k] = numpy.polyfit(sets_a, readings[k,:], 1)[0]
+    # inverse response matrix
+    MI = numpy.linalg.pinv(M.T)
+    # reset the beam-line
+    readings_1, cost = _assert_update_and_read_results(settings_0, 'Linear optimization reset failed')
+    # create settings to cancel out offsets
+    new_sets = numpy.dot(MI, -numpy.array(readings_1))
+    _assert_update_and_read_results(new_sets[:variable_count], 'Final optimization failed')
+    return {
+        'message': '',
+        'success': True,
+        'result': new_sets,
+    }
+
+
+def _run_optimizer():
+    _optimize_polyfit(8)
+
+with open('summary.csv', 'w') as f:
+    f.write('{}\n'.format('el_102.current_hkick,el_102.current_vkick,el_103.current_hkick,el_103.current_vkick,el_104.current_hkick,el_104.current_vkick,el_105.current_hkick,el_105.current_vkick,el_106.x,el_106.y,el_135.x,el_135.y,el_147.x,el_147.y,el_155.x,el_155.y,el_165.x,el_165.y,cost'))
+
+lattice_file = """
+option,echo=false,info=false;
+title, "webcon_fodo with ending monitor and instruments";
+
+REAL sr_alpha_x = 1;
+REAL sr_alpha_y = 1;
+REAL sr_beta_x = 10;
+REAL sr_beta_y = 10;
+REAL sr_dp_s_coupling = 0;
+REAL sr_gamma_x = 0.2;
+REAL sr_gamma_y = 0.2;
+REAL sr_n_particles_per_bunch = 5000;
+
+D1: DRIFT,l=0.1;
+I1: INSTRUMENT;
+HV_KICKER_1: KICKER,hkick:={sr_opt0},vkick:={sr_opt1};
+HV_KICKER_2: KICKER,hkick:={sr_opt2},vkick:={sr_opt3};
+HV_KICKER_3: KICKER,hkick:={sr_opt4},vkick:={sr_opt5};
+HV_KICKER_4: KICKER,hkick:={sr_opt6},vkick:={sr_opt7};
+BPM_1: MONITOR;
+D_QUAD: QUADRUPOLE,k1=5,l=0.05;
+F_QUAD: QUADRUPOLE,k1=-5,l=0.05;
+D2: DRIFT,l=0.1;
+D3: DRIFT,l=0.1;
+D4: DRIFT,l=0.1;
+D5: DRIFT,l=0.1;
+D6: DRIFT,l=0.1;
+D7: DRIFT,l=0.1;
+D8: DRIFT,l=0.1;
+D9: DRIFT,l=0.1;
+D10: DRIFT,l=0.1;
+I2: INSTRUMENT;
+BPM_2: MONITOR;
+D11: DRIFT,l=0.1;
+D12: DRIFT,l=0.1;
+D13: DRIFT,l=0.1;
+D14: DRIFT,l=0.1;
+D15: DRIFT,l=0.1;
+D16: DRIFT,l=0.1;
+D17: DRIFT,l=0.1;
+D18: DRIFT,l=0.1;
+D19: DRIFT,l=0.1;
+D20: DRIFT,l=0.1;
+I3: INSTRUMENT;
+BPM_3: MONITOR;
+D21: DRIFT,l=0.1;
+D22: DRIFT,l=0.1;
+D23: DRIFT,l=0.1;
+D24: DRIFT,l=0.1;
+D25: DRIFT,l=0.1;
+D26: DRIFT,l=0.1;
+I4: INSTRUMENT;
+BPM_4: MONITOR;
+D27: DRIFT,l=0.1;
+D28: DRIFT,l=0.1;
+D29: DRIFT,l=0.1;
+F_QUAD2: QUADRUPOLE,k1=-5,l=0.05;
+D30: DRIFT,l=0.1;
+D31: DRIFT,l=0.1;
+D_QUAD2: QUADRUPOLE,k1=5,l=0.05;
+D32: DRIFT,l=0.1;
+I5: INSTRUMENT;
+BPM_5: MONITOR;
+MARKER171_DRIFT: MARKER;
+MARKER172_DRIFT: MARKER;
+MARKER173_DRIFT: MARKER;
+MARKER174_DRIFT: MARKER;
+MARKER175_INSTRUMENT: MARKER;
+MARKER176_MONITOR: MARKER;
+MARKER177_DRIFT: MARKER;
+MARKER178_DRIFT: MARKER;
+MARKER179_DRIFT: MARKER;
+MARKER180_DRIFT: MARKER;
+MARKER181_DRIFT: MARKER;
+MARKER182_DRIFT: MARKER;
+MARKER183_INSTRUMENT: MARKER;
+MARKER184_MONITOR: MARKER;
+MARKER185_DRIFT: MARKER;
+MARKER186_DRIFT: MARKER;
+MARKER187_DRIFT: MARKER;
+MARKER188_QUADRUPOLE: MARKER;
+MARKER189_DRIFT: MARKER;
+MARKER190_DRIFT: MARKER;
+MARKER191_QUADRUPOLE: MARKER;
+MARKER192_DRIFT: MARKER;
+MARKER193_DRIFT: MARKER;
+MARKER194_DRIFT: MARKER;
+MARKER195_DRIFT: MARKER;
+MARKER196_DRIFT: MARKER;
+MARKER197_INSTRUMENT: MARKER;
+MARKER198_MONITOR: MARKER;
+MARKER199_DRIFT: MARKER;
+MARKER200_DRIFT: MARKER;
+MARKER201_DRIFT: MARKER;
+MARKER202_DRIFT: MARKER;
+MARKER203_DRIFT: MARKER;
+MARKER204_DRIFT: MARKER;
+MARKER205_INSTRUMENT: MARKER;
+MARKER206_MONITOR: MARKER;
+MARKER207_DRIFT: MARKER;
+MARKER208_DRIFT: MARKER;
+MARKER209_DRIFT: MARKER;
+MARKER210_QUADRUPOLE: MARKER;
+MARKER211_DRIFT: MARKER;
+MARKER212_DRIFT: MARKER;
+MARKER213_QUADRUPOLE: MARKER;
+MARKER214_DRIFT: MARKER;
+MARKER215_INSTRUMENT: MARKER;
+MARKER216_MONITOR: MARKER;
+LINE: LINE=(D1,MARKER171_DRIFT,D2,MARKER172_DRIFT,HV_KICKER_1,D3,MARKER173_DRIFT,D4,MARKER174_DRIFT,I1,MARKER175_INSTRUMENT,BPM_1,MARKER176_MONITOR,D5,MARKER177_DRIFT,D6,MARKER178_DRIFT,D7,MARKER179_DRIFT,D8,MARKER180_DRIFT,HV_KICKER_2,D9,MARKER181_DRIFT,D10,MARKER182_DRIFT,I2,MARKER183_INSTRUMENT,BPM_2,MARKER184_MONITOR,D11,MARKER185_DRIFT,D12,MARKER186_DRIFT,D13,MARKER187_DRIFT,F_QUAD,MARKER188_QUADRUPOLE,D14,MARKER189_DRIFT,D15,MARKER190_DRIFT,D_QUAD,MARKER191_QUADRUPOLE,D16,MARKER192_DRIFT,D17,MARKER193_DRIFT,D18,MARKER194_DRIFT,HV_KICKER_3,D19,MARKER195_DRIFT,D20,MARKER196_DRIFT,I3,MARKER197_INSTRUMENT,BPM_3,MARKER198_MONITOR,D21,MARKER199_DRIFT,D22,MARKER200_DRIFT,D23,MARKER201_DRIFT,D24,MARKER202_DRIFT,HV_KICKER_4,D25,MARKER203_DRIFT,D26,MARKER204_DRIFT,I4,MARKER205_INSTRUMENT,BPM_4,MARKER206_MONITOR,D27,MARKER207_DRIFT,D28,MARKER208_DRIFT,D29,MARKER209_DRIFT,F_QUAD2,MARKER210_QUADRUPOLE,D30,MARKER211_DRIFT,D31,MARKER212_DRIFT,D_QUAD2,MARKER213_QUADRUPOLE,D32,MARKER214_DRIFT,I5,MARKER215_INSTRUMENT,BPM_5,MARKER216_MONITOR);
+
+
+option,echo=false;
+beam,ex=4.6e-08,ey=4.6e-08,gamma=1958.908474421938,particle=electron,sigt=0.00065;
+use,sequence=LINE;
+ptc_create_universe;
+ptc_observe,place=Marker216_MONITOR;
+ptc_observe,place=Marker215_INSTRUMENT;
+ptc_observe,place=Marker214_DRIFT;
+ptc_observe,place=Marker213_QUADRUPOLE;
+ptc_observe,place=Marker212_DRIFT;
+ptc_observe,place=Marker211_DRIFT;
+ptc_observe,place=Marker210_QUADRUPOLE;
+ptc_observe,place=Marker209_DRIFT;
+ptc_observe,place=Marker208_DRIFT;
+ptc_observe,place=Marker207_DRIFT;
+ptc_observe,place=Marker206_MONITOR;
+ptc_observe,place=Marker205_INSTRUMENT;
+ptc_observe,place=Marker204_DRIFT;
+ptc_observe,place=Marker203_DRIFT;
+ptc_observe,place=Marker202_DRIFT;
+ptc_observe,place=Marker201_DRIFT;
+ptc_observe,place=Marker200_DRIFT;
+ptc_observe,place=Marker199_DRIFT;
+ptc_observe,place=Marker198_MONITOR;
+ptc_observe,place=Marker197_INSTRUMENT;
+ptc_observe,place=Marker196_DRIFT;
+ptc_observe,place=Marker195_DRIFT;
+ptc_observe,place=Marker194_DRIFT;
+ptc_observe,place=Marker193_DRIFT;
+ptc_observe,place=Marker192_DRIFT;
+ptc_observe,place=Marker191_QUADRUPOLE;
+ptc_observe,place=Marker190_DRIFT;
+ptc_observe,place=Marker189_DRIFT;
+ptc_observe,place=Marker188_QUADRUPOLE;
+ptc_observe,place=Marker187_DRIFT;
+ptc_observe,place=Marker186_DRIFT;
+ptc_observe,place=Marker185_DRIFT;
+ptc_observe,place=Marker184_MONITOR;
+ptc_observe,place=Marker183_INSTRUMENT;
+ptc_observe,place=Marker182_DRIFT;
+ptc_observe,place=Marker181_DRIFT;
+ptc_observe,place=Marker180_DRIFT;
+ptc_observe,place=Marker179_DRIFT;
+ptc_observe,place=Marker178_DRIFT;
+ptc_observe,place=Marker177_DRIFT;
+ptc_observe,place=Marker176_MONITOR;
+ptc_observe,place=Marker175_INSTRUMENT;
+ptc_observe,place=Marker174_DRIFT;
+ptc_observe,place=Marker173_DRIFT;
+ptc_observe,place=Marker172_DRIFT;
+ptc_observe,place=Marker171_DRIFT;
+ptc_create_layout;
+call,file=ptc_particles.madx;
+ptc_track,file="ptc_track.file.tfs",icase=6,onetable=true;
+ptc_track_end;
+ptc_end;
+
+"""
+
+finished_sims = False
+
+amp_tables_by_name = PKDict({
+})
+
+amp_table_for_corrector = [
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+]
+
+
+def _check_twiss_success():
+    beam_data, observes, columns = particle_beam.read_ptc_data('ptc_track.file.tfsone')
+    res = particle_beam.analyze_ptc_beam(
+        beam_data,
+        mc2=0.938272046,
+    )
+    for c in ('beta_x', 'beta_y', 'alpha_x', 'alpha_y'):
+        if list(filter(lambda x: numpy.isnan(x), res[c])):
+            return None, None
+    return res, observes
+
+
+def _read_cols_and_save_report(default_file, save_file, cols_file):
+    if pkio.py_path(default_file).exists():
+        cols = sirepo.template.madx.file_info(
+                default_file,
+                pkio.py_path('.'),
+                'unused',
+            ).plottableColumns
+        pkio.write_text(cols_file, ','.join(cols))
+        os.rename(default_file, save_file)
+
+def _run_simulation(correctors):
+    lattice = lattice_file
+    values = {}
+    for idx in range(len(correctors)):
+        ac = AmpConverter(
+            PKDict(
+                particle="electron",
+                gamma=1958.908474421938,
+            ),
+            amp_table_for_corrector[idx],
+        )
+        values[f'sr_opt{idx}'] = ac.current_to_kick(correctors[idx])
+    with open('in.madx', 'w') as f:
+        for k in values:
+            lattice = re.sub('{' + k + '}', str(values[k]), lattice)
+        f.write(lattice)
+    p = subprocess.run(('madx', 'in.madx'), capture_output=True, text=True)
+    pkio.write_text('madx.log', p.stdout)
+    pkio.write_text('madx.err', p.stderr)
+    if p.returncode != 0 or p.stdout.count('is lost') == 100:
+        return None, None
+    return _check_twiss_success()
+
+def _update_and_read_results(correctors):
+    global finished_sims
+    columns, observes = _run_simulation(correctors)
+    if columns:
+        readings = []
+        finished_sims = True
+        for i in range(len(observes)):
+            if '_MONITOR' in observes[i]:
+                readings += [columns['x0'][i], columns['y0'][i]]
+            elif '_HMONITOR' in observes[i]:
+                readings += [columns['x0'][i]]
+            elif '_VMONITOR' in observes[i]:
+                readings += [columns['y0'][i]]
+            else:
+                pass
+        _read_cols_and_save_report('ptc_track.file.tfsone', 'track.tfs', 'ptc_track_columns.txt')
+        return _update_summary_csv(correctors.tolist(), readings)
+    return _failed_sim_results()
+
+_run_optimizer()
+
+if not finished_sims:
+    raise AssertionError('Optimization failed all minimization attempts')

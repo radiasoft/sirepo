@@ -21,7 +21,7 @@
 &end
 
 &sdds_beam
-  input = "PCG.sdds",
+  input = "distribution/bunchFile-sourceFile.PCG.sdds",
 &end
 
 &load_parameters
@@ -29,5 +29,5 @@
 &end
 
 &load_parameters
-  filename = "tessamatch1.paramOpt",
+  filename = "command_load_parameters-filename.tessamatch1.paramOpt",
 &end

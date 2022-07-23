@@ -124,6 +124,9 @@ angular.element(document).ready(function() {
             simulationType: SIREPO.APP_NAME,
         },
         success: function(result) {
+            if (result.state === 'srException') {
+                throw new Error(`srException in /simulation-schema result=${JSON.stringify(result)}`);
+            }
             SIREPO.APP_SCHEMA = result;
             $.when.apply($, loadDynamicModules()).then(
                 function() {
@@ -312,7 +315,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, simulationDataCache, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, simulationDataCache, utilities, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -796,7 +799,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.setFieldDefaults = function(model, field, fieldInfo, overWrite=false) {
-        let defaultVal = fieldInfo[2];
+        let defaultVal = fieldInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE];
+        if (fieldInfo[SIREPO.INFO_INDEX_TYPE] === 'RandomId') {
+            defaultVal = utilities.randomString();
+        }
         if (! model[field] || overWrite) {
             if (defaultVal !== undefined) {
                 // for cases where the default value is an object, we must
@@ -811,7 +817,13 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         const schema = SIREPO.APP_SCHEMA.model[modelName];
         const fields = Object.keys(schema);
         for (let i = 0; i < fields.length; i++) {
-            self.setFieldDefaults(model, fields[i], schema[fields[i]]);
+            const s = schema[fields[i]];
+            self.setFieldDefaults(model, fields[i], s);
+            const m = self.parseModelField(s[SIREPO.INFO_INDEX_TYPE]);
+            if (! m || m[0] !== 'model') {
+                continue;
+            }
+            model[fields[i]] = self.setModelDefaults({}, m[1]);
         }
         return model;
     };
@@ -1001,11 +1013,20 @@ SIREPO.app.factory('simulationDataCache', function ($rootScope){
 });
 
 SIREPO.app.factory('stringsService', function() {
+    const strings = SIREPO.APP_SCHEMA.strings;
+
+    function typeOfSimulation(modelName) {
+        let s;
+        if (modelName && strings[modelName] && strings[modelName].typeOfSimulation) {
+            s = strings[modelName].typeOfSimulation;
+        }
+        return ucfirst(s || strings.typeOfSimulation);
+    }
+
     function ucfirst(str) {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
-    const strings = SIREPO.APP_SCHEMA.strings;
     return {
         formatKey: (name) => {
             return ucfirst(strings[name]);
@@ -1028,12 +1049,13 @@ SIREPO.app.factory('stringsService', function() {
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
-        startButtonLabel: () => {
-            return `Start New ${ucfirst(strings.typeOfSimulation)}`;
+        startButtonLabel: (modelName) => {
+            return `Start New ${typeOfSimulation(modelName)}`;
         },
-        stopButtonLabel: () => {
-            return `End ${ucfirst(strings.typeOfSimulation)}`;
+        stopButtonLabel: (modelName) => {
+            return `End ${typeOfSimulation(modelName)}`;
         },
+        typeOfSimulation: typeOfSimulation,
         ucfirst: ucfirst
     };
 });
@@ -1063,6 +1085,15 @@ SIREPO.app.factory('timeService', function() {
         );
     };
 
+    return self;
+});
+
+SIREPO.app.factory('userAgent', function() {
+    var self = {
+        HEADER: 'X-Sirepo-UserAgentId'
+    };
+
+    self.id = null;
     return self;
 });
 
@@ -1258,41 +1289,54 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         function onError() {
             panelState.reportNotGenerated(modelName);
         }
-        var isHidden = panelState.isHidden(modelName);
-        var frameRequestTime = new Date().getTime();
-        var delay = isPlaying && ! isHidden
-            ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
-            : 0;
-        var requestFunction = function() {
-            if (SIREPO.SLOW_ANIMATION) {
-                // some apps like SRW may take a long time to process a frame
-                panelState.setLoading(modelName, true);
+        function now() {
+            return new Date().getTime();
+        }
+        let isHidden = panelState.isHidden(modelName);
+        let frameRequestTime = now();
+        let waitTimeHasElapsed = false;
+        const framePeriod = () => {
+            if (! isPlaying || isHidden) {
+                return 0;
             }
+            const milliseconds = 1000;
+            var x = appState.models[modelName].framesPerSecond;
+            if (! x) {
+                return  0.5 * milliseconds;
+            }
+            return  milliseconds / parseInt(x);
+        };
+
+        const requestFunction = function() {
+            setTimeout(() => {
+                if (! waitTimeHasElapsed) {
+                    panelState.setLoading(modelName, true);
+                }
+            }, 1000);
             requestSender.sendRequest(
                 {
                     'routeName': 'simulationFrame',
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    waitTimeHasElapsed = true;
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
                         onError();
                         return;
                     }
-                    var endTime = new Date().getTime();
-                    var elapsed = endTime - frameRequestTime;
-                    if (elapsed < delay) {
-                        $interval(
-                            function() {
-                                callback(index, data);
-                            },
-                            delay - elapsed,
-                            1
-                        );
-                    }
-                    else {
+                    let e = framePeriod() - (now() - frameRequestTime);
+                    if (e <= 0) {
                         callback(index, data);
+                        return;
                     }
+                    $interval(
+                        function() {
+                            callback(index, data);
+                        },
+                        e,
+                        1
+                    );
                 },
                 null,
                 onError
@@ -1896,7 +1940,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, userAgent, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1970,9 +2014,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             // wrong app so just ignore
             return;
         }
-        if ($location.path() != p[1]) {
+        var r = decodeURIComponent(p[1]);
+        if ($location.path() != r) {
             event.preventDefault();
-            self.localRedirect(p[1]);
+            self.localRedirect(r);
         }
     }
 
@@ -2033,7 +2078,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     }
 
     function saveCookieRedirect(route) {
-        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + route;
+        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(route);
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
     }
 
@@ -2184,7 +2229,14 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         if (u.charAt(0) == '#') {
             u = u.slice(1);
         }
-        $location.path(u);
+        // needs to handle query params from calls using complete url differently
+        u = u.split("?");
+
+        if(u.length > 1 && u[1].trim()) {
+            $location.path(u[0]).search(u[1]);
+        } else {
+            $location.path(u[0]);
+        }
     };
 
     self.localRedirectHome = function(simulationId) {
@@ -2251,6 +2303,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         t = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
+            headers: userAgent.id ? {[userAgent.HEADER]: userAgent.id} : {}
         };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
@@ -2344,6 +2397,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         };
         req.then(
             function(response) {
+                const i = response.headers(userAgent.HEADER);
+                if (i) {
+                    userAgent.id = i;
+                }
                 var data = response.data;
                 if (! angular.isObject(data) || data.state === 'srException') {
                     // properly handle file path returns from get_application_data, which do not live in json objects
@@ -2811,6 +2868,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         state.isStateCanceled = function() {
             return simulationStatus().state == 'canceled';
+        };
+
+        state.isStateCompleted = function() {
+            return simulationStatus().state == 'completed';
         };
 
         state.isStateError = function() {
@@ -3722,6 +3783,14 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 appState.autoSave(clearModels, errorCallback);
                 self.selectedItem = null;
             });
+    }
+
+    function beginSession() {
+        requestSender.sendRequest(
+            'beginSession',
+            () => {},
+            {simulationType: SIREPO.APP_SCHEMA.simulationType}
+            );
     }
 
     self.canDelete = function(item) {
