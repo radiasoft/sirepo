@@ -125,8 +125,13 @@ def _apply_segments(g_id, segments, seg_type="pln", **kwargs):
                 g_id,
                 segments,
                 seg_type,
-                [d.center, d.axis, d.perp_axis, 1.0,],
-                "Frame->Lab"
+                [
+                    d.center,
+                    d.axis,
+                    d.perp_axis,
+                    1.0,
+                ],
+                "Frame->Lab",
             )
 
 
@@ -244,7 +249,7 @@ def build_cylinder(**kwargs):
         d.size[_axes_index(axis)],
         d.num_sides,
         d.extrusion_axis,
-        d.magnetization
+        d.magnetization,
     )
     _apply_segments(
         g_id,
