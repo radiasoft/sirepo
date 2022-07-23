@@ -306,8 +306,10 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
         count += 1
         source_distance = item.position - prev_position
         if calc_beam_stats and source_distance >= 1e-3:
-            res += f'\n\npos = divide_drift(pos, {count}, {source_distance})'
-            source_distance = source_distance / models.beamStatisticsReport.driftDivisions
+            res += f"\n\npos = divide_drift(pos, {count}, {source_distance})"
+            source_distance = (
+                source_distance / models.beamStatisticsReport.driftDivisions
+            )
             count += models.beamStatisticsReport.driftDivisions - 1
         from_source = item.position - source_position
         image_distance = 0
@@ -374,7 +376,7 @@ oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
 """
             res += _generate_trace(source_distance, trace_method, count)
             if calc_beam_stats:
-                res += '\npos = calculate_stats(pos, oe)'
+                res += "\npos = calculate_stats(pos, oe)"
         if last_element:
             break
         prev_position = item.position
