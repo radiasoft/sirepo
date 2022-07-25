@@ -638,25 +638,26 @@ def _build_model_py(v):
     strides={layer.strides},
     padding="{layer.padding}"
     """
-    # TODO (gurhar1133): test all types of layers out
+
     args_map = PKDict(
-            Activation=lambda layer: f'"{layer.activationActivation}"',
-            AlphaDropout=lambda layer: layer.alphaDropoutRate,
-            Conv2D=lambda layer: _conv_args(layer),
-            Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
-            Dropout=lambda layer: layer.dropoutRate,
-            Flatten=lambda layer: "",
-            GaussianDropout= lambda layer:layer.gaussianDropoutRate,
-            GaussianNoise=lambda layer: layer.stddev,
-            GlobalAveragePooling2D=lambda layer: "",
-            MaxPooling2D=lambda layer: f'''pool_size=({layer.maxPooling2DPoolSize}, {layer.maxPooling2DPoolSize}),
-    strides={layer.maxPooling2DStrides},
-    padding="{layer.maxPooling2DPadding}"''',
-            SeparableConv2D=lambda layer: _conv_args(layer),
-            Conv2DTranspose=lambda layer: _conv_args(layer),
-            UpSampling2D=lambda layer: f'size={layer.upSampling2DSize}, interpolation="{layer.upSampling2DInterpolation}"',
-            ZeroPadding2D=lambda layer: f"padding=({layer.zeroPadding2DPadding}, {layer.zeroPadding2DPadding})",
-        )
+        Activation=lambda layer: f'"{layer.activation}"',
+        AlphaDropout=lambda layer: layer.dropoutRate,
+        BatchNormalization=lambda layer: f"momentum={layer.momentum}",
+        Conv2D=lambda layer: _conv_args(layer),
+        Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
+        Dropout=lambda layer: layer.dropoutRate,
+        Flatten=lambda layer: "",
+        GaussianDropout=lambda layer: layer.dropoutRate,
+        GaussianNoise=lambda layer: layer.stddev,
+        GlobalAveragePooling2D=lambda layer: "",
+        MaxPooling2D=lambda layer: f'''pool_size=({layer.size}, {layer.size}),
+    strides={layer.strides},
+    padding="{layer.padding}"''',
+        SeparableConv2D=lambda layer: _conv_args(layer),
+        Conv2DTranspose=lambda layer: _conv_args(layer),
+        UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
+        ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
+    )
 
     def _layer_args(layer):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")

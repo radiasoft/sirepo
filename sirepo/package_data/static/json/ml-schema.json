@@ -371,6 +371,10 @@
             "_super": ["-", "model", "dropout"],
             "layer": ["Layer", "NeuralNetLayer", "AlphaDropout"]
         },
+        "batchNormalization": {
+            "layer": ["layer", "NeuralNetLayer", "BatchNormalization"],
+            "momentum": ["Momentum", "Float", 0.99]
+        },
         "flatten": {
             "layer": ["layer", "NeuralNetLayer", "Flatten"]
         },
@@ -379,7 +383,7 @@
         },
         "maxPooling2D": {
             "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"],
-            "poolSize": ["Pool Size", "Integer", 2],
+            "size": ["Pool Size", "Integer", 2],
             "strides": ["Strides", "Integer", 1],
             "padding": ["Padding", "String", "same"]
         },

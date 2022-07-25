@@ -1434,7 +1434,7 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     appState.whenModelsLoaded($scope, loadReports);
 });
 
-SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
+SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState, stringsService) {
     return {
         restrict: 'A',
         scope: {},
@@ -1488,8 +1488,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
             var layerFields = {};
             var layerInfo = [];
             $scope.appState = appState;
-            srdbg('appstate.models', appState.models);
-            // srdbg('SIREPO.APP_SCHEMA.model["Conv2D"]', SIREPO.APP_SCHEMA.model["conv2D"]);
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
@@ -1502,19 +1500,15 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
-                srdbg('selected:', $scope.selectedLayer);
-                var k = $scope.selectedLayer == 'Conv2D' ? 'conv2D' : 'neuralNetLayer';
-                srdbg('k: ', k);
-                var m = appState.setModelDefaults({}, k);
+                var m = appState.setModelDefaults({}, 'neuralNetLayer');
                 m.layer = $scope.selectedLayer;
                 neuralNet.layers.push(m);
                 $scope.selectedLayer = '';
-                srdbg('appState.models: ', appState.models);
             };
 
             $scope.layerName = (layer) => {
                 return layer.layer[0].toLowerCase() + layer.layer.substring(1);
-            }
+            };
 
             $scope.cancelChanges = function() {
                 appState.cancelChanges('neuralNet');
@@ -1545,7 +1539,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 }
                 var layer = appState.models.neuralNet.layers[idx];
                 layerInfo[idx] = layerFields[layer.layer];
-                srdbg('LAYER INFO:', layerInfo);
                 return layerInfo[idx];
             };
 
@@ -1575,12 +1568,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
 
             function buildLayerFields() {
                 var MAX_FIELDS = 3;
-                var layerSchema = SIREPO.APP_SCHEMA.model.neuralNetLayer;
-                var conv2Dschema = SIREPO.APP_SCHEMA.model.conv2D;
-
-
                 $scope.layerEnum.forEach(function(row) {
-                    srdbg('row:', row);
                     var name = row[0];
                     var cols = [
                         {
@@ -1588,8 +1576,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                             label: 'Layer',
                         },
                     ];
-                    // TODO (gurhar1133): for some reason there are some odd fields in neuralNetLayer; like denseDimensionality
-                    var schema = SIREPO.APP_SCHEMA.model[name[0].toLowerCase() + name.substring(1)];
+                    var schema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
                     if (schema) {
                         Object.keys(schema).sort().reverse().forEach(function(field) {
                             if (field != '_super' && field != 'layer') {
@@ -1607,7 +1594,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 });
 
             }
-
 
             buildLayerFields();
         },
