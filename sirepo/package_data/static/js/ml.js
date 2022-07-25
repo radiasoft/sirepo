@@ -1500,14 +1500,14 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState, strin
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
-                var m = appState.setModelDefaults({}, 'neuralNetLayer');
+                var m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
                 m.layer = $scope.selectedLayer;
                 neuralNet.layers.push(m);
                 $scope.selectedLayer = '';
             };
 
             $scope.layerName = (layer) => {
-                return layer.layer[0].toLowerCase() + layer.layer.substring(1);
+                return stringsService.lcfirst(layer.layer);
             };
 
             $scope.cancelChanges = function() {
