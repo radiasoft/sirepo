@@ -185,7 +185,7 @@ def _scan_info(scan_uuid, scans_data, metadata=None):
     for c in _DEFAULT_COLUMNS:
         d[c] = locals()[f"_get_{c}"](m)
 
-    for c in scans_data.selectedColumns:
+    for c in scans_data.get("selectedColumns") or []:
         d[c] = m["start"].get(c)
     return d
 
