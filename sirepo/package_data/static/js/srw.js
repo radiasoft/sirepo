@@ -857,6 +857,8 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-python=""></div>
             <div data-sim-conversion-modal="" data-conv-method="create_shadow_simulation"></div>
         `,
     };

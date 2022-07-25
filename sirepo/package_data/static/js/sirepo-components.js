@@ -3005,8 +3005,6 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             convMethod: '@',
         },
         template: `
-            <div data-common-footer="nav"></div>
-            <div data-import-python=""></div>
             <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openConvertedSimulation()">
               <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">
