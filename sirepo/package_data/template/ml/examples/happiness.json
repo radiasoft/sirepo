@@ -195,33 +195,18 @@
             "epochs": 500,
             "layers": [
                 {
-                    "activationActivation": "linear",
-                    "alphaDropoutRate": 0.5,
-                    "denseActivation": "relu",
-                    "denseDimensionality": 10,
-                    "dropoutRate": 0.5,
-                    "gaussianDropoutRate": 0.5,
-                    "gaussianNoiseStddev": 0.01,
+                    "activation": "relu",
+                    "dimensionality": 10,
                     "layer": "Dense"
                 },
                 {
-                    "activationActivation": "relu",
-                    "alphaDropoutRate": 0.5,
-                    "denseActivation": "relu",
-                    "denseDimensionality": 10,
-                    "dropoutRate": 0.5,
-                    "gaussianDropoutRate": 0.5,
-                    "gaussianNoiseStddev": 0.01,
+                    "activation": "relu",
+                    "dimensionality": 10,
                     "layer": "Dense"
                 },
                 {
-                    "activationActivation": "relu",
-                    "alphaDropoutRate": 0.5,
-                    "denseActivation": "sigmoid",
-                    "denseDimensionality": 10,
-                    "dropoutRate": 0.5,
-                    "gaussianDropoutRate": 0.5,
-                    "gaussianNoiseStddev": 0.01,
+                    "activation": "sigmoid",
+                    "dimensionality": 10,
                     "layer": "Dense"
                 }
             ],
