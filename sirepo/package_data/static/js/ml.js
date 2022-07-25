@@ -1576,13 +1576,13 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState, strin
                             label: 'Layer',
                         },
                     ];
-                    var schema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
-                    if (schema) {
-                        Object.keys(schema).sort().reverse().forEach(function(field) {
+                    const layerSchema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
+                    if (layerSchema) {
+                        Object.keys(layerSchema).sort().reverse().forEach(function(field) {
                             if (field != '_super' && field != 'layer') {
                                 cols.push({
                                     field: field,
-                                    label: schema[field][0],
+                                    label: layerSchema[field][0],
                                 });
                             }
                         });
