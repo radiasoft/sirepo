@@ -292,8 +292,6 @@ def _generate_autotune_element(item):
 
 def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
     beamline = models.beamline
-    if calc_beam_stats:
-        beamline = _divide_drifts(beamline, models.beamStatisticsReport.driftDivisions)
     res = ""
     prev_position = source_position = 0
     last_element = False
@@ -306,7 +304,7 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
         count += 1
         source_distance = item.position - prev_position
         if calc_beam_stats and source_distance >= 1e-3:
-            res += f"\n\npos = divide_drift(pos, {count}, {source_distance})"
+            res += f"\n\npos = divide_drift(pos, beam, {count}, {source_distance})"
             source_distance = (
                 source_distance / models.beamStatisticsReport.driftDivisions
             )
@@ -374,9 +372,9 @@ calc_oe.T_IMAGE = calc_oe.SIMAG
 calc_beam.traceOE(calc_oe, 1)
 oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
 """
-            res += _generate_trace(source_distance, trace_method, count)
-            if calc_beam_stats:
-                res += "\npos = calculate_stats(pos, oe)"
+            res += _generate_trace(
+                source_distance, trace_method, count, calc_beam_stats
+            )
         if last_element:
             break
         prev_position = item.position
@@ -457,30 +455,23 @@ def _generate_crl_lens(item, is_first, is_last, count, source, calc_beam_stats):
             if _eq(item, "fmirr", "Paraboloid"):
                 ccc[2] = 0.0
             values.ccc = "numpy.array([{}])".format(", ".join(map(str, ccc)))
-        if is_ima:
-            values.update(
-                t_image=half_lens,
-                t_source=(source if is_first else 0.0) + source_width,
-            )
-        else:
-            values.update(
-                t_image=source_width,
-                t_source=half_lens,
-            )
-        fields = sorted(values.keys())
-        res = """
-
-oe = Shadow.OE(){}
-beam.traceOE(oe, {})""".format(
-            _fields("oe", values, fields), count + is_obj
+        source_distance, image_distance = (
+            ((source if is_first else 0.0) + source_width, half_lens)
+            if is_ima
+            else (half_lens, source_width)
         )
-        if calc_beam_stats:
-            res += "\n" + "pos = calculate_stats(pos, oe)"
-        return res
+        return "\n\noe = Shadow.OE(){}".format(
+            _fields("oe", values, sorted(values.keys()))
+        ) + _generate_trace(
+            source_distance,
+            "traceOE",
+            count + is_obj,
+            calc_beam_stats,
+            image_distance=image_distance,
+        )
 
     common = PKDict(
         dummy=1.0,
-        fwrite=3,
     )
     # Same for all lenses (afaict)
     common.update(
@@ -808,14 +799,23 @@ def _generate_screen(item):
     )
 
 
-def _generate_trace(source_distance, trace_method, count):
-    return (
+def _generate_trace(
+    source_distance, trace_method, count, calc_beam_stats, image_distance=0.0
+):
+    res = (
         _field_value("oe", "fwrite", "3")
-        + _field_value("oe", "t_image", 0.0)
+        + _field_value("oe", "t_image", image_distance)
         + _field_value("oe", "t_source", source_distance)
-        + "\n"
-        + "beam.{}(oe, {})".format(trace_method, count)
     )
+    if calc_beam_stats:
+        res += (
+            "\nbeam01 = beam.duplicate()"
+            + "\nbeam01.{}(oe, {})".format(trace_method, count)
+            + "\npos = calculate_stats(pos, oe, beam01)"
+        )
+    else:
+        res += "\nbeam.{}(oe, {})".format(trace_method, count)
+    return res
 
 
 def _generate_wiggler(data):
@@ -868,9 +868,7 @@ zp = zone_plate_simulator(
             verticalSize=item.diameter,
             verticalOffset=0,
         )
-    ) + _generate_trace(source_distance, "traceOE", count)
-    if calc_beam_stats:
-        res += "\n" + "pos = calculate_stats(pos, oe)"
+    ) + _generate_trace(source_distance, "traceOE", count, calc_beam_stats)
 
     # lens
     count += 1
@@ -881,9 +879,7 @@ zp = zone_plate_simulator(
             focal_z="zp.focal_distance * 1e2",
         ),
         ["focal_x", "focal_z"],
-    ) + _generate_trace(0, "traceIdealLensOE", count)
-    if calc_beam_stats:
-        res += "\n" + "pos = calculate_stats(pos, oe)"
+    ) + _generate_trace(0, "traceIdealLensOE", count, calc_beam_stats)
 
     if not calc_beam_stats:
         # do not trace through zone plate for stats - not enough particles
