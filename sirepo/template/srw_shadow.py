@@ -678,13 +678,7 @@ class Convert:
                 )
             ),
         )
-        if item.fhit_c == "0":
-            n.sagittalSize = 1e6
-            n.tangentialSize = 1e6
-        if item.fshape == "2":
-            pkdp('\n\n\n\n\n HIT \n\n\n\n')
-            n.sagittalSize = item.externalOutlineMajorAxis
-            n.tangentialSize = item.externalOutlineMinorAxis
+        self.__size_srw_mirror(n, item)
         self.beamline.append(n)
 
     def __multipole_to_shadow(self, srw, shadow):
@@ -787,6 +781,11 @@ class Convert:
         )
         srw.simulation.distanceFromSource = shadow.plotXYReport.distanceFromSource
         srw.initialIntensityReport.colorMap = shadow.initialIntensityReport.colorMap
+
+    def __size_srw_mirror(self, srw_mirror, shadow_mirror):
+        if shadow_mirror.fhit_c == "0" or shadow_mirror.fshape == "2":
+            srw_mirror.sagittalSize = 10
+            srw_mirror.tangentialSize = 10
 
     def __undulator_to_shadow(self, srw, shadow):
         self.__copy_model_fields("undulator", srw, shadow)
