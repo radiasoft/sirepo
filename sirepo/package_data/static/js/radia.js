@@ -3653,7 +3653,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
 
 SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, radiaService, utilities) {
 
-    const availableShapes = ['cuboid', 'ell', 'cee', 'jay'];
+    const availableShapes = ['cuboid', 'cylinder', 'ell', 'cee', 'jay'];
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
     ]);

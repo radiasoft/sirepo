@@ -960,10 +960,6 @@ def _kick_map_plot(model):
     )
 
 
-def _next_axis(axis):
-    return radia_util.AXES[(radia_util.AXES.index(axis) + 1) % len(radia_util.AXES)]
-
-
 def _normalize_bool(x):
     bool_map = {"1": True, "0": False}
     return bool_map[x] if x in bool_map else x
@@ -1223,8 +1219,8 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
 # permutation order based on the extrusion axis:
 #   x -> (y, z), y -> (z, x), z -> (x, y)
 def _update_extruded(o):
-    o.widthAxis = _next_axis(o.extrusionAxis)
-    o.heightAxis = _next_axis(o.widthAxis)
+    o.widthAxis = radia_util.next_axis(o.extrusionAxis)
+    o.heightAxis = radia_util.next_axis(o.widthAxis)
 
     # Radia's extrusion routine seems to involve rotations, one result being that
     # segmentation in the extrusion direction must be along 'x' regardless of the
