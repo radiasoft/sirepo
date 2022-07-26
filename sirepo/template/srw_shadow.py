@@ -678,6 +678,13 @@ class Convert:
                 )
             ),
         )
+        if item.fhit_c == "0":
+            n.sagittalSize = 1e6
+            n.tangentialSize = 1e6
+        if item.fshape == "2":
+            pkdp('\n\n\n\n\n HIT \n\n\n\n')
+            n.sagittalSize = item.externalOutlineMajorAxis
+            n.tangentialSize = item.externalOutlineMinorAxis
         self.beamline.append(n)
 
     def __multipole_to_shadow(self, srw, shadow):
