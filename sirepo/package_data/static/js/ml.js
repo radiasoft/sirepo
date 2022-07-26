@@ -1500,13 +1500,13 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState, strin
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
-                var m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
+                const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
                 m.layer = $scope.selectedLayer;
                 neuralNet.layers.push(m);
                 $scope.selectedLayer = '';
             };
 
-            $scope.layerName = (layer) => {
+            $scope.layerName = layer => {
                 return stringsService.lcfirst(layer.layer);
             };
 
@@ -1578,13 +1578,15 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState, strin
                     ];
                     const layerSchema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
                     if (layerSchema) {
-                        Object.keys(layerSchema).sort().reverse().forEach(function(field) {
-                            if (field != '_super' && field != 'layer') {
+                        Object.keys(layerSchema)
+                            .sort()
+                            .reverse()
+                            .filter(f => f !== '_super' && f !== 'layer')
+                            .forEach(function(field) {
                                 cols.push({
                                     field: field,
                                     label: layerSchema[field][0],
                                 });
-                            }
                         });
                     }
                     while (cols.length < MAX_FIELDS) {

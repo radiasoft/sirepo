@@ -331,10 +331,18 @@
             "layer": ["Layer", "NeuralNetLayer", "Dense"],
             "dimensionality": ["Dimensionality", "Integer", 10],
             "activation": ["Activation", "NeuralNetActivation", "relu"]
-
         },
-        "dense": {
-            "_super": ["-", "model", "neuralNetLayer"]
+        "activation": {
+            "layer": ["Layer", "NeuralNetLayer", "Activation"],
+            "activation": ["Activation", "NeuralNetActivation", "relu"]
+        },
+        "alphaDropout": {
+            "_super": ["-", "model", "dropout"],
+            "layer": ["Layer", "NeuralNetLayer", "AlphaDropout"]
+        },
+        "batchNormalization": {
+            "layer": ["layer", "NeuralNetLayer", "BatchNormalization"],
+            "momentum": ["Momentum", "Float", 0.99]
         },
         "conv2D": {
             "_super": ["-", "model", "neuralNetLayer"],
@@ -347,17 +355,18 @@
             "_super": ["-", "model", "conv2D"],
             "layer": ["Layer", "NeuralNetLayer", "Conv2DTranspose"]
         },
-        "separableConv2D": {
-            "_super": ["-", "model", "conv2D"],
-            "layer": ["Layer", "NeuralNetLayer", "SeparableConv2D"]
+        "dense": {
+            "_super": ["-", "model", "neuralNetLayer"]
         },
         "dropout": {
             "layer": ["Layer", "NeuralNetLayer", "Dropout"],
             "dropoutRate": ["Rate", "Float", 0.5]
         },
-        "activation": {
-            "layer": ["Layer", "NeuralNetLayer", "Activation"],
-            "activation": ["Activation", "NeuralNetActivation", "relu"]
+        "flatten": {
+            "layer": ["layer", "NeuralNetLayer", "Flatten"]
+        },
+        "globalAveragePooling2D": {
+            "layer": ["layer", "NeuralNetLayer", "GlobalAveragePooling2D"]
         },
         "gaussianDropout": {
             "_super": ["-", "model", "dropout"],
@@ -367,25 +376,15 @@
             "layer": ["Layer", "NeuralNetLayer", "GaussianNoise"],
             "stddev": ["Standard Deviation", "Float", 0.01]
         },
-        "alphaDropout": {
-            "_super": ["-", "model", "dropout"],
-            "layer": ["Layer", "NeuralNetLayer", "AlphaDropout"]
-        },
-        "batchNormalization": {
-            "layer": ["layer", "NeuralNetLayer", "BatchNormalization"],
-            "momentum": ["Momentum", "Float", 0.99]
-        },
-        "flatten": {
-            "layer": ["layer", "NeuralNetLayer", "Flatten"]
-        },
-        "globalAveragePooling2D": {
-            "layer": ["layer", "NeuralNetLayer", "GlobalAveragePooling2D"]
-        },
         "maxPooling2D": {
             "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"],
             "size": ["Pool Size", "Integer", 2],
             "strides": ["Strides", "Integer", 1],
             "padding": ["Padding", "String", "same"]
+        },
+        "separableConv2D": {
+            "_super": ["-", "model", "conv2D"],
+            "layer": ["Layer", "NeuralNetLayer", "SeparableConv2D"]
         },
         "upSampling2D": {
             "layer": ["layer", "NeuralNetLayer", "UpSampling2D"],
