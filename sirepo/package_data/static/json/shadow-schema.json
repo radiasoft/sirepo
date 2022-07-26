@@ -33,10 +33,14 @@
             ["none", "None"],
             ["angxz", "angxz"],
             ["angxpzp", "angxpzp"],
+            ["emit_x", "emit_x"],
+            ["emit_z", "emit_z"],
             ["sigmax", "sigmax"],
             ["sigdix", "sigdix"],
+            ["sigxdix", "sigxdix"],
             ["sigmaz", "sigmaz"],
             ["sigdiz", "sigdiz"],
+            ["sigzdiz", "sigzdiz"],
             ["sigmaxz", "sigmaxz"],
             ["sigmaxpzp", "sigmaxpzp"],
             ["x", "x"],
@@ -411,7 +415,7 @@
             "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
         },
         "beamStatisticsReport": {
-            "epsilon": ["Epsilon", "Float", 1e-6],
+            "epsilon": ["Epsilon", "Float", 1e-5],
             "driftDivisions": ["Drift Divisions", "Integer", 100, "", 1, 1000],
             "y1": ["Value to Plot 1", "BeamStatisticsParameter", "sigmax"],
             "y2": ["Value to Plot 2", "BeamStatisticsParameter", "sigmaz"],
