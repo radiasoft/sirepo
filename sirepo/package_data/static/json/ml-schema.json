@@ -340,6 +340,10 @@
             "_super": ["-", "model", "dropout"],
             "layer": ["Layer", "NeuralNetLayer", "AlphaDropout"]
         },
+        "averagePooling2D": {
+            "_super": ["-", "model", "poolingLayer"],
+            "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"]
+        },
         "batchNormalization": {
             "layer": ["layer", "NeuralNetLayer", "BatchNormalization"],
             "momentum": ["Momentum", "Float", 0.99]
@@ -377,7 +381,10 @@
             "stddev": ["Standard Deviation", "Float", 0.01]
         },
         "maxPooling2D": {
-            "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"],
+            "_super": ["-", "model", "poolingLayer"],
+            "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"]
+        },
+        "poolingLayer": {
             "size": ["Pool Size", "Integer", 2],
             "strides": ["Strides", "Integer", 1],
             "padding": ["Padding", "String", "same"]

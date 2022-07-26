@@ -48,6 +48,7 @@ SIREPO.app.factory('mlService', function(appState, panelState) {
         optionalParameterValues: null,
     };
 
+    self.devMode = false;
     self.addSubreport = function(parent, action) {
         let report = appState.clone(parent);
         let subreports = self.getSubreports();
@@ -1434,7 +1435,7 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     appState.whenModelsLoaded($scope, loadReports);
 });
 
-SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState, stringsService) {
+SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, stringsService) {
     return {
         restrict: 'A',
         scope: {},
@@ -1455,7 +1456,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState, strin
                   <tr>
                     <td>
                       <b>Add Layer</b>
-                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>
+                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
                     </td>
                     <td></td>
                     <td></td>
@@ -1550,6 +1551,24 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState, strin
                     n.layers.splice(currIdx, 1)[0]
                 );
                 $scope.form.$setDirty();
+            };
+
+            $scope.options = layerEnum => {
+                if (mlService.devMode) {
+                    return layerEnum;
+                }
+                const unSupportedLayers = [
+                    'Add',
+                    'AveragePooling2D',
+                    'Conv2D',
+                    'Conv2DTranspose',
+                    'GlobalAveragePooling2D',
+                    'MaxPooling2D',
+                    'SeparableConv2D',
+                    'UpSampling2D',
+                    'ZeroPadding2D'
+                ];
+                return layerEnum.filter(x => !unSupportedLayers.includes(x[0]));
             };
 
             $scope.outputColCount = function() {

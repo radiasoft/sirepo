@@ -639,9 +639,15 @@ def _build_model_py(v):
     padding="{layer.padding}"
     """
 
+    def _pooling_args(layer):
+        return f'''pool_size=({layer.size}, {layer.size}),
+    strides={layer.strides},
+    padding="{layer.padding}"'''
+
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
         AlphaDropout=lambda layer: layer.dropoutRate,
+        AveragePooling2D=lambda layer: _pooling_args(layer),
         BatchNormalization=lambda layer: f"momentum={layer.momentum}",
         Conv2D=lambda layer: _conv_args(layer),
         Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
@@ -650,9 +656,7 @@ def _build_model_py(v):
         GaussianDropout=lambda layer: layer.dropoutRate,
         GaussianNoise=lambda layer: layer.stddev,
         GlobalAveragePooling2D=lambda layer: "",
-        MaxPooling2D=lambda layer: f'''pool_size=({layer.size}, {layer.size}),
-    strides={layer.strides},
-    padding="{layer.padding}"''',
+        MaxPooling2D=lambda layer: _pooling_args(layer),
         SeparableConv2D=lambda layer: _conv_args(layer),
         Conv2DTranspose=lambda layer: _conv_args(layer),
         UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
