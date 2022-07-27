@@ -1438,12 +1438,14 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
 SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, stringsService) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            layerTarget: '=',
+        },
         template: `
             <form name="form" class="form-horizontal">
               <div class="form-group form-group-sm">
                 <table class="table table-striped table-condensed">
-                  <tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">
+                  <tr data-ng-repeat="layer in layerLevel track by $index" data-ng-init="layerIndex = $index">
                     <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
                       <div data-ng-if="fieldInfo.field">
                         <b>{{ fieldInfo.label }} </b>
@@ -1455,6 +1457,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     </td>
                   <tr>
                     <td>
+                      <button data-ng-click="nest()">nest</button>
+                      <div data-ng-if="nestCheck">
+                        <div data-neural-net-layers-form="" data-layer-target="leftBranch"></div>
+                        <div data-neural-net-layers-form="" data-layer-target="rightBranch"></div>
+                      </div>
                       <b>Add Layer</b>
                         <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
                     </td>
@@ -1462,22 +1469,26 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     <td></td>
                     <td></td>
                   </tr>
-                  <tr>
-                    <td>
-                      <b>Output Layer</b>
-                      <p class="form-control-static">Densely Connected NN</p>
-                    </td>
-                    <td>
-                      <b>Dimensionality</b>
-                      <p class="form-control-static text-right">{{ outputColCount()  }}</p>
-                    </td>
-                    <td>
-                      <b>Activation</b>
-                      <p class="form-control-static">Linear (identity)</p>
-                    </td>
-                    <td></td>
-                    </tr>
+
+                  <div data-ng-if="! layerTarget">
+                        <tr>
+                        <td>
+                            <b>Output Layer</b>
+                            <p class="form-control-static">Densely Connected NN</p>
+                        </td>
+                        <td>
+                            <b>Dimensionality</b>
+                            <p class="form-control-static text-right">{{ outputColCount()  }}</p>
+                        </td>
+                        <td>
+                            <b>Activation</b>
+                            <p class="form-control-static">Linear (identity)</p>
+                        </td>
+                        <td></td>
+                        </tr>
+                    </div>
                 </table>
+                <hr style="border-top: 10px solid #8c8b8b;">
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
                 <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
@@ -1492,18 +1503,45 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
+            $scope.nestCheck = false;
+            $scope.layerLevel = appState.models.neuralNet.layers
+            if ($scope.layerTarget){
+                $scope.layerLevel = $scope.layerTarget.layers;
+            }
+            // $scope.layerLevel = $scope.layerTarget == "" ? appState.models.neuralNet.layers : $scope.layerTarget;
+            srdbg(' appState.models.neuralNet.layers', appState.models.neuralNet.layers);
+            srdbg('layerLevel', $scope.layerLevel);
+            srdbg('layerTarget', $scope.layerTarget);
+
+            $scope.nest = () => {
+                const a = {
+                    layer: 'Add',
+                    children: [
+                        {layers: []},
+                        {layers: []},
+                    ]
+                };
+                $scope.layerLevel.push(a);
+                $scope.leftBranch = $scope.layerLevel[$scope.layerLevel.length - 1].children[0];
+                $scope.rightBranch = $scope.layerLevel[$scope.layerLevel.length - 1].children[1];
+                srdbg('scope.leftBranch ', $scope.leftBranch);
+                srdbg('scope.rightBranch', $scope.rightBranch);
+                $scope.nestCheck = true;
+                srdbg('appState.models', appState.models);
+            }
 
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
                     return;
                 }
-                var neuralNet = appState.models.neuralNet;
+                var neuralNet = $scope.layerLevel;
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
                 const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
                 m.layer = $scope.selectedLayer;
-                neuralNet.layers.push(m);
+                neuralNet.push(m);
+                srdbg('neuralNet in addLayer(): ', neuralNet);
                 $scope.selectedLayer = '';
             };
 
@@ -1558,7 +1596,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     return layerEnum;
                 }
                 const unSupportedLayers = [
-                    'Add',
+                    // 'Add',
                     'AveragePooling2D',
                     'Conv2D',
                     'Conv2DTranspose',

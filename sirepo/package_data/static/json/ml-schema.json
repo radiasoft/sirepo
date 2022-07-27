@@ -336,6 +336,9 @@
             "layer": ["Layer", "NeuralNetLayer", "Activation"],
             "activation": ["Activation", "NeuralNetActivation", "relu"]
         },
+        "add": {
+            "layer": ["Layer", "NeuralNetLayer", "Add"]
+        },
         "alphaDropout": {
             "_super": ["-", "model", "dropout"],
             "layer": ["Layer", "NeuralNetLayer", "AlphaDropout"]
