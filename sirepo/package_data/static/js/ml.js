@@ -1497,6 +1497,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             </form>
         `,
         controller: function($scope, $element) {
+            // TODO (gurhar1133): need to be able do delete individual layers (ids needed?)
             var layerFields = {};
             var layerInfo = [];
             $scope.appState = appState;
