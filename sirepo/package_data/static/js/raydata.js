@@ -65,6 +65,7 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
             requestSender.sendStatelessCompute(
                 appState,
                 (json) => {
+                    srdbg('getScansInfo ', json)
                     self.updateScansInCache(json.data.scans);
                     self.updateScanInfoTableColsInCache(json.data.cols);
                     haveRecursed = true;
@@ -84,10 +85,11 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     };
 
     self.getScansRequestPayload = function(scanUuids) {
+        srdbg('in self.getScansRequestPayload')
         return (scanUuids || Object.keys(appState.models.selectedScans.uids)).map(s => {
             return {
                 models: appState.models,
-                report: s,
+                report: s + '_animation',
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 simulationId: appState.models.simulation.simulationId,
             };
@@ -159,8 +161,10 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
             // example, runStatus may return just the state and
             // lastUpdateTime which doesn't contain any info to know
             // which scan (uid) this is the status for.
-            s.response.uid = s.request.report;
-            return self.updateScansInCache([s.response])[0];
+            s.response.uid = s.request.report.replace("_animation", ""); // TODO(rorour)
+            const x = self.updateScansInCache([s.response])[0];
+            srdbg(x)
+            return x
         });
     };
 
@@ -277,7 +281,9 @@ SIREPO.app.directive('analysisStatusPanel', function() {
               </div>
             </div>
         `,
-        controller: function(appState, panelState, raydataService, requestSender, runMulti, stringsService, $interval, $rootScope, $scope) {
+        controller: function(appState, panelState, raydataService, requestSender, runMulti, stringsService, $interval, $rootScope, $scope, simulationDataCache) {
+
+            // TODO(rorour) remove simulationdatacache
             let cols = [];
             let runStatusInterval = null;
             $scope.images = [];
@@ -297,6 +303,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             function handleGetScansInfo(scans, colz) {
                 cols = colz;
                 $scope.scans = scans;
+                srdbg('handleGetScansInfo ', $scope.scans)
                 const r = runningPending(scans);
                 if (r === 0) {
                     handleResult();
@@ -327,6 +334,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
                 runMulti.status(
                     raydataService.getScansRequestPayload(),
                     (data) => {
+                        srdbg(data)
                         raydataService.updateScansInCacheFromRunMulti(data.data);
                         raydataService.getScansInfo(
                             handleGetScansInfo,
@@ -390,10 +398,12 @@ SIREPO.app.directive('analysisStatusPanel', function() {
                 // but we don't want to show the start button because
                 // we are running analysis from polling. Use
                 // showProgressBar to cover this case.
+                srdbg(`scans are `, $scope.scans)
                 return ! $scope.showProgressBar && $scope.scans.some((s) => s.state === 'missing');
             };
 
             $scope.start = function() {
+                srdbg('starting analysis')
                 raydataService.startAnalysis($scope.args.modelKey);
             };
 

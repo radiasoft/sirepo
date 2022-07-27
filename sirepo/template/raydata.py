@@ -202,6 +202,7 @@ def _scan_info_result(scans):
 
 
 def _parse_scan_uuid(data):
+    pkdp(f'***data.report={data.report}')
     return data.report
 
 
