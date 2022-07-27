@@ -583,6 +583,7 @@ SIREPO.app.directive('scanSelector', function() {
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="scans">
+
               <div data-ng-if="appState.models.scans.searchStartTime && appState.models.scans.searchStopTime">
                 <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right;"><span class="glyphicon glyphicon-plus"></span></button>
                 <table class="table table-striped table-hover">
@@ -603,6 +604,9 @@ SIREPO.app.directive('scanSelector', function() {
                     </tr>
                   </tbody>
                 </table>
+              <div data-ng-if="awaitingScans">
+                <p>Loading scans...</p>
+              </div>
               </div>
             </div>
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
@@ -615,6 +619,7 @@ SIREPO.app.directive('scanSelector', function() {
 
             $scope.appState = appState;
             $scope.availableColumns = [];
+            $scope.awaitingScans = false;
             // POSIT: same columns as sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['start', 'stop', 'suid'];
             $scope.orderByColumn = 'start';
@@ -672,9 +677,11 @@ SIREPO.app.directive('scanSelector', function() {
                 if (!appState.models.scans.searchStartTime || !appState.models.scans.searchStopTime) {
                     return;
                 }
+                $scope.awaitingScans = true;
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
+                        $scope.awaitingScans = false;
                         $scope.scans = [];
                         json.data.scans.forEach((s) => {
                             s.selected = s.uid in appState.models.selectedScans.uids;
@@ -706,6 +713,7 @@ SIREPO.app.directive('scanSelector', function() {
                         onError: (data) => {
                             errorService.alertText(data.error);
                             panelState.setLoading($scope.modelName, false);
+                            $scope.awaitingScans = false;
                         },
                         panelState: panelState,
                     }
