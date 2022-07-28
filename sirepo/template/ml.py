@@ -628,7 +628,7 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
-    # TODO (gurhar1133): figure out a better way to name nesting levels?
+    # TODO (gurhar1133) work out an id schema that can be used for naming nesting layers
     nesting_count = 0
 
     def _import_layers(v):
@@ -675,10 +675,11 @@ def _build_model_py(v):
 
     def _branch_or_continue(layer, layer_args, nesting_count):
         if layer.layer == "Add" or layer.layer == "Concatenate":
+            nesting_count += 1
             return _layer(layer)
         return f"x{nesting_count} = {layer.layer}{layer_args}\n"
 
-    def _build_layers(layers):
+    def _build_layers(layers, nesting_count):
         res = ""
         for i, l in enumerate(layers):
             if i == 0:
@@ -715,7 +716,7 @@ def _build_model_py(v):
 from keras.models import Model, Sequential
 from keras.layers import Input{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
-{_build_layers(v.neuralNetLayers)}
+{_build_layers(v.neuralNetLayers, nesting_count)}
 x0 = Dense({v.outputDim}, activation="linear")(x0)
 model = Model(input_args, x0)
 """
