@@ -28,6 +28,14 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         delete simulationDataCache.scans[scan.uid];
     }
 
+    self.animationOrReport = (animationOrReport, wantAnimation) => {
+        if (wantAnimation) {
+            return animationOrReport + '_animation';
+        } else {
+            return animationOrReport.replace('_animation', '');
+        }
+    }
+
     self.columnPickerModal = () => {
         return $('#' + panelState.modalId('columnPicker'));
     };
@@ -87,7 +95,7 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         return (scanUuids || Object.keys(appState.models.selectedScans.uids)).map(s => {
             return {
                 models: appState.models,
-                report: s + '_animation', //TODO(rorour)
+                report: self.animationOrReport(s, true),
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 simulationId: appState.models.simulation.simulationId,
             };
@@ -159,7 +167,7 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
             // example, runStatus may return just the state and
             // lastUpdateTime which doesn't contain any info to know
             // which scan (uid) this is the status for.
-            s.response.uid = s.request.report.replace("_animation", ""); // TODO(rorour)
+            s.response.uid = self.animationOrReport(s.request.report, false);
             return self.updateScansInCache([s.response])[0];
         });
     };

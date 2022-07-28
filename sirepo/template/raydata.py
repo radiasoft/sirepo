@@ -202,8 +202,12 @@ def _scan_info_result(scans):
 
 
 def _parse_scan_uuid(data):
-    return data.report  # TODO(rorour) remove _animation
+    return _uuid_from_animation(data.report)
 
 
 def _suid(scan_uuid):
     return scan_uuid.split("-")[0]
+
+
+def _uuid_from_animation(animation):
+    return animation.split('_animation')[0]
