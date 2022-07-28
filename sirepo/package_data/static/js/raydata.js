@@ -34,7 +34,7 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         } else {
             return animationOrReport.replace('_animation', '');
         }
-    }
+    };
 
     self.columnPickerModal = () => {
         return $('#' + panelState.modalId('columnPicker'));

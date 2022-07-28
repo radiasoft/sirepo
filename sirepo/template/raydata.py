@@ -210,4 +210,4 @@ def _suid(scan_uuid):
 
 
 def _uuid_from_animation(animation):
-    return animation.split('_animation')[0]
+    return animation.split("_animation")[0]
