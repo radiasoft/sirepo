@@ -47,14 +47,13 @@ def adjust_time(days, sapi=None):
 
 
 class API(sirepo.api.Base):
-    @sirepo.api.Spec("internal_test")
+    @sirepo.api.Spec("internal_test", days="TimeDeltaDays optional")
     def api_adjustTime(self, days=None):
         """Shift the system time by days and get the adjusted time
 
         Args:
             days (str): must be integer. If None or 0, no adjustment.
         """
-        from sirepo import http_reply
 
         adjust_time(days, sapi=self)
         return self.reply_ok(

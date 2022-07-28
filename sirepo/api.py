@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern.pkcollections import PKDict
 
 
 class Base:
@@ -63,8 +64,9 @@ class Base:
 
 
 class Spec:
-    def __init__(self, perm):
+    def __init__(self, perm, **kwargs):
         self.perm = perm
+        self.kwargs = PKDict(kwargs)
 
     def __call__(self, func):
         import sirepo.api_perm
