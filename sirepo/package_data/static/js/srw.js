@@ -2456,6 +2456,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         template: `
            <div data-ng-if="(simState.getFrameCount() > 0) || errorMessage()" class="well well-lg">
               <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW log file</a>
+              <br>
+              <a style="position: relative;" href="{{ progressLogURL() }}" target="_blank">SRW Progress log file</a>
            </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
@@ -2537,6 +2539,20 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             }
 
             $scope.logFileURL = () => {
+                if (! appState.isLoaded()) {
+                    return '';
+                }
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': $scope.simState.model,
+                    '<frame>': -1,
+                    '<suffix>': 'run.log',
+                });
+            };
+
+            $scope.logFileURL = () => {
+                return 'sirepo.com';
                 if (! appState.isLoaded()) {
                     return '';
                 }
