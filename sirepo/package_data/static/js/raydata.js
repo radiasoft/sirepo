@@ -581,7 +581,6 @@ SIREPO.app.directive('scanSelector', function() {
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="scans">
-
               <div data-ng-if="appState.models.scans.searchStartTime && appState.models.scans.searchStopTime">
                 <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right;"><span class="glyphicon glyphicon-plus"></span></button>
                 <table class="table table-striped table-hover">
