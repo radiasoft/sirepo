@@ -202,8 +202,7 @@ def _scan_info_result(scans):
 
 
 def _parse_scan_uuid(data):
-    pkdp(f'***data.report={data.report}')
-    return data.report
+    return data.report  # TODO(rorour) remove _animation
 
 
 def _suid(scan_uuid):
