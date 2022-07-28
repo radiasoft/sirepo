@@ -1453,7 +1453,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                       </div>
                     </td>
                     <td>
-                      <div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                      <div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)">c<span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
                     </td>
                     <td>
                       <div data-ng-if="checkAdd(layer)">
@@ -1497,7 +1497,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             </form>
         `,
         controller: function($scope, $element) {
-            // TODO (gurhar1133): need to be able do delete individual layers (ids needed?)
+            // TODO (gurhar1133) QA for switching layer to Add or Concat inf recurse??
             var layerFields = {};
             var layerInfo = [];
             $scope.appState = appState;
@@ -1548,7 +1548,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.deleteLayer = function(idx) {
-                appState.models.neuralNet.layers.splice(idx, 1);
+                $scope.layerLevel.splice(idx, 1);
                 $scope.form.$setDirty();
             };
 
@@ -1595,7 +1595,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     // 'Add',
                     // 'Concatenate',
                     'AveragePooling2D',
-                    'Conv2D',
+                    // 'Conv2D',
                     'Conv2DTranspose',
                     'GlobalAveragePooling2D',
                     'MaxPooling2D',
