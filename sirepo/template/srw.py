@@ -510,8 +510,7 @@ def get_data_file(run_dir, model, frame, options):
     if options.suffix == _PROGRESS_LOG_DIR:
         d = run_dir.join(_PROGRESS_LOG_DIR)
         return template_common.text_data_file(
-            _get_most_recent_log_file(pkio.sorted_glob(d.join("*.log"))),
-            d
+            _get_most_recent_log_file(pkio.sorted_glob(d.join("*.log"))), d
         )
     return get_filename_for_model(model)
 
