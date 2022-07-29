@@ -89,6 +89,9 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
+        if (data.state === 'completed') {
+            $scope.$broadcast('viz.complete');
+        }
     };
     self.simState = persistentSimulation.initSimulationState(self);
     return self;
@@ -143,7 +146,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
               data-ng-style="sizeStyle()" data-show-border="true"
               data-report-id="reportId" data-model-name="{{ modelName }}"
               data-event-handlers="eventHandlers" data-reset-side="z"
-              data-enable-axes="true" data-axis-cfg="axisCfg"
+              data-enable-axes="false" data-axis-cfg="axisCfg"
               data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope, $element) {
@@ -281,6 +284,33 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
 
             }
 
+            function loadTally(name) {
+                const u = requestSender.formatUrl(
+                    'downloadDataFile',
+                    {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<model>': 'openmcAnimation',
+                        '<frame>': -1,
+                        '<suffix>': 'vtk',
+                    });
+                requestSender.sendRequest(u, d => {
+                    const v = vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII(d);
+                    srdbg('v', v);
+                    const pd = v.dataset;
+                    const f = pd.getFieldData();
+                    const c = pd.getCellData();
+                    srdbg('pd', pd, 'pts', pd.getNumberOfPoints(), 'polys', pd.getNumberOfPolys());
+                    srdbg('cd', c, 'a', c.getArrays());
+                    srdbg('fd', f, 'a', f.getArrayByName('mean'));
+                    const b = coordMapper.buildActorBundle();
+                    b.mapper.setInputData(pd);
+                    b.setActorProperty('color', '#0000ff');
+                    b.setActorProperty('edgeVisibility', true);
+                    vtkScene.addActor(b.actor);
+                });
+            }
+
             function loadVolumes(volIds) {
                 //TODO(pjm): update progress bar with each promise resolve?
                 return Promise.all(volIds.map(i => addVolume(i)));
@@ -318,6 +348,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
 
             function volumesLoaded() {
                 setGlobalProperties();
+                loadTally();
                 $rootScope.$broadcast('vtk.hideLoader');
                 $scope.axisCfg = {};
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
@@ -387,7 +418,10 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                 for (const n in appState.models.volumes) {
                     vols.push(appState.models.volumes[n].volId);
                 }
-                loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
+                loadTally();
+                $rootScope.$broadcast('vtk.hideLoader');
+                vtkScene.render();
+                //loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
 
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(false);
@@ -404,6 +438,10 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             $scope.$on('sr-volume-property.changed', (event, volId, prop, val) => {
                 setVolumeProperty(bundleByVolume[volId], prop, val);
             });
+
+            $scope.$on('viz.complete', () => {
+                //loadTally('heating_on_mesh');
+            })
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
         },

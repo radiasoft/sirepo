@@ -40,6 +40,8 @@ def background_percent_complete(report, run_dir, is_running):
 def get_data_file(run_dir, model, frame, options):
     if model == "dagmcAnimation":
         return PKDict(filename=run_dir.join(f"{frame}.zip"))
+    if model == "openmcAnimation":
+        return PKDict(filename=run_dir.join(f"heating_tally_on_mesh.vtk"))
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
     return template_common.render_jinja(
         SIM_TYPE,
@@ -49,6 +51,10 @@ def get_data_file(run_dir, model, frame, options):
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
+
+
+def stateless_compute_read_tallies(data):
+    pass
 
 
 def stateless_compute_validate_material_name(data):

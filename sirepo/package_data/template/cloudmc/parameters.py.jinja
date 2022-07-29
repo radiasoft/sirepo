@@ -48,29 +48,121 @@ def create_settings():
     settings.export_to_xml()
 
 
-def create_tallies():
+def create_tallies(name):
     # tally = openmc.Tally()
-    # tally.scores = ['total']
+    # tally.scores = ["total"]
     # tally.filters = [openmc.CellFilter(1)]
     # openmc.Tallies([tally]).export_to_xml()
 
-    cell_tally = openmc.Tally(name='heating')
-    cell_tally.scores = ['heating']
+    cell_tally = openmc.Tally(tally_id=1, name="heating")
+    cell_tally.scores = ["heating"]
 
     mesh = openmc.RegularMesh()
-    mesh.dimension = [50, 50, 160]
+    #mesh.dimension = [50, 50, 160]
+    mesh.dimension = [2, 2, 2]
     mesh.lower_left = [-12, -12, -20]  # x,y,z coordinates start at 0 as this is a sector model
     mesh.upper_right = [12, 12, 20]
+    #mesh.lower_left = [-1, -1, -1]  # x,y,z coordinates start at 0 as this is a sector model
+    #mesh.upper_right = [1, 1, 1]
 
-    mesh_tally = openmc.Tally(name="heating_on_mesh")
+    mesh_tally = openmc.Tally(tally_id=2, name=name)
     mesh_tally.filters = [openmc.MeshFilter(mesh)]
     mesh_tally.scores = ["heating"]
 
     openmc.Tallies([cell_tally, mesh_tally]).export_to_xml()
+    #openmc.Tallies([mesh_tally]).export_to_xml()
+    return mesh
+
+
+def _grid_to_poly(path):
+    from pykern import pkio
+
+    def _poly_lines(nx, ny, nz):
+        l = []
+        for k in range(nz):
+            # only rects
+            z = k * (nx + 1) * (ny + 1)
+            for j in range(ny):
+                y = j * (nx + 1)
+                d = y + z
+                c = [0, 1, nx + 2, nx + 1]
+                for i in range(nx):
+                    l.append("4 ")
+                    for n in range(len(c)):
+                        l.append(f"{c[n] + d + i} ")
+                    l.append("\n")
+        return l
+
+    with open(path, "r") as f:
+        in_points = False
+        points_done = False
+        lines = []
+        poly_lines = []
+        nx = 0
+        ny = 0
+        nz = 0
+        num_cells = 0
+        # cube
+        num_points_per_poly = 4
+        num_polys_per_cell = 1
+        num_polys = 0
+        for line in f:
+            # force version 4.1
+            if line.startswith("# vtk DataFile Version"):
+                lines.append("# vtk DataFile Version 4.1\n")
+                continue
+            # only polydata is allowed
+            if line.startswith("DATASET STRUCTURED_GRID"):
+                lines.append("DATASET POLYDATA\n")
+                continue
+            if line.startswith("DIMENSIONS"):
+                l = line.strip().split()
+                # if the number of points in a dimension is n, the number of cells is n - 1
+                nx, ny, nz = (int(l[1]) - 1), (int(l[2]) - 1), (int(l[3]) - 1)
+                num_cells = nx * ny * nz
+                num_polys = num_polys_per_cell * num_cells
+                # DIMENSIONS is not a legal keyword in a polydata file
+                continue
+            lines.append(line)
+            if not in_points:
+                if "POINTS" not in line:
+                    continue
+                in_points = True
+                poly_lines.append("\n")
+                poly_lines.append(f"POLYGONS {num_polys} {num_polys * (num_points_per_poly + 1)}\n")
+                poly_lines.extend(_poly_lines(nx, ny, nz))
+                poly_lines.append("\n")
+                continue
+            if not points_done:
+                print("check line {}".format(line.strip().split()))
+                try:
+                    [float(x) for x in line.strip().split()]
+                except ValueError:
+                    points_done = True
+                    # we've already added the non-point line
+                    lines[-1:-1] = poly_lines
+                    continue
+    pkio.write_text(path, "".join(lines))
+    return path
+
+def _tallies_to_vtk(mesh, name):
+    # what determines the name of the statepoint file?
+    s = openmc.StatePoint("statepoint.1.h5")
+    t = s.get_tally(name=name)
+    f = f"{name}.vtk"
+    mesh.write_data_to_vtk(
+        filename=f,
+        datasets={"mean": t.mean}
+    )
+    # silly, but now read the file we just wrote and convert the grid to polydata
+    _grid_to_poly(f)
 
 
 create_geometry()
 create_materials()
 create_settings()
-create_tallies()
+t = "heating_tally_on_mesh"
+m = create_tallies(t)
 openmc.run()
+_tallies_to_vtk(m, t)
+
