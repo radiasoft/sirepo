@@ -1498,7 +1498,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
         `,
         controller: function($scope, $element) {
             // TODO (gurhar1133) QA for switching layer to Add or Concat inf recurse??
-            // TODO (gurhar1133) work out an id schema that can be used for naming nesting layers
             var layerFields = {};
             var layerInfo = [];
             $scope.appState = appState;
