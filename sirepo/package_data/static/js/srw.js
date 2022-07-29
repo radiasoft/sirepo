@@ -2596,13 +2596,13 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return true;
             }
 
-            function logFileRequest(suffix) {
+            function logFileRequest(logKind) {
                 return  requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': $scope.simState.model,
                     '<frame>': -1,
-                    '<suffix>': suffix,
+                    '<suffix>': logKind,
                 });
             }
 
