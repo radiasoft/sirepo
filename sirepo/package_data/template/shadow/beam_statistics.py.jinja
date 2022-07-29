@@ -9,71 +9,115 @@ import math
 import numpy
 import re
 
+alpha = 0
+energy = {{ photonEnergy }}
+epsilon = {{beamStatisticsReport_epsilon}}
+
 {% if zonePlateMethods %}
 {{zonePlateMethods}}
 {% endif %}
 
+def create_sigma_matrix():
 {% if simulation_sourceType == 'geometricSource' %}
-sigmax = {{ geometricSource_sigmax }}
-sigdix = {{ geometricSource_sigdix }}
-sigmaz = {{ geometricSource_sigmaz }}
-sigdiz = {{ geometricSource_sigdiz }}
+    sigmax = {{ geometricSource_sigmax }}
+    sigdix = {{ geometricSource_sigdix }}
+    sigmaz = {{ geometricSource_sigmaz }}
+    sigdiz = {{ geometricSource_sigdiz }}
 {% elif simulation_sourceType == 'undulator' %}
+{% filter indent(width=4) %}
 {{undulatorSettings}}
+{% endfilter %}
 {% elif simulation_sourceType == 'bendingMagnet' %}
-source = Shadow.Source()
-beam = Shadow.Beam()
-source.NPOINT = {{simulation_npoint}}
-source.ISTAR1 = {{simulation_istar1}}
+    source = Shadow.Source()
+    beam = Shadow.Beam()
+    source.NPOINT = {{simulation_npoint}}
+    source.ISTAR1 = {{simulation_istar1}}
+{% filter indent(width=4) %}
 {{bendingMagnetSettings}}
 beam.genSource(source)
-rays = beam.rays
+{% endfilter %}
+    rays = beam.rays
 {% endif %}
 
 {% if simulation_sourceType in ('bendingMagnet', 'undulator') %}
-def rays_sigma(rays, idx):
-    return numpy.sqrt(numpy.mean(rays[:, idx] ** 2))
+    def rays_sigma(rays, idx):
+        return numpy.sqrt(numpy.mean(rays[:, idx] ** 2))
 
-sigmax = rays_sigma(rays, 0)
-sigdix = rays_sigma(rays, 3)
-sigmaz = rays_sigma(rays, 2)
-sigdiz = rays_sigma(rays, 5)
+    sigmax = rays_sigma(rays, 0)
+    sigdix = rays_sigma(rays, 3)
+    sigmaz = rays_sigma(rays, 2)
+    sigdiz = rays_sigma(rays, 5)
 {% endif %}
+    return numpy.matrix([
+        [sigmax ** 2, 0, 0, 0],
+        [0, sigdix ** 2, 0, 0],
+        [0, 0, sigmaz ** 2, 0],
+        [0, 0, 0, sigdiz ** 2],
+    ])
 
-beam_stats = []
-epsilon = {{beamStatisticsReport_epsilon}}
-beam = transfer_mat_bl.create_mat_rays(epsilon, {{ photonEnergy }})
+def apply_aperture(oe, mat):
+    Pmat = numpy.array([
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0]])
+    res = transfer_mat_bl.gauss_apert_4x4(
+        # Convert Sigma to x, y, xp, yp, via Pmat Sigma Pmat (since Pmat is symmetric)
+        numpy.matmul(numpy.matmul(Pmat, mat), Pmat),
+        # wavelength [cm]
+        1.2398419843320026 / energy * 1e-6 * 1e2,
+        # aperture x, y [cm]
+        oe.RX_SLIT[0],
+        oe.RZ_SLIT[0],
+    )
+    return numpy.matmul(numpy.matmul(Pmat, res), Pmat)
 
-sigma_mat = numpy.matrix([
-    [sigmax ** 2, 0, 0, 0],
-    [0, sigdix ** 2, 0, 0],
-    [0, 0, sigmaz ** 2, 0],
-    [0, 0, 0, sigdiz ** 2],
-])
-alpha = 0
-
-def calculate_stats(pos, oe):
+def calculate_stats(pos, oe, beam):
     global alpha
-    Tmat, x_prop_cen, xp_prop_cen, z_prop_cen, zp_prop_cen = transfer_mat_bl.tmat_calc(beam.duplicate(), epsilon)
-    res = Tmat * sigma_mat * numpy.transpose(Tmat)
-    pos += (oe.T_SOURCE if oe else 0)
-    if oe:
-        # oe.ALPHA is in radians after traceOE()
-        alpha = int(alpha + 180 / math.pi * oe.ALPHA) % 360
-    beam_stats.append(PKDict(
-        isRotated=True if alpha == 90 or alpha == 270 else False,
-        s=pos * 1e-2,
-        x=x_prop_cen,
-        xp=xp_prop_cen,
-        z=z_prop_cen,
-        zp=zp_prop_cen,
-        matrix=Tmat.tolist(),
-        sigma_mx=res.tolist(),
-        sigmax=math.sqrt(res[0, 0]) * 1e-2,
-        sigdix=math.sqrt(res[1, 1]),
-        sigmaz=math.sqrt(res[2, 2]) * 1e-2,
-        sigdiz=math.sqrt(res[3, 3]),
-    ))
+    global sigma_mat
+
+    if oe and oe.I_STOP[0] == 0 and oe.RX_SLIT[0] != 0 and oe.RZ_SLIT[0] != 0:
+        sigma_mat = apply_aperture(oe, sigma_mat)
+        pos += (oe.T_SOURCE if oe else 0)
+    else:
+        Tmat, x_prop_cen, xp_prop_cen, z_prop_cen, zp_prop_cen = transfer_mat_bl.tmat_calc(beam.duplicate(), epsilon)
+        sigma_mat = Tmat * sigma_mat * numpy.transpose(Tmat)
+        pos += (oe.T_SOURCE if oe else 0)
+        if oe:
+            # oe.ALPHA is in radians after traceOE()
+            alpha = int(alpha + 180 / math.pi * oe.ALPHA) % 360
+        beam_stats.append(PKDict(
+            isRotated=True if alpha == 90 or alpha == 270 else False,
+            s=pos * 1e-2,
+            x=x_prop_cen,
+            xp=xp_prop_cen,
+            z=z_prop_cen,
+            zp=zp_prop_cen,
+            matrix=Tmat.tolist(),
+            sigma_mx=sigma_mat.tolist(),
+            sigmax=math.sqrt(sigma_mat[0, 0]) * 1e-2,
+            sigdix=math.sqrt(sigma_mat[1, 1]),
+            sigmaz=math.sqrt(sigma_mat[2, 2]) * 1e-2,
+            sigdiz=math.sqrt(sigma_mat[3, 3]),
+            sigxdix=sigma_mat[0, 1] * 1e-2,
+            sigzdiz=sigma_mat[2, 3] * 1e-2,
+        ))
+    return pos
+
+def divide_drift(pos, beam, count, distance, divisions={{ beamStatisticsReport_driftDivisions }}):
+    if distance < 1e-3:
+        return
+    for i in range(divisions - 1):
+        beam0 = beam.duplicate();
+        oe = Shadow.OE()
+        oe.DUMMY = 1.0
+        oe.set_empty(ALPHA=0)
+        oe.FWRITE = 3
+        oe.T_IMAGE = 0.0
+        oe.T_SOURCE = distance / divisions
+        beam0.traceOE(oe, count)
+        count += 1
+        pos = calculate_stats(pos, oe, beam0)
     return pos
 
 def process_stats():
@@ -82,6 +126,10 @@ def process_stats():
         z = numpy.array(z)
         xz = numpy.array(xz)
         return ((1/2) * numpy.arctan(2 * scale * xz / (x ** 2 - z ** 2))).tolist()
+
+    def compute_emittance(res):
+        res.emit_x = (numpy.sqrt((numpy.array(res.sigmax) * 1e2) ** 2 * numpy.array(res.sigdix) ** 2 - (numpy.array(res.sigxdix) * 1e2) ** 2)).tolist()
+        res.emit_z = (numpy.sqrt((numpy.array(res.sigmaz) * 1e2) ** 2 * numpy.array(res.sigdiz) ** 2 - (numpy.array(res.sigzdiz) * 1e2) ** 2)).tolist()
 
     def rotated_values(stats, field):
         if field == 'sigmaxz':
@@ -97,13 +145,24 @@ def process_stats():
     res = PKDict(
         s=[v.s for v in beam_stats],
     )
-    for f in ('sigmax', 'sigdix', 'sigmaz', 'sigdiz', 'sigmaxz', 'sigmaxpzp', 'x', 'xp', 'z', 'zp'):
+    for f in ('sigmax', 'sigdix', 'sigmaz', 'sigdiz', 'sigmaxz', 'sigmaxpzp', 'x', 'xp', 'z', 'zp', 'sigxdix', 'sigzdiz'):
         res[f] = rotated_values(beam_stats, f)
     res.angxz = compute_angx(res.sigmax, res.sigmaz, res.sigmaxz, scale=1e-4)
     res.angxpzp = compute_angx(res.sigdix, res.sigdiz, res.sigmaxpzp)
+    compute_emittance(res)
     return res
 
-pos = calculate_stats(0, None)
-{{beamlineOptics}}
 
-pkjson.dump_pretty(process_stats(), filename='{{beamStatsFile}}')
+def run_shadow_simulation():
+    beam = transfer_mat_bl.create_mat_rays(epsilon, energy)
+    pos = calculate_stats(0, None, beam)
+{% filter indent(width=4) %}
+{{- beamlineOptics}}
+{% endfilter %}
+    return process_stats()
+
+beam_stats = []
+sigma_mat = create_sigma_matrix()
+stats = run_shadow_simulation()
+
+pkjson.dump_pretty(stats, filename='{{beamStatsFile}}')

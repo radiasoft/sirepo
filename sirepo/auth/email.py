@@ -51,7 +51,7 @@ _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
 class API(sirepo.api.Base):
-    @sirepo.api.Spec("allow_cookieless_set_user")
+    @sirepo.api.Spec("allow_cookieless_set_user", token="EmailAuthToken")
     def api_authEmailAuthorized(self, simulation_type, token):
         """Clicked by user in an email
 
@@ -93,7 +93,7 @@ class API(sirepo.api.Base):
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
             auth.login_fail_redirect(req.type, this_module, "email-token")
 
-    @sirepo.api.Spec("require_cookie_sentinel")
+    @sirepo.api.Spec("require_cookie_sentinel", email="Email")
     def api_authEmailLogin(self):
         """Start the login process for the user.
 

@@ -2555,13 +2555,16 @@ def _write_rsopt_zip(data, ctx):
             f = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
             ctx[f"{t}FileName"] = f
             files.append(f)
+        f = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
+        files.append(f)
+        ctx["postProcFileName"] = f
         return files
 
     def _write(zip_file, path):
         zip_file.writestr(
             path,
             python_source_for_model(data, ctx.fileBase, plot_reports=False)
-            if path.endswith(".py")
+            if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
             else template_common.render_jinja(SIM_TYPE, ctx, path),
         )
 

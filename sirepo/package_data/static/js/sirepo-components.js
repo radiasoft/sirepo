@@ -1985,7 +1985,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
         },
         template: `
             <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
-            <label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>
+            <label data-text-with-math="valueLabels[$index] || \'Plane \' + $index" style="margin-right: 1ex"></label>
             <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />
             </div>
         `,
@@ -3005,8 +3005,6 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             convMethod: '@',
         },
         template: `
-            <div data-common-footer="nav"></div>
-            <div data-import-python=""></div>
             <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openConvertedSimulation()">
               <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">

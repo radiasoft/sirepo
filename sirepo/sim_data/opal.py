@@ -34,6 +34,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             if cmd._type == "filter":
                 cmd.type = cmd.type.upper()
             elif cmd._type == "particlematterinteraction":
+                if cmd.type not in [
+                    t[0] for t in cls.schema().enum.ParticlematterinteractionType
+                ]:
+                    cmd.type = ""
                 cmd.material = cmd.material.upper()
         if "bunchReport1" not in dm:
             for i in range(1, 5):

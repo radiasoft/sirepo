@@ -620,9 +620,47 @@ def _generate_parameters_file(data):
             v,
             f"{d[dm.classificationAnimation.classifier]}.py",
         )
-    res += template_common.render_jinja(SIM_TYPE, v, "build-model.py")
+    res += _build_model_py(v)
     res += template_common.render_jinja(SIM_TYPE, v, "train.py")
     return res
+
+
+def _build_model_py(v):
+    def _import_layers(v):
+        return "".join(", " + n for n in v.layerImplementationNames if not n == "Dense")
+
+    def _layer_args(layer):
+        d = PKDict(
+            Activation=f'"{layer.activationActivation}"',
+            AlphaDropout=layer.alphaDropoutRate,
+            Dense=f'{layer.denseDimensionality}, activation="{layer.denseActivation}"',
+            Dropout=layer.dropoutRate,
+            Flatten="",
+            GaussianDropout=layer.gaussianDropoutRate,
+            GaussianNoise=layer.gaussianNoiseStddev,
+        )
+        assert layer.layer in d, ValueError(f"invalid layer.layer={layer.layer}")
+        return d[layer.layer]
+
+    def _build_layers(layers):
+        res = ""
+        for i, l in enumerate(layers):
+            if i == 0:
+                c = f'({l.denseDimensionality}, activation="{l.denseActivation}")(input_args)'
+            else:
+                c = f"({_layer_args(l)})(x)"
+            res += f"x = {l.layer}{c}\n"
+        return res
+
+    return f"""
+from keras.models import Model, Sequential
+from keras.layers import Dense, Input{_import_layers(v)}
+
+input_args = Input(shape=({v.inputDim},))
+{_build_layers(v.neuralNetLayers)}
+x = Dense({v.outputDim}, activation="linear")(x)
+model = Model(input_args, x)
+"""
 
 
 def _get_classification_output_col_encoding(frame_args):
