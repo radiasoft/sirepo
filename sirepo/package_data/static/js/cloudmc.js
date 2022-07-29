@@ -12,8 +12,8 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
-        <div data-ng-switch-when="Float3" class="col-sm-7">
-          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="3"></div>
+        <div data-ng-switch-when="Point3D" class="col-sm-7">
+          <div data-point3d="" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">
           <input data-string-to-number="integer" data-ng-model="model[field]"
@@ -47,6 +47,15 @@ SIREPO.app.config(() => {
           <div data-compound-field="" data-field1="density"
             data-field2="density_units" data-field2-size="10em"
             data-model-name="modelName" data-model="model"></div>
+        </div>
+        <div data-ng-switch-when="Spatial">
+          <div data-dynamic-editor="spatial" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="Univariate">
+          <div data-dynamic-editor="univariate" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="UnitSphere">
+          <div data-dynamic-editor="unitSphere" data-model="model" data-field="field"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -781,5 +790,105 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
                 return value.toString();
             });
         }
+    };
+});
+
+SIREPO.app.directive('dynamicEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@dynamicEditor',
+            model: '=',
+            field: '=',
+        },
+        template: `
+          <div style="position: relative; top: -5px; background: rgba(0, 0, 0, 0.05);
+            border: 1px solid lightgray; border-radius: 3px; padding-top: 5px;
+            margin: 0 15px">
+            <div class="form-group">
+              <div data-field-editor="'_type'" data-model-name="modelName"
+                data-model="model[field]" data-label-size="0"></div>
+            </div>
+            <div data-ng-repeat="v in viewFields track by v.track">
+              <div class="form-group">
+                <div class="col-sm-11 col-sm-offset-1">
+                  <div data-field-editor="v.field" data-model-name="model[field]._type"
+                    data-label-size="5"
+                    data-model="model[field]"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `,
+        controller: function($scope) {
+
+            function init() {
+                if (! $scope.model[$scope.field]) {
+                    $scope.model[$scope.field] = {};
+                }
+                else if (typeof($scope.model[$scope.field]) == 'string') {
+                    $scope.model[$scope.field] = {
+                        _type: $scope.model[$scope.field],
+                    };
+                }
+                setView();
+            }
+
+            function setView() {
+                if (type() && type() != 'None') {
+                    $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
+                        .map(f => {
+                            return {
+                                field: f,
+                                track: type() + f,
+                            };
+                        });
+                }
+                else {
+                    $scope.viewFields = null;
+                }
+            }
+
+            function type() {
+                return $scope.model[$scope.field]._type;
+            }
+
+            $scope.$watch('model[field]._type', (newValue, oldValue) => {
+                if (panelState.isActiveField($scope.modelName, '_type')) {
+                    if (newValue != oldValue && newValue) {
+                        $scope.model[$scope.field] = {
+                            _type: type(),
+                        };
+                        if (newValue != 'None') {
+                            appState.setModelDefaults(
+                                $scope.model[$scope.field],
+                                type(),
+                            );
+                        }
+                    }
+                }
+                setView();
+            });
+
+            init();
+        },
+    };
+});
+
+SIREPO.app.directive('point3d', function(appState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div data-ng-repeat="v in model[field] track by $index"
+              style="display: inline-block; width: 7em; margin-right: 5px;" >
+              <input class="form-control" data-string-to-number="Float"
+                data-ng-model="model[field][$index]"
+                style="text-align: right" required />
+            </div>
+        `,
     };
 });
