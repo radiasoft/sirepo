@@ -1654,18 +1654,20 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             function getLayerLevel() {
                 if ($scope.layerTarget){
+                    $scope.lName = $scope.layerTarget.name;
                     return $scope.layerTarget.layers;
                 }
+                appState.models.neuralNet['name'] = "x";
+                $scope.lName = appState.models.neuralNet.name;
                 return appState.models.neuralNet.layers;
             }
 
             function nest() {
-                srdbg('inlayer to nest: ', $scope.selectedLayer);
                 const n = {
                     layer: $scope.selectedLayer,
                     children: [
-                        {layers: []},
-                        {layers: []},
+                        {layers: [], name: $scope.lName + Math.random().toString(20).substr(2, 5)},
+                        {layers: [], name: $scope.lName},
                     ]
                 }
                 srdbg('n = ', n);

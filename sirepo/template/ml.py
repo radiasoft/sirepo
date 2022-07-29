@@ -628,9 +628,6 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
-    # TODO (gurhar1133) work out an id schema that can be used for naming nesting layers
-    nesting_count = 0
-
     def _import_layers(v):
         return "".join(", " + n for n in v.layerImplementationNames)
 
@@ -651,7 +648,7 @@ def _build_model_py(v):
 
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
-        Add=lambda layer: _add(layer, nesting_count),
+        Add=lambda layer: _add(layer),
         AlphaDropout=lambda layer: layer.dropoutRate,
         AveragePooling2D=lambda layer: _pooling_args(layer),
         BatchNormalization=lambda layer: f"momentum={layer.momentum}",
@@ -673,52 +670,48 @@ def _build_model_py(v):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
         return args_map[layer.layer](layer)
 
-    def _branch_or_continue(layer, layer_args, nesting_count):
+    def _branch_or_continue(layers_name, layer, layer_args):
         if layer.layer == "Add" or layer.layer == "Concatenate":
-            nesting_count += 1
             return _layer(layer)
-        return f"x{nesting_count} = {layer.layer}{layer_args}\n"
+        return f"{layers_name} = {layer.layer}{layer_args}\n"
 
-    def _build_layers(layers, nesting_count):
+    def _build_layers(layers):
         res = ""
         for i, l in enumerate(layers):
             if i == 0:
                 c = f"({_layer(l)})(input_args)"
             else:
-                c = f"({_layer(l)})(x{nesting_count})"
-            res += _branch_or_continue(l, c, nesting_count)
+                c = f"({_layer(l)})(x)"
+            res += _branch_or_continue("x", l, c)
         return res
 
-    def _build_left_child(left_layers, nesting_count):
-        right_name = f"x{nesting_count}"
-        nesting_count += 1
-        left_name = f"x{nesting_count}"
+    def _build_left_child(left, right_name):
         res = ""
-        for i, l in enumerate(left_layers):
+        for i, l in enumerate(left.layers):
             if i == 0:
                 c = f"({_layer(l)})({right_name})"
             else:
-                c = f"({_layer(l)})({left_name})"
-            res += _branch_or_continue(l, c, nesting_count)
+                c = f"({_layer(l)})({left.name})"
+            res += _branch_or_continue(left.name, l, c)
         return res
 
-    def _build_right_child(right_layers, nesting_count):
+    def _build_right_child(right):
         res = ""
-        for l in right_layers:
-            c = f"({_layer(l)})(x{nesting_count})"
-            res += _branch_or_continue(l, c, nesting_count)
+        for l in right.layers:
+            c = f"({_layer(l)})({right.name})"
+            res += _branch_or_continue(right.name, l, c)
         return res
 
-    def _add(layer, nesting_count):
-        return _build_left_child(layer.children[0].layers, nesting_count) + _build_right_child(layer.children[1].layers, nesting_count) + f"x{nesting_count} = Add()([x{nesting_count}, x{nesting_count + 1}])\n"
+    def _add(layer):
+        return _build_left_child(layer.children[0], layer.children[1].name) + _build_right_child(layer.children[1]) + f"{layer.children[1].name} = Add()([{layer.children[1].name}, {layer.children[0].name}])\n"
 
     return f"""
 from keras.models import Model, Sequential
 from keras.layers import Input{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
-{_build_layers(v.neuralNetLayers, nesting_count)}
-x0 = Dense({v.outputDim}, activation="linear")(x0)
-model = Model(input_args, x0)
+{_build_layers(v.neuralNetLayers)}
+x = Dense({v.outputDim}, activation="linear")(x)
+model = Model(input_args, x)
 """
 
 
