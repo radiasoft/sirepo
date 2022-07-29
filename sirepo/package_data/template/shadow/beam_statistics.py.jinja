@@ -66,17 +66,19 @@ def apply_aperture(oe, mat):
         numpy.matmul(numpy.matmul(Pmat, mat), Pmat),
         # wavelength [cm]
         1.2398419843320026 / energy * 1e-6 * 1e2,
-        # aperture x, y [cm]
-        oe.RX_SLIT[0],
-        oe.RZ_SLIT[0],
+        # half aperture x, y [cm]
+        oe.RX_SLIT[0] / 2 * {{ beamStatisticsReport_k_apert_x }},
+        oe.RZ_SLIT[0] / 2 * {{ beamStatisticsReport_k_apert_y }},
     )
     return numpy.matmul(numpy.matmul(Pmat, res), Pmat)
 
 def calculate_stats(pos, oe, beam):
     global alpha
     global sigma_mat
+    include_apertures = {{ beamStatisticsReport_includeApertures }}
 
-    if oe and oe.I_STOP[0] == 0 and oe.RX_SLIT[0] != 0 and oe.RZ_SLIT[0] != 0:
+    if include_apertures and oe and oe.I_STOP[0] == 0 \
+       and oe.RX_SLIT[0] != 0 and oe.RZ_SLIT[0] != 0:
         sigma_mat = apply_aperture(oe, sigma_mat)
         pos += (oe.T_SOURCE if oe else 0)
     else:

@@ -420,6 +420,9 @@
             "y1": ["Value to Plot 1", "BeamStatisticsParameter", "sigmax"],
             "y2": ["Value to Plot 2", "BeamStatisticsParameter", "sigmaz"],
             "y3": ["Value to Plot 3", "BeamStatisticsParameter", "none"],
+            "includeApertures": ["Include Apertures", "Boolean", "1"],
+            "k_apert_x": ["X Aperture Factor", "Float", 0.62, "Ratio of RMS width of the Gaussian aperture to the hard edge half aperture size"],
+            "k_apert_y": ["Y Aperture Factor", "Float", 0.62, "Ratio of RMS height of the Gaussian aperture to the hard edge half aperture size"],
             "notes": ["Notes", "Text", ""]
         },
         "bendingMagnet": {
@@ -833,6 +836,9 @@
                 "y3",
                 "epsilon",
                 "driftDivisions",
+                "includeApertures",
+                "k_apert_x",
+                "k_apert_y",
                 "notes"
             ]
         },
