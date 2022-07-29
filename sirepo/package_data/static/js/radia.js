@@ -1566,7 +1566,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': 'fieldLineoutReport',
-                    '<frame>': -1,
+                    '<frame>': SIREPO.nonDataFileFrame,
                     '<suffix>': radiaService.pointFieldExports[$scope.tModel.exportType].extension
                 });
                 radiaService.showFieldDownload(false);

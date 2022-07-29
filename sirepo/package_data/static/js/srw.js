@@ -1938,7 +1938,7 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
                 '<simulation_id>': appState.models.simulation.simulationId,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<model>': 'exportRsOpt',
-                '<frame>': -1,
+                '<frame>': SIREPO.nonDataFileFrame,
                 '<suffix>': 'zip'
             });
         }
@@ -2601,7 +2601,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': $scope.simState.model,
-                    '<frame>': -1,
+                    '<frame>': SIREPO.nonDataFileFrame,
                     '<suffix>': logKind,
                 });
             }

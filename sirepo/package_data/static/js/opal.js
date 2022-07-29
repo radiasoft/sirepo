@@ -375,7 +375,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<model>': self.simState.model,
-            '<frame>': -1,
+            '<frame>': SIREPO.nonDataFileFrame,
         });
     };
 
