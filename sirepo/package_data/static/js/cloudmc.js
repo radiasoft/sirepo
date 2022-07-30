@@ -284,6 +284,29 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
 
             }
 
+            function setColorsFromFieldData(polyData, name, colorMap) {
+                const dataColors = [];
+                const d = Array.from(polyData.getFieldData().getArrayByName(name).getData());
+                const s = SIREPO.PLOTTING.Utils.colorScale(
+                    SIREPO.UTILS.largeMin(d),
+                    SIREPO.UTILS.largeMax(d),
+                    colorMap
+                );
+                d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
+                    .forEach((c, i) => {
+                        // when the field value is 0, don't draw the element at all
+                        dataColors.push(...c, d[i] === 0 ? 0 : 255);
+                    });
+                polyData.getCellData().setScalars(
+                    vtk.Common.Core.vtkDataArray.newInstance({
+                        numberOfComponents: 4,
+                        values: dataColors,
+                        dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                    })
+                );
+                polyData.buildCells();
+            }
+
             function loadTally(name) {
                 const u = requestSender.formatUrl(
                     'downloadDataFile',
@@ -295,19 +318,13 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                         '<suffix>': 'vtk',
                     });
                 requestSender.sendRequest(u, d => {
-                    const v = vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII(d);
-                    srdbg('v', v);
-                    const pd = v.dataset;
-                    const f = pd.getFieldData();
-                    const c = pd.getCellData();
-                    srdbg('pd', pd, 'pts', pd.getNumberOfPoints(), 'polys', pd.getNumberOfPolys());
-                    srdbg('cd', c, 'a', c.getArrays());
-                    srdbg('fd', f, 'a', f.getArrayByName('mean'));
+                    const pd = SIREPO.VTK.VTKUtils.parseLegacy(d);
                     const b = coordMapper.buildActorBundle();
                     b.mapper.setInputData(pd);
-                    b.setActorProperty('color', '#0000ff');
-                    b.setActorProperty('edgeVisibility', true);
+                    setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
+                    b.setActorProperty('lighting', false);
                     vtkScene.addActor(b.actor);
+                    vtkScene.render();
                 });
             }
 
@@ -348,7 +365,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
 
             function volumesLoaded() {
                 setGlobalProperties();
-                loadTally();
+                loadTally('mean');
                 $rootScope.$broadcast('vtk.hideLoader');
                 $scope.axisCfg = {};
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
@@ -418,10 +435,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                 for (const n in appState.models.volumes) {
                     vols.push(appState.models.volumes[n].volId);
                 }
-                loadTally();
                 $rootScope.$broadcast('vtk.hideLoader');
                 vtkScene.render();
-                //loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
+                loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
 
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(false);

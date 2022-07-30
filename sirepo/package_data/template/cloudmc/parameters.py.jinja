@@ -59,11 +59,9 @@ def create_tallies(name):
 
     mesh = openmc.RegularMesh()
     #mesh.dimension = [50, 50, 160]
-    mesh.dimension = [2, 2, 2]
+    mesh.dimension = [20, 20, 20]
     mesh.lower_left = [-12, -12, -20]  # x,y,z coordinates start at 0 as this is a sector model
     mesh.upper_right = [12, 12, 20]
-    #mesh.lower_left = [-1, -1, -1]  # x,y,z coordinates start at 0 as this is a sector model
-    #mesh.upper_right = [1, 1, 1]
 
     mesh_tally = openmc.Tally(tally_id=2, name=name)
     mesh_tally.filters = [openmc.MeshFilter(mesh)]
@@ -103,8 +101,8 @@ def _grid_to_poly(path):
         nz = 0
         num_cells = 0
         # cube
-        num_points_per_poly = 4
-        num_polys_per_cell = 1
+        points_per_poly = 4
+        polys_per_cell = 1
         num_polys = 0
         for line in f:
             # force version 4.1
@@ -120,7 +118,7 @@ def _grid_to_poly(path):
                 # if the number of points in a dimension is n, the number of cells is n - 1
                 nx, ny, nz = (int(l[1]) - 1), (int(l[2]) - 1), (int(l[3]) - 1)
                 num_cells = nx * ny * nz
-                num_polys = num_polys_per_cell * num_cells
+                num_polys = polys_per_cell * num_cells
                 # DIMENSIONS is not a legal keyword in a polydata file
                 continue
             lines.append(line)
@@ -129,12 +127,11 @@ def _grid_to_poly(path):
                     continue
                 in_points = True
                 poly_lines.append("\n")
-                poly_lines.append(f"POLYGONS {num_polys} {num_polys * (num_points_per_poly + 1)}\n")
+                poly_lines.append(f"POLYGONS {num_polys} {num_polys * (points_per_poly + 1)}\n")
                 poly_lines.extend(_poly_lines(nx, ny, nz))
                 poly_lines.append("\n")
                 continue
             if not points_done:
-                print("check line {}".format(line.strip().split()))
                 try:
                     [float(x) for x in line.strip().split()]
                 except ValueError:
