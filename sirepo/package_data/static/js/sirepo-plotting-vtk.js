@@ -86,6 +86,95 @@ class VTKUtils {
     }
 
     /**
+     * vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII ignores field data. This adds it
+     * to the PolyData
+     * @param {string} str - the contents of an ASCII legacy (.vtk) file
+     */
+    static parseLegacy(str) {
+
+        /**
+         * Parses field data
+         * @param {string} d - the contents of an ASCII legacy (.vtk) file
+         * @returns {null|*[]}
+         */
+        function parseFieldData(d) {
+
+            /**
+             * Creates a vtk data array from
+             * @param {string[]} lines - lines from the file
+             * @returns {{arr, index: number}|null}
+             */
+            function buildArray(lines) {
+                const ARR_TYPES = {
+                    double: vtk.Common.Core.vtkDataArray.VtkDataTypes.DOUBLE,
+                    int: vtk.Common.Core.vtkDataArray.VtkDataTypes.INT,
+                };
+
+                let hdr = lines[0].split(/\s+/);
+                const name = hdr[0];
+                const numComps = parseInt(hdr[1]);
+                const numTuples = parseInt(hdr[2]);
+                const a = [];
+                for (let i = 1; i < lines.length; ++i) {
+                    const l = lines[i];
+                    if (! l) {
+                        break;
+                    }
+                    a.push(...l.trim().split(/\s+/).map(x => parseFloat(x)));
+                    if (a.length === numComps * numTuples) {
+                        break;
+                    }
+                }
+                if (! a.length) {
+                    return null;
+                }
+                return {
+                    arr: vtk.Common.Core.vtkDataArray.newInstance({
+                        dataType: ARR_TYPES[hdr[3]],
+                        name: name,
+                        numberOfComponents: numComps,
+                        size: a.length,
+                        values: a,
+                    }),
+                    index: i,
+                };
+            }
+
+            const lines = d.split('\n');
+            let i = 0;
+            for (i = 0; i < lines.length; ++i) {
+                if (lines[i].startsWith('FIELD')) {
+                    break;
+                }
+            }
+            if (i >= lines.length) {
+                return null;
+            }
+            let l = lines[i];
+            const numArrays = parseInt(l.split(/\s+/)[2]);
+            if (! numArrays) {
+                return null;
+            }
+            let index = i + 1;
+            let a = [];
+            for (let i = 0; i < numArrays; ++i) {
+                const x = buildArray(lines.slice(index));
+                a.push(x.arr);
+                index = x.index + 1;
+            }
+            return a;
+        }
+
+        const v = vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII(str);
+        const pd = v.dataset;
+        for (const a of parseFieldData(str)) {
+            pd.getFieldData().addArray(a);
+        }
+        return pd;
+    }
+
+
+    /**
      * Creates a vtk user matrix from a SquareMatrix.
      * * @param {SquareMatrix} matrix - vtk actor
      * @returns {[[number]]}
