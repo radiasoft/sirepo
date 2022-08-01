@@ -2249,6 +2249,7 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         restrict: 'A',
         transclude: true,
         scope: {
+            reportCfg: '=',
             reportPanel: '@',
             modelName: '@',
             panelTitle: '@',
@@ -2259,7 +2260,7 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         template: `
             <div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">
               <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>
-              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>
+              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"><div data-ng-transclude=""></div></div>
               <button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>
         `,
         controller: function($scope) {
