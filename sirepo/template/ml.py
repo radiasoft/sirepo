@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 import enum
 from turtle import right
+from typing import Concatenate
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -648,10 +649,11 @@ def _build_model_py(v):
 
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
-        Add=lambda layer: _add(layer),
+        Add=lambda layer: _branch(layer, "Add"),
         AlphaDropout=lambda layer: layer.dropoutRate,
         AveragePooling2D=lambda layer: _pooling_args(layer),
         BatchNormalization=lambda layer: f"momentum={layer.momentum}",
+        Concatenate=lambda layer: _branch(layer, "Concatenate"),
         Conv2D=lambda layer: _conv_args(layer),
         Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
         Dropout=lambda layer: layer.dropoutRate,
@@ -675,41 +677,32 @@ def _build_model_py(v):
             return _layer(layer)
         return f"{layers_name} = {layer.layer}{layer_args}\n"
 
-    def _build_layers(layers):
+    def _build_layers(branch, parent):
+        b = _name_and_layers(branch)
         res = ""
-        for i, l in enumerate(layers):
-            if i == 0:
-                c = f"({_layer(l)})(input_args)"
+        for i, l in enumerate(b.layers):
+            if i == 0 and b.name != parent.name:
+                c = f"({_layer(l)})({parent.name})"
             else:
-                c = f"({_layer(l)})(x)"
-            res += _branch_or_continue("x", l, c)
+                c = f"({_layer(l)})({b.name})"
+            res += _branch_or_continue(b.name, l, c)
         return res
 
-    def _build_left_child(left, right_name):
-        res = ""
-        for i, l in enumerate(left.layers):
-            if i == 0:
-                c = f"({_layer(l)})({right_name})"
-            else:
-                c = f"({_layer(l)})({left.name})"
-            res += _branch_or_continue(left.name, l, c)
-        return res
+    def _name_and_layers(branch):
+        if type(branch) == list:
+            return PKDict(name="x", layers=branch)
+        return PKDict(name=branch.name, layers=branch.layers)
 
-    def _build_right_child(right):
-        res = ""
-        for l in right.layers:
-            c = f"({_layer(l)})({right.name})"
-            res += _branch_or_continue(right.name, l, c)
-        return res
-
-    def _add(layer):
-        return _build_left_child(layer.children[0], layer.children[1].name) + _build_right_child(layer.children[1]) + f"{layer.children[1].name} = Add()([{layer.children[1].name}, {layer.children[0].name}])\n"
+    def _branch(layer, join_type):
+        def _join(layer):
+            return f"{layer.children[1].name} = {join_type}()([{layer.children[1].name}, {layer.children[0].name}])\n"
+        return _build_layers(layer.children[0], layer.children[1]) + _build_layers(layer.children[1], layer.children[1]) + _join(layer)
 
     return f"""
 from keras.models import Model, Sequential
 from keras.layers import Input{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
-{_build_layers(v.neuralNetLayers)}
+{_build_layers(v.neuralNetLayers, PKDict(name="input_args"))}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
 """
