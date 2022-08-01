@@ -4,24 +4,41 @@ import openmc_data_downloader
 
 
 def create_geometry():
-    openmc.Geometry(root=openmc.DAGMCUniverse(
+    univ = openmc.DAGMCUniverse(
         filename='{{ dagmcFilename }}',
-    )).export_to_xml()
+    )
+    {% if reflectivePlanes_useReflectivePlanes == '1' %}
+    # creates an edge of universe boundary surface
+    vac_surf = openmc.Sphere(r=10000, surface_id=9999, boundary_type="vacuum")
+    plane1 = openmc.Plane(
+        a={{ reflectivePlanes_plane1a }},
+        b={{ reflectivePlanes_plane1b }},
+        c=0.0,
+        d=0.0,
+        surface_id=9991,
+        boundary_type="reflective",
+    )
+    plane2 = openmc.Plane(
+        a={{ reflectivePlanes_plane2a }},
+        b={{ reflectivePlanes_plane2b }},
+        c=0.0,
+        d=0.0,
+        surface_id=9990,
+        boundary_type="reflective",
+    )
+    univ = openmc.Cell(
+        cell_id=9999,
+        region=-vac_surf & -plane1 & +plane2,
+        fill=univ,
+    )
+    {% endif %}
+    openmc.Geometry(root=[univ]).export_to_xml()
 
 
 def create_materials():
-    # fuel found by name
-    u235 = openmc.Material(name="fuel")
-    u235.add_nuclide('U235', 1.0, 'ao')
-    u235.set_density('g/cc', 11)
-    # water found by id
-    water = openmc.Material()
-    water.add_nuclide('H1', 2.0, 'ao')
-    water.add_nuclide('O16', 1.0, 'ao')
-    water.set_density('g/cc', 1.0)
-    water.add_s_alpha_beta('c_H_in_H2O')
-    water.id = 41
-    materials = openmc.Materials([u235, water])
+    {% filter indent(width=4) %}
+    {{ materials }}
+    {% endfilter %}
     materials.export_to_xml()
     openmc_data_downloader.just_in_time_library_generator(
         libraries='ENDFB-7.1-NNDC',
@@ -32,41 +49,30 @@ def create_materials():
 
 def create_settings():
     settings = openmc.Settings()
-    settings.batches = {{ openmcSettings_batches }}
-    settings.inactive = {{ openmcSettings_inactive }}
-    settings.particles = {{ openmcSettings_particles }}
+    settings.batches = {{ settings_batches }}
+    settings.inactive = {{ settings_inactive }}
+    settings.particles = {{ settings_particles }}
     settings.output = dict(
         summary=False,
         tallies=False,
     )
-    settings.source = openmc.Source(
-        space=openmc.stats.Box(
-            [-4., -4., -4.],
-            [ 4.,  4.,  4.],
-        ),
-    )
+    settings.source = [
+        {% filter indent(width=8) %}
+        {{ sources }}
+        {% endfilter %}
+    ]
+    settings.run_mode = "{{ settings_run_mode }}"
     settings.export_to_xml()
 
 
 def create_tallies():
-    # tally = openmc.Tally()
-    # tally.scores = ['total']
-    # tally.filters = [openmc.CellFilter(1)]
-    # openmc.Tallies([tally]).export_to_xml()
-
-    cell_tally = openmc.Tally(name='heating')
-    cell_tally.scores = ['heating']
-
-    mesh = openmc.RegularMesh()
-    mesh.dimension = [50, 50, 160]
-    mesh.lower_left = [-12, -12, -20]  # x,y,z coordinates start at 0 as this is a sector model
-    mesh.upper_right = [12, 12, 20]
-
+    {% filter indent(width=4) %}
+    {{ mesh }}
+    {% endfilter %}
     mesh_tally = openmc.Tally(name="heating_on_mesh")
     mesh_tally.filters = [openmc.MeshFilter(mesh)]
     mesh_tally.scores = ["heating"]
-
-    openmc.Tallies([cell_tally, mesh_tally]).export_to_xml()
+    openmc.Tallies([mesh_tally]).export_to_xml()
 
 
 create_geometry()

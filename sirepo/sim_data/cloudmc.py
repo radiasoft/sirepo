@@ -27,6 +27,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "geometry3DReport",
                 "geometryInput",
                 "openmcAnimation",
+                "reflectivePlanes",
+                "regularMesh",
                 "settings",
                 "volumes",
             ),

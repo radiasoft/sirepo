@@ -1032,3 +1032,17 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
         },
     };
 });
+
+SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
+    function processPlanes() {
+        panelState.showFields('reflectivePlanes', [
+            ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
+            appState.models.reflectivePlanes.useReflectivePlanes == '1',
+        ]);
+    }
+    $scope.whenSelected = processPlanes;
+    $scope.watchFields = [
+        ['reflectivePlanes.useReflectivePlanes'], processPlanes,
+    ];
+
+});

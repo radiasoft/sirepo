@@ -56,6 +56,10 @@
             ["uniform", "Uniform"],
             ["watt", "Watt"]
         ],
+        "RunMode": [
+            ["eigenvalue", "eigenvalue"],
+            ["fixed source", "fixed source"]
+        ],
         "SpatialDistribution": [
             ["None", "None"],
             ["box", "Box"],
@@ -192,7 +196,8 @@
             "batches": ["Number of batches to simulation", "Integer", 1],
             "inactive": ["Number of inactive batches", "Integer", 0],
             "particles": ["Number of particles per generation", "Integer", 5000],
-            "sources": ["", "Sources", []]
+            "sources": ["", "Sources", []],
+            "run_mode": ["Run Mode", "RunMode", "eigenvalue", "The type of calculation to perform"]
         },
         "point": {
             "_super": [ "_", "model", "spatial"],
@@ -213,6 +218,18 @@
         "probabilityValue": {
             "x": ["Value", "Float"],
             "p": ["Probability", "Float"]
+        },
+        "reflectivePlanes": {
+            "useReflectivePlanes": ["Use Reflective Planes", "Boolean", "0", "Add reflective planes for sector models. $Ax + By + Cz = D$"],
+            "plane1a": ["Plane 1 A", "Float", 0],
+            "plane1b": ["Plane 1 B", "Float", -1],
+            "plane2a": ["Plane 2 A", "Float", 1],
+            "plane2b": ["Plane 2 B", "Float", 0]
+        },
+        "regularMesh": {
+            "dimension": ["Dimension", "Point3D", [100, 100, 100]],
+            "lower_left": ["Lower Left", "Point3D", [0, 0, 0]],
+            "upper_right": ["Upper Right", "Point3D", [0, 0, 0]]
         },
         "source": {
             "space": ["Spatial Distribution", "Spatial", {"_type": "None"}],
@@ -372,10 +389,23 @@
                 ["Main", [
                     "batches",
                     "inactive",
-                    "particles"
+                    "particles",
+                    "run_mode"
                 ]],
                 ["Sources", [
                     "sources"
+                ]],
+                ["Output Mesh", [
+                    "regularMesh.dimension",
+                    "regularMesh.lower_left",
+                    "regularMesh.upper_right"
+                ]],
+                ["Reflective Planes", [
+                    "reflectivePlanes.useReflectivePlanes",
+                    "reflectivePlanes.plane1a",
+                    "reflectivePlanes.plane1b",
+                    "reflectivePlanes.plane2a",
+                    "reflectivePlanes.plane2b"
                 ]]
             ],
             "advanced": []
