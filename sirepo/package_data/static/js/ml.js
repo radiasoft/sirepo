@@ -1453,7 +1453,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                       </div>
                     </td>
                     <td>
-                      <div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)">c<span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                      <div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
                     </td>
                     <td>
                       <div data-ng-if="checkAdd(layer)">
@@ -1511,9 +1511,14 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 return ! Boolean($scope.layerTarget);
             }
 
+            $scope.changeLayer = () => {
+                srdbg("Change Layer");
+            }
+
             $scope.addLayer = function() {
-                srdbg('selected: ', $scope.selectedLayer);
+                // srdbg('selected: ', $scope.selectedLayer);
                 if (! $scope.selectedLayer) {
+                    srdbg('no selection');
                     return;
                 }
                 if (branchingLayer($scope.selectedLayer)) {
@@ -1534,15 +1539,22 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.checkAdd = layer => {
-                // srdbg('layer in question: ', layer);
+                srdbg('layer in question: ', layer);
+
                 var r = branchingLayer(layer.layer);
-                // srdbg('checkAdd() => ', r);
+                if (r && layer.children !== null) {
+                    return r
+                }
+                layer.children = [
+                    {layers: [], name: $scope.lName + Math.random().toString(20).substr(2, 5)},
+                    {layers: [], name: $scope.lName},
+                ];
                 return r;
             }
 
             function branchingLayer(layer) {
-                // srdbg('layer:', layer);
-                return layer == 'Add' || layer == 'Concatenate';
+                srdbg('layer:', layer);
+                return (layer == 'Add') || (layer == 'Concatenate');
             }
 
             $scope.layerName = layer => {
@@ -1566,6 +1578,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.hasChanges = function() {
+                srdbg('selectedLayer: ', $scope.selectedLayer, '$scope.layerLevel:', $scope.layerLevel);
                 if (! $scope.root()) {
                     return false;
                 }
@@ -1669,6 +1682,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             }
 
             function nest() {
+                srdbg('calling nest');
                 const n = {
                     layer: $scope.selectedLayer,
                     children: [
