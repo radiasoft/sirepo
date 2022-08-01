@@ -1505,13 +1505,14 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
             $scope.layerLevel = getLayerLevel();
-            srdbg('appState.models.neuralNet:', appState.models.neuralNet);
+            // srdbg('appState.models.neuralNet:', appState.models.neuralNet);
 
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             }
 
             $scope.addLayer = function() {
+                srdbg('selected: ', $scope.selectedLayer);
                 if (! $scope.selectedLayer) {
                     return;
                 }
@@ -1524,17 +1525,23 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
+
                 const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
+                srdbg('M -> ', m);
                 m.layer = $scope.selectedLayer;
                 neuralNet.push(m);
                 $scope.selectedLayer = '';
             };
 
             $scope.checkAdd = layer => {
-                return branchingLayer(layer.layer)
+                // srdbg('layer in question: ', layer);
+                var r = branchingLayer(layer.layer);
+                // srdbg('checkAdd() => ', r);
+                return r;
             }
 
             function branchingLayer(layer) {
+                // srdbg('layer:', layer);
                 return layer == 'Add' || layer == 'Concatenate';
             }
 
@@ -1669,8 +1676,9 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         {layers: [], name: $scope.lName},
                     ]
                 }
-                srdbg('n = ', n);
-                $scope.layerLevel.push(n);
+                // srdbg('n = ', n);
+                const m = appState.setModelDefaults(n, stringsService.lcfirst($scope.selectedLayer));
+                $scope.layerLevel.push(m);
                 srdbg('appState.models', appState.models);
             }
 

@@ -5,9 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import enum
-from turtle import right
-from typing import Concatenate
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
