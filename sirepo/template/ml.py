@@ -5,6 +5,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import enum
+from turtle import right
+from typing import Concatenate
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -646,9 +649,11 @@ def _build_model_py(v):
 
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
+        Add=lambda layer: _branch(layer, "Add"),
         AlphaDropout=lambda layer: layer.dropoutRate,
         AveragePooling2D=lambda layer: _pooling_args(layer),
         BatchNormalization=lambda layer: f"momentum={layer.momentum}",
+        Concatenate=lambda layer: _branch(layer, "Concatenate"),
         Conv2D=lambda layer: _conv_args(layer),
         Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
         Dropout=lambda layer: layer.dropoutRate,
@@ -663,25 +668,41 @@ def _build_model_py(v):
         ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
     )
 
-    def _layer_args(layer):
+    def _layer(layer):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
         return args_map[layer.layer](layer)
 
-    def _build_layers(layers):
+    def _branch_or_continue(layers_name, layer, layer_args):
+        if layer.layer == "Add" or layer.layer == "Concatenate":
+            return _layer(layer)
+        return f"{layers_name} = {layer.layer}{layer_args}\n"
+
+    def _build_layers(branch, parent):
+        b = _name_and_layers(branch)
         res = ""
-        for i, l in enumerate(layers):
-            if i == 0:
-                c = f"({_layer_args(l)})(input_args)"
+        for i, l in enumerate(b.layers):
+            if i == 0 and b.name != parent.name:
+                c = f"({_layer(l)})({parent.name})"
             else:
-                c = f"({_layer_args(l)})(x)"
-            res += f"x = {l.layer}{c}\n"
+                c = f"({_layer(l)})({b.name})"
+            res += _branch_or_continue(b.name, l, c)
         return res
+
+    def _name_and_layers(branch):
+        if type(branch) == list:
+            return PKDict(name="x", layers=branch)
+        return PKDict(name=branch.name, layers=branch.layers)
+
+    def _branch(layer, join_type):
+        def _join(layer):
+            return f"{layer.children[1].name} = {join_type}()([{layer.children[1].name}, {layer.children[0].name}])\n"
+        return _build_layers(layer.children[0], layer.children[1]) + _build_layers(layer.children[1], layer.children[1]) + _join(layer)
 
     return f"""
 from keras.models import Model, Sequential
 from keras.layers import Input{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
-{_build_layers(v.neuralNetLayers)}
+{_build_layers(v.neuralNetLayers, PKDict(name="input_args"))}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
 """
@@ -766,8 +787,14 @@ def _is_valid_report(report):
 
 def _layer_implementation_list(data):
     res = {}
-    for layer in data.models.neuralNet.layers:
-        res[layer.layer] = 1
+    nn = data.models.neuralNet.layers
+    def _helper(nn):
+        for layer in nn:
+            if layer.layer == 'Add' or layer.layer == 'Concatenate':
+                _helper(layer.children[0].layers)
+                _helper(layer.children[1].layers)
+            res[layer.layer] = 1
+    _helper(nn)
     return res.keys()
 
 

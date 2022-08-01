@@ -5,13 +5,6 @@
         <div class="col-sm-12">
           <div data-basic-editor-panel="" data-view-name="mlModel"></div>
         </div>
-        <div class="col-sm-12">
-          <div data-simple-panel="neuralNetLayer">
-            <div class="col-md-12">
-              <div data-neural-net-layers-form=""></div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
     <div class="col-md-6">
@@ -31,6 +24,11 @@
         <div data-report-panel="heatmap" data-model-name="fitAnimation" data-model-data="report.data" data-panel-title="{{ report.title }}"></div>
       </div>
       <div data-ng-if="$index % 4 == 3" class="clearfix"></div>
+    </div>
+  </div>
+  <div data-simple-panel="neuralNetLayer">
+    <div class="col-lg">
+      <div data-neural-net-layers-form="" data-layer-target=""></div>
     </div>
   </div>
 </div>
