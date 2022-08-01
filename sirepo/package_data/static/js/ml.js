@@ -1456,7 +1456,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                       <div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
                     </td>
                     <td>
-                      <div data-ng-if="checkAdd(layer)">
+                      <div data-ng-if="checkBranch(layer)">
                         <div class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="layer.children[0]"></div>
                         <div class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="layer.children[1]"></div>
                       </div>
@@ -1497,7 +1497,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             </form>
         `,
         controller: function($scope, $element) {
-            // TODO (gurhar1133) QA for switching layer to Add or Concat inf recurse??
+            // TODO (gurhar1133) fix x buttons and QA
             var layerFields = {};
             var layerInfo = [];
             $scope.appState = appState;
@@ -1505,20 +1505,14 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
             $scope.layerLevel = getLayerLevel();
-            // srdbg('appState.models.neuralNet:', appState.models.neuralNet);
+            setLevelName();
 
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             }
 
-            $scope.changeLayer = () => {
-                srdbg("Change Layer");
-            }
-
             $scope.addLayer = function() {
-                // srdbg('selected: ', $scope.selectedLayer);
                 if (! $scope.selectedLayer) {
-                    srdbg('no selection');
                     return;
                 }
                 if (branchingLayer($scope.selectedLayer)) {
@@ -1530,30 +1524,22 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
-
                 const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
-                srdbg('M -> ', m);
                 m.layer = $scope.selectedLayer;
                 neuralNet.push(m);
                 $scope.selectedLayer = '';
             };
 
-            $scope.checkAdd = layer => {
-                srdbg('layer in question: ', layer);
-
-                var r = branchingLayer(layer.layer);
-                if (r && layer.children !== null) {
-                    return r
+            $scope.checkBranch = layer => {
+                const b = branchingLayer(layer.layer);
+                if (b && layer.children !== null) {
+                    return b
                 }
-                layer.children = [
-                    {layers: [], name: $scope.lName + Math.random().toString(20).substr(2, 5)},
-                    {layers: [], name: $scope.lName},
-                ];
-                return r;
+                layer.children = newChildren();
+                return b;
             }
 
             function branchingLayer(layer) {
-                srdbg('layer:', layer);
                 return (layer == 'Add') || (layer == 'Concatenate');
             }
 
@@ -1578,7 +1564,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.hasChanges = function() {
-                srdbg('selectedLayer: ', $scope.selectedLayer, '$scope.layerLevel:', $scope.layerLevel);
                 if (! $scope.root()) {
                     return false;
                 }
@@ -1673,27 +1658,32 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             function getLayerLevel() {
                 if ($scope.layerTarget){
-                    $scope.lName = $scope.layerTarget.name;
                     return $scope.layerTarget.layers;
                 }
-                appState.models.neuralNet['name'] = "x";
-                $scope.lName = appState.models.neuralNet.name;
                 return appState.models.neuralNet.layers;
             }
 
+            function setLevelName(){
+                if ($scope.layerTarget){
+                    $scope.lName = $scope.layerTarget.name;
+                }
+                appState.models.neuralNet['name'] = "x";
+                $scope.lName = appState.models.neuralNet.name;
+            }
+
+            function newChildren() {
+                return [
+                    {layers: [], name: $scope.lName + Math.random().toString(20).substr(2, 5)},
+                    {layers: [], name: $scope.lName},
+                ]
+            }
+
             function nest() {
-                srdbg('calling nest');
                 const n = {
                     layer: $scope.selectedLayer,
-                    children: [
-                        {layers: [], name: $scope.lName + Math.random().toString(20).substr(2, 5)},
-                        {layers: [], name: $scope.lName},
-                    ]
+                    children: newChildren(),
                 }
-                // srdbg('n = ', n);
-                const m = appState.setModelDefaults(n, stringsService.lcfirst($scope.selectedLayer));
-                $scope.layerLevel.push(m);
-                srdbg('appState.models', appState.models);
+                $scope.layerLevel.push(n);
             }
 
             buildLayerFields();
