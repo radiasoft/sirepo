@@ -7,18 +7,13 @@ SIREPO.app.config(() => {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
-    //TODO(pjm): OptionalInteger and OptionalFloat should be standard
+    //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
         <div data-ng-switch-when="Point3D" class="col-sm-7">
           <div data-point3d="" data-model="model" data-field="field"></div>
-        </div>
-        <div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">
-          <input data-string-to-number="integer" data-ng-model="model[field]"
-            data-min="info[4]" data-max="info[5]" class="form-control"
-            style="text-align: right" data-lpignore="true" />
         </div>
         <div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">
           <input data-string-to-number="" data-ng-model="model[field]"
@@ -49,13 +44,17 @@ SIREPO.app.config(() => {
             data-model-name="modelName" data-model="model"></div>
         </div>
         <div data-ng-switch-when="Spatial">
-          <div data-dynamic-editor="spatial" data-model="model" data-field="field"></div>
+          <div data-multi-level-editor="spatial" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="Univariate">
-          <div data-dynamic-editor="univariate" data-model="model" data-field="field"></div>
+          <div data-multi-level-editor="univariate" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="UnitSphere">
-          <div data-dynamic-editor="unitSphere" data-model="model" data-field="field"></div>
+          <div data-multi-level-editor="unitSphere" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="Sources">
+          <div data-sources-editor="" data-model-name="modelName"
+            data-model="model" data-field="field"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -350,6 +349,10 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             }
 
             function volumesLoaded() {
+                if (! $scope.model) {
+                    // volumesLoaded may be called after the component was destroyed
+                    return;
+                }
                 setGlobalProperties();
                 $rootScope.$broadcast('vtk.hideLoader');
                 $scope.axisCfg = {};
@@ -377,7 +380,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             }
 
             // the vtk teardown is handled in vtkPlotting
-            $scope.destroy = () => {};
+            $scope.destroy = () => {
+                $scope.model = null;
+            };
 
             $scope.init = () => {
                 $scope.fieldDelegate = buildOpacityDelegate();
@@ -793,11 +798,11 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
     };
 });
 
-SIREPO.app.directive('dynamicEditor', function(appState, panelState) {
+SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
-            modelName: '@dynamicEditor',
+            modelName: '@multiLevelEditor',
             model: '=',
             field: '=',
         },
@@ -822,18 +827,6 @@ SIREPO.app.directive('dynamicEditor', function(appState, panelState) {
         `,
         controller: function($scope) {
 
-            function init() {
-                if (! $scope.model[$scope.field]) {
-                    $scope.model[$scope.field] = {};
-                }
-                else if (typeof($scope.model[$scope.field]) == 'string') {
-                    $scope.model[$scope.field] = {
-                        _type: $scope.model[$scope.field],
-                    };
-                }
-                setView();
-            }
-
             function setView() {
                 if (type() && type() != 'None') {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
@@ -854,6 +847,9 @@ SIREPO.app.directive('dynamicEditor', function(appState, panelState) {
             }
 
             $scope.$watch('model[field]._type', (newValue, oldValue) => {
+                if (! $scope.model) {
+                    return;
+                }
                 if (panelState.isActiveField($scope.modelName, '_type')) {
                     if (newValue != oldValue && newValue) {
                         $scope.model[$scope.field] = {
@@ -869,13 +865,11 @@ SIREPO.app.directive('dynamicEditor', function(appState, panelState) {
                 }
                 setView();
             });
-
-            init();
         },
     };
 });
 
-SIREPO.app.directive('point3d', function(appState, utilities) {
+SIREPO.app.directive('point3d', function() {
     return {
         restrict: 'A',
         scope: {
@@ -890,5 +884,151 @@ SIREPO.app.directive('point3d', function(appState, utilities) {
                 style="text-align: right" required />
             </div>
         `,
+    };
+});
+
+SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div style="position: relative; top: -25px">
+              <div class="col-sm-12">
+                <button class="btn btn-xs btn-info pull-right"
+                  data-ng-click="addSource()">
+                  <span class="glyphicon glyphicon-plus"></span> Add Source</button>
+                <table data-ng-if="model[field].length"
+                  style="width: 100%; table-layout: fixed; margin-bottom: 10px"
+                  class="table table-hover">
+                  <colgroup>
+                    <col>
+                    <col style="width: 8em">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>Space</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr data-ng-repeat="m in model[field] track by $index">
+                      <td>
+                        <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap">
+                          {{ description(m) }}
+                        </div>
+                      </td>
+                      <td>
+                        <button class="btn btn-xs btn-info" style="width: 5em"
+                          data-ng-click="editSource(m)">Edit</button>
+                        <button data-ng-click="removeSource(m)"
+                          class="btn btn-danger btn-xs"><span
+                            class="glyphicon glyphicon-remove"></span></button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            const childModel = 'source';
+            const infoFields = {
+                box: ['lower_left', 'upper_right'],
+                cartesianIndependent: ['x', 'y', 'z'],
+                cylindricalIndependent: ['r', 'phi', 'z'],
+                point: ['xyz'],
+                sphericalIndependent: ['r', 'theta', 'phi'],
+                maxwell: ['theta'],
+                muir: ['e0', 'm_rat', 'kt'],
+                normal: ['mean_value', 'std_dev'],
+                powerLaw: ['a', 'b'],
+                uniform: ['a', 'b'],
+                watt: ['a', 'b'],
+            };
+
+            function nextIndex() {
+                return $scope.model[$scope.field].length;
+            }
+
+            function editChild(model) {
+                appState.models[childModel] = model;
+                panelState.showModalEditor(childModel);
+            }
+
+            $scope.addSource = () => {
+                editChild(appState.setModelDefaults({
+                    _index: nextIndex(),
+                }, childModel));
+            };
+
+            $scope.description = (m) => {
+                return typeInfo('SpatialDistribution', m.space);
+            };
+
+            function typeInfo(modelType, model) {
+                let res = appState.enumDescription(modelType, model._type);
+                if (infoFields[model._type]) {
+                    res += '(';
+                    for (const f of infoFields[model._type]) {
+                        if (! model[f]) {
+                            continue;
+                        }
+                        res += `${f}=`;
+                        if (model[f]._type) {
+                            res += typeInfo('ProbabilityDistribution', model[f]);
+                        }
+                        else {
+                            res += model[f];
+                        }
+                        res += ' ';
+                    }
+                    res = res.trim() + ')';
+                }
+                else if (model.probabilityValue) {
+                    const MAX_VALUES = 3;
+                    res += '(';
+                    for (let i = 0; i < MAX_VALUES; i++) {
+                        if (model.probabilityValue[i]
+                            && model.probabilityValue[i].p) {
+                            res += `(${model.probabilityValue[i].x},${model.probabilityValue[i].p}) `;
+                        }
+                    }
+                    if (model.probabilityValue[MAX_VALUES]
+                        && model.probabilityValue[MAX_VALUES].p) {
+                        res += '...';
+                    }
+                    res = res.trim() + ')';
+                }
+                return res + ' ';
+            }
+
+            $scope.editSource = (model) => {
+                editChild(model);
+            };
+
+            $scope.removeSource = (model) => {
+                const c = [];
+                for (const m of $scope.model[$scope.field]) {
+                    if (m._index != model._index) {
+                        m._index = c.length;
+                        c.push(m);
+                    }
+                }
+                $scope.model[$scope.field] = c;
+            };
+
+            $scope.$on('modelChanged', function(event, name) {
+                if (name == childModel) {
+                    const m = appState.models[childModel];
+                    $scope.model[$scope.field][m._index] = m;
+                    appState.removeModel(childModel);
+                    appState.saveChanges($scope.modelName);
+                }
+            });
+        },
     };
 });

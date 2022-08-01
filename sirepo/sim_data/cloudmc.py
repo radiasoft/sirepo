@@ -24,11 +24,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm,
             (
                 "dagmcAnimation",
-                "geometryInput",
                 "geometry3DReport",
-                "openmcSettings",
-                "source",
+                "geometryInput",
                 "openmcAnimation",
+                "settings",
                 "volumes",
             ),
         )

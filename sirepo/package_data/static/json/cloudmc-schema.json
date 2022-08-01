@@ -118,18 +118,18 @@
         },
         "cartesianIndependent": {
             "_super": [ "_", "model", "spatial"],
-            "x": ["X Distribution", "Univariate", "None"],
-            "y": ["Y Distribution", "Univariate", "None"],
-            "z": ["Z Distribution", "Univariate", "None"]
+            "x": ["X Distribution", "Univariate", {"_type": "None"}],
+            "y": ["Y Distribution", "Univariate", {"_type": "None"}],
+            "z": ["Z Distribution", "Univariate", {"_type": "None"}]
         },
         "coefficient": {
             "coefficient": ["Expansion Coefficients", "FloatArray", "", "Probability density given by a Legendre polynomial expansion $\\sum\\limits_{\\ell=0}^N \\frac{2\\ell + 1}{2} a_\\ell P_\\ell(\\mu)$. $\\newline$ Expansion coefficients $a_\\ell$. Note that the $(2\\ell + 1)/2$ factor should not be included"]
         },
         "cylindricalIndependent": {
             "_super": [ "_", "model", "spatial"],
-            "r": ["R Distribution", "Univariate", "None"],
-            "phi": ["Phi Distribution", "Univariate", "None", "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
-            "z": ["Z Distribution", "Univariate", "None"],
+            "r": ["R Distribution", "Univariate", {"_type": "None"}],
+            "phi": ["Phi Distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
+            "z": ["Z Distribution", "Univariate", {"_type": "None"}],
             "origin": ["Origin", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the cylindrical reference frame for the source."]
         },
         "legendre": {
@@ -188,10 +188,11 @@
             "mean_value": ["Mean Value", "Float"],
             "std_dev": ["Standard Deviation", "Float"]
         },
-        "openmcSettings": {
+        "settings": {
             "batches": ["Number of batches to simulation", "Integer", 1],
             "inactive": ["Number of inactive batches", "Integer", 0],
-            "particles": ["Number of particles per generation", "Integer", 5000]
+            "particles": ["Number of particles per generation", "Integer", 5000],
+            "sources": ["", "Sources", []]
         },
         "point": {
             "_super": [ "_", "model", "spatial"],
@@ -199,8 +200,8 @@
         },
         "polarAzimuthal": {
             "_super": ["_", "model", "unitSphere"],
-            "mu": ["Polar Angle Distribution", "Univariate", "None", "Distribution of the cosine of the polar angle"],
-            "phi": ["Azimuthal Angle Distribution [rad]", "Univariate", "None", "Distribution of the azimuthal angle in radians"],
+            "mu": ["Polar Angle Distribution", "Univariate", {"_type": "None"}, "Distribution of the cosine of the polar angle"],
+            "phi": ["Azimuthal Angle Distribution [rad]", "Univariate", {"_type": "None"}, "Distribution of the azimuthal angle in radians"],
             "reference_uvw": ["Polar Angle Direction", "Point3D", [0, 0, 1]]
         },
         "powerLaw": {
@@ -214,10 +215,10 @@
             "p": ["Probability", "Float"]
         },
         "source": {
-            "space": ["Spatial Distribution", "Spatial", "None"],
-            "angle": ["Angular Distribution", "UnitSphere", "None"],
-            "energy": ["Energy Distribution", "Univariate", "None"],
-            "time": ["Time Distribution", "Univariate", "None"],
+            "space": ["Spatial Distribution", "Spatial", {"_type": "None"}],
+            "angle": ["Angular Distribution", "UnitSphere", {"_type": "None"}],
+            "energy": ["Energy Distribution", "Univariate", {"_type": "None"}],
+            "time": ["Time Distribution", "Univariate", {"_type": "None"}],
             "strength": ["Strength", "Float", 1],
             "particle": ["Particle", "Particle", "neutron"]
         },
@@ -226,9 +227,9 @@
         },
         "sphericalIndependent": {
             "_super": [ "_", "model", "spatial"],
-            "r": ["R Distribution", "Univariate", "None"],
-            "theta": ["Theta Distribution", "Univariate", "None", "Distribution of theta-coordinates (angle relative to the z-axis) in a reference frame specified by the origin parameter"],
-            "phi": ["Phi Distribution", "Univariate", "None", "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
+            "r": ["R Distribution", "Univariate", {"_type": "None"}],
+            "theta": ["Theta Distribution", "Univariate", {"_type": "None"}, "Distribution of theta-coordinates (angle relative to the z-axis) in a reference frame specified by the origin parameter"],
+            "phi": ["Phi Distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
             "origin": ["Origin", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source."]
         },
         "tally": {
@@ -365,7 +366,7 @@
                 "std_dev"
             ]
         },
-        "openmcSettings": {
+        "settings": {
             "title": "Settings",
             "basic": [
                 ["Main", [
@@ -373,20 +374,28 @@
                     "inactive",
                     "particles"
                 ]],
-                ["Source", [
-                    "source.space"
-                ]],
-                ["Angle and Energy", [
-                    "source.angle",
-                    "source.energy"
-                ]],
-                ["Other", [
-                    "source.strength",
-                    "source.particle",
-                    "source.time"
+                ["Sources", [
+                    "sources"
                 ]]
             ],
             "advanced": []
+        },
+        "source": {
+            "title": "Source",
+            "advanced": [
+                ["Space", [
+                    "space"
+                ]],
+                ["Angle and Energy", [
+                    "angle",
+                    "energy"
+                ]],
+                ["Other", [
+                    "strength",
+                    "particle",
+                    "time"
+                ]]
+            ]
         },
         "point": {
             "advanced": [
