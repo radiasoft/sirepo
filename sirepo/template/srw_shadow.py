@@ -783,7 +783,9 @@ class Convert:
         srw.initialIntensityReport.colorMap = shadow.initialIntensityReport.colorMap
 
     def __size_srw_mirror(self, srw_mirror, shadow_mirror):
-        if shadow_mirror.fhit_c == "0" or (shadow_mirror.fshape == "2" or shadow_mirror.fshape == "3"):
+        if shadow_mirror.fhit_c == "0" or (
+            shadow_mirror.fshape == "2" or shadow_mirror.fshape == "3"
+        ):
             srw_mirror.sagittalSize = shadow_mirror.externalOutlineMinorAxis * 1e-3
             srw_mirror.tangentialSize = shadow_mirror.externalOutlineMajorAxis * 1e-3
 
