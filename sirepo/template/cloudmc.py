@@ -41,7 +41,7 @@ def get_data_file(run_dir, model, frame, options):
     if model == "dagmcAnimation":
         return PKDict(filename=run_dir.join(f"{frame}.zip"))
     if model == "openmcAnimation":
-        return PKDict(filename=run_dir.join(f"heating_tally_on_mesh.vtk"))
+        return PKDict(filename=run_dir.join(f"heating_tally_on_mesh.json"))
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
     return template_common.render_jinja(
         SIM_TYPE,

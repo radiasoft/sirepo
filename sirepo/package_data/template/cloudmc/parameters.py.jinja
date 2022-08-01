@@ -73,7 +73,8 @@ def create_tallies(name):
 
 
 def _grid_to_poly(path):
-    from pykern import pkio
+    from pykern.pkcollections import PKDict
+    from sirepo import util
 
     def _poly_lines(nx, ny, nz):
         l = []
@@ -139,8 +140,10 @@ def _grid_to_poly(path):
                     # we've already added the non-point line
                     lines[-1:-1] = poly_lines
                     continue
-    pkio.write_text(path, "".join(lines))
-    return path
+
+    p = path.replace(".vtk", ".json")
+    util.json_dump(PKDict(content="".join(lines)), p)
+    return p
 
 def _tallies_to_vtk(mesh, name):
     # what determines the name of the statepoint file?

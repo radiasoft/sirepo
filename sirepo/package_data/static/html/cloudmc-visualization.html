@@ -10,4 +10,9 @@
     </div>
     <div class="clearfix"></div>
   </div>
+    <div class="row">
+    <div class="col-sm-8" data-ng-if="visualization.simState.isStateCompleted()">
+      <div data-report-panel="geometry3d" data-model-name="geometry3DReport" data-report-cfg="visualization.reportCfg"></div>
+    </div>
+  </div>
 </div>

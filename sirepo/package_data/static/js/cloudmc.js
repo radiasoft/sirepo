@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-cfg="reportCfg" data-report-id="reportId"></div>
     `;
     //TODO(pjm): OptionalInteger and OptionalFloat should be standard
     SIREPO.appFieldEditors = `
@@ -63,6 +63,9 @@ SIREPO.app.factory('cloudmcService', function(appState) {
 
 SIREPO.app.controller('GeometryController', function (appState, persistentSimulation, $scope) {
     const self = this;
+    self.reportCfg = {
+        fitToWindow: true,
+    };
     self.isGeometrySelected = () => {
         return appState.applicationState().geometryInput.dagmcFile;
     };
@@ -82,6 +85,9 @@ SIREPO.app.controller('GeometryController', function (appState, persistentSimula
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, persistentSimulation, $scope) {
     const self = this;
+    self.reportCfg = {
+        fitToWindow: false,
+    };
     self.frameCache = frameCache;
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
@@ -138,7 +144,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
     return {
         restrict: 'A',
         scope: {
+            fitToWindow: '=',
             modelName: '@',
+            reportCfg: '<',
             reportId: '<',
         },
         template: `
@@ -146,7 +154,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
               data-ng-style="sizeStyle()" data-show-border="true"
               data-report-id="reportId" data-model-name="{{ modelName }}"
               data-event-handlers="eventHandlers" data-reset-side="z"
-              data-enable-axes="false" data-axis-cfg="axisCfg"
+              data-enable-axes="true" data-axis-cfg="axisCfg"
               data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope, $element) {
@@ -307,6 +315,16 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                 polyData.buildCells();
             }
 
+            function addTally(str, name) {
+                const pd = SIREPO.VTK.VTKUtils.parseLegacy(str);
+                const b = coordMapper.buildActorBundle();
+                b.mapper.setInputData(pd);
+                setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
+                b.setActorProperty('lighting', false);
+                vtkScene.addActor(b.actor);
+                vtkScene.render();
+            }
+
             function loadTally(name) {
                 const u = requestSender.formatUrl(
                     'downloadDataFile',
@@ -317,15 +335,17 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                         '<frame>': -1,
                         '<suffix>': 'vtk',
                     });
-                requestSender.sendRequest(u, d => {
-                    const pd = SIREPO.VTK.VTKUtils.parseLegacy(d);
-                    const b = coordMapper.buildActorBundle();
-                    b.mapper.setInputData(pd);
-                    setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
-                    b.setActorProperty('lighting', false);
-                    vtkScene.addActor(b.actor);
-                    vtkScene.render();
-                });
+                requestSender.sendRequest(
+                    u,
+                    d => addTally(d.content, name),
+                    null,
+                    (data, status, rdata) => {
+                        if (status === 404) {
+                            return;
+                        }
+                        throw new Error(`${status} Error reading tally file: ${data.error}`);
+                    }
+                );
             }
 
             function loadVolumes(volIds) {
@@ -403,6 +423,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             };
 
             $scope.sizeStyle = () => {
+                if (! $scope.reportCfg || ! $scope.reportCfg.fitToWindow) {
+                    return {};
+                }
                 // 53 legend size + 35 bottom panel padding
                 const ph = Math.ceil(
                     $(window).height() - ($($element).offset().top + 53 + 35));

@@ -2405,10 +2405,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 if (! angular.isObject(data) || data.state === 'srException') {
                     // properly handle file path returns from get_application_data, which do not live in json objects
                     // (this is a placeholder)
-                    if (response.status === 200) {
-                        successCallback(data, response.status);
-                        return;
-                    }
+                    //if (response.status === 200) {
+                    //    successCallback(data, response.status);
+                    //    return;
+                    //}
                     thisErrorCallback(response);
                     return;
                 }
