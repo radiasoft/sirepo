@@ -1028,6 +1028,10 @@ SIREPO.app.factory('stringsService', function() {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
+    function lcfirst(str) {
+        return str[0].toLowerCase() + str.substring(1);
+    }
+
     return {
         formatKey: (name) => {
             return ucfirst(strings[name]);
@@ -1057,7 +1061,8 @@ SIREPO.app.factory('stringsService', function() {
             return `End ${typeOfSimulation(modelName)}`;
         },
         typeOfSimulation: typeOfSimulation,
-        ucfirst: ucfirst
+        ucfirst: ucfirst,
+        lcfirst: lcfirst
     };
 });
 
