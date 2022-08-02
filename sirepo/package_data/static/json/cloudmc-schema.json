@@ -77,7 +77,6 @@
     },
     "model": {
         "dagmcAnimation": {},
-
         "materialComponent": {
             "component": ["Component", "MaterialComponent", "add_element"],
             "name": ["Name", "ComponentName", ""],
@@ -120,6 +119,9 @@
         },
         "tally": {
             "name": ["Name", "String"],
+            "meshCenter": ["Mesh center", "Float3", "0, 0, 0", "", "x, y, z"],
+            "meshSize": ["Mesh size", "Float3", "10.0, 10.0, 10.0", "", "x, y, z"],
+            "meshCellCount": ["Mesh cell count", "IntStringArray", "10, 10, 10", "", "x, y, z"],
             "scores": ["Scores", "TallyScores", ""]
         },
         "tallyFilter": {
@@ -173,6 +175,11 @@
                     "openmcSource.spaceType",
                     "openmcSource.boxLowerLeft",
                     "openmcSource.boxUpperRight"
+                ]],
+                ["Tallies", [
+                    "tally.meshCenter",
+                    "tally.meshSize",
+                    "tally.meshCellCount"
                 ]]
             ],
             "advanced": []

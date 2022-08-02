@@ -8,6 +8,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
+from sirepo import util
 from sirepo.template import template_common
 import re
 import sirepo.sim_data
@@ -42,11 +43,6 @@ def get_data_file(run_dir, model, frame, options):
         return PKDict(filename=run_dir.join(f"{frame}.zip"))
     if model == "openmcAnimation":
         return PKDict(filename=run_dir.join(f"heating_tally_on_mesh.json"))
-    v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
-    return template_common.render_jinja(
-        SIM_TYPE,
-        v,
-    )
 
 
 def python_source_for_model(data, model):
@@ -91,11 +87,17 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _generate_parameters_file(data):
+    import numpy
     report = data.get("report", "")
     res, v = template_common.generate_parameters_file(data)
     if report == "dagmcAnimation":
         return ""
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
+    ctr = numpy.array(util.split_comma_delimited_string(data.models.tally.meshCenter, float))
+    sz = numpy.array(util.split_comma_delimited_string(data.models.tally.meshSize, float))
+    v.tallyLowerLeft = (ctr - 0.5 * sz).tolist()
+    v.tallyUpperRight = (ctr + 0.5 * sz).tolist()
+    v.tallyMesh = util.split_comma_delimited_string(data.models.tally.meshCellCount, int)
     return template_common.render_jinja(
         SIM_TYPE,
         v,

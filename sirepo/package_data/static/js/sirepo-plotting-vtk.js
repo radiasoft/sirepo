@@ -312,7 +312,17 @@ class VTKScene {
     sceneBoundingBox(padPct = 0.0) {
         // must reset the camera before computing the bounds
         this.renderer.resetCamera();
-        return VTKUtils.buildBoundingBox(this.renderer.computeVisiblePropBounds(), padPct);
+        return VTKUtils.buildBoundingBox(this.bounds(), padPct);
+    }
+
+
+    /**
+     * Gets the bounds of all the objects in the scene
+     * @returns {number[]}
+     */
+    bounds() {
+        this.renderer.resetCamera();
+        return this.renderer.computeVisiblePropBounds();
     }
 
     /**

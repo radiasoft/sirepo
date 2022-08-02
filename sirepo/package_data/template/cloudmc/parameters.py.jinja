@@ -49,19 +49,15 @@ def create_settings():
 
 
 def create_tallies(name):
-    # tally = openmc.Tally()
-    # tally.scores = ["total"]
-    # tally.filters = [openmc.CellFilter(1)]
-    # openmc.Tallies([tally]).export_to_xml()
-
     cell_tally = openmc.Tally(tally_id=1, name="heating")
     cell_tally.scores = ["heating"]
 
     mesh = openmc.RegularMesh()
-    #mesh.dimension = [50, 50, 160]
-    mesh.dimension = [20, 20, 20]
-    mesh.lower_left = [-12, -12, -20]  # x,y,z coordinates start at 0 as this is a sector model
-    mesh.upper_right = [12, 12, 20]
+    mesh.dimension = {{ tallyMesh }}
+    #mesh.lower_left = [-12, -12, -20]  # x,y,z coordinates start at 0 as this is a sector model
+    #mesh.upper_right = [12, 12, 20]
+    mesh.lower_left = {{ tallyLowerLeft }}
+    mesh.upper_right = {{ tallyUpperRight }}
 
     mesh_tally = openmc.Tally(tally_id=2, name=name)
     mesh_tally.filters = [openmc.MeshFilter(mesh)]
