@@ -1453,17 +1453,17 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                       </div>
                     </td>
                     <td>
-                      <div class="sr-button-bar-parent pull-right">
+                      <div class="sr-nn-button-bar-parent pull-right">
                         <div class="ml-button-bar">
                           <button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)">
                             <span class="glyphicon glyphicon-arrow-up"></span>
                           </button>
-                          <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)">
+                          <button class="btn btn-info btn-xs" data-ng-disabled="$index == layerLevel.layers.length - 1" data-ng-click="moveLayer(1, $index)">
                             <span class="glyphicon glyphicon-arrow-down"></span>
                           </button>
                           <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs">
-                            {{ $index }}<span class="glyphicon glyphicon-remove"></span>
-                          </button>s
+                            <span class="glyphicon glyphicon-remove"></span>
+                          </button>
                         </div>
                       </div>
                     </td>
@@ -1509,7 +1509,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             </form>
         `,
         controller: function($scope, $element) {
-            // TODO (gurhar1133) fix x buttons and QA
             var layerFields = {};
             var layerInfo = [];
             $scope.appState = appState;
@@ -1595,11 +1594,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.moveLayer = function(direction, currIdx) {
-                const n = appState.models.neuralNet;
-                n.layers.splice(
+                const n = $scope.layerLevel;
+                n.splice(
                     currIdx + direction,
                     0,
-                    n.layers.splice(currIdx, 1)[0]
+                    n.splice(currIdx, 1)[0]
                 );
                 $scope.form.$setDirty();
             };
