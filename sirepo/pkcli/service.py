@@ -97,6 +97,22 @@ def http():
             # Avoid race condition on creating auth db
             time.sleep(0.3)
             _start(["service", "flask"])
+            time.sleep(0.3)
+
+            with pkio.save_chdir('../reactapp'), _handle_signals((signal.SIGINT, signal.SIGTERM)):
+                try:
+                    processes.append(
+                        subprocess.Popen(
+                            ['npm', 'start'],
+                            cwd='.',
+                            env=e
+                        )
+                    )
+                except ChildProcessError:
+                    pass
+                except:
+                    raise
+            
             p, _ = os.wait()
         except ChildProcessError:
             pass
