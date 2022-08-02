@@ -78,7 +78,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
     }
 
     function initAnimation(scope) {
-        scope.prevFrameIndex = -1;
+        scope.prevFrameIndex = SIREPO.nonDataFileFrame;
         scope.isPlaying = false;
         var requestData = scope.requestData || function() {
             if (! scope.hasFrames()) {
@@ -178,7 +178,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
         };
         scope.$on('framesCleared', function() {
-            scope.prevFrameIndex = -1;
+            scope.prevFrameIndex = SIREPO.nonDataFileFrame;
             if (scope.clearData) {
                 scope.clearData();
             }
@@ -599,7 +599,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             scope.$on(
                 scope.modelName + '.changed',
                 function() {
-                    scope.prevFrameIndex = -1;
+                    scope.prevFrameIndex = SIREPO.nonDataFileFrame;
                     if (scope.modelChanged) {
                         scope.modelChanged();
                     }
@@ -906,7 +906,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             scope.$on(
                 scope.modelName + '.changed',
                 function() {
-                    scope.prevFrameIndex = -1;
+                    scope.prevFrameIndex = SIREPO.nonDataFileFrame;
                     if (scope.modelChanged) {
                         scope.modelChanged();
                     }
@@ -3081,7 +3081,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             $scope.clearData = function() {
                 $scope.dataCleared = true;
-                $scope.prevFrameIndex = -1;
+                $scope.prevFrameIndex = SIREPO.nonDataFileFrame;
             };
 
             $scope.destroy = function() {
