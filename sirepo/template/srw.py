@@ -1855,7 +1855,6 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     source_type = data.models.simulation.sourceType
-    pkdp('\n\n\n _SIM_DATA.SRW_RUN_ALL_MODEL: {}', _SIM_DATA.SRW_RUN_ALL_MODEL)
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
     vp_var = "vp" if is_for_rsopt else "varParam"
     content = [
@@ -1905,7 +1904,8 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 and int(beamline_info.last_id) == int(data.models.beamline[-1].id)
             )
         )
-        content.append("v.ws = True")
+        if report != "multiElectronAnimation":
+            content.append("v.ws = True")
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
     else:
