@@ -710,7 +710,7 @@ def _cfg_react_server(value):
         and len(u.params + u.query + u.fragment) == 0
     ):
         return value
-    pkconfig.raise_error("invalid url={}, must be http://netloc/", value)
+    pkconfig.raise_error(f"invalid url={value}, must be http://netloc/")
 
 
 def _handle_error(error):

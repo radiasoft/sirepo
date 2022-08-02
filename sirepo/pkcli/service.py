@@ -7,6 +7,7 @@ Also supports starting nginx proxy.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import psutil
 from pykern import pkcli
 from pykern import pkcollections
 from pykern import pkconfig
@@ -58,6 +59,10 @@ def http():
     Used for development only.
     """
 
+    env = PKDict(os.environ)
+    env.SIREPO_JOB_DRIVER_MODULES = "local"
+    processes = []
+
     @contextlib.contextmanager
     def _handle_signals(signums):
         o = [(x, signal.getsignal(x)) for x in signums]
@@ -70,6 +75,22 @@ def http():
     def _kill(*args):
         for p in processes:
             try:
+                try:
+                    for c in list(psutil.Process(p.pid).children(recursive=True)):
+                        try:
+                            c.terminate()
+                            c.wait(1)
+                        except (
+                            ProcessLookupError,
+                            ChildProcessError,
+                            psutil.NoSuchProcess,
+                        ):
+                            continue
+                        except psutil.TimeoutExpired:
+                            c.kill()
+                except Exception:
+                    pass
+
                 p.terminate()
                 p.wait(1)
             except (ProcessLookupError, ChildProcessError):
@@ -77,47 +98,36 @@ def http():
             except subprocess.TimeoutExpired:
                 p.kill()
 
-    def _start(service):
-        c = ["pyenv", "exec", "sirepo"]
-        c.extend(service)
+    def _start(service, cwd=".", prefix=("pyenv", "exec", "sirepo")):
         processes.append(
             subprocess.Popen(
-                c,
-                cwd=str(_run_dir()),
-                env=e,
+                prefix + service,
+                cwd=str(_run_dir().join(cwd)),
+                env=env,
             )
         )
 
-    e = PKDict(os.environ)
-    e.SIREPO_JOB_DRIVER_MODULES = "local"
-    processes = []
-    with pkio.save_chdir(_run_dir()), _handle_signals((signal.SIGINT, signal.SIGTERM)):
-        try:
-            _start(["job_supervisor"])
+    try:
+        with pkio.save_chdir(_run_dir()), _handle_signals(
+            (signal.SIGINT, signal.SIGTERM)
+        ):
+            _start(("job_supervisor",))
             # Avoid race condition on creating auth db
             time.sleep(0.3)
-            _start(["service", "flask"])
+
+            env.PORT = str(_cfg().react_port)
+            _start(("npm", "start"), cwd="../react", prefix=())
+
             time.sleep(0.3)
 
-            with pkio.save_chdir('../reactapp'), _handle_signals((signal.SIGINT, signal.SIGTERM)):
-                try:
-                    processes.append(
-                        subprocess.Popen(
-                            ['npm', 'start'],
-                            cwd='.',
-                            env=e
-                        )
-                    )
-                except ChildProcessError:
-                    pass
-                except:
-                    raise
-            
+            env.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
+            _start(("service", "flask"))
+
             p, _ = os.wait()
-        except ChildProcessError:
-            pass
-        finally:
-            _kill()
+    except ChildProcessError:
+        pass
+    finally:
+        _kill()
 
 
 def jupyterhub():
@@ -230,6 +240,7 @@ def _cfg():
             ),
             nginx_proxy_port=(8080, _cfg_port, "port on which nginx_proxy listens"),
             port=(8000, _cfg_port, "port on which uwsgi or http listens"),
+            react_port=(3000, _cfg_port, "port on which react listens"),
             processes=(1, _cfg_int(1, 16), "how many uwsgi processes to start"),
             run_dir=(None, str, "where to run the program (defaults db_dir)"),
             # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
@@ -279,7 +290,7 @@ def _cfg_ip(value):
 
 
 def _cfg_port(value):
-    return _cfg_int(5001, 32767)(value)
+    return _cfg_int(3000, 32767)(value)
 
 
 def _run_dir():
