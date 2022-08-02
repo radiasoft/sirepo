@@ -20,8 +20,8 @@
             "normalVectorZ": -0.9993908270190958,
             "orientation": "x",
             "position": 28.5,
-            "sagittalSize": 0.0,
-            "tangentialSize": 0.0,
+            "sagittalSize": 10,
+            "tangentialSize": 10,
             "tangentialVectorX": 0,
             "tangentialVectorY": 0.9993908270190958,
             "title": "M1",
@@ -54,7 +54,55 @@
             "verticalTransverseSize": 1
         },
         {
+            "autocomputeVectors": "vertical",
+            "firstFocusLength": 0.01,
+            "focalLength": 0.03,
+            "grazingAngle": 959.9310885968813,
+            "heightAmplification": 1,
+            "heightProfileFile": "",
+            "horizontalOffset": 0,
+            "horizontalTransverseSize": 1,
             "id": 3,
+            "normalVectorX": 0,
+            "normalVectorY": 0.5735764363510462,
+            "normalVectorZ": -0.8191520442889918,
+            "orientation": "x",
+            "position": 34.5,
+            "sagittalSize": 0.6,
+            "tangentialSize": 0.005,
+            "tangentialVectorX": 0,
+            "tangentialVectorY": 0.8191520442889918,
+            "title": "Mirror",
+            "type": "ellipsoidMirror",
+            "verticalOffset": 0,
+            "verticalTransverseSize": 1
+        },
+        {
+            "autocomputeVectors": "vertical",
+            "firstFocusLength": 0.01,
+            "focalLength": 0.03,
+            "grazingAngle": 959.9310885968813,
+            "heightAmplification": 1,
+            "heightProfileFile": "",
+            "horizontalOffset": 0,
+            "horizontalTransverseSize": 1,
+            "id": 4,
+            "normalVectorX": 0,
+            "normalVectorY": 0.5735764363510462,
+            "normalVectorZ": -0.8191520442889918,
+            "orientation": "x",
+            "position": 37,
+            "sagittalSize": 0.0,
+            "tangentialSize": 0.0,
+            "tangentialVectorX": 0,
+            "tangentialVectorY": 0.8191520442889918,
+            "title": "Mirror",
+            "type": "ellipsoidMirror",
+            "verticalOffset": 0,
+            "verticalTransverseSize": 1
+        },
+        {
+            "id": 5,
             "position": 39.5,
             "title": "Watchpoint",
             "type": "watch"
@@ -89,7 +137,7 @@
         "verticalOffset": 0,
         "verticalSize": 1
     },
-    "beamlineAnimation3": {
+    "beamlineAnimation5": {
         "_super": "_INTENSITY_REPORT",
         "aspectRatio": "1",
         "characteristic": "0",
@@ -488,7 +536,7 @@
         "verticalInitialPhase": 0,
         "verticalSymmetry": -1
     },
-    "watchpointReport3": {
+    "watchpointReport5": {
         "_super": "_INTENSITY_REPORT",
         "aspectRatio": "1",
         "characteristic": "0",

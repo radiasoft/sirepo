@@ -792,8 +792,12 @@ class Convert:
             srw_mirror.tangentialSize = shadow_mirror.externalOutlineMajorAxis * 1e-3
             return
         if shadow_mirror.fshape == "1":
-            srw_mirror.sagittalSize = (shadow_mirror.halfWidthX1 + shadow_mirror.halfWidthX2)/2
-            srw_mirror.tangentialSize = (shadow_mirror.halfLengthY1 + shadow_mirror.halfLengthY2)/2
+            srw_mirror.sagittalSize = (
+                shadow_mirror.halfWidthX1 + shadow_mirror.halfWidthX2
+            ) * 1e-3
+            srw_mirror.tangentialSize = (
+                shadow_mirror.halfLengthY1 + shadow_mirror.halfLengthY2
+            ) * 1e-3
             return
 
     def __undulator_to_shadow(self, srw, shadow):
