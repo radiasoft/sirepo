@@ -13,10 +13,10 @@ SIREPO.app.config(() => {
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
         <div data-ng-switch-when="Float3" class="col-sm-7">
-          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="3"></div>
+          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="3" data-custom-style="width: 8em;"></div>
         </div>
         <div data-ng-switch-when="IntStringArray" class="col-sm-7">
-            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>
+            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count="" data-custom-style="width: 8em;"></div>
         </div>
         <div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">
           <input data-string-to-number="integer" data-ng-model="model[field]"
@@ -50,6 +50,10 @@ SIREPO.app.config(() => {
           <div data-compound-field="" data-field1="density"
             data-field2="density_units" data-field2-size="10em"
             data-model-name="modelName" data-model="model"></div>
+        </div>
+        <div data-ng-switch-when="TallyAspects" class="col-sm-12">
+          <div data-tally-aspects="" data-model="model" data-field="model[field]"></div>
+           <div class="sr-input-warning"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -457,7 +461,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                     loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
                 }
                 if (geom3dCfg.objectsToLoad.includes('tallies')) {
-                    loadTally('mean');
+                    loadTally(appState.models.tally.aspect);
                 }
 
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
@@ -831,5 +835,79 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
     };
 });
 
+SIREPO.app.directive('tallyAspects', function() {
+
+    const aspects = SIREPO.APP_SCHEMA.enum.TallyAspect;
+
+    function template() {
+        const numCols = 4;
+        const numRows = Math.ceil(aspects.length / numCols);
+        let t = '';
+        for (let i = 0; i < numRows; ++i) {
+            t += '<div class="row">';
+            for (let j = 0; j < numCols; ++j) {
+                const n = i * numRows + j;
+                const label = aspects[n][1];
+                const val = aspects[n][0];
+                t += `
+                    <div class="col-sm-3">
+                        <span>${label}</span> <input type="checkbox" data-ng-model="selectedAspects['${val}']" data-ng-change="toggleAspect('${val}')">
+                    </div>
+                `;
+            }
+            t += '</div>';
+        }
+        return t;
+    }
+
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: template(),
+        controller: function($scope) {
+            $scope.selectedAspects = {};
+            for (const a of aspects) {
+                $scope.selectedAspects[a[0]] = $scope.field.includes(a[0]);
+            }
+
+            $scope.toggleAspect = val => {
+                if ($scope.selectedAspects[val]) {
+                    $scope.field.push(val);
+                }
+                else {
+                    $scope.field.splice($scope.field.indexOf(val), 1);
+                }
+            };
+        },
+    };
+});
+
 SIREPO.viewLogic('openmcSettingsView', function(appState, cloudmcService, panelState, $scope) {
+
+    $scope.watchFields = [
+        [
+            'tally.aspects',
+        ], updateEditor
+    ];
+
+    $scope.whenSelected = function() {
+        updateEditor();
+    };
+
+    $scope.$on('tally.changed', updateEditor);
+
+
+    function updateEditor() {
+        for (const a of SIREPO.APP_SCHEMA.enum.TallyAspect) {
+            panelState.showEnum(
+                'tally',
+                'aspect',
+                a[0],
+                appState.models.tally.aspects.includes(a[0])
+            );
+        }
+    }
 });

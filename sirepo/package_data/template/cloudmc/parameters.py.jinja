@@ -49,22 +49,21 @@ def create_settings():
 
 
 def create_tallies(name):
-    cell_tally = openmc.Tally(tally_id=1, name="heating")
-    cell_tally.scores = ["heating"]
-
     mesh = openmc.RegularMesh()
-    mesh.dimension = {{ tallyMesh }}
-    #mesh.lower_left = [-12, -12, -20]  # x,y,z coordinates start at 0 as this is a sector model
-    #mesh.upper_right = [12, 12, 20]
-    mesh.lower_left = {{ tallyLowerLeft }}
-    mesh.upper_right = {{ tallyUpperRight }}
+    mesh.dimension = {{ tallyMeshCellCount }}
+    mesh.lower_left = {{ tallyMeshLowerLeft }}
+    mesh.upper_right = {{ tallyMeshUpperRight }}
+
+    # one tally at a time for now
+    #cell_tally = openmc.Tally(tally_id=1, name=name)
+    #cell_tally.scores = ["{{ tallyScore }}",]
 
     mesh_tally = openmc.Tally(tally_id=2, name=name)
     mesh_tally.filters = [openmc.MeshFilter(mesh)]
-    mesh_tally.scores = ["heating"]
+    mesh_tally.scores = ["{{ tallyScore }}",]
 
-    openmc.Tallies([cell_tally, mesh_tally]).export_to_xml()
-    #openmc.Tallies([mesh_tally]).export_to_xml()
+    #openmc.Tallies([cell_tally, mesh_tally]).export_to_xml()
+    openmc.Tallies([mesh_tally]).export_to_xml()
     return mesh
 
 
@@ -142,13 +141,23 @@ def _grid_to_poly(path):
     return p
 
 def _tallies_to_vtk(mesh, name):
+    from pykern.pkcollections import PKDict
     # what determines the name of the statepoint file?
     s = openmc.StatePoint("statepoint.1.h5")
     t = s.get_tally(name=name)
+    t_props = PKDict(
+        mean=t.mean,
+        std_dev=t.std_dev,
+        sum=t.sum,
+        sum_sq=t.sum_sq,
+    )
     f = f"{name}.vtk"
+    d = {}
+    for a in {{ tallyAspects }}:
+        d[a] = t_props[a]
     mesh.write_data_to_vtk(
         filename=f,
-        datasets={"mean": t.mean}
+        datasets=d
     )
     # silly, but now read the file we just wrote and convert the grid to polydata
     _grid_to_poly(f)

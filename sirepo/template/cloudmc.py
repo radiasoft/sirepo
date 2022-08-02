@@ -87,17 +87,23 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _generate_parameters_file(data):
-    import numpy
     report = data.get("report", "")
     res, v = template_common.generate_parameters_file(data)
     if report == "dagmcAnimation":
         return ""
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
-    ctr = numpy.array(util.split_comma_delimited_string(data.models.tally.meshCenter, float))
-    sz = numpy.array(util.split_comma_delimited_string(data.models.tally.meshSize, float))
-    v.tallyLowerLeft = (ctr - 0.5 * sz).tolist()
-    v.tallyUpperRight = (ctr + 0.5 * sz).tolist()
-    v.tallyMesh = util.split_comma_delimited_string(data.models.tally.meshCellCount, int)
+    v.tallyName = data.models.tally.name
+    v.tallyScore = data.models.tally.score
+    v.tallyAspects = data.models.tally.aspects
+    v.tallyMeshLowerLeft = util.split_comma_delimited_string(
+        data.models.tally.meshLowerLeft, float
+    )
+    v.tallyMeshUpperRight = util.split_comma_delimited_string(
+        data.models.tally.meshUpperRight, float
+    )
+    v.tallyMeshCellCount = util.split_comma_delimited_string(
+        data.models.tally.meshCellCount, int
+    )
     return template_common.render_jinja(
         SIM_TYPE,
         v,

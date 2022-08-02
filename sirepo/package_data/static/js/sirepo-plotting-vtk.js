@@ -115,7 +115,8 @@ class VTKUtils {
                 const numComps = parseInt(hdr[1]);
                 const numTuples = parseInt(hdr[2]);
                 const a = [];
-                for (let i = 1; i < lines.length; ++i) {
+                let i = 1;
+                for (i = 1; i < lines.length; ++i) {
                     const l = lines[i];
                     if (! l) {
                         break;
@@ -160,7 +161,7 @@ class VTKUtils {
             for (let i = 0; i < numArrays; ++i) {
                 const x = buildArray(lines.slice(index));
                 a.push(x.arr);
-                index = x.index + 1;
+                index = index + x.index + 1;
             }
             return a;
         }
