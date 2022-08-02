@@ -39,10 +39,11 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
+    sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if model == "dagmcAnimation":
         return PKDict(filename=run_dir.join(f"{frame}.zip"))
     if model == "openmcAnimation":
-        return PKDict(filename=run_dir.join(f"heating_tally_on_mesh.json"))
+        return PKDict(filename=run_dir.join(f"{sim_in.models.tally.name}.json"))
 
 
 def python_source_for_model(data, model):

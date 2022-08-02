@@ -166,7 +166,7 @@ def _tallies_to_vtk(mesh, name):
 create_geometry()
 create_materials()
 create_settings()
-t = "heating_tally_on_mesh"
+t = "{{ tallyName }}"
 m = create_tallies(t)
 openmc.run()
 _tallies_to_vtk(m, t)
