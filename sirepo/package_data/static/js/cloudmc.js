@@ -83,6 +83,7 @@ SIREPO.app.controller('GeometryController', function (appState, panelState, pers
     };
     self.isGeometryProcessed = () => hasVolumes;
     self.simHandleStatus = data => {
+        self.hasServerStatus = true;
         if (data.volumes) {
             hasVolumes = true;
             if (! Object.keys(appState.applicationState().volumes).length) {

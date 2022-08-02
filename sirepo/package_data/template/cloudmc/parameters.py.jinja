@@ -31,8 +31,10 @@ def create_geometry():
         region=-vac_surf & -plane1 & +plane2,
         fill=univ,
     )
-    {% endif %}
     openmc.Geometry(root=[univ]).export_to_xml()
+    {% else %}
+    openmc.Geometry(root=univ).export_to_xml()
+    {% endif %}
 
 
 def create_materials():
