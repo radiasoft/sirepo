@@ -267,6 +267,10 @@
             ["standard", "Standard"],
             ["beam", "Beam"]
         ],
+        "CutType": [
+            ["bevel", "Bevel"],
+            ["plane", "Planar"]
+        ],
         "BevelEdge": [
             ["0", "Top Left"],
             ["1", "Top Right"],
@@ -813,13 +817,18 @@
             "name": ["Name", "String", ""]
         },
         "objectBevel": {
+            "_super": ["_", "model", "objectCut"],
             "amountVert": ["Cut Distance in Vertical Direction [mm]", "Float", 1.0],
             "amountHoriz": ["Cut Distance in Horizontal Direction [mm]", "Float", 1.0],
-            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutDir": ["", "Array", [0, 0, 1]],
             "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
             "heightDir": ["", "Array", [0, 1, 0]],
             "widthDir": ["", "Array", [1, 0, 0]]
+        },
+        "objectCut": {
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
+            "cutPoint": ["Cut Point", "FloatStringArray", "0, 0, 0", "", "x, y, z"],
+            "type": ["_", "PathType", "manual"]
         },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
@@ -1200,6 +1209,9 @@
                     "center",
                     "size"
             ]],
+                ["Shape", [
+                    "transforms"
+                ]],
                 ["Transforms", [
                     "transforms"
                 ]]
