@@ -1906,7 +1906,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         )
         if report != "multiElectronAnimation":
             content.append("v.ws = True")
-        if plot_reports:
+        if plot_reports and report != "multiElectronAnimation":
             content.append("v.ws_pl = 'xy'")
     else:
         content.append("op = None")
