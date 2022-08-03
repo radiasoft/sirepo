@@ -1511,7 +1511,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
         controller: function($scope, $element) {
             var layerFields = {};
             var layerInfo = [];
-            $scope.appState = appState;
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
@@ -1520,7 +1519,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
-            }
+            };
 
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
@@ -1544,11 +1543,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.checkBranch = layer => {
                 const b = branchingLayer(layer.layer);
                 if (b && layer.children !== null) {
-                    return b
+                    return b;
                 }
                 layer.children = newChildren();
                 return b;
-            }
+            };
 
             function branchingLayer(layer) {
                 return (layer == 'Add') || (layer == 'Concatenate');
@@ -1611,7 +1610,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     // 'Add',
                     // 'Concatenate',
                     'AveragePooling2D',
-                    // 'Conv2D',
+                    'Conv2D',
                     'Conv2DTranspose',
                     'GlobalAveragePooling2D',
                     'MaxPooling2D',
@@ -1678,7 +1677,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 if ($scope.layerTarget){
                     $scope.lName = $scope.layerTarget.name;
                 }
-                appState.models.neuralNet['name'] = "x";
+                appState.models.neuralNet.name = "x";
                 $scope.lName = appState.models.neuralNet.name;
             }
 
@@ -1686,14 +1685,14 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 return [
                     {layers: [], name: $scope.lName + Math.random().toString(20).substr(2, 5)},
                     {layers: [], name: $scope.lName},
-                ]
+                ];
             }
 
             function nest() {
                 const n = {
                     layer: $scope.selectedLayer,
                     children: newChildren(),
-                }
+                };
                 $scope.layerLevel.push(n);
             }
 

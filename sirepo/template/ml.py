@@ -693,7 +693,12 @@ def _build_model_py(v):
     def _branch(layer, join_type):
         def _join(layer):
             return f"{layer.children[1].name} = {join_type}()([{layer.children[1].name}, {layer.children[0].name}])\n"
-        return _build_layers(layer.children[0], layer.children[1]) + _build_layers(layer.children[1], layer.children[1]) + _join(layer)
+
+        return (
+            _build_layers(layer.children[0], layer.children[1])
+            + _build_layers(layer.children[1], layer.children[1])
+            + _join(layer)
+        )
 
     return f"""
 from keras.models import Model, Sequential
@@ -785,12 +790,14 @@ def _is_valid_report(report):
 def _layer_implementation_list(data):
     res = {}
     nn = data.models.neuralNet.layers
+
     def _helper(nn):
         for layer in nn:
-            if layer.layer == 'Add' or layer.layer == 'Concatenate':
+            if layer.layer == "Add" or layer.layer == "Concatenate":
                 _helper(layer.children[0].layers)
                 _helper(layer.children[1].layers)
             res[layer.layer] = 1
+
     _helper(nn)
     return res.keys()
 
