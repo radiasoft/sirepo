@@ -85,7 +85,7 @@ cfg = None
 
 
 class API(sirepo.api.Base):
-    @sirepo.api.Spec("require_cookie_sentinel")
+    @sirepo.api.Spec("require_cookie_sentinel", display_name="UserDisplayName")
     def api_authCompleteRegistration(self):
         # Needs to be explicit, because we would need a special permission
         # for just this API.

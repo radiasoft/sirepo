@@ -13,6 +13,7 @@ VIEW_TYPE_FIELD = 'fields'
 
 _MODEL_CEE = 'cee'
 _MODEL_CUBOID = 'cuboid'
+_MODEL_CYLINDER = 'cylinder'
 _MODEL_ELL = 'ell'
 _MODEL_JAY= 'jay'
 _MODEL_GROUP = 'geomGroup'
@@ -21,7 +22,7 @@ _MODEL_EXTRUDED_POLY = 'extrudedPoly'
 _MODEL_RACETRACK = 'racetrack'
 _EXTRUDED_MODELS = [_MODEL_CEE, _MODEL_ELL, _MODEL_JAY, _MODEL_EXTRUDED_POLY]
 _GROUP_MODELS = [_MODEL_GROUP]
-_OBJ_MODELS = [_MODEL_CUBOID, _MODEL_RACETRACK, _MODEL_OBJECT] + _EXTRUDED_MODELS
+_OBJ_MODELS = [_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT] + _EXTRUDED_MODELS
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
 sirepo_objs = {{ objects }}
@@ -45,6 +46,19 @@ def _add_object(o, radia_objs, id_map):
             rem_mag=o.remanentMag,
             segments=segs,
             h_m_curve=o.h_m_curve
+        )
+    if t == _MODEL_CYLINDER:
+        g_id = radia_util.build_cylinder(
+            center=ctr,
+            extrusion_axis=o.extrusionAxis,
+            h_m_curve=o.h_m_curve,
+            material=o.material,
+            magnetization=m,
+            num_sides=o.numSides,
+            radius=o.radius,
+            rem_mag=o.remanentMag,
+            segments=segs,
+            size=sz,
         )
     if _MODEL_EXTRUDED_POLY in sc:
         g_id = radia_util.extrude(

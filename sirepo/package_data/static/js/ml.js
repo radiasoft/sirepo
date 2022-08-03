@@ -56,6 +56,7 @@ SIREPO.app.factory('mlService', function(appState, panelState) {
         optionalParameterValues: null,
     };
 
+    self.devMode = false;
     self.addSubreport = function(parent, action) {
         let report = appState.clone(parent);
         let subreports = self.getSubreports();
@@ -1389,7 +1390,7 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     appState.whenModelsLoaded($scope, loadReports);
 });
 
-SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
+SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, stringsService) {
     return {
         restrict: 'A',
         scope: {},
@@ -1400,8 +1401,8 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                   <tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">
                     <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
                       <div data-ng-if="fieldInfo.field">
-                        <b>{{ fieldInfo.label }}</b>
-                        <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="\'neuralNetLayer\'" data-model="layer"></div>
+                        <b>{{ fieldInfo.label }} </b>
+                        <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="layerName(layer)" data-model="layer"></div>
                       </div>
                     </td>
                     <td>
@@ -1410,7 +1411,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                   <tr>
                     <td>
                       <b>Add Layer</b>
-                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>
+                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
                     </td>
                     <td></td>
                     <td></td>
@@ -1434,7 +1435,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 </table>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
-                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
                 <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
               </div>
             </form>
@@ -1455,10 +1456,14 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
-                var m = appState.setModelDefaults({}, 'neuralNetLayer');
+                const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
                 m.layer = $scope.selectedLayer;
                 neuralNet.layers.push(m);
                 $scope.selectedLayer = '';
+            };
+
+            $scope.layerName = layer => {
+                return stringsService.lcfirst(layer.layer);
             };
 
             $scope.cancelChanges = function() {
@@ -1503,6 +1508,24 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 $scope.form.$setDirty();
             };
 
+            $scope.options = layerEnum => {
+                if (mlService.devMode) {
+                    return layerEnum;
+                }
+                const unSupportedLayers = [
+                    'Add',
+                    'AveragePooling2D',
+                    'Conv2D',
+                    'Conv2DTranspose',
+                    'GlobalAveragePooling2D',
+                    'MaxPooling2D',
+                    'SeparableConv2D',
+                    'UpSampling2D',
+                    'ZeroPadding2D'
+                ];
+                return layerEnum.filter(x => !unSupportedLayers.includes(x[0]));
+            };
+
             $scope.outputColCount = function() {
                 if (! appState.isLoaded()) {
                     return '';
@@ -1519,7 +1542,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
 
             function buildLayerFields() {
                 var MAX_FIELDS = 3;
-                var layerSchema = SIREPO.APP_SCHEMA.model.neuralNetLayer;
                 $scope.layerEnum.forEach(function(row) {
                     var name = row[0];
                     var cols = [
@@ -1528,19 +1550,25 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                             label: 'Layer',
                         },
                     ];
-                    Object.keys(layerSchema).sort().reverse().forEach(function(field) {
-                        if (field.toLowerCase().indexOf(name.toLowerCase()) == 0) {
-                            cols.push({
-                                field: field,
-                                label: layerSchema[field][0],
-                            });
-                        }
-                    });
+                    const layerSchema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
+                    if (layerSchema) {
+                        Object.keys(layerSchema)
+                            .sort()
+                            .reverse()
+                            .filter(f => f !== '_super' && f !== 'layer')
+                            .forEach(function(field) {
+                                cols.push({
+                                    field: field,
+                                    label: layerSchema[field][0],
+                                });
+                        });
+                    }
                     while (cols.length < MAX_FIELDS) {
                         cols.push({});
                     }
                     layerFields[name] = cols;
                 });
+
             }
 
             buildLayerFields();
