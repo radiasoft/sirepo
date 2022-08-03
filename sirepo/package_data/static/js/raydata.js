@@ -297,6 +297,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             function handleGetScansInfo(scans, colz) {
                 cols = colz;
                 $scope.scans = scans;
+                srdbg('got scans=', scans)
                 const r = runningPending(scans);
                 if (r === 0) {
                     handleResult();
@@ -314,6 +315,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             }
 
             function runStatus(showLoadingSpinner) {
+                srdbg('runStatus')
                 const c = {
                     onError: () => {
                         handleResult();
@@ -400,6 +402,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             $scope.startButtonLabel = 'Start New Analysis';
 
             appState.whenModelsLoaded($scope, () => {
+                srdbg('whenModelsLoaded')
                 $scope.$on('scansSelected.changed', () => {
                     raydataService.getScansInfo(handleGetScansInfo);
                 });
