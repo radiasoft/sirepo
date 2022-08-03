@@ -582,6 +582,8 @@ def _fit_animation(frame_args):
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
+    for l in dm.neuralNet.layers:
+        pkdp('\n\n\n\n layer -> {}', l)
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.pkupdate(
@@ -678,6 +680,8 @@ def _build_model_py(v):
         b = _name_and_layers(branch)
         res = ""
         for i, l in enumerate(b.layers):
+            # TODO (gurhar1133): if looping through arbitrary number of children,
+            # then only check if i == 0
             if i == 0 and b.name != parent.name:
                 c = f"({_layer(l)})({parent.name})"
             else:
@@ -693,7 +697,7 @@ def _build_model_py(v):
     def _branch(layer, join_type):
         def _join(layer):
             return f"{layer.children[1].name} = {join_type}()([{layer.children[1].name}, {layer.children[0].name}])\n"
-
+        #TODO (gurhar1133): loop through arbitrary number of children instead
         return (
             _build_layers(layer.children[0], layer.children[1])
             + _build_layers(layer.children[1], layer.children[1])
@@ -707,6 +711,35 @@ input_args = Input(shape=({v.inputDim},))
 {_build_layers(v.neuralNetLayers, PKDict(name="input_args"))}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
+
+model.summary(print_fn=lambda x: print(x.split('\\n')))
+
+
+relevant_nodes = []
+for v in model._nodes_by_depth.values():
+    relevant_nodes += v
+
+print('model attrs: ', model.__dict__)
+for layer in model.layers:
+    print('layer:', layer._name)
+    inbound = []
+    for node in layer._inbound_nodes:
+        if relevant_nodes and node not in relevant_nodes:
+                # node is not part of the current network
+            continue
+
+        for (
+            inbound_layer,
+            node_index,
+            tensor_index,
+            _,
+        ) in node.iterate_inbound():
+            inbound.append(inbound_layer.name)
+    if inbound:
+        print('inbound layers: ', inbound)
+    print('----------')
+model.save('./')
+
 """
 
 

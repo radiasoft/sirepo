@@ -1509,6 +1509,8 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             </form>
         `,
         controller: function($scope, $element) {
+            // TODO (gurhar1133): change html to loop through arbitrary number of children to make
+            // nested forms
             var layerFields = {};
             var layerInfo = [];
             $scope.form = angular.element($($element).find('form').eq(0));
@@ -1516,7 +1518,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
             $scope.layerLevel = getLayerLevel();
             setLevelName();
-
+            srdbg('appState.models.neuralNet:', appState.models.neuralNet);
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             };
@@ -1676,20 +1678,25 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             function setLevelName(){
                 if ($scope.layerTarget){
                     $scope.lName = $scope.layerTarget.name;
+                    return;
                 }
                 appState.models.neuralNet.name = "x";
                 $scope.lName = appState.models.neuralNet.name;
             }
 
             function newChildren() {
-                return [
+                return [ // TODO (gurhar1133): this needs update for arbitrary number of children.
+                        // dont give right child same name as parent
                     {layers: [], name: $scope.lName + Math.random().toString(20).substr(2, 5)},
                     {layers: [], name: $scope.lName},
                 ];
             }
 
             function nest() {
+                // TODO (gurhar1133): this should open add child button which adds children
+                // (keep in mind the issue of consecutive left nesting, will not naming right child after parent fix?)
                 const n = {
+                    // TODO (gurhar1133): give each layer a parent attribute with parent name, or just give .parentName
                     layer: $scope.selectedLayer,
                     children: newChildren(),
                 };
