@@ -927,7 +927,7 @@ SIREPO.app.directive('exportZgoubiLink', function(appState, panelState, requestS
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': modelKey,
-                    '<frame>': appState.isAnimationModelName(modelKey) ? 1 : -1,
+                    '<frame>': appState.isAnimationModelName(modelKey) ? 1 : SIREPO.nonDataFileFrame,
                     '<suffix>': 'zgoubi.dat',
                 });
             };

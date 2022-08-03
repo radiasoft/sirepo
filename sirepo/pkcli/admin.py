@@ -4,8 +4,8 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio, pkconfig
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 from sirepo import auth_db
@@ -13,6 +13,7 @@ from sirepo import feature_config
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import srdb
+from sirepo import srtime
 from sirepo import util
 from sirepo.template import template_common
 import datetime
@@ -21,6 +22,10 @@ import json
 import os.path
 import re
 import shutil
+
+
+_MILLISECONDS_PER_MONTH = 30 * 24 * 60 * 60 * 1000
+_MAXIMUM_SIM_AGE_IN_MONTHS = 6
 
 
 def audit_proprietary_lib_files(*uid):
@@ -44,31 +49,19 @@ def audit_proprietary_lib_files(*uid):
 
 def create_examples():
     """Adds missing app examples to all users"""
-    import sirepo.auth_db
-    import sirepo.server
+    examples = _get_examples_by_type()
+    for t, s in _iterate_sims_by_users(examples.keys()):
+        for e in examples[t]:
+            if e.models.simulation.name not in s[t].keys():
+                _create_example(e)
 
-    sirepo.server.init()
-    for d in pkio.sorted_glob(simulation_db.user_path().join("*")):
-        if _is_src_dir(d):
-            continue
-        uid = simulation_db.uid_from_dir_name(d)
-        with sirepo.auth_db.session_and_lock(), auth.set_user_outside_of_http_request(
-            uid
-        ):
-            for sim_type in feature_config.cfg().sim_types:
-                names = [
-                    x.name
-                    for x in simulation_db.iterate_simulation_datafiles(
-                        sim_type,
-                        simulation_db.process_simulation_list,
-                        {
-                            "simulation.isExample": True,
-                        },
-                    )
-                ]
-                for example in simulation_db.examples(sim_type):
-                    if example.models.simulation.name not in names:
-                        _create_example(example)
+
+def reset_examples():
+    e = _get_examples_by_type()
+    for t, s in _iterate_sims_by_users(e.keys()):
+        o = _build_ops(list(s[t].values()), t, e)
+        _revert(o, e)
+        _delete(o)
 
 
 # TODO(e-carlin): more than uid (ex email)
@@ -141,9 +134,85 @@ def move_user_sims(target_uid=""):
         shutil.move(lib_file, target)
 
 
+def _build_ops(simulations, sim_type, examples):
+    ops = PKDict(delete=[], revert=[])
+    n = set([x.models.simulation.name for x in examples[sim_type]])
+    for sim in simulations:
+        if sim.name not in n:
+            ops.delete.append((sim, sim_type))
+        elif _example_is_too_old(sim.simulation.lastModified):
+            ops.revert.append((sim.name, sim_type))
+            ops.delete.append((sim, sim_type))
+    return ops
+
+
 def _create_example(example):
     simulation_db.save_new_example(example)
 
 
+def _delete(ops):
+    for s, t in ops.delete:
+        simulation_db.delete_simulation(t, s.simulationId)
+
+
+def _example_is_too_old(last_modified):
+    return (
+        (srtime.utc_now_as_milliseconds() - last_modified) / _MILLISECONDS_PER_MONTH
+    ) > _MAXIMUM_SIM_AGE_IN_MONTHS
+
+
+def _get_example_by_name(name, sim_type, examples):
+    for e in examples[sim_type]:
+        if e.models.simulation.name == name:
+            return e
+    raise AssertionError(f"Failed to find example simulation with name={name}")
+
+
+def _get_examples_by_type():
+    return PKDict(
+        {t: simulation_db.examples(t) for t in feature_config.cfg().sim_types}
+    )
+
+
+def _get_named_example_sims(all_sim_types):
+    return PKDict(
+        {
+            t: PKDict(
+                {
+                    x.name: x
+                    for x in simulation_db.iterate_simulation_datafiles(
+                        t,
+                        simulation_db.process_simulation_list,
+                        {"simulation.isExample": True},
+                    )
+                }
+            )
+            for t in all_sim_types
+        }
+    )
+
+
 def _is_src_dir(d):
     return re.search(r"/src$", str(d))
+
+
+def _iterate_sims_by_users(all_sim_types):
+    import sirepo.auth_db
+    import sirepo.server
+
+    sirepo.server.init()
+    for d in pkio.sorted_glob(simulation_db.user_path().join("*")):
+        if _is_src_dir(d):
+            continue
+        uid = simulation_db.uid_from_dir_name(d)
+        with sirepo.auth_db.session_and_lock(), auth.set_user_outside_of_http_request(
+            uid
+        ):
+            s = _get_named_example_sims(all_sim_types)
+            for t in s.keys():
+                yield (t, s)
+
+
+def _revert(ops, examples):
+    for n, t in ops.revert:
+        _create_example(_get_example_by_name(n, t, examples))

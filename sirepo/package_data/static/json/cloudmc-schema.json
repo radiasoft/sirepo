@@ -40,6 +40,20 @@
             ["cartesian", "Cartesian"],
             ["cylindrical", "Cylindrical"],
             ["spherical", "Spherical"]
+        ],
+        "TallyAspect": [
+            ["mean", "Mean"],
+            ["std_dev", "Standard Deviation"],
+            ["sum", "Sum"],
+            ["sum_sq", "Sum of Squares"]
+        ],
+        "TallyScore": [
+            ["events", "Events"],
+            ["inverse-velocity", "Inverse Velocity"],
+            ["heating", "Heating"],
+            ["kappa-fission", "Kappa Fission Rate"],
+            ["decay-rate", "Decay Rate"],
+            ["damage-energy", "Damage Energy"]
         ]
     },
     "dynamicFiles": {
@@ -77,7 +91,6 @@
     },
     "model": {
         "dagmcAnimation": {},
-
         "materialComponent": {
             "component": ["Component", "MaterialComponent", "add_element"],
             "name": ["Name", "ComponentName", ""],
@@ -119,8 +132,14 @@
             "boxUpperRight": ["Upper Right", "Float3", "1, 1, 1", "", "X, Y, Z"]
         },
         "tally": {
+            "aspect": ["Aspect to plot", "TallyAspect", "mean"],
+            "aspects": ["Aspects", "TallyAspects", ["mean"]],
             "name": ["Name", "String"],
-            "scores": ["Scores", "TallyScores", ""]
+            "meshCellCount": ["Mesh cell count", "IntStringArray", "10, 10, 10", "", "X, Y, Z"],
+            "meshLowerLeft": ["Mesh lower left", "Float3", "-5.0, -5.0, -5.0", "", "X, Y, Z"],
+            "meshUpperRight": ["Mesh upper right", "Float3", "5.0, 5.0, 5.0", "", "X, Y, Z"],
+            "score": ["Score to plot", "TallyScore", "heating"],
+            "scores": ["Scores", "TallyScores", ["heating"]]
         },
         "tallyFilter": {
             "type": ["Filter Type", "FilterType", "CellFilter"]
@@ -173,6 +192,15 @@
                     "openmcSource.spaceType",
                     "openmcSource.boxLowerLeft",
                     "openmcSource.boxUpperRight"
+                ]],
+                ["Tallies", [
+                    "tally.name",
+                    "tally.meshLowerLeft",
+                    "tally.meshUpperRight",
+                    "tally.meshCellCount",
+                    "tally.score",
+                    "tally.aspects",
+                    "tally.aspect"
                 ]]
             ],
             "advanced": []
