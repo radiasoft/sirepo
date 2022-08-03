@@ -73,6 +73,20 @@
             ["isotropic", "Isotropic"],
             ["monodirectional", "Monodirectional"],
             ["polarAzimuthal", "PolarAzimuthal"]
+        ],
+        "TallyAspect": [
+            ["mean", "Mean"],
+            ["std_dev", "Standard Deviation"],
+            ["sum", "Sum"],
+            ["sum_sq", "Sum of Squares"]
+        ],
+        "TallyScore": [
+            ["events", "Events"],
+            ["inverse-velocity", "Inverse Velocity"],
+            ["heating", "Heating"],
+            ["kappa-fission", "Kappa Fission Rate"],
+            ["decay-rate", "Decay Rate"],
+            ["damage-energy", "Damage Energy"]
         ]
     },
     "dynamicFiles": {
@@ -156,7 +170,7 @@
             "dagmcFile": ["DAGMC File", "InputFile", ""]
         },
         "geometry3DReport": {
-            "bgColor": ["Background Color", "Color", [1, 0.97647, 0.929412]],
+            "bgColor": ["Background Color", "Color", "#fff9ed"],
             "opacity": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show Edges", "Boolean", "0"]
         },
@@ -226,11 +240,6 @@
             "plane2a": ["Plane 2 A", "Float", 1],
             "plane2b": ["Plane 2 B", "Float", 0]
         },
-        "regularMesh": {
-            "dimension": ["Dimension", "Point3D", [100, 100, 100]],
-            "lower_left": ["Lower Left", "Point3D", [0, 0, 0]],
-            "upper_right": ["Upper Right", "Point3D", [0, 0, 0]]
-        },
         "source": {
             "space": ["Spatial Distribution", "Spatial", {"_type": "None"}],
             "angle": ["Angular Distribution", "UnitSphere", {"_type": "None"}],
@@ -250,8 +259,14 @@
             "origin": ["Origin", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source."]
         },
         "tally": {
-            "name": ["Name", "String"],
-            "scores": ["Scores", "TallyScores", ""]
+            "aspect": ["Aspect to plot", "TallyAspect", "mean"],
+            "aspects": ["Aspects", "TallyAspects", ["mean"]],
+            "name": ["Name", "String", "t1"],
+            "meshCellCount": ["Mesh cell count", "Point3D", [10, 10, 10]],
+            "meshLowerLeft": ["Mesh lower left", "Point3D", [-5.0, -5.0, -5.0]],
+            "meshUpperRight": ["Mesh upper right", "Point3D", [5.0, 5.0, 5.0]],
+            "score": ["Score to plot", "TallyScore", "heating"],
+            "scores": ["Scores", "TallyScores", ["heating"]]
         },
         "tabular": {
             "_super": [ "_", "model", "univariate"],
@@ -395,17 +410,21 @@
                 ["Sources", [
                     "sources"
                 ]],
-                ["Output Mesh", [
-                    "regularMesh.dimension",
-                    "regularMesh.lower_left",
-                    "regularMesh.upper_right"
-                ]],
                 ["Reflective Planes", [
                     "reflectivePlanes.useReflectivePlanes",
                     "reflectivePlanes.plane1a",
                     "reflectivePlanes.plane1b",
                     "reflectivePlanes.plane2a",
                     "reflectivePlanes.plane2b"
+                ]],
+                ["Tallies", [
+                    "tally.name",
+                    "tally.meshLowerLeft",
+                    "tally.meshUpperRight",
+                    "tally.meshCellCount",
+                    "tally.score",
+                    "tally.aspects",
+                    "tally.aspect"
                 ]]
             ],
             "advanced": []

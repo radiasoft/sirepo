@@ -2,6 +2,9 @@
     "beamStatisticsReport": {
         "driftDivisions": 100,
         "epsilon": 1e-05,
+        "includeApertures": "1",
+        "k_apert_x": 0.62,
+        "k_apert_y": 0.62,
         "notes": "",
         "y1": "sigmax",
         "y2": "sigmaz",

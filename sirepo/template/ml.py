@@ -627,26 +627,51 @@ def _generate_parameters_file(data):
 
 def _build_model_py(v):
     def _import_layers(v):
-        return "".join(", " + n for n in v.layerImplementationNames if not n == "Dense")
+        return "".join(", " + n for n in v.layerImplementationNames)
+
+    def _conv_args(layer):
+        if layer.layer not in ("Conv2D", "Transpose", "SeparableConv2D"):
+            return
+        return f"""{layer.dimensionality},
+    activation="{layer.activation}",
+    kernel_size=({layer.kernel}, {layer.kernel}),
+    strides={layer.strides},
+    padding="{layer.padding}"
+    """
+
+    def _pooling_args(layer):
+        return f'''pool_size=({layer.size}, {layer.size}),
+    strides={layer.strides},
+    padding="{layer.padding}"'''
+
+    args_map = PKDict(
+        Activation=lambda layer: f'"{layer.activation}"',
+        AlphaDropout=lambda layer: layer.dropoutRate,
+        AveragePooling2D=lambda layer: _pooling_args(layer),
+        BatchNormalization=lambda layer: f"momentum={layer.momentum}",
+        Conv2D=lambda layer: _conv_args(layer),
+        Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
+        Dropout=lambda layer: layer.dropoutRate,
+        Flatten=lambda layer: "",
+        GaussianDropout=lambda layer: layer.dropoutRate,
+        GaussianNoise=lambda layer: layer.stddev,
+        GlobalAveragePooling2D=lambda layer: "",
+        MaxPooling2D=lambda layer: _pooling_args(layer),
+        SeparableConv2D=lambda layer: _conv_args(layer),
+        Conv2DTranspose=lambda layer: _conv_args(layer),
+        UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
+        ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
+    )
 
     def _layer_args(layer):
-        d = PKDict(
-            Activation=f'"{layer.activationActivation}"',
-            AlphaDropout=layer.alphaDropoutRate,
-            Dense=f'{layer.denseDimensionality}, activation="{layer.denseActivation}"',
-            Dropout=layer.dropoutRate,
-            Flatten="",
-            GaussianDropout=layer.gaussianDropoutRate,
-            GaussianNoise=layer.gaussianNoiseStddev,
-        )
-        assert layer.layer in d, ValueError(f"invalid layer.layer={layer.layer}")
-        return d[layer.layer]
+        assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
+        return args_map[layer.layer](layer)
 
     def _build_layers(layers):
         res = ""
         for i, l in enumerate(layers):
             if i == 0:
-                c = f'({l.denseDimensionality}, activation="{l.denseActivation}")(input_args)'
+                c = f"({_layer_args(l)})(input_args)"
             else:
                 c = f"({_layer_args(l)})(x)"
             res += f"x = {l.layer}{c}\n"
@@ -654,8 +679,7 @@ def _build_model_py(v):
 
     return f"""
 from keras.models import Model, Sequential
-from keras.layers import Dense, Input{_import_layers(v)}
-
+from keras.layers import Input{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
 {_build_layers(v.neuralNetLayers)}
 x = Dense({v.outputDim}, activation="linear")(x)

@@ -1938,7 +1938,7 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
                 '<simulation_id>': appState.models.simulation.simulationId,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<model>': 'exportRsOpt',
-                '<frame>': -1,
+                '<frame>': SIREPO.nonDataFileFrame,
                 '<suffix>': 'zip'
             });
         }
@@ -2455,7 +2455,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         },
         template: `
            <div data-ng-if="(simState.getFrameCount() > 0) || errorMessage()" class="well well-lg">
-              <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW log file</a>
+              <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW run log file</a>
+              <br>
+              <a style="position: relative;" href="{{ progressLogURL() }}" target="_blank">SRW progress log file</a>
            </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
@@ -2540,13 +2542,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (! appState.isLoaded()) {
                     return '';
                 }
-                return  requestSender.formatUrl('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': $scope.simState.model,
-                    '<frame>': -1,
-                    '<suffix>': 'run.log',
-                });
+                return logFileRequest('run.log');
+            };
+
+            $scope.progressLogURL = () => {
+                return logFileRequest('__srwl_logs__');
             };
 
             self.simHandleStatus = function(data) {
@@ -2594,6 +2594,16 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     return false;
                 }
                 return true;
+            }
+
+            function logFileRequest(logKind) {
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': $scope.simState.model,
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<suffix>': logKind,
+                });
             }
 
             $scope.cancelPersistentSimulation = function() {

@@ -156,7 +156,7 @@ _RSOPT_PARAMS = {
 }
 _RSOPT_PARAMS_NO_ROT = [p for p in _RSOPT_PARAMS if p != "rotation"]
 
-_SRW_LOG_FILE = "run.log"
+_PROGRESS_LOG_DIR = "__srwl_logs__"
 
 _TABULATED_UNDULATOR_DATA_DIR = "tabulatedUndulator"
 
@@ -505,9 +505,18 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if options.suffix == _SRW_LOG_FILE:
-        return template_common.text_data_file(_SRW_LOG_FILE, run_dir)
+    if options.suffix == template_common.RUN_LOG:
+        return template_common.text_data_file(options.suffix, run_dir)
+    if options.suffix == _PROGRESS_LOG_DIR:
+        d = run_dir.join(_PROGRESS_LOG_DIR)
+        return template_common.text_data_file(
+            _get_most_recent_log_file(pkio.sorted_glob(d.join("*.log"))), d
+        )
     return get_filename_for_model(model)
+
+
+def _get_most_recent_log_file(files):
+    return sorted(files, key=lambda f: f.mtime())[-1].basename
 
 
 def get_filename_for_model(model):
@@ -1895,8 +1904,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 and int(beamline_info.last_id) == int(data.models.beamline[-1].id)
             )
         )
-        content.append("v.ws = True")
-        if plot_reports:
+        if report != "multiElectronAnimation":
+            content.append("v.ws = True")
+        if plot_reports and report != "multiElectronAnimation":
             content.append("v.ws_pl = 'xy'")
     else:
         content.append("op = None")

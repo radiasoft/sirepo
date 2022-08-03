@@ -8,6 +8,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
+from sirepo import util
 from sirepo.template import template_common
 import re
 import sirepo.sim_data
@@ -38,17 +39,19 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
+    sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if model == "dagmcAnimation":
         return PKDict(filename=run_dir.join(f"{frame}.zip"))
-    v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
-    return template_common.render_jinja(
-        SIM_TYPE,
-        v,
-    )
+    if model == "openmcAnimation":
+        return PKDict(filename=run_dir.join(f"{sim_in.models.tally.name}.json"))
 
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
+
+
+def stateless_compute_read_tallies(data):
+    pass
 
 
 def stateless_compute_validate_material_name(data):
@@ -195,16 +198,6 @@ def _generate_materials(data):
     return res
 
 
-def _generate_mesh(data):
-    m = data.models.regularMesh
-    return f"""
-mesh = openmc.RegularMesh()
-mesh.dimension = {_generate_array(m.dimension)}
-mesh.lower_left = {_generate_array(m.lower_left)}
-mesh.upper_right = {_generate_array(m.upper_right)}
-"""
-
-
 def _generate_parameters_file(data):
     report = data.get("report", "")
     res, v = template_common.generate_parameters_file(data)
@@ -213,7 +206,12 @@ def _generate_parameters_file(data):
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
-    v.mesh = _generate_mesh(data)
+    v.tallyName = data.models.tally.name
+    v.tallyScore = data.models.tally.score
+    v.tallyAspects = data.models.tally.aspects
+    v.tallyMeshLowerLeft = _generate_array(data.models.tally.meshLowerLeft)
+    v.tallyMeshUpperRight = _generate_array(data.models.tally.meshUpperRight)
+    v.tallyMeshCellCount = _generate_array(data.models.tally.meshCellCount)
     return template_common.render_jinja(
         SIM_TYPE,
         v,
