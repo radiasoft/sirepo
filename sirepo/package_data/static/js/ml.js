@@ -32,7 +32,7 @@ SIREPO.app.config(function() {
         </div>
         <div data-ng-switch-when="URL" class="col-sm-5" data-field-class="fieldClass">
           <input type="text" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" />          
-          <span style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength }} bytes</span>
+          <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength || 0 }} bytes</span>
           <div class="sr-input-warning"></div>
           <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
@@ -1976,7 +1976,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
         validateURL();
-        getBytesLoaded();
     }
 
     function validateURL() {
@@ -1990,6 +1989,8 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         );
     }
 
+    //TODO(mvk): call this when loading data from url to update status bar
+    // Not needed by files
     function getBytesLoaded() {
         const dataFile = appState.models[modelName];
         if (dataFile.dataOrigin === 'file' || ! dataFile.file) {
@@ -2001,8 +2002,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 if (d.error) {
                     throw new Error(`Failed to retrieve remote data: ${d.error}`);
                 }
-                appState.models[modelName].bytesLoaded = d.bytesLoaded;
-                appState.saveQuietly(modelName);
+                if (d.bytesLoaded !== appState.models[modelName].bytesLoaded) {
+                    appState.models[modelName].bytesLoaded = d.bytesLoaded;
+                    appState.saveQuietly(modelName);
+                }
             },
             {
                 method: 'remote_data_bytes_loaded',
@@ -2029,7 +2032,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 onError: data => {
-                    // cancel
+                    //TODO: cancel
                 }
             }
         );
@@ -2037,23 +2040,30 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     function updateData() {
         const dataFile = appState.models[modelName];
-        dataFile.contentLength = 0;
-        dataFile.bytesLoaded = 0;
-        appState.saveQuietly(modelName);
+
+        function hasAllData() {
+            return dataFile.bytesLoaded > 0 && dataFile.bytesLoaded === dataFile.contentLength;
+        }
+
         if (dataFile.dataOrigin === 'url') {
-            if (dataFile.oldURL === dataFile.url && dataFile.bytesLoaded === dataFile.contentLength) {
+            if (dataFile.oldURL === dataFile.url && hasAllData()) {
                 return;
             }
+            dataFile.oldURL = dataFile.url;
+            dataFile.bytesLoaded = 0;
+            dataFile.contentLength = 0;
+            dataFile.file = '';
+            appState.saveQuietly(modelName);
             //TODO(mvk): two stages now; should be a single background call but not a "simulation"
             // write in chunks on server and send updates - can we use websockets?
             getRemoteData(true, d => {
-                // use length for progress bar
+                //TODO(mvk): use length for progress bar
                 dataFile.contentLength = parseInt(d.headers['Content-Length']);
                 appState.saveQuietly(modelName);
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
                     dataFile.bytesLoaded = dataFile.contentLength;
-                    // placeholder to keep columns from showing up until we can read from zips, tarballs
+                    // placeholder to keep columns from showing up until we can read from zips, tarballs, hdf5,...
                     dataFile.dataFormat = 'image';
                     appState.saveQuietly(modelName);
                 });
