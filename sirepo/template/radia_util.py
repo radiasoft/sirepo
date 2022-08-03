@@ -207,9 +207,9 @@ def apply_bevel(g_id, obj_ctr, obj_size, bevel):
     vg2 = numpy.dot(h_offset, h_offset)
     v2 = numpy.dot(v, v)
 
-    plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][
+    plane = int(bevel.cutRemoval) * (x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][
         e
-    ] * numpy.sqrt(vx2 / v2)
+    ] * numpy.sqrt(vx2 / v2))
     pt = corner + w_offset
 
     # object id, plane normal, point in plane - returns a new id in an array for some reason
@@ -218,6 +218,11 @@ def apply_bevel(g_id, obj_ctr, obj_size, bevel):
 
 def apply_color(g_id, color):
     radia.ObjDrwAtr(g_id, color)
+
+
+def apply_fillet(g_id, **kwargs):
+    d = PKDict(kwargs)
+    # make bevel and cylinder
 
 
 def multiply_vector_by_matrix(v, m):
