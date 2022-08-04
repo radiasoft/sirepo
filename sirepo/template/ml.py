@@ -297,18 +297,19 @@ def stateless_compute_remote_data_bytes_loaded(data):
 
 def _remote_data_bytes_loaded(filename):
     import os
+
     try:
         return PKDict(
             bytesLoaded=os.path.getsize(
                 _SIM_DATA.lib_file_abspath(
-                    _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", filename)
+                    _SIM_DATA.lib_file_name_with_model_field(
+                        "dataFile", "file", filename
+                    )
                 )
             )
         )
     except Exception as e:
-        return PKDict(
-            error=e
-        )
+        return PKDict(error=e)
 
 
 # if this conversion is not done, the header gets returned as a newline-delimited string
@@ -323,15 +324,21 @@ def _get_remote_data(url, headers_only):
     import urllib
     from urllib import parse
     from urllib import request
+
     filename = os.path.basename(urllib.parse.urlparse(url).path)
     try:
         with urllib.request.urlopen(url) as r:
             if headers_only:
                 return PKDict(headers=_header_str_to_dict(r.headers))
             chunk_size = 1024 * 1024
-            with open(_SIM_DATA.lib_file_write_path(
-                    _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", filename)
-            ), 'wb') as f:
+            with open(
+                _SIM_DATA.lib_file_write_path(
+                    _SIM_DATA.lib_file_name_with_model_field(
+                        "dataFile", "file", filename
+                    )
+                ),
+                "wb",
+            ) as f:
                 while True:
                     c = r.read(chunk_size)
                     if not c:
@@ -340,7 +347,6 @@ def _get_remote_data(url, headers_only):
     except urllib.error.HTTPError as e:
         return PKDict(error=e.code)
     return PKDict(filename=filename)
-    
 
 
 def write_parameters(data, run_dir, is_parallel):

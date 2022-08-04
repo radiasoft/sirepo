@@ -2079,7 +2079,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     $scope.whenSelected = () => {
         processAppMode();
         updateEditor();
-    }
+    };
 
     $scope.$on( `${modelName}.changed`, updateData);
 });
