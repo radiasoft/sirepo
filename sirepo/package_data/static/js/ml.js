@@ -1450,7 +1450,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                       <div data-ng-if="fieldInfo.field">
                         <b>{{ fieldInfo.label }} </b>
                         <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="layerName(layer)" data-model="layer"></div>
+                        <div data-ng-if="branching(layer)">
+                         <button data-ng-click="addChild()">Add another child</button>
+                        </div>
                       </div>
+
                     </td>
                     <td>
                       <div class="sr-nn-button-bar-parent pull-right">
@@ -1469,8 +1473,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     </td>
                     <td>
                       <div data-ng-if="checkBranch(layer)">
-                        <div class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="layer.children[0]"></div>
-                        <div class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="layer.children[1]"></div>
+                        <div data-ng-repeat="l in layer.children" class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="l"></div>
                       </div>
                     </td>
                   <tr>
@@ -1509,8 +1512,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             </form>
         `,
         controller: function($scope, $element) {
-            // TODO (gurhar1133): change html to loop through arbitrary number of children to make
-            // nested forms
             var layerFields = {};
             var layerInfo = [];
             $scope.form = angular.element($($element).find('form').eq(0));
@@ -1551,8 +1552,17 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 return b;
             };
 
+            $scope.branching = layer =>  {
+                srdbg('layer -> ', layer);
+                return branchingLayer(layer.layer);
+            }
+
             function branchingLayer(layer) {
                 return (layer == 'Add') || (layer == 'Concatenate');
+            }
+
+            $scope.addChild = () => {
+                srdbg("add another child");
             }
 
             $scope.layerName = layer => {
@@ -1571,7 +1581,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             $scope.fieldTrack = function(layerIdx, idx) {
                 // changes the fields editor if the layer type changes
-                var layer = appState.models.neuralNet.layers[layerIdx];
+                var layer = $scope.layerLevel[layerIdx];
                 return layer.layer + idx;
             };
 
