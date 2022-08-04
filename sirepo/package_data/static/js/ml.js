@@ -1562,7 +1562,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             $scope.addChild = layer => {
                 srdbg("add another child to: ", layer);
-                layer.children.push(newChild());
+                layer.children.push(newChild($scope.lName));
             }
 
             $scope.layerName = layer => {
@@ -1694,22 +1694,22 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.lName = appState.models.neuralNet.name;
             }
 
-            function newChild() {
-                return {layers: [], name: "x" + Math.random().toString(20).substr(2, 5)};
+            function newChild(parentName) {
+                return {layers: [], parentName: parentName, name: "x" + Math.random().toString(20).substr(2, 5)};
             }
 
-            function newChildren() {
+            function newChildren(parentName) {
                 return [
-                    newChild(),
-                    newChild(),
+                    newChild(parentName),
+                    newChild(parentName),
                 ];
             }
 
             function nest() {
+                srdbg('lName: ', $scope.lName);
                 const n = {
-                    // TODO (gurhar1133): give each layer a parent attribute with parent name, or just give .parentName
                     layer: $scope.selectedLayer,
-                    children: newChildren(),
+                    children: newChildren($scope.lName),
                 };
                 $scope.layerLevel.push(n);
             }
