@@ -2041,12 +2041,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     function updateData() {
         const dataFile = appState.models[modelName];
 
-        function hasAllData() {
-            return dataFile.bytesLoaded > 0 && dataFile.bytesLoaded === dataFile.contentLength;
-        }
-
+        //TODO(mvk): button to force reload; handle deletion of file; share files across users;
+        // store urls; share urls across apps
         if (dataFile.dataOrigin === 'url') {
-            if (dataFile.oldURL === dataFile.url && hasAllData()) {
+            if (dataFile.oldURL === dataFile.url) {
                 return;
             }
             dataFile.oldURL = dataFile.url;
