@@ -671,44 +671,47 @@ def _build_model_py(v):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
         return args_map[layer.layer](layer)
 
-    def _branch_or_continue(layers_name, layer, layer_args):
+    def _branch_or_continue(layers, layer, layer_args):
         if layer.layer == "Add" or layer.layer == "Concatenate":
             return _layer(layer)
-        return f"{layers_name} = {layer.layer}{layer_args}\n"
+        return f"{layers.name} = {layer.layer}{layer_args}\n"
 
-    def _build_layers(branch, parent):
-        b = _name_and_layers(branch)
+    def _build_layers(branch):
+        #TODO (gurhar1133): still not correct (need to consider non recursive?)
+        #TODO (gurhar1133): when
         res = ""
-        for i, l in enumerate(b.layers):
-            # TODO (gurhar1133): if looping through arbitrary number of children,
-            # then only check if i == 0
-            if i == 0 and b.name != parent.name:
-                c = f"({_layer(l)})({parent.name})"
+        for i, l in enumerate(branch.layers):
+            if i == 0:
+                if l.layer == "Add" or l.layer == "Concatenate":
+                    l.name = branch.parentName
+                c = f"({_layer(l)})({branch.parentName})"
             else:
-                c = f"({_layer(l)})({b.name})"
-            res += _branch_or_continue(b.name, l, c)
+                c = f"({_layer(l)})({branch.name})"
+            res += _branch_or_continue(branch, l, c)
         return res
-
-    def _name_and_layers(branch):
-        if type(branch) == list:
-            return PKDict(name="x", layers=branch)
-        return PKDict(name=branch.name, layers=branch.layers)
 
     def _branch(layer, join_type):
         def _join(layer):
-            return f"{layer.children[1].name} = {join_type}()([{layer.children[1].name}, {layer.children[0].name}])\n"
+            # return f"{layer.children[1].name} = {join_type}()([{layer.children[1].name}, {layer.children[0].name}])\n"
+            c = ", ".join([l.name for l in layer.children])
+            return f"{layer.parentName} = {join_type}()([{c}])\n"
+
         #TODO (gurhar1133): loop through arbitrary number of children instead
-        return (
-            _build_layers(layer.children[0], layer.children[1])
-            + _build_layers(layer.children[1], layer.children[1])
-            + _join(layer)
-        )
+        res = ""
+        for c in layer.children:
+            res += _build_layers(c)
+            # _build_layers(layer.children[0], layer.children[1])
+            # + _build_layers(layer.children[1], layer.children[1])
+            # + _join(layer)
+
+        res += _join(layer)
+        return res
 
     return f"""
 from keras.models import Model, Sequential
 from keras.layers import Input{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
-{_build_layers(v.neuralNetLayers, PKDict(name="input_args"))}
+{_build_layers(PKDict(layers=v.neuralNetLayers, name="x", parentName="input_args"))}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
 

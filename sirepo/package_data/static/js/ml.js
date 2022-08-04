@@ -1529,6 +1529,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     return;
                 }
                 if (branchingLayer($scope.selectedLayer)) {
+                    srdbg('about to nest');
                     nest();
                     $scope.selectedLayer = '';
                     return;
@@ -1546,9 +1547,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.checkBranch = layer => {
                 const b = branchingLayer(layer.layer);
                 if (b && layer.children !== null) {
+                    srdbg('hit');
+                    layer.parentName = $scope.lName;
                     return b;
                 }
-                layer.children = newChildren();
+                layer.children = newChildren($scope.lName);
                 return b;
             };
 
@@ -1562,7 +1565,12 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             $scope.addChild = layer => {
                 srdbg("add another child to: ", layer);
-                layer.children.push(newChild($scope.lName));
+                // let n = $scope.lName
+                // if (layer.children) {
+                //     n = newChildName();
+                // }
+
+                layer.children.push(newChild($scope.lName,  newChildName()));
             }
 
             $scope.layerName = layer => {
@@ -1694,14 +1702,17 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.lName = appState.models.neuralNet.name;
             }
 
-            function newChild(parentName) {
-                return {layers: [], parentName: parentName, name: "x" + Math.random().toString(20).substr(2, 5)};
+            function newChild(parentName, childName) {
+                return {layers: [], parentName: parentName, name: childName};
             }
 
+            function newChildName() {
+                return "x" + Math.random().toString(20).substr(2, 5);
+            }
             function newChildren(parentName) {
                 return [
-                    newChild(parentName),
-                    newChild(parentName),
+                    newChild(parentName, newChildName()),
+                    newChild(parentName, newChildName()),
                 ];
             }
 
@@ -1709,6 +1720,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 srdbg('lName: ', $scope.lName);
                 const n = {
                     layer: $scope.selectedLayer,
+                    parentName: $scope.lName,
                     children: newChildren($scope.lName),
                 };
                 $scope.layerLevel.push(n);
