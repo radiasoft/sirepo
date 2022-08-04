@@ -44,13 +44,15 @@ SIREPO.app.config(function() {
             </div>
         </div>
         <div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">
-          <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>
+          <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt,.csv"/>
         </div>
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
           <label class="control-label col-sm-5" style="text-align: center">{{ model.widthAxis }}</label> <label class="control-label col-sm-5"  style="text-align: center">{{ model.heightAxis }}</label>
-          <div data-ng-repeat="p in model[field]">
-            <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[0]"  style="text-align: right" required />
-            <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[1]"  style="text-align: right" required />
+          <div class="col-sm-12" style="height: 200px; overflow-y: scroll; overflow-x: hidden;">
+              <div data-ng-repeat="p in model[field]">
+                <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[0]" data-ng-disabled="model.pointsFile" style="text-align: right;" required />
+                <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[1]" data-ng-disabled="model.pointsFile" style="text-align: right;" required />
+              </div>
           </div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
@@ -3740,7 +3742,7 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $scope) {
+SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $element, $scope) {
     let modelType = null;
     let editedModels = [];
     const parent = $scope.$parent;
@@ -3752,9 +3754,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
         ], updateShapeEditor,
-        [
-            "extrudedPoly.pointsFile",
-        ], loadPoints,
     ];
 
     $scope.whenSelected = function() {
@@ -3775,6 +3774,12 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         //editedModels = [];
     });
 
+    $scope.$on('extrudedPoly.changed', loadPoints);
+
+    $scope.$on('modelChanged', (e, d) => {
+        srdbg('MC', e, d);
+    });
+
     function setPoints(data) {
         $scope.modelData.referencePoints = data.points;
         radiaService.updateExtruded($scope.modelData);
@@ -3786,7 +3791,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     function updateSize() {
         const sz = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat);
         [$scope.modelData.widthAxis, $scope.modelData.heightAxis].forEach((dim, i) => {
-            const p = $scope.modelData.points.map(x => x[i]);
+            const p = $scope.modelData.referencePoints.map(x => x[i]);
             sz[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
         });
         $scope.modelData.size = sz.join(',');
@@ -3832,6 +3837,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     }
 
     function updateShapeEditor() {
+        parent.showPageNamed('Point Editor', $scope.modelData.pointsFile !== undefined);
         modelType = appState.models.geomObject.type;
         parent.activePage.items.forEach((f) => {
             const m = modelField(f);
