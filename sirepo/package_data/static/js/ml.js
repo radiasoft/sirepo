@@ -1451,7 +1451,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         <b>{{ fieldInfo.label }} </b>
                         <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="layerName(layer)" data-model="layer"></div>
                         <div data-ng-if="branching(layer)">
-                         <button data-ng-click="addChild()">Add another child</button>
+                         <button data-ng-click="addChild(layer)">Add another child</button>
                         </div>
                       </div>
 
@@ -1553,7 +1553,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.branching = layer =>  {
-                srdbg('layer -> ', layer);
                 return branchingLayer(layer.layer);
             }
 
@@ -1561,8 +1560,9 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 return (layer == 'Add') || (layer == 'Concatenate');
             }
 
-            $scope.addChild = () => {
-                srdbg("add another child");
+            $scope.addChild = layer => {
+                srdbg("add another child to: ", layer);
+                layer.children.push(newChild());
             }
 
             $scope.layerName = layer => {
@@ -1694,17 +1694,18 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.lName = appState.models.neuralNet.name;
             }
 
+            function newChild() {
+                return {layers: [], name: "x" + Math.random().toString(20).substr(2, 5)};
+            }
+
             function newChildren() {
-                return [ // TODO (gurhar1133): this needs update for arbitrary number of children.
-                        // dont give right child same name as parent
-                    {layers: [], name: $scope.lName + Math.random().toString(20).substr(2, 5)},
-                    {layers: [], name: $scope.lName},
+                return [
+                    newChild(),
+                    newChild(),
                 ];
             }
 
             function nest() {
-                // TODO (gurhar1133): this should open add child button which adds children
-                // (keep in mind the issue of consecutive left nesting, will not naming right child after parent fix?)
                 const n = {
                     // TODO (gurhar1133): give each layer a parent attribute with parent name, or just give .parentName
                     layer: $scope.selectedLayer,
