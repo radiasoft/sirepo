@@ -77,14 +77,13 @@ def http():
             proc.terminate()
             proc.wait(1)
         except (
-                ProcessLookupError,
-                ChildProcessError,
-                psutil.NoSuchProcess,
-            ):
+            ProcessLookupError,
+            ChildProcessError,
+            psutil.NoSuchProcess,
+        ):
             pass
         except (psutil.TimeoutExpired, subprocess.TimeoutExpired):
             proc.kill()
-
 
     def _kill(*args):
         for p in processes:
@@ -92,14 +91,15 @@ def http():
                 for c in list(psutil.Process(p.pid).children(recursive=True)):
                     _safe_kill_process(c)
             except Exception:
-                # need to ignore exceptions while converting process children 
+                # need to ignore exceptions while converting process children
                 # to a list so that the parent is still terminated
-                pass 
+                pass
             _safe_kill_process(p)
-                
 
-    def _start(service, extra_environ=None, cwd=".", prefix=("pyenv", "exec", "sirepo")):
-        if(extra_environ is not None):
+    def _start(
+        service, extra_environ=None, cwd=".", prefix=("pyenv", "exec", "sirepo")
+    ):
+        if extra_environ is not None:
             env[extra_environ[0]] = extra_environ[1]
         processes.append(
             subprocess.Popen(
@@ -116,10 +116,20 @@ def http():
             _start(("job_supervisor",))
             # Avoid race condition on creating auth db
             time.sleep(0.3)
-            _start(("npm", "start"), cwd="../react", prefix=(), extra_environ=("PORT", str(_cfg().react_port)))
+            _start(
+                ("npm", "start"),
+                cwd="../react",
+                prefix=(),
+                extra_environ=("PORT", str(_cfg().react_port)),
+            )
             time.sleep(0.3)
-            _start(("service", "flask"), 
-                extra_environ=("SIREPO_SERVER_REACT_SERVER", f"http://127.0.0.1:{_cfg().react_port}/"))
+            _start(
+                ("service", "flask"),
+                extra_environ=(
+                    "SIREPO_SERVER_REACT_SERVER",
+                    f"http://127.0.0.1:{_cfg().react_port}/",
+                ),
+            )
             p, _ = os.wait()
     except ChildProcessError:
         pass
