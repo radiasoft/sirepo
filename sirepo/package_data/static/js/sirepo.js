@@ -5,6 +5,7 @@ SIREPO.srdbg = console.log.bind(console);
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
 SIREPO.debounce_timeout = 350;
+SIREPO.nonDataFileFrame = -1;
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
@@ -1027,6 +1028,10 @@ SIREPO.app.factory('stringsService', function() {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
+    function lcfirst(str) {
+        return str[0].toLowerCase() + str.substring(1);
+    }
+
     return {
         formatKey: (name) => {
             return ucfirst(strings[name]);
@@ -1056,7 +1061,8 @@ SIREPO.app.factory('stringsService', function() {
             return `End ${typeOfSimulation(modelName)}`;
         },
         typeOfSimulation: typeOfSimulation,
-        ucfirst: ucfirst
+        ucfirst: ucfirst,
+        lcfirst: lcfirst
     };
 });
 

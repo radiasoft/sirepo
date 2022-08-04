@@ -8,6 +8,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
+from sirepo import util
 from sirepo.template import template_common
 import re
 import sirepo.sim_data
@@ -38,17 +39,19 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
+    sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if model == "dagmcAnimation":
         return PKDict(filename=run_dir.join(f"{frame}.zip"))
-    v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
-    return template_common.render_jinja(
-        SIM_TYPE,
-        v,
-    )
+    if model == "openmcAnimation":
+        return PKDict(filename=run_dir.join(f"{sim_in.models.tally.name}.json"))
 
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
+
+
+def stateless_compute_read_tallies(data):
+    pass
 
 
 def stateless_compute_validate_material_name(data):
@@ -90,6 +93,18 @@ def _generate_parameters_file(data):
     if report == "dagmcAnimation":
         return ""
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
+    v.tallyName = data.models.tally.name
+    v.tallyScore = data.models.tally.score
+    v.tallyAspects = data.models.tally.aspects
+    v.tallyMeshLowerLeft = util.split_comma_delimited_string(
+        data.models.tally.meshLowerLeft, float
+    )
+    v.tallyMeshUpperRight = util.split_comma_delimited_string(
+        data.models.tally.meshUpperRight, float
+    )
+    v.tallyMeshCellCount = util.split_comma_delimited_string(
+        data.models.tally.meshCellCount, int
+    )
     return template_common.render_jinja(
         SIM_TYPE,
         v,

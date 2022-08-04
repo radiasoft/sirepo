@@ -1602,7 +1602,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': 'fieldLineoutReport',
-                    '<frame>': -1,
+                    '<frame>': SIREPO.nonDataFileFrame,
                     '<suffix>': radiaService.pointFieldExports[$scope.tModel.exportType].extension
                 });
                 radiaService.showFieldDownload(false);
@@ -3708,7 +3708,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
 
 SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, radiaService, utilities) {
 
-    const availableShapes = ['cuboid', 'ell', 'cee', 'jay', 'extrudedPoints',];
+    const availableShapes = ['cuboid', 'cylinder', 'ell', 'cee', 'jay', 'extrudedPoints',];
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'field'),
     ]);

@@ -524,7 +524,7 @@ SIREPO.app.directive('dicomImportDialog', function(appState, fileManager, fileUp
                           </div>
                           <div data-ng-show="isState(\'import\')" class="col-sm-12">
                             <div class="text-center">
-                              <span class="glyphicon glyphicon-hourglass"> </span> 
+                              <span class="glyphicon glyphicon-hourglass"> </span>
                               Importing file - please wait.
                               <br /><br />
                             </div>
@@ -1372,7 +1372,7 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                         $scope.advanceFrame(1);
                     }
                     else if (scale < 1 && ! $scope.isFirstFrame()) {
-                        $scope.advanceFrame(-1);
+                        $scope.advanceFrame(SIREPO.nonDataFileFrame);
                     }
                     else {
                         resetZoom();
