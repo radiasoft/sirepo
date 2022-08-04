@@ -70,7 +70,9 @@ SIREPO.app.factory('cloudmcService', function(appState) {
     const self = {};
     appState.setAppService(self);
     self.computeModel = modelKey => modelKey;
-    self.isGraveyard = volume => volume.name.toLowerCase() == 'graveyard';
+    self.isGraveyard = volume => {
+        return volume.name && volume.name.toLowerCase() == 'graveyard';
+    };
     return self;
 });
 
@@ -622,15 +624,15 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                 $scope.rows = [];
                 for (const n in appState.models.volumes) {
                     const row = appState.models.volumes[n];
-                    if (cloudmcService.isGraveyard(row)) {
-                        continue;
-                    }
                     row.key = n;
                     if (! row.color) {
                         row.name = n;
                         row.color = randomColor();
                         row.opacity = 0.3;
                         row.isVisible = true;
+                    }
+                    if (cloudmcService.isGraveyard(row)) {
+                        continue;
                     }
                     $scope.rows.push(row);
                 }
