@@ -72,31 +72,31 @@ def http():
         finally:
             [signal.signal(x[0], x[1]) for x in o]
 
+    def _safe_kill_process(proc):
+        try:
+            proc.terminate()
+            proc.wait(1)
+        except (
+                ProcessLookupError,
+                ChildProcessError,
+                psutil.NoSuchProcess,
+            ):
+            pass
+        except (psutil.TimeoutExpired, subprocess.TimeoutExpired):
+            proc.kill()
+
+
     def _kill(*args):
         for p in processes:
             try:
-                try:
-                    for c in list(psutil.Process(p.pid).children(recursive=True)):
-                        try:
-                            c.terminate()
-                            c.wait(1)
-                        except (
-                            ProcessLookupError,
-                            ChildProcessError,
-                            psutil.NoSuchProcess,
-                        ):
-                            continue
-                        except psutil.TimeoutExpired:
-                            c.kill()
-                except Exception:
-                    pass
-
-                p.terminate()
-                p.wait(1)
-            except (ProcessLookupError, ChildProcessError):
-                continue
-            except subprocess.TimeoutExpired:
-                p.kill()
+                for c in list(psutil.Process(p.pid).children(recursive=True)):
+                    _safe_kill_process(c)
+            except Exception:
+                # need to ignore exceptions while converting process children 
+                # to a list so that the parent is still terminated
+                pass 
+            _safe_kill_process(p)
+                
 
     def _start(service, cwd=".", prefix=("pyenv", "exec", "sirepo")):
         processes.append(
