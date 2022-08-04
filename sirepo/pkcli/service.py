@@ -116,14 +116,10 @@ def http():
             _start(("job_supervisor",))
             # Avoid race condition on creating auth db
             time.sleep(0.3)
-
             _start(("npm", "start"), cwd="../react", prefix=(), extra_environ=("PORT", str(_cfg().react_port)))
-
             time.sleep(0.3)
-
             _start(("service", "flask"), 
                 extra_environ=("SIREPO_SERVER_REACT_SERVER", f"http://127.0.0.1:{_cfg().react_port}/"))
-
             p, _ = os.wait()
     except ChildProcessError:
         pass
