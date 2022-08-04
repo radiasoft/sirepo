@@ -95,6 +95,20 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
                     + ' data-model-name="modelName" data-model-data="modelData">'
                     + '</div>')($scope));
 
+            $scope.showPageNamed = (name, doShow) => {
+                const p = $scope.pages.filter(p => p.name === name)[0]
+                if (! p) {
+                    return;
+                }
+                const l = $(`li.${p.class}`);
+                if (doShow) {
+                    l.show();
+                }
+                else {
+                    l.hide();
+                }
+            }
+
             $scope.isColumnField = function(f) {
                 return typeof(f) != 'string';
             };
