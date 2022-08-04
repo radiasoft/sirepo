@@ -69,7 +69,8 @@ SIREPO.app.config(() => {
 SIREPO.app.factory('cloudmcService', function(appState) {
     const self = {};
     appState.setAppService(self);
-    self.computeModel = (modelKey) => modelKey;
+    self.computeModel = modelKey => modelKey;
+    self.isGraveyard = volume => volume.name.toLowerCase() == 'graveyard';
     return self;
 });
 
@@ -117,7 +118,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, persistentSimulation, requestSender, $scope) {
     const self = this;
     self.geom3dReportCfg = {
         fitToWindow: false,
@@ -132,6 +133,18 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         }
     };
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.runningMessage = () => {
+        return `Completed batch: ${self.simState.getFrameCount()}`;
+    };
+    self.simState.logFileURL = function() {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simState.model,
+            '<frame>': SIREPO.nonDataFileFrame,
+            '<suffix>': 'log',
+        });
+    };
     return self;
 });
 
@@ -176,7 +189,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -490,7 +503,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
 
                 const vols = [];
                 for (const n in appState.models.volumes) {
-                    vols.push(appState.models.volumes[n].volId);
+                    if (! cloudmcService.isGraveyard(appState.models.volumes[n])) {
+                        vols.push(appState.models.volumes[n].volId);
+                    }
                 }
                 vtkScene.render();
                 if (geom3dCfg.objectsToLoad.includes('volumes')) {
@@ -552,7 +567,7 @@ SIREPO.app.directive('compoundField', function() {
     };
 });
 
-SIREPO.app.directive('volumeSelector', function(appState, panelState, $rootScope) {
+SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelState, $rootScope) {
     return {
         restrict: 'A',
         scope: {},
@@ -607,6 +622,9 @@ SIREPO.app.directive('volumeSelector', function(appState, panelState, $rootScope
                 $scope.rows = [];
                 for (const n in appState.models.volumes) {
                     const row = appState.models.volumes[n];
+                    if (cloudmcService.isGraveyard(row)) {
+                        continue;
+                    }
                     row.key = n;
                     if (! row.color) {
                         row.name = n;
@@ -904,7 +922,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
         controller: function($scope) {
 
             function setView() {
-                if (type() && type() != 'None') {
+                if (type() && type() !== 'None') {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
                         .map(f => {
                             return {
@@ -927,11 +945,11 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                     return;
                 }
                 if (panelState.isActiveField($scope.modelName, '_type')) {
-                    if (newValue != oldValue && newValue) {
+                    if (newValue !== oldValue && newValue) {
                         $scope.model[$scope.field] = {
                             _type: type(),
                         };
-                        if (newValue != 'None') {
+                        if (newValue !== 'None') {
                             appState.setModelDefaults(
                                 $scope.model[$scope.field],
                                 type(),
@@ -1041,7 +1059,7 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
                 }, childModel));
             };
 
-            $scope.description = (m) => {
+            $scope.description = m => {
                 return typeInfo('SpatialDistribution', m.space);
             };
 
@@ -1082,11 +1100,11 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
                 return res + ' ';
             }
 
-            $scope.editSource = (model) => {
+            $scope.editSource = model => {
                 editChild(model);
             };
 
-            $scope.removeSource = (model) => {
+            $scope.removeSource = model => {
                 const c = [];
                 for (const m of $scope.model[$scope.field]) {
                     if (m._index != model._index) {

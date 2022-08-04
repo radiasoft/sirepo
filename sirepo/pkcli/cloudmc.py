@@ -112,13 +112,17 @@ def _extract_volumes(filename):
         name = _parse_entity_name(v.name)
         if not name:
             continue
+        skip_volume = False
+        for i in v.volumes:
+            if i in visited:
+                pkdlog(f"skipping volume used in multiple groups: {i} {name}")
+                skip_volume = True
+            visited[i] = True
+        if skip_volume:
+            continue
         res[name] = PKDict(
             volId=v.volumes[0],
         )
-        for i in v.volumes:
-            if i in visited:
-                raise AssertionError(f"volume used in multiple groups: {i} {e}")
-            visited[i] = True
         os.system(f'mbconvert -v {",".join(v.volumes)} {filename} {v.volumes[0]}.vtk')
     return res
 

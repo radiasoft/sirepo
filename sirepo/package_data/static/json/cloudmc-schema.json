@@ -125,8 +125,8 @@
     "model": {
         "box": {
             "_super": [ "_", "model", "spatial"],
-            "lower_left": ["Lower Left", "Point3D", [0, 0, 0], "Lower-left coordinates of cuboid"],
-            "upper_right": ["Upper Right", "Point3D", [0, 0, 0], "Upper-right coordinates of cuboid"],
+            "lower_left": ["Lower Left [cm]", "Point3D", [0, 0, 0], "Lower-left coordinates of cuboid"],
+            "upper_right": ["Upper Right [cm]", "Point3D", [0, 0, 0], "Upper-right coordinates of cuboid"],
             "only_fissionable": ["Only Fissionable", "Boolean", "0", "Whether spatial sites should only be accepted if they occur in fissionable materials"]
         },
         "dagmcAnimation": {},
@@ -148,7 +148,7 @@
             "r": ["R Distribution", "Univariate", {"_type": "None"}],
             "phi": ["Phi Distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
             "z": ["Z Distribution", "Univariate", {"_type": "None"}],
-            "origin": ["Origin", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the cylindrical reference frame for the source."]
+            "origin": ["Origin", "Point3D [cm]", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the cylindrical reference frame for the source."]
         },
         "legendre": {
             "_super": [ "_", "model", "univariate"],
@@ -215,7 +215,7 @@
         },
         "point": {
             "_super": [ "_", "model", "spatial"],
-            "xyz": ["X, Y, Z", "Point3D", [0, 0, 0]]
+            "xyz": ["X, Y, Z [cm]", "Point3D", [0, 0, 0]]
         },
         "polarAzimuthal": {
             "_super": ["_", "model", "unitSphere"],
@@ -256,15 +256,15 @@
             "r": ["R Distribution", "Univariate", {"_type": "None"}],
             "theta": ["Theta Distribution", "Univariate", {"_type": "None"}, "Distribution of theta-coordinates (angle relative to the z-axis) in a reference frame specified by the origin parameter"],
             "phi": ["Phi Distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
-            "origin": ["Origin", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source."]
+            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source."]
         },
         "tally": {
             "aspect": ["Aspect to plot", "TallyAspect", "mean"],
             "aspects": ["Aspects", "TallyAspects", ["mean"]],
             "name": ["Name", "String", "t1"],
             "meshCellCount": ["Mesh cell count", "Point3D", [10, 10, 10]],
-            "meshLowerLeft": ["Mesh lower left", "Point3D", [-5.0, -5.0, -5.0]],
-            "meshUpperRight": ["Mesh upper right", "Point3D", [5.0, 5.0, 5.0]],
+            "meshLowerLeft": ["Mesh lower left [cm]", "Point3D", [-5.0, -5.0, -5.0]],
+            "meshUpperRight": ["Mesh upper right [cm]", "Point3D", [5.0, 5.0, 5.0]],
             "score": ["Score to plot", "TallyScore", "heating"],
             "scores": ["Scores", "TallyScores", ["heating"]]
         },
@@ -298,6 +298,7 @@
         }
     },
     "strings": {
+        "completionState": ": {frameCount} batches",
         "dagmcAnimation": {
             "typeOfSimulation": "Volume Extraction"
         }

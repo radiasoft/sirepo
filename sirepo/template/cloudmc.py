@@ -18,13 +18,33 @@ VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
-def background_percent_complete(report, run_dir, is_running):
+def _percent_complete(run_dir, is_running):
+    res = PKDict(
+        frameCount=0,
+        percentComplete=0,
+    )
+    with pkio.open_text(str(run_dir.join(template_common.RUN_LOG))) as f:
+        for line in f:
+            m = re.match(r"^ Simulating batch (\d+)", line)
+            if m:
+                res.frameCount = int(m.group(1))
+                continue
+            m = re.match(r"^\s+(\d+)/1\s+\d", line)
+            if m:
+                res.frameCount = int(m.group(1))
     if is_running:
-        return PKDict(
-            percentComplete=0,
-            frameCount=0,
-        )
+        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        res.percentComplete = res.frameCount * 100 / data.models.settings.batches
+    return res
+
+
+def background_percent_complete(report, run_dir, is_running):
     if report == "dagmcAnimation":
+        if is_running:
+            return PKDict(
+                percentComplete=0,
+                frameCount=0,
+            )
         if not run_dir.join(VOLUME_INFO_FILE).exists():
             raise AssertionError("Volume extraction failed")
         return PKDict(
@@ -32,10 +52,7 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=1,
             volumes=simulation_db.read_json(VOLUME_INFO_FILE),
         )
-    return PKDict(
-        percentComplete=100,
-        frameCount=1,
-    )
+    return _percent_complete(run_dir, is_running)
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -43,6 +60,8 @@ def get_data_file(run_dir, model, frame, options):
     if model == "dagmcAnimation":
         return PKDict(filename=run_dir.join(f"{frame}.zip"))
     if model == "openmcAnimation":
+        if options.suffix == "log":
+            return template_common.text_data_file(template_common.RUN_LOG, run_dir)
         return PKDict(filename=run_dir.join(f"{sim_in.models.tally.name}.json"))
 
 
@@ -211,7 +230,9 @@ def _generate_parameters_file(data):
     v.tallyAspects = data.models.tally.aspects
     v.tallyMeshLowerLeft = _generate_array(data.models.tally.meshLowerLeft)
     v.tallyMeshUpperRight = _generate_array(data.models.tally.meshUpperRight)
-    v.tallyMeshCellCount = _generate_array(data.models.tally.meshCellCount)
+    v.tallyMeshCellCount = _generate_array(
+        [int(v) for v in data.models.tally.meshCellCount]
+    )
     return template_common.render_jinja(
         SIM_TYPE,
         v,
