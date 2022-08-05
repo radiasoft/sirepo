@@ -682,8 +682,8 @@ def _build_model_py(v):
         res = ""
         for i, l in enumerate(branch.layers):
             if i == 0:
-                if l.layer == "Add" or l.layer == "Concatenate":
-                    l.name = branch.parentName
+                # if l.layer == "Add" or l.layer == "Concatenate":
+                #     l.name = branch.parentName
                 c = f"({_layer(l)})({branch.parentName})"
             else:
                 c = f"({_layer(l)})({branch.name})"

@@ -1440,6 +1440,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
         restrict: 'A',
         scope: {
             layerTarget: '=',
+            parentName: '@',
         },
         template: `
             <form name="form" class="form-horizontal">
@@ -1473,7 +1474,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     </td>
                     <td>
                       <div data-ng-if="checkBranch(layer)">
-                        <div data-ng-repeat="l in layer.children" class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="l"></div>
+                        <div data-ng-repeat="l in layer.children" class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="l" data-parent-name="{{lName}}"></div>
                       </div>
                     </td>
                   <tr>
@@ -1547,7 +1548,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.checkBranch = layer => {
                 const b = branchingLayer(layer.layer);
                 if (b && layer.children !== null) {
-                    srdbg('hit');
                     layer.parentName = $scope.lName;
                     return b;
                 }
@@ -1717,16 +1717,13 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             }
 
             function nest() {
-                // TODO (gurhar1133): how to know if consecutive add
-                // if consecutive add, leftmost child gets same name as parent
-
-                // TODO (gurhar1133): Adds get new branchname as well as
-                // the non add descendant name
+                // TODO (gurhar1133): addnodes need to have (leftname, parentName)
+                // and parentName needs to proliferate
                 srdbg('lName: ', $scope.lName);
                 const n = {
                     layer: $scope.selectedLayer,
-                    parentName: $scope.lName,
-                    children: newChildren($scope.lName),
+                    parentName: $scope.parentName,
+                    children: newChildren($scope.parentName),
                 };
                 $scope.layerLevel.push(n);
             }
