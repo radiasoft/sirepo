@@ -33,7 +33,6 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     };
 
     self.getScanField = function(scan, field) {
-        srdbg(`getScanField scan=${scan} field=${field}`)
         if (['start', 'stop'].includes(field)) {
             return timeService.unixTimeToDateString(scan[field]);
         }
@@ -41,7 +40,6 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     };
 
     self.getScanInfoTableHeader = function(firstColHeading, cols) {
-        srdbg(`getScanInfoTableHeader cols=${cols}`)
         return cols.length > 0 ? [firstColHeading].concat(cols) : [];
     };
 
@@ -135,8 +133,13 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     };
 
     self.updateScanInfoTableColsInCache = function(cols) {
-        simulationDataCache.scanInfoTableCols = cols;
-        return cols;
+        if (cols.length) {
+            simulationDataCache.scanInfoTableCols = cols;
+            return cols;
+        }
+        else {
+            return simulationDataCache.scanInfoTableCols;
+        }
     };
 
     self.updateScansInCache = function(scans) {
@@ -299,7 +302,6 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             function handleGetScansInfo(scans, colz) {
                 cols = colz;
                 $scope.scans = scans;
-                srdbg('got scans=', scans)
                 const r = runningPending(scans);
                 if (r === 0) {
                     handleResult();
@@ -317,7 +319,6 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             }
 
             function runStatus(showLoadingSpinner) {
-                srdbg('runStatus')
                 const c = {
                     onError: () => {
                         handleResult();
@@ -361,7 +362,6 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             };
 
             $scope.getHeader = function() {
-                srdbg(`in getHeader cols=${cols}`)
                 return raydataService.getScanInfoTableHeader(
                     'status',
                     cols
@@ -405,7 +405,6 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             $scope.startButtonLabel = 'Start New Analysis';
 
             appState.whenModelsLoaded($scope, () => {
-                srdbg('whenModelsLoaded')
                 $scope.$on('scansSelected.changed', () => {
                     raydataService.getScansInfo(handleGetScansInfo);
                 });
@@ -743,7 +742,6 @@ SIREPO.app.directive('scanSelector', function() {
 
             $scope.unselectAllScans = () => {
                 Object.keys(appState.models.selectedScans.uids).forEach((u) => {
-                    srdbg(`deleting selected scan ${u}`)
                     delete appState.models.selectedScans.uids[u];
                     for (let i = 0; i < $scope.scans.length; i++) {
                         $scope.toggleScanSelection($scope.scans[i], false);
