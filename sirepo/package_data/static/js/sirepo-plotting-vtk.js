@@ -1698,6 +1698,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.width = $scope.height = 0;
 
             var dragShape, dragStart, yRange, zoom;
+            let [dragX, dragY] = [0, 0];
             var axisScale = {
                 x: 1.0,
                 y: 1.0,
@@ -1718,6 +1719,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     if (isShapeInBounds(shape)) {
                         const o = $scope.source.getObject(shape.id);
                         if (! o) {
+                            [dragX, dragY] = [0, 0];
                             return;
                         }
                         o.center = floatArrayToString([
@@ -1726,12 +1728,14 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             shape.center.z
                         ]);
                         $scope.source.saveObject(shape.id, function () {
+                            [dragX, dragY] = [0, 0];
                             //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
                             refresh();
                         });
                     }
                     else {
                         appState.cancelChanges($scope.modelName);
+                        [dragX, dragY] = [0, 0];
                     }
                 });
                 hideShapeLocation();
@@ -1743,6 +1747,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 if (! shape.draggable) {
                     return;
                 }
+                [dragX, dragY] = [d3.event.x, d3.event.y];
                 SIREPO.SCREEN_DIMS.forEach(function(dim) {
                     var labDim = shape.elev[dim].axis;
                     var dom = axes[dim].scale.domain();
@@ -2061,13 +2066,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapePoints(shape) {
-                function hasCoords(e) {
-                    return e && e.x !== undefined && e.y !== undefined;
-                }
-                const [dx, dy] = hasCoords(d3.event) ? [d3.event.x, d3.event.y] : [0, 0];
                 let pts = '';
                 for (const p of shape.points[shape.elev.axis]) {
-                    pts += `${dx + axes.x.scale(p[0])},${dy + axes.y.scale(p[1])} `;
+                    pts += `${dragX + axes.x.scale(p[0])},${dragY + axes.y.scale(p[1])} `;
                 }
                 return pts;
             }
