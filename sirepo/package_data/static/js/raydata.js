@@ -33,6 +33,7 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     };
 
     self.getScanField = function(scan, field) {
+        srdbg(`getScanField scan=${scan} field=${field}`)
         if (['start', 'stop'].includes(field)) {
             return timeService.unixTimeToDateString(scan[field]);
         }
@@ -40,6 +41,7 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     };
 
     self.getScanInfoTableHeader = function(firstColHeading, cols) {
+        srdbg(`getScanInfoTableHeader cols=${cols}`)
         return cols.length > 0 ? [firstColHeading].concat(cols) : [];
     };
 
@@ -359,6 +361,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
             };
 
             $scope.getHeader = function() {
+                srdbg(`in getHeader cols=${cols}`)
                 return raydataService.getScanInfoTableHeader(
                     'status',
                     cols
@@ -578,6 +581,7 @@ SIREPO.app.directive('scanSelector', function() {
             <div data-show-loading-and-error="" data-model-key="scans">
               <div data-ng-if="appState.models.scans.searchStartTime && appState.models.scans.searchStopTime">
                 <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right;"><span class="glyphicon glyphicon-plus"></span></button>
+                <button class="btn btn-info btn-xs" data-ng-click="unselectAllScans()" style="float: right;">Unselect all scans</button>
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
@@ -673,13 +677,6 @@ SIREPO.app.directive('scanSelector', function() {
                             s.selected = s.uid in appState.models.selectedScans.uids;
                             $scope.scans.push(s);
                         });
-                        // Remove scans that were selected but are not in the new search results
-                        Object.keys(appState.models.selectedScans.uids).forEach((u) => {
-                            if ($scope.scans.some((e) => e.uid === u)) {
-                                return;
-                            }
-                            delete appState.models.selectedScans.uids[u];
-                        });
                         cols = raydataService.updateScanInfoTableColsInCache(json.data.cols);
                         appState.saveQuietly('selectedScans');
                     },
@@ -743,6 +740,17 @@ SIREPO.app.directive('scanSelector', function() {
                 }
                 $scope.selectAllColumns = ! $scope.selectAllColumns;
             };
+
+            $scope.unselectAllScans = () => {
+                Object.keys(appState.models.selectedScans.uids).forEach((u) => {
+                    srdbg(`deleting selected scan ${u}`)
+                    delete appState.models.selectedScans.uids[u];
+                    for (let i = 0; i < $scope.scans.length; i++) {
+                        $scope.toggleScanSelection($scope.scans[i], false);
+                    }
+                    $scope.selectAllColumns = false;
+                });
+            }
 
             $scope.$on('scans.changed', $scope.sendScanRequest);
             $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {
