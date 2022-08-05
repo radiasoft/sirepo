@@ -688,6 +688,9 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             $scope.toggleAll = () => {
                 $scope.allVisible = ! $scope.allVisible;
                 Object.values(appState.models.volumes).forEach(v => {
+                    if (cloudmcService.isGraveyard(v)) {
+                        return;
+                    }
                     if (v.isVisible != $scope.allVisible) {
                         $scope.toggleSelected(v, true);
                     }
@@ -822,6 +825,10 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
                     c.components = [];
                 }
                 var m = appState.setModelDefaults({}, 'materialComponent');
+                // use the previous percent_type
+                if (c.components.length) {
+                    m.percent_type = c.components[c.components.length - 1].percent_type;
+                }
                 m.component = $scope.selectedComponent;
                 c.components.push(m);
                 $scope.selectedComponent = '';
