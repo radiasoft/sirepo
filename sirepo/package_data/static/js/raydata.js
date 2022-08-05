@@ -136,8 +136,7 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         if (cols.length) {
             simulationDataCache.scanInfoTableCols = cols;
             return cols;
-        }
-        else {
+        } else {
             return simulationDataCache.scanInfoTableCols;
         }
     };
@@ -743,11 +742,11 @@ SIREPO.app.directive('scanSelector', function() {
             $scope.unselectAllScans = () => {
                 Object.keys(appState.models.selectedScans.uids).forEach((u) => {
                     delete appState.models.selectedScans.uids[u];
-                    for (let i = 0; i < $scope.scans.length; i++) {
-                        $scope.toggleScanSelection($scope.scans[i], false);
-                    }
-                    $scope.selectAllColumns = false;
                 });
+                for (let i = 0; i < $scope.scans.length; i++) {
+                    $scope.toggleScanSelection($scope.scans[i], false);
+                }
+                $scope.selectAllColumns = false;
             };
 
             $scope.$on('scans.changed', $scope.sendScanRequest);
