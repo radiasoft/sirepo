@@ -1717,6 +1717,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             }
 
             function nest() {
+                // TODO (gurhar1133): how to know if consecutive add
+                // if consecutive add, leftmost child gets same name as parent
+
+                // TODO (gurhar1133): Adds get new branchname as well as
+                // the non add descendant name
                 srdbg('lName: ', $scope.lName);
                 const n = {
                     layer: $scope.selectedLayer,
