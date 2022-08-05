@@ -174,7 +174,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.updateExtrudedSize = o => {
         const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
         [o.widthAxis, o.heightAxis].forEach((dim, i) => {
-            const p = o.points.map(x => x[i]);
+            const p = o.referencePoints.map(x => x[i]);
             sz[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
         });
         o.size = sz.join(',');
@@ -3775,10 +3775,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     });
 
     $scope.$on('extrudedPoly.changed', loadPoints);
-
-    $scope.$on('modelChanged', (e, d) => {
-        srdbg('MC', e, d);
-    });
 
     function setPoints(data) {
         $scope.modelData.referencePoints = data.points;

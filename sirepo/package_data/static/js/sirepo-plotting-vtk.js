@@ -2061,9 +2061,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapePoints(shape) {
+                function hasCoords(e) {
+                    return e && e.x !== undefined && e.y !== undefined;
+                }
+                const [dx, dy] = hasCoords(d3.event) ? [d3.event.x, d3.event.y] : [0, 0];
                 let pts = '';
                 for (const p of shape.points[shape.elev.axis]) {
-                    pts += `${axes.x.scale(p[0])},${axes.y.scale(p[1])} `;
+                    pts += `${dx + axes.x.scale(p[0])},${dy + axes.y.scale(p[1])} `;
                 }
                 return pts;
             }
