@@ -156,8 +156,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
         const i = self.axisIndex(o.widthAxis);
         const j = self.axisIndex(o.heightAxis);
-        const mi = SIREPO.UTILS.minForIndex(o.referencePoints, i);
-        const mj = SIREPO.UTILS.minForIndex(o.referencePoints, j);
+        const mi = SIREPO.UTILS.minForIndex(o.referencePoints, 0);
+        const mj = SIREPO.UTILS.minForIndex(o.referencePoints, 1);
         o.points = o.referencePoints.map(
             x => [
                 x[0] + ctr[i] - (mi + sz[i] / 2.0),
@@ -623,15 +623,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let pts = {};
         if (o.layoutShape === 'polygon') {
             const [k, i, j] = [o.extrusionAxis, o.widthAxis, o.heightAxis].map(radiaService.axisIndex);
-            const scaledPts = o.points.map(p => p.map(x => SIREPO.APP_SCHEMA.constants.objectScale* x));
+            const scaledPts = o.points.map(p => p.map(x => SIREPO.APP_SCHEMA.constants.objectScale * x));
             pts[o.extrusionAxis] = scaledPts;
             const cp = center[k] + size[k] / 2.0;
             const cm = center[k] - size[k] / 2.0;
-            let p = scaledPts.map(x => x[j]);
+            let p = scaledPts.map(x => x[1]);
             let mx = Math.max(...p);
             let mn = Math.min(...p);
             pts[o.widthAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
-            p = scaledPts.map(x => x[i]);
+            p = scaledPts.map(x => x[0]);
             mx = Math.max(...p);
             mn = Math.min(...p);
             pts[o.heightAxis] = [[mx, cm], [mx, cp], [mn, cp], [mn, cm]];
