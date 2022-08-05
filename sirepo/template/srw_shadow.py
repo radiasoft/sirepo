@@ -763,6 +763,21 @@ class Convert:
                 )
             )
 
+    def __set_effective_deflecting_parameter(self, srw):
+        if srw.undulator.horizontalDeflectingParameter == 0:
+            srw.undulator.effectiveDeflectingParameter = (
+                srw.undulator.verticalDeflectingParameter
+            )
+        elif srw.undulator.verticalDeflectingParameter == 0:
+            srw.undulator.effectiveDeflectingParameter = (
+                srw.undulator.horizontalDeflectingParameter
+            )
+        else:
+            srw.undulator.effectiveDeflectingParameter = math.sqrt(
+                srw.undulator.horizontalDeflectingParameter**2
+                + srw.undulator.verticalDeflectingParameter**2,
+            )
+
     def __simulation_to_shadow(self, srw, shadow):
         shadow.simulation.update(
             sourceType=self._SOURCE_TYPE[srw.simulation.sourceType],
@@ -816,6 +831,7 @@ class Convert:
     def __undulator_to_srw(self, shadow, srw):
         self.__copy_model_fields("undulator", shadow, srw)
         self.__copy_model_fields("electronBeam", shadow, srw)
+        self.__set_effective_deflecting_parameter(srw)
         srw.simulation.photonEnergy = shadow.undulator.photon_energy
 
     def __validate_conversion_direction(self):
