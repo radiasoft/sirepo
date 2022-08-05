@@ -748,7 +748,7 @@ SIREPO.app.directive('scanSelector', function() {
                     }
                     $scope.selectAllColumns = false;
                 });
-            }
+            };
 
             $scope.$on('scans.changed', $scope.sendScanRequest);
             $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {
