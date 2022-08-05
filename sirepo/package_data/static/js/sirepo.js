@@ -1708,7 +1708,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.isActiveField = function(model, field) {
-        return $(fieldClass(model, field)).find('input').is(':focus');
+        return $(fieldClass(model, field)).find('input, select').is(':focus');
     };
 
     self.isHidden = function(name) {

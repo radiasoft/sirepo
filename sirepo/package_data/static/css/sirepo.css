@@ -749,6 +749,7 @@ table td.sr-center {
 
 .sr-info-pointer {
   cursor: default;
+  z-index: 100;
 }
 ul.navbar-nav > li.sr-logged-in-menu > a {
   line-height: 1px;
