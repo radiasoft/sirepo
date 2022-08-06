@@ -2266,14 +2266,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.shapes = $scope.source.getShapes();
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
-                    //srdbg($scope.modelName, 'ch, draw');
                     $scope.shapes = $scope.source.getShapes();
-                    //if (name == $scope.modelName) {
-                        //refresh();
-                    //drawShapes();
-                    //replot();
-                    //}
+                    drawShapes();
                 });
+
                 $scope.$on('cancelChanges', function(e, name) {
                     refresh();
                 });

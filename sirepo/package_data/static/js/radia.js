@@ -30,7 +30,7 @@ SIREPO.app.config(function() {
             <div data-group-editor="" data-field="model[field]" data-model="model"></div>
         </div>
         <div data-ng-switch-when="HMFile" data-ng-class="fieldClass">
-            <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>
+            <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="false" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>
         </div>
         <div data-ng-switch-when="IntStringArray" class="col-sm-7">
             <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>
@@ -168,6 +168,9 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.updateExtrudedSize = o => {
+        if (o.referencePoints.length === 0) {
+            return;
+        }
         const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
         [o.widthAxis, o.heightAxis].forEach((dim, i) => {
             const p = o.referencePoints.map(x => x[i]);
@@ -3758,12 +3761,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     };
 
     $scope.$on('geomObject.changed', () => {
-        //if (editedModels.includes('extrudedPoly')) {
-        //    $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
-        //    $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
-        //    centerExtrudedPoints();
-        //    updateSize();
-        //}
         //appState.saveQuietly($scope.modelName);
         //editedModels = [];
     });
@@ -3775,16 +3772,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         radiaService.updateExtruded($scope.modelData);
         appState.saveChanges(editedModels);
         updateShapeEditor();
-    }
-
-    // the cross-sectional size is determined by the points
-    function updateSize() {
-        const sz = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat);
-        [$scope.modelData.widthAxis, $scope.modelData.heightAxis].forEach((dim, i) => {
-            const p = $scope.modelData.referencePoints.map(x => x[i]);
-            sz[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
-        });
-        $scope.modelData.size = sz.join(',');
     }
 
     function loadPoints() {
