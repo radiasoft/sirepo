@@ -237,6 +237,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
                 b.setActorProperty('lighting', false);
                 vtkScene.addActor(b.actor);
+                initAxes();
+                buildAxes();
+                vtkScene.renderer.resetCamera();
                 vtkScene.render();
             }
 
@@ -281,8 +284,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     $scope.axisCfg[dim].max = bounds[2 * i + 1];
                     $scope.axisCfg[dim].min = bounds[2 * i];
                 });
-                // force the full screen renderer to resize
-                $scope.$apply(vtkScene.fsRenderer.resize());
             }
 
             function buildOpacityDelegate() {
@@ -353,7 +354,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     selectedVolume = v;
                     buildAxes(actor);
                 }
+                $scope.$apply(vtkScene.fsRenderer.resize());
+            }
 
+            function initAxes() {
+                $scope.axisCfg = {};
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
+                    $scope.axisCfg[dim] = {};
+                    $scope.axisCfg[dim].dimLabel = dim;
+                    $scope.axisCfg[dim].label = dim + ' [m]';
+                    $scope.axisCfg[dim].numPoints = 2;
+                    $scope.axisCfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
+                    $scope.axisCfg[dim].showCentral = false;
+                });
             }
 
             function setColorsFromFieldData(polyData, name, colorMap) {
@@ -434,17 +447,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 }
                 setGlobalProperties();
                 $rootScope.$broadcast('vtk.hideLoader');
-                $scope.axisCfg = {};
-                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
-                    $scope.axisCfg[dim] = {};
-                    $scope.axisCfg[dim].dimLabel = dim;
-                    $scope.axisCfg[dim].label = dim + ' [m]';
-                    $scope.axisCfg[dim].numPoints = 2;
-                    $scope.axisCfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
-                    $scope.axisCfg[dim].showCentral = false;
-                });
+                initAxes();
                 buildAxes();
-                vtkScene.render();
+                $scope.$apply(vtkScene.fsRenderer.resize());
             }
 
             function volumeURL(volId) {
