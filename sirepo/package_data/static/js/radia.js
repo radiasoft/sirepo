@@ -154,15 +154,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.centerExtrudedPoints = o =>  {
         const ctr = utilities.splitCommaDelimitedString(o.center, parseFloat);
         const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
-        const i = self.axisIndex(o.widthAxis);
-        const j = self.axisIndex(o.heightAxis);
-        const mi = SIREPO.UTILS.minForIndex(o.referencePoints, 0);
-        const mj = SIREPO.UTILS.minForIndex(o.referencePoints, 1);
+        const idx = [self.axisIndex(o.widthAxis), self.axisIndex(o.heightAxis)];
         o.points = o.referencePoints.map(
-            x => [
-                x[0] + ctr[i] - (mi + sz[i] / 2.0),
-                x[1] + ctr[j] - (mj + sz[j] / 2.0)
-            ]
+            p => p.map(
+                (x, i) => p[i] + ctr[idx[i]] - (SIREPO.UTILS.minForIndex(o.referencePoints, i) + sz[idx[i]] / 2.0)
+            )
         );
     };
 
@@ -628,13 +624,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             const cp = center[k] + size[k] / 2.0;
             const cm = center[k] - size[k] / 2.0;
             let p = scaledPts.map(x => x[1]);
-            let mx = Math.max(...p);
-            let mn = Math.min(...p);
-            pts[o.widthAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
+            let [mx, mn] = [Math.max(...p), Math.min(...p)];
+            pts[o.widthAxis] = [[mx, cm], [mx, cp], [mn, cp], [mn, cm]];
             p = scaledPts.map(x => x[0]);
-            mx = Math.max(...p);
-            mn = Math.min(...p);
-            pts[o.heightAxis] = [[mx, cm], [mx, cp], [mn, cp], [mn, cm]];
+            [mx, mn] = [Math.max(...p), Math.min(...p)];
+            pts[o.heightAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
         }
         const shape = vtkPlotting.plotShape(
             o.id, o.name,

@@ -1644,10 +1644,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     coordPlane: 'yz',
                     name: ELEVATIONS.side,
                     x: {
-                        axis: 'z',
+                        axis: 'y',
                     },
                     y: {
-                        axis: 'y',
+                        axis: 'z',
                     }
                 },
                 top: {
@@ -1656,10 +1656,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     coordPlane: 'zx',
                     name: ELEVATIONS.top,
                     x: {
-                        axis: 'x',
+                        axis: 'z',
                     },
                     y: {
-                        axis: 'z',
+                        axis: 'x',
                     }
                 }
             };
