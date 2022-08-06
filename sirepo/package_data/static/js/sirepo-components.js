@@ -133,10 +133,10 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
                     });
                 }
                 tabSelectedEvent();
-            }
+            };
 
             $scope.showPageNamed = (name, doShow) => {
-                const p = $scope.pages.filter(p => p.name === name)[0]
+                const p = $scope.pages.filter(p => p.name === name)[0];
                 if (! p) {
                     return;
                 }
@@ -147,7 +147,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
                 else {
                     l.hide();
                 }
-            }
+            };
 
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {

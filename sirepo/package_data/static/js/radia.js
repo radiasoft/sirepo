@@ -569,7 +569,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.saveObject = function(id, callback) {
-        const o = self.selectObjectWithId(id)
+        const o = self.selectObjectWithId(id);
         if (! o) {
             return;
         }
@@ -3845,7 +3845,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         $scope.modelData = appState.models[$scope.modelName];
         editedModels = radiaService.updateModelAndSuperClasses($scope.modelData.type, $scope.modelData);
         updateObjectEditor();
-    }
+    };
 
     $scope.$on('geomObject.changed', () => {
         if (editedModels.includes('extrudedPoly')) {
