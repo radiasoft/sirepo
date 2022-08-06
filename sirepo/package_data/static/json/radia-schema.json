@@ -697,7 +697,7 @@
         },
         "extrudedPoints": {
             "_super": ["_", "model", "extrudedPoly"],
-            "pointsFile": ["File", "InputFile", "", ""],
+            "pointsFile": ["File", "InputFile", true, ""],
             "referencePoints": ["Points", "Points", []],
             "type": ["_", "ObjectType", "extrudedPoints"]
         },
