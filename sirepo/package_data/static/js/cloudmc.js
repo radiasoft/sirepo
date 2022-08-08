@@ -7,21 +7,13 @@ SIREPO.app.config(() => {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-cfg="reportCfg" data-report-id="reportId"></div>
     `;
-    //TODO(pjm): OptionalInteger and OptionalFloat should be standard
+    //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
-        <div data-ng-switch-when="Float3" class="col-sm-7">
-          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="3" data-custom-style="width: 8em;"></div>
-        </div>
-        <div data-ng-switch-when="IntStringArray" class="col-sm-7">
-            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count="" data-custom-style="width: 8em;"></div>
-        </div>
-        <div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">
-          <input data-string-to-number="integer" data-ng-model="model[field]"
-            data-min="info[4]" data-max="info[5]" class="form-control"
-            style="text-align: right" data-lpignore="true" />
+        <div data-ng-switch-when="Point3D" class="col-sm-7">
+          <div data-point3d="" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">
           <input data-string-to-number="" data-ng-model="model[field]"
@@ -51,6 +43,19 @@ SIREPO.app.config(() => {
             data-field2="density_units" data-field2-size="10em"
             data-model-name="modelName" data-model="model"></div>
         </div>
+        <div data-ng-switch-when="Spatial">
+          <div data-multi-level-editor="spatial" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="Univariate">
+          <div data-multi-level-editor="univariate" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="UnitSphere">
+          <div data-multi-level-editor="unitSphere" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="Sources">
+          <div data-sources-editor="" data-model-name="modelName"
+            data-model="model" data-field="field"></div>
+        </div>
         <div data-ng-switch-when="TallyAspects" class="col-sm-12">
           <div data-tally-aspects="" data-model="model" data-field="model[field]"></div>
            <div class="sr-input-warning"></div>
@@ -64,12 +69,22 @@ SIREPO.app.config(() => {
 SIREPO.app.factory('cloudmcService', function(appState) {
     const self = {};
     appState.setAppService(self);
-    self.computeModel = (modelKey) => modelKey;
+    self.computeModel = modelKey => modelKey;
+    self.isGraveyard = volume => {
+        return volume.name && volume.name.toLowerCase() == 'graveyard';
+    };
     return self;
 });
 
-SIREPO.app.controller('GeometryController', function (appState, cloudmcService, persistentSimulation, $scope) {
+SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, $scope) {
     const self = this;
+    let hasVolumes = false;
+
+    function processGeometry() {
+        panelState.showField('geometryInput', 'dagmcFile', false);
+        self.simState.runSimulation();
+    }
+
     self.geom3dReportCfg = {
         fitToWindow: true,
         objectsToLoad: ['volumes'],
@@ -77,25 +92,39 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.isGeometrySelected = () => {
         return appState.applicationState().geometryInput.dagmcFile;
     };
-    self.isGeometryProcessed = () => {
-        return Object.keys(appState.applicationState().volumes).length;
-    };
-    self.simScope = $scope;
-    self.simComputeModel = 'dagmcAnimation';
+    self.isGeometryProcessed = () => hasVolumes;
     self.simHandleStatus = data => {
-        if (data.volumes && ! self.isGeometryProcessed()) {
-            appState.models.volumes = data.volumes;
-            appState.saveChanges('volumes');
+        self.hasServerStatus = true;
+        if (data.volumes) {
+            hasVolumes = true;
+            if (! Object.keys(appState.applicationState().volumes).length) {
+                appState.models.volumes = data.volumes;
+                appState.saveChanges('volumes');
+            }
+        }
+        else if (data.state == 'missing' || data.state == 'canceled') {
+            if (self.isGeometrySelected()) {
+                processGeometry();
+            }
         }
     };
+
+    $scope.$on('geometryInput.changed', () => {
+        if (! hasVolumes) {
+            processGeometry();
+        }
+    });
+
+    self.simScope = $scope;
+    self.simComputeModel = 'dagmcAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, persistentSimulation, requestSender, $scope) {
     const self = this;
     self.geom3dReportCfg = {
         fitToWindow: false,
-        objectsToLoad: ['tallies',],
+        objectsToLoad: ['tallies'],
     };
     self.frameCache = frameCache;
     self.simScope = $scope;
@@ -106,6 +135,18 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         }
     };
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.runningMessage = () => {
+        return `Completed batch: ${self.simState.getFrameCount()}`;
+    };
+    self.simState.logFileURL = function() {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simState.model,
+            '<frame>': SIREPO.nonDataFileFrame,
+            '<suffix>': 'log',
+        });
+    };
     return self;
 });
 
@@ -117,6 +158,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
         `,
     };
 });
@@ -140,13 +182,16 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
               <app-settings>
               </app-settings>
               <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
               </app-header-right-sim-list>
             </div>
         `,
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -159,7 +204,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             <div data-vtk-display="" class="vtk-display"
               data-ng-style="sizeStyle()" data-show-border="true"
               data-report-id="reportId" data-model-name="{{ modelName }}"
-              data-event-handlers="eventHandlers" data-reset-side="z"
+              data-event-handlers="eventHandlers" data-reset-side="y"
               data-enable-axes="true" data-axis-cfg="axisCfg"
               data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
@@ -192,6 +237,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                 setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
                 b.setActorProperty('lighting', false);
                 vtkScene.addActor(b.actor);
+                initAxes();
+                buildAxes();
+                vtkScene.renderer.resetCamera();
                 vtkScene.render();
             }
 
@@ -236,8 +284,6 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                     $scope.axisCfg[dim].max = bounds[2 * i + 1];
                     $scope.axisCfg[dim].min = bounds[2 * i];
                 });
-                // force the full screen renderer to resize
-                $scope.$apply(vtkScene.fsRenderer.resize());
             }
 
             function buildOpacityDelegate() {
@@ -308,7 +354,19 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                     selectedVolume = v;
                     buildAxes(actor);
                 }
+                $scope.$apply(vtkScene.fsRenderer.resize());
+            }
 
+            function initAxes() {
+                $scope.axisCfg = {};
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
+                    $scope.axisCfg[dim] = {};
+                    $scope.axisCfg[dim].dimLabel = dim;
+                    $scope.axisCfg[dim].label = dim + ' [m]';
+                    $scope.axisCfg[dim].numPoints = 2;
+                    $scope.axisCfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
+                    $scope.axisCfg[dim].showCentral = false;
+                });
             }
 
             function setColorsFromFieldData(polyData, name, colorMap) {
@@ -383,19 +441,15 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             }
 
             function volumesLoaded() {
+                if (! $scope.model) {
+                    // volumesLoaded may be called after the component was destroyed
+                    return;
+                }
                 setGlobalProperties();
                 $rootScope.$broadcast('vtk.hideLoader');
-                $scope.axisCfg = {};
-                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
-                    $scope.axisCfg[dim] = {};
-                    $scope.axisCfg[dim].dimLabel = dim;
-                    $scope.axisCfg[dim].label = dim + ' [m]';
-                    $scope.axisCfg[dim].numPoints = 2;
-                    $scope.axisCfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
-                    $scope.axisCfg[dim].showCentral = false;
-                });
+                initAxes();
                 buildAxes();
-                vtkScene.render();
+                $scope.$apply(vtkScene.fsRenderer.resize());
             }
 
             function volumeURL(volId) {
@@ -410,7 +464,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             }
 
             // the vtk teardown is handled in vtkPlotting
-            $scope.destroy = () => {};
+            $scope.destroy = () => {
+                $scope.model = null;
+            };
 
             $scope.init = () => {
                 $scope.fieldDelegate = buildOpacityDelegate();
@@ -454,7 +510,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
 
                 const vols = [];
                 for (const n in appState.models.volumes) {
-                    vols.push(appState.models.volumes[n].volId);
+                    if (! cloudmcService.isGraveyard(appState.models.volumes[n])) {
+                        vols.push(appState.models.volumes[n].volId);
+                    }
                 }
                 vtkScene.render();
                 if (geom3dCfg.objectsToLoad.includes('volumes')) {
@@ -463,6 +521,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                 if (geom3dCfg.objectsToLoad.includes('tallies')) {
                     loadTally(appState.models.tally.aspect);
                 }
+                vtkScene.resetView();
 
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(false);
@@ -516,7 +575,7 @@ SIREPO.app.directive('compoundField', function() {
     };
 });
 
-SIREPO.app.directive('volumeSelector', function(appState, panelState, $rootScope) {
+SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelState, $rootScope) {
     return {
         restrict: 'A',
         scope: {},
@@ -530,14 +589,15 @@ SIREPO.app.directive('volumeSelector', function(appState, panelState, $rootScope
             </div>
             <div id="sr-volume-list" data-ng-style="heightStyle()">
               <div class="sr-hover-row" data-ng-repeat="row in rows track by $index"
-                style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden">
+                style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden"
+                data-ng-class="{'bg-warning': ! row.material.density}">
                 <div style="position: relative">
                   <div
                     style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
                     data-ng-click="toggleSelected(row)">
                     <span class="glyphicon"
                       data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
-                    {{ row.name }}
+                    <b>{{ row.name }}</b>
                   </div>
                   <div style="position: absolute; top: 0px; right: 5px">
                     <button data-ng-click="editMaterial(row)"
@@ -576,6 +636,9 @@ SIREPO.app.directive('volumeSelector', function(appState, panelState, $rootScope
                         row.color = randomColor();
                         row.opacity = 0.3;
                         row.isVisible = true;
+                    }
+                    if (cloudmcService.isGraveyard(row)) {
+                        continue;
                     }
                     $scope.rows.push(row);
                 }
@@ -631,6 +694,9 @@ SIREPO.app.directive('volumeSelector', function(appState, panelState, $rootScope
             $scope.toggleAll = () => {
                 $scope.allVisible = ! $scope.allVisible;
                 Object.values(appState.models.volumes).forEach(v => {
+                    if (cloudmcService.isGraveyard(v)) {
+                        return;
+                    }
                     if (v.isVisible != $scope.allVisible) {
                         $scope.toggleSelected(v, true);
                     }
@@ -714,7 +780,7 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
                 </tr>
               </table>
         `,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             const componentInfo = [];
             $scope.appState = appState;
             $scope.selectedComponent = '';
@@ -765,9 +831,16 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
                     c.components = [];
                 }
                 var m = appState.setModelDefaults({}, 'materialComponent');
+                // use the previous percent_type
+                if (c.components.length) {
+                    m.percent_type = c.components[c.components.length - 1].percent_type;
+                }
                 m.component = $scope.selectedComponent;
                 c.components.push(m);
                 $scope.selectedComponent = '';
+                panelState.waitForUI(() => {
+                    $($element).find('.model-materialComponent-name input').last().focus();
+                });
             };
 
             $scope.componentInfo = idx => {
@@ -786,7 +859,6 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
             };
 
             buildFieldInfo();
-
         },
     };
 });
@@ -835,6 +907,241 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
     };
 });
 
+SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@multiLevelEditor',
+            model: '=',
+            field: '=',
+        },
+        template: `
+          <div style="position: relative; top: -5px; background: rgba(0, 0, 0, 0.05);
+            border: 1px solid lightgray; border-radius: 3px; padding-top: 5px;
+            margin: 0 15px">
+            <div class="form-group">
+              <div data-field-editor="'_type'" data-model-name="modelName"
+                data-model="model[field]" data-label-size="0"></div>
+            </div>
+            <div data-ng-repeat="v in viewFields track by v.track">
+              <div class="form-group">
+                <div class="col-sm-11 col-sm-offset-1">
+                  <div data-field-editor="v.field" data-model-name="model[field]._type"
+                    data-label-size="5"
+                    data-model="model[field]"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `,
+        controller: function($scope) {
+
+            function setView() {
+                if (type() && type() !== 'None') {
+                    $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
+                        .map(f => {
+                            return {
+                                field: f,
+                                track: type() + f,
+                            };
+                        });
+                }
+                else {
+                    $scope.viewFields = null;
+                }
+            }
+
+            function type() {
+                return $scope.model[$scope.field]._type;
+            }
+
+            $scope.$watch('model[field]._type', (newValue, oldValue) => {
+                if (! $scope.model) {
+                    return;
+                }
+                if (panelState.isActiveField($scope.modelName, '_type')) {
+                    if (newValue !== oldValue && newValue) {
+                        $scope.model[$scope.field] = {
+                            _type: type(),
+                        };
+                        if (newValue !== 'None') {
+                            appState.setModelDefaults(
+                                $scope.model[$scope.field],
+                                type(),
+                            );
+                        }
+                    }
+                }
+                setView();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('point3d', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div data-ng-repeat="v in model[field] track by $index"
+              style="display: inline-block; width: 7em; margin-right: 5px;" >
+              <input class="form-control" data-string-to-number="Float"
+                data-ng-model="model[field][$index]"
+                style="text-align: right" required />
+            </div>
+        `,
+    };
+});
+
+SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div style="position: relative; top: -25px">
+              <div class="col-sm-12">
+                <button class="btn btn-xs btn-info pull-right"
+                  data-ng-click="addSource()">
+                  <span class="glyphicon glyphicon-plus"></span> Add Source</button>
+                <table data-ng-if="model[field].length"
+                  style="width: 100%; table-layout: fixed; margin-bottom: 10px"
+                  class="table table-hover">
+                  <colgroup>
+                    <col>
+                    <col style="width: 8em">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>Space</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr data-ng-repeat="m in model[field] track by $index">
+                      <td>
+                        <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap">
+                          {{ description(m) }}
+                        </div>
+                      </td>
+                      <td>
+                        <button class="btn btn-xs btn-info" style="width: 5em"
+                          data-ng-click="editSource(m)">Edit</button>
+                        <button data-ng-click="removeSource(m)"
+                          class="btn btn-danger btn-xs"><span
+                            class="glyphicon glyphicon-remove"></span></button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            const childModel = 'source';
+            const infoFields = {
+                box: ['lower_left', 'upper_right'],
+                cartesianIndependent: ['x', 'y', 'z'],
+                cylindricalIndependent: ['r', 'phi', 'z'],
+                point: ['xyz'],
+                sphericalIndependent: ['r', 'theta', 'phi'],
+                maxwell: ['theta'],
+                muir: ['e0', 'm_rat', 'kt'],
+                normal: ['mean_value', 'std_dev'],
+                powerLaw: ['a', 'b'],
+                uniform: ['a', 'b'],
+                watt: ['a', 'b'],
+            };
+
+            function nextIndex() {
+                return $scope.model[$scope.field].length;
+            }
+
+            function editChild(model) {
+                appState.models[childModel] = model;
+                panelState.showModalEditor(childModel);
+            }
+
+            $scope.addSource = () => {
+                editChild(appState.setModelDefaults({
+                    _index: nextIndex(),
+                }, childModel));
+            };
+
+            $scope.description = m => {
+                return typeInfo('SpatialDistribution', m.space);
+            };
+
+            function typeInfo(modelType, model) {
+                let res = appState.enumDescription(modelType, model._type);
+                if (infoFields[model._type]) {
+                    res += '(';
+                    for (const f of infoFields[model._type]) {
+                        if (! model[f]) {
+                            continue;
+                        }
+                        res += `${f}=`;
+                        if (model[f]._type) {
+                            res += typeInfo('ProbabilityDistribution', model[f]);
+                        }
+                        else {
+                            res += model[f];
+                        }
+                        res += ' ';
+                    }
+                    res = res.trim() + ')';
+                }
+                else if (model.probabilityValue) {
+                    const MAX_VALUES = 3;
+                    res += '(';
+                    for (let i = 0; i < MAX_VALUES; i++) {
+                        if (model.probabilityValue[i]
+                            && model.probabilityValue[i].p) {
+                            res += `(${model.probabilityValue[i].x},${model.probabilityValue[i].p}) `;
+                        }
+                    }
+                    if (model.probabilityValue[MAX_VALUES]
+                        && model.probabilityValue[MAX_VALUES].p) {
+                        res += '...';
+                    }
+                    res = res.trim() + ')';
+                }
+                return res + ' ';
+            }
+
+            $scope.editSource = model => {
+                editChild(model);
+            };
+
+            $scope.removeSource = model => {
+                const c = [];
+                for (const m of $scope.model[$scope.field]) {
+                    if (m._index != model._index) {
+                        m._index = c.length;
+                        c.push(m);
+                    }
+                }
+                $scope.model[$scope.field] = c;
+            };
+
+            $scope.$on('modelChanged', function(event, name) {
+                if (name == childModel) {
+                    const m = appState.models[childModel];
+                    $scope.model[$scope.field][m._index] = m;
+                    appState.removeModel(childModel);
+                    appState.saveChanges($scope.modelName);
+                }
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('tallyAspects', function() {
 
     const aspects = SIREPO.APP_SCHEMA.enum.TallyAspect;
@@ -850,9 +1157,11 @@ SIREPO.app.directive('tallyAspects', function() {
                 const label = aspects[n][1];
                 const val = aspects[n][0];
                 t += `
-                    <div class="col-sm-3">
-                        <span>${label}</span> <input type="checkbox" data-ng-model="selectedAspects['${val}']" data-ng-change="toggleAspect('${val}')">
+                  <div style="position: relative; top: -25px">
+                    <div class="col-sm-offset-5 col-sm-6">
+                        <label><input type="checkbox" data-ng-model="selectedAspects['${val}']" data-ng-change="toggleAspect('${val}')"> ${label}</label>
                     </div>
+                  </div>
                 `;
             }
             t += '</div>';
@@ -885,21 +1194,14 @@ SIREPO.app.directive('tallyAspects', function() {
     };
 });
 
-SIREPO.viewLogic('openmcSettingsView', function(appState, cloudmcService, panelState, $scope) {
 
-    $scope.watchFields = [
-        [
-            'tally.aspects',
-        ], updateEditor
-    ];
-
-    $scope.whenSelected = function() {
-        updateEditor();
-    };
-
-    $scope.$on('tally.changed', updateEditor);
-
-
+SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
+    function processPlanes() {
+        panelState.showFields('reflectivePlanes', [
+            ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
+            appState.models.reflectivePlanes.useReflectivePlanes == '1',
+        ]);
+    }
     function updateEditor() {
         for (const a of SIREPO.APP_SCHEMA.enum.TallyAspect) {
             panelState.showEnum(
@@ -910,4 +1212,15 @@ SIREPO.viewLogic('openmcSettingsView', function(appState, cloudmcService, panelS
             );
         }
     }
+    $scope.whenSelected = () => {
+        updateEditor();
+        processPlanes();
+    };
+    $scope.watchFields = [
+        ['reflectivePlanes.useReflectivePlanes'], processPlanes,
+    ];
+    $scope.$watchCollection('appState.models.tally.aspects', updateEditor);
+
+
+    $scope.$on('tally.changed', updateEditor);
 });

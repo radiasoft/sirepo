@@ -20,7 +20,19 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls._init_models(dm)
+        cls._init_models(
+            dm,
+            (
+                "dagmcAnimation",
+                "geometry3DReport",
+                "geometryInput",
+                "openmcAnimation",
+                "reflectivePlanes",
+                "settings",
+                "tally",
+                "volumes",
+            ),
+        )
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
