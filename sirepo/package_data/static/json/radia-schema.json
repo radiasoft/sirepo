@@ -828,7 +828,7 @@
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
             "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "currentDensity": ["Current Density [A/mm]", "Float", -2000.0],
+            "currentDensity": ["Current Density [A/$mm^2$]", "Float", -2000.0],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
             "height": ["Height ({{ appState.models.simulation.heightAxis }}) [mm]", "Float", 105.0, "", "Size along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
