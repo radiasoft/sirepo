@@ -59,8 +59,6 @@ def http():
     Used for development only.
     """
 
-    env = PKDict(os.environ)
-    env.SIREPO_JOB_DRIVER_MODULES = "local"
     processes = []
 
     @contextlib.contextmanager
@@ -99,6 +97,8 @@ def http():
     def _start(
         service, extra_environ=None, cwd=".", prefix=("pyenv", "exec", "sirepo")
     ):
+        env = PKDict(os.environ)
+        env.SIREPO_JOB_DRIVER_MODULES = "local"
         if extra_environ is not None:
             env[extra_environ[0]] = extra_environ[1]
         processes.append(
