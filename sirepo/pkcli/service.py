@@ -95,7 +95,7 @@ def http():
             proc.kill()
 
     def _start(service, extra_environ, cwd=".", prefix=("pyenv", "exec", "sirepo")):
-        env = PKDict(os.environ).pkmerge(extra_environ)
+        env = PKDict(os.environ).pkupdate(extra_environ)
         processes.append(
             subprocess.Popen(
                 prefix + service,
