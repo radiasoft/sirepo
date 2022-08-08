@@ -7,7 +7,6 @@ Also supports starting nginx proxy.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import psutil
 from pykern import pkcli
 from pykern import pkcollections
 from pykern import pkconfig
@@ -18,6 +17,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import contextlib
 import os
+import psutil
 import py
 import re
 import signal
