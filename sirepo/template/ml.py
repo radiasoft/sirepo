@@ -15,7 +15,9 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import numpy as np
+import random
 import re
+import string
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
@@ -629,11 +631,9 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
-    import string
-    import random
-
 
     def _new_name():
+        # TODO (gurhar1133): use a global stack instead for testing
         return "x_" +  ''.join(random.choice(string.digits) for i in range(4))
 
     def _branching(layer):
@@ -643,7 +643,6 @@ def _build_model_py(v):
         layer_level.name = "x" if first_level else _new_name()
         layer_level.parent_name = parent_level_name
         for i, l in enumerate(layer_level.layers):
-            # assert 0, f"l is {l}"
             if _branching(l):
                 for c in l.children:
                     l.parent_name = layer_level.name
@@ -701,13 +700,9 @@ def _build_model_py(v):
         return f"{layers.name} = {layer.layer}{layer_args}\n"
 
     def _build_layers(branch):
-        #TODO (gurhar1133): still not correct (need to consider non recursive?)
-        #TODO (gurhar1133): when
         res = ""
         for i, l in enumerate(branch.layers):
             if i == 0:
-                # if l.layer == "Add" or l.layer == "Concatenate":
-                #     l.name = branch.parentName
                 c = f"({_layer(l)})({branch.parent_name})"
             else:
                 c = f"({_layer(l)})({branch.name})"
@@ -716,18 +711,12 @@ def _build_model_py(v):
 
     def _branch(layer, join_type):
         def _join(layer):
-            # return f"{layer.children[1].name} = {join_type}()([{layer.children[1].name}, {layer.children[0].name}])\n"
             c = ", ".join([l.name for l in layer.children])
             return f"{layer.parent_name} = {join_type}()([{c}])\n"
 
-        #TODO (gurhar1133): loop through arbitrary number of children instead
         res = ""
         for c in layer.children:
             res += _build_layers(c)
-            # _build_layers(layer.children[0], layer.children[1])
-            # + _build_layers(layer.children[1], layer.children[1])
-            # + _join(layer)
-
         res += _join(layer)
         return res
 
@@ -741,35 +730,6 @@ input_args = Input(shape=({v.inputDim},))
 {_build_layers(net)}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
-
-model.summary(print_fn=lambda x: print(x.split('\\n')))
-
-
-relevant_nodes = []
-for v in model._nodes_by_depth.values():
-    relevant_nodes += v
-
-print('model attrs: ', model.__dict__)
-for layer in model.layers:
-    print('layer:', layer._name)
-    inbound = []
-    for node in layer._inbound_nodes:
-        if relevant_nodes and node not in relevant_nodes:
-                # node is not part of the current network
-            continue
-
-        for (
-            inbound_layer,
-            node_index,
-            tensor_index,
-            _,
-        ) in node.iterate_inbound():
-            inbound.append(inbound_layer.name)
-    if inbound:
-        print('inbound layers: ', inbound)
-    print('----------')
-model.save('./')
-
 """
 
 

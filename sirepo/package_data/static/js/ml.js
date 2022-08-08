@@ -1440,7 +1440,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
         restrict: 'A',
         scope: {
             layerTarget: '=',
-            parentName: '@',
         },
         template: `
             <form name="form" class="form-horizontal">
@@ -1474,7 +1473,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     </td>
                     <td>
                       <div data-ng-if="checkBranch(layer)">
-                        <div data-ng-repeat="l in layer.children" class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="l" data-parent-name="{{lName}}"></div>
+                        <div data-ng-repeat="l in layer.children" class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="l"></div>
                       </div>
                     </td>
                   <tr>
@@ -1519,8 +1518,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
             $scope.layerLevel = getLayerLevel();
-            setLevelName();
-            srdbg('appState.models.neuralNet:', appState.models.neuralNet);
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             };
@@ -1530,7 +1527,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     return;
                 }
                 if (branchingLayer($scope.selectedLayer)) {
-                    srdbg('about to nest');
                     nest();
                     $scope.selectedLayer = '';
                     return;
@@ -1541,7 +1537,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 }
                 const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
                 m.layer = $scope.selectedLayer;
-                m.parentName = $scope.parentName;
                 neuralNet.push(m);
                 $scope.selectedLayer = '';
             };
@@ -1549,10 +1544,9 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.checkBranch = layer => {
                 const b = branchingLayer(layer.layer);
                 if (b && layer.children !== null) {
-                    layer.parentName = $scope.lName;
                     return b;
                 }
-                layer.children = newChildren($scope.lName);
+                layer.children = newChildren();
                 return b;
             };
 
@@ -1565,13 +1559,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             }
 
             $scope.addChild = layer => {
-                srdbg("add another child to: ", layer);
-                // let n = $scope.lName
-                // if (layer.children) {
-                //     n = newChildName();
-                // }
-
-                layer.children.push(newChild($scope.lName,  newChildName()));
+                layer.children.push(newChild());
             }
 
             $scope.layerName = layer => {
@@ -1694,40 +1682,21 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 return appState.models.neuralNet.layers;
             }
 
-            function setLevelName(){
-                if ($scope.layerTarget){
-                    $scope.lName = $scope.layerTarget.name;
-                    return;
-                }
-                appState.models.neuralNet.name = "x";
-                $scope.lName = appState.models.neuralNet.name;
+            function newChild() {
+                return {layers: []};
             }
 
-            function newChild(parentName, childName) {
-                return {layers: [], parentName: parentName, name: childName};
-            }
-
-            function newChildName() {
-                return "x" + Math.random().toString(20).substr(2, 5);
-            }
-            function newChildren(parentName) {
+            function newChildren() {
                 return [
-                    newChild(parentName, newChildName()),
-                    newChild(parentName, newChildName()),
+                    newChild(),
+                    newChild(),
                 ];
             }
 
             function nest() {
-                // TODO (gurhar1133): addnodes need to have (leftname, parentName)
-                // and parentName needs to proliferate
-                srdbg('layerLevel: ', $scope.layerLevel.length);
-                const p = $scope.layerLevel.length ? $scope.lName : $scope.parentName;
-                srdbg('parent selection: ', p);
-                srdbg('lName:', $scope.lName, 'parentName:', $scope.parentName);
                 const n = {
                     layer: $scope.selectedLayer,
-                    parentName: $scope.parentName,
-                    children: newChildren(p),
+                    children: newChildren(),
                 };
                 $scope.layerLevel.push(n);
             }
