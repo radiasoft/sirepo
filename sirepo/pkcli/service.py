@@ -70,6 +70,17 @@ def http():
         finally:
             [signal.signal(x[0], x[1]) for x in o]
 
+    def _kill(*args):
+        for p in processes:
+            try:
+                for c in list(psutil.Process(p.pid).children(recursive=True)):
+                    _safe_kill_process(c)
+            except Exception:
+                # need to ignore exceptions while converting process children
+                # to a list so that the parent is still terminated
+                pass
+            _safe_kill_process(p)
+
     def _safe_kill_process(proc):
         try:
             proc.terminate()
@@ -82,17 +93,6 @@ def http():
             pass
         except (psutil.TimeoutExpired, subprocess.TimeoutExpired):
             proc.kill()
-
-    def _kill(*args):
-        for p in processes:
-            try:
-                for c in list(psutil.Process(p.pid).children(recursive=True)):
-                    _safe_kill_process(c)
-            except Exception:
-                # need to ignore exceptions while converting process children
-                # to a list so that the parent is still terminated
-                pass
-            _safe_kill_process(p)
 
     def _start(service, extra_environ, cwd=".", prefix=("pyenv", "exec", "sirepo")):
         env = PKDict(os.environ).pkmerge(extra_environ)
