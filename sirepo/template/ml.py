@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import enum
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -628,6 +629,29 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
+    import string
+    import random
+
+
+    def _new_name():
+        return "x_" +  ''.join(random.choice(string.digits) for i in range(4))
+
+    def _branching(layer):
+        return layer.layer == "Add" or layer.layer == "Concatenate"
+
+    def _name_layers(layer_level, parent_level_name, first_level=False):
+        layer_level.name = "x" if first_level else _new_name()
+        layer_level.parent_name = parent_level_name
+        for i, l in enumerate(layer_level.layers):
+            # assert 0, f"l is {l}"
+            if _branching(l):
+                for c in l.children:
+                    l.parent_name = layer_level.name
+                    if i == 0:
+                        _name_layers(c, parent_level_name)
+                    else:
+                        _name_layers(c, layer_level.name)
+
     def _import_layers(v):
         return "".join(", " + n for n in v.layerImplementationNames)
 
@@ -684,7 +708,7 @@ def _build_model_py(v):
             if i == 0:
                 # if l.layer == "Add" or l.layer == "Concatenate":
                 #     l.name = branch.parentName
-                c = f"({_layer(l)})({branch.parentName})"
+                c = f"({_layer(l)})({branch.parent_name})"
             else:
                 c = f"({_layer(l)})({branch.name})"
             res += _branch_or_continue(branch, l, c)
@@ -694,7 +718,7 @@ def _build_model_py(v):
         def _join(layer):
             # return f"{layer.children[1].name} = {join_type}()([{layer.children[1].name}, {layer.children[0].name}])\n"
             c = ", ".join([l.name for l in layer.children])
-            return f"{layer.parentName} = {join_type}()([{c}])\n"
+            return f"{layer.parent_name} = {join_type}()([{c}])\n"
 
         #TODO (gurhar1133): loop through arbitrary number of children instead
         res = ""
@@ -707,11 +731,14 @@ def _build_model_py(v):
         res += _join(layer)
         return res
 
+    net = PKDict(layers=v.neuralNetLayers)
+    _name_layers(net, "input_args", first_level=True)
+
     return f"""
 from keras.models import Model, Sequential
 from keras.layers import Input{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
-{_build_layers(PKDict(layers=v.neuralNetLayers, name="x", parentName="input_args"))}
+{_build_layers(net)}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
 

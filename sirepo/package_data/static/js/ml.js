@@ -1541,6 +1541,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 }
                 const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
                 m.layer = $scope.selectedLayer;
+                m.parentName = $scope.parentName;
                 neuralNet.push(m);
                 $scope.selectedLayer = '';
             };
@@ -1719,11 +1720,14 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             function nest() {
                 // TODO (gurhar1133): addnodes need to have (leftname, parentName)
                 // and parentName needs to proliferate
-                srdbg('lName: ', $scope.lName);
+                srdbg('layerLevel: ', $scope.layerLevel.length);
+                const p = $scope.layerLevel.length ? $scope.lName : $scope.parentName;
+                srdbg('parent selection: ', p);
+                srdbg('lName:', $scope.lName, 'parentName:', $scope.parentName);
                 const n = {
                     layer: $scope.selectedLayer,
                     parentName: $scope.parentName,
-                    children: newChildren($scope.parentName),
+                    children: newChildren(p),
                 };
                 $scope.layerLevel.push(n);
             }
