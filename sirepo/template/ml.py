@@ -631,14 +631,17 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
+    v.counter = 0
+
     def _new_name():
-        # TODO (gurhar1133): use a global stack instead for testing
-        return "x_" + "".join(random.choice(string.digits) for i in range(4))
+        v.counter += 1
+        return "x_" + str(v.counter)
 
     def _branching(layer):
         return layer.layer == "Add" or layer.layer == "Concatenate"
 
     def _name_layers(layer_level, parent_level_name, first_level=False):
+        # TODO (gurhar1133): needs tests with in=v.neuralNet from ui, out=param.py
         layer_level.name = "x" if first_level else _new_name()
         layer_level.parent_name = parent_level_name
         for i, l in enumerate(layer_level.layers):
