@@ -30,8 +30,8 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="TrimButton" class="col-sm-5">
           <div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="URL" class="col-sm-5" data-field-class="fieldClass">
-          <input type="text" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" />          
+        <div data-ng-switch-when="URL" class="col-sm-7" data-field-class="fieldClass">
+          <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />          
           <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength || 0 }} bytes</span>
           <div class="sr-input-warning"></div>
           <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
