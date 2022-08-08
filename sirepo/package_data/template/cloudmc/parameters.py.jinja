@@ -43,7 +43,7 @@ def create_materials():
     {% endfilter %}
     materials.export_to_xml()
     openmc_data_downloader.just_in_time_library_generator(
-        libraries='ENDFB-7.1-NNDC',
+        libraries='{{ settings_materialLibrary }}',
         materials=materials,
         destination='../../lib',
     )
