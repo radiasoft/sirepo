@@ -1606,14 +1606,41 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             $scope.dataCleared = true;
             $scope.model = appState.models[$scope.modelName];
 
+            function getPath(id) {
+                for (const p of appState.models.fieldPaths.paths) {
+                    if (p.id === id) {
+                        return p;
+                    }
+                }
+                return null;
+            }
+
             function isFieldPathValid(p) {
                 return ! $.isEmptyObject(p) && p.type;
             }
 
             function setPathIfMissing() {
                 if (! isFieldPathValid($scope.model.fieldPath) && $scope.hasPaths() ) {
-                    $scope.model.fieldPath = appState.models.fieldPaths.paths[0];
-                    appState.saveQuietly($scope.modelName);
+                    setPath(appState.models.fieldPaths.paths[0]);
+                }
+            }
+
+            function setPath(p) {
+                $scope.model.fieldPath = p;
+                if (p.axis) {
+                    $scope.model.plotAxis = p.axis;
+                }
+                appState.saveQuietly($scope.modelName);
+            }
+
+            function updatePath() {
+                const p = getPath(($scope.model.fieldPath || {}).id);
+                if (p) {
+                    setPath(p);
+                }
+                else {
+                    delete $scope.model.fieldPath;
+                    setPathIfMissing();
                 }
             }
 
@@ -1625,14 +1652,14 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
                 $scope.dataCleared = false;
             });
 
-            $scope.$on('fieldPaths.changed', setPathIfMissing);
+            $scope.$on('fieldPaths.changed', updatePath);
 
             appState.watchModelFields($scope, [`${$scope.modelName}.fieldPath`],  () => {
                 if ($scope.model.fieldPath.axis) {
                     $scope.model.plotAxis = $scope.model.fieldPath.axis;
                 }
             });
-            setPathIfMissing();
+            updatePath();
         },
     };
 });
