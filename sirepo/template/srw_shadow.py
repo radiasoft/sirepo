@@ -764,7 +764,7 @@ class Convert:
             )
 
     def __set_effective_deflecting_parameter(self, srw):
-        #TODO(pjm): code is equivalent to javascript srw.js computeUndulatorDefinition()
+        # TODO(pjm): code is equivalent to javascript srw.js computeUndulatorDefinition()
         if srw.undulator.horizontalDeflectingParameter == 0:
             srw.undulator.effectiveDeflectingParameter = (
                 srw.undulator.verticalDeflectingParameter
@@ -778,13 +778,16 @@ class Convert:
                 srw.undulator.horizontalDeflectingParameter**2
                 + srw.undulator.verticalDeflectingParameter**2,
             )
-        for d in ('horizontal', 'vertical'):
-            srw.undulator[f'{d}Amplitude'] = \
-                sirepo.template.srw.process_undulator_definition(PKDict(
-                    undulator_definition='K',
-                    undulator_parameter=srw.undulator[f'{d}DeflectingParameter'],
+        for d in ("horizontal", "vertical"):
+            srw.undulator[
+                f"{d}Amplitude"
+            ] = sirepo.template.srw.process_undulator_definition(
+                PKDict(
+                    undulator_definition="K",
+                    undulator_parameter=srw.undulator[f"{d}DeflectingParameter"],
                     undulator_period=srw.undulator.period / 1000,
-                )).amplitude
+                )
+            ).amplitude
 
     def __simulation_to_shadow(self, srw, shadow):
         shadow.simulation.update(
