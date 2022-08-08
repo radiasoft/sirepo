@@ -1,7 +1,7 @@
 # output from protractor
 reports/
 package-lock.json
-node_modules/
+node_modules
 run/
 .eggs/
 MANIFEST.in
