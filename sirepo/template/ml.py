@@ -586,7 +586,7 @@ def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     for l in dm.neuralNet.layers:
-        pkdp('\n\n\n\n layer -> {}', l)
+        pkdp("\n\n\n\n layer -> {}", l)
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.pkupdate(
@@ -631,10 +631,9 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
-
     def _new_name():
         # TODO (gurhar1133): use a global stack instead for testing
-        return "x_" +  ''.join(random.choice(string.digits) for i in range(4))
+        return "x_" + "".join(random.choice(string.digits) for i in range(4))
 
     def _branching(layer):
         return layer.layer == "Add" or layer.layer == "Concatenate"
@@ -817,8 +816,8 @@ def _layer_implementation_list(data):
     def _helper(nn):
         for layer in nn:
             if layer.layer == "Add" or layer.layer == "Concatenate":
-                _helper(layer.children[0].layers)
-                _helper(layer.children[1].layers)
+                for c in layer.children:
+                    _helper(c.layers)
             res[layer.layer] = 1
 
     _helper(nn)

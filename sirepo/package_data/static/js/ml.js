@@ -1567,8 +1567,10 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.cancelChanges = function() {
+                srdbg('before -> appState.models:', appState.models.neuralNet);
                 appState.cancelChanges('neuralNet');
                 $scope.form.$setPristine();
+                srdbg('after-> appState.models:', appState.models.neuralNet);
             };
 
             $scope.deleteLayer = function(idx) {
