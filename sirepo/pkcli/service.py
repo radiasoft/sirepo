@@ -95,11 +95,9 @@ def http():
             _safe_kill_process(p)
 
     def _start(
-        service, extra_environ=None, cwd=".", prefix=("pyenv", "exec", "sirepo")
+        service, extra_environ, cwd=".", prefix=("pyenv", "exec", "sirepo")
     ):
-        env = PKDict(os.environ)
-        if extra_environ is not None:
-            env[extra_environ[0]] = extra_environ[1]
+        env = PKDict(os.environ).pkmerge(extra_environ)
         processes.append(
             subprocess.Popen(
                 prefix + service,
@@ -114,25 +112,24 @@ def http():
         ):
             _start(
                 ("job_supervisor",),
-                extra_environ=(
-                    "SIREPO_JOB_DRIVER_MODULES",
-                    "local"
-                ))
+                extra_environ=PKDict(
+                    SIREPO_JOB_DRIVER_MODULES="local"
+                )
+            )
             # Avoid race condition on creating auth db
             time.sleep(0.3)
             _start(
                 ("npm", "start"),
                 cwd="../react",
                 prefix=(),
-                extra_environ=("PORT", str(_cfg().react_port)),
+                extra_environ=PKDict(PORT=str(_cfg().react_port)),
             )
             time.sleep(0.3)
             _start(
                 ("service", "flask"),
-                extra_environ=(
-                    "SIREPO_SERVER_REACT_SERVER",
-                    f"http://127.0.0.1:{_cfg().react_port}/",
-                ),
+                extra_environ=PKDict(
+                    SIREPO_SERVER_REACT_SERVER=f"http://127.0.0.1:{_cfg().react_port}/",
+                )
             )
             p, _ = os.wait()
     except ChildProcessError:
