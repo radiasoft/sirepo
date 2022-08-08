@@ -204,7 +204,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             <div data-vtk-display="" class="vtk-display"
               data-ng-style="sizeStyle()" data-show-border="true"
               data-report-id="reportId" data-model-name="{{ modelName }}"
-              data-event-handlers="eventHandlers" data-reset-side="z"
+              data-event-handlers="eventHandlers" data-reset-side="y"
               data-enable-axes="true" data-axis-cfg="axisCfg"
               data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
@@ -521,6 +521,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 if (geom3dCfg.objectsToLoad.includes('tallies')) {
                     loadTally(appState.models.tally.aspect);
                 }
+                vtkScene.resetView();
 
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(false);
