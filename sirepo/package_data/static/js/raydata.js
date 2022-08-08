@@ -199,9 +199,6 @@ SIREPO.app.controller('AnalysisController', function(appState, persistentSimulat
     };
 
     self.startSimulation = () => {
-        srdbg('started poll')
-        srdbg(`minutes=${appState.models.pollBlueskyForScansAnimation.minutes}`)
-        srdbg(`showStartNewPollButton=${self.showStartNewPollButton()}`)
         appState.models.pollBlueskyForScansAnimation.start = timeService.unixTimeNow();
         appState.saveChanges('pollBlueskyForScansAnimation', self.simState.runSimulation);
     };
