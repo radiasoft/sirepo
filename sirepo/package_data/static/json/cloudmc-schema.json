@@ -22,6 +22,13 @@
             ["ao", "ao"],
             ["wo", "wo"]
         ],
+        "Interpolation": [
+            ["histogram", "Histogram"],
+            ["linear-linear", "Linear-Linear"],
+            ["linear-log", "Linear-Log"],
+            ["log-linear", "Log-Linear"],
+            ["log-log", "Log-Log"]
+        ],
         "MaterialComponent": [
             ["add_element", "Element"],
             ["add_elements_from_formula", "Elements from Formula"],
@@ -29,17 +36,61 @@
             ["add_nuclide", "Nuclide"],
             ["add_s_alpha_beta", "S alpha beta"]
         ],
+        "MaterialLibrary": [
+            ["ENDFB-7.1-NNDC", "ENDFB-7.1-NNDC"],
+            ["TENDL-2019", "TENDL-2019"]
+        ],
+        "Particle": [
+            ["neutron", "Neutron"],
+            ["photon", "Photon"]
+        ],
         "PercentType": [
             ["ao", "ao"],
             ["wo", "wo"]
         ],
-        "SourceSpace": [
+        "ProbabilityDistribution": [
+            ["None", "None"],
+            ["discrete", "Discrete"],
+            ["legendre", "Legendre"],
+            ["maxwell", "Maxwell"],
+            ["muir", "Muir"],
+            ["normal", "Normal"],
+            ["powerLaw", "PowerLaw"],
+            ["tabular", "Tabular"],
+            ["uniform", "Uniform"],
+            ["watt", "Watt"]
+        ],
+        "RunMode": [
+            ["eigenvalue", "eigenvalue"],
+            ["fixed source", "fixed source"]
+        ],
+        "SpatialDistribution": [
+            ["None", "None"],
             ["box", "Box"],
-            ["fission", "Fissionable Box"],
+            ["cartesianIndependent", "CartesianIndependent"],
+            ["cylindricalIndependent", "CylindricalIndependent"],
             ["point", "Point"],
-            ["cartesian", "Cartesian"],
-            ["cylindrical", "Cylindrical"],
-            ["spherical", "Spherical"]
+            ["sphericalIndependent", "SphericalIndependent"]
+        ],
+        "UnitSphereDistribution": [
+            ["None", "None"],
+            ["isotropic", "Isotropic"],
+            ["monodirectional", "Monodirectional"],
+            ["polarAzimuthal", "PolarAzimuthal"]
+        ],
+        "TallyAspect": [
+            ["mean", "Mean"],
+            ["std_dev", "Standard Deviation"],
+            ["sum", "Sum"],
+            ["sum_sq", "Sum of Squares"]
+        ],
+        "TallyScore": [
+            ["events", "Events"],
+            ["inverse-velocity", "Inverse Velocity"],
+            ["heating", "Heating"],
+            ["kappa-fission", "Kappa Fission Rate"],
+            ["decay-rate", "Decay Rate"],
+            ["damage-energy", "Damage Energy"]
         ]
     },
     "dynamicFiles": {
@@ -76,60 +127,221 @@
         }
     },
     "model": {
+        "box": {
+            "_super": [ "_", "model", "spatial"],
+            "lower_left": ["Lower left [cm]", "Point3D", [0, 0, 0], "Lower-left coordinates of cuboid"],
+            "upper_right": ["Upper right [cm]", "Point3D", [0, 0, 0], "Upper-right coordinates of cuboid"],
+            "only_fissionable": ["Only fissionable", "Boolean", "0", "Whether spatial sites should only be accepted if they occur in fissionable materials"]
+        },
         "dagmcAnimation": {},
-
+        "discrete": {
+            "_super": [ "_", "model", "univariate"],
+            "probabilityValue": ["", "ModelArray", ""]
+        },
+        "cartesianIndependent": {
+            "_super": [ "_", "model", "spatial"],
+            "x": ["X distribution", "Univariate", {"_type": "None"}],
+            "y": ["Y distribution", "Univariate", {"_type": "None"}],
+            "z": ["Z distribution", "Univariate", {"_type": "None"}]
+        },
+        "coefficient": {
+            "coefficient": ["Expansion coefficients", "FloatArray", "", "Probability density given by a Legendre polynomial expansion $\\sum\\limits_{\\ell=0}^N \\frac{2\\ell + 1}{2} a_\\ell P_\\ell(\\mu)$. $\\newline$ Expansion coefficients $a_\\ell$. Note that the $(2\\ell + 1)/2$ factor should not be included"]
+        },
+        "cylindricalIndependent": {
+            "_super": [ "_", "model", "spatial"],
+            "r": ["R distribution", "Univariate", {"_type": "None"}],
+            "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
+            "z": ["Z distribution", "Univariate", {"_type": "None"}],
+            "origin": ["Origin", "Point3D [cm]", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the cylindrical reference frame for the source."]
+        },
+        "legendre": {
+            "_super": [ "_", "model", "univariate"],
+            "coefficient": ["", "ModelArray", ""]
+        },
         "materialComponent": {
             "component": ["Component", "MaterialComponent", "add_element"],
             "name": ["Name", "ComponentName", ""],
             "percent_with_type": ["Percent", "PercentWithType", "", "Atom weight (ao) or Weight percent (wo)"],
             "percent": ["Percent", "Float", 1.0],
-            "percent_type": ["Percent Type", "PercentType", "ao"],
+            "percent_type": ["Percent type", "PercentType", "ao"],
             "enrichment_with_type": ["Enrichment", "EnrichmentWithType", "", "Atom weight (ao) or Weight percent (wo)"],
             "enrichment": ["Enrichment", "OptionalFloat"],
-            "enrichment_type": ["Enrichment Type", "EnrichmentType", "none"],
-            "enrichment_target": ["Enrichment Target", "OptionalString"],
+            "enrichment_type": ["Enrichment type", "EnrichmentType", "none"],
+            "enrichment_target": ["Enrichment target", "OptionalString"],
             "fraction": ["Fraction", "Float", 1.0, "The fraction of relevant nuclei that are affected by the $S(\\alpha, \\beta)$ table."]
         },
         "geometryInput": {
-            "dagmcFile": ["DAGMC File", "InputFile", ""]
+            "dagmcFile": ["DAGMC file", "InputFile", ""]
         },
         "geometry3DReport": {
-            "bgColor": ["Background Color", "Color", [1, 0.97647, 0.929412]],
-            "opacity": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
-            "showEdges": ["Show Edges", "Boolean", "0"]
+            "bgColor": ["Background color", "Color", "#fff9ed"],
+            "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
+            "showEdges": ["Show edges", "Boolean", "0"]
+        },
+        "isotropic": {
+            "_super": ["_", "model", "unitSphere"]
         },
         "material": {
             "name": ["Name", "String", ""],
             "temperature": ["Temperature [K] (Optional)", "OptionalFloat"],
             "density_with_units": ["Density", "DensityWithUnits"],
             "density": ["Density", "Float"],
-            "density_units": ["Density Units", "DensityUnits", "g/cm3"],
+            "density_units": ["Density units", "DensityUnits", "g/cm3"],
             "depletable": ["Depletable", "Boolean", "0"],
             "volume": ["Volume [$cm^3$] (Optional)", "OptionalFloat"],
             "components": ["", "MaterialComponents"]
         },
-        "openmcSettings": {
+        "maxwell": {
+            "_super": [ "_", "model", "univariate"],
+            "theta": ["Theta", "Float", "", "The Maxwellian distribution in energy is characterized by a single parameter $\\theta$ and has a density function $p(E) dE = c \\sqrt{E} e^{-E/\\theta} dE$"]
+        },
+        "monodirectional": {
+            "_super": ["_", "model", "unitSphere"],
+            "reference_uvw": ["Polar angle direction", "Point3D", [1, 0, 0]]
+        },
+        "muir": {
+            "_super": [ "_", "model", "univariate"],
+            "e0": ["Mean energy [eV]", "Float", 14.08e6, "The Muir energy spectrum is a Gaussian spectrum, but for convenience reasons allows the user 3 parameters to define the distribution, the mean energy of particles, the mass of reactants, and the ion temperature"],
+            "m_rat": ["Mass of reactants", "Float", 5, "Ratio of the sum of the masses of the reaction inputs to an AMU"],
+            "kt": ["Ion temperature [eV]", "Float", 20000]
+        },
+        "normal": {
+            "_super": [ "_", "model", "univariate"],
+            "mean_value": ["Mean value", "Float"],
+            "std_dev": ["Standard deviation", "Float"]
+        },
+        "settings": {
             "batches": ["Number of batches to simulation", "Integer", 1],
             "inactive": ["Number of inactive batches", "Integer", 0],
-            "particles": ["Number of particles per generation", "Integer", 5000]
+            "particles": ["Number of particles per generation", "Integer", 5000],
+            "sources": ["", "Sources", []],
+            "run_mode": ["Run mode", "RunMode", "eigenvalue", "The type of calculation to perform"],
+            "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-7.1-NNDC"]
         },
-        "openmcSource": {
-            "spaceType": ["Type", "SourceSpace", "box"],
-            "boxLowerLeft": ["Lower Left", "Float3", "-1, -1, -1", "", "X, Y, Z"],
-            "boxUpperRight": ["Upper Right", "Float3", "1, 1, 1", "", "X, Y, Z"]
+        "point": {
+            "_super": [ "_", "model", "spatial"],
+            "xyz": ["X, Y, Z [cm]", "Point3D", [0, 0, 0]]
+        },
+        "polarAzimuthal": {
+            "_super": ["_", "model", "unitSphere"],
+            "mu": ["Polar angle distribution", "Univariate", {"_type": "None"}, "Distribution of the cosine of the polar angle"],
+            "phi": ["Azimuthal angle distribution [rad]", "Univariate", {"_type": "None"}, "Distribution of the azimuthal angle in radians"],
+            "reference_uvw": ["Polar angle direction", "Point3D", [0, 0, 1]]
+        },
+        "powerLaw": {
+            "_super": [ "_", "model", "univariate"],
+            "a": ["Lower bound", "Float", 0, "The power law distribution has density function $p(x) dx = c x^n dx$"],
+            "b": ["Upper bound", "Float", 1],
+            "n": ["Exponent", "Float", 0, "Power law exponent. Defaults to zero, which is equivalent to a uniform distribution"]
+        },
+        "probabilityValue": {
+            "x": ["Value", "Float"],
+            "p": ["Probability", "Float"]
+        },
+        "reflectivePlanes": {
+            "useReflectivePlanes": ["Use reflective planes", "Boolean", "0", "Add reflective planes for sector models. $Ax + By + Cz = D$"],
+            "plane1a": ["Plane 1 A", "Float", 0],
+            "plane1b": ["Plane 1 B", "Float", -1],
+            "plane2a": ["Plane 2 A", "Float", 1],
+            "plane2b": ["Plane 2 B", "Float", 0]
+        },
+        "source": {
+            "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
+            "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
+            "energy": ["Energy distribution", "Univariate", {"_type": "None"}],
+            "time": ["Time distribution", "Univariate", {"_type": "None"}],
+            "strength": ["Strength", "Float", 1],
+            "particle": ["Particle", "Particle", "neutron"]
+        },
+        "spatial": {
+            "_type": ["", "SpatialDistribution"]
+        },
+        "sphericalIndependent": {
+            "_super": [ "_", "model", "spatial"],
+            "r": ["R distribution", "Univariate", {"_type": "None"}],
+            "theta": ["Theta distribution", "Univariate", {"_type": "None"}, "Distribution of theta-coordinates (angle relative to the z-axis) in a reference frame specified by the origin parameter"],
+            "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
+            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source."]
         },
         "tally": {
-            "name": ["Name", "String"],
-            "scores": ["Scores", "TallyScores", ""]
+            "aspect": ["Aspect to plot", "TallyAspect", "mean"],
+            "aspects": ["Aspects", "TallyAspects", ["mean"]],
+            "name": ["Name", "String", "t1"],
+            "meshCellCount": ["Mesh cell count", "Point3D", [10, 10, 10]],
+            "meshLowerLeft": ["Mesh lower left [cm]", "Point3D", [-5.0, -5.0, -5.0]],
+            "meshUpperRight": ["Mesh upper right [cm]", "Point3D", [5.0, 5.0, 5.0]],
+            "score": ["Score to plot", "TallyScore", "heating"],
+            "scores": ["Scores", "TallyScores", ["heating"]]
+        },
+        "tabular": {
+            "_super": [ "_", "model", "univariate"],
+            "probabilityValue": ["", "ModelArray", ""],
+            "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
+            "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
         },
         "tallyFilter": {
-            "type": ["Filter Type", "FilterType", "CellFilter"]
+            "type": ["Filter type", "FilterType", "CellFilter"]
+        },
+        "uniform": {
+            "_super": [ "_", "model", "univariate"],
+            "a": ["Lower bound", "Float", 0],
+            "b": ["Upper bound", "Float", 1]
+        },
+        "unitSphere": {
+            "_type": ["", "UnitSphereDistribution"]
+        },
+        "univariate": {
+            "_type": ["", "ProbabilityDistribution"]
         },
         "openmcAnimation": {},
         "simulationStatus": {},
-        "volumes": {}
+        "volumes": {},
+        "watt": {
+            "_super": [ "_", "model", "univariate"],
+            "a": ["a", "Float", 0.988e6, "The Watt fission energy spectrum is characterized by two parameters $a$ and $b$ and has density function $p(E) dE = c e^{-E/a} \\sinh \\sqrt{b \\, E} dE$"],
+            "b": ["b", "Float", 2.249e-6]
+        }
+    },
+    "strings": {
+        "completionState": ": {frameCount} batches",
+        "dagmcAnimation": {
+            "typeOfSimulation": "Volume Extraction"
+        }
     },
     "view": {
+        "box": {
+            "advanced": [
+                "lower_left",
+                "upper_right",
+                "only_fissionable"
+            ]
+        },
+        "cartesianIndependent": {
+            "advanced": [
+                "x",
+                "y",
+                "z"
+            ]
+        },
+        "coefficient": {
+            "maxRows": 20,
+            "advanced": [
+                "coefficient"
+            ]
+        },
+        "cylindricalIndependent": {
+            "advanced": [
+                "r",
+                "phi",
+                "z",
+                "origin"
+            ]
+        },
+        "discrete": {
+            "advanced": [
+                "probabilityValue"
+            ]
+        },
         "geometryInput": {
             "title": "Geometry Input",
             "basic": [
@@ -150,6 +362,14 @@
                 "showEdges"
             ]
         },
+        "isotropic": {
+            "advanced": []
+        },
+        "legendre": {
+            "advanced": [
+                "coefficient"
+            ]
+        },
         "material": {
             "title": "Material",
             "advanced": [
@@ -161,30 +381,139 @@
                 "components"
             ]
         },
-        "openmcSettings": {
+        "maxwell": {
+            "advanced": [
+                "theta"
+            ]
+        },
+        "monodirectional": {
+            "advanced": [
+                "reference_uvw"
+            ]
+        },
+        "muir": {
+            "advanced": [
+                "e0",
+                "m_rat",
+                "kt"
+            ]
+        },
+        "normal": {
+            "advanced": [
+                "mean_value",
+                "std_dev"
+            ]
+        },
+        "settings": {
             "title": "Settings",
             "basic": [
                 ["Main", [
                     "batches",
                     "inactive",
-                    "particles"
+                    "particles",
+                    "run_mode",
+                    "materialLibrary"
                 ]],
-                ["Source", [
-                    "openmcSource.spaceType",
-                    "openmcSource.boxLowerLeft",
-                    "openmcSource.boxUpperRight"
+                ["Sources", [
+                    "sources"
+                ]],
+                ["Reflective Planes", [
+                    "reflectivePlanes.useReflectivePlanes",
+                    "reflectivePlanes.plane1a",
+                    "reflectivePlanes.plane1b",
+                    "reflectivePlanes.plane2a",
+                    "reflectivePlanes.plane2b"
+                ]],
+                ["Tallies", [
+                    "tally.name",
+                    "tally.meshLowerLeft",
+                    "tally.meshUpperRight",
+                    "tally.meshCellCount",
+                    "tally.score",
+                    "tally.aspects",
+                    "tally.aspect"
                 ]]
             ],
             "advanced": []
+        },
+        "source": {
+            "title": "Source",
+            "advanced": [
+                ["Space", [
+                    "space"
+                ]],
+                ["Angle and Energy", [
+                    "angle",
+                    "energy"
+                ]],
+                ["Other", [
+                    "strength",
+                    "particle",
+                    "time"
+                ]]
+            ]
+        },
+        "point": {
+            "advanced": [
+                "xyz"
+            ]
+        },
+        "polarAzimuthal": {
+            "advanced": [
+                "mu",
+                "phi",
+                "reference_uvw"
+            ]
+        },
+        "powerLaw": {
+            "advanced": [
+                "a",
+                "b",
+                "n"
+            ]
+        },
+        "probabilityValue": {
+            "maxRows": 20,
+            "advanced": [
+                "x",
+                "p"
+            ]
         },
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": [],
             "basic": []
         },
+        "sphericalIndependent": {
+            "advanced": [
+                "r",
+                "theta",
+                "phi",
+                "origin"
+            ]
+        },
+        "tabular": {
+            "advanced": [
+                "interpolation",
+                "ignore_negative",
+                "probabilityValue"
+            ]
+        },
+        "uniform": {
+            "advanced": [
+                "a",
+                "b"
+            ]
+        },
         "volumes": {
             "title": "Volumes",
             "advanced": []
+        },
+        "watt": {
+            "advanced": [
+                "a",
+                "b"
+            ]
         }
     }
 }
