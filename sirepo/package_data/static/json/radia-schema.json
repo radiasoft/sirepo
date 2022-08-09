@@ -824,7 +824,8 @@
         "objectFillet": {
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "edge": ["Filleted Edge", "BevelEdge", "0", "Index of base shape edge to fillet, relative to the view axis"],
-            "radius": ["Radius", "Float", 0.0]
+            "numSides": ["Number of Sides", "Integer", 10, "Resolution of the curved surface", 6],
+            "radius": ["Radius", "Float", 1.0]
         },
         "objectBevel": {
             "_super": ["_", "model", "objectCut"],
@@ -1301,12 +1302,14 @@
             "basic": [
                 "cutAxis",
                 "edge",
-                "radius"
+                "radius",
+                "numSides"
             ],
             "advanced": [
                 "cutAxis",
                 "edge",
-                "radius"
+                "radius",
+                "numSides"
             ]
         },
         "objectShape": {

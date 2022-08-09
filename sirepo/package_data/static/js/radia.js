@@ -1373,6 +1373,7 @@ SIREPO.app.directive('filletTable', function(appState, panelState, radiaService)
                   <th>Axis</th>
                   <th>Edge</th>
                   <th>Radius</th>
+                  <th>Resolution</th>
                   <th></th>
                 </tr>
               </thead>
@@ -1383,6 +1384,7 @@ SIREPO.app.directive('filletTable', function(appState, panelState, radiaService)
                     <td>{{ item.cutAxis }}</td>
                     <td>{{ bevelEdge(item.edge) }}</td>
                     <td>{{ item.radius }}mm</td>
+                    <td>{{ item.numSides }}</td>
                   <td style="text-align: right">
                     <div class="sr-button-bar-parent">
                         <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
