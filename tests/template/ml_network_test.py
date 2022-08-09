@@ -16,5 +16,5 @@ def test_data_to_python():
     from pykern import pkjson
 
     for d in pkunit.case_dirs():
-        i = pkjson.load_any(d.join('net.json'))
-        pkio.write_text('net.py', sirepo.template.ml._build_model_py(i))
+        i = pkjson.load_any(d.join("net.json"))
+        pkio.write_text("net.py", sirepo.template.ml._build_model_py(i))
