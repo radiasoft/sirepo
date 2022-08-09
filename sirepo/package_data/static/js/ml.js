@@ -1440,10 +1440,13 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
         restrict: 'A',
         scope: {
             layerTarget: '=',
+            childIndex: '=',
+            parentLayer: '=',
         },
         template: `
             <form name="form" class="form-horizontal">
               <div class="form-group form-group-sm">
+              <button data-ng-if="removableChild()" data-ng-click="removeChild(childIndex)"> Remove this child </button>
                 <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b; position: relative;">
                   <tr data-ng-repeat="layer in layerLevel track by $index" data-ng-init="layerIndex = $index">
                     <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
@@ -1454,7 +1457,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                          <button data-ng-click="addChild(layer)">Add another child</button>
                         </div>
                       </div>
-
                     </td>
                     <td>
                       <div class="sr-nn-button-bar-parent pull-right">
@@ -1473,7 +1475,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     </td>
                     <td>
                       <div data-ng-if="checkBranch(layer)">
-                        <div data-ng-repeat="l in layer.children" class="ml-sub-table" data-neural-net-layers-form="" data-layer-target="l"></div>
+                        <div data-ng-repeat="l in layer.children track by $index" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
                       </div>
                     </td>
                   <tr>
@@ -1551,6 +1553,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 return b;
             };
 
+            $scope.removeChild = childIndex => {
+                $scope.parentLayer.children.splice(childIndex, 1);
+                $scope.form.$setDirty();
+            };
+
             $scope.branching = layer =>  {
                 return branchingLayer(layer.layer);
             }
@@ -1561,6 +1568,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             $scope.addChild = layer => {
                 layer.children.push(newChild());
+                $scope.form.$setDirty();
             }
 
             $scope.layerName = layer => {
@@ -1568,10 +1576,8 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.cancelChanges = function() {
-                srdbg('before -> appState.models:', appState.models.neuralNet);
                 appState.cancelChanges('neuralNet');
                 $scope.form.$setPristine();
-                srdbg('after-> appState.models:', appState.models.neuralNet);
             };
 
             $scope.deleteLayer = function(idx) {
@@ -1645,6 +1651,10 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.saveChanges = function() {
                 appState.saveChanges('neuralNet');
                 $scope.form.$setPristine();
+            };
+
+            $scope.removableChild = () => {
+                return ! $scope.root() && $scope.childIndex >= 2;
             };
 
             function buildLayerFields() {

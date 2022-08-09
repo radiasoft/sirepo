@@ -5,3 +5,10 @@
   top: -4px;
   white-space: nowrap;
 }
+.sr-nn-button-bar-parent {
+  display: none;
+  position: relative;
+}
+tr:hover > td > .sr-nn-button-bar-parent {
+  display: inline;
+}

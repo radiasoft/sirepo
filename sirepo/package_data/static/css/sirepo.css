@@ -808,13 +808,6 @@ div.sr-hover-row:hover .sr-hover-button {
   display: none;
   position: relative;
 }
-.sr-nn-button-bar-parent {
-  display: none;
-  position: relative;
-}
-tr:hover > td > .sr-nn-button-bar-parent {
-  display: inline;
-}
 tr:hover .sr-button-bar-parent {
   display: inline;
 }
