@@ -403,9 +403,8 @@ def _cols_with_non_unique_values(filename, has_header_row, header):
     v = sirepo.numpy.ndarray_from_csv(_filepath(filename), has_header_row)
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
-        if not c:
-            continue
-        res[header[i]] = True
+        if c:
+            res[header[i]] = True
     return res
 
 
