@@ -227,7 +227,8 @@ def apply_bevel(g_id, **kwargs):
     return radia.ObjCutMag(
         g_id,
         (_corner_for_axes(e, **kwargs) + w_offset).tolist(),
-        plane.tolist()
+        plane.tolist(),
+        "Frame->Lab",
     )[0]
 
 
