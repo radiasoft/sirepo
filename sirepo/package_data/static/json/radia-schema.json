@@ -1220,9 +1220,6 @@
                     "segments",
                     "center",
                     "size"
-            ]],
-                ["Shape", [
-                    "transforms"
                 ]],
                 ["Transforms", [
                     "transforms"
