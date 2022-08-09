@@ -2061,8 +2061,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
                     dataFile.bytesLoaded = dataFile.contentLength;
-                    // placeholder to keep columns from showing up until we can read from zips, tarballs, hdf5,...
-                    dataFile.dataFormat = 'image';
                     appState.saveQuietly(modelName);
                 });
             });
