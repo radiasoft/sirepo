@@ -1935,7 +1935,8 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         const partition = appState.models.partition;
         if (! partition.cutoff0 || ! partition.cutoff1
             || partition.cutoff0 > size
-            || partition.cutoff1 > size) {
+            || partition.cutoff1 > size
+        ) {
             partition.cutoff0 = parseInt(0.125 * size);
             partition.cutoff1 = parseInt((1 - 0.125) * size);
         }
