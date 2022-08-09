@@ -629,9 +629,7 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
-    # TODO (gurhar1133): need to handle empty right child
-    import pykern.pkjson
-    pykern.pkjson.dump_pretty(v, "net.json")
+    # TODO (gurhar1133): need to make sure handles right child
 
     v.counter = 0
 
