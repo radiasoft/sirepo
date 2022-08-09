@@ -1559,7 +1559,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             $scope.branching = layer =>  {
                 return branchingLayer(layer.layer);
-            }
+            };
 
             function branchingLayer(layer) {
                 return (layer == 'Add') || (layer == 'Concatenate');
@@ -1568,7 +1568,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.addChild = layer => {
                 layer.children.push(newChild());
                 $scope.form.$setDirty();
-            }
+            };
 
             $scope.layerName = layer => {
                 return stringsService.lcfirst(layer.layer);
