@@ -631,6 +631,7 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
+    # TODO (gurhar1133): need to handle empty right child
     v.counter = 0
 
     def _new_name():
