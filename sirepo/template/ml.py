@@ -757,7 +757,7 @@ def _get_remote_data(url, headers_only):
             with open(
                 _SIM_DATA.lib_file_write_path(
                     _SIM_DATA.lib_file_name_with_model_field(
-                        "dataFile", "file", filename
+                        "dataFile", "file", filename,
                     )
                 ),
                 "wb",
