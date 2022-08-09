@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import enum
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -15,9 +14,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import numpy as np
-import random
 import re
-import string
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
@@ -629,8 +626,6 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
-    # TODO (gurhar1133): need to make sure handles right child
-
     v.counter = 0
 
     def _new_name():
@@ -640,14 +635,15 @@ def _build_model_py(v):
     def _branching(layer):
         return layer.layer == "Add" or layer.layer == "Concatenate"
 
-    def _name_layers(layer_level, parent_level_name, first_level=False):
-        # TODO (gurhar1133): needs tests with in=v.neuralNet from ui, out=param.py
+    def _name_layer(layer_level, first_level, parent_level_name):
         if layer_level.layers == []:
-            layer_level.name = parent_level_name
-        elif first_level:
-            layer_level.name = "x"
-        else:
-            layer_level.name = _new_name()
+            return parent_level_name
+        if first_level:
+            return "x"
+        return _new_name()
+
+    def _name_layers(layer_level, parent_level_name, first_level=False):
+        layer_level.name = _name_layer(layer_level, first_level, parent_level_name)
         layer_level.parent_name = parent_level_name
         for i, l in enumerate(layer_level.layers):
             if _branching(l):
