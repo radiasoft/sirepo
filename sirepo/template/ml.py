@@ -364,7 +364,7 @@ model = Model(input_args, x)
 
 
 def _classification_metrics_report(frame_args, filename):
-    def _get_lables():
+    def _get_labels():
         l = []
         for k in d:
             if not isinstance(d[k], PKDict):
@@ -390,7 +390,7 @@ def _classification_metrics_report(frame_args, filename):
     e = _get_classification_output_col_encoding(frame_args)
     d = pkjson.load_any(frame_args.run_dir.join(filename))
     return PKDict(
-        labels=_get_lables(),
+        labels=_get_labels(),
         matrix=_get_matrix(),
     )
 
