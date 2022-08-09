@@ -341,7 +341,6 @@ def _build_model_py(v):
     )
 
     def _layer_args(layer):
-        assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
         return args_map[layer.layer](layer)
 
     def _build_layers(layers):
