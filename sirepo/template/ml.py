@@ -643,7 +643,13 @@ def _build_model_py(v):
 
     def _name_layers(layer_level, parent_level_name, first_level=False):
         # TODO (gurhar1133): needs tests with in=v.neuralNet from ui, out=param.py
-        layer_level.name = "x" if first_level else _new_name()
+        if not layer_level.layers:
+            layer_level.name = parent_level_name
+        elif first_level:
+            layer_level.name = "x"
+        else:
+            layer_level.name = _new_name()
+        # layer_level.name = "x" if first_level else _new_name()
         layer_level.parent_name = parent_level_name
         for i, l in enumerate(layer_level.layers):
             if _branching(l):
