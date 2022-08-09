@@ -267,10 +267,6 @@
             ["standard", "Standard"],
             ["beam", "Beam"]
         ],
-        "CutType": [
-            ["bevel", "Bevel"],
-            ["plane", "Planar"]
-        ],
         "CutRemoval": [
             ["-1", "Body"],
             ["1", "Corner"]
