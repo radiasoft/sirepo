@@ -585,8 +585,6 @@ def _fit_animation(frame_args):
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
-    for l in dm.neuralNet.layers:
-        pkdp("\n\n\n\n layer -> {}", l)
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.pkupdate(
@@ -632,6 +630,9 @@ def _generate_parameters_file(data):
 
 def _build_model_py(v):
     # TODO (gurhar1133): need to handle empty right child
+    # import pykern.pkjson
+    # pykern.pkjson.dump_pretty(v, "net.json")
+
     v.counter = 0
 
     def _new_name():
@@ -643,13 +644,12 @@ def _build_model_py(v):
 
     def _name_layers(layer_level, parent_level_name, first_level=False):
         # TODO (gurhar1133): needs tests with in=v.neuralNet from ui, out=param.py
-        if not layer_level.layers:
+        if layer_level.layers == []:
             layer_level.name = parent_level_name
         elif first_level:
             layer_level.name = "x"
         else:
             layer_level.name = _new_name()
-        # layer_level.name = "x" if first_level else _new_name()
         layer_level.parent_name = parent_level_name
         for i, l in enumerate(layer_level.layers):
             if _branching(l):
