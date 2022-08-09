@@ -161,8 +161,10 @@ def _bevel_offsets_for_axes(edge_index, **kwargs):
     d = PKDict(kwargs)
     h = numpy.array(d.heightDir)
     w = numpy.array(d.widthDir)
-    return d.amountHoriz * w * [1, -1, -1, 1][edge_index],\
-           d.amountVert * h * [-1, -1, 1, 1][edge_index]
+    return (
+        d.amountHoriz * w * [1, -1, -1, 1][edge_index],
+        d.amountVert * h * [-1, -1, 1, 1][edge_index],
+    )
 
 
 def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
@@ -179,8 +181,12 @@ def _corner_for_axes(edge_index, **kwargs):
     l = numpy.array(d.lenDir)
     h = numpy.array(d.heightDir)
     w = numpy.array(d.widthDir)
-    return numpy.array(d.center) + numpy.array(d.size) / 2 * \
-           [-w + h + l, w + h + l, w - h + l, -w - h + l][edge_index]
+    return (
+        numpy.array(d.center)
+        + numpy.array(d.size)
+        / 2
+        * [-w + h + l, w + h + l, w - h + l, -w - h + l][edge_index]
+    )
 
 
 def _geom_bounds(g_id):
@@ -219,8 +225,8 @@ def apply_bevel(g_id, **kwargs):
     v2 = numpy.dot(v, v)
 
     plane = int(d.cutRemoval) * (
-        numpy.array(d.widthDir) * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) +
-        numpy.array(d.heightDir) * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
+        numpy.array(d.widthDir) * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2)
+        + numpy.array(d.heightDir) * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
     )
 
     # object id, plane normal, point in plane - returns a new id in an array for some reason
@@ -258,30 +264,22 @@ def apply_fillet(g_id, **kwargs):
         **kwargs,
     )
     w_offset, h_offset = _bevel_offsets_for_axes(
-        int(d.edge),
-        **dirs,
-        **cut_amts,
-        **kwargs
+        int(d.edge), **dirs, **cut_amts, **kwargs
     )
-    ctr = _corner_for_axes(
-        int(d.edge),
-        **dirs,
-        **kwargs
-    ) + w_offset + h_offset - (numpy.array(d.size) / 2) * dirs.lenDir
+    ctr = (
+        _corner_for_axes(int(d.edge), **dirs, **kwargs)
+        + w_offset
+        + h_offset
+        - (numpy.array(d.size) / 2) * dirs.lenDir
+    )
     c_id = build_cylinder(
         extrusion_axis=d.cutAxis,
         center=ctr,
         num_sides=d.numSides,
         seg_type="pln",
-        **{k:v for k, v in kwargs.items() if k != 'center'}
+        **{k: v for k, v in kwargs.items() if k != "center"},
     )
-    c_id = apply_bevel(
-        c_id,
-        cutRemoval=-1,
-        **dirs,
-        **cut_amts,
-        **kwargs
-    )
+    c_id = apply_bevel(c_id, cutRemoval=-1, **dirs, **cut_amts, **kwargs)
     return build_container([g_id, c_id])
 
 
