@@ -272,6 +272,7 @@ def apply_fillet(g_id, **kwargs):
         extrusion_axis=d.cutAxis,
         center=ctr,
         num_sides=d.numSides,
+        seg_type="pln",
         **{k:v for k, v in kwargs.items() if k != 'center'}
     )
     c_id = apply_bevel(
@@ -318,7 +319,7 @@ def build_cylinder(**kwargs):
     _apply_segments(
         g_id,
         d.segments,
-        seg_type="cyl",
+        seg_type=d.get("seg_type", "cyl"),
         center=d.center,
         axis=AXIS_VECTORS[axis].tolist(),
         perp_axis=(d.radius * AXIS_VECTORS[next_axis(axis)] + d.center).tolist(),
