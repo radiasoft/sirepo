@@ -1514,7 +1514,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             </form>
         `,
         controller: function($scope, $element) {
-            // TODO (gurhar1133): need remove children options
             var layerFields = {};
             var layerInfo = [];
             $scope.form = angular.element($($element).find('form').eq(0));
