@@ -3759,11 +3759,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         updateShapeEditor();
     };
 
-    $scope.$on('geomObject.changed', () => {
-        //appState.saveQuietly($scope.modelName);
-        //editedModels = [];
-    });
-
     $scope.$on('extrudedPoly.changed', loadPoints);
 
     function setPoints(data) {
