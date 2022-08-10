@@ -50,8 +50,7 @@ SIREPO.app.config(function() {
           <label class="control-label col-sm-5" style="text-align: center">{{ model.widthAxis }}</label> <label class="control-label col-sm-5"  style="text-align: center">{{ model.heightAxis }}</label>
           <div class="col-sm-12" style="height: 200px; overflow-y: scroll; overflow-x: hidden;">
               <div data-ng-repeat="p in model[field]">
-                <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[0]" data-ng-disabled="model.pointsFile" style="text-align: right;" required />
-                <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[1]" data-ng-disabled="model.pointsFile" style="text-align: right;" required />
+                <input data-ng-repeat="e in p track by $index" class="form-control sr-number-list" data-string-to-number="float" data-ng-model="e" data-ng-disabled="model.pointsFile" style="text-align: right;" required />
               </div>
           </div>
         </div>
