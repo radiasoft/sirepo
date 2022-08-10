@@ -1332,8 +1332,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     // create a 3d shape
-    self.plotShape = function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape) {
-        var shape = plotting.plotShape(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape);
+    self.plotShape = function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape, points) {
+        var shape = plotting.plotShape(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape, points);
         shape.axes.push('z');
         shape.center.z = center[2];
         shape.size.z = size[2];
@@ -1627,6 +1627,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             var ELEVATION_INFO = {
                 front: {
+                    axis: 'z',
                     class: '.plot-viewport elevation-front',
                     coordPlane: 'xy',
                     name: ELEVATIONS.front,
@@ -1638,25 +1639,27 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     }
                 },
                 side: {
+                    axis: 'x',
                     class: '.plot-viewport elevation-side',
                     coordPlane: 'yz',
                     name: ELEVATIONS.side,
                     x: {
-                        axis: 'z',
+                        axis: 'y',
                     },
                     y: {
-                        axis: 'y',
+                        axis: 'z',
                     }
                 },
                 top: {
+                    axis: 'y',
                     class: '.plot-viewport elevation-top',
                     coordPlane: 'zx',
                     name: ELEVATIONS.top,
                     x: {
-                        axis: 'x',
+                        axis: 'z',
                     },
                     y: {
-                        axis: 'z',
+                        axis: 'x',
                     }
                 }
             };
@@ -1695,6 +1698,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.width = $scope.height = 0;
 
             var dragShape, dragStart, yRange, zoom;
+            let [dragX, dragY] = [0, 0];
+            let draggedShape = null;
             var axisScale = {
                 x: 1.0,
                 y: 1.0,
@@ -1710,26 +1715,33 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 d3.selectAll('.vtk-object-layout-drag-shadow').remove();
             }
 
+            function resetDrag() {
+                [dragX, dragY] = [0, 0];
+                draggedShape = null;
+            }
+
             function d3DragEndShape(shape) {
-                $scope.$applyAsync(function() {
+                $scope.$applyAsync(() => {
                     if (isShapeInBounds(shape)) {
-                        var o = $scope.source.getObject(shape.id);
+                        const o = $scope.source.getObject(shape.id);
                         if (! o) {
+                            resetDrag();
                             return;
                         }
-                        var ctr = stringToFloatArray(o.center);
                         o.center = floatArrayToString([
-                            shape.center.x ,
+                            shape.center.x,
                             shape.center.y,
                             shape.center.z
                         ]);
                         $scope.source.saveObject(shape.id, function () {
-                            //TODO(mvk): this will re-apply transforms to objects!  Need a way around tat
+                            resetDrag();
+                            //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
                             refresh();
                         });
                     }
                     else {
                         appState.cancelChanges($scope.modelName);
+                        resetDrag();
                     }
                 });
                 hideShapeLocation();
@@ -1741,6 +1753,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 if (! shape.draggable) {
                     return;
                 }
+                [dragX, dragY] = [d3.event.x, d3.event.y];
+                draggedShape = shape;
                 SIREPO.SCREEN_DIMS.forEach(function(dim) {
                     var labDim = shape.elev[dim].axis;
                     var dom = axes[dim].scale.domain();
@@ -2005,7 +2019,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 else {
                     selectedObject = null;
                 }
-                drawObjects(ELEVATION_INFO[$scope.elevation]);
+                //drawObjects(ELEVATION_INFO[$scope.elevation]);
             }
 
             function shapeColor(hexColor, alpha) {
@@ -2056,6 +2070,15 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return axes[dim].scale(
                     shape.center[labDim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[labDim] / 2
                 );
+            }
+
+            function shapePoints(shape) {
+                const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragX, dragY] : [0, 0];
+                let pts = '';
+                for (const p of shape.points[shape.elev.axis]) {
+                    pts += `${dx + axes.x.scale(p[0])},${dy + axes.y.scale(p[1])} `;
+                }
+                return pts;
             }
 
             function shapeCenter(shape, dim) {
@@ -2118,6 +2141,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     .attr('href', function (d) {
                         return d.href ? `#${d.href}` : '';
                     })
+                    .attr('points', function(d) {
+                        return $.isEmptyObject(d.points || {}) ? null : shapePoints(d);
+                    })
                     .attr('x', function(d) {
                         return shapeOrigin(d, 'x') - (d.outlineOffset || 0);
                     })
@@ -2125,19 +2151,19 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         return shapeOrigin(d, 'y') - (d.outlineOffset || 0);
                     })
                     .attr('x1', function (d) {
-                        var pts = linePoints(d);
+                        const pts = linePoints(d);
                         return pts ? (pts[0] ? pts[0].coords()[0] : 0) : 0;
                     })
                     .attr('x2', function (d) {
-                        var pts = linePoints(d);
+                        const pts = linePoints(d);
                         return pts ? (pts[1] ? pts[1].coords()[0] : 0) : 0;
                     })
                     .attr('y1', function (d) {
-                        var pts = linePoints(d);
+                        const pts = linePoints(d);
                         return pts ? (pts[0] ? pts[0].coords()[1] : 0) : 0;
                     })
                     .attr('y2', function(d) {
-                        var pts = linePoints(d);
+                        const pts = linePoints(d);
                         return pts ? (pts[1] ? pts[1].coords()[1] : 0) : 0;
                     })
                     .attr('marker-end', function(d) {
@@ -2158,8 +2184,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     })
                     .attr('style', function(d) {
                         if (d.color) {
-                            var a = d.alpha === 0 ? 0 : (d.alpha || 1.0);
-                            var fill = `fill:${(d.fillStyle ? shapeColor(d.color, a) : 'none')}`;
+                            const a = d.alpha === 0 ? 0 : (d.alpha || 1.0);
+                            const fill = `fill:${(d.fillStyle ? shapeColor(d.color, a) : 'none')}`;
                             return `${fill}; stroke: ${shapeColor(d.color)}; stroke-width: ${d.strokeWidth || 1.0}`;
                         }
                     })
@@ -2240,14 +2266,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.shapes = $scope.source.getShapes();
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
-                    //srdbg($scope.modelName, 'ch');
                     $scope.shapes = $scope.source.getShapes();
-                    //if (name == $scope.modelName) {
-                        //refresh();
                     drawShapes();
-                    //replot();
-                    //}
                 });
+
                 $scope.$on('cancelChanges', function(e, name) {
                     refresh();
                 });
@@ -2334,7 +2356,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             </svg>
         `,
         controller: function($scope, $element) {
-
             $scope.axesMargins = {
                 x: { width: 16.0, height: 0.0 },
                 y: { width: 0.0, height: 16.0 }

@@ -84,6 +84,14 @@
                 ],
                 "stroke": "black"
             },
+            "extrudedPoints": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [8, 0], [16, 16], [24, 20], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
             "jay": {
                 "doClose": true,
                 "fill": "#97B6D5",
@@ -159,6 +167,13 @@
                         "model": "jay",
                         "title": "J-Bend",
                         "type": "jay"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "polygon",
+                        "model": "extrudedPoints",
+                        "title": "Extruded",
+                        "type": "extrudedPoints"
                     },
                     {
                         "layoutShape": "rect",
@@ -324,6 +339,7 @@
             ["cylinder", "Cylinder"],
             ["cee", "Extruded C-Bend"],
             ["ell", "Extruded L-Bend"],
+            ["extrudedPoints", "Extruded Points"],
             ["jay", "Extruded J-Bend"],
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"]
@@ -679,6 +695,12 @@
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "ell"]
         },
+        "extrudedPoints": {
+            "_super": ["_", "model", "extrudedPoly"],
+            "pointsFile": ["File", "InputFile", "", "", true],
+            "referencePoints": ["Points", "Points", []],
+            "type": ["_", "ObjectType", "extrudedPoints"]
+        },
         "extrudedObject": {
             "_super": ["_", "model", "geomObject"],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"]
@@ -688,6 +710,7 @@
             "area": ["_", "Float", 0,0],
             "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
             "heightAxis": ["_", "BeamAxis", "y"],
+            "layoutShape":  ["_", "String", "polygon"],
             "points": ["Points", "Points", []],
             "triangulationLevel": ["Triangulation Detail", "Range", 0.5, "Governs the max size of triangles used to subdivide the shape, from coarse to fine. Smaller triangles gain accuracy at the expense of longer solve times.", 0.0, 1.0],
             "widthAxis": ["_", "BeamAxis", "x"]
@@ -753,7 +776,7 @@
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "material": ["Material", "MaterialType", "NdFeB"],
+            "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Shape Type", "ObjectType", "cuboid"],
@@ -821,8 +844,12 @@
             "heightDir": ["", "Array", [0, 1, 0]],
             "widthDir": ["", "Array", [1, 0, 0]]
         },
-         "objectShape": {
+        "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
+        },
+        "pointsReport": {
+            "doSnap": ["Snap to Grid", "Boolean", "0"],
+            "gridSize": ["Grid Size [mm]", "Float", "0.5", "", "0"]
         },
         "racetrack": {
             "_super": ["_", "model", "radiaObject"],
@@ -1292,10 +1319,22 @@
                     "jay.hookHeight",
                     "jay.hookWidth"
                 ]],
+                ["Point Editor", [
+                    "extrudedPoints.pointsFile",
+                    "extrudedPoints.referencePoints"
+                ]],
                 ["Modifications", [
                     "bevels"
                 ]]
             ]
+        },
+        "pointsReport": {
+            "title": "Points",
+            "basic": [
+                "doSnap",
+                "gridSize"
+            ],
+            "advanced": []
         },
         "racetrack": {
             "title": "Race Track",
