@@ -771,8 +771,8 @@ def _get_remote_data(url, headers_only):
                     if not c:
                         break
                     f.write(c)
-    except urllib.error.HTTPError as e:
-        return PKDict(error=e.code)
+    except Exception as e:
+        return PKDict(error=e)
     return PKDict(filename=filename)
 
 
