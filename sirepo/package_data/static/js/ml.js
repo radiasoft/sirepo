@@ -1713,6 +1713,12 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.layerLevel.push(n);
             }
 
+            $scope.$on('cancelChanges', (e, name) => {
+                if (name == 'neuralNet') {
+                    $scope.layerLevel = getLayerLevel();
+                }
+            });
+
             buildLayerFields();
         },
     };
