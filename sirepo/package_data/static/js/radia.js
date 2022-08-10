@@ -64,9 +64,6 @@ SIREPO.app.config(function() {
           <div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>
         </div>
     `;
-    SIREPO.appReportTypes += `
-        <div data-ng-switch-when="pointEditor" data-parameter-plot="" class="sr-plot" data-model-name="extrudedPoly" data-report-id="reportId"></div>
-    `;
 });
 
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
@@ -2070,25 +2067,6 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
                 $scope.dataCleared = false;
             });
 
-        },
-    };
-});
-
-SIREPO.app.directive('pointEditor', function(appState, geometry, panelState, plotting, radiaService, utilities) {
-
-    return {
-        restrict: 'A',
-        scope: {
-            modelName: '=',
-            model: '=',
-        },
-        template: `
-            <div>
-                <div data-ng-repeat=""></div>
-            </div>
-        `,
-        controller: function($scope, $element) {
-            //<div data-report-content="parameter" data-model-key="extrudedPoly" data-report-id=""></div>
         },
     };
 });
