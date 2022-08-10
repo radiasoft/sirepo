@@ -20,6 +20,8 @@ import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
 
+_CHUNK_SIZE = 1024 * 1024
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
@@ -753,7 +755,6 @@ def _get_remote_data(url, headers_only):
         with urllib.request.urlopen(url) as r:
             if headers_only:
                 return PKDict(headers=_header_str_to_dict(r.headers))
-            chunk_size = 1024 * 1024
             with open(
                 _SIM_DATA.lib_file_write_path(
                     _SIM_DATA.lib_file_name_with_model_field(
@@ -765,7 +766,7 @@ def _get_remote_data(url, headers_only):
                 "wb",
             ) as f:
                 while True:
-                    c = r.read(chunk_size)
+                    c = r.read(_CHUNK_SIZE)
                     if not c:
                         break
                     f.write(c)
