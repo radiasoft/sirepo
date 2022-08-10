@@ -346,17 +346,11 @@ def _build_model_py(v):
         ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
     )
 
-    def _layer_args(layer):
-        return args_map[layer.layer](layer)
-
     def _build_layers(layers):
         res = ""
         for i, l in enumerate(layers):
-            if i == 0:
-                c = f"({_layer_args(l)})(input_args)"
-            else:
-                c = f"({_layer_args(l)})(x)"
-            res += f"x = {l.layer}{c}\n"
+            c = "input_args" if i == 0 else "x"
+            res += f"x = {l.layer}({args_map[l.layer](l)})({c})\n"
         return res
 
     return f"""
