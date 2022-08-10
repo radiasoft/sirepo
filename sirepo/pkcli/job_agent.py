@@ -237,6 +237,7 @@ class _Dispatcher(PKDict):
             tornado.ioloop.IOLoop.current().stop()
 
     def _get_cmd_type(self, msg):
+        pkdp('\n\n\n\n\n\n\n msg: {}', msg)
         if msg.jobRunMode == job.SBATCH:
             return _SbatchRun if msg.isParallel else _SbatchCmd
         elif msg.jobCmd == "fastcgi":
@@ -734,6 +735,7 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
+        pkdp('\n\n\n\n ------- \n\n\n\n in _sbatch_script \n\n\n\n msg: {}', self.msg)
         def _assert_project():
             p = self.msg.sbatchProject
             if not p:
