@@ -1637,14 +1637,34 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             $scope.dataCleared = true;
             $scope.model = appState.models[$scope.modelName];
 
-            function isFieldPathValid(p) {
-                return ! $.isEmptyObject(p) && p.type;
+            function getPath(id) {
+                for (const p of appState.models.fieldPaths.paths) {
+                    if (p.id === id) {
+                        return p;
+                    }
+                }
+                return null;
             }
 
-            function setPathIfMissing() {
-                if (! isFieldPathValid($scope.model.fieldPath) && $scope.hasPaths() ) {
-                    $scope.model.fieldPath = appState.models.fieldPaths.paths[0];
-                    appState.saveQuietly($scope.modelName);
+            function setPath(p) {
+                appState.models[$scope.modelName].lastModified = Date.now();
+                if (p) {
+                    appState.models[$scope.modelName].fieldPath = p;
+                    if (p.axis) {
+                        appState.models[$scope.modelName].plotAxis = p.axis;
+                    }
+                }
+                appState.saveQuietly($scope.modelName);
+            }
+
+            function updatePath() {
+                const p = getPath((appState.models[$scope.modelName].fieldPath || {}).id);
+                if (p) {
+                    setPath(p);
+                }
+                else {
+                    delete appState.models[$scope.modelName].fieldPath;
+                    setPath(appState.models.fieldPaths.paths[0]);
                 }
             }
 
@@ -1656,14 +1676,15 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
                 $scope.dataCleared = false;
             });
 
-            $scope.$on('fieldPaths.changed', setPathIfMissing);
+            $scope.$on('fieldPaths.changed', updatePath);
 
             appState.watchModelFields($scope, [`${$scope.modelName}.fieldPath`],  () => {
-                if ($scope.model.fieldPath.axis) {
-                    $scope.model.plotAxis = $scope.model.fieldPath.axis;
+                if (appState.models[$scope.modelName].fieldPath.axis) {
+                    appState.models[$scope.modelName].plotAxis = appState.models[$scope.modelName].fieldPath.axis;
                 }
             });
-            setPathIfMissing();
+
+            updatePath();
         },
     };
 });
