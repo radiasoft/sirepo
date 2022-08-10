@@ -12,6 +12,8 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+from urllib import parse
+from urllib import request
 import csv
 import numpy as np
 import os
@@ -20,6 +22,7 @@ import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
+import urllib
 
 _CHUNK_SIZE = 1024 * 1024
 
@@ -746,11 +749,6 @@ def _get_fit_report(report, x_vals, y_vals):
 
 
 def _get_remote_data(url, headers_only):
-    import os
-    import urllib
-    from urllib import parse
-    from urllib import request
-
     filename = os.path.basename(urllib.parse.urlparse(url).path)
     try:
         with urllib.request.urlopen(url) as r:
