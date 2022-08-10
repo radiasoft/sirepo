@@ -14,6 +14,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import numpy as np
+import os
 import re
 import sirepo.analysis
 import sirepo.numpy
@@ -855,8 +856,6 @@ def _read_file_with_history(run_dir, filename, report=None):
 
 
 def _remote_data_bytes_loaded(filename):
-    import os
-
     try:
         return PKDict(
             bytesLoaded=os.path.getsize(
