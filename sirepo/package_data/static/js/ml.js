@@ -2045,9 +2045,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         //TODO(mvk): button to force reload; handle deletion of file; share files across users;
         // store urls; share urls across apps
         if (dataFile.dataOrigin === 'url') {
-            if (dataFile.oldURL === dataFile.url) {
-                return;
-            }
             dataFile.oldURL = dataFile.url;
             dataFile.bytesLoaded = 0;
             dataFile.contentLength = 0;
@@ -2063,6 +2060,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                     dataFile.file = d.filename;
                     dataFile.bytesLoaded = dataFile.contentLength;
                     appState.saveQuietly(modelName);
+                    dataFileChanged();
                 });
             });
         }
