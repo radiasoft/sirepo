@@ -479,7 +479,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.editObject = function(o) {
         self.selectObject(o);
-        panelState.showModalEditor('geomObject');
+        panelState.showModalEditor(o.type);
     };
 
     self.showDesigner = function() {
