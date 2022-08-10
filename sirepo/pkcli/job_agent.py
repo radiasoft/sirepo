@@ -735,7 +735,6 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
-        pkdp('\n\n\n\n ------- \n\n\n\n in _sbatch_script \n\n\n\n msg: {}', self.msg)
         def _assert_project():
             p = self.msg.sbatchProject
             if not p:
@@ -766,6 +765,7 @@ class _SbatchRun(_SbatchCmd):
         f = self.run_dir.join(self.jid + ".sbatch")
         f.write(
             f"""#!/bin/bash
+#SBATCH --tasks-per-node={self.msg.tasksPerNode}
 #SBATCH --error={template_common.RUN_LOG}
 #SBATCH --ntasks={self.msg.sbatchCores}
 #SBATCH --output={template_common.RUN_LOG}

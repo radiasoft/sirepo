@@ -323,6 +323,7 @@ class API(sirepo.api.Base):
         for f in "sbatchCores", "sbatchHours":
             assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
             c[f] = m[f]
+        c.tasksPerNode = m.tasksPerNode
         return request_content
 
 
