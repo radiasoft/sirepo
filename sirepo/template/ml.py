@@ -655,7 +655,7 @@ def _build_model_py(v):
                         _name_layers(c, layer_level.name)
 
     def _import_layers(v):
-        return "".join(", " + n for n in v.layerImplementationNames)
+        return "".join(", " + n for n in v.layerImplementationNames if n != "Dense")
 
     def _conv_args(layer):
         if layer.layer not in ("Conv2D", "Transpose", "SeparableConv2D"):
@@ -728,7 +728,7 @@ def _build_model_py(v):
 
     return f"""
 from keras.models import Model, Sequential
-from keras.layers import Input{_import_layers(v)}
+from keras.layers import Input, Dense{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
 {_build_layers(net)}
 x = Dense({v.outputDim}, activation="linear")(x)
