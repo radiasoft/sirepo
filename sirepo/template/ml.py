@@ -649,10 +649,7 @@ def _build_model_py(v):
             if _branching(l):
                 for c in l.children:
                     l.parent_name = layer_level.name
-                    if i == 0:
-                        _name_layers(c, parent_level_name)
-                    else:
-                        _name_layers(c, layer_level.name)
+                    _name_layers(c, parent_level_name if i == 0 else layer_level.name)
 
     def _import_layers(v):
         return "".join(", " + n for n in v.layerImplementationNames if n != "Dense")
