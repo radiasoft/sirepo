@@ -1631,6 +1631,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
     };
 
+    self.enableArrayField = function(model, field, index, isEnabled) {
+        $(fieldClass(model, field)).find('input.form-control').eq(index).prop('readonly', ! isEnabled);
+    };
+
     self.enableFields = function(model, fieldInfo) {
         applyToFields('enableField', model, fieldInfo);
     };

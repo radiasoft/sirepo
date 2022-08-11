@@ -134,6 +134,21 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
                 }
                 tabSelectedEvent();
             };
+
+            $scope.showPageNamed = (name, doShow) => {
+                const p = $scope.pages.filter(p => p.name === name)[0];
+                if (! p) {
+                    return;
+                }
+                const l = $(`li.${p.class}`);
+                if (doShow) {
+                    l.show();
+                }
+                else {
+                    l.hide();
+                }
+            };
+
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
                 $scope.pages = [];
@@ -731,7 +746,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
               </div>
               <div data-ng-switch-when="InputFile" class="col-sm-7">
-                <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected"></div>
+                <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[4]" data-empty-selection-text="No File Selected"></div>
               </div>
                <div data-ng-switch-when="Boolean" class="col-sm-7">
                  <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
