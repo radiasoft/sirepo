@@ -58,7 +58,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        name = data.models.dataFile.file
+        name = data.models.dataFile.get("file")
         if name:
             return [cls.lib_file_name_with_model_field("dataFile", "file", name)]
         return []
