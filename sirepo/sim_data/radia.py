@@ -104,6 +104,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 o.triangulationLevel = 0.5
             if not o.get("bevels"):
                 o.bevels = []
+            if not o.get("fillets"):
+                o.fillets = []
             if not o.get("segments"):
                 o.segments = o.get("division", "1, 1, 1")
         sch = cls.schema()
