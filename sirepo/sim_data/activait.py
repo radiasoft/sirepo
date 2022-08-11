@@ -13,8 +13,8 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
-        if data.simulationType == 'ml':
-            data.simulationType = 'activait'
+        if data.simulationType == "ml":
+            data.simulationType = "activait"
         dm = data.models
         cls._init_models(
             dm,
