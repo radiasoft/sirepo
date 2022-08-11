@@ -1446,7 +1446,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
         template: `
             <form name="form" class="form-horizontal">
               <div class="form-group form-group-sm">
-              <button data-ng-if="removableChild()" data-ng-click="removeChild(childIndex)"> Remove this child </button>
+              <button class="add-remove-child-btn" data-ng-if="removableChild()" data-ng-click="removeChild(childIndex)"> Remove this child </button>
                 <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b; position: relative;">
                   <tr data-ng-repeat="layer in layerLevel track by $index" data-ng-init="layerIndex = $index">
                     <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
@@ -1454,7 +1454,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         <b>{{ fieldInfo.label }} </b>
                         <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="layerName(layer)" data-model="layer"></div>
                         <div data-ng-if="branching(layer)">
-                         <button data-ng-click="addChild(layer)">Add another child</button>
+                         <button class="add-remove-child-btn" data-ng-click="addChild(layer)">Add another child</button>
                         </div>
                       </div>
                     </td>
@@ -1483,6 +1483,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                       <b>Add Layer</b>
                         <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
                     </td>
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
