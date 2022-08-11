@@ -232,6 +232,8 @@ def fixup_old_data(data, force=False, path=None):
             data.simulationType = "warppba"
         elif data.simulationType == "fete":
             data.simulationType = "warpvnd"
+        elif data.simulationType == "ml":
+            data.simulationType = "activait"
         if "simulationSerial" not in data.models.simulation:
             data.models.simulation.simulationSerial = 0
         if "lastModified" not in data.models.simulation:
