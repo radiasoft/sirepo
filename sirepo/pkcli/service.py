@@ -17,6 +17,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import contextlib
 import os
+import psutil
 import py
 import re
 import signal
@@ -58,6 +59,8 @@ def http():
     Used for development only.
     """
 
+    processes = []
+
     @contextlib.contextmanager
     def _handle_signals(signums):
         o = [(x, signal.getsignal(x)) for x in signums]
@@ -70,38 +73,64 @@ def http():
     def _kill(*args):
         for p in processes:
             try:
-                p.terminate()
-                p.wait(1)
-            except (ProcessLookupError, ChildProcessError):
-                continue
-            except subprocess.TimeoutExpired:
-                p.kill()
+                for c in list(psutil.Process(p.pid).children(recursive=True)):
+                    _safe_kill_process(c)
+            except Exception:
+                # need to ignore exceptions while converting process children
+                # to a list so that the parent is still terminated
+                pass
+            _safe_kill_process(p)
 
-    def _start(service):
-        c = ["pyenv", "exec", "sirepo"]
-        c.extend(service)
+    def _safe_kill_process(proc):
+        try:
+            proc.terminate()
+            proc.wait(1)
+        except (
+            ProcessLookupError,
+            ChildProcessError,
+            psutil.NoSuchProcess,
+        ):
+            pass
+        except (psutil.TimeoutExpired, subprocess.TimeoutExpired):
+            proc.kill()
+
+    def _start(service, extra_environ, cwd=".", prefix=("pyenv", "exec", "sirepo")):
         processes.append(
             subprocess.Popen(
-                c,
-                cwd=str(_run_dir()),
-                env=e,
+                prefix + service,
+                cwd=str(_run_dir().join(cwd)),
+                env=PKDict(os.environ).pkupdate(extra_environ),
             )
         )
 
-    e = PKDict(os.environ)
-    e.SIREPO_JOB_DRIVER_MODULES = "local"
-    processes = []
-    with pkio.save_chdir(_run_dir()), _handle_signals((signal.SIGINT, signal.SIGTERM)):
-        try:
-            _start(["job_supervisor"])
+    try:
+        with pkio.save_chdir(_run_dir()), _handle_signals(
+            (signal.SIGINT, signal.SIGTERM)
+        ):
+            _start(
+                ("job_supervisor",),
+                extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
+            )
             # Avoid race condition on creating auth db
             time.sleep(0.3)
-            _start(["service", "flask"])
+            _start(
+                ("npm", "start"),
+                cwd="../react",
+                prefix=(),
+                extra_environ=PKDict(PORT=str(_cfg().react_port)),
+            )
+            time.sleep(0.3)
+            _start(
+                ("service", "flask"),
+                extra_environ=PKDict(
+                    SIREPO_SERVER_REACT_SERVER=f"http://127.0.0.1:{_cfg().react_port}/",
+                ),
+            )
             p, _ = os.wait()
-        except ChildProcessError:
-            pass
-        finally:
-            _kill()
+    except ChildProcessError:
+        pass
+    finally:
+        _kill()
 
 
 def jupyterhub():
@@ -214,6 +243,7 @@ def _cfg():
             ),
             nginx_proxy_port=(8080, _cfg_port, "port on which nginx_proxy listens"),
             port=(8000, _cfg_port, "port on which uwsgi or http listens"),
+            react_port=(3000, _cfg_port, "port on which react listens"),
             processes=(1, _cfg_int(1, 16), "how many uwsgi processes to start"),
             run_dir=(None, str, "where to run the program (defaults db_dir)"),
             # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
@@ -263,7 +293,7 @@ def _cfg_ip(value):
 
 
 def _cfg_port(value):
-    return _cfg_int(5001, 32767)(value)
+    return _cfg_int(3000, 32767)(value)
 
 
 def _run_dir():
