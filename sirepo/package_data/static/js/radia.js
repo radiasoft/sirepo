@@ -1221,10 +1221,7 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
         template: `
             <table class="table table-hover">
               <colgroup>
-                <col style="width: 20ex">
-                <col style="width: 20ex">
-                <col style="width: 20ex">
-                <col style="width: 20ex">
+                <col span="5" style="width: 20ex">
               </colgroup>
               <thead>
                 <tr>
@@ -1364,9 +1361,7 @@ SIREPO.app.directive('filletTable', function(appState, panelState, radiaService)
         template: `
             <table class="table table-hover">
               <colgroup>
-                <col style="width: 20ex">
-                <col style="width: 20ex">
-                <col style="width: 20ex">
+                <col span="4" style="width: 20ex">
               </colgroup>
               <thead>
                 <tr>
