@@ -1233,25 +1233,23 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                   <th></th>
                 </tr>
               </thead>
-             <tbody>
-            <tr>
-            </tr>
+              <tbody>
                 <tr data-ng-repeat="item in loadItems()">
-                    <td>{{ item.cutAxis }}</td>
-                    <td>{{ bevelEdge(item.edge) }}</td>
-                    <td>{{ item.amountVert }}mm</td>
-                    <td>{{ item.amountHoriz }}mm</td>
-                    <td>{{ item.cutRemoval }}</td>
+                  <td>{{ item.cutAxis }}</td>
+                  <td>{{ bevelEdge(item.edge) }}</td>
+                  <td>{{ item.amountVert }}mm</td>
+                  <td>{{ item.amountHoriz }}mm</td>
+                  <td>{{ item.cutRemoval }}</td>
                   <td style="text-align: right">
                     <div class="sr-button-bar-parent">
-                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
-                             <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
-                             <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                        </div>
-                    <div>
+                      <div class="sr-button-bar" data-ng-class="sr-button-bar-active">
+                        <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                        <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
-            </tbody>
+              </tbody>
             </table>
             <button data-ng-click="addItem()" id="sr-new-bevel" class="btn btn-info btn-xs pull-right">New Bevel <span class="glyphicon glyphicon-plus"></span></button>
         `,
@@ -1372,24 +1370,22 @@ SIREPO.app.directive('filletTable', function(appState, panelState, radiaService)
                   <th></th>
                 </tr>
               </thead>
-             <tbody>
-            <tr>
-            </tr>
+              <tbody>
                 <tr data-ng-repeat="item in loadItems()">
-                    <td>{{ item.cutAxis }}</td>
-                    <td>{{ bevelEdge(item.edge) }}</td>
-                    <td>{{ item.radius }}mm</td>
-                    <td>{{ item.numSides }}</td>
+                  <td>{{ item.cutAxis }}</td>
+                  <td>{{ bevelEdge(item.edge) }}</td>
+                  <td>{{ item.radius }}mm</td>
+                  <td>{{ item.numSides }}</td>
                   <td style="text-align: right">
                     <div class="sr-button-bar-parent">
-                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
-                             <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
-                             <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                        </div>
-                    <div>
+                      <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
+                        <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                        <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
-            </tbody>
+              </tbody>
             </table>
             <button data-ng-click="addItem()" id="sr-new-fillet" class="btn btn-info btn-xs pull-right">New Fillet <span class="glyphicon glyphicon-plus"></span></button>
         `,
