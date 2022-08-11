@@ -18,7 +18,7 @@ def run(cfg_dir):
     _create_particle_file_for_external_lattice(cfg_dir)
     template_common.exec_parameters()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    res = template._extract_beam_position_report(data, pkio.py_path(cfg_dir))
+    res = template.extract_beam_position_report(data, pkio.py_path(cfg_dir))
     res.summaryData = PKDict(
         elementValues=template.read_summary_line(
             cfg_dir,
