@@ -179,7 +179,7 @@
                         "layoutShape": "rect",
                         "model": "geomGroup",
                         "title": "Group",
-                        "type": "group"
+                        "type": "geomGroup"
                     }
                 ],
                 "name": "Objects"
