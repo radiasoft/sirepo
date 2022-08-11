@@ -77,7 +77,6 @@ def _widget_supported_codes(ctx):
     x.pkupdate(
         jupyter="jupyterhublogin",
     )
-    x.pkdel("ml")
     r = """
         <div class="container">
           <div class="row">
