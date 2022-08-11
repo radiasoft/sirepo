@@ -10,7 +10,7 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
-import sirepo.template.ml as template
+import sirepo.template.activait as template
 
 
 def run(cfg_dir):

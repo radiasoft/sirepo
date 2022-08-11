@@ -75,7 +75,6 @@ def _widget_supported_codes(ctx):
     # TODO(e-carlin): https://git.radiasoft.org/sirepo/issues/3632
     x = PKDict([(s, s) for s in sirepo.feature_config.cfg().sim_types])
     x.pkupdate(
-        activait="ml",
         jupyter="jupyterhublogin",
     )
     x.pkdel("ml")
