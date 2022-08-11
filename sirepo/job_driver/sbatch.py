@@ -124,9 +124,8 @@ class SbatchDriver(job_driver.DriverBase):
         m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
         if op.opName == job.OP_RUN:
             assert m.sbatchHours
-            # TODO (gurhar1133): uncomment below
-            # if self.cfg.cores:
-            #     m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
+            if self.cfg.cores:
+                m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
             m.mpiCores = m.sbatchCores
         m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)

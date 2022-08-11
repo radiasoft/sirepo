@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from ast import Assert
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -237,7 +238,6 @@ class _Dispatcher(PKDict):
             tornado.ioloop.IOLoop.current().stop()
 
     def _get_cmd_type(self, msg):
-        pkdp('\n\n\n\n\n\n\n msg: {}', msg)
         if msg.jobRunMode == job.SBATCH:
             return _SbatchRun if msg.isParallel else _SbatchCmd
         elif msg.jobCmd == "fastcgi":
@@ -689,11 +689,24 @@ class _SbatchRun(_SbatchCmd):
         super().destroy()
 
     async def start(self):
+        s = self._sbatch_script()
+        if type(s) != str:
+            raise AssertionError(f"{s.error}")
+            # assert 0, "TEST"
+            # pkdp('\n\n\n\n\n\n TEST')
+            # return self.dispatcher.format_op(
+            #     self.msg,
+		    #     job.OP_ERROR,
+            #     reply=PKDict(
+            #         runDirNotFound=True,
+            #         error=s.error
+            #     ),
+	        # )
         await self._prepare_simulation()
         if self._terminating:
             return
         p = subprocess.run(
-            ("sbatch", self._sbatch_script()),
+            ("sbatch", s),
             close_fds=True,
             cwd=str(self.run_dir),
             capture_output=True,
@@ -750,6 +763,9 @@ class _SbatchRun(_SbatchCmd):
             if self.msg.sbatchQueue == "debug" and pkconfig.channel_in("dev"):
                 return "knl"
             return "haswell"
+
+        if (self.msg.sbatchCores <= 2 and self.msg.sbatchCores < self.msg.tasksPerNode):
+            return PKDict(error=f"Your environment does not support a nersc call with cores={self.msg.sbatchCores} and tasks per node={self.msg.tasksPerNode}")
 
         i = self.msg.shifterImage
         s = o = ""
