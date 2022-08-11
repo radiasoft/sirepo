@@ -7,7 +7,7 @@
     "constants": {
         "maxBPMPoints": 10,
         "clight": 299792458,
-        "inProgressText": "Reading currents and monitors...",
+        "inProgressText": "Reading currents and monitors",
         "particleMassAndCharge": {
             "positron": [0.510998928e-03, 1],
             "electron": [0.510998928e-03, -1],
