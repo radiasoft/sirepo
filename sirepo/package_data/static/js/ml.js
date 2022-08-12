@@ -31,7 +31,7 @@ SIREPO.app.config(function() {
           <div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="URL" class="col-sm-7" data-field-class="fieldClass">
-          <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />          
+          <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
           <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength || 0 }} bytes</span>
           <div class="sr-input-warning"></div>
           <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
@@ -1393,46 +1393,73 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
 SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, stringsService) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            layerTarget: '=',
+            childIndex: '=',
+            parentLayer: '=',
+        },
         template: `
             <form name="form" class="form-horizontal">
               <div class="form-group form-group-sm">
-                <table class="table table-striped table-condensed">
-                  <tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">
+              <button class="add-remove-child-btn" data-ng-if="removableChild()" data-ng-click="removeChild(childIndex)"> Remove this child </button>
+                <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b; position: relative;">
+                  <tr data-ng-repeat="layer in layerLevel track by $index" data-ng-init="layerIndex = $index">
                     <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
                       <div data-ng-if="fieldInfo.field">
                         <b>{{ fieldInfo.label }} </b>
                         <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="layerName(layer)" data-model="layer"></div>
+                        <div data-ng-if="branching(layer)">
+                         <button class="add-remove-child-btn" data-ng-click="addChild(layer)">Add another child</button>
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                    <td colspan="100%">
+                      <div data-ng-if="checkBranch(layer)">
+                        <div data-ng-repeat="l in layer.children track by $index" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
+                      </div>
+                    </td>
+                    <td colspan="100%">
+                      <div class="sr-nn-button-bar-parent pull-right">
+                        <div class="ml-button-bar">
+                          <button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)">
+                            <span class="glyphicon glyphicon-arrow-up"></span>
+                          </button>
+                          <button class="btn btn-info btn-xs" data-ng-disabled="$index == layerLevel.layers.length - 1" data-ng-click="moveLayer(1, $index)">
+                            <span class="glyphicon glyphicon-arrow-down"></span>
+                          </button>
+                          <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs">
+                            <span class="glyphicon glyphicon-remove"></span>
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   <tr>
                     <td>
                       <b>Add Layer</b>
                         <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
                     </td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td colspan="100%"></td>
+                    <td colspan="100%"></td>
                   </tr>
-                  <tr>
-                    <td>
-                      <b>Output Layer</b>
-                      <p class="form-control-static">Densely Connected NN</p>
-                    </td>
-                    <td>
-                      <b>Dimensionality</b>
-                      <p class="form-control-static text-right">{{ outputColCount()  }}</p>
-                    </td>
-                    <td>
-                      <b>Activation</b>
-                      <p class="form-control-static">Linear (identity)</p>
-                    </td>
-                    <td></td>
-                    </tr>
                 </table>
+                <div data-ng-if="root()">
+                    <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b;">
+                        <tr style="display: flex;">
+                        <td>
+                            <b>Output Layer</b>
+                            <p class="form-control-static">Densely Connected NN</p>
+                        </td>
+                        <td>
+                            <b>Dimensionality</b>
+                            <p class="form-control-static text-right">{{ outputColCount()  }}</p>
+                        </td>
+                        <td>
+                            <b>Activation</b>
+                            <p class="form-control-static">Linear (identity)</p>
+                        </td>
+                        </tr>
+                    </table>
+                </div>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
                 <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
@@ -1443,23 +1470,58 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
         controller: function($scope, $element) {
             var layerFields = {};
             var layerInfo = [];
-            $scope.appState = appState;
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
+            $scope.layerLevel = getLayerLevel();
+            $scope.root = () => {
+                return ! Boolean($scope.layerTarget);
+            };
 
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
                     return;
                 }
-                var neuralNet = appState.models.neuralNet;
+                if (branchingLayer($scope.selectedLayer)) {
+                    nest();
+                    $scope.selectedLayer = '';
+                    return;
+                }
+                var neuralNet = $scope.layerLevel;
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
                 const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
                 m.layer = $scope.selectedLayer;
-                neuralNet.layers.push(m);
+                neuralNet.push(m);
                 $scope.selectedLayer = '';
+            };
+
+            $scope.checkBranch = layer => {
+                const b = branchingLayer(layer.layer);
+                if (b && layer.children !== null) {
+                    return b;
+                }
+                layer.children = newChildren();
+                return b;
+            };
+
+            $scope.removeChild = childIndex => {
+                $scope.parentLayer.children.splice(childIndex, 1);
+                $scope.form.$setDirty();
+            };
+
+            $scope.branching = layer =>  {
+                return branchingLayer(layer.layer);
+            };
+
+            function branchingLayer(layer) {
+                return (layer == 'Add') || (layer == 'Concatenate');
+            }
+
+            $scope.addChild = layer => {
+                layer.children.push(newChild());
+                $scope.form.$setDirty();
             };
 
             $scope.layerName = layer => {
@@ -1472,17 +1534,20 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             $scope.deleteLayer = function(idx) {
-                appState.models.neuralNet.layers.splice(idx, 1);
+                $scope.layerLevel.splice(idx, 1);
                 $scope.form.$setDirty();
             };
 
             $scope.fieldTrack = function(layerIdx, idx) {
                 // changes the fields editor if the layer type changes
-                var layer = appState.models.neuralNet.layers[layerIdx];
+                var layer = $scope.layerLevel[layerIdx];
                 return layer.layer + idx;
             };
 
             $scope.hasChanges = function() {
+                if (! $scope.root()) {
+                    return false;
+                }
                 if ($scope.form.$dirty) {
                     return true;
                 }
@@ -1493,17 +1558,17 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 if (! appState.isLoaded()) {
                     return layerInfo;
                 }
-                var layer = appState.models.neuralNet.layers[idx];
+                var layer = $scope.layerLevel[idx];
                 layerInfo[idx] = layerFields[layer.layer];
                 return layerInfo[idx];
             };
 
             $scope.moveLayer = function(direction, currIdx) {
-                const n = appState.models.neuralNet;
-                n.layers.splice(
+                const n = $scope.layerLevel;
+                n.splice(
                     currIdx + direction,
                     0,
-                    n.layers.splice(currIdx, 1)[0]
+                    n.splice(currIdx, 1)[0]
                 );
                 $scope.form.$setDirty();
             };
@@ -1513,9 +1578,10 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     return layerEnum;
                 }
                 const unSupportedLayers = [
-                    'Add',
+                    // 'Add',
+                    // 'Concatenate',
                     'AveragePooling2D',
-                    'Conv2D',
+                    // 'Conv2D',
                     'Conv2DTranspose',
                     'GlobalAveragePooling2D',
                     'MaxPooling2D',
@@ -1540,8 +1606,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.form.$setPristine();
             };
 
+            $scope.removableChild = () => {
+                return ! $scope.root() && $scope.childIndex >= 2;
+            };
+
             function buildLayerFields() {
-                var MAX_FIELDS = 3;
                 $scope.layerEnum.forEach(function(row) {
                     var name = row[0];
                     var cols = [
@@ -1563,13 +1632,42 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                                 });
                         });
                     }
-                    while (cols.length < MAX_FIELDS) {
-                        cols.push({});
-                    }
                     layerFields[name] = cols;
                 });
 
             }
+
+            function getLayerLevel() {
+                if ($scope.layerTarget){
+                    return $scope.layerTarget.layers;
+                }
+                return appState.models.neuralNet.layers;
+            }
+
+            function newChild() {
+                return {layers: []};
+            }
+
+            function newChildren() {
+                return [
+                    newChild(),
+                    newChild(),
+                ];
+            }
+
+            function nest() {
+                const n = {
+                    layer: $scope.selectedLayer,
+                    children: newChildren(),
+                };
+                $scope.layerLevel.push(n);
+            }
+
+            $scope.$on('cancelChanges', (e, name) => {
+                if (name == 'neuralNet') {
+                    $scope.layerLevel = getLayerLevel();
+                }
+            });
 
             buildLayerFields();
         },
