@@ -18,8 +18,6 @@ tr:hover > td > .sr-nn-button-bar-parent {
   margin-bottom: .3em;
 }
 .ml-sub-table {
-  margin-right: 1em;
-  /* margin-left: -4em; */
-  margin-top: 1.5em;
-  margin-bottom: 1em;
+  margin: 1em;
+  margin-top: 2em;
 }

@@ -31,7 +31,7 @@ SIREPO.app.config(function() {
           <div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="URL" class="col-sm-7" data-field-class="fieldClass">
-          <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />          
+          <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
           <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength || 0 }} bytes</span>
           <div class="sr-input-warning"></div>
           <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
@@ -1413,7 +1413,12 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </div>
                       </div>
                     </td>
-                    <td style="width: 0px;">
+                    <td colspan="100%">
+                      <div data-ng-if="checkBranch(layer)">
+                        <div data-ng-repeat="l in layer.children track by $index" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
+                      </div>
+                    </td>
+                    <td colspan="100%">
                       <div class="sr-nn-button-bar-parent pull-right">
                         <div class="ml-button-bar">
                           <button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)">
@@ -1428,17 +1433,12 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </div>
                       </div>
                     </td>
-                    <td colspan="80%">
-                      <div data-ng-if="checkBranch(layer)">
-                        <div data-ng-repeat="l in layer.children track by $index" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
-                      </div>
-                    </td>
-                    <td colspan="100%"></td>
                   <tr>
                     <td>
                       <b>Add Layer</b>
                         <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
                     </td>
+                    <td colspan="100%"></td>
                     <td colspan="100%"></td>
                   </tr>
                 </table>
