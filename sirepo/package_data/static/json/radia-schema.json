@@ -282,6 +282,10 @@
             ["standard", "Standard"],
             ["beam", "Beam"]
         ],
+        "CutRemoval": [
+            ["-1", "Body"],
+            ["1", "Corner"]
+        ],
         "BevelEdge": [
             ["0", "Top Left"],
             ["1", "Top Right"],
@@ -770,6 +774,7 @@
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
             "bevels": ["Bevels", "BevelTable", []],
+            "fillets": ["Fillets", "FilletTable", []],
             "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "segments": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$, N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$, N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"],
             "id": ["_", "RandomId", ""],
@@ -835,16 +840,28 @@
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
         },
+        "objectFillet": {
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
+            "edge": ["Filleted Edge", "BevelEdge", "0", "Index of base shape edge to fillet, relative to the view axis"],
+            "numSides": ["Number of Sides", "Integer", 10, "Resolution of the curved surface", 6],
+            "radius": ["Radius", "Float", 1.0]
+        },
         "objectBevel": {
+            "_super": ["_", "model", "objectCut"],
             "amountVert": ["Cut Distance in Vertical Direction [mm]", "Float", 1.0],
             "amountHoriz": ["Cut Distance in Horizontal Direction [mm]", "Float", 1.0],
-            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutDir": ["", "Array", [0, 0, 1]],
             "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
             "heightDir": ["", "Array", [0, 1, 0]],
             "widthDir": ["", "Array", [1, 0, 0]]
         },
-        "objectShape": {
+        "objectCut": {
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
+            "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
+            "cutPoint": ["Cut Point", "FloatStringArray", "0, 0, 0", "", "x, y, z"],
+            "type": ["_", "PathType", "manual"]
+        },
+         "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
         "pointsReport": {
@@ -1226,7 +1243,7 @@
                     "segments",
                     "center",
                     "size"
-            ]],
+                ]],
                 ["Transforms", [
                     "transforms"
                 ]]
@@ -1290,13 +1307,29 @@
                 "cutAxis",
                 "edge",
                 "amountVert",
-                "amountHoriz"
+                "amountHoriz",
+                "cutRemoval"
             ],
             "advanced": [
                 "cutAxis",
                 "edge",
                 "amountVert",
-                "amountHoriz"
+                "amountHoriz",
+                "cutRemoval"
+            ]
+        },
+        "objectFillet": {
+            "basic": [
+                "cutAxis",
+                "edge",
+                "radius",
+                "numSides"
+            ],
+            "advanced": [
+                "cutAxis",
+                "edge",
+                "radius",
+                "numSides"
             ]
         },
         "objectShape": {
@@ -1324,7 +1357,8 @@
                     "extrudedPoints.referencePoints"
                 ]],
                 ["Modifications", [
-                    "bevels"
+                    "bevels",
+                    "fillets"
                 ]]
             ]
         },

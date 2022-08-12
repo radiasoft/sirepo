@@ -1,0 +1,31 @@
+
+$primary: darken(#428bca, 6.5%);
+$success: #5cb85c;
+$info: #5bc0de;
+$warning: #f0ad4e;
+$danger: #d9534f;
+
+$form-label-font-weight: 700;
+$form-feedback-icon-invalid: none;
+
+$tooltip-max-width: 350px;
+$tooltip-color: black;
+$tooltip-opacity: 1;
+
+@import "~bootstrap/scss/bootstrap";
+
+a {
+  cursor: pointer;
+}
+
+.form-control.is-invalid {
+  background-color: #fad8de;
+  padding-right: 0.75rem;
+}
+
+/* couldn't get a border via sass on standard bootstrap tooltip */
+.tooltip-inner {
+  background-color: #f9f9f9;
+  color: black;
+  border: 1px solid black;
+}
