@@ -134,6 +134,21 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
                 }
                 tabSelectedEvent();
             };
+
+            $scope.showPageNamed = (name, doShow) => {
+                const p = $scope.pages.filter(p => p.name === name)[0];
+                if (! p) {
+                    return;
+                }
+                const l = $(`li.${p.class}`);
+                if (doShow) {
+                    l.show();
+                }
+                else {
+                    l.hide();
+                }
+            };
+
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
                 $scope.pages = [];
@@ -731,7 +746,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
               </div>
               <div data-ng-switch-when="InputFile" class="col-sm-7">
-                <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected"></div>
+                <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[4]" data-empty-selection-text="No File Selected"></div>
               </div>
                <div data-ng-switch-when="Boolean" class="col-sm-7">
                  <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
@@ -1977,6 +1992,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
     return {
         restrict: 'A',
         scope: {
+            customStyle: '@',
             field: '=',
             info: '<',
             model: '<',
@@ -1986,7 +2002,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
         template: `
             <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
             <label data-text-with-math="valueLabels[$index] || \'Plane \' + $index" style="margin-right: 1ex"></label>
-            <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />
+            <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right; {{ customStyle }}" required />
             </div>
         `,
         controller: function($scope) {
@@ -2249,6 +2265,7 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         restrict: 'A',
         transclude: true,
         scope: {
+            reportCfg: '=',
             reportPanel: '@',
             modelName: '@',
             panelTitle: '@',
@@ -2259,7 +2276,7 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         template: `
             <div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">
               <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>
-              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>
+              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"><div data-ng-transclude=""></div></div>
               <button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>
         `,
         controller: function($scope) {
@@ -3514,6 +3531,7 @@ SIREPO.app.directive('modelArray', function() {
             field: '=',
         },
         template: `
+            <div  style="position: relative; top: -25px">
             <div class="row">
               <div class="col-sm-11"><div class="row">
                 <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
@@ -3530,6 +3548,7 @@ SIREPO.app.directive('modelArray', function() {
                 </div>
               </div></div>
               <div class="col-sm-1"><button style="margin-left: -15px; margin-top: 5px" data-ng-show="! isEmpty($index)" data-ng-click="deleteRow($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div>
+            </div>
             </div>
         `,
         controller: function(appState, $scope) {
@@ -4355,7 +4374,7 @@ SIREPO.app.service('fileUpload', function($http) {
 SIREPO.app.service('mathRendering', function() {
     // Renders math expressions in a plain text string using KaTeX.
     // The math expressions must be tightly bound by $, ex. $E = mc^2$
-    var RE = /\$[\-\w\\](.*\S)?\$/;
+    var RE = /\$[\-\(\w\\](.*\S)?\$/;
 
     function encodeHTML(text) {
         return $('<div />').text(text).html();

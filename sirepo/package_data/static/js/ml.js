@@ -30,6 +30,14 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="TrimButton" class="col-sm-5">
           <div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="URL" class="col-sm-7" data-field-class="fieldClass">
+          <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />          
+          <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength || 0 }} bytes</span>
+          <div class="sr-input-warning"></div>
+          <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
+          </div>
+        </div>
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
@@ -249,7 +257,7 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
     };
 });
 
-SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope) {
+SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope, $window) {
     var self = this;
     var currentFile = null;
     self.subplots = null;
@@ -320,74 +328,21 @@ SIREPO.app.controller('AnalysisController', function (appState, mlService, panel
 });
 
 SIREPO.app.controller('DataController', function (appState, panelState, requestSender, $scope) {
-    var self = this;
-
-    function computeColumnInfo() {
-        var dataFile = appState.models.dataFile;
-        if (! dataFile.file) {
-            appState.models.columnReports = [];
-            appState.saveChanges('columnReports');
-            return;
-        }
-        if (dataFile.file == dataFile.oldFile) {
-            return;
-        }
-        dataFile.oldFile = dataFile.file;
-        appState.saveQuietly('dataFile');
-        requestSender.sendStatefulCompute(
-            appState,
-            function(data) {
-                appState.models.columnInfo = data;
-                computeDefaultPartition();
-                appState.models.columnReports = [];
-                appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
-            },
-            {
-                method: 'compute_column_info',
-                dataFile: dataFile,
-            }
-        );
-    }
-
-    function computeDefaultPartition() {
-        var size = appState.models.columnInfo.rowCount;
-        var partition = appState.models.partition;
-        if (! partition.cutoff0 || ! partition.cutoff1
-            || partition.cutoff0 > size
-            || partition.cutoff1 > size) {
-            partition.cutoff0 = parseInt(0.125 * size);
-            partition.cutoff1 = parseInt((1 - 0.125) * size);
-        }
-    }
-
-    function dataFileChanged() {
-        computeColumnInfo();
-        const dataFile = appState.models.dataFile;
-        const partition = appState.models.partition;
-        if (dataFile.appMode == 'regression'
-            && partition.training + partition.testing >= 100) {
-            ['training', 'testing', 'validation'].forEach(function(f) {
-                delete partition[f];
-            });
-            appState.setModelDefaults(partition, 'partition');
-        }
-        else if (dataFile.appMode == 'classification') {
-            if (partition.training + partition.testing < 100) {
-                partition.testing = 100 - partition.training;
-            }
-        }
-        appState.saveQuietly('partition');
-    }
+    const self = this;
 
     self.hasDataFile = function() {
         return appState.isLoaded() && appState.applicationState().dataFile.file;
     };
 
-    appState.whenModelsLoaded($scope, function() {
-        $scope.$on('dataFile.changed', dataFileChanged);
-        //TODO(pjm): enable when analysis tab is completed
-        //panelState.showEnum('dataFile', 'appMode', 'analysis', false);
-    });
+    self.isTextData = () => {
+        return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'text';
+    };
+
+    //appState.whenModelsLoaded($scope, function() {
+    //    $scope.$on('dataFile.changed', dataFileChanged);
+    //    //TODO(pjm): enable when analysis tab is completed
+    //    //panelState.showEnum('dataFile', 'appMode', 'analysis', false);
+    //});
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
@@ -2041,20 +1996,185 @@ SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('dataFileView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimulation, requestSender, validationService, $rootScope, $scope) {
 
-    function processAppMode() {
-        const appMode = appState.models.dataFile.appMode;
-        panelState.showField(
-            'dataFile', 'inputsScaler',
-            ['regression', 'classification'].includes(appMode));
-        panelState.showField(
-            'dataFile', 'outputsScaler',
-            appMode == 'regression');
+    const modelName = $scope.modelName;
+    const self = this;
+
+    function computeColumnInfo() {
+        const dataFile = appState.models.dataFile;
+        if (! dataFile.file) {
+            appState.models.columnReports = [];
+            appState.saveChanges('columnReports');
+            return;
+        }
+        if (dataFile.file === dataFile.oldFile) {
+            return;
+        }
+        dataFile.oldFile = dataFile.file;
+        appState.saveQuietly('dataFile');
+        requestSender.sendStatefulCompute(
+            appState,
+            function(data) {
+                appState.models.columnInfo = data;
+                computeDefaultPartition();
+                appState.models.columnReports = [];
+                appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
+            },
+            {
+                method: 'compute_column_info',
+                dataFile: dataFile,
+            }
+        );
     }
 
-    $scope.whenSelected = processAppMode;
+    function computeDefaultPartition() {
+        const size = appState.models.columnInfo.rowCount;
+        const partition = appState.models.partition;
+        if (! partition.cutoff0 || ! partition.cutoff1
+            || partition.cutoff0 > size
+            || partition.cutoff1 > size
+        ) {
+            partition.cutoff0 = parseInt(0.125 * size);
+            partition.cutoff1 = parseInt((1 - 0.125) * size);
+        }
+    }
+
+    function dataFileChanged() {
+        computeColumnInfo();
+        const dataFile = appState.models.dataFile;
+        const partition = appState.models.partition;
+        if (dataFile.appMode === 'regression'
+            && partition.training + partition.testing >= 100) {
+            ['training', 'testing', 'validation'].forEach(function(f) {
+                delete partition[f];
+            });
+            appState.setModelDefaults(partition, 'partition');
+        }
+        else if (dataFile.appMode === 'classification') {
+            if (partition.training + partition.testing < 100) {
+                partition.testing = 100 - partition.training;
+            }
+        }
+        appState.saveQuietly('partition');
+    }
+
+    function processAppMode() {
+        const appMode = appState.models[modelName].appMode;
+        panelState.showField(
+            modelName, 'inputsScaler',
+            ['regression', 'classification'].includes(appMode));
+        panelState.showField(
+            modelName, 'outputsScaler',
+            appMode === 'regression');
+    }
+
+    function updateEditor() {
+        const dataFile = appState.models[modelName];
+        const o = dataFile.dataOrigin;
+        panelState.showField(modelName, 'file', o === 'file');
+        panelState.showField(modelName, 'url', o === 'url');
+        validateURL();
+    }
+
+    function validateURL() {
+        const dataFile = appState.models[modelName];
+        validationService.validateField(
+            modelName,
+            'url',
+            'input',
+            dataFile.dataOrigin === 'file' || ! ! dataFile.url,
+            'Enter a url'
+        );
+    }
+
+    //TODO(mvk): call this when loading data from url to update status bar
+    // Not needed by files
+    function getBytesLoaded() {
+        const dataFile = appState.models[modelName];
+        if (dataFile.dataOrigin === 'file' || ! dataFile.file) {
+            return;
+        }
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                if (d.error) {
+                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
+                }
+                if (d.bytesLoaded !== appState.models[modelName].bytesLoaded) {
+                    appState.models[modelName].bytesLoaded = d.bytesLoaded;
+                    appState.saveQuietly(modelName);
+                }
+            },
+            {
+                method: 'remote_data_bytes_loaded',
+                filename: dataFile.file,
+            }
+        );
+    }
+
+    function getRemoteData(headersOnly, callback) {
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                if (d.error) {
+                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
+                }
+                if (callback) {
+                    callback(d);
+                }
+            },
+            {
+                method: 'get_remote_data',
+                url: appState.models[modelName].url,
+                headers_only: headersOnly
+            },
+            {
+                onError: data => {
+                    //TODO: cancel
+                }
+            }
+        );
+    }
+
+    function updateData() {
+        const dataFile = appState.models[modelName];
+
+        //TODO(mvk): button to force reload; handle deletion of file; share files across users;
+        // store urls; share urls across apps
+        if (dataFile.dataOrigin === 'url') {
+            dataFile.oldURL = dataFile.url;
+            dataFile.bytesLoaded = 0;
+            dataFile.contentLength = 0;
+            dataFile.file = '';
+            appState.saveQuietly(modelName);
+            //TODO(mvk): two stages now; should be a single background call but not a "simulation"
+            // write in chunks on server and send updates - can we use websockets?
+            getRemoteData(true, d => {
+                //TODO(mvk): use length for progress bar
+                dataFile.contentLength = parseInt(d.headers['Content-Length']);
+                appState.saveQuietly(modelName);
+                getRemoteData(false, d => {
+                    dataFile.file = d.filename;
+                    dataFile.bytesLoaded = dataFile.contentLength;
+                    appState.saveQuietly(modelName);
+                    dataFileChanged();
+                });
+            });
+        }
+        dataFileChanged();
+    }
+
     $scope.watchFields = [
-        ['dataFile.appMode'], processAppMode,
+        [`${modelName}.appMode`], processAppMode,
+        [`${modelName}.dataOrigin`], updateEditor,
+        [`${modelName}.url`], validateURL,
     ];
+
+    $scope.whenSelected = () => {
+        processAppMode();
+        updateEditor();
+    };
+
+    $scope.$on( `${modelName}.changed`, updateData);
 });

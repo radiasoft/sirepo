@@ -157,11 +157,36 @@ def _axes_index(axis):
     return AXES.index(axis)
 
 
+def _bevel_offsets_for_axes(edge_index, **kwargs):
+    d = PKDict(kwargs)
+    h = numpy.array(d.heightDir)
+    w = numpy.array(d.widthDir)
+    return (
+        d.amountHoriz * w * [1, -1, -1, 1][edge_index],
+        d.amountVert * h * [-1, -1, 1, 1][edge_index],
+    )
+
+
 def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
     xf = radia.TrfTrsl(distance)
     if alternate_fields:
         xf = radia.TrfCmbL(xf, radia.TrfInv())
     radia.TrfMlt(g_id, xf, num_copies + 1)
+
+
+# edge_index starts at the top left - meaning minimum width coordinate and maximum height
+# coordinate in the plane defined by the length direction - proceeding clockwise
+def _corner_for_axes(edge_index, **kwargs):
+    d = PKDict(kwargs)
+    l = numpy.array(d.lenDir)
+    h = numpy.array(d.heightDir)
+    w = numpy.array(d.widthDir)
+    return (
+        numpy.array(d.center)
+        + numpy.array(d.size)
+        / 2
+        * [-w + h + l, w + h + l, w - h + l, -w - h + l][edge_index]
+    )
 
 
 def _geom_bounds(g_id):
@@ -188,36 +213,74 @@ _TRANSFORMS = PKDict(
 )
 
 
-# TODO(mvk): simplify input params with dict/kwargs, clarify the edge-indexed arrays
-def apply_bevel(g_id, obj_ctr, obj_size, bevel):
+def apply_bevel(g_id, **kwargs):
+    d = PKDict(kwargs)
 
-    b = numpy.array(bevel.cutDir)
-    g = numpy.array(bevel.heightDir)
-    x = numpy.array(bevel.widthDir)
-    sz = numpy.array(obj_size)
-    ctr = numpy.array(obj_ctr)
-    e = int(bevel.edge)
-    half_size = sz / 2
-    corner = ctr + half_size * [-x + g + b, x + g + b, x - g + b, -x - g + b][e]
-    w_offset = bevel.amountHoriz * x * [1, -1, -1, 1][e]
-    h_offset = bevel.amountVert * g * [-1, -1, 1, 1][e]
+    e = int(d.edge)
+    w_offset, h_offset = _bevel_offsets_for_axes(e, **kwargs)
 
     v = w_offset - h_offset
     vx2 = numpy.dot(w_offset, w_offset)
     vg2 = numpy.dot(h_offset, h_offset)
     v2 = numpy.dot(v, v)
 
-    plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][
-        e
-    ] * numpy.sqrt(vx2 / v2)
-    pt = corner + w_offset
+    plane = int(d.cutRemoval) * (
+        numpy.array(d.widthDir) * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2)
+        + numpy.array(d.heightDir) * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
+    )
 
     # object id, plane normal, point in plane - returns a new id in an array for some reason
-    return radia.ObjCutMag(g_id, pt.tolist(), plane.tolist())[0]
+    return radia.ObjCutMag(
+        g_id,
+        (_corner_for_axes(e, **kwargs) + w_offset).tolist(),
+        plane.tolist(),
+        "Frame->Lab",
+    )[0]
 
 
 def apply_color(g_id, color):
     radia.ObjDrwAtr(g_id, color)
+
+
+def apply_fillet(g_id, **kwargs):
+    d = PKDict(kwargs)
+
+    w = next_axis(d.cutAxis)
+    h = next_axis(w)
+    dirs = PKDict(
+        lenDir=AXIS_VECTORS[d.cutAxis],
+        widthDir=AXIS_VECTORS[w],
+        heightDir=AXIS_VECTORS[h],
+    )
+    cut_amts = PKDict(
+        amountVert=d.radius,
+        amountHoriz=d.radius,
+    )
+    g_id = apply_bevel(
+        g_id,
+        cutRemoval=1,
+        **dirs,
+        **cut_amts,
+        **kwargs,
+    )
+    w_offset, h_offset = _bevel_offsets_for_axes(
+        int(d.edge), **dirs, **cut_amts, **kwargs
+    )
+    ctr = (
+        _corner_for_axes(int(d.edge), **dirs, **kwargs)
+        + w_offset
+        + h_offset
+        - (numpy.array(d.size) / 2) * dirs.lenDir
+    )
+    c_id = build_cylinder(
+        extrusion_axis=d.cutAxis,
+        center=ctr,
+        num_sides=d.numSides,
+        seg_type="pln",
+        **{k: v for k, v in kwargs.items() if k != "center"},
+    )
+    c_id = apply_bevel(c_id, cutRemoval=-1, **dirs, **cut_amts, **kwargs)
+    return build_container([g_id, c_id])
 
 
 def multiply_vector_by_matrix(v, m):
@@ -254,7 +317,7 @@ def build_cylinder(**kwargs):
     _apply_segments(
         g_id,
         d.segments,
-        seg_type="cyl",
+        seg_type=d.get("seg_type", "cyl"),
         center=d.center,
         axis=AXIS_VECTORS[axis].tolist(),
         perp_axis=(d.radius * AXIS_VECTORS[next_axis(axis)] + d.center).tolist(),

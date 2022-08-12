@@ -1904,8 +1904,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 and int(beamline_info.last_id) == int(data.models.beamline[-1].id)
             )
         )
-        content.append("v.ws = True")
-        if plot_reports:
+        if report != "multiElectronAnimation":
+            content.append("v.ws = True")
+        if plot_reports and report != "multiElectronAnimation":
             content.append("v.ws_pl = 'xy'")
     else:
         content.append("op = None")
