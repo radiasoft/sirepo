@@ -3,7 +3,7 @@
   position: absolute;
   z-index: 1000;
   right: 1.5em;
-  top: -4px;
+  top: -1px;
   white-space: nowrap;
 }
 .sr-nn-button-bar-parent {
@@ -19,7 +19,7 @@ tr:hover > td > .sr-nn-button-bar-parent {
 }
 .ml-sub-table {
   margin-right: 1em;
-  margin-left: -4em;
+  /* margin-left: -4em; */
   margin-top: 1.5em;
   margin-bottom: 1em;
 }
