@@ -1,0 +1,79 @@
+{
+    "enum": {
+        "Gender": [
+            ["male", "Male"],
+            ["female", "Female"]
+        ],
+        "DogDisposition": [
+            ["aggressive", "Aggressive"],
+            ["friendly", "Friendly"],
+            ["submissive", "Submissive"]
+        ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["myapp.js"]
+        }
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "MyAppSourceController as source",
+                "templateUrl": "/static/html/myapp-source.html"
+            }
+        }
+    },
+    "model": {
+        "dog": {
+            "breed": ["Breed", "String"],
+            "gender": ["Gender", "Gender", "male"],
+            "height": ["Height [cm]", "Float", 50.0, "Distance from front paws to withers"],
+            "weight": ["Weight [lbs]", "Float", 60.5],
+            "disposition": ["Disposition", "DogDisposition", "friendly"],
+            "favoriteTreat": ["Favorite Treat", "OptionalString", ""]
+        },
+        "heightWeightReport": {}
+    },
+    "view": {
+        "dog": {
+            "title": "Dog",
+            "report": "editor",
+            "basic": [
+                "breed",
+                "weight",
+                "height",
+                "disposition",
+                "favoriteTreat"
+            ],
+            "advanced": [
+                "breed",
+                "gender",
+                "weight",
+                "height"
+            ]
+        },
+        "dog2": {
+            "title": "Dog2",
+            "model": "dog",
+            "report": "editor",
+            "basic": [
+                "breed",
+                "weight",
+                "height",
+                "disposition",
+                "favoriteTreat"
+            ],
+            "advanced": [
+                "breed",
+                "gender",
+                "weight",
+                "height"
+            ]
+        },
+        "heightWeightReport": {
+            "title": "Physical Characteristics",
+            "report": "2d",
+            "advanced": []
+        }
+    }
+}

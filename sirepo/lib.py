@@ -22,11 +22,11 @@ import sirepo.util
 class LibAdapterBase:
     """Common functionality between code specific LibAdapter implementations."""
 
-    def __init__(self, ignore_files):
+    def __init__(self, ignore_files=None):
         m = inspect.getmodule(self)
         self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
         self._code_var = m.code_var
-        self._ignore_files = ignore_files
+        self._ignore_files = ignore_files if ignore_files else []
 
     def _convert(self, data):
         def _model(model, name):

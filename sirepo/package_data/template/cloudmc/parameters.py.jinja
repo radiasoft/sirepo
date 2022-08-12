@@ -4,27 +4,46 @@ import openmc_data_downloader
 
 
 def create_geometry():
-    openmc.Geometry(root=openmc.DAGMCUniverse(
+    univ = openmc.DAGMCUniverse(
         filename='{{ dagmcFilename }}',
-    )).export_to_xml()
+    )
+    {% if reflectivePlanes_useReflectivePlanes == '1' %}
+    # creates an edge of universe boundary surface
+    vac_surf = openmc.Sphere(r=10000, surface_id=9999, boundary_type="vacuum")
+    plane1 = openmc.Plane(
+        a={{ reflectivePlanes_plane1a }},
+        b={{ reflectivePlanes_plane1b }},
+        c=0.0,
+        d=0.0,
+        surface_id=9991,
+        boundary_type="reflective",
+    )
+    plane2 = openmc.Plane(
+        a={{ reflectivePlanes_plane2a }},
+        b={{ reflectivePlanes_plane2b }},
+        c=0.0,
+        d=0.0,
+        surface_id=9990,
+        boundary_type="reflective",
+    )
+    univ = openmc.Cell(
+        cell_id=9999,
+        region=-vac_surf & -plane1 & +plane2,
+        fill=univ,
+    )
+    openmc.Geometry(root=[univ]).export_to_xml()
+    {% else %}
+    openmc.Geometry(root=univ).export_to_xml()
+    {% endif %}
 
 
 def create_materials():
-    # fuel found by name
-    u235 = openmc.Material(name="fuel")
-    u235.add_nuclide('U235', 1.0, 'ao')
-    u235.set_density('g/cc', 11)
-    # water found by id
-    water = openmc.Material()
-    water.add_nuclide('H1', 2.0, 'ao')
-    water.add_nuclide('O16', 1.0, 'ao')
-    water.set_density('g/cc', 1.0)
-    water.add_s_alpha_beta('c_H_in_H2O')
-    water.id = 41
-    materials = openmc.Materials([u235, water])
+    {% filter indent(width=4) %}
+    {{ materials }}
+    {% endfilter %}
     materials.export_to_xml()
     openmc_data_downloader.just_in_time_library_generator(
-        libraries='ENDFB-7.1-NNDC',
+        libraries='{{ settings_materialLibrary }}',
         materials=materials,
         destination='../../lib',
     )
@@ -32,45 +51,140 @@ def create_materials():
 
 def create_settings():
     settings = openmc.Settings()
-    settings.batches = {{ openmcSettings_batches }}
-    settings.inactive = {{ openmcSettings_inactive }}
-    settings.particles = {{ openmcSettings_particles }}
+    settings.batches = {{ settings_batches }}
+    settings.inactive = {{ settings_inactive }}
+    settings.particles = {{ settings_particles }}
     settings.output = dict(
         summary=False,
         tallies=False,
     )
-    settings.source = openmc.Source(
-        space=openmc.stats.Box(
-            [-4., -4., -4.],
-            [ 4.,  4.,  4.],
-        ),
-    )
+    settings.source = [
+        {% filter indent(width=8) %}
+        {{ sources }}
+        {% endfilter %}
+    ]
+    settings.run_mode = "{{ settings_run_mode }}"
     settings.export_to_xml()
 
 
-def create_tallies():
-    # tally = openmc.Tally()
-    # tally.scores = ['total']
-    # tally.filters = [openmc.CellFilter(1)]
-    # openmc.Tallies([tally]).export_to_xml()
-
-    cell_tally = openmc.Tally(name='heating')
-    cell_tally.scores = ['heating']
-
+def create_tallies(name):
     mesh = openmc.RegularMesh()
-    mesh.dimension = [50, 50, 160]
-    mesh.lower_left = [-12, -12, -20]  # x,y,z coordinates start at 0 as this is a sector model
-    mesh.upper_right = [12, 12, 20]
+    mesh.dimension = {{ tallyMeshCellCount }}
+    mesh.lower_left = {{ tallyMeshLowerLeft }}
+    mesh.upper_right = {{ tallyMeshUpperRight }}
 
-    mesh_tally = openmc.Tally(name="heating_on_mesh")
+    # one tally at a time for now
+    #cell_tally = openmc.Tally(tally_id=1, name=name)
+    #cell_tally.scores = ["{{ tallyScore }}",]
+
+    mesh_tally = openmc.Tally(tally_id=2, name=name)
     mesh_tally.filters = [openmc.MeshFilter(mesh)]
-    mesh_tally.scores = ["heating"]
+    mesh_tally.scores = ["{{ tallyScore }}",]
 
-    openmc.Tallies([cell_tally, mesh_tally]).export_to_xml()
+    #openmc.Tallies([cell_tally, mesh_tally]).export_to_xml()
+    openmc.Tallies([mesh_tally]).export_to_xml()
+    return mesh
+
+
+def _grid_to_poly(path):
+    from pykern.pkcollections import PKDict
+    from sirepo import util
+
+    def _poly_lines(nx, ny, nz):
+        l = []
+        for k in range(nz):
+            # only rects
+            z = k * (nx + 1) * (ny + 1)
+            for j in range(ny):
+                y = j * (nx + 1)
+                d = y + z
+                c = [0, 1, nx + 2, nx + 1]
+                for i in range(nx):
+                    l.append("4 ")
+                    for n in range(len(c)):
+                        l.append(f"{c[n] + d + i} ")
+                    l.append("\n")
+        return l
+
+    with open(path, "r") as f:
+        in_points = False
+        points_done = False
+        lines = []
+        poly_lines = []
+        nx = 0
+        ny = 0
+        nz = 0
+        num_cells = 0
+        # cube
+        points_per_poly = 4
+        polys_per_cell = 1
+        num_polys = 0
+        for line in f:
+            # force version 4.1
+            if line.startswith("# vtk DataFile Version"):
+                lines.append("# vtk DataFile Version 4.1\n")
+                continue
+            # only polydata is allowed
+            if line.startswith("DATASET STRUCTURED_GRID"):
+                lines.append("DATASET POLYDATA\n")
+                continue
+            if line.startswith("DIMENSIONS"):
+                l = line.strip().split()
+                # if the number of points in a dimension is n, the number of cells is n - 1
+                nx, ny, nz = (int(l[1]) - 1), (int(l[2]) - 1), (int(l[3]) - 1)
+                num_cells = nx * ny * nz
+                num_polys = polys_per_cell * num_cells
+                # DIMENSIONS is not a legal keyword in a polydata file
+                continue
+            lines.append(line)
+            if not in_points:
+                if "POINTS" not in line:
+                    continue
+                in_points = True
+                poly_lines.append("\n")
+                poly_lines.append(f"POLYGONS {num_polys} {num_polys * (points_per_poly + 1)}\n")
+                poly_lines.extend(_poly_lines(nx, ny, nz))
+                poly_lines.append("\n")
+                continue
+            if not points_done:
+                try:
+                    [float(x) for x in line.strip().split()]
+                except ValueError:
+                    points_done = True
+                    # we've already added the non-point line
+                    lines[-1:-1] = poly_lines
+                    continue
+
+    p = path.replace(".vtk", ".json")
+    util.json_dump(PKDict(content="".join(lines)), p)
+    return p
+
+def _tallies_to_vtk(mesh, name):
+    from pykern.pkcollections import PKDict
+    s = openmc.StatePoint("statepoint.{{ settings_batches }}.h5")
+    t = s.get_tally(name=name)
+    t_props = PKDict(
+        mean=t.mean,
+        std_dev=t.std_dev,
+        sum=t.sum,
+        sum_sq=t.sum_sq,
+    )
+    f = f"{name}.vtk"
+    d = {}
+    for a in {{ tallyAspects }}:
+        d[a] = t_props[a]
+    mesh.write_data_to_vtk(
+        filename=f,
+        datasets=d
+    )
+    # silly, but now read the file we just wrote and convert the grid to polydata
+    _grid_to_poly(f)
 
 
 create_geometry()
 create_materials()
 create_settings()
-create_tallies()
+t = "{{ tallyName }}"
+m = create_tallies(t)
 openmc.run()
+_tallies_to_vtk(m, t)

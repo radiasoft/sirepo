@@ -5,6 +5,7 @@ SIREPO.srdbg = console.log.bind(console);
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
 SIREPO.debounce_timeout = 350;
+SIREPO.nonDataFileFrame = -1;
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
@@ -1027,6 +1028,10 @@ SIREPO.app.factory('stringsService', function() {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
+    function lcfirst(str) {
+        return str[0].toLowerCase() + str.substring(1);
+    }
+
     return {
         formatKey: (name) => {
             return ucfirst(strings[name]);
@@ -1056,7 +1061,8 @@ SIREPO.app.factory('stringsService', function() {
             return `End ${typeOfSimulation(modelName)}`;
         },
         typeOfSimulation: typeOfSimulation,
-        ucfirst: ucfirst
+        ucfirst: ucfirst,
+        lcfirst: lcfirst
     };
 });
 
@@ -1199,15 +1205,19 @@ SIREPO.app.service('validationService', function(utilities) {
     // html5 validation
     this.validateField = function (model, field, inputType, isValid, msg) {
         const mfId = utilities.modelFieldID(model, field);
-        const f = $(`.${mfId} ${inputType}`)[0];
+        const r = $(`.${mfId} ${inputType}`);
+        const f = r[0];
         if (! f) {
             return;
         }
         const fWarn = $(`.${mfId} .sr-input-warning`);
+        const invalidClass = 'ng-invalid ng-dirty';
         fWarn.text(msg);
         fWarn.hide();
         f.setCustomValidity('');
+        r.removeClass(invalidClass);
         if (! isValid) {
+            r.addClass(invalidClass);
             f.setCustomValidity(msg);
             fWarn.show();
         }
@@ -1625,6 +1635,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
     };
 
+    self.enableArrayField = function(model, field, index, isEnabled) {
+        $(fieldClass(model, field)).find('input.form-control').eq(index).prop('readonly', ! isEnabled);
+    };
+
     self.enableFields = function(model, fieldInfo) {
         applyToFields('enableField', model, fieldInfo);
     };
@@ -1702,7 +1716,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.isActiveField = function(model, field) {
-        return $(fieldClass(model, field)).find('input').is(':focus');
+        return $(fieldClass(model, field)).find('input, select').is(':focus');
     };
 
     self.isHidden = function(name) {

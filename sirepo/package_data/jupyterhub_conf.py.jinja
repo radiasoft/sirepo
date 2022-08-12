@@ -12,3 +12,16 @@ c.SirepoAuthenticator.sirepo_uri = '{{ sirepo_uri }}'
 c.Spawner.debug = {{ jupyterhub_debug }}
 c.Spawner.default_url = '/lab'
 c.JupyterHub.template_paths = [sirepo.jupyterhub.template_dirs()]
+# Relevant default values from jupyter
+# https://github.com/jupyterhub/jupyterhub/blob/909b3ad4d708a7369343c8a8537c95c05aae3b67/jupyterhub/spawner.py#L433
+# In addition, values specific for our environment
+c.Spawner.env_keep = [
+    'JUPYTERHUB_SINGLEUSER_APP',
+    'LANG',
+    'LC_ALL',
+    'LD_LIBRARY_PATH',
+    'PATH',
+    'PKG_CONFIG_PATH'
+    'PYTHONPATH',
+    'VIRTUAL_ENV',
+]

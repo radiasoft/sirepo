@@ -5,7 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-    SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
           '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
@@ -131,9 +130,11 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService)
     //TODO(pjm): also KB Mirror and  Monocromator
     self.toolbarItemNames = ['aperture', 'obstacle', 'emptyElement', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch', 'zonePlate'];
     self.prepareToSave = function() {};
-    self.showBeamStatisticsReport = () =>
-        ['bendingMagnet', 'geometricSource', 'undulator'].indexOf(
-            appState.models.simulation.sourceType) >= 0;
+    self.showBeamStatisticsReport = () => {
+        return ['bendingMagnet', 'geometricSource', 'undulator'].indexOf(
+            appState.models.simulation.sourceType) >= 0
+            && appState.applicationState().beamline.length;
+    };
 });
 
 SIREPO.app.controller('SourceController', function(appState, shadowService) {
