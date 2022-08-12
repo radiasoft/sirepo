@@ -2,7 +2,7 @@
   background-color: #f9f9f9;
   position: absolute;
   z-index: 1000;
-  right: 1em;
+  right: 1.5em;
   top: -4px;
   white-space: nowrap;
 }
@@ -18,5 +18,8 @@ tr:hover > td > .sr-nn-button-bar-parent {
   margin-bottom: .3em;
 }
 .ml-sub-table {
-  margin: 1em;
+  margin-right: 1em;
+  margin-left: -4em;
+  margin-top: 1.5em;
+  margin-bottom: 1em;
 }

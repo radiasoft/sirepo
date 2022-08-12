@@ -1458,7 +1458,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td style="width: 0px;">
                       <div class="sr-nn-button-bar-parent pull-right">
                         <div class="ml-button-bar">
                           <button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)">
@@ -1473,20 +1473,18 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td colspan="80%">
                       <div data-ng-if="checkBranch(layer)">
                         <div data-ng-repeat="l in layer.children track by $index" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
                       </div>
                     </td>
+                    <td colspan="100%"></td>
                   <tr>
                     <td>
                       <b>Add Layer</b>
                         <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
                     </td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td colspan="100%"></td>
                   </tr>
                 </table>
                 <div data-ng-if="root()">
@@ -1658,7 +1656,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             };
 
             function buildLayerFields() {
-                var MAX_FIELDS = 3;
                 $scope.layerEnum.forEach(function(row) {
                     var name = row[0];
                     var cols = [
@@ -1679,9 +1676,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                                     label: layerSchema[field][0],
                                 });
                         });
-                    }
-                    while (cols.length < MAX_FIELDS) {
-                        cols.push({});
                     }
                     layerFields[name] = cols;
                 });
