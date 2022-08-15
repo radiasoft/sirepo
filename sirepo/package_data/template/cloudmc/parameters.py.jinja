@@ -90,20 +90,30 @@ def _grid_to_poly(path):
     from pykern.pkcollections import PKDict
     from sirepo import util
 
+    # cube
+    polys_per_cell = 1
+    points_per_poly = 4
+
     def _poly_lines(nx, ny, nz):
         l = []
         for k in range(nz):
             # only rects
-            z = k * (nx + 1) * (ny + 1)
+            this_z = k * (nx + 1) * (ny + 1)
+            next_z = (k + 1) * (nx + 1) * (ny + 1)
             for j in range(ny):
                 y = j * (nx + 1)
-                d = y + z
-                c = [0, 1, nx + 2, nx + 1]
-                for i in range(nx):
-                    l.append("4 ")
-                    for n in range(len(c)):
-                        l.append(f"{c[n] + d + i} ")
-                    l.append("\n")
+                bt = [0, 1, nx + 2, nx + 1]
+                lr = [0, next_z, next_z + nx + 1, nx + 1]
+                fb = [0, next_z, next_z + 1, 1]
+                for z in (next_z, ):
+                    d = y + z
+                    for i in range(nx):
+                        l.append(f"{points_per_poly} ")
+                        for p in bt:
+                            l.append(f"{p + d + i} ")
+                        #for p in lr:
+                        #    l.append(f"{p + d + i} ")
+                        l.append("\n")
         return l
 
     with open(path, "r") as f:
@@ -115,9 +125,6 @@ def _grid_to_poly(path):
         ny = 0
         nz = 0
         num_cells = 0
-        # cube
-        points_per_poly = 4
-        polys_per_cell = 1
         num_polys = 0
         for line in f:
             # force version 4.1

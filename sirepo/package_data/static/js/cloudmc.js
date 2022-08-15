@@ -231,6 +231,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             function addTally(str, name) {
                 const pd = SIREPO.VTK.VTKUtils.parseLegacy(str);
+                pd.buildCells();
                 $rootScope.$broadcast('vtk.hideLoader');
                 const b = coordMapper.buildActorBundle();
                 b.mapper.setInputData(pd);
