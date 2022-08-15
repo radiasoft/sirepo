@@ -769,14 +769,13 @@ class _SbatchRun(_SbatchCmd):
             o = f"""#SBATCH --image={i}
 #SBATCH --constraint={_processor()}
 #SBATCH --qos={self.msg.sbatchQueue}
-#SBATCH --tasks-per-node=32
+#SBATCH --tasks-per-node={self.msg.tasksPerNode}
 {_assert_project()}"""
             s = "--cpu-bind=cores shifter --entrypoint"
         m = "--mpi=pmi2" if pkconfig.channel_in("dev") else ""
         f = self.run_dir.join(self.jid + ".sbatch")
         f.write(
             f"""#!/bin/bash
-#SBATCH --tasks-per-node={self.msg.tasksPerNode}
 #SBATCH --error={template_common.RUN_LOG}
 #SBATCH --ntasks={self.msg.sbatchCores}
 #SBATCH --output={template_common.RUN_LOG}
