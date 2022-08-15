@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from ast import Assert
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
