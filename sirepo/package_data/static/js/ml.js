@@ -2059,6 +2059,29 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         appState.saveQuietly('partition');
     }
 
+    function getArchiveFileList(filename) {
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                if (d.error) {
+                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
+                }
+                if (d.bytesLoaded !== appState.models[modelName].bytesLoaded) {
+                    appState.models[modelName].bytesLoaded = d.bytesLoaded;
+                    appState.saveQuietly(modelName);
+                }
+            },
+            {
+                method: 'get_archive_file_list',
+                filename: dataFile.file,
+            }
+        );
+    }
+
+    function isArchiveFile(filename) {
+        return SIREPO.APP_SCHEMA.constants.archiveFiles.some(x => filename.endsWith(x));
+    }
+
     function processAppMode() {
         const appMode = appState.models[modelName].appMode;
         panelState.showField(
@@ -2156,6 +2179,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 appState.saveQuietly(modelName);
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
+                    dataFile.fileList = d.filelist;
                     dataFile.bytesLoaded = dataFile.contentLength;
                     appState.saveQuietly(modelName);
                     dataFileChanged();

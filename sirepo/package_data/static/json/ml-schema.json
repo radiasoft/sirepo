@@ -8,6 +8,9 @@
         "allowedEquationOps": [
             "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan", "sqrt"
         ],
+        "archiveFiles": [
+            "gzip", "h5", "tar.gz", "zip"
+        ],
         "inProgressText": "Working"
     },
     "enum": {

@@ -851,19 +851,36 @@ def _get_fit_report(report, x_vals, y_vals):
 
 
 def _get_remote_data(url, headers_only):
+    def _archive_file_list(path):
+        p = str(path)
+        pkdp('ARCH FOR {}? {}', p, any([p.endswith(f".{s}") for s in SCHEMA.constants.archiveFiles]))
+        if not any([p.endswith(f".{s}") for s in SCHEMA.constants.archiveFiles]):
+            return None
+        if p.endswith('.zip'):
+            l = _get_zip_list(path)
+            pkdp('ZIP {}', l)
+            return l
+        return []
+
+    def _get_zip_list(path):
+        import zipfile
+        with zipfile.ZipFile(path, mode='r') as z:
+            return [x.filename for x in z.infolist() if not x.filename.endswith('/')]
+
     filename = os.path.basename(urllib.parse.urlparse(url).path)
+    lib_filepath = _SIM_DATA.lib_file_write_path(
+            _SIM_DATA.lib_file_name_with_model_field(
+            "dataFile",
+            "file",
+            filename,
+        )
+    )
     try:
         with urllib.request.urlopen(url) as r:
             if headers_only:
                 return PKDict(headers=_header_str_to_dict(r.headers))
             with open(
-                _SIM_DATA.lib_file_write_path(
-                    _SIM_DATA.lib_file_name_with_model_field(
-                        "dataFile",
-                        "file",
-                        filename,
-                    )
-                ),
+                lib_filepath,
                 "wb",
             ) as f:
                 while True:
@@ -873,7 +890,10 @@ def _get_remote_data(url, headers_only):
                     f.write(c)
     except Exception as e:
         return PKDict(error=e)
-    return PKDict(filename=filename)
+    return PKDict(
+        filename=filename,
+        filelist=_archive_file_list(lib_filepath),
+    )
 
 
 # if this conversion is not done, the header gets returned as a newline-delimited string
