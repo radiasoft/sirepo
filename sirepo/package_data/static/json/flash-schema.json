@@ -100,6 +100,7 @@
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
             "sbatchProject": ["Project", "OptionalString", ""]
         },
         "gridEvolutionAnimation": {

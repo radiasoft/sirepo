@@ -878,6 +878,7 @@
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "sbatchCores": ["Cores", "Integer", 1],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""]

@@ -162,6 +162,7 @@
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "sbatchCores": ["Cores", "Integer", 4],
             "sbatchHours": ["Hours", "Float", 0.4],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""]
         },
