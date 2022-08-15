@@ -689,24 +689,11 @@ class _SbatchRun(_SbatchCmd):
         super().destroy()
 
     async def start(self):
-        s = self._sbatch_script()
-        if type(s) != str:
-            raise AssertionError(f"{s.error}")
-            # assert 0, "TEST"
-            # pkdp('\n\n\n\n\n\n TEST')
-            # return self.dispatcher.format_op(
-            #     self.msg,
-		    #     job.OP_ERROR,
-            #     reply=PKDict(
-            #         runDirNotFound=True,
-            #         error=s.error
-            #     ),
-	        # )
         await self._prepare_simulation()
         if self._terminating:
             return
         p = subprocess.run(
-            ("sbatch", s),
+            ("sbatch", self._sbatch_script()),
             close_fds=True,
             cwd=str(self.run_dir),
             capture_output=True,
@@ -715,6 +702,17 @@ class _SbatchRun(_SbatchCmd):
         m = re.search(r"Submitted batch job (\d+)", p.stdout)
         # TODO(robnagler) if the guy is out of hours, will fail
         if not m:
+            await self.dispatcher.send(
+                    self.dispatcher.format_op(
+                        self.msg,
+                        job.OP_ERROR,
+                        error=f"error submitting sbatch job error={p.stderr}",
+                        reply=PKDict(
+                            state=job.ERROR,
+                            error=p.stderr,
+                        ),
+                    )
+                )
             raise ValueError(
                 f"Unable to submit exit={p.returncode} stdout={p.stdout} stderr={p.stderr}"
             )
@@ -763,9 +761,6 @@ class _SbatchRun(_SbatchCmd):
             if self.msg.sbatchQueue == "debug" and pkconfig.channel_in("dev"):
                 return "knl"
             return "haswell"
-
-        if (self.msg.sbatchCores <= 2 and self.msg.sbatchCores < self.msg.tasksPerNode):
-            return PKDict(error=f"Your environment does not support a nersc call with cores={self.msg.sbatchCores} and tasks per node={self.msg.tasksPerNode}")
 
         i = self.msg.shifterImage
         s = o = ""
