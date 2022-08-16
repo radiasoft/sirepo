@@ -28,6 +28,14 @@
             ["gmix", "Gaussian Mixture"],
             ["kmeans", "KMeans"]
         ],
+        "DataFormat": [
+            ["image", "Image"],
+            ["text", "Text"]
+        ],
+        "DataOrigin": [
+            ["file", "File"],
+            ["url", "URL"]
+        ],
         "InputOutputClass": [
             ["input", "Input"],
             ["output", "Output"],
@@ -51,10 +59,11 @@
         ],
         "NeuralNetLayer": [
             ["Activation", "Activation Function"],
-            ["Add", "Add layer"],
+            ["Add", "Add"],
             ["AlphaDropout", "Alpha Noise Dropout"],
             ["AveragePooling2D", "Average Pooling"],
             ["BatchNormalization", "Batch Normalization"],
+            ["Concatenate", "Concatenate"],
             ["Conv2D", "Conv2D Layer"],
             ["Conv2DTranspose", "Conv2DTranspose layer"],
             ["SeparableConv2D", "Separable Conv2D Layer"],
@@ -265,9 +274,12 @@
         },
         "dataFile": {
             "appMode": ["Application Mode", "AppMode", "regression"],
+            "dataOrigin": ["Data Origin", "DataOrigin", "file"],
+            "dataFormat": ["Data Format", "DataFormat", "text"],
             "file": ["Data File", "InputFile"],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
-            "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
+            "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
+            "url": ["Data URL", "URL", ""]
         },
         "dtClassifierClassificationMetricsAnimation": {},
         "dtClassifierConfusionMatrixAnimation": {
@@ -336,6 +348,9 @@
             "layer": ["Layer", "NeuralNetLayer", "Activation"],
             "activation": ["Activation", "NeuralNetActivation", "relu"]
         },
+        "add": {
+            "layer": ["Layer", "NeuralNetLayer", "Add"]
+        },
         "alphaDropout": {
             "_super": ["-", "model", "dropout"],
             "layer": ["Layer", "NeuralNetLayer", "AlphaDropout"]
@@ -347,6 +362,9 @@
         "batchNormalization": {
             "layer": ["layer", "NeuralNetLayer", "BatchNormalization"],
             "momentum": ["Momentum", "Float", 0.99]
+        },
+        "concatenate": {
+            "layer": ["Layer", "NeuralNetLayer", "Concatenate"]
         },
         "conv2D": {
             "_super": ["-", "model", "neuralNetLayer"],
@@ -496,7 +514,10 @@
             "title": "Data Source",
             "basic": [
                 "appMode",
+                "dataOrigin",
                 "file",
+                "url",
+                "dataFormat",
                 "inputsScaler",
                 "outputsScaler"
             ],

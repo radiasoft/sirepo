@@ -177,6 +177,10 @@ SIREPO.app.controller('AnalysisController', function(appState, persistentSimulat
 
     self.simState = persistentSimulation.initSimulationState(self);
 
+    self.showStartNewPollButton = () => {
+        return appState.models.pollBlueskyForScansAnimation.minutes > 0;
+    };
+
     self.simHandleStatus = function(data) {
         // When not running we don't want to update the scans.
         // There may be scans that the user has removed but are
