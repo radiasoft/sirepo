@@ -9,7 +9,7 @@
             "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan", "sqrt"
         ],
         "archiveFiles": [
-            "gzip", "h5", "tar.gz", "zip"
+            "h5", "tar.gz", "zip"
         ],
         "inProgressText": "Working"
     },
@@ -280,8 +280,10 @@
             "dataOrigin": ["Data Origin", "DataOrigin", "file"],
             "dataFormat": ["Data Format", "DataFormat", "text"],
             "file": ["Data File", "InputFile"],
+            "fileList": ["_", "FileList", []],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
+            "selectedFile": ["_", "String", ""],
             "url": ["Data URL", "URL", ""]
         },
         "dtClassifierClassificationMetricsAnimation": {},
@@ -520,6 +522,7 @@
                 "dataOrigin",
                 "file",
                 "url",
+                "fileList",
                 "dataFormat",
                 "inputsScaler",
                 "outputsScaler"

@@ -308,6 +308,34 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _archive_file_list(path):
+    def get_h5_list(path):
+        import h5py
+        with h5py.File(path, "r") as hf:
+            return list(hf.keys())
+
+    def _get_tarball_list(path):
+        import tarfile
+        with tarfile.open(path, mode="r") as t:
+            return [x for x in t.getnames() if not x.endswith("/")]
+
+    def _get_zip_list(path):
+        import zipfile
+        with zipfile.ZipFile(path, mode="r") as z:
+            return [x for x in z.namelist() if not x.endswith("/")]
+
+    p = str(path)
+    if not any([p.endswith(f".{s}") for s in SCHEMA.constants.archiveFiles]):
+        return None
+    if p.endswith(".zip"):
+        return _get_zip_list(path)
+    if p.endswith(".tar.gz"):
+        return _get_tarball_list(path)
+    if p.endswith(".h5"):
+        return get_h5_list(path)
+    return []
+
+
 def _build_model_py(v):
     def _import_layers(v):
         return "".join(", " + n for n in v.layerImplementationNames)
@@ -851,22 +879,6 @@ def _get_fit_report(report, x_vals, y_vals):
 
 
 def _get_remote_data(url, headers_only):
-    def _archive_file_list(path):
-        p = str(path)
-        pkdp('ARCH FOR {}? {}', p, any([p.endswith(f".{s}") for s in SCHEMA.constants.archiveFiles]))
-        if not any([p.endswith(f".{s}") for s in SCHEMA.constants.archiveFiles]):
-            return None
-        if p.endswith('.zip'):
-            l = _get_zip_list(path)
-            pkdp('ZIP {}', l)
-            return l
-        return []
-
-    def _get_zip_list(path):
-        import zipfile
-        with zipfile.ZipFile(path, mode='r') as z:
-            return [x.filename for x in z.infolist() if not x.filename.endswith('/')]
-
     filename = os.path.basename(urllib.parse.urlparse(url).path)
     lib_filepath = _SIM_DATA.lib_file_write_path(
             _SIM_DATA.lib_file_name_with_model_field(

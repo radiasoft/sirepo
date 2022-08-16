@@ -21,6 +21,10 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="EquationParameters" class="col-sm-7">
           <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>
         </div>
+        <div data-ng-switch-when="FileList" class="col-sm-5">
+          <select class="form-control" data-ng-model="model.selectedFile" data-ng-options="f for f in model[field]">
+          </select>
+        </div>
         <div data-ng-switch-when="ClusterFields" class="col-sm-7">
           <div data-cluster-fields="" data-model="model" data-field="field"></div>
         </div>
@@ -2097,6 +2101,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         const o = dataFile.dataOrigin;
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
+        panelState.showField(modelName, 'fileList', isArchiveFile(dataFile.file));
         validateURL();
     }
 
@@ -2170,6 +2175,8 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             dataFile.bytesLoaded = 0;
             dataFile.contentLength = 0;
             dataFile.file = '';
+            dataFile.fileList = [];
+            data.selectedFile = '';
             appState.saveQuietly(modelName);
             //TODO(mvk): two stages now; should be a single background call but not a "simulation"
             // write in chunks on server and send updates - can we use websockets?
@@ -2180,6 +2187,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
                     dataFile.fileList = d.filelist;
+                    data.selectedFile = d.filelist[0];
                     dataFile.bytesLoaded = dataFile.contentLength;
                     appState.saveQuietly(modelName);
                     dataFileChanged();
