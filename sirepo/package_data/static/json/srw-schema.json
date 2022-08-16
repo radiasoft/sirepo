@@ -469,6 +469,14 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
             "notes": ["Notes", "Text", ""]
         },
+        "sbatchFields": {
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""]
+        },
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
             "position": ["Position along Optical Path [m]", "Float"],
@@ -512,6 +520,7 @@
         },
         "coherentModesAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
+            "_super": ["_", "model", "sbatchFields"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic", "0"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
@@ -532,13 +541,7 @@
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 1000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "numberOfCoherentModes": ["Number of Coherent Modes", "Integer", 100, "Number of modes to calculated for coherent mode decomposition"],
             "plotModesStart": ["Plot Modes Start", "Integer", 1, "", 1],
-            "plotModesEnd": ["Plot Modes End", "Integer", 100, "", 1],
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
-            "sbatchCores": ["Cores", "Integer", 128],
-            "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchProject": ["Project", "OptionalString", ""]
+            "plotModesEnd": ["Plot Modes End", "Integer", 100, "", 1]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -835,12 +838,7 @@
         },
         "multiElectronAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
-            "sbatchCores": ["Cores", "Integer", 128],
-            "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchProject": ["Project", "OptionalString", ""],
+            "_super": ["_", "model", "sbatchFields"],
             "wavefrontSource": ["Initial Wavefront", "WavefrontSource", "source"],
             "coherentModesFile": ["Coherent Modes File", "InputFile", ""],
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],

@@ -158,13 +158,17 @@
         }
     },
     "model": {
-        "animation": {
+        "sbatchFields": {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "sbatchCores": ["Cores", "Integer", 4],
-            "sbatchHours": ["Hours", "Float", 0.4],
             "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""]
+        },
+        "animation": {
+            "_super": ["_", "model", "sbatchFields"],
+            "sbatchCores": ["Cores", "Integer", 4]
         },
         "beamAnimation": {
             "x": ["X Value", "XValue", "z"],
