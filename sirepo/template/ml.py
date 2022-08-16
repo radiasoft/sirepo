@@ -17,12 +17,28 @@ from urllib import request
 import csv
 import numpy as np
 import os
+import pathlib
 import re
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
+import tarfile
 import urllib
+import zipfile
+
+_ARCHIVE_INFO = {
+    ".zip": {
+        "ctx": zipfile.ZipFile,
+        "extractor": "extract",
+        "lister": "namelist"
+    },
+    ".tar.gz": {
+        "ctx": tarfile.open,
+        "extractor": "extract",
+        "lister": "getnames"
+    }
+}
 
 _CHUNK_SIZE = 1024 * 1024
 
@@ -301,6 +317,10 @@ def stateless_compute_remote_data_bytes_loaded(data):
     return _remote_data_bytes_loaded(data.filename)
 
 
+def stateless_compute_get_archive_file_list(data):
+    return _archive_file_list(data.filename)
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -308,32 +328,12 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _archive_file_list(path):
-    def get_h5_list(path):
-        import h5py
-        with h5py.File(path, "r") as hf:
-            return list(hf.keys())
-
-    def _get_tarball_list(path):
-        import tarfile
-        with tarfile.open(path, mode="r") as t:
-            return [x for x in t.getnames() if not x.endswith("/")]
-
-    def _get_zip_list(path):
-        import zipfile
-        with zipfile.ZipFile(path, mode="r") as z:
-            return [x for x in z.namelist() if not x.endswith("/")]
-
-    p = str(path)
-    if not any([p.endswith(f".{s}") for s in SCHEMA.constants.archiveFiles]):
+def _archive_file_list(filename):
+    if not _is_archive(filename):
         return None
-    if p.endswith(".zip"):
-        return _get_zip_list(path)
-    if p.endswith(".tar.gz"):
-        return _get_tarball_list(path)
-    if p.endswith(".h5"):
-        return get_h5_list(path)
-    return []
+    i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
+    with i["ctx"](_filepath(filename), mode="r") as f:
+        return [x for x in getattr(f, i["lister"])() if not x.endswith("/")]
 
 
 def _build_model_py(v):
@@ -423,12 +423,12 @@ def _classification_metrics_report(frame_args, filename):
     )
 
 
-def _cols_with_non_unique_values(filename, has_header_row, header):
+def _cols_with_non_unique_values(file_path, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(
-        r"\.npy$", str(filename)
-    ), f"numpy files are not supported path={filename}"
-    v = sirepo.numpy.ndarray_from_csv(_filepath(filename), has_header_row)
+        r"\.npy$", str(file_path)
+    ), f"numpy files are not supported path={file_path.basename}"
+    v = sirepo.numpy.ndarray_from_csv(file_path, has_header_row)
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
         if c:
@@ -436,20 +436,32 @@ def _cols_with_non_unique_values(filename, has_header_row, header):
     return res
 
 
+def _extract_file_from_archive(filename, data_path):
+    b = pkio.py_path(data_path).basename
+    l = _SIM_DATA.lib_file_write_path(b)
+    i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
+    with i["ctx"](_filepath(filename), mode="r") as f:
+        getattr(f, i["extractor"])(data_path, path=l)
+    return l
+
+
 def _compute_column_info(dataFile):
     f = dataFile.file
     if re.search(r"\.npy$", f):
         return _compute_numpy_info(f)
-    return _compute_csv_info(f)
+    p = _filepath(f)
+    if _is_archive(f):
+        p = _extract_file_from_archive(f, dataFile.selectedData)
+    return _compute_csv_info(p)
 
 
-def _compute_csv_info(filename):
+def _compute_csv_info(file_path):
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,
     )
     row = None
-    with open(_filepath(filename)) as f:
+    with open(file_path) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -462,7 +474,7 @@ def _compute_csv_info(filename):
         row = ["column {}".format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
     res.colsWithNonUniqueValues = _cols_with_non_unique_values(
-        filename,
+        file_path,
         res.hasHeaderRow,
         row,
     )
@@ -549,6 +561,16 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
             x_label="Predicted",
             y_label="True",
         ),
+    )
+
+
+def _data_file_lib_path(filename):
+    return _SIM_DATA.lib_file_write_path(
+        _SIM_DATA.lib_file_name_with_model_field(
+            "dataFile",
+            "file",
+            filename,
+        )
     )
 
 
@@ -880,13 +902,7 @@ def _get_fit_report(report, x_vals, y_vals):
 
 def _get_remote_data(url, headers_only):
     filename = os.path.basename(urllib.parse.urlparse(url).path)
-    lib_filepath = _SIM_DATA.lib_file_write_path(
-            _SIM_DATA.lib_file_name_with_model_field(
-            "dataFile",
-            "file",
-            filename,
-        )
-    )
+    lib_filepath = _data_file_lib_path(filename)
     try:
         with urllib.request.urlopen(url) as r:
             if headers_only:
@@ -904,7 +920,7 @@ def _get_remote_data(url, headers_only):
         return PKDict(error=e)
     return PKDict(
         filename=filename,
-        filelist=_archive_file_list(lib_filepath),
+        filelist=_archive_file_list(filename),
     )
 
 
@@ -926,6 +942,10 @@ def _histogram_plot(values, vrange):
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
+
+
+def _is_archive(filename):
+    return any([filename.endswith(f".{s}") for s in SCHEMA.constants.archiveFiles])
 
 
 def _is_sim_report(report):

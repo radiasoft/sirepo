@@ -22,7 +22,7 @@ SIREPO.app.config(function() {
           <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>
         </div>
         <div data-ng-switch-when="FileList" class="col-sm-5">
-          <select class="form-control" data-ng-model="model.selectedFile" data-ng-options="f for f in model[field]">
+          <select class="form-control" data-ng-model="model.selectedData" data-ng-options="f for f in model[field]">
           </select>
         </div>
         <div data-ng-switch-when="ClusterFields" class="col-sm-7">
@@ -2007,12 +2007,12 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     function computeColumnInfo() {
         const dataFile = appState.models.dataFile;
-        if (! dataFile.file) {
+        if (! dataFile.file || (isArchiveFile(dataFile.file) && ! dataFile.selectedData)) {
             appState.models.columnReports = [];
             appState.saveChanges('columnReports');
             return;
         }
-        if (dataFile.file === dataFile.oldFile) {
+        if (dataFile.file === dataFile.oldFile && ! isArchiveFile(dataFile.file)) {
             return;
         }
         dataFile.oldFile = dataFile.file;
@@ -2045,6 +2045,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function dataFileChanged() {
+        updateEditor();
         computeColumnInfo();
         const dataFile = appState.models.dataFile;
         const partition = appState.models.partition;
@@ -2061,25 +2062,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             }
         }
         appState.saveQuietly('partition');
-    }
-
-    function getArchiveFileList(filename) {
-        requestSender.sendStatelessCompute(
-            appState,
-            d => {
-                if (d.error) {
-                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
-                }
-                if (d.bytesLoaded !== appState.models[modelName].bytesLoaded) {
-                    appState.models[modelName].bytesLoaded = d.bytesLoaded;
-                    appState.saveQuietly(modelName);
-                }
-            },
-            {
-                method: 'get_archive_file_list',
-                filename: dataFile.file,
-            }
-        );
     }
 
     function isArchiveFile(filename) {
@@ -2141,6 +2123,46 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         );
     }
 
+    function getArchiveFileList() {
+        const dataFile = appState.models[modelName];
+        if (! dataFile.file || ! isArchiveFile(dataFile.file)) {
+            appState.models[modelName].fileList = null;
+            appState.saveQuietly(modelName);
+            return;
+        }
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                appState.models[modelName].fileList = d.fileList;
+                appState.saveQuietly(modelName);
+            },
+            {
+                method: 'get_archive_file_list',
+                filename: dataFile.file,
+            }
+        );
+    }
+
+    function getSelectedData() {
+        const dataFile = appState.models[modelName];
+        if (! dataFile.file || ! isArchiveFile(dataFile.file)) {
+            appState.models[modelName].fileList = null;
+            appState.saveQuietly(modelName);
+            return;
+        }
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                appState.models[modelName].fileList = d.fileList;
+                appState.saveQuietly(modelName);
+            },
+            {
+                method: 'get_archive_file_list',
+                filename: dataFile.file,
+            }
+        );
+    }
+
     function getRemoteData(headersOnly, callback) {
         requestSender.sendStatelessCompute(
             appState,
@@ -2167,16 +2189,27 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     function updateData() {
         const dataFile = appState.models[modelName];
+        const urlMap = appState.models.urlMap;
 
         //TODO(mvk): button to force reload; handle deletion of file; share files across users;
         // store urls; share urls across apps
         if (dataFile.dataOrigin === 'url') {
             dataFile.oldURL = dataFile.url;
+            const f = urlMap[dataFile.url];
+            if (f) {
+                dataFile.file = f.file;
+                dataFile.fileList = f.fileList;
+                dataFile.bytesLoaded = f.size;
+                dataFile.contentLength = f.size;
+                appState.saveQuietly(modelName);
+                dataFileChanged();
+                return;
+            }
             dataFile.bytesLoaded = 0;
             dataFile.contentLength = 0;
             dataFile.file = '';
             dataFile.fileList = [];
-            data.selectedFile = '';
+            dataFile.selectedData = '';
             appState.saveQuietly(modelName);
             //TODO(mvk): two stages now; should be a single background call but not a "simulation"
             // write in chunks on server and send updates - can we use websockets?
@@ -2187,12 +2220,23 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
                     dataFile.fileList = d.filelist;
-                    data.selectedFile = d.filelist[0];
+                    dataFile.selectedData = d.filelist[0];
                     dataFile.bytesLoaded = dataFile.contentLength;
+                    urlMap[dataFile.url] = {
+                        file: dataFile.file,
+                        fileList: dataFile.fileList,
+                        size: dataFile.contentLength,
+                    };
+                    appState.saveChanges('urlMap');
                     appState.saveQuietly(modelName);
                     dataFileChanged();
                 });
             });
+        }
+        else {
+            if (! isArchiveFile(dataFile.file)) {
+                dataFile.selectedData = dataFile.file;
+            }
         }
         dataFileChanged();
     }
