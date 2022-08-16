@@ -9,3 +9,5 @@ export const ContextSimulationListPromise = React.createContext();
 export const ContextSimulationInfoPromise = React.createContext();
 
 export const ContextAppName = React.createContext();
+export const ContextAppViewBuilder = React.createContext();
+export const ContextAppInfo = React.createContext();
