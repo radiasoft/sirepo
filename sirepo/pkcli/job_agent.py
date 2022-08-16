@@ -702,16 +702,16 @@ class _SbatchRun(_SbatchCmd):
         # TODO(robnagler) if the guy is out of hours, will fail
         if not m:
             await self.dispatcher.send(
-                    self.dispatcher.format_op(
-                        self.msg,
-                        job.OP_ERROR,
-                        error=f"error submitting sbatch job error={p.stderr}",
-                        reply=PKDict(
-                            state=job.ERROR,
-                            error=p.stderr,
-                        ),
-                    )
+                self.dispatcher.format_op(
+                    self.msg,
+                    job.OP_ERROR,
+                    error=f"error submitting sbatch job error={p.stderr}",
+                    reply=PKDict(
+                        state=job.ERROR,
+                        error=p.stderr,
+                    ),
                 )
+            )
             raise ValueError(
                 f"Unable to submit exit={p.returncode} stdout={p.stdout} stderr={p.stderr}"
             )
