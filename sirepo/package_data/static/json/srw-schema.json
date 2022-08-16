@@ -469,14 +469,6 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
             "notes": ["Notes", "Text", ""]
         },
-        "sbatchFields": {
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
-            "sbatchCores": ["Cores", "Integer", 128],
-            "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchProject": ["Project", "OptionalString", ""]
-        },
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
             "position": ["Position along Optical Path [m]", "Float"],
@@ -520,7 +512,12 @@
         },
         "coherentModesAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
-            "_super": ["_", "model", "sbatchFields"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""],
             "characteristic": ["Characteristic to be Extracted", "Characteristic", "0"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
@@ -838,7 +835,12 @@
         },
         "multiElectronAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
-            "_super": ["_", "model", "sbatchFields"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""],
             "wavefrontSource": ["Initial Wavefront", "WavefrontSource", "source"],
             "coherentModesFile": ["Coherent Modes File", "InputFile", ""],
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],

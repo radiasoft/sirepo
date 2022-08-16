@@ -388,14 +388,6 @@
         }
     },
     "model": {
-        "sbatchFields": {
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
-            "sbatchCores": ["Cores", "Integer", 128],
-            "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchProject": ["Project", "OptionalString", ""]
-        },
         "axisPath": {
             "_super": ["_", "model", "linePath"],
             "axis": ["Axis", "BeamAxis", "z"],
@@ -879,14 +871,17 @@
             "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
         },
         "solverAnimation":  {
-            "_super": ["_", "model", "sbatchFields"],
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
             "method": ["Method", "SolveMethod", "4"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
-            "sbatchCores": ["Cores", "Integer", 1]
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "spatialTransform": {
         },

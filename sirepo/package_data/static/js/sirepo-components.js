@@ -4097,9 +4097,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
         template: `
             <div class="clearfix"></div>
             <div style="margin-top: 10px" data-ng-show="showSbatchOptions()">
-                <div data-model-field="\'sbatchHours\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
-                <div data-model-field="\'tasksPerNode\'" data-model-name="simState.model" data-label-size="3" data-field-size="2"></div>
-                <div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
+                <div data-ng-repeat="sbatchField in sbatchFields" data-model-field='sbatchField' data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
                 <div data-ng-show="showNERSCFields()">
                     <div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>
                     <div data-model-field="\'sbatchProject\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
@@ -4109,6 +4107,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
         `,
         controller: function($scope, authState, sbatchLoginStatusService, stringsService) {
             $scope.sbatchQueueFieldIsDirty = false;
+            $scope.sbatchFields = ['sbatchHours', 'sbatchCores', 'tasksPerNode'];
             function trimHoursAndCores() {
                 var m = appState.models[$scope.simState.model];
                 ['Hours', 'Cores'].forEach(function(e) {
