@@ -31,6 +31,13 @@
                 "templateUrl": "/static/html/raydata-analysis.html"
           }
         },
+        "analysisQueue": {
+            "route": "/analysis-queue/:simulationId",
+            "config": {
+                "controller": "AnalysisQueueController as analysis",
+                "templateUrl": "/static/html/raydata-analysis-queue.html"
+          }
+        },
         "dataSource": {
             "route": "/data-source/:simulationId",
             "config": {
@@ -48,6 +55,9 @@
     },
     "model": {
         "analysisStatus": {
+            "notes": ["Notes", "Text", ""]
+        },
+        "analysisQueue": {
             "notes": ["Notes", "Text", ""]
         },
         "inputFiles": {
@@ -77,6 +87,12 @@
     "view": {
         "analysisStatus": {
             "title": "Analysis Status",
+            "advanced": [
+                "notes"
+            ]
+        },
+        "analysisQueue": {
+            "title": "Analysis Queue",
             "advanced": [
                 "notes"
             ]
