@@ -2243,7 +2243,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     $scope.watchFields = [
         [`${modelName}.appMode`], processAppMode,
-        [`${modelName}.dataOrigin`], updateEditor,
+        [`${modelName}.dataOrigin`, `${modelName}.dataFile`], updateEditor,
         [`${modelName}.url`], validateURL,
     ];
 

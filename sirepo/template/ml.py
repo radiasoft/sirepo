@@ -30,12 +30,10 @@ import zipfile
 _ARCHIVE_INFO = {
     ".zip": {
         "ctx": zipfile.ZipFile,
-        "extractor": "extract",
         "lister": "namelist"
     },
     ".tar.gz": {
         "ctx": tarfile.open,
-        "extractor": "extract",
         "lister": "getnames"
     }
 }
@@ -441,7 +439,8 @@ def _extract_file_from_archive(filename, data_path):
     l = _SIM_DATA.lib_file_write_path(b)
     i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
     with i["ctx"](_filepath(filename), mode="r") as f:
-        getattr(f, i["extractor"])(data_path, path=l)
+        with f.open(data_path) as d:
+            pkio.write_binary(l, d.read())
     return l
 
 
