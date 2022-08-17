@@ -14,7 +14,9 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 from urllib import parse
 from urllib import request
+import contextlib
 import csv
+import io
 import numpy as np
 import os
 import pathlib
@@ -421,12 +423,12 @@ def _classification_metrics_report(frame_args, filename):
     )
 
 
-def _cols_with_non_unique_values(file_path, has_header_row, header):
+def _cols_with_non_unique_values(filename, data_path, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(
-        r"\.npy$", str(file_path)
-    ), f"numpy files are not supported path={file_path.basename}"
-    v = sirepo.numpy.ndarray_from_csv(file_path, has_header_row)
+        r"\.npy$", str(filename)
+    ), f"numpy files are not supported path={filename}"
+    v = sirepo.numpy.ndarray_from_ctx(_data_ctx(filename, data_path), has_header_row)
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
         if c:
@@ -434,33 +436,30 @@ def _cols_with_non_unique_values(file_path, has_header_row, header):
     return res
 
 
-def _extract_file_from_archive(filename, data_path):
-    b = pkio.py_path(data_path).basename
-    l = _SIM_DATA.lib_file_write_path(b)
-    i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
-    with i["ctx"](_filepath(filename), mode="r") as f:
-        with f.open(data_path) as d:
-            pkio.write_binary(l, d.read())
-    return l
+@contextlib.contextmanager
+def _data_ctx(filename, data_path):
+    if not _is_archive(filename):
+        yield open(_filepath(filename))
+    else:
+        i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
+        with i["ctx"](_filepath(filename), mode="r") as f:
+            yield io.TextIOWrapper(f.open(data_path))
 
 
 def _compute_column_info(dataFile):
     f = dataFile.file
     if re.search(r"\.npy$", f):
         return _compute_numpy_info(f)
-    p = _filepath(f)
-    if _is_archive(f):
-        p = _extract_file_from_archive(f, dataFile.selectedData)
-    return _compute_csv_info(p)
+    return _compute_csv_info(f, dataFile.selectedData)
 
 
-def _compute_csv_info(file_path):
+def _compute_csv_info(filename, data_path):
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,
     )
     row = None
-    with open(file_path) as f:
+    with _data_ctx(filename, data_path) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -473,7 +472,8 @@ def _compute_csv_info(file_path):
         row = ["column {}".format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
     res.colsWithNonUniqueValues = _cols_with_non_unique_values(
-        file_path,
+        filename,
+        data_path,
         res.hasHeaderRow,
         row,
     )

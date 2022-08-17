@@ -2209,7 +2209,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             dataFile.contentLength = 0;
             dataFile.file = '';
             dataFile.fileList = [];
-            dataFile.selectedData = '';
+            dataFile.selectedData = null;
             appState.saveQuietly(modelName);
             //TODO(mvk): two stages now; should be a single background call but not a "simulation"
             // write in chunks on server and send updates - can we use websockets?
@@ -2235,7 +2235,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         }
         else {
             if (! isArchiveFile(dataFile.file)) {
-                dataFile.selectedData = dataFile.file;
+                dataFile.selectedData = null;
             }
         }
         dataFileChanged();
@@ -2243,7 +2243,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     $scope.watchFields = [
         [`${modelName}.appMode`], processAppMode,
-        [`${modelName}.dataOrigin`, `${modelName}.dataFile`], updateEditor,
+        [`${modelName}.dataOrigin`, `${modelName}.file`], updateEditor,
         [`${modelName}.url`], validateURL,
     ];
 
