@@ -70,6 +70,13 @@ def http():
         finally:
             [signal.signal(x[0], x[1]) for x in o]
 
+    def _install_react():
+        p = pkio.py_path("../react/node_modules")
+        if p.exists():
+            return
+        pkdlog("Need to install react (takes a few minutes)...")
+        os.system(f"cd '{p.dirname}' && npm install")
+
     def _kill(*args):
         for p in processes:
             try:
@@ -107,6 +114,8 @@ def http():
         with pkio.save_chdir(_run_dir()), _handle_signals(
             (signal.SIGINT, signal.SIGTERM)
         ):
+            if pkconfig.channel_in("dev"):
+                _install_react()
             _start(
                 ("job_supervisor",),
                 extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
