@@ -37,6 +37,13 @@
                 "controller": "DataSourceController as dataSource",
                 "templateUrl": "/static/html/raydata-data-source.html"
           }
+        },
+        "replay": {
+            "route": "/replay/:simulationId",
+            "config": {
+                "controller": "ReplayController as replay",
+                "templateUrl": "/static/html/raydata-replay.html"
+          }
         }
     },
     "model": {
@@ -90,6 +97,13 @@
                 "selectedScans.uids"
             ],
             "advanced": []
+        },
+        "replayPanel": {
+            "title": "Replay",
+            "advanced": [
+            ],
+            "basic": [
+            ]
         },
         "simulationStatus": {
             "title": "Poll For New Scans",

@@ -91,6 +91,14 @@ def catalog(scans_data_or_catalog_name):
     ]
 
 
+def stateless_compute_all_catalogs(data):
+    return PKDict(
+        data=PKDict(
+            catalogs=[str(s) for s in databroker.catalog.keys()],
+        )
+    )
+
+
 def stateless_compute_scan_fields(data):
     return PKDict(columns=list(catalog(data)[-1].metadata["start"].keys()))
 

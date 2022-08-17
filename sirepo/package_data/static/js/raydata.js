@@ -212,6 +212,11 @@ SIREPO.app.controller('DataSourceController', function() {
     return self;
 });
 
+SIREPO.app.controller('ReplayController', function() {
+    const self = this;
+    return self;
+});
+
 SIREPO.app.directive('analysisStatusPanel', function() {
     return {
         restrict: 'A',
@@ -413,7 +418,6 @@ SIREPO.app.directive('analysisStatusPanel', function() {
     };
 });
 
-
 SIREPO.app.factory('runMulti', function(panelState, requestSender) {
     const self = {};
 
@@ -476,6 +480,7 @@ SIREPO.app.directive('appHeader', function(appState) {
                 <div data-ng-if="nav.isLoaded()" data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('data-source')}"><a href data-ng-click="nav.openSection('dataSource')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
                   <li class="sim-section" data-ng-if="haveScans()" data-ng-class="{active: nav.isActive('analysis')}"><a data-ng-href="{{ nav.sectionURL('analysis') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('replay')}"><a href data-ng-click="nav.openSection('replay')"><span class="glyphicon glyphicon-picture"></span> Replay</a></li>
                 </div>
               </app-header-right-sim-loaded>
             </div>
@@ -566,6 +571,70 @@ SIREPO.app.directive('pngImage', function(plotting) {
             $scope.id = raydataService.nextPngImageId();
             raydataService.setPngDataUrl($element.children()[0], $scope.image);
         }
+    };
+});
+
+SIREPO.app.directive('replayPanel', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+        },
+        template: `
+          <form>
+            <div class="form-group">
+              <label for="newCatalog">Upload new catalog:</label>
+              <input type="file" id="newCatalog">
+            </div>
+            <div class="form-group">
+              <label for="sourceCatalog">Source catalog:</label>
+              <select id="sourceCatalog">
+                <option ng-repeat="catalog in catalogs">{{catalog}}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="numScans">Number of scans:</label>
+              <input type="text" id="numScans" required>
+            </div>
+            <div class="form-group">
+              <label for="analysisNotebook">Select analysis notebook to run:</label>
+              <select id="analysisNotebook">
+                <option ng-repeat="notebook in notebooks">{{notebook}}</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary" data-ng-click="">Start Replay</button>
+          </form>
+        `,
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
+            // TODO(rorour):
+            //  how does selected analysis notebook get saved with catalog? are there separate nbs (00-03) for csx and chx?
+            //  progress bar?
+            //  run notebook after replay?
+            //  how to get available notebooks?
+            $scope.catalogs = [];
+            $scope.notebooks = ['00', '01'];
+
+            $scope.sendCatalogsRequest = function() {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    (json) => {
+                        $scope.catalogs = json.data.catalogs;
+                    },
+                    {
+                        method: 'all_catalogs',
+                    },
+                    {
+                        modelName: $scope.modelName,
+                        onError: (data) => {
+                            errorService.alertText(data.error);
+                        },
+                        panelState: panelState,
+                    }
+                );
+            };
+
+            $scope.sendCatalogsRequest();
+        },
     };
 });
 
