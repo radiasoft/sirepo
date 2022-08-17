@@ -320,10 +320,9 @@ class API(sirepo.api.Base):
             ), f"sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}"
             c.sbatchQueue = m.sbatchQueue
             c.sbatchProject = m.sbatchProject
-        for f in "sbatchCores", "sbatchHours":
+        for f in "sbatchCores", "sbatchHours", "tasksPerNode":
             assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
             c[f] = m[f]
-        c.tasksPerNode = m.tasksPerNode
         return request_content
 
 
