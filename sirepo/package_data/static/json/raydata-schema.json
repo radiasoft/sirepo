@@ -51,11 +51,11 @@
         },
         "scans": {
             "searchStartTime": ["Start", "DateTimePicker", null],
-	    "searchStopTime": ["Stop", "DateTimePicker", null],
+            "searchStopTime": ["Stop", "DateTimePicker", null],
             "catalogName": ["Catalog Name", "CatalogName", ""]
         },
         "selectedScans": {
-	    "uids": ["", "SelectedScansTable", null]
+            "uids": ["", "SelectedScansTable", null]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
