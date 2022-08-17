@@ -755,7 +755,7 @@ SIREPO.app.directive('scanSelector', function() {
                     },
                     {
                         catalogName: appState.models.scans.catalogName,
-                        method: 'scans',
+                        method: 'completed_scans',
                         searchStartTime: appState.models.scans[
                             searchStartOrStopTimeKey(startOrStop[0])
                         ],
