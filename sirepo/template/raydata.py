@@ -102,7 +102,7 @@ def stateless_compute_all_catalogs(data):
 class ScanObject:
     def __init__(self, uid=''):
         self.uid = uid
-        self.metadata = {'field1': 'val1', 'field2': 'val2', 'num_points': '1', 'start': {'time': '000', 'uid': uid, 'num_points': '2'}, 'stop': {'time': '001'}}
+        self.metadata = {'field1': 'val1', 'num_points': '1', 'start': {'time': '000', 'uid': uid, 'num_points': '2'}, 'stop': {'time': '001'}}
 
 
 def stateless_compute_completed_scans(data):
