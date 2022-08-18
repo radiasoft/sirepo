@@ -74,7 +74,7 @@ class ArchiveManager:
         import zipfile
         import tarfile
         self.file_path = file_path
-        self.filename = file_path.basename
+        self.filename = file_path if isinstance(file_path, str) else file_path.basename
         if self._is_archive_type(".zip"):
             self.dir_check = "is_dir"
             self.extractor = "open"

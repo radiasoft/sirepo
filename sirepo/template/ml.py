@@ -684,6 +684,7 @@ def _generate_parameters_file(data):
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
+    v.dataPath = dm.dataFile.selectedData
     v.pkupdate(
         inputDim=dm.columnInfo.inputOutput.count("input"),
         layerImplementationNames=_layer_implementation_list(data),
