@@ -324,7 +324,7 @@ def _archive_file_list(filename, data_type):
 
     a = sirepo.sim_data.ml.ArchiveManager(_filepath(filename))
     return PKDict(
-        filelist=a.get_data_list(_filter)
+        datalist=a.get_data_list(_filter)
     )
 
 

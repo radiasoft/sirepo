@@ -21,7 +21,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="EquationParameters" class="col-sm-7">
           <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>
         </div>
-        <div data-ng-switch-when="FileList" class="col-sm-5">
+        <div data-ng-switch-when="DataList" class="col-sm-5">
           <select class="form-control" data-ng-model="model.selectedData" data-ng-options="f for f in model[field]">
           </select>
         </div>
@@ -1115,6 +1115,69 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
     };
 });
 
+SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <form name="form">
+              <table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">
+                <colgroup>
+                  <col style="width: 3em">
+                  <col style="width: 100%">
+                  <col style="width: 6em">
+                  <col style="width: 6em">
+                  <col style="width: 6em">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th> </th>
+                    <th>Data Path</th>
+                    <th class="text-center">Input</th>
+                    <th class="text-center">Output</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="path in getPaths()">
+                    <td class="form-group form-group-sm"> </td>
+                    <td class="form-group form-group-sm">{{ path }}</td>
+                    <td class="text-center">
+                      <input data-ng-model="model.selectedPaths[path].inputOutput" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />
+                    </td>
+                    <td class="text-center">
+                      <input data-ng-model="model.selectedPaths[path].inputOutput" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="sr-input-warning"></div>
+              <div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+            </form>
+        `,
+        controller: function($scope) {
+            $scope.modelName = 'dataPathInfo';
+            $scope.model = appState.models[$scope.modelName];
+            $scope.fields = ['inputOutput'];
+
+            $scope.getPaths = () => {
+                return appState.models.dataFile.dataList;
+            };
+
+            if (! $scope.model.selectedPaths) {
+                $scope.model.selectedPaths = {};
+                for (const p of $scope.getPaths()) {
+                    $scope.model.selectedPaths[p] = {
+                        inputOutput: '',
+                    };
+                }
+                appState.saveChanges($scope.modelName);
+            }
+
+        },
+    };
+});
+
 SIREPO.app.directive('equation', function(appState, mlService, $timeout) {
     return {
         scope: {
@@ -2050,7 +2113,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             dataFile.selectedData = null;
         }
         else {
-            getArchiveFileList();
+            getArchiveDataList();
         }
         updateEditor();
         computeColumnInfo();
@@ -2089,7 +2152,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         const o = dataFile.dataOrigin;
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
-        panelState.showField(modelName, 'fileList', isArchiveFile(dataFile.file));
+        panelState.showField(modelName, 'dataList', isArchiveFile(dataFile.file) && dataFile.dataFormat === 'text');
         validateURL();
     }
 
@@ -2129,10 +2192,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         );
     }
 
-    function getArchiveFileList() {
-        function setFileList(l) {
-            appState.models[modelName].fileList = l;
-            appState.models.dataFileCache[dataFile.file].fileList = l;
+    function getArchiveDataList() {
+        function setDataList(l) {
+            appState.models[modelName].dataList = l;
+            appState.models.dataFileCache[dataFile.file].dataList = l;
             updateSelectedData(dataFile);
             appState.saveChanges('dataFileCache');
             appState.saveQuietly(modelName);
@@ -2140,7 +2203,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
         const dataFile = appState.models[modelName];
         if (! dataFile.file || ! isArchiveFile(dataFile.file)) {
-            appState.models[modelName].fileList = null;
+            appState.models[modelName].dataList = null;
             dataFile.selectedData = null;
             appState.saveQuietly(modelName);
             return;
@@ -2148,17 +2211,17 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
         const f = appState.models.dataFileCache[dataFile.file];
         if (f) {
-            setFileList(f.fileList);
+            setDataList(f.dataList);
             return;
         }
 
         appState.models.dataFileCache[dataFile.file] = {
-            fileList: null,
+            dataList: null,
         };
         requestSender.sendStatelessCompute(
             appState,
             d => {
-                setFileList(d.filelist);
+                setDataList(d.datalist);
             },
             {
                 method: 'get_archive_file_list',
@@ -2169,8 +2232,8 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function updateSelectedData(dataFile) {
-        if (dataFile.fileList && ! dataFile.fileList.includes(dataFile.selectedData)) {
-            dataFile.selectedData = dataFile.fileList[0];
+        if (dataFile.dataList && ! dataFile.dataList.includes(dataFile.selectedData)) {
+            dataFile.selectedData = dataFile.dataList[0];
         }
     }
 
@@ -2210,7 +2273,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             const f = urlCache[dataFile.url];
             if (f) {
                 dataFile.file = f.file;
-                dataFile.fileList = f.fileList;
+                dataFile.dataList = f.dataList;
                 dataFile.bytesLoaded = f.size;
                 dataFile.contentLength = f.size;
                 appState.saveQuietly(modelName);
@@ -2220,7 +2283,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             dataFile.bytesLoaded = 0;
             dataFile.contentLength = 0;
             dataFile.file = '';
-            dataFile.fileList = [];
+            dataFile.dataList = [];
             dataFile.selectedData = null;
             appState.saveQuietly(modelName);
             //TODO(mvk): two stages now; should be a single background call but not a "simulation"
@@ -2249,7 +2312,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     $scope.watchFields = [
         [`${modelName}.appMode`], processAppMode,
-        [`${modelName}.dataOrigin`, `${modelName}.file`], updateEditor,
+        [`${modelName}.dataOrigin`, `${modelName}.file`, `${modelName}.dataFormat`], updateEditor,
         [`${modelName}.url`], validateURL,
     ];
 
