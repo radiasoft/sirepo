@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import io
 import sirepo.sim_data
 
 
@@ -62,3 +63,40 @@ class SimData(sirepo.sim_data.SimDataBase):
         if name:
             return [cls.lib_file_name_with_model_field("dataFile", "file", name)]
         return []
+
+
+class ArchiveManager:
+    import contextlib
+
+    _ARCHIVE_EXTENSIONS = (".tar.gz", ".zip",)
+
+    def __init__(self, file_path):
+        import zipfile
+        import tarfile
+        self.file_path = file_path
+        if self._is_archive_type(".zip"):
+            self.file_ctx = zipfile.ZipFile
+            self.lister = "namelist"
+        if self._is_archive_type(".tar.gz"):
+            self.file_ctx = tarfile.open
+            self.lister = "getnames"
+
+    def _is_archive_type(self, ext):
+        return str(self.file_path).endswith(ext)
+
+    def is_archive(self):
+        return any([self._is_archive_type(s) for s in ArchiveManager._ARCHIVE_EXTENSIONS])
+
+    @contextlib.contextmanager
+    def data_ctx(self, data_path):
+        if not self.is_archive():
+            yield open(self.file_path)
+        else:
+            with self.file_ctx(self.file_path, mode="r") as f:
+                yield io.TextIOWrapper(f.open(data_path))
+
+    def get_data_list(self):
+        if not self.is_archive():
+            return None
+        with self.file_ctx(self.file_path, mode="r") as f:
+            return [x for x in getattr(f, self.lister)() if not x.endswith("/")]

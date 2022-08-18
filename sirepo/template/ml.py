@@ -32,11 +32,15 @@ import zipfile
 _ARCHIVE_INFO = {
     ".zip": {
         "ctx": zipfile.ZipFile,
-        "lister": "namelist"
+        "dir_check": "is_dir",
+        "item_name": "filename",
+        "lister": "infolist"
     },
     ".tar.gz": {
         "ctx": tarfile.open,
-        "lister": "getnames"
+        "dir_check": "isdir",
+        "item_name": "name",
+        "lister": "getmembers"
     }
 }
 
@@ -318,7 +322,7 @@ def stateless_compute_remote_data_bytes_loaded(data):
 
 
 def stateless_compute_get_archive_file_list(data):
-    return _archive_file_list(data.filename)
+    return _archive_file_list(data.filename, data.data_type)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -328,12 +332,18 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _archive_file_list(filename):
+def _archive_file_list(filename, data_type):
+    def _filter(item):
+        is_dir = getattr(item, i["dir_check"])()
+        return is_dir if data_type == "image" else not is_dir
+
     if not _is_archive(filename):
         return None
     i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
     with i["ctx"](_filepath(filename), mode="r") as f:
-        return [x for x in getattr(f, i["lister"])() if not x.endswith("/")]
+        return PKDict(
+            filelist=[getattr(x, i["item_name"]) for x in getattr(f, i["lister"])() if _filter(x)]
+        )
 
 
 def _build_model_py(v):
@@ -438,11 +448,12 @@ def _cols_with_non_unique_values(filename, data_path, has_header_row, header):
 
 @contextlib.contextmanager
 def _data_ctx(filename, data_path):
+    p = _filepath(filename)
     if not _is_archive(filename):
-        yield open(_filepath(filename))
+        yield open(p)
     else:
         i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
-        with i["ctx"](_filepath(filename), mode="r") as f:
+        with i["ctx"](p, mode="r") as f:
             yield io.TextIOWrapper(f.open(data_path))
 
 
@@ -919,7 +930,6 @@ def _get_remote_data(url, headers_only):
         return PKDict(error=e)
     return PKDict(
         filename=filename,
-        filelist=_archive_file_list(filename),
     )
 
 

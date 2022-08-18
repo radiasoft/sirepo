@@ -2045,9 +2045,15 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function dataFileChanged() {
+        const dataFile = appState.models.dataFile;
+        if (! isArchiveFile(dataFile.file)) {
+            dataFile.selectedData = null;
+        }
+        else {
+            getArchiveFileList();
+        }
         updateEditor();
         computeColumnInfo();
-        const dataFile = appState.models.dataFile;
         const partition = appState.models.partition;
         if (dataFile.appMode === 'regression'
             && partition.training + partition.testing >= 100) {
@@ -2133,32 +2139,13 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         requestSender.sendStatelessCompute(
             appState,
             d => {
-                appState.models[modelName].fileList = d.fileList;
+                appState.models[modelName].fileList = d.filelist;
                 appState.saveQuietly(modelName);
             },
             {
                 method: 'get_archive_file_list',
                 filename: dataFile.file,
-            }
-        );
-    }
-
-    function getSelectedData() {
-        const dataFile = appState.models[modelName];
-        if (! dataFile.file || ! isArchiveFile(dataFile.file)) {
-            appState.models[modelName].fileList = null;
-            appState.saveQuietly(modelName);
-            return;
-        }
-        requestSender.sendStatelessCompute(
-            appState,
-            d => {
-                appState.models[modelName].fileList = d.fileList;
-                appState.saveQuietly(modelName);
-            },
-            {
-                method: 'get_archive_file_list',
-                filename: dataFile.file,
+                data_type: dataFile.dataFormat,
             }
         );
     }
@@ -2219,12 +2206,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 appState.saveQuietly(modelName);
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
-                    dataFile.fileList = d.filelist;
                     dataFile.selectedData = d.filelist[0];
                     dataFile.bytesLoaded = dataFile.contentLength;
                     urlMap[dataFile.url] = {
                         file: dataFile.file,
-                        fileList: dataFile.fileList,
                         size: dataFile.contentLength,
                     };
                     appState.saveChanges('urlMap');
@@ -2232,11 +2217,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                     dataFileChanged();
                 });
             });
-        }
-        else {
-            if (! isArchiveFile(dataFile.file)) {
-                dataFile.selectedData = null;
-            }
         }
         dataFileChanged();
     }
