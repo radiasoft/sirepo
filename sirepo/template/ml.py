@@ -323,9 +323,7 @@ def _archive_file_list(filename, data_type):
         return is_dir if data_type == "image" else not is_dir
 
     a = sirepo.sim_data.ml.ArchiveManager(_filepath(filename))
-    return PKDict(
-        datalist=a.get_data_list(_filter)
-    )
+    return PKDict(datalist=a.get_data_list(_filter))
 
 
 def _build_model_py(v):

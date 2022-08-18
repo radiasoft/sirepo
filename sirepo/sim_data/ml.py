@@ -68,11 +68,15 @@ class SimData(sirepo.sim_data.SimDataBase):
 class ArchiveManager:
     import contextlib
 
-    _ARCHIVE_EXTENSIONS = (".tar.gz", ".zip",)
+    _ARCHIVE_EXTENSIONS = (
+        ".tar.gz",
+        ".zip",
+    )
 
     def __init__(self, file_path):
         import zipfile
         import tarfile
+
         self.file_path = file_path
         self.filename = file_path if isinstance(file_path, str) else file_path.basename
         if self._is_archive_type(".zip"):
@@ -92,7 +96,9 @@ class ArchiveManager:
         return self.filename.endswith(ext)
 
     def is_archive(self):
-        return any([self._is_archive_type(s) for s in ArchiveManager._ARCHIVE_EXTENSIONS])
+        return any(
+            [self._is_archive_type(s) for s in ArchiveManager._ARCHIVE_EXTENSIONS]
+        )
 
     @contextlib.contextmanager
     def data_ctx(self, data_path):
@@ -106,5 +112,8 @@ class ArchiveManager:
         if not self.is_archive():
             return None
         with self.file_ctx(self.file_path, mode="r") as f:
-            return [getattr(x, self.item_name) for x in getattr(f, self.lister)() if item_filter(x)]
-
+            return [
+                getattr(x, self.item_name)
+                for x in getattr(f, self.lister)()
+                if item_filter(x)
+            ]

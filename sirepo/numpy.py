@@ -24,4 +24,3 @@ def ndarray_from_ctx(file_ctx, skip_header, **kwargs):
 
 def ndarray_from_csv(path, skip_header, **kwargs):
     return ndarray_from_ctx(open(path, "rt"), skip_header, **kwargs)
-
