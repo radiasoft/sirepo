@@ -95,6 +95,8 @@
             "title": "Analysis Queue",
             "advanced": [
                 "notes"
+            ],
+            "basic": [
             ]
         },
         "inputFiles": {

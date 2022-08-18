@@ -121,6 +121,16 @@ def stateless_compute_completed_scans(data):
     return _scan_info_result(s)
 
 
+def stateless_compute_queued_scans(data):
+    s = []
+
+    return PKDict(
+        data=PKDict(
+            queuedScans=[ScanObject('uid4'), ScanObject('uid5'), ('uid6', ScanObject('uid6'))],
+        )
+    )
+
+
 def stateless_compute_scan_fields(data):
     return PKDict(columns=list(catalog(data)[-1].metadata["start"].keys()))
 

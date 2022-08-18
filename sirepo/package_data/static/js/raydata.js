@@ -223,6 +223,65 @@ SIREPO.app.controller('AnalysisQueueController', function() {
     return self;
 });
 
+SIREPO.app.directive('analysisQueuePanel', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            args: '='
+        },
+        template: `
+            <div>
+<!--              <table class="table table-striped table-hover col-sm-4">-->
+<!--                <thead>-->
+<!--                  <tr>-->
+<!--                    <th data-ng-repeat="h in getHeader()">{{ h }}</th>-->
+<!--                  </tr>-->
+<!--                </thead>-->
+<!--                <tbody ng-repeat="s in scans">-->
+<!--                  <tr data-ng-click="enableModalClick(s) && showAnalysisOutputModal(s)">-->
+<!--                    <td><span data-header-tooltip="s.state"></span></td>-->
+<!--                    <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>-->
+<!--                  </tr>-->
+<!--                </tbody>-->
+<!--              </table>-->
+            </div>
+        `,
+        controller: function(appState, errorService, panelState, raydataService, requestSender, runMulti, stringsService, $interval, $rootScope, $scope) {
+            $scope.queuedScans = [];
+
+            $scope.sendScanRequest = function() {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    (json) => {
+                        $scope.queuedScans = [];
+                        srdbg('json.data.queuedScans=', json.data.queuedScans);
+                        json.data.queuedScans.forEach((s) => {
+                            $scope.queuedScans.push(s);
+                        });
+                        srdbg('$scope.queuedScans=', $scope.queuedScans);
+                    },
+                    {
+                        catalogName: appState.models.scans.catalogName,
+                        method: 'queued_scans',
+                    },
+                    {
+                        modelName: $scope.modelName,
+                        onError: (data) => {
+                            srdbg('error')
+                            errorService.alertText(data.error);
+                            panelState.setLoading($scope.modelName, false);
+                        },
+                        panelState: panelState,
+                    }
+                );
+            };
+
+            srdbg('$scope.queuedScans=', $scope.queuedScans);
+            $scope.sendScanRequest();
+        }
+    };
+});
+
 SIREPO.app.directive('analysisStatusPanel', function() {
     return {
         restrict: 'A',
