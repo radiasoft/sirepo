@@ -701,6 +701,17 @@ class _SbatchRun(_SbatchCmd):
         m = re.search(r"Submitted batch job (\d+)", p.stdout)
         # TODO(robnagler) if the guy is out of hours, will fail
         if not m:
+            await self.dispatcher.send(
+                self.dispatcher.format_op(
+                    self.msg,
+                    job.OP_ERROR,
+                    error=f"error submitting sbatch job error={p.stderr}",
+                    reply=PKDict(
+                        state=job.ERROR,
+                        error=p.stderr,
+                    ),
+                )
+            )
             raise ValueError(
                 f"Unable to submit exit={p.returncode} stdout={p.stdout} stderr={p.stderr}"
             )
@@ -757,7 +768,7 @@ class _SbatchRun(_SbatchCmd):
             o = f"""#SBATCH --image={i}
 #SBATCH --constraint={_processor()}
 #SBATCH --qos={self.msg.sbatchQueue}
-#SBATCH --tasks-per-node=32
+#SBATCH --tasks-per-node={self.msg.tasksPerNode}
 {_assert_project()}"""
             s = "--cpu-bind=cores shifter --entrypoint"
         m = "--mpi=pmi2" if pkconfig.channel_in("dev") else ""
