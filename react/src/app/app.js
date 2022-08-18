@@ -7,12 +7,9 @@ import { useSetup } from "../hooks";
 import {
     modelsSlice,
     selectModel,
-    loadModelData,
-    selectIsLoaded,
     updateModel,
     selectModels,
 } from "../models";
-import { mapProperties } from '../helper'
 import {
     selectFormState,
     updateFormState,
@@ -20,10 +17,9 @@ import {
     formStatesSlice
 } from '../formState'
 import "./app.scss"
-import { ViewGrid } from "../components/simulation";
 import Schema from './schema'
 import { Graph2dFromApi } from "../components/graph2d";
-import { SchemaEditorPanel, FormStateInitializer } from "../components/form";
+import { SchemaEditorPanel } from "../components/form";
 import { 
     ContextAppInfo,
     ContextAppName,
@@ -36,7 +32,7 @@ import {
     ContextSimulationListPromise 
 } from '../components/context'
 import { Panel } from "../components/panel";
-import { SimulationBrowserRoot } from "../components/simbrowser";
+import { SimulationBrowserRoot } from "./simbrowser";
 
 function pollRunSimulation({ appName, models, simulationId, report, pollInterval}) {
     return new Promise((resolve, reject) => {
@@ -208,15 +204,6 @@ class AppViewBuilder{
     }
 }
 
-function LoadDataButton(props) {
-    let dispatch = useDispatch();
-    return (
-        <Col className="mt-3 ms-3">
-            <Button onClick={() => dispatch(loadModelData())}>Load Data</Button>
-        </Col>
-    )
-}
-
 let ReduxConstantsWrapper = (child) => {
     return (props) => {
         let ChildComponent = child;
@@ -237,27 +224,16 @@ let ReduxConstantsWrapper = (child) => {
 
 function buildAppComponentsRoot(schema) {
     let appInfo = {schema};
-    
-    const RequiresIsLoaded = (componentIf, componentElse) => (props) => {
-        let selectorFn = useSelector;
-        let isLoaded = selectorFn(selectIsLoaded);
-        let ChildComponent = isLoaded ? componentIf : componentElse;
-        return (<>
-            {ChildComponent && <ChildComponent {...props}></ChildComponent>}
-        </>)
-    }
+
     return ReduxConstantsWrapper(
         AppInfoWrapper(appInfo)(
             AppViewBuilderWrapper(
-                RequiresIsLoaded(
-                    SimulationListInitializer(
-                        () => {
-                            return (
-                                <SimulationBrowserRoot/>
-                            )
-                        }
-                    ),
-                    LoadDataButton
+                SimulationListInitializer(
+                    () => {
+                        return (
+                            <SimulationBrowserRoot/>
+                        )
+                    }
                 )
             )
         )
@@ -274,7 +250,7 @@ const AppRoot = (props) => {
         },
     });
 
-    let { appName } = props;
+    let appName = useContext(ContextAppName);
 
     const hasSchema = useSetup(true,
         (finishInitSchema) => {
@@ -294,11 +270,9 @@ const AppRoot = (props) => {
     if(hasSchema && hasMadeHomepageRequest) {
         let AppChild = buildAppComponentsRoot(schema);
         return (
-            <ContextAppName.Provider value={appName}>
-                <Provider store={formStateStore}>
-                    <AppChild></AppChild>
-                </Provider>
-            </ContextAppName.Provider>
+            <Provider store={formStateStore}>
+                <AppChild></AppChild>
+            </Provider>
         )
     }
 }

@@ -677,7 +677,7 @@ class API(sirepo.api.Base):
             "myapp-schema.json",
             "static/js/bundle.js",
             "static/js/bundle.js.map",
-        ):
+        ) and not str.startswith(path, "react"):
             return
         r = requests.get(cfg.react_server + (path or ""))
         # We want to throw an exception here, because it shouldn't happen
