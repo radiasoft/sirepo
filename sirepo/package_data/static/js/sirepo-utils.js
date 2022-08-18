@@ -11,6 +11,32 @@ class SirepoUtils {
         return s.charAt(0).toUpperCase() + s.slice(1);
     }
 
+    static orderOfMagnitude(val, binary=false) {
+        const MAGS = ['', 'k', 'M', 'G', 'T', 'P', 'E'];
+        let i = 0;
+        let v = 0;
+        const base = binary ? 1024 : 1000;
+        for (i = 0; i < MAGS.length; ++i) {
+            v = val / Math.pow(base, i);
+            if (v < base) {
+                break;
+            }
+        }
+        return {
+            order: i,
+            suffix: MAGS[i] + (binary ? 'i' : ''),
+            val: v,
+        }
+    }
+
+    static formatFloat(val, decimals) {
+        return +parseFloat(val).toFixed(decimals);
+    }
+
+    static formatToThousands(val, decimals, binary=false) {
+        return SirepoUtils.formatFloat(SirepoUtils.orderOfMagnitude(val, binary).val, decimals);
+    }
+
     static indexArray(size) {
         const res = [];
         for (let i = 0; i < size; res.push(i++)) {}
