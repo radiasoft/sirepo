@@ -29,21 +29,6 @@ import tarfile
 import urllib
 import zipfile
 
-_ARCHIVE_INFO = {
-    ".zip": {
-        "ctx": zipfile.ZipFile,
-        "dir_check": "is_dir",
-        "item_name": "filename",
-        "lister": "infolist"
-    },
-    ".tar.gz": {
-        "ctx": tarfile.open,
-        "dir_check": "isdir",
-        "item_name": "name",
-        "lister": "getmembers"
-    }
-}
-
 _CHUNK_SIZE = 1024 * 1024
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -334,16 +319,13 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _archive_file_list(filename, data_type):
     def _filter(item):
-        is_dir = getattr(item, i["dir_check"])()
+        is_dir = getattr(item, a.dir_check)()
         return is_dir if data_type == "image" else not is_dir
 
-    if not _is_archive(filename):
-        return None
-    i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
-    with i["ctx"](_filepath(filename), mode="r") as f:
-        return PKDict(
-            filelist=[getattr(x, i["item_name"]) for x in getattr(f, i["lister"])() if _filter(x)]
-        )
+    a = sirepo.sim_data.ml.ArchiveManager(_filepath(filename))
+    return PKDict(
+        filelist=a.get_data_list(_filter)
+    )
 
 
 def _build_model_py(v):
@@ -433,28 +415,17 @@ def _classification_metrics_report(frame_args, filename):
     )
 
 
-def _cols_with_non_unique_values(filename, data_path, has_header_row, header):
+def _cols_with_non_unique_values(arch_mgr, data_path, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(
-        r"\.npy$", str(filename)
-    ), f"numpy files are not supported path={filename}"
-    v = sirepo.numpy.ndarray_from_ctx(_data_ctx(filename, data_path), has_header_row)
+        r"\.npy$", str(arch_mgr.filename)
+    ), f"numpy files are not supported path={arch_mgr.filename}"
+    v = sirepo.numpy.ndarray_from_ctx(arch_mgr.data_ctx(data_path), has_header_row)
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
         if c:
             res[header[i]] = True
     return res
-
-
-@contextlib.contextmanager
-def _data_ctx(filename, data_path):
-    p = _filepath(filename)
-    if not _is_archive(filename):
-        yield open(p)
-    else:
-        i = _ARCHIVE_INFO["".join(pathlib.Path(filename).suffixes)]
-        with i["ctx"](p, mode="r") as f:
-            yield io.TextIOWrapper(f.open(data_path))
 
 
 def _compute_column_info(dataFile):
@@ -470,7 +441,8 @@ def _compute_csv_info(filename, data_path):
         rowCount=0,
     )
     row = None
-    with _data_ctx(filename, data_path) as f:
+    a = sirepo.sim_data.ml.ArchiveManager(_filepath(filename))
+    with a.data_ctx(data_path) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -483,7 +455,7 @@ def _compute_csv_info(filename, data_path):
         row = ["column {}".format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
     res.colsWithNonUniqueValues = _cols_with_non_unique_values(
-        filename,
+        a,
         data_path,
         res.hasHeaderRow,
         row,
@@ -951,10 +923,6 @@ def _histogram_plot(values, vrange):
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
-
-
-def _is_archive(filename):
-    return any([filename.endswith(f".{s}") for s in SCHEMA.constants.archiveFiles])
 
 
 def _is_sim_report(report):

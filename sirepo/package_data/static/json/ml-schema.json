@@ -286,6 +286,7 @@
             "selectedData": ["_", "String", ""],
             "url": ["Data URL", "URL", ""]
         },
+        "dataFileCache": {},
         "dtClassifierClassificationMetricsAnimation": {},
         "dtClassifierConfusionMatrixAnimation": {
             "colorMap": ["Color Map", "ColorMap", "blues"]
@@ -441,7 +442,7 @@
         "partitionColumnReport": {},
         "partitionSelectionReport": {},
         "simulationStatus": {},
-        "urlMap": {}
+        "urlCache": {}
     },
     "strings": {
         "completionState": ": {frameCount} epochs",

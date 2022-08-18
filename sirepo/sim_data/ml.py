@@ -74,15 +74,22 @@ class ArchiveManager:
         import zipfile
         import tarfile
         self.file_path = file_path
+        self.filename = file_path.basename
         if self._is_archive_type(".zip"):
+            self.dir_check = "is_dir"
+            self.extractor = "open"
             self.file_ctx = zipfile.ZipFile
-            self.lister = "namelist"
+            self.item_name = "filename"
+            self.lister = "infolist"
         if self._is_archive_type(".tar.gz"):
+            self.dir_check = "isdir"
+            self.extractor = "extractfile"
             self.file_ctx = tarfile.open
-            self.lister = "getnames"
+            self.item_name = "name"
+            self.lister = "getmembers"
 
     def _is_archive_type(self, ext):
-        return str(self.file_path).endswith(ext)
+        return self.filename.endswith(ext)
 
     def is_archive(self):
         return any([self._is_archive_type(s) for s in ArchiveManager._ARCHIVE_EXTENSIONS])
@@ -93,10 +100,11 @@ class ArchiveManager:
             yield open(self.file_path)
         else:
             with self.file_ctx(self.file_path, mode="r") as f:
-                yield io.TextIOWrapper(f.open(data_path))
+                yield io.TextIOWrapper(getattr(f, self.extractor)(data_path))
 
-    def get_data_list(self):
+    def get_data_list(self, item_filter):
         if not self.is_archive():
             return None
         with self.file_ctx(self.file_path, mode="r") as f:
-            return [x for x in getattr(f, self.lister)() if not x.endswith("/")]
+            return [getattr(x, self.item_name) for x in getattr(f, self.lister)() if item_filter(x)]
+

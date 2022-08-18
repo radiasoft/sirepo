@@ -2130,17 +2130,35 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function getArchiveFileList() {
+        function setFileList(l) {
+            appState.models[modelName].fileList = l;
+            appState.models.dataFileCache[dataFile.file].fileList = l;
+            updateSelectedData(dataFile);
+            appState.saveChanges('dataFileCache');
+            appState.saveQuietly(modelName);
+        }
+
         const dataFile = appState.models[modelName];
         if (! dataFile.file || ! isArchiveFile(dataFile.file)) {
             appState.models[modelName].fileList = null;
+            dataFile.selectedData = null;
             appState.saveQuietly(modelName);
             return;
         }
+
+        const f = appState.models.dataFileCache[dataFile.file];
+        if (f) {
+            setFileList(f.fileList);
+            return;
+        }
+
+        appState.models.dataFileCache[dataFile.file] = {
+            fileList: null,
+        };
         requestSender.sendStatelessCompute(
             appState,
             d => {
-                appState.models[modelName].fileList = d.filelist;
-                appState.saveQuietly(modelName);
+                setFileList(d.filelist);
             },
             {
                 method: 'get_archive_file_list',
@@ -2148,6 +2166,12 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 data_type: dataFile.dataFormat,
             }
         );
+    }
+
+    function updateSelectedData(dataFile) {
+        if (dataFile.fileList && ! dataFile.fileList.includes(dataFile.selectedData)) {
+            dataFile.selectedData = dataFile.fileList[0];
+        }
     }
 
     function getRemoteData(headersOnly, callback) {
@@ -2176,13 +2200,14 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     function updateData() {
         const dataFile = appState.models[modelName];
-        const urlMap = appState.models.urlMap;
+        const dataFileCache = appState.models.dataFileCache;
+        const urlCache = appState.models.urlCache;
 
         //TODO(mvk): button to force reload; handle deletion of file; share files across users;
         // store urls; share urls across apps
         if (dataFile.dataOrigin === 'url') {
             dataFile.oldURL = dataFile.url;
-            const f = urlMap[dataFile.url];
+            const f = urlCache[dataFile.url];
             if (f) {
                 dataFile.file = f.file;
                 dataFile.fileList = f.fileList;
@@ -2206,19 +2231,20 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 appState.saveQuietly(modelName);
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
-                    dataFile.selectedData = d.filelist[0];
                     dataFile.bytesLoaded = dataFile.contentLength;
-                    urlMap[dataFile.url] = {
+                    urlCache[dataFile.url] = {
                         file: dataFile.file,
                         size: dataFile.contentLength,
                     };
-                    appState.saveChanges('urlMap');
+                    appState.saveChanges('urlCache');
                     appState.saveQuietly(modelName);
                     dataFileChanged();
                 });
             });
         }
-        dataFileChanged();
+        else {
+            dataFileChanged();
+        }
     }
 
     $scope.watchFields = [
