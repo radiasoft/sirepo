@@ -113,13 +113,13 @@ def http():
             )
             # Avoid race condition on creating auth db
             time.sleep(0.3)
-            _start(
-                ("npm", "start"),
-                cwd="../react",
-                prefix=(),
-                extra_environ=PKDict(PORT=str(_cfg().react_port)),
-            )
-            time.sleep(0.3)
+            # _start(
+            #     ("npm", "start"),
+            #     cwd="../react",
+            #     prefix=(),
+            #     extra_environ=PKDict(PORT=str(_cfg().react_port)),
+            # )
+            # time.sleep(0.3)
             _start(
                 ("service", "flask"),
                 extra_environ=PKDict(
