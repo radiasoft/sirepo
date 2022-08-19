@@ -2132,7 +2132,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function isArchiveFile(filename) {
-        return SIREPO.APP_SCHEMA.constants.archiveFiles.some(x => filename.endsWith(x));
+        return [".tar.gz", ".zip"].some(x => filename.endsWith(x));
     }
 
     function processAppMode() {
