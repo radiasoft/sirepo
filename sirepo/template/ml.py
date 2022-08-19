@@ -14,20 +14,15 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 from urllib import parse
 from urllib import request
-import contextlib
 import csv
-import io
 import numpy as np
 import os
-import pathlib
 import re
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
-import tarfile
 import urllib
-import zipfile
 
 _CHUNK_SIZE = 1024 * 1024
 
