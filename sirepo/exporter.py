@@ -132,6 +132,7 @@ def _python(data, sim):
     res.write(t)
     return [res]
 
+
 def _write_multiple_export_files(source):
     r = []
     for k in source.keys():
@@ -140,6 +141,10 @@ def _write_multiple_export_files(source):
         r.append(p)
     return r
 
+
 def _set_data_ext(data, sim):
-    if pkio.has_file_extension(sim.filename, ("zip")) and sim.type in ["amber", "breakup"]:
+    if pkio.has_file_extension(sim.filename, ("zip")) and sim.type in [
+        "amber",
+        "breakup",
+    ]:
         data.file_ext = ".zip"
