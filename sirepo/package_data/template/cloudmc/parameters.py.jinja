@@ -92,26 +92,29 @@ def _grid_to_poly(path):
 
     # cube
     polys_per_cell = 1
-    points_per_poly = 4
+    points_per_poly = 12
 
     def _poly_lines(nx, ny, nz):
         l = []
         for k in range(nz):
             # only rects
-            this_z = k * (nx + 1) * (ny + 1)
-            next_z = (k + 1) * (nx + 1) * (ny + 1)
+            nxy = (nx + 1) * (ny + 1)
+            this_z = k * nxy
+            next_z = this_z + nxy
             for j in range(ny):
                 y = j * (nx + 1)
                 bt = [0, 1, nx + 2, nx + 1]
-                lr = [0, next_z, next_z + nx + 1, nx + 1]
-                fb = [0, next_z, next_z + 1, 1]
-                for z in (next_z, ):
+                lr = [0, nxy, nxy + nx + 1, nx + 1]
+                fb = [0, nxy, nxy + 1, 1]
+                for z in (this_z, ):
                     d = y + z
                     for i in range(nx):
                         l.append(f"{points_per_poly} ")
                         for p in bt:
                             l.append(f"{p + d + i} ")
                         #for p in lr:
+                        #    l.append(f"{p + d + i} ")
+                        #for p in fb:
                         #    l.append(f"{p + d + i} ")
                         l.append("\n")
         return l
