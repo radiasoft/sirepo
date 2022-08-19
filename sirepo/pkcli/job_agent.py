@@ -616,14 +616,18 @@ class _SbatchPrepareSimulationCmd(_SbatchCmd):
 
     async def _await_exit(self):
         await self._process.exit_ready()
-        s = pkjson.load_any(self.stdout).get("state")
+        s = job.ERROR
+        o = None
+        if "stdout" in self:
+            o = pkjson.load_any(self.stdout)
+            s = o.get("state")
         if s != job.COMPLETED:
             raise AssertionError(
                 pkdformat(
                     "unexpected state={} from result of cmd={} stdout={}",
                     s,
                     self,
-                    self.stdout,
+                    o,
                 )
             )
 
