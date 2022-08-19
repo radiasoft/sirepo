@@ -125,8 +125,9 @@ def _python(data, sim):
 
     template = sirepo.template.import_module(data)
     res = pkio.py_path("run.py")
-    _set_data_ext(data, sim)
-    t = template.python_source_for_model(copy.deepcopy(data), None)
+    d = copy.deepcopy(data)
+    d.file_ext = ".zip"
+    t = template.python_source_for_model(d, None)
     if type(t) == pkcollections.PKDict:
         return _write_multiple_export_files(t)
     res.write(t)
@@ -140,11 +141,3 @@ def _write_multiple_export_files(source):
         p.write(source[k])
         r.append(p)
     return r
-
-
-def _set_data_ext(data, sim):
-    if pkio.has_file_extension(sim.filename, ("zip")) and sim.type in [
-        "amber",
-        "breakup",
-    ]:
-        data.file_ext = ".zip"
