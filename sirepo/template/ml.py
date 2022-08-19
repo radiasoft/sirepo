@@ -539,16 +539,6 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
     )
 
 
-def _data_file_lib_path(filename):
-    return _SIM_DATA.lib_file_write_path(
-        _SIM_DATA.lib_file_name_with_model_field(
-            "dataFile",
-            "file",
-            filename,
-        )
-    )
-
-
 def _error_rate_report(frame_args, filename, x_label):
     v = np.load(str(frame_args.run_dir.join(filename)))
     return _report_info(
@@ -878,13 +868,18 @@ def _get_fit_report(report, x_vals, y_vals):
 
 def _get_remote_data(url, headers_only):
     filename = os.path.basename(urllib.parse.urlparse(url).path)
-    lib_filepath = _data_file_lib_path(filename)
     try:
         with urllib.request.urlopen(url) as r:
             if headers_only:
                 return PKDict(headers=_header_str_to_dict(r.headers))
             with open(
-                lib_filepath,
+                _SIM_DATA.lib_file_write_path(
+                    _SIM_DATA.lib_file_name_with_model_field(
+                        "dataFile",
+                        "file",
+                        filename,
+                    )
+                ),
                 "wb",
             ) as f:
                 while True:
