@@ -26,7 +26,7 @@ class SirepoUtils {
             order: i,
             suffix: MAGS[i] + (binary ? 'i' : ''),
             val: v,
-        }
+        };
     }
 
     static formatFloat(val, decimals) {
