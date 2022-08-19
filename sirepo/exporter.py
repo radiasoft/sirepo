@@ -95,7 +95,7 @@ def _create_zip(sim, want_python, out_dir):
     files = sim_data.get_class(data).lib_files_for_export(data)
     if want_python:
         #TODO (gurhar1133): pass sim or sim.filename to _python
-        files.append(_python(data))
+        files.append(_python(data, sim))
     with zipfile.ZipFile(
         str(path),
         mode="w",
@@ -111,7 +111,7 @@ def _create_zip(sim, want_python, out_dir):
     return path, data
 
 
-def _python(data):
+def _python(data, sim):
     # TODO (gurhar1133): maybe change name
     """Generate python in current directory
 
@@ -126,6 +126,11 @@ def _python(data):
 
     template = sirepo.template.import_module(data)
     res = pkio.py_path("run.py")
+
+    pkdp('\n\n\n\n IS ZIP: {}', pkio.has_file_extension(sim.filename, ("zip")))
+    pkdp('\n\n\n sim type: {}', sim.type)
+    if pkio.has_file_extension(sim.filename, ("zip")) and sim.type == "amber":
+        data.file_ext = ".zip"
     # TODO (gurhar1133): set file ext on data before passing to
     # source for model so source for model returns dict
     # with filename keys and content values
