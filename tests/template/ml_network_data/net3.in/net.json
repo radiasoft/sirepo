@@ -1,0 +1,380 @@
+{
+    "activation_activation": "relu",
+    "activation_layer": "Activation",
+    "add_layer": "Add",
+    "alphaDropout__super": "dropout",
+    "alphaDropout_dropoutRate": 0.5,
+    "alphaDropout_layer": "AlphaDropout",
+    "analysisCluster_basic": "clusterCount",
+    "analysisCluster_model": "a",
+    "analysisData_title": "c",
+    "analysisFFT_model": "a",
+    "analysisFit_basic": "fitVariable",
+    "analysisFit_model": "a",
+    "analysisNone_model": "a",
+    "analysisReport_clusterCount": 3,
+    "analysisReport_clusterDbscanEps": 0.1,
+    "analysisReport_clusterKmeansInit": 2,
+    "analysisReport_clusterMethod": "kmeans",
+    "analysisReport_clusterRandomSeed": 12341234,
+    "analysisReport_clusterScaleMax": 0.8,
+    "analysisReport_clusterScaleMin": -0.8,
+    "analysisReport_fitEquation": "a * x + b",
+    "analysisReport_fitParameters": "a,b",
+    "analysisReport_fitVariable": "x",
+    "analysisReport_notes": "",
+    "analysisReport_x": "0",
+    "analysisReport_y1": "1",
+    "analysisReport_y2": "none",
+    "analysisReport_y3": "none",
+    "analysisTrim_basic": "trimMax",
+    "analysisTrim_model": "a",
+    "averagePooling2D__super": "poolingLayer",
+    "averagePooling2D_layer": "MaxPooling2D",
+    "averagePooling2D_padding": "same",
+    "averagePooling2D_size": 2,
+    "averagePooling2D_strides": 1,
+    "batchNormalization_layer": "BatchNormalization",
+    "batchNormalization_momentum": 0.99,
+    "classificationAnimation_classifier": "knn",
+    "classificationOutputColEncodingFile": "classification-output-col-encoding.json",
+    "columnInfo_hasHeaderRow": true,
+    "columnInfo_rowCount": 157,
+    "columnTypes": "['output','none','none','input','input','input','input','input','input']",
+    "concatenate_layer": "Concatenate",
+    "conv2DTranspose__super": "conv2D",
+    "conv2DTranspose_activation": "relu",
+    "conv2DTranspose_dimensionality": 10,
+    "conv2DTranspose_kernel": 3,
+    "conv2DTranspose_layer": "Conv2DTranspose",
+    "conv2DTranspose_padding": "same",
+    "conv2DTranspose_strides": 1,
+    "conv2D__super": "neuralNetLayer",
+    "conv2D_activation": "relu",
+    "conv2D_dimensionality": 10,
+    "conv2D_kernel": 3,
+    "conv2D_layer": "Conv2D",
+    "conv2D_padding": "same",
+    "conv2D_strides": 1,
+    "dataFile": "dataFile-file.2019Happiness.data.csv",
+    "dataFile_appMode": "regression",
+    "dataFile_file": "2019Happiness.data.csv",
+    "dataFile_inputsScaler": "RobustScaler",
+    "dataFile_oldFile": "2019Happiness.data.csv",
+    "dataFile_outputsScaler": "RobustScaler",
+    "dense__super": "neuralNetLayer",
+    "dense_activation": "relu",
+    "dense_dimensionality": 10,
+    "dense_layer": "Dense",
+    "dropout_dropoutRate": 0.5,
+    "dropout_layer": "Dropout",
+    "dtClassifierClassificationFile": "dt-classifier-classification.json",
+    "dtClassifierConfusionFile": "dt-classifier-confusion.json",
+    "dtClassifierConfusionMatrixAnimation_colorMap": "blues",
+    "epochAnimation_plotScale": "linear",
+    "fftReport_column": "0",
+    "fileColumnReport0_columnNumber": 0,
+    "fileColumnReport0_x": -1,
+    "fileColumnReport1_columnNumber": 1,
+    "fileColumnReport1_x": -1,
+    "fileColumnReport2_columnNumber": 2,
+    "fileColumnReport2_x": -1,
+    "fileColumnReport3_columnNumber": 3,
+    "fileColumnReport3_x": -1,
+    "fileColumnReport4_columnNumber": 4,
+    "fileColumnReport4_x": -1,
+    "fileColumnReport5_columnNumber": 5,
+    "fileColumnReport5_x": -1,
+    "fileColumnReport6_columnNumber": 6,
+    "fileColumnReport6_x": -1,
+    "fileColumnReport7_columnNumber": 7,
+    "fileColumnReport7_x": -1,
+    "fileColumnReport8_columnNumber": 8,
+    "fileColumnReport8_x": -1,
+    "fileColumnReport_x": -1,
+    "fitAnimation0_columnNumber": 0,
+    "fitAnimation_colorMap": "viridis",
+    "fitAnimation_columnNumber": 0,
+    "fitAnimation_histogramBins": 30,
+    "fitCSVFile": "fit.csv",
+    "flatten_layer": "Flatten",
+    "gaussianDropout__super": "dropout",
+    "gaussianDropout_dropoutRate": 0.5,
+    "gaussianDropout_layer": "GaussianDropout",
+    "gaussianNoise_layer": "GaussianNoise",
+    "gaussianNoise_stddev": 0.01,
+    "globalAveragePooling2D_layer": "GlobalAveragePooling2D",
+    "hasTrainingAndTesting": true,
+    "inputDim": 6,
+    "knnClassificationFile": "classification.json",
+    "knnClassification_kmax": 50,
+    "knnClassification_kmin": 1,
+    "knnConfusionFile": "confusion.json",
+    "knnConfusionMatrixAnimation_colorMap": "blues",
+    "knnErrorFile": "error.npy",
+    "layerImplementationNames": ["Dense", "Activation", "Conv2D", "Add"],
+    "linearSvcClassification_toleranceMax": 0.15,
+    "linearSvcClassification_toleranceMin": 0.001,
+    "linearSvcClassification_totalNumValues": 20,
+    "linearSvcConfusionFile": "linear-svc-confusion.json",
+    "linearSvcConfusionMatrixAnimation_colorMap": "blues",
+    "linearSvcErrorFile": "linear-svc-error.npy",
+    "logisticRegressionClassificationFile": "logistic-regression-classification.json",
+    "logisticRegressionClassification_toleranceMax": 25,
+    "logisticRegressionClassification_toleranceMin": 1,
+    "logisticRegressionClassification_totalNumValues": 20,
+    "logisticRegressionConfusionFile": "logistic-regression-confusion.json",
+    "logisticRegressionConfusionMatrixAnimation_colorMap": "blues",
+    "logisticRegressionErrorFile": "logistic-regression-error.npy",
+    "maxPooling2D__super": "poolingLayer",
+    "maxPooling2D_layer": "MaxPooling2D",
+    "maxPooling2D_padding": "same",
+    "maxPooling2D_size": 2,
+    "maxPooling2D_strides": 1,
+    "mlModel_mlModule": "neuralnet",
+    "mpi": "",
+    "neuralNetLayer_activation": "relu",
+    "neuralNetLayer_activationActivation": "relu",
+    "neuralNetLayer_alphaDropoutRate": 0.5,
+    "neuralNetLayer_denseActivation": "relu",
+    "neuralNetLayer_denseDimensionality": 10,
+    "neuralNetLayer_dimensionality": 10,
+    "neuralNetLayer_dropoutRate": 0.5,
+    "neuralNetLayer_gaussianDropoutRate": 0.5,
+    "neuralNetLayer_gaussianNoiseStddev": 0.01,
+    "neuralNetLayer_layer": "Dense",
+    "neuralNetLayers": [
+        {
+            "_super": "neuralNetLayer",
+            "activation": "relu",
+            "children": [
+                {
+                    "layers": []
+                },
+                {
+                    "layers": []
+                }
+            ],
+            "dimensionality": 10,
+            "layer": "Dense"
+        },
+        {
+            "_super": "neuralNetLayer",
+            "activation": "relu",
+            "children": [
+                {
+                    "layers": [
+                        {
+                            "_super": "neuralNetLayer",
+                            "activation": "relu",
+                            "children": [
+                                {
+                                    "layers": []
+                                },
+                                {
+                                    "layers": []
+                                }
+                            ],
+                            "dimensionality": 10,
+                            "kernel": 3,
+                            "layer": "Activation",
+                            "padding": "same",
+                            "strides": 1
+                        },
+                        {
+                            "_super": "neuralNetLayer",
+                            "activation": "relu",
+                            "children": [
+                                {
+                                    "layers": []
+                                },
+                                {
+                                    "layers": []
+                                }
+                            ],
+                            "dimensionality": 10,
+                            "kernel": 3,
+                            "layer": "Conv2D",
+                            "padding": "same",
+                            "strides": 1
+                        },
+                        {
+                            "_super": "neuralNetLayer",
+                            "activation": "relu",
+                            "children": [
+                                {
+                                    "layers": []
+                                },
+                                {
+                                    "layers": []
+                                }
+                            ],
+                            "dimensionality": 10,
+                            "layer": "Dense"
+                        }
+                    ]
+                },
+                {
+                    "layers": [
+                        {
+                            "_super": "neuralNetLayer",
+                            "activation": "relu",
+                            "children": [
+                                {
+                                    "layers": []
+                                },
+                                {
+                                    "layers": []
+                                }
+                            ],
+                            "dimensionality": 10,
+                            "kernel": 3,
+                            "layer": "Conv2D",
+                            "padding": "same",
+                            "strides": 1
+                        }
+                    ]
+                }
+            ],
+            "dimensionality": 10,
+            "layer": "Add"
+        },
+        {
+            "children": [
+                {
+                    "layers": [
+                        {
+                            "activation": "relu",
+                            "children": [
+                                {
+                                    "layers": []
+                                },
+                                {
+                                    "layers": []
+                                }
+                            ],
+                            "layer": "Activation"
+                        },
+                        {
+                            "_super": "neuralNetLayer",
+                            "activation": "relu",
+                            "children": [
+                                {
+                                    "layers": []
+                                },
+                                {
+                                    "layers": []
+                                }
+                            ],
+                            "dimensionality": 10,
+                            "kernel": 3,
+                            "layer": "Conv2D",
+                            "padding": "same",
+                            "strides": 1
+                        },
+                        {
+                            "_super": "neuralNetLayer",
+                            "activation": "relu",
+                            "children": [
+                                {
+                                    "layers": []
+                                },
+                                {
+                                    "layers": []
+                                }
+                            ],
+                            "dimensionality": 10,
+                            "layer": "Dense"
+                        }
+                    ]
+                },
+                {
+                    "layers": [
+                        {
+                            "_super": "neuralNetLayer",
+                            "activation": "relu",
+                            "children": [
+                                {
+                                    "layers": []
+                                },
+                                {
+                                    "layers": []
+                                }
+                            ],
+                            "dimensionality": 10,
+                            "kernel": 3,
+                            "layer": "Conv2D",
+                            "padding": "same",
+                            "strides": 1
+                        }
+                    ]
+                }
+            ],
+            "layer": "Add"
+        },
+        {
+            "_super": "neuralNetLayer",
+            "activation": "relu",
+            "children": [
+                {
+                    "layers": []
+                },
+                {
+                    "layers": []
+                }
+            ],
+            "dimensionality": 10,
+            "kernel": 3,
+            "layer": "Conv2D",
+            "padding": "same",
+            "strides": 1
+        }
+    ],
+    "neuralNet_batch_size": 50,
+    "neuralNet_epochs": 500,
+    "neuralNet_losses": "mean_squared_error",
+    "neuralNet_name": "x",
+    "neuralNet_optimizer": "adam",
+    "neuralNet_shuffle": "1",
+    "notes": [],
+    "outputDim": 1,
+    "partition_cutoff0": 19,
+    "partition_cutoff1": 137,
+    "partition_method": "random",
+    "partition_random_state": 42,
+    "partition_section0": "validate",
+    "partition_section1": "train_and_test",
+    "partition_section2": "validate",
+    "partition_testing": 12.5,
+    "partition_trainTestPercent": 75,
+    "partition_training": 75,
+    "partition_validation": 12.5,
+    "poolingLayer_padding": "same",
+    "poolingLayer_size": 2,
+    "poolingLayer_strides": 1,
+    "predictFile": "predict.npy",
+    "scaledFile": "scaled.npy",
+    "separableConv2D__super": "conv2D",
+    "separableConv2D_activation": "relu",
+    "separableConv2D_dimensionality": 10,
+    "separableConv2D_kernel": 3,
+    "separableConv2D_layer": "SeparableConv2D",
+    "separableConv2D_padding": "same",
+    "separableConv2D_strides": 1,
+    "simulation_documentationUrl": "",
+    "simulation_folder": "/Examples",
+    "simulation_isExample": true,
+    "simulation_lastModified": 1660081077596,
+    "simulation_name": "2019 World Happiness",
+    "simulation_notes": "",
+    "simulation_simulationId": "Ja4krobr",
+    "simulation_simulationSerial": 1660081180434822,
+    "testFile": "test.npy",
+    "trainFile": "train.npy",
+    "upSampling2D_interpolation": "nearest",
+    "upSampling2D_layer": "UpSampling2D",
+    "upSampling2D_size": 2,
+    "validateFile": "validate.npy",
+    "zeroPadding2D_layer": "ZeroPadding2D",
+    "zeroPadding2D_padding": 1
+}
