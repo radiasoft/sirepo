@@ -112,7 +112,6 @@ def _create_zip(sim, want_python, out_dir):
 
 
 def _python(data, sim):
-    # TODO (gurhar1133): maybe change name
     """Generate python in current directory
 
     Args:
