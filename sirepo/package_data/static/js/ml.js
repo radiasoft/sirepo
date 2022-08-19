@@ -1125,9 +1125,7 @@ SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelStat
                 <colgroup>
                   <col style="width: 3em">
                   <col style="width: 100%">
-                  <col style="width: 6em">
-                  <col style="width: 6em">
-                  <col style="width: 6em">
+                  <col span="3" style="width: 6em">
                 </colgroup>
                 <thead>
                   <tr>
