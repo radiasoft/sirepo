@@ -112,10 +112,10 @@ def _grid_to_poly(path):
                         l.append(f"{points_per_poly} ")
                         for p in bt:
                             l.append(f"{p + d + i} ")
-                        #for p in lr:
-                        #    l.append(f"{p + d + i} ")
-                        #for p in fb:
-                        #    l.append(f"{p + d + i} ")
+                        for p in lr:
+                            l.append(f"{p + d + i} ")
+                        for p in fb:
+                            l.append(f"{p + d + i} ")
                         l.append("\n")
         return l
 

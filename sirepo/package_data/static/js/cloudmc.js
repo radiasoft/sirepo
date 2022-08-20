@@ -217,6 +217,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             let selectedVolume = null;
 
             const bundleByVolume = {};
+            const tallyBundles = {};
             // volumes are measured in centimeters
             const scale = 0.01;
             const coordMapper = new SIREPO.VTK.CoordMapper(
@@ -234,6 +235,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 pd.buildCells();
                 $rootScope.$broadcast('vtk.hideLoader');
                 const b = coordMapper.buildActorBundle();
+                tallyBundles[name] = b;
                 b.mapper.setInputData(pd);
                 setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
                 b.setActorProperty('lighting', false);
@@ -381,7 +383,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
                     .forEach((c, i) => {
                         // when the field value is 0, don't draw the element at all
-                        dataColors.push(...c, d[i] === 0 ? 0 : 255);
+                        dataColors.push(
+                            ...c,
+                            d[i] === 0 ? 0 : Math.floor(255 * appState.models.geometry3DReport.opacity)
+                        );
                     });
                 polyData.getCellData().setScalars(
                     vtk.Common.Core.vtkDataArray.newInstance({
@@ -391,6 +396,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     })
                 );
                 polyData.buildCells();
+            }
+
+            function setTallyOpacity(name, opacity) {
+                const pd = tallyBundles[name].mapper.getInputData();
+
             }
 
             function loadTally(name) {
@@ -428,6 +438,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         appState.models.geometry3DReport.showEdges === '1'
                     );
                 }
+                //for (const n in tallyBundles) {
+                    //setColorsFromFieldData();
+                //}
                 vtkScene.render();
             }
 
