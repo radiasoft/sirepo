@@ -368,7 +368,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     $scope.axisCfg[dim].showCentral = false;
                 });
             }
-            
+
             function setColorsFromFieldData(polyData, name, colorMapName) {
                 const dataColors = [];
                 const colorMap = SIREPO.PLOTTING.Utils.COLOR_MAP()[colorMapName];
