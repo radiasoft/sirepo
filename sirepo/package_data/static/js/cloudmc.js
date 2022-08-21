@@ -234,7 +234,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 $rootScope.$broadcast('vtk.hideLoader');
                 const b = coordMapper.buildActorBundle();
                 b.mapper.setInputData(pd);
-                setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
+                setColorsFromFieldData(pd, name, appState.models.tally.colorMap);
                 b.setActorProperty('lighting', false);
                 vtkScene.addActor(b.actor);
                 initAxes();
@@ -368,9 +368,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     $scope.axisCfg[dim].showCentral = false;
                 });
             }
-
-            function setColorsFromFieldData(polyData, name, colorMap) {
+            
+            function setColorsFromFieldData(polyData, name, colorMapName) {
                 const dataColors = [];
+                const colorMap = SIREPO.PLOTTING.Utils.COLOR_MAP()[colorMapName];
+
                 const d = Array.from(polyData.getFieldData().getArrayByName(name).getData());
                 const s = SIREPO.PLOTTING.Utils.colorScale(
                     SIREPO.UTILS.largeMin(d),
@@ -389,7 +391,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                     })
                 );
-                polyData.buildCells();
             }
 
             function loadTally(name) {
@@ -540,6 +541,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             });
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
+            appState.watchModelFields($scope, ['tally.colorMap'], () => {
+
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
