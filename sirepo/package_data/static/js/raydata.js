@@ -566,6 +566,59 @@ SIREPO.app.directive('appHeader', function(appState) {
     };
 });
 
+SIREPO.app.directive('catalogPicker', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            args: '='
+        },
+        template: `
+            <p>catalogPicker</p>
+            <div class="form-group">
+              <label for="sourceCatalog">Catalog:</label>
+              <select id="sourceCatalog" data-ng-model="selectedCatalog"  ng-change="changeSelectedCatalog()">
+                <option ng-repeat="catalog in allCatalogs">{{catalog}}</option>
+              </select>
+            </div>
+        `,
+        controller: function($scope, appState, panelState, raydataService, requestSender) {
+            $scope.selected = null;
+            $scope.selectedCatalog = appState.models.scans.catalogName;
+            $scope.allCatalogs = null;
+
+            $scope.changeSelectedCatalog = () => {
+                srdbg(`$scope.selectedCatalog=${$scope.selectedCatalog} appState.models.scans.catalogName=${appState.models.scans.catalogName}`);
+                appState.models.scans['catalogName'] = $scope.selectedCatalog;
+                srdbg('selected new catalog')
+                srdbg(`$scope.selectedCatalog=${$scope.selectedCatalog} appState.models.scans.catalogName=${appState.models.scans.catalogName}`)
+                // TODO(rorour): remove catalog selector in scan selector
+                // TODO(rorour): fix stateless compute error?
+                appState.saveChanges('scans');
+            }
+
+            $scope.getAllCatalogs = () => {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    (json) => {
+                        $scope.allCatalogs = json.data.catalogs;
+                        srdbg('catalogs to choose from are ', $scope.allCatalogs)
+                    },
+                    {
+                        method: 'all_catalogs',
+                    },
+                    {
+                        onError: (data) => {
+                            errorService.alertText(data.error);
+                        },
+                    }
+                );
+            };
+            $scope.getAllCatalogs();
+            srdbg('selected catalog is ', $scope.selectedCatalog)
+        },
+    };
+});
+
 SIREPO.app.directive('columnPicker', function() {
     return {
         restrict: 'A',

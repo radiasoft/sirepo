@@ -122,8 +122,6 @@ def stateless_compute_completed_scans(data):
 
 
 def stateless_compute_queued_scans(data):
-    s = []
-
     return PKDict(
         data=PKDict(
             queuedScans=[ScanObject('uid4'), ScanObject('uid5'), ScanObject('uid6')],
