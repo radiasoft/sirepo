@@ -1949,6 +1949,23 @@ SIREPO.app.directive('trimButton', function(appState, mlService) {
     };
 });
 
+SIREPO.viewLogic('mlModelView', function(appState, panelState, $scope) {
+    // TODO (gurhar1133): below line leads to flicker. Find better place
+    panelState.showField('mlModel', 'modelFile', false);
+
+    function displayFileInput() {
+        if (appState.models.mlModel.mlModule == 'modelFile') {
+            panelState.showField('mlModel', 'modelFile', true);
+            return;
+        }
+        panelState.showField('mlModel', 'modelFile', false);
+    }
+
+    $scope.watchFields = [
+        ['mlModel.mlModule'],
+        displayFileInput
+    ]
+});
 
 SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
 

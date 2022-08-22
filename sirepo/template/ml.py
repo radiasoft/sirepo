@@ -798,6 +798,45 @@ input_args = Input(shape=({v.inputDim},))
 {_build_layers(net)}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
+
+model.summary(print_fn=lambda x: print(x.split('\\n')))
+
+
+relevant_nodes = []
+for v in model._nodes_by_depth.values():
+    relevant_nodes += v
+
+print('model attrs: ', model.__dict__)
+for layer in model.layers:
+    print('layer:', layer._name)
+    inbound = []
+    for node in layer._inbound_nodes:
+        if relevant_nodes and node not in relevant_nodes:
+                # node is not part of the current network
+            continue
+
+        for (
+            inbound_layer,
+            node_index,
+            tensor_index,
+            _,
+        ) in node.iterate_inbound():
+            inbound.append(inbound_layer.name)
+        try:
+            for (
+                outbound_layer,
+                node_index,
+                tensor_index,
+                _,
+            ) in node.iterate_outbound():
+                print("outbound:", outbound_layer.name)
+        except Exception:
+            print("outbound didn't work")
+
+    if inbound:
+        print('inbound layers: ', inbound)
+    print('----------')
+model.save('./')
 """
 
 

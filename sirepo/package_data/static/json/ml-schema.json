@@ -42,7 +42,8 @@
             ["none", "None"]
         ],
         "MLModule": [
-            ["neuralnet", "Neural Network"]
+            ["neuralnet", "Neural Network"],
+            ["modelFile", "From Model Archive File"]
         ],
         "NeuralNetActivation": [
             ["exponential", "Exponential (base e)"],
@@ -330,7 +331,8 @@
         },
         "logisticRegressionErrorRateAnimation": {},
         "mlModel": {
-            "mlModule": ["Model Type", "MLModule", "neuralnet"]
+            "mlModule": ["Model Type", "MLModule", "neuralnet"],
+            "modelFile": ["Model File", "InputFile"]
         },
         "neuralNet": {
             "optimizer": ["Optimizer", "NeuralNetOptimizer", "adam"],
@@ -600,7 +602,8 @@
         "mlModel": {
             "title": "Model",
             "basic": [
-                "mlModule"
+                "mlModule",
+                "modelFile"
             ],
             "advanced": []
         },
