@@ -99,7 +99,7 @@ def stateless_compute_all_catalogs(data):
     )
 
 
-class ScanObject:
+class ScanObject(PKDict):
     def __init__(self, uid=''):
         self.uid = uid
         self.metadata = {'field1': 'val1', 'num_points': '1', 'start': {'time': '000', 'uid': uid, 'num_points': '2'}, 'stop': {'time': '001'}}
@@ -126,7 +126,7 @@ def stateless_compute_queued_scans(data):
 
     return PKDict(
         data=PKDict(
-            queuedScans=[ScanObject('uid4'), ScanObject('uid5'), ('uid6', ScanObject('uid6'))],
+            queuedScans=[ScanObject('uid4'), ScanObject('uid5'), ScanObject('uid6')],
         )
     )
 

@@ -231,52 +231,59 @@ SIREPO.app.directive('analysisQueuePanel', function() {
         },
         template: `
             <div>
-<!--              <table class="table table-striped table-hover col-sm-4">-->
-<!--                <thead>-->
-<!--                  <tr>-->
-<!--                    <th data-ng-repeat="h in getHeader()">{{ h }}</th>-->
-<!--                  </tr>-->
-<!--                </thead>-->
-<!--                <tbody ng-repeat="s in scans">-->
-<!--                  <tr data-ng-click="enableModalClick(s) && showAnalysisOutputModal(s)">-->
-<!--                    <td><span data-header-tooltip="s.state"></span></td>-->
-<!--                    <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>-->
-<!--                  </tr>-->
-<!--                </tbody>-->
-<!--              </table>-->
+              <table class="table table-striped table-hover col-sm-4">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th data-ng-repeat="h in getHeader()">{{ h }}</th>
+                  </tr>
+                </thead>
+                <tbody ng-repeat="s in queuedScans">
+                  <tr>
+                    <td><span data-header-tooltip="s.state"></span></td>
+                    <td data-ng-repeat="c in getHeader()">{{ getQueuedScanFields(s, c) }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, runMulti, stringsService, $interval, $rootScope, $scope) {
             $scope.queuedScans = [];
+
+            $scope.getHeader = function() {
+                return ['uid', 'Start', 'Stop']
+            };
+
+            $scope.getQueuedScanFields = (scan, fieldName) => {
+                if (['Start', 'Stop'].includes(fieldName)) {
+                    return scan['metadata'][fieldName.toLowerCase()]['time']
+                }
+                if (['uid'].includes(fieldName)) {
+                    return scan[fieldName.toLowerCase()]
+                }
+            }
 
             $scope.sendScanRequest = function() {
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
                         $scope.queuedScans = [];
-                        srdbg('json.data.queuedScans=', json.data.queuedScans);
                         json.data.queuedScans.forEach((s) => {
                             $scope.queuedScans.push(s);
                         });
-                        srdbg('$scope.queuedScans=', $scope.queuedScans);
                     },
                     {
                         catalogName: appState.models.scans.catalogName,
                         method: 'queued_scans',
                     },
                     {
-                        modelName: $scope.modelName,
                         onError: (data) => {
-                            srdbg('error')
                             errorService.alertText(data.error);
-                            panelState.setLoading($scope.modelName, false);
                         },
-                        panelState: panelState,
                     }
                 );
             };
 
-            srdbg('$scope.queuedScans=', $scope.queuedScans);
             $scope.sendScanRequest();
         }
     };
