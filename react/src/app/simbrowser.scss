@@ -32,3 +32,17 @@
     font-size: small;
     margin-bottom: 10px;
 }
+
+.sr-sim-route-header {
+    display: flex;
+    flex-flow: row nowrap;
+    margin: 10px;
+}
+
+.sr-sim-route-header-text {
+    margin-left: 8px;
+    font-size: 20px;
+}
+
+.sr-sim-browser-header {
+}

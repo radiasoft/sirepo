@@ -1,10 +1,9 @@
 import { Link, Route, Routes, useRoutes, Navigate, useParams, useMatch, useLocation, useResolvedPath } from "react-router-dom";
 import { Row, Col, Container, Accordion, Card } from "react-bootstrap";
 import { ContextRelativeRouterHelper, ContextSimulationListPromise } from "../components/context";
-import { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { SimulationRoot } from "./simulation";
 import { joinPath, removeSeparators, RouteHelper } from "../helper";
-import { ViewGrid } from "../components/simulation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./simbrowser.scss"
@@ -52,27 +51,32 @@ function buildSimulationsTree(simulations) {
 }
 
 function SimulationTreeViewFolder(props) {
-    let { tree, pathPrefix, isRoot } = props;
+    let { tree, isRoot, path } = props;
+
+    let routeHelper = useContext(ContextRelativeRouterHelper);
 
     let childElements = [];
     for(let child of tree.children) {
         if(child.children) {
-            let nextPrefix = isRoot ? undefined : joinPath(pathPrefix, tree.name);
-            childElements.push(<SimulationTreeViewFolder key={joinPath(child.folder, child.name)} pathPrefix={nextPrefix} tree={child}/>);
+            let [_first, ...restPath] = path;
+            childElements.push(<SimulationTreeViewFolder key={joinPath(child.folder, child.name)} tree={child} path={restPath}/>);
         } else {
             childElements.push(<SimulationTreeViewItem key={joinPath(child.folder, child.name)} item={child}/>);
         }
     }
 
-    let subpath = joinPath('./', encodeURI(joinPath(isRoot ? undefined : pathPrefix, tree.name)));
+    let subpath = routeHelper.getRelativePath(joinPath('/simulations', encodeURI(tree.folder)));
+    let shouldBeOpen = isRoot || (path.length > 0 && path[0] == tree.name);
 
-    return <Accordion>
-        <Accordion.Header>
-            <Link to={subpath} key={subpath}>{tree.name}</Link>
-        </Accordion.Header>
-        <Accordion.Body>
-            {childElements}
-        </Accordion.Body>
+    return <Accordion defaultActiveKey={shouldBeOpen ? '0' : undefined}>
+        <Accordion.Item eventKey="0">
+            <Accordion.Header>
+                <Link to={subpath} key={subpath}>{tree.name}</Link>
+            </Accordion.Header>
+            <Accordion.Body>
+                {childElements}
+            </Accordion.Body>
+        </Accordion.Item>
     </Accordion>
 }
 
@@ -137,7 +141,7 @@ function SimulationIconViewItem(props) {
         <Link to={path}>
             <div className="sr-sim-icon-view-base sr-sim-icon-view-folder">
                 <div className="sr-sim-icon-view-icon-outer">
-                    <FontAwesomeIcon className="sr-sim-icon-view-icon sr-sim-icon-view-folder-icon" icon={Icon.faFolder}/>
+                    <FontAwesomeIcon className="sr-sim-icon-view-icon sr-sim-icon-view-folder-icon" icon={Icon.faFile}/>
                 </div>
                 <div className="sr-sim-icon-view-name text-center">
                     <span>
@@ -150,12 +154,14 @@ function SimulationIconViewItem(props) {
 }
 
 function SimulationFolderRouter(props) {
-    let { tree } = props;
+    let { tree, path } = props;
+    path = path || [];
     let { simulationFolder } = useParams();
 
     let childFn = props.children || (() => undefined);
 
     if(simulationFolder) {
+        path.push(simulationFolder);
         let matchedFolder = tree.children.find(c => c.children && c.name === simulationFolder);
 
         if(!matchedFolder) { 
@@ -165,41 +171,74 @@ function SimulationFolderRouter(props) {
         }
     }
 
+    let el = childFn({routedTree: tree, routedPath: path})
+    // TODO: this calls childFn even if route is not a match
     return (
         <Routes>
             <Route path="/" exact element={
-                <>{childFn(tree)}</>
+                <>{el}</>
             }/>
             <Route path="/:simulationFolder/*" element={
-                <SimulationFolderRouter tree={tree}/>
+                <SimulationFolderRouter tree={tree} path={path}>{props.children}</SimulationFolderRouter>
             }/>
         </Routes>
     )
 }
 
-const SimulationBrowser = (props) => {
+function SimulationRouteHeader(props) {
+    let { path } = props;
+    let routeHelper = useContext(ContextRelativeRouterHelper);
+
+    let prevSegments = [];
+    let elements = (path || []).map(pathSegment => {
+        let routePath = routeHelper.getRelativePath(joinPath('/simulations', ...prevSegments, pathSegment));
+        prevSegments.push(pathSegment);
+        return (
+            <React.Fragment key={routePath}>
+                <h3 className="sr-sim-route-header-separator sr-sim-route-header-text">/</h3>
+                <Link to={routePath}>
+                    <h3 className="sr-sim-route-header-segment sr-sim-route-header-text">
+                        {pathSegment}
+                    </h3>
+                </Link>
+            </React.Fragment>
+        )
+    })
+
+    return (
+        <div className="sr-sim-route-header">
+            {elements}
+        </div>
+    )
+}
+
+function SimulationBrowser(props) {
     let { tree } = props; 
     return (
-        <div className="sr-sim-browser-outer">
-            <div className="sr-sim-browser-header">
-
-            </div>
-            <Container className="sr-sim-browser">
-                <Row sm={2}>
-                    <Col sm={4}>
-                        <SimulationTreeViewFolder isRoot={true} className="sr-sim-tree-view" tree={tree}/>
-                    </Col>
-                    <Col sm={8}>
-                        <SimulationFolderRouter tree={tree}>
-                            {(routedTree) => {
-                                return <SimulationIconView tree={routedTree}/>
-                            }}
-                        </SimulationFolderRouter>
-                    </Col>
-                </Row>
-            </Container>
-        </div>
-        
+        <SimulationFolderRouter tree={tree}>
+            {({routedTree, routedPath}) => {
+                return (
+                    <div className="sr-sim-browser-outer">
+                        <h3 className="sr-sim-browser-header">
+                            
+                        </h3>
+                        <Container className="sr-sim-browser">
+                            <Row>
+                                <SimulationRouteHeader path={routedPath}/>
+                            </Row>
+                            <Row sm={2}>         
+                                <Col sm={4}>
+                                    <SimulationTreeViewFolder isRoot={true} className="sr-sim-tree-view" tree={tree} path={routedPath}/>
+                                </Col>
+                                <Col sm={8}>
+                                    <SimulationIconView tree={routedTree} path={routedPath}/>
+                                </Col>         
+                            </Row>
+                        </Container>
+                    </div>
+                )
+            }}
+        </SimulationFolderRouter>
     )
 }
 
