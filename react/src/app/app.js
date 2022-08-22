@@ -7,12 +7,9 @@ import { useSetup } from "../hooks";
 import {
     modelsSlice,
     selectModel,
-    loadModelData,
-    selectIsLoaded,
     updateModel,
     selectModels,
 } from "../models";
-import { mapProperties } from '../helper'
 import {
     selectFormState,
     updateFormState,
@@ -20,12 +17,13 @@ import {
     formStatesSlice
 } from '../formState'
 import "./app.scss"
-import { ViewGrid } from "../components/simulation";
 import Schema from './schema'
 import { Graph2dFromApi } from "../components/graph2d";
-import { SchemaEditorPanel, FormStateInitializer } from "../components/form";
+import { SchemaEditorPanel } from "../components/form";
 import { 
+    ContextAppInfo,
     ContextAppName,
+    ContextAppViewBuilder,
     ContextReduxFormActions, 
     ContextReduxFormSelectors, 
     ContextReduxModelActions, 
@@ -34,8 +32,9 @@ import {
     ContextSimulationListPromise 
 } from '../components/context'
 import { Panel } from "../components/panel";
+import { SimulationBrowserRoot } from "./simbrowser";
 
-const pollRunSimulation = ({ appName, models, simulationId, report, pollInterval}) => {
+function pollRunSimulation({ appName, models, simulationId, report, pollInterval}) {
     return new Promise((resolve, reject) => {
         let doFetch = () => {
             fetch('/run-simulation', {
@@ -58,7 +57,7 @@ const pollRunSimulation = ({ appName, models, simulationId, report, pollInterval
                 if(state == 'completed') {
                     resolve(simulationStatus);
                 } else if (state == 'pending') {
-                    //setTimeout(doFetch, pollInterval);
+                    //setTimeout(doFetch, pollInterval); // TODO
                 } else {
                     reject();
                 }
@@ -68,57 +67,9 @@ const pollRunSimulation = ({ appName, models, simulationId, report, pollInterval
     })
 }
 
-const SimulationInfoInitializer = (child) => {
-    return (props) => {
-        let contextFn = useContext;
-        let stateFn = useState;
-        let effectFn = useEffect;
-        let dispatchFn = useDispatch;
 
-        let simulationListPromise = contextFn(ContextSimulationListPromise);
-        let { updateModel } = contextFn(ContextReduxModelActions);
-        let [simulationInfoPromise, updateSimulationInfoPromise] = stateFn(undefined);
-        let [hasInit, updateHasInit] = stateFn(false);
-        let appName = contextFn(ContextAppName);
-        let dispatch = dispatchFn();
 
-        effectFn(() => {
-            updateSimulationInfoPromise(new Promise((resolve, reject) => {
-                simulationListPromise.then(simulationList => {
-                    let simulation = simulationList[0];
-                    let { simulationId } = simulation;
-                    fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
-                        let simulationInfo = await resp.json();
-                        let { models } = simulationInfo;
-                        console.log("retrieved simulation info", simulationInfo);
-                        // TODO: use models
-
-                        for(let [modelName, model] of Object.entries(models)) {
-                            dispatch(updateModel({
-                                name: modelName,
-                                value: model
-                            }));
-                        }
-
-                        resolve({...simulationInfo, simulationId});
-                        updateHasInit(true);
-                    })
-                })
-            }))
-        }, [])
-
-        let ChildComponent = child;
-        return hasInit && simulationInfoPromise && (
-            <ContextSimulationInfoPromise.Provider value={simulationInfoPromise}>
-                <ChildComponent {...props}>
-
-                </ChildComponent>
-            </ContextSimulationInfoPromise.Provider>
-        )
-    }
-}
-
-const SimulationListInitializer = (child) => {
+function SimulationListInitializer(child) {
     return (props) => {
         let stateFn = useState;
         let effectFn = useEffect;
@@ -164,7 +115,7 @@ const MissingComponentPlaceholder = (props) => {
     )
 }
 
-let SimulationVisualWrapper = (visualName, title, visualComponent, passedProps) => {
+function SimulationVisualWrapper(visualName, title, visualComponent, passedProps) {
     return (props) => {
         let contextFn = useContext;
         let stateFn = useState;
@@ -207,6 +158,33 @@ let SimulationVisualWrapper = (visualName, title, visualComponent, passedProps) 
     }
 }
 
+function AppViewBuilderWrapper(child) {
+    let ChildComponent = child;
+    return (props) => {
+        let contextFn = useContext;
+        let appInfo = contextFn(ContextAppInfo);
+        let viewBuilder = new AppViewBuilder(appInfo);
+        return (
+            <ContextAppViewBuilder.Provider value={viewBuilder}>
+                <ChildComponent {...props}/>
+            </ContextAppViewBuilder.Provider>
+        )
+    }  
+}
+
+function AppInfoWrapper(appInfo) {
+    return (child) => {
+        let ChildComponent = child;
+        return (props) => {
+            return (
+                <ContextAppInfo.Provider value={appInfo}>
+                    <ChildComponent {...props}/>
+                </ContextAppInfo.Provider>
+            )
+        }
+    }
+}
+
 class AppViewBuilder{
     constructor (appInfo) { 
         this.components = {
@@ -224,15 +202,6 @@ class AppViewBuilder{
 
         return componentBuilder(viewInfo);
     }
-}
-
-function LoadDataButton(props) {
-    let dispatch = useDispatch();
-    return (
-        <Col className="mt-3 ms-3">
-            <Button onClick={() => dispatch(loadModelData())}>Load Data</Button>
-        </Col>
-    )
 }
 
 let ReduxConstantsWrapper = (child) => {
@@ -254,41 +223,19 @@ let ReduxConstantsWrapper = (child) => {
 }
 
 function buildAppComponentsRoot(schema) {
-    let viewInfos = mapProperties(schema.views, (viewName, view) => {
-        return {
-            view,
-            viewName: viewName
-        }
-    })
-
-    let viewBuilder = new AppViewBuilder({ schema });
-    
-    let viewComponents = mapProperties(viewInfos, (viewName, viewInfo) => viewBuilder.buildComponentForView(viewInfo));
-
-    const RequiresIsLoaded = (componentIf, componentElse) => (props) => {
-        let selectorFn = useSelector;
-        let isLoaded = selectorFn(selectIsLoaded);
-        let ChildComponent = isLoaded ? componentIf : componentElse;
-        return (<>
-            {ChildComponent && <ChildComponent {...props}></ChildComponent>}
-        </>)
-    }
+    let appInfo = {schema};
 
     return ReduxConstantsWrapper(
-        RequiresIsLoaded(
-            SimulationListInitializer(
-                SimulationInfoInitializer(
-                    FormStateInitializer({ viewInfos, schema })(
-                        () => {
-                            return (
-                                <ViewGrid views={Object.values(viewComponents)}>
-                                </ViewGrid>
-                            )
-                        }
-                    )
+        AppInfoWrapper(appInfo)(
+            AppViewBuilderWrapper(
+                SimulationListInitializer(
+                    () => {
+                        return (
+                            <SimulationBrowserRoot/>
+                        )
+                    }
                 )
-            ),
-            LoadDataButton
+            )
         )
     )
 }
@@ -303,7 +250,7 @@ const AppRoot = (props) => {
         },
     });
 
-    let { appName } = props;
+    let appName = useContext(ContextAppName);
 
     const hasSchema = useSetup(true,
         (finishInitSchema) => {
@@ -323,11 +270,9 @@ const AppRoot = (props) => {
     if(hasSchema && hasMadeHomepageRequest) {
         let AppChild = buildAppComponentsRoot(schema);
         return (
-            <ContextAppName.Provider value={appName}>
-                <Provider store={formStateStore}>
-                    <AppChild></AppChild>
-                </Provider>
-            </ContextAppName.Provider>
+            <Provider store={formStateStore}>
+                <AppChild></AppChild>
+            </Provider>
         )
     }
 }

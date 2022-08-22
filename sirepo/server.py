@@ -673,7 +673,7 @@ class API(sirepo.api.Base):
         )
 
     def _proxy_react(self, path):
-        if not cfg.react_server or path not in _PROXY_REACT_URIS:
+        if not cfg.react_server or (path not in _PROXY_REACT_URIS and not str.startswith(path, "react")):
             return
         if path in cfg.react_sim_types:
             path = ""

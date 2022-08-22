@@ -1,22 +1,5 @@
-// import { React }
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-//import { cloneDeep } from 'lodash';
 
-function fetchData() {
-    // simulate a delay when requesting data from the server
-    return new Promise((resolve) =>
-        setTimeout(() => resolve({
-            data: {
-                
-            },
-        }), 500)
-    );
-}
-
-export const loadModelData = createAsyncThunk(
-    'loadModelData',
-    async () => (await fetchData()).data,
-);
 
 export const modelsSlice = createSlice({
     name: 'modelsSlice',
@@ -30,13 +13,13 @@ export const modelsSlice = createSlice({
             state.models[name] = value;
         },
     },
-    extraReducers: (builder) => {
+    /*extraReducers: (builder) => {
         builder
             .addCase(loadModelData.fulfilled, (state, {payload}) => {
                 state.models = payload;
                 state.isLoaded = true;
             });
-    },
+    },*/
 });
 
 //export const { cancelChanges, saveChanges, updateField } = modelsSlice.actions;
