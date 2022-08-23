@@ -2228,7 +2228,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 method: 'get_archive_file_list',
                 filename: dataFile.file,
                 data_type: dataFile.dataFormat,
-            }
+            },
         );
     }
 
