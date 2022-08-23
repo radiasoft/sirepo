@@ -573,7 +573,6 @@ SIREPO.app.directive('catalogPicker', function() {
             args: '='
         },
         template: `
-            <p>catalogPicker</p>
             <div class="form-group">
               <label for="sourceCatalog">Catalog:</label>
               <select id="sourceCatalog" data-ng-model="selectedCatalog"  ng-change="changeSelectedCatalog()">
@@ -587,10 +586,7 @@ SIREPO.app.directive('catalogPicker', function() {
             $scope.allCatalogs = null;
 
             $scope.changeSelectedCatalog = () => {
-                srdbg(`$scope.selectedCatalog=${$scope.selectedCatalog} appState.models.scans.catalogName=${appState.models.scans.catalogName}`);
                 appState.models.scans['catalogName'] = $scope.selectedCatalog;
-                srdbg('selected new catalog')
-                srdbg(`$scope.selectedCatalog=${$scope.selectedCatalog} appState.models.scans.catalogName=${appState.models.scans.catalogName}`)
                 // TODO(rorour): remove catalog selector in scan selector
                 // TODO(rorour): fix stateless compute error?
                 appState.saveChanges('scans');
@@ -614,7 +610,6 @@ SIREPO.app.directive('catalogPicker', function() {
                 );
             };
             $scope.getAllCatalogs();
-            srdbg('selected catalog is ', $scope.selectedCatalog)
         },
     };
 });
