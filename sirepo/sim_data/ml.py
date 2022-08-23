@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import contextlib
 import io
 import sirepo.sim_data
 
@@ -66,7 +67,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 
 class ArchiveManager:
-    import contextlib
 
     _ARCHIVE_EXTENSIONS = (
         ".tar.gz",
