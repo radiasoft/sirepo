@@ -2132,6 +2132,9 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function isArchiveFile(filename) {
+        if (! filename) {
+            return false;
+        }
         return [".tar.gz", ".zip"].some(x => filename.endsWith(x));
     }
 
