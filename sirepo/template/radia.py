@@ -1164,8 +1164,6 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 # zip file - data plus index.  This will likely be used to generate files for a range
 # of gaps later
 def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
-    import zipfile
-
     # no whitespace in filenames
     base_name = re.sub(r"\s", "_", path.purebasename)
     data_path = path.dirpath().join(f"{base_name}_{gap}.dat")
@@ -1198,12 +1196,7 @@ def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
     files = [data_path, index_path]
 
     # zip file
-    with zipfile.ZipFile(
-        str(path),
-        mode="w",
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
+    with sirepo.util.write_zip(str(path)) as z:
         for f in files:
             z.write(str(f), f.basename)
 

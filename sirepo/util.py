@@ -410,6 +410,14 @@ def url_safe_hash(value):
     return hashlib.md5(pkcompat.to_bytes(value)).hexdigest()
 
 
+def write_zip(path):
+    return zipfile.ZipFile(
+        path,
+        mode="w",
+        compression=zipfile.ZIP_DEFLATED,
+    )
+
+
 def _raise(exc, fmt, *args, **kwargs):
     import werkzeug.exceptions
 

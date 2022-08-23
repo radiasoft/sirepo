@@ -62,7 +62,14 @@ def get_data_file(run_dir, model, frame, options):
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
+        elif options.suffix == "zip":
+            o = "statepoints.zip"
+            with util.write_zip(o) as z:
+                for f in pkio.sorted_glob(run_dir.join("statepoint*h5")):
+                    z.write(str(f.basename))
+            return PKDict(filename=run_dir.join(o))
         return PKDict(filename=run_dir.join(f"{sim_in.models.tally.name}.json"))
+    raise AssertionError("no data file for model={model} and options={options}")
 
 
 def python_source_for_model(data, model):
