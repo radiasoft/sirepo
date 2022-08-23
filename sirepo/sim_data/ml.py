@@ -10,6 +10,8 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import contextlib
 import io
 import sirepo.sim_data
+import zipfile
+import tarfile
 
 
 class SimData(sirepo.sim_data.SimDataBase):
@@ -74,9 +76,6 @@ class ArchiveManager:
     )
 
     def __init__(self, file_path):
-        import zipfile
-        import tarfile
-
         self.file_path = file_path
         self.filename = file_path if isinstance(file_path, str) else file_path.basename
         if self._is_archive_type(".zip"):
