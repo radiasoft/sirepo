@@ -17,7 +17,7 @@ class SirepoUtils {
         let v = 0;
         const base = binary ? 1024 : 1000;
         for (i = 0; i < MAGS.length; ++i) {
-            v = val / Math.pow(base, i);
+            v = Math.abs(val) / Math.pow(base, i);
             if (v < base) {
                 break;
             }
@@ -25,7 +25,7 @@ class SirepoUtils {
         return {
             order: i,
             suffix: MAGS[i] + (binary ? 'i' : ''),
-            val: v,
+            val: Math.sign(val) * v,
         };
     }
 
