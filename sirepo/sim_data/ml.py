@@ -70,10 +70,26 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 class DataReader(PKDict):
 
-    _ARCHIVE_EXTENSIONS = (
-        ".tar.gz",
-        ".zip",
+    _SUPPORTED_ARCHIVES = PKDict(
+        {
+            ".tar.gz": PKDict(
+                dir_check="is_dir",
+                extractor="open",
+                file_ctx=zipfile.ZipFile,
+                item_name="filename",
+                lister="infolist",
+            ),
+            ".zip": PKDict(
+                dir_check = "isdir",
+                extractor = "extractfile",
+                file_ctx = tarfile.open,
+                item_name = "name",
+                slister = "getmembers",
+            ),
+        },
     )
+
+    _SUPPORTED_ARCHIVE_EXTENSIONS = _SUPPORTED_ARCHIVES.keys()
 
     def __init__(self, file_path):
         super().__init__()
@@ -81,24 +97,26 @@ class DataReader(PKDict):
             file_path=file_path,
             filename=file_path if isinstance(file_path, str) else file_path.basename,
         )
-        if self._is_archive_type(".zip"):
-            self.dir_check = "is_dir"
-            self.extractor = "open"
-            self.file_ctx = zipfile.ZipFile
-            self.item_name = "filename"
-            self.lister = "infolist"
-        if self._is_archive_type(".tar.gz"):
-            self.dir_check = "isdir"
-            self.extractor = "extractfile"
-            self.file_ctx = tarfile.open
-            self.item_name = "name"
-            self.lister = "getmembers"
+        e = self._get_archive_extension()
+        pkdp('EXT {}', e)
+        self.pkupdate(DataReader._SUPPORTED_ARCHIVES.get(e, {}))
+        pkdp(self)
+
+    def _get_archive_extension(self):
+        x = list(
+            filter(
+                lambda s: self._is_archive_type(s),
+                DataReader._SUPPORTED_ARCHIVE_EXTENSIONS
+            )
+        )
+        pkdp('ETXS {}', x)
+        return x[0] if len(x) else None
 
     def _is_archive_type(self, ext):
         return self.filename.endswith(ext)
 
     def is_archive(self):
-        return any([self._is_archive_type(s) for s in DataReader._ARCHIVE_EXTENSIONS])
+        return any([self._is_archive_type(s) for s in DataReader._SUPPORTED_ARCHIVE_EXTENSIONS])
 
     @contextlib.contextmanager
     def data_context_manager(self, data_path):
