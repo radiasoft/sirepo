@@ -317,7 +317,7 @@ def _archive_file_list(filename, data_type):
         is_dir = getattr(item, a.dir_check)()
         return is_dir if data_type == "image" else not is_dir
 
-    a = sirepo.sim_data.ml.ArchiveManager(_filepath(filename))
+    a = sirepo.sim_data.ml.DataReader(_filepath(filename))
     return PKDict(datalist=a.get_data_list(_filter))
 
 
@@ -434,7 +434,7 @@ def _compute_csv_info(filename, data_path):
         rowCount=0,
     )
     row = None
-    a = sirepo.sim_data.ml.ArchiveManager(_filepath(filename))
+    a = sirepo.sim_data.ml.DataReader(_filepath(filename))
     with a.data_ctx(data_path) as f:
         for r in csv.reader(f):
             if not row:

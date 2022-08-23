@@ -68,7 +68,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return []
 
 
-class ArchiveManager:
+class DataReader(PKDict):
 
     _ARCHIVE_EXTENSIONS = (
         ".tar.gz",
@@ -96,7 +96,7 @@ class ArchiveManager:
 
     def is_archive(self):
         return any(
-            [self._is_archive_type(s) for s in ArchiveManager._ARCHIVE_EXTENSIONS]
+            [self._is_archive_type(s) for s in DataReader._ARCHIVE_EXTENSIONS]
         )
 
     @contextlib.contextmanager
