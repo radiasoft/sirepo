@@ -2,8 +2,8 @@ import { Form, Row } from "react-bootstrap";
 import { LabelTooltip } from "./label";
 import { useSelector, useDispatch, useStore } from "react-redux";
 import { mapProperties } from "../helper";
-import { ContextReduxFormActions, ContextReduxFormSelectors, ContextReduxModelActions, ContextReduxModelSelectors } from './context'
-import { useContext } from "react";
+import { ContextReduxFormActions, ContextReduxFormSelectors, ContextReduxModelActions, ContextReduxModelSelectors, ContextSimulationInfoPromise } from './context'
+import { useContext, useState } from "react";
 import { useSetup } from "../hooks";
 import { EditorPanel } from './panel';
 import { DependencyCollector } from '../dependency';
@@ -153,8 +153,39 @@ export const SchemaEditorPanel = ({ schema }) => ({ view, viewName }) => {
         let modelActions = useContext(ContextReduxModelActions);
         let modelSelectors = useContext(ContextReduxModelSelectors);
 
+        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
+
+        let store = useStore();
+
+        let getModels = () => {
+            console.log("state", store.getState());
+            return modelSelectors.selectModels(store.getState());
+        }
+
+        let saveToServer = (models) => {
+            simulationInfoPromise.then((simulationInfo) => {
+                simulationInfo.models = models;
+                fetch("/save-simulation", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(simulationInfo)
+                }).then(resp => {
+                    // TODO: error handling
+                    console.log("resp", resp);
+                })
+            })
+        } 
+
         let depCollector = new DependencyCollector({ modelActions, modelSelectors, schema });
-        let formController = new FormController({ formActions, formSelectors });
+        let formController = new FormController({ formActions, formSelectors, simulationInfoPromise });
+
+        let submit = () => {
+            let models = getModels();
+            formController.submitChanges();
+            saveToServer(models);
+        }
 
         let collectModelField = (depStr) => depCollector.hookModelDependency(depStr);
         let hookFormField = (dep) => formController.hookField(dep);
@@ -190,7 +221,7 @@ export const SchemaEditorPanel = ({ schema }) => ({ view, viewName }) => {
         }
 
         let formProps = {
-            submit: formController.submitChanges,
+            submit: submit,
             cancel: formController.cancelChanges,
             showButtons: formController.isFormStateDirty(),
             formValid: formController.isFormStateValid(),

@@ -31,6 +31,7 @@ function SimulationInfoInitializer(child) {
                 simulationListPromise.then(simulationList => {
                     let simulation = simulationList[0];
                     let { simulationId } = simulation;
+                    // TODO: why 0
                     fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
                         let simulationInfo = await resp.json();
                         let { models } = simulationInfo;
