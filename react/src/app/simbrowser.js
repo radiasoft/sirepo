@@ -1,5 +1,5 @@
-import { Link, Route, Routes, useRoutes, Navigate, useParams, useMatch, useLocation, useResolvedPath } from "react-router-dom";
-import { Row, Col, Container, Accordion, Card } from "react-bootstrap";
+import { Link, Route, Routes, Navigate, useParams, useResolvedPath } from "react-router-dom";
+import { Row, Col, Container, Accordion } from "react-bootstrap";
 import { ContextRelativeRouterHelper, ContextSimulationListPromise } from "../components/context";
 import React, { useContext, useState, useEffect } from "react";
 import { SimulationRoot } from "./simulation";
@@ -58,7 +58,7 @@ function SimulationTreeViewFolder(props) {
     let childElements = [];
     for(let child of tree.children) {
         if(child.children) {
-            let [_first, ...restPath] = path;
+            let [_, ...restPath] = path;
             childElements.push(<SimulationTreeViewFolder key={joinPath(child.folder, child.name)} tree={child} path={restPath}/>);
         } else {
             childElements.push(<SimulationTreeViewItem key={joinPath(child.folder, child.name)} item={child}/>);
@@ -66,7 +66,7 @@ function SimulationTreeViewFolder(props) {
     }
 
     let subpath = routeHelper.getRelativePath(joinPath('/simulations', encodeURI(tree.folder)));
-    let shouldBeOpen = isRoot || (path.length > 0 && path[0] == tree.name);
+    let shouldBeOpen = isRoot || (path.length > 0 && path[0] === tree.name);
 
     return <Accordion defaultActiveKey={shouldBeOpen ? '0' : undefined}>
         <Accordion.Item eventKey="0">
@@ -265,7 +265,7 @@ export function SimulationBrowserRoot(props) {
                 simulationTree: tree
             })
         })
-    }, []);
+    }, [simulationListPromise]); // TODO: eval dep
 
     let routeHelper = new RouteHelper(pathPrefix);
     let child = undefined;

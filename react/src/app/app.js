@@ -1,8 +1,7 @@
 // import {React}
-import React, { useContext, useEffect, useRef, useState } from "react";
-import { Button, Col } from "react-bootstrap";
+import React, { useContext, useEffect, useState } from "react";
 import { configureStore } from "@reduxjs/toolkit";
-import { useDispatch, Provider, useSelector, useStore } from "react-redux";
+import { Provider } from "react-redux";
 import { useSetup } from "../hooks";
 import {
     modelsSlice,
@@ -54,9 +53,9 @@ function pollRunSimulation({ appName, models, simulationId, report, pollInterval
                 console.log("status", simulationStatus);
                 let { state } = simulationStatus;
                 console.log("polled simulation: " + state);
-                if(state == 'completed') {
+                if(state === 'completed') {
                     resolve(simulationStatus);
-                } else if (state == 'pending') {
+                } else if (state === 'pending') {
                     //setTimeout(doFetch, pollInterval); // TODO
                 } else {
                     reject();

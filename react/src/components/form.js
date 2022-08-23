@@ -3,7 +3,7 @@ import { LabelTooltip } from "./label";
 import { useSelector, useDispatch, useStore } from "react-redux";
 import { mapProperties } from "../helper";
 import { ContextReduxFormActions, ContextReduxFormSelectors, ContextReduxModelActions, ContextReduxModelSelectors, ContextSimulationInfoPromise } from './context'
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import { useSetup } from "../hooks";
 import { EditorPanel } from './panel';
 import { DependencyCollector } from '../dependency';
@@ -73,7 +73,7 @@ export class FormController {
 
         let findField = (modelName, fieldName) => {
             return this.fields.find((o) => {
-                return o.modelName == modelName && o.fieldName == fieldName;
+                return o.modelName === modelName && o.fieldName === fieldName;
             })
         }
 
@@ -202,7 +202,7 @@ export const SchemaEditorPanel = ({ schema }) => ({ view, viewName }) => {
             return (formFields[subviewName] || []).map(field => {
                 const onChange = (event) => {
                     let nextValue = event.target.value;
-                    if(field.value.value != nextValue) { // TODO fix field.value.value naming
+                    if(field.value.value !== nextValue) { // TODO fix field.value.value naming
                         field.updateValue(nextValue);
                     }
                 }

@@ -111,7 +111,7 @@ let isActiveFavoriteTreat = (modelChanges) => {
             let { lastValue, currentValue } = dogModelChanges['disposition'];
             let favoriteTreatChanges = dogModelChanges['favoriteTreat'] || {};
             dogModelChanges['favoriteTreat'] = favoriteTreatChanges;
-            favoriteTreatChanges.currentValue.active = (currentValue == 'friendly'); // TODO again, reference or value?
+            favoriteTreatChanges.currentValue.active = (currentValue === 'friendly'); // TODO again, reference or value?
         }
     }   
 }
@@ -120,8 +120,10 @@ let modelListeners = [
     isActiveFavoriteTreat
 ]
 
-export default {
+let Schema = {
     modelListeners,
     views,
     models
 }
+
+export default Schema
