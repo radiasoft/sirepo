@@ -76,8 +76,11 @@ class DataReader(PKDict):
     )
 
     def __init__(self, file_path):
-        self.file_path = file_path
-        self.filename = file_path if isinstance(file_path, str) else file_path.basename
+        super().__init__()
+        self.pkupdate(
+            file_path=file_path,
+            filename=file_path if isinstance(file_path, str) else file_path.basename,
+        )
         if self._is_archive_type(".zip"):
             self.dir_check = "is_dir"
             self.extractor = "open"
@@ -95,12 +98,10 @@ class DataReader(PKDict):
         return self.filename.endswith(ext)
 
     def is_archive(self):
-        return any(
-            [self._is_archive_type(s) for s in DataReader._ARCHIVE_EXTENSIONS]
-        )
+        return any([self._is_archive_type(s) for s in DataReader._ARCHIVE_EXTENSIONS])
 
     @contextlib.contextmanager
-    def data_ctx(self, data_path):
+    def data_context_manager(self, data_path):
         if not self.is_archive():
             yield open(self.file_path)
         else:
