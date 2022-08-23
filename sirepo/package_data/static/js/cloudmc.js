@@ -309,43 +309,39 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             }
 
             function buildVoxels(name, basePolyData) {
-                const insetPct = 0.02;
+                const tally = appState.models.tally;
+                const insetPct = 0.50;
                 const source = vtk.Filters.General.vtkAppendPolyData.newInstance();
-                const [nx, ny, nz] = appState.models.tally.meshCellCount;
-                const [sx, sy, sz] = appState.models.tally.meshUpperRight
-                    .map((x, i) => (1.0 - insetPct) * Math.abs(x - appState.models.tally.meshLowerLeft[i]) /
-                        appState.models.tally.meshCellCount[i]);
+                const [nx, ny, nz] = tally.meshCellCount;
+                const [sx, sy, sz] = tally.meshUpperRight
+                    .map((x, i) => (1.0 - insetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]);
                 const pts = basePolyData.getPoints().getData();
-                const d = Array.from(basePolyData.getFieldData().getArrayByName(name).getData());
-                const scalars = basePolyData.getCellData().getScalars().getData();
+                const scalars = Array.from(basePolyData.getCellData().getScalars().getData());
                 let n = 0;
                 let m = 0;
                 for (let k = 0; k < nz; ++k) {
                     for (let j = 0; j < ny; ++j) {
                         for (let i = 0; i < nx; ++i) {
+                            const c = scalars.slice(m, m + 4);
+                            if (c[3] === 0) {
+                                n += 3;
+                                m += 4;
+                                continue;
+                            }
                             const s = vtk.Filters.Sources.vtkCubeSource.newInstance({
                                 xLength: sx,
                                 yLength: sy,
                                 zLength: sz,
                                 center: [pts[n] + sx / 2, pts[n + 1] + sy / 2, pts[n + 2] + sz / 2],
                             }).getOutputData();
-                            s.buildCells();
-                            // ADD COLORS
-                            s.getCellData().setScalars(
-                                vtk.Common.Core.vtkDataArray.newInstance({
-                                    numberOfComponents: 4,
-                                    values: new Array(s.getNumberOfCells()).fill(scalars.slice(m, m + 4)).flat(),
-                                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
-                                })
-                            );
-                            //srdbg('cube', s, s.getNumberOfCells());
-                            if (source.getInputData()) {
-                                source.addInputData(s);
-                            }
-                            else {
+                            vtkPlotting.setColorScalars(s, c);
+                            if (! source.getInputData()) {
                                 source.setInputData(s);
                             }
-
+                            else {
+                                source.addInputData(s);
+                            }
+                            //srdbg('src now', source.getInputData().getNumberOfCells());
                             n += 3;
                             m += 4;
                         }
@@ -356,6 +352,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const b = coordMapper.buildActorBundle(source, {
                     'lighting': false,
                 });
+                srdbg('src now', source.getInputData().getNumberOfPolys());
                 vtkScene.addActor(b.actor);
             }
 
@@ -490,9 +487,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         appState.models.geometry3DReport.showEdges === '1'
                     );
                 }
-                //for (const n in tallyBundles) {
-                    //setColorsFromFieldData();
-                //}
                 vtkScene.render();
             }
 
