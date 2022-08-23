@@ -97,13 +97,15 @@ class DataReader(PKDict):
             file_path=file_path,
             filename=file_path if isinstance(file_path, str) else file_path.basename,
         )
-        self.pkupdate(DataReader._SUPPORTED_ARCHIVES.get(self._get_archive_extension(), {}))
+        self.pkupdate(
+            DataReader._SUPPORTED_ARCHIVES.get(self._get_archive_extension(), {})
+        )
 
     def _get_archive_extension(self):
         x = list(
             filter(
                 lambda s: self._is_archive_type(s),
-                DataReader._SUPPORTED_ARCHIVE_EXTENSIONS
+                DataReader._SUPPORTED_ARCHIVE_EXTENSIONS,
             )
         )
         return x[0] if len(x) else None
