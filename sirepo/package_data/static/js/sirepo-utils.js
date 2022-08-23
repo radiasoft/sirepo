@@ -24,7 +24,7 @@ class SirepoUtils {
         }
         return {
             order: i,
-            suffix: MAGS[Math.min(i, MAGS.length - 1)] + (binary ? 'i' : ''),
+            suffix: MAGS[Math.min(i, MAGS.length - 1)] + ((binary && i) ? 'i' : ''),
             val: Math.sign(val) * v,
         };
     }
