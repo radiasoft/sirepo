@@ -25,7 +25,7 @@ class SirepoUtils {
         return {
             order: i,
             suffix: MAGS[Math.min(i, MAGS.length - 1)] + ((binary && i) ? 'i' : ''),
-            val: Math.sign(val) * v,
+            mantissa: Math.sign(val) * v,
         };
     }
 
@@ -34,7 +34,7 @@ class SirepoUtils {
     }
 
     static formatToThousands(val, decimals, binary=false) {
-        return SirepoUtils.formatFloat(SirepoUtils.orderOfMagnitude(val, binary).val, decimals);
+        return SirepoUtils.formatFloat(SirepoUtils.orderOfMagnitude(val, binary).mantissa, decimals);
     }
 
     static indexArray(size) {
