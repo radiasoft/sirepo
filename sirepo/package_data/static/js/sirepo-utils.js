@@ -13,19 +13,13 @@ class SirepoUtils {
 
     static orderOfMagnitude(val, binary=false) {
         const MAGS = ['', 'k', 'M', 'G', 'T', 'P', 'E'];
-        let i = 0;
-        let v = 0;
+        const v = Math.abs(val);
         const base = binary ? 1024 : 1000;
-        for (i = 0; i < MAGS.length; ++i) {
-            v = Math.abs(val) / Math.pow(base, i);
-            if (v < base) {
-                break;
-            }
-        }
+        const i = binary ? Math.floor(Math.log2(v) / 10) : Math.floor(Math.log10(v) / 3);
         return {
             order: i,
-            suffix: MAGS[Math.min(i, MAGS.length - 1)] + ((binary && i) ? 'i' : ''),
-            mantissa: Math.sign(val) * v,
+            suffix: MAGS[Math.max(Math.min(i, MAGS.length - 1), 0)] + ((binary && i > 0) ? 'i' : ''),
+            mantissa: Math.sign(val) * v / Math.pow(base, i),
         };
     }
 
