@@ -314,7 +314,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _archive_file_list(filename, data_type):
     reader = sirepo.sim_data.ml.DataReader(_filepath(filename))
-    3
+
     def _filter(item):
         is_dir = getattr(item, reader.dir_check)()
         return is_dir if data_type == "image" else not is_dir
