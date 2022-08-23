@@ -12,7 +12,7 @@ from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 
 def read_data(arch_mgr, data_path, **kwargs):
     return sirepo.numpy.ndarray_from_ctx(
-        arch_mgr.data_ctx(data_path),
+        arch_mgr.data_context_manager(data_path),
         {{ 1 if columnInfo_hasHeaderRow else 0 }},
         **kwargs,
     )

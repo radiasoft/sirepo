@@ -413,7 +413,7 @@ def _cols_with_non_unique_values(arch_mgr, data_path, has_header_row, header):
     assert not re.search(
         r"\.npy$", str(arch_mgr.filename)
     ), f"numpy files are not supported path={arch_mgr.filename}"
-    v = sirepo.numpy.ndarray_from_ctx(arch_mgr.data_ctx(data_path), has_header_row)
+    v = sirepo.numpy.ndarray_from_ctx(arch_mgr.data_context_manager(data_path), has_header_row)
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
         if c:
@@ -435,7 +435,7 @@ def _compute_csv_info(filename, data_path):
     )
     row = None
     a = sirepo.sim_data.ml.DataReader(_filepath(filename))
-    with a.data_ctx(data_path) as f:
+    with a.data_context_manager(data_path) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
