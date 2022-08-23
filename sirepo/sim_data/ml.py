@@ -73,18 +73,18 @@ class DataReader(PKDict):
     _SUPPORTED_ARCHIVES = PKDict(
         {
             ".tar.gz": PKDict(
+                dir_check="isdir",
+                extractor="extractfile",
+                file_ctx=tarfile.open,
+                item_name="name",
+                lister="getmembers",
+            ),
+            ".zip": PKDict(
                 dir_check="is_dir",
                 extractor="open",
                 file_ctx=zipfile.ZipFile,
                 item_name="filename",
                 lister="infolist",
-            ),
-            ".zip": PKDict(
-                dir_check = "isdir",
-                extractor = "extractfile",
-                file_ctx = tarfile.open,
-                item_name = "name",
-                slister = "getmembers",
             ),
         },
     )
@@ -97,10 +97,7 @@ class DataReader(PKDict):
             file_path=file_path,
             filename=file_path if isinstance(file_path, str) else file_path.basename,
         )
-        e = self._get_archive_extension()
-        pkdp('EXT {}', e)
-        self.pkupdate(DataReader._SUPPORTED_ARCHIVES.get(e, {}))
-        pkdp(self)
+        self.pkupdate(DataReader._SUPPORTED_ARCHIVES.get(self._get_archive_extension(), {}))
 
     def _get_archive_extension(self):
         x = list(
@@ -109,14 +106,13 @@ class DataReader(PKDict):
                 DataReader._SUPPORTED_ARCHIVE_EXTENSIONS
             )
         )
-        pkdp('ETXS {}', x)
         return x[0] if len(x) else None
 
     def _is_archive_type(self, ext):
         return self.filename.endswith(ext)
 
     def is_archive(self):
-        return any([self._is_archive_type(s) for s in DataReader._SUPPORTED_ARCHIVE_EXTENSIONS])
+        return self._get_archive_extension() is not None
 
     @contextlib.contextmanager
     def data_context_manager(self, data_path):
