@@ -1949,9 +1949,9 @@ SIREPO.app.directive('trimButton', function(appState, mlService) {
     };
 });
 
-SIREPO.viewLogic('mlModelView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $scope) {
     // TODO (gurhar1133): below line leads to flicker. Find better place
-    panelState.showField('mlModel', 'modelFile', false);
+    panelState.showField('mlModel', 'modelFile', appState.models.mlModel.mlModule == 'modelFile');
 
     function displayFileInput() {
         if (appState.models.mlModel.mlModule == 'modelFile') {
@@ -1965,6 +1965,21 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, $scope) {
         ['mlModel.mlModule'],
         displayFileInput
     ]
+
+    $scope.$on('mlModel.changed', () => {
+        if (appState.models.mlModel.mlModule == 'modelFile') {
+            requestSender.sendStatelessCompute(
+                appState,
+                () => {
+                    srdbg('send');
+                },
+                {
+                    method: 'load_keras_model',
+                    file: appState.models.mlModel.modelFile
+                }
+            )
+        }
+    })
 });
 
 SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {

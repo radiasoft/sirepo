@@ -157,8 +157,17 @@ def prepare_sequential_output_file(run_dir, data):
                 pass
 
 
-def upload_file(data):
-    pkdp('HIT: {}', data)
+def stateless_compute_load_keras_model(data):
+    # TODO (gurhar1133): lib_file_abspath(cls, basename, data=None)
+    pkdp('\n\n\nHIT: {}', data)
+
+    l = _SIM_DATA.lib_file_abspath(
+        _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.file)
+    )
+    pkdp("\n\n\nl: {}", l)
+    m = keras.models.load_model(l)
+    pkdp(m.summary())
+    return data
 
 
 def python_source_for_model(data, model):
@@ -310,61 +319,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
-
-
-def _build_model_py(v):
-    def _import_layers(v):
-        return "".join(", " + n for n in v.layerImplementationNames)
-
-    def _conv_args(layer):
-        if layer.layer not in ("Conv2D", "Transpose", "SeparableConv2D"):
-            return
-        return f"""{layer.dimensionality},
-    activation="{layer.activation}",
-    kernel_size=({layer.kernel}, {layer.kernel}),
-    strides={layer.strides},
-    padding="{layer.padding}"
-    """
-
-    def _pooling_args(layer):
-        return f'''pool_size=({layer.size}, {layer.size}),
-    strides={layer.strides},
-    padding="{layer.padding}"'''
-
-    args_map = PKDict(
-        Activation=lambda layer: f'"{layer.activation}"',
-        AlphaDropout=lambda layer: layer.dropoutRate,
-        AveragePooling2D=lambda layer: _pooling_args(layer),
-        BatchNormalization=lambda layer: f"momentum={layer.momentum}",
-        Conv2D=lambda layer: _conv_args(layer),
-        Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
-        Dropout=lambda layer: layer.dropoutRate,
-        Flatten=lambda layer: "",
-        GaussianDropout=lambda layer: layer.dropoutRate,
-        GaussianNoise=lambda layer: layer.stddev,
-        GlobalAveragePooling2D=lambda layer: "",
-        MaxPooling2D=lambda layer: _pooling_args(layer),
-        SeparableConv2D=lambda layer: _conv_args(layer),
-        Conv2DTranspose=lambda layer: _conv_args(layer),
-        UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
-        ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
-    )
-
-    def _build_layers(layers):
-        res = ""
-        for i, l in enumerate(layers):
-            c = "input_args" if i == 0 else "x"
-            res += f"x = {l.layer}({args_map[l.layer](l)})({c})\n"
-        return res
-
-    return f"""
-from keras.models import Model, Sequential
-from keras.layers import Input{_import_layers(v)}
-input_args = Input(shape=({v.inputDim},))
-{_build_layers(v.neuralNetLayers)}
-x = Dense({v.outputDim}, activation="linear")(x)
-model = Model(input_args, x)
-"""
 
 
 def _classification_metrics_report(frame_args, filename):

@@ -634,6 +634,7 @@ class API(sirepo.api.Base):
             template=True,
             type=simulation_type,
         )
+        pkdp('\n\n\n req {}', req)
         e = None
         in_use = None
         with simulation_db.tmp_dir() as d:
@@ -661,6 +662,7 @@ class API(sirepo.api.Base):
                     }
                 )
             t.rename(_lib_file_write_path(req))
+            pkdp("\n\n\n t: {}", t)
         return self.reply_json(
             {
                 "filename": req.filename,
