@@ -135,7 +135,9 @@ def http():
                 ("service", "flask"),
                 extra_environ=PKDict(
                     SIREPO_SERVER_REACT_SERVER=f"http://127.0.0.1:{r}/",
-                ) if r else PKDict(),
+                )
+                if r
+                else PKDict(),
             )
             p, _ = os.wait()
     except ChildProcessError:
@@ -305,6 +307,7 @@ def _cfg_ip(value):
 
 def _cfg_port(value):
     return _cfg_int(3000, 32767)(value)
+
 
 def _cfg_react_port(value):
     if not value:
