@@ -662,7 +662,6 @@ class API(sirepo.api.Base):
                     }
                 )
             t.rename(_lib_file_write_path(req))
-            pkdp("\n\n\n t: {}", t)
         return self.reply_json(
             {
                 "filename": req.filename,
