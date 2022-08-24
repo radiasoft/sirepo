@@ -157,6 +157,10 @@ def prepare_sequential_output_file(run_dir, data):
                 pass
 
 
+def upload_file(data):
+    pkdp('HIT: {}', data)
+
+
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 

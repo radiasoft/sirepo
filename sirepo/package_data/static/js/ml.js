@@ -1477,7 +1477,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             };
-
+            srdbg(appState.models);
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
                     return;
