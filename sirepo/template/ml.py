@@ -409,13 +409,13 @@ def _classification_metrics_report(frame_args, filename):
     )
 
 
-def _cols_with_non_unique_values(arch_mgr, data_path, has_header_row, header):
+def _cols_with_non_unique_values(data_reader, data_path, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(
-        r"\.npy$", str(arch_mgr.filename)
-    ), f"numpy files are not supported path={arch_mgr.filename}"
+        r"\.npy$", str(data_reader.filename)
+    ), f"numpy files are not supported path={data_reader.filename}"
     v = sirepo.numpy.ndarray_from_ctx(
-        arch_mgr.data_context_manager(data_path), has_header_row
+        data_reader.data_context_manager(data_path), has_header_row
     )
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
