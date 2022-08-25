@@ -159,16 +159,21 @@ def prepare_sequential_output_file(run_dir, data):
 
 def stateless_compute_load_keras_model(data):
     import keras.models
-    pkdp('\n\n\nHIT: {}', data)
+    import tempfile
+    import os
 
     l = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.file)
     )
-    pkdp("\n\n\nl: {}", l.dirname)
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        pkdp('\n\n\n tmpDirName: {}', tmpdirname)
+        # os.rename(l, tmpdirname + "/saved_model.pb")
+        # m = keras.models.load_model(tmpdirname)
+
     # TODO (gurhar1133): need to resolve versioning issue for hd5py
     # and/or for .pb files need to write file with name="saved_model.pb"
-    m = keras.models.load_model(l.dirname)
-    pkdp(m.summary())
+    # pkdp(m.summary())
     return data
 
 
@@ -796,7 +801,7 @@ for layer in model.layers:
     if inbound:
         print('inbound layers: ', inbound)
     print('----------')
-model.save('model.h5')
+model.save('./')
 """
 
 
