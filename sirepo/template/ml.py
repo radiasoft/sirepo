@@ -167,9 +167,9 @@ def stateless_compute_load_keras_model(data):
     pkdp('\n\n\n l : {}', l)
     model = keras.models.load_model(l)
     pkdp('\n\n\n model: {}', model)
-    return _build_ui_model(model)
+    return _build_ui_nn(model)
 
-def _build_ui_model(model):
+def _build_ui_nn(model):
     return PKDict(
         model=model,
     )
