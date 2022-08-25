@@ -166,14 +166,17 @@ def stateless_compute_load_keras_model(data):
         _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.file)
     )
 
+    pkdp('\n\n\n l : {}', l)
     with tempfile.TemporaryDirectory() as tmpdirname:
         pkdp('\n\n\n tmpDirName: {}', tmpdirname)
-        # os.rename(l, tmpdirname + "/saved_model.pb")
-        # m = keras.models.load_model(tmpdirname)
+        os.rename(l, tmpdirname + "/model.h5")
+        m = keras.models.load_model("model.h5")
+
 
     # TODO (gurhar1133): need to resolve versioning issue for hd5py
     # and/or for .pb files need to write file with name="saved_model.pb"
     # pkdp(m.summary())
+    m.summary()
     return data
 
 

@@ -1970,8 +1970,8 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
         if (appState.models.mlModel.mlModule == 'modelFile') {
             requestSender.sendStatelessCompute(
                 appState,
-                () => {
-                    srdbg('send');
+                (data) => {
+                    srdbg('data: ', data);
                 },
                 {
                     method: 'load_keras_model',
