@@ -114,7 +114,8 @@ def http():
         with pkio.save_chdir(_run_dir()), _handle_signals(
             (signal.SIGINT, signal.SIGTERM)
         ):
-            if pkconfig.channel_in("dev"):
+            r = _cfg().react_port
+            if r:
                 _install_react()
             _start(
                 ("job_supervisor",),
@@ -122,18 +123,21 @@ def http():
             )
             # Avoid race condition on creating auth db
             time.sleep(0.3)
-            _start(
-                ("npm", "start"),
-                cwd="../react",
-                prefix=(),
-                extra_environ=PKDict(PORT=str(_cfg().react_port)),
-            )
-            time.sleep(0.3)
+            if r:
+                _start(
+                    ("npm", "start"),
+                    cwd="../react",
+                    prefix=(),
+                    extra_environ=PKDict(PORT=str(r)),
+                )
+                time.sleep(0.3)
             _start(
                 ("service", "flask"),
                 extra_environ=PKDict(
-                    SIREPO_SERVER_REACT_SERVER=f"http://127.0.0.1:{_cfg().react_port}/",
-                ),
+                    SIREPO_SERVER_REACT_SERVER=f"http://127.0.0.1:{r}/",
+                )
+                if r
+                else PKDict(),
             )
             p, _ = os.wait()
     except ChildProcessError:
@@ -252,7 +256,7 @@ def _cfg():
             ),
             nginx_proxy_port=(8080, _cfg_port, "port on which nginx_proxy listens"),
             port=(8000, _cfg_port, "port on which uwsgi or http listens"),
-            react_port=(3000, _cfg_port, "port on which react listens"),
+            react_port=(3000, _cfg_react_port, "port on which react listens"),
             processes=(1, _cfg_int(1, 16), "how many uwsgi processes to start"),
             run_dir=(None, str, "where to run the program (defaults db_dir)"),
             # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
@@ -302,6 +306,12 @@ def _cfg_ip(value):
 
 
 def _cfg_port(value):
+    return _cfg_int(3000, 32767)(value)
+
+
+def _cfg_react_port(value):
+    if not value:
+        return None
     return _cfg_int(3000, 32767)(value)
 
 
