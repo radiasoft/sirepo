@@ -105,7 +105,7 @@ class DataReader(PKDict):
                 DataReader._SUPPORTED_ARCHIVE_EXTENSIONS,
             )
         )
-        return x[0] if len(x) else None
+        return x[0] if x else None
 
     def is_archive(self):
         return self._get_archive_extension() is not None
