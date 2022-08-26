@@ -599,7 +599,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 </div>
               </div>
               <div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
-                <p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>
+                <p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em><span data-sr-tooltip="{{ tooltip }}"></span></small></p>
                 <div data-ng-repeat="item in beamlineItems track by item.itemId" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">
                   <div style="display: inline-block;" class="sr-editor-item-hover">
                     <div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item)" data-ng-mousedown="onMouseDown(item, $event)" oncontextmenu="return false" data-ng-click="clickItem(item, $event)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="itemClass(item)">{{ item.name }}<span data-app-beamline-item-info="item" data-item-cache="itemCache"></span></div>
@@ -642,6 +642,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
         `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
+            $scope.tooltip = SIREPO.lattice.beamlineEditorTooltip;
             $scope.beamlineItems = [];
             $scope.newBeamline = {};
             // info is needed by the rpnValue editor
