@@ -2762,13 +2762,20 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
         scope: {
             model: '=',
             field: '=',
+            isBusy: '<',
+            isError: '<',
         },
         template: `
             <div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap">{{ computedRpnValue(); }}</div>
         `,
         controller: function($scope) {
             $scope.computedRpnValue = function() {
-                return rpnService.getRpnValueForField($scope.model, $scope.field);
+                if ($scope.isBusy) {
+                    return 'calculating...';
+                }
+                return $scope.isError
+                    ? ''
+                    : rpnService.getRpnValueForField($scope.model, $scope.field);
             };
         },
     };
@@ -2782,9 +2789,13 @@ SIREPO.app.directive('rpnEditor', function() {
             <input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />
           </div>
           <div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">
-            <div data-rpn-static="" data-model="model" data-field="field"></div>
+            <div data-rpn-static="" data-model="model" data-field="field" data-is-busy="isBusy" data-is-error="isError"></div>
           </div>
         `,
+        controller: function($scope) {
+            $scope.isBusy = false;
+            $scope.isError = false;
+        },
     };
 });
 
@@ -2813,6 +2824,7 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
             };
 
             ngModel.$parsers.push(function(value) {
+                scope.isError = false;
                 requestIndex++;
                 var currentRequestIndex = requestIndex;
                 if (ngModel.$isEmpty(value)) {
@@ -2832,12 +2844,15 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                     ngModel.$setValidity('', true);
                     return v;
                 }
+                scope.isBusy = true;
                 rpnService.computeRpnValue(value, function(v, err) {
                     // check for a stale request
                     if (requestIndex != currentRequestIndex) {
                         return;
                     }
-                    ngModel.$setValidity('', err ? false : true);
+                    scope.isBusy = false;
+                    scope.isError = err ? true : false;
+                    ngModel.$setValidity('', ! scope.isError);
                     if (rpnVariableName && ! err) {
                         rpnService.recomputeCache(rpnVariableName, v);
                     }
