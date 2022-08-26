@@ -93,9 +93,7 @@ class DataReader(PKDict):
 
     def __init__(self, file_path):
         super().__init__()
-        self.pkupdate(
-            path=pkio.py_path(file_path)
-        )
+        self.pkupdate(path=pkio.py_path(file_path))
         self.pkupdate(
             DataReader._SUPPORTED_ARCHIVES.get(self._get_archive_extension(), {})
         )
