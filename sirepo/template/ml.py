@@ -170,10 +170,51 @@ def stateless_compute_load_keras_model(data):
     return _build_ui_nn(model)
 
 def _build_ui_nn(model):
-    return PKDict(
-        model=model,
+    nn = PKDict(
+        layers=[PKDict(
+            layer=l,
+        ) for l in model._layers]
     )
 
+    nn = _set_inbound(model, nn)
+    nn = _set_outbound(nn)
+    pkdp('\n\n\n nn: {}', nn)
+    return nn
+
+
+def _get_relevant_nodes(model):
+    relevant_nodes = []
+    for v in model._nodes_by_depth.values():
+        relevant_nodes += v
+    return relevant_nodes
+
+
+def _set_outbound(nn):
+    for l in nn.layers:
+        for i in l.inbound:
+            # TODO (gurhar1133): get the layer i by name in nn.layers
+            # and append l to it's outbound
+            continue
+    return nn
+
+
+def _set_inbound(model, nn):
+    r = _get_relevant_nodes(model)
+    for l in nn.layers:
+        i = []
+        for node in l.layer._inbound_nodes:
+            if r and node not in r:
+                # node is not part of the current network
+                continue
+            for (
+                inbound_layer,
+                node_index,
+                tensor_index,
+                _,
+            ) in node.iterate_inbound():
+                i.append(inbound_layer)
+            l['inbound'] = i
+    return nn
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
@@ -772,6 +813,7 @@ for v in model._nodes_by_depth.values():
 print('model attrs: ', model.__dict__)
 for layer in model.layers:
     print('layer:', layer._name)
+    print('layer attrs:', layer.__dict__)
     inbound = []
     for node in layer._inbound_nodes:
         if relevant_nodes and node not in relevant_nodes:
