@@ -412,8 +412,8 @@ def _classification_metrics_report(frame_args, filename):
 def _cols_with_non_unique_values(data_reader, data_path, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(
-        r"\.npy$", str(data_reader.filename)
-    ), f"numpy files are not supported path={data_reader.filename}"
+        r"\.npy$", str(data_reader.path.basename)
+    ), f"numpy files are not supported path={data_reader.path.basename}"
     v = sirepo.numpy.ndarray_from_ctx(
         data_reader.data_context_manager(data_path), has_header_row
     )

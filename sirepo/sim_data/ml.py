@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """ML simulation data operations
 
-:copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import contextlib
@@ -94,8 +94,7 @@ class DataReader(PKDict):
     def __init__(self, file_path):
         super().__init__()
         self.pkupdate(
-            file_path=file_path,
-            filename=file_path if isinstance(file_path, str) else file_path.basename,
+            path=pkio.py_path(file_path)
         )
         self.pkupdate(
             DataReader._SUPPORTED_ARCHIVES.get(self._get_archive_extension(), {})
@@ -104,14 +103,11 @@ class DataReader(PKDict):
     def _get_archive_extension(self):
         x = list(
             filter(
-                lambda s: self._is_archive_type(s),
+                lambda s: self.path.basename.endswith(s),
                 DataReader._SUPPORTED_ARCHIVE_EXTENSIONS,
             )
         )
         return x[0] if len(x) else None
-
-    def _is_archive_type(self, ext):
-        return self.filename.endswith(ext)
 
     def is_archive(self):
         return self._get_archive_extension() is not None
@@ -119,15 +115,15 @@ class DataReader(PKDict):
     @contextlib.contextmanager
     def data_context_manager(self, data_path):
         if not self.is_archive():
-            yield open(self.file_path)
+            yield open(self.path)
         else:
-            with self.file_ctx(self.file_path, mode="r") as f:
+            with self.file_ctx(self.path, mode="r") as f:
                 yield io.TextIOWrapper(getattr(f, self.extractor)(data_path))
 
     def get_data_list(self, item_filter):
         if not self.is_archive():
             return None
-        with self.file_ctx(self.file_path, mode="r") as f:
+        with self.file_ctx(self.path, mode="r") as f:
             return [
                 getattr(x, self.item_name)
                 for x in getattr(f, self.lister)()

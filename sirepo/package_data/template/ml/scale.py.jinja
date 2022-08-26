@@ -73,7 +73,7 @@ def scale_file(data_reader, data_path, column_types, inputs_scaler, outputs_scal
     {% endif %}
     in_idx = scale_columns(v, column_types, 'input', inputs_scaler)
     out_idx = scale_columns(v, column_types, 'output', outputs_scaler)
-    os.remove(data_reader.file_path)
+    os.remove(data_reader.path)
     np.save('{{ scaledFile }}', v)
     return v, in_idx, out_idx
 
