@@ -190,6 +190,13 @@
             ]
         }
     },
+    "frameIdFields": {
+        "openmcAnimation": [
+            "tally",
+            "score",
+            "aspect"
+        ]
+    },
     "localRoutes": {
         "geometry": {
             "route": "/geometry/:simulationId",
@@ -323,7 +330,14 @@
         "nuclide": {
             "nuclide": ["Nuclide", "OptionalString"]
         },
-        "openmcAnimation": {},
+        "openmcAnimation": {
+            "bgColor": ["Background color", "Color", "#fff9ed"],
+            "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
+            "showEdges": ["Show edges", "Boolean", "0"],
+            "tally": ["Tally", "TallyList"],
+            "score": ["Score", "ScoreList"],
+            "aspect": ["Aspect", "TallyAspect", "mean"]
+        },
         "particle": {
             "value": ["Particle", "FilterParticle"]
         },
@@ -488,11 +502,6 @@
         },
         "geometry3DReport": {
             "title": "DAGMC Geometry",
-            "basic": [
-                "opacity",
-                "bgColor",
-                "showEdges"
-            ],
             "advanced": [
                 "opacity",
                 "bgColor",
@@ -561,6 +570,17 @@
         "nuclide": {
             "advanced": [
                 "nuclide"
+            ]
+        },
+        "openmcAnimation": {
+            "title": "Tally Results",
+            "advanced": [
+                "tally",
+                "score",
+                "aspect",
+                "opacity",
+                "bgColor",
+                "showEdges"
             ]
         },
         "particle": {

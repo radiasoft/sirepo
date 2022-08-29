@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-cfg="reportCfg" data-report-id="reportId"></div>
+        <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
     //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
@@ -72,6 +72,16 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="MaterialValue" data-ng-class="fieldClass">
           <div data-material-list="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="TallyList" data-ng-class="fieldClass">
+          <div class="input-group">
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="t.name as t.name for t in model.tallies"></select>
+          </div>
+        </div>
+        <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
+          <div class="input-group">
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="s.score as s.score for s in (model.tallies | filter:{name:model.tally})[0].scores"></select>
+          </div>
+        </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m',
@@ -81,9 +91,29 @@ SIREPO.app.config(() => {
 SIREPO.app.factory('cloudmcService', function(appState) {
     const self = {};
     appState.setAppService(self);
+
+    function findScore(tallies, tally, score) {
+        return findTally(tallies, tally).scores.filter(v => v.score == score).length
+            ? score
+            : null;
+    }
+
+    function findTally(tallies, tally) {
+        return tallies.filter(v => v.name == tally)[0];
+    }
+
     self.computeModel = modelKey => modelKey;
     self.isGraveyard = volume => {
         return volume.name && volume.name.toLowerCase() == 'graveyard';
+    };
+    self.validateSelectedTally = () => {
+        const a = appState.models.openmcAnimation;
+        if (! a.tally || ! findTally(a.tallies, a.tally)) {
+            a.tally = a.tallies[0].name;
+        }
+        if (! a.score || ! findScore(a.tallies, a.tally, a.score)) {
+            a.score = findTally(a.tallies, a.tally).scores[0].score;
+        }
     };
     return self;
 });
@@ -97,10 +127,6 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         self.simState.runSimulation();
     }
 
-    self.geom3dReportCfg = {
-        fitToWindow: true,
-        objectsToLoad: ['volumes'],
-    };
     self.isGeometrySelected = () => {
         return appState.applicationState().geometryInput.dagmcFile;
     };
@@ -132,21 +158,30 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, $scope) {
     const self = this;
-    self.geom3dReportCfg = {
-        fitToWindow: false,
-        objectsToLoad: ['tallies'],
-    };
     self.frameCache = frameCache;
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
+    let errorMessage;
+
+    function validateSelectedTally(tallies) {
+        appState.models.openmcAnimation.tallies = tallies;
+        appState.saveQuietly('openmcAnimation');
+        cloudmcService.validateSelectedTally();
+    }
+
     self.simHandleStatus = function (data) {
+        errorMessage = data.error;
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
+        if (data.tallies) {
+            validateSelectedTally(data.tallies);
+        }
     };
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.errorMessage = () => errorMessage;
     self.simState.runningMessage = () => {
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
@@ -164,6 +199,10 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             '<frame>': SIREPO.nonDataFileFrame,
             '<suffix>': 'log',
         });
+    };
+    self.tallyTitle = () => {
+        const a = appState.models.openmcAnimation;
+        return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
     return self;
 });
@@ -213,9 +252,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
     return {
         restrict: 'A',
         scope: {
-            fitToWindow: '=',
             modelName: '@',
-            reportCfg: '<',
             reportId: '<',
         },
         template: `
@@ -227,13 +264,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
               data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope, $element) {
-            $scope.isClientOnly = true;
-            $scope.model = appState.models[$scope.modelName];
+            const isGeometryOnly = $scope.modelName == 'geometry3DReport';
+            $scope.isClientOnly = isGeometryOnly;
             let axesBoxes = {};
             let picker = null;
             let vtkScene = null;
             let selectedVolume = null;
-
+            let tally = null;
             const bundleByVolume = {};
             // volumes are measured in centimeters
             const scale = 0.01;
@@ -243,16 +280,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 )
             );
             const geom3dCfg = $scope.reportCfg || {};
-            const watchFields = ['geometry3DReport.bgColor', 'geometry3DReport.showEdges'];
+            const watchFields = [`{$scope.modelName}.bgColor`, `{$scope.modelName}.showEdges`];
 
             const _SCENE_BOX = '_scene';
 
-            function addTally(str, name) {
+            function addTally(str, aspect) {
+                //TODO(pjm): the axis lines are lost when actors are removed
+                vtkScene.removeActors();
                 const pd = SIREPO.VTK.VTKUtils.parseLegacy(str);
                 $rootScope.$broadcast('vtk.hideLoader');
                 const b = coordMapper.buildActorBundle();
                 b.mapper.setInputData(pd);
-                setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
+                setColorsFromFieldData(pd, aspect, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
                 b.setActorProperty('lighting', false);
                 vtkScene.addActor(b.actor);
                 initAxes();
@@ -272,7 +311,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const b = coordMapper.buildActorBundle(reader, {
                     color: v.color,
                     opacity: v.opacity,
-                    edgeVisibility: $scope.model.showEdges === '1',
+                    edgeVisibility: model().showEdges === '1',
                 });
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
@@ -410,39 +449,30 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 polyData.buildCells();
             }
 
-            function loadTally(name) {
-                const u = requestSender.formatUrl(
-                    'downloadDataFile',
-                    {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<model>': 'openmcAnimation',
-                        '<frame>': -1,
-                        '<suffix>': 'vtk',
-                    });
-                requestSender.sendRequest(u, d => addTally(d.content, name));
-            }
-
             function loadVolumes(volIds) {
                 //TODO(pjm): update progress bar with each promise resolve?
                 return Promise.all(volIds.map(i => addVolume(i)));
+            }
+
+            function model() {
+                return appState.models[$scope.modelName];
             }
 
             function setGlobalProperties() {
                 if (! vtkScene.renderer) {
                     return;
                 }
-                vtkScene.setBgColor(appState.models.geometry3DReport.bgColor);
+                vtkScene.setBgColor(model().bgColor);
                 for (const volId in bundleByVolume) {
                     const b = bundleByVolume[volId];
                     const v = getVolumeById(volId);
                     b.setActorProperty(
                         'opacity',
-                        v.isVisible ? v.opacity * appState.models.geometry3DReport.opacity : 0
+                        v.isVisible ? v.opacity * model().opacity : 0
                     );
                     b.setActorProperty(
                         'edgeVisibility',
-                        appState.models.geometry3DReport.showEdges === '1'
+                        model().showEdges === '1'
                     );
                 }
                 vtkScene.render();
@@ -459,7 +489,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             }
 
             function volumesLoaded() {
-                if (! $scope.model) {
+                if (! vtkScene) {
                     // volumesLoaded may be called after the component was destroyed
                     return;
                 }
@@ -483,11 +513,20 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
-                $scope.model = null;
+                vtkScene = null;
             };
 
             $scope.init = () => {
                 $scope.fieldDelegate = buildOpacityDelegate();
+            };
+
+            $scope.load = json => {
+                if (vtkScene) {
+                    addTally(json.content, model().aspect);
+                }
+                else {
+                    tally = json.content;
+                }
             };
 
             $scope.resize = () => {
@@ -495,7 +534,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             };
 
             $scope.sizeStyle = () => {
-                if (! geom3dCfg.fitToWindow) {
+                if (! isGeometryOnly) {
                     return {};
                 }
                 // 53 legend size + 35 bottom panel padding
@@ -533,13 +572,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     }
                 }
                 vtkScene.render();
-                if (geom3dCfg.objectsToLoad.includes('volumes')) {
+                if (isGeometryOnly) {
                     loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
                 }
-                if (geom3dCfg.objectsToLoad.includes('tallies')) {
-                    //TODO(pjm): move to plot fields
-                    //loadTally(appState.models.tally.aspect);
-                    loadTally('mean');
+                if (tally) {
+                    addTally(tally, model().aspect);
+                    tally = null;
                 }
                 vtkScene.resetView();
 
@@ -1359,4 +1397,10 @@ SIREPO.app.directive('materialList', function(appState, cloudmcService) {
             $scope.volumes = initVolumes();
         },
     };
+});
+
+SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panelState, $scope) {
+    $scope.watchFields = [
+        ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
+    ];
 });
