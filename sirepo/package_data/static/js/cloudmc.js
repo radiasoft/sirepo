@@ -309,23 +309,73 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             }
 
             function buildVoxels(name, basePolyData) {
+
+                function addData(voxel) {
+                    pdPolys.push(...Array.from(voxel.getPolys().getData()).map((x, i) => i % 5 !== 0 ? x + pdPts.length : x));
+                    pdPts.push(...Array.from(voxel.getPoints().getData()));
+                    pdScalars.push(...Array.from(voxel.getPointData().getScalars().getData()));
+                }
+
+                function allHidden(colors) {
+                    return colors.filter((x, i) => i % 4 === 3).filter(x => x > 0).length === 0;
+                }
+
+                function doSkipX() {
+                    if (! allHidden(scalars.slice(m, m + 4))) {
+                        return false;
+                    }
+                    m += 4;
+                    n += 3;
+                    return true;
+                }
+
+                function doSkipY() {
+                    if (! allHidden(scalars.slice(m, m + 4 * nx))) {
+                        return false;
+                    }
+                    m += 4 * nx;
+                    n += 3 * (nx + 1);
+                    return true;
+                }
+
+                function doSkipZ() {
+                    if (! allHidden(scalars.slice(m, m + 4 * nxy))) {
+                        return false;
+                    }
+                    m += 4 * nxy;
+                    n += 3 * (nx + 1) * (ny + 1);
+                    return true;
+                }
+
                 const tally = appState.models.tally;
-                const insetPct = 0.50;
-                const source = vtk.Filters.General.vtkAppendPolyData.newInstance();
+                const insetPct = 0.2;
+                //const source = vtk.Filters.General.vtkAppendPolyData.newInstance();
+                const pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                const pdPts = [];
+                const pdPolys = [];
+                const pdScalars = [];
+
                 const [nx, ny, nz] = tally.meshCellCount;
-                const [sx, sy, sz] = tally.meshUpperRight
-                    .map((x, i) => (1.0 - insetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]);
+                const nxy = nx * ny;
+                const [sx, sy, sz] = tally.meshUpperRight.map(
+                    (x, i) => (1.0 - insetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]
+                );
                 const pts = basePolyData.getPoints().getData();
-                const scalars = Array.from(basePolyData.getCellData().getScalars().getData());
+                const sc = basePolyData.getCellData().getScalars().getData();
+                const snc = basePolyData.getCellData().getScalars().getNumberOfComponents();
+                const scalars = Array.from(sc);
                 let n = 0;
                 let m = 0;
                 for (let k = 0; k < nz; ++k) {
+                    if (doSkipZ()) {
+                        continue;
+                    }
                     for (let j = 0; j < ny; ++j) {
+                        if (doSkipY()) {
+                            continue;
+                        }
                         for (let i = 0; i < nx; ++i) {
-                            const c = scalars.slice(m, m + 4);
-                            if (c[3] === 0) {
-                                n += 3;
-                                m += 4;
+                            if (doSkipX()) {
                                 continue;
                             }
                             const s = vtk.Filters.Sources.vtkCubeSource.newInstance({
@@ -334,14 +384,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                                 zLength: sz,
                                 center: [pts[n] + sx / 2, pts[n + 1] + sy / 2, pts[n + 2] + sz / 2],
                             }).getOutputData();
-                            vtkPlotting.setColorScalars(s, c);
-                            if (! source.getInputData()) {
-                                source.setInputData(s);
-                            }
-                            else {
-                                source.addInputData(s);
-                            }
-                            //srdbg('src now', source.getInputData().getNumberOfCells());
+                            //s.buildCells();
+                            vtkPlotting.setColorScalars(s, scalars.slice(m, m + 4));
+                            addData(s);
+                            //if (! source.getInputData()) {
+                            //    source.setInputData(s);
+                            //}
+                            //else {
+                            //    source.addInputData(s);
+                            //}
+                            //srdbg('src now', source.getOutputData().getNumberOfCells());
                             n += 3;
                             m += 4;
                         }
@@ -349,10 +401,62 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     }
                     n = n + 3 * (nx + 1);
                 }
+
+                pd.getPoints().setData(new Float64Array(pdPts));
+                pd.getPolys().setData(new Uint16Array(pdPolys));
+                //pd.buildCells();
+                //srdbg('PD cells', pd.getNumberOfCells(), 'polys', pd.getNumberOfPolys());
+                //srdbg('POLYS', pd.getPolys().getData());
+                //const pppp = pd.getPoints().getData();
+                //const cccc = pd.getPolys().getData();
+                //let polynum = 0;
+                /*
+                for (let ii = 0; ii < cccc.length;) {
+                    const np = cccc[ii];
+                    const idxs = cccc.slice(ii + 1, ii + 1 + np);
+                    for (const ccxx of idxs) {
+                        //srdbg(ii, 'poly', polynum, 'pts', pppp.slice(ccxx, ccxx + 3));
+                    }
+                    ii += (np + 1);
+                    ++polynum;
+                }
+
+                 */
+                //vtkPlotting.setColorScalars(pd, pdScalars);
+                const pdsc = vtk.Common.Core.vtkDataArray.newInstance({
+                    numberOfComponents: snc,
+                    values: pdScalars,
+                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                });
+                //pd.buildCells();
+                //pd.getCellData().setScalars(pdsc);
+                pd.getPointData().setScalars(pdsc);
+                const b = coordMapper.buildActorBundle();
+                b.mapper.setInputData(pd);
+                b.setActorProperty('lighting', false);
+
+                /*
                 const b = coordMapper.buildActorBundle(source, {
                     'lighting': false,
+                    //'edgeVisibility': true,
                 });
-                srdbg('src now', source.getInputData().getNumberOfPolys());
+
+                 */
+                //b.setActorProperty('color', '#ff8888');
+                //const id =  source.getInputData();
+                //const od = source.getOutputData();
+                //od.buildCells();
+                //const nc = od.getNumberOfCells();
+                //const cpv = id.getNumberOfCells();
+                //const nv = nc / cpv;
+                //const totalv = nx * ny * nz
+                //const cf = nv / totalv;
+                //srdbg('src now cells', nc, 'voxels', nv, 'of', totalv, 'frac', cf);
+                //srdbg('inputs', source.getNumberOfInputPorts());
+                //const pl = od.getPolys();
+                //const npl = od.getNumberOfPolys();
+                //srdbg(od, 'num polys', npl, 'polys', pl);
+                //srdbg('data', pl.getData());
                 vtkScene.addActor(b.actor);
             }
 
