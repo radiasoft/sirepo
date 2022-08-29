@@ -12,13 +12,19 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+from urllib import parse
+from urllib import request
 import csv
 import numpy as np
+import os
 import re
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
+import urllib
+
+_CHUNK_SIZE = 1024 * 1024
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -287,6 +293,14 @@ def stateful_compute_compute_column_info(data):
     return _compute_column_info(data.dataFile)
 
 
+def stateless_compute_get_remote_data(data):
+    return _get_remote_data(data.url, data.headers_only)
+
+
+def stateless_compute_remote_data_bytes_loaded(data):
+    return _remote_data_bytes_loaded(data.filename)
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -294,8 +308,63 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _build_model_py(v):
+    def _import_layers(v):
+        return "".join(", " + n for n in v.layerImplementationNames)
+
+    def _conv_args(layer):
+        if layer.layer not in ("Conv2D", "Transpose", "SeparableConv2D"):
+            return
+        return f"""{layer.dimensionality},
+    activation="{layer.activation}",
+    kernel_size=({layer.kernel}, {layer.kernel}),
+    strides={layer.strides},
+    padding="{layer.padding}"
+    """
+
+    def _pooling_args(layer):
+        return f'''pool_size=({layer.size}, {layer.size}),
+    strides={layer.strides},
+    padding="{layer.padding}"'''
+
+    args_map = PKDict(
+        Activation=lambda layer: f'"{layer.activation}"',
+        AlphaDropout=lambda layer: layer.dropoutRate,
+        AveragePooling2D=lambda layer: _pooling_args(layer),
+        BatchNormalization=lambda layer: f"momentum={layer.momentum}",
+        Conv2D=lambda layer: _conv_args(layer),
+        Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
+        Dropout=lambda layer: layer.dropoutRate,
+        Flatten=lambda layer: "",
+        GaussianDropout=lambda layer: layer.dropoutRate,
+        GaussianNoise=lambda layer: layer.stddev,
+        GlobalAveragePooling2D=lambda layer: "",
+        MaxPooling2D=lambda layer: _pooling_args(layer),
+        SeparableConv2D=lambda layer: _conv_args(layer),
+        Conv2DTranspose=lambda layer: _conv_args(layer),
+        UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
+        ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
+    )
+
+    def _build_layers(layers):
+        res = ""
+        for i, l in enumerate(layers):
+            c = "input_args" if i == 0 else "x"
+            res += f"x = {l.layer}({args_map[l.layer](l)})({c})\n"
+        return res
+
+    return f"""
+from keras.models import Model, Sequential
+from keras.layers import Input{_import_layers(v)}
+input_args = Input(shape=({v.inputDim},))
+{_build_layers(v.neuralNetLayers)}
+x = Dense({v.outputDim}, activation="linear")(x)
+model = Model(input_args, x)
+"""
+
+
 def _classification_metrics_report(frame_args, filename):
-    def _get_lables():
+    def _get_labels():
         l = []
         for k in d:
             if not isinstance(d[k], PKDict):
@@ -321,9 +390,22 @@ def _classification_metrics_report(frame_args, filename):
     e = _get_classification_output_col_encoding(frame_args)
     d = pkjson.load_any(frame_args.run_dir.join(filename))
     return PKDict(
-        labels=_get_lables(),
+        labels=_get_labels(),
         matrix=_get_matrix(),
     )
+
+
+def _cols_with_non_unique_values(filename, has_header_row, header):
+    # TODO(e-carlin): support npy
+    assert not re.search(
+        r"\.npy$", str(filename)
+    ), f"numpy files are not supported path={filename}"
+    v = sirepo.numpy.ndarray_from_csv(_filepath(filename), has_header_row)
+    res = PKDict()
+    for i, c in enumerate(np.all(v == v[0, :], axis=0)):
+        if c:
+            res[header[i]] = True
+    return res
 
 
 def _compute_column_info(dataFile):
@@ -358,20 +440,6 @@ def _compute_csv_info(filename):
     )
     res.header = row
     res.inputOutput = ["none" for i in range(len(row))]
-    return res
-
-
-def _cols_with_non_unique_values(filename, has_header_row, header):
-    # TODO(e-carlin): support npy
-    assert not re.search(
-        r"\.npy$", str(filename)
-    ), f"numpy files are not supported path={filename}"
-    v = sirepo.numpy.ndarray_from_csv(_filepath(filename), has_header_row)
-    res = PKDict()
-    for i, c in enumerate(np.all(v == v[0, :], axis=0)):
-        if not c:
-            continue
-        res[header[i]] = True
     return res
 
 
@@ -626,8 +694,33 @@ def _generate_parameters_file(data):
 
 
 def _build_model_py(v):
+    v.counter = 0
+
+    def _new_name():
+        v.counter += 1
+        return "x_" + str(v.counter)
+
+    def _branching(layer):
+        return layer.layer == "Add" or layer.layer == "Concatenate"
+
+    def _name_layer(layer_level, first_level, parent_level_name):
+        if layer_level.layers == []:
+            return parent_level_name
+        if first_level:
+            return "x"
+        return _new_name()
+
+    def _name_layers(layer_level, parent_level_name, first_level=False):
+        layer_level.name = _name_layer(layer_level, first_level, parent_level_name)
+        layer_level.parent_name = parent_level_name
+        for i, l in enumerate(layer_level.layers):
+            if _branching(l):
+                for c in l.children:
+                    l.parent_name = layer_level.name
+                    _name_layers(c, parent_level_name if i == 0 else layer_level.name)
+
     def _import_layers(v):
-        return "".join(", " + n for n in v.layerImplementationNames)
+        return "".join(", " + n for n in v.layerImplementationNames if n != "Dense")
 
     def _conv_args(layer):
         if layer.layer not in ("Conv2D", "Transpose", "SeparableConv2D"):
@@ -646,9 +739,11 @@ def _build_model_py(v):
 
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
+        Add=lambda layer: _branch(layer, "Add"),
         AlphaDropout=lambda layer: layer.dropoutRate,
         AveragePooling2D=lambda layer: _pooling_args(layer),
         BatchNormalization=lambda layer: f"momentum={layer.momentum}",
+        Concatenate=lambda layer: _branch(layer, "Concatenate"),
         Conv2D=lambda layer: _conv_args(layer),
         Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
         Dropout=lambda layer: layer.dropoutRate,
@@ -663,25 +758,44 @@ def _build_model_py(v):
         ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
     )
 
-    def _layer_args(layer):
+    def _layer(layer):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
         return args_map[layer.layer](layer)
 
-    def _build_layers(layers):
+    def _branch_or_continue(layers, layer, layer_args):
+        if layer.layer == "Add" or layer.layer == "Concatenate":
+            return _layer(layer)
+        return f"{layers.name} = {layer.layer}{layer_args}\n"
+
+    def _build_layers(branch):
         res = ""
-        for i, l in enumerate(layers):
+        for i, l in enumerate(branch.layers):
             if i == 0:
-                c = f"({_layer_args(l)})(input_args)"
+                c = f"({_layer(l)})({branch.parent_name})"
             else:
-                c = f"({_layer_args(l)})(x)"
-            res += f"x = {l.layer}{c}\n"
+                c = f"({_layer(l)})({branch.name})"
+            res += _branch_or_continue(branch, l, c)
         return res
+
+    def _branch(layer, join_type):
+        def _join(layer):
+            c = ", ".join([l.name for l in layer.children])
+            return f"{layer.parent_name} = {join_type}()([{c}])\n"
+
+        res = ""
+        for c in layer.children:
+            res += _build_layers(c)
+        res += _join(layer)
+        return res
+
+    net = PKDict(layers=v.neuralNetLayers)
+    _name_layers(net, "input_args", first_level=True)
 
     return f"""
 from keras.models import Model, Sequential
-from keras.layers import Input{_import_layers(v)}
+from keras.layers import Input, Dense{_import_layers(v)}
 input_args = Input(shape=({v.inputDim},))
-{_build_layers(v.neuralNetLayers)}
+{_build_layers(net)}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
 """
@@ -736,6 +850,38 @@ def _get_fit_report(report, x_vals, y_vals):
     return param_vals, param_sigmas, plots
 
 
+def _get_remote_data(url, headers_only):
+    filename = os.path.basename(urllib.parse.urlparse(url).path)
+    try:
+        with urllib.request.urlopen(url) as r:
+            if headers_only:
+                return PKDict(headers=_header_str_to_dict(r.headers))
+            with open(
+                _SIM_DATA.lib_file_write_path(
+                    _SIM_DATA.lib_file_name_with_model_field(
+                        "dataFile",
+                        "file",
+                        filename,
+                    )
+                ),
+                "wb",
+            ) as f:
+                while True:
+                    c = r.read(_CHUNK_SIZE)
+                    if not c:
+                        break
+                    f.write(c)
+    except Exception as e:
+        return PKDict(error=e)
+    return PKDict(filename=filename)
+
+
+# if this conversion is not done, the header gets returned as a newline-delimited string
+# EmailMessage headers pseduo-dicts and can have duplicated keys, which we ignore
+def _header_str_to_dict(h):
+    return {k: v for k, v in h.items()}
+
+
 def _histogram_plot(values, vrange):
     hist = np.histogram(values, bins=20, range=vrange)
     x = []
@@ -766,8 +912,16 @@ def _is_valid_report(report):
 
 def _layer_implementation_list(data):
     res = {}
-    for layer in data.models.neuralNet.layers:
-        res[layer.layer] = 1
+    nn = data.models.neuralNet.layers
+
+    def _helper(nn):
+        for layer in nn:
+            if layer.layer == "Add" or layer.layer == "Concatenate":
+                for c in layer.children:
+                    _helper(c.layers)
+            res[layer.layer] = 1
+
+    _helper(nn)
     return res.keys()
 
 
@@ -806,6 +960,21 @@ def _read_file_with_history(run_dir, filename, report=None):
                 labels = np.array(clusters.group)
                 res = res[labels == action.clusterIndex, :]
     return res
+
+
+def _remote_data_bytes_loaded(filename):
+    try:
+        return PKDict(
+            bytesLoaded=os.path.getsize(
+                _SIM_DATA.lib_file_abspath(
+                    _SIM_DATA.lib_file_name_with_model_field(
+                        "dataFile", "file", filename
+                    )
+                )
+            )
+        )
+    except Exception as e:
+        return PKDict(error=e)
 
 
 def _report_info(x, plots, title="", fields=PKDict(), summary_data=PKDict()):

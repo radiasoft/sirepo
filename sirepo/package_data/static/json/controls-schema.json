@@ -7,6 +7,7 @@
     "constants": {
         "maxBPMPoints": 10,
         "clight": 299792458,
+        "inProgressText": "Reading currents and monitors",
         "particleMassAndCharge": {
             "positron": [0.510998928e-03, 1],
             "electron": [0.510998928e-03, -1],
@@ -52,6 +53,10 @@
             ["none", "None"],
             ["horizontal", "Horizontal"],
             ["vertical", "Vertical"]
+        ],
+        "SimMode": [
+            ["optimizer", "optimizer"],
+            ["singleUpdates", "singleUpdates"]
         ]
     },
     "frameIdFields": {
@@ -118,6 +123,7 @@
             "sige": ["Relative Energy Spread", "Float", 0.001, "The relative energy spread $\\sigma_E / E$ (SIGE)."]
         },
         "controlSettings": {
+            "simMode": ["", "SimMode", "singleUpdates"],
             "operationMode": ["Operation Mode", "OperationMode", "madx"],
             "deviceServerURL": ["DeviceServer URL", "OptionalString", ""],
             "processVariables": ["", "ProcessVariables"],

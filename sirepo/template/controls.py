@@ -53,6 +53,71 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def extract_beam_position_report(data, run_dir):
+    summary = read_summary_line(run_dir)[0][0]
+    elmap = PKDict()
+    for k in summary:
+        m = re.search(r"el_(\d+)\.(x|y)", k)
+        if not m:
+            continue
+        el_id = int(m.group(1))
+        dim = m.group(2)
+        if el_id not in elmap:
+            elmap[el_id] = PKDict()
+        elmap[el_id][dim] = summary[k]
+    points = PKDict(
+        s=[],
+        x=[],
+        y=[],
+    )
+    p = 0
+    for el in _SIM_DATA.beamline_elements(data.models.externalLattice.models):
+        if "l" in el:
+            p += el.l
+        if el._id in elmap:
+            points.s.append(p)
+            points.x.append(elmap[el._id].get("x", None))
+            points.y.append(elmap[el._id].get("y", None))
+    ymin = 1e24
+    ymax = -1e24
+    for i in range(len(points.s)):
+        for dim in ("x", "y"):
+            if points[dim][i] is not None:
+                points[dim][i] = float(points[dim][i])
+            if dim == "y" and points.y[i] is not None:
+                if points.y[i] < ymin:
+                    ymin = points.y[i]
+                elif points.y[i] > ymax:
+                    ymax = points.y[i]
+
+    return PKDict(
+        y_label="",
+        x_label="s [m]",
+        dynamicYLabel=True,
+        x_points=points.s,
+        x_range=[points.s[0], points.s[-1]],
+        plots=[
+            PKDict(
+                field="x",
+                points=points.x,
+                label="x [m]",
+                style="scatter",
+                symbol="triangle-up",
+                color="#1f77b4",
+            ),
+            PKDict(
+                field="y",
+                points=points.y,
+                label="y [m]",
+                style="scatter",
+                symbol="triangle-down",
+                color="#ff7f0e",
+            ),
+        ],
+        y_range=[ymin, ymax],
+    )
+
+
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
@@ -222,71 +287,6 @@ def _delete_unused_madx_models(data):
             data.models.pkdel(m)
 
 
-def _extract_beam_position_report(data, run_dir):
-    summary = read_summary_line(run_dir)[0][0]
-    elmap = PKDict()
-    for k in summary:
-        m = re.search(r"el_(\d+)\.(x|y)", k)
-        if not m:
-            continue
-        el_id = int(m.group(1))
-        dim = m.group(2)
-        if el_id not in elmap:
-            elmap[el_id] = PKDict()
-        elmap[el_id][dim] = summary[k]
-    points = PKDict(
-        s=[],
-        x=[],
-        y=[],
-    )
-    p = 0
-    for el in _SIM_DATA.beamline_elements(data.models.externalLattice.models):
-        if "l" in el:
-            p += el.l
-        if el._id in elmap:
-            points.s.append(p)
-            points.x.append(elmap[el._id].get("x", None))
-            points.y.append(elmap[el._id].get("y", None))
-    ymin = 1e24
-    ymax = -1e24
-    for i in range(len(points.s)):
-        for dim in ("x", "y"):
-            if points[dim][i] is not None:
-                points[dim][i] = float(points[dim][i])
-            if dim == "y" and points.y[i] is not None:
-                if points.y[i] < ymin:
-                    ymin = points.y[i]
-                elif points.y[i] > ymax:
-                    ymax = points.y[i]
-
-    return PKDict(
-        y_label="",
-        x_label="s [m]",
-        dynamicYLabel=True,
-        x_points=points.s,
-        x_range=[points.s[0], points.s[-1]],
-        plots=[
-            PKDict(
-                field="x",
-                points=points.x,
-                label="x [m]",
-                style="scatter",
-                symbol="triangle-up",
-                color="#1f77b4",
-            ),
-            PKDict(
-                field="y",
-                points=points.y,
-                label="y [m]",
-                style="scatter",
-                symbol="triangle-down",
-                color="#ff7f0e",
-            ),
-        ],
-        y_range=[ymin, ymax],
-    )
-
-
 def _extract_report_elementAnimation(frame_args, run_dir, filename):
     data = frame_args.sim_in
     if frame_args.frameReport == "instrumentAnimationTwiss":
@@ -296,7 +296,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
             data, run_dir, _PTC_TRACK_FILE
         )
     if frame_args.frameReport == "beamPositionAnimation":
-        return _extract_beam_position_report(data, run_dir)
+        return extract_beam_position_report(data, run_dir)
     a = madx_parser.parse_tfs_page_info(run_dir.join(filename))
     if frame_args.x == "x" and frame_args.y1 == "y":
         frame_args.plotRangeType = "fixed"

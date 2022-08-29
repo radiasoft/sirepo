@@ -64,6 +64,7 @@ def create_settings():
         {% endfilter %}
     ]
     settings.run_mode = "{{ settings_run_mode }}"
+    settings.photon_transport = "{{ settings_photon_transport }}" == "1"
     settings.export_to_xml()
 
 

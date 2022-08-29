@@ -2,12 +2,12 @@
   <div class="row">
     <div class="col-md-6 col-xl-4">
       <div data-basic-editor-panel="" data-view-name="dataFile"></div>
-      <div data-ng-show="data.hasDataFile()">
+      <div data-ng-show="data.hasDataFile() && data.isTextData()">
         <div data-basic-editor-panel="" data-view-name="columnChooser">
           <div data-column-selector=""></div>
         </div>
       </div>
     </div>
-    <div data-column-reports=""></div>
+    <div data-ng-if="data.isTextData()" data-column-reports=""></div>
   </div>
 </div>

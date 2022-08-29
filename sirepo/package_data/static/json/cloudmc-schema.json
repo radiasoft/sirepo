@@ -376,6 +376,7 @@
             "batches": ["Number of batches to simulation", "Integer", 1],
             "inactive": ["Number of inactive batches", "Integer", 0],
             "particles": ["Number of particles per generation", "Integer", 5000],
+            "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter."],
             "sources": ["", "SourcesOrTallies", []],
             "tallies": ["", "SourcesOrTallies", []],
             "run_mode": ["Run mode", "RunMode", "eigenvalue", "The type of calculation to perform"],
@@ -627,7 +628,8 @@
                     "inactive",
                     "particles",
                     "run_mode",
-                    "materialLibrary"
+                    "materialLibrary",
+                    "photon_transport"
                 ]],
                 ["Sources", [
                     "sources"

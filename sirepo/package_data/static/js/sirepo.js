@@ -1205,15 +1205,19 @@ SIREPO.app.service('validationService', function(utilities) {
     // html5 validation
     this.validateField = function (model, field, inputType, isValid, msg) {
         const mfId = utilities.modelFieldID(model, field);
-        const f = $(`.${mfId} ${inputType}`)[0];
+        const r = $(`.${mfId} ${inputType}`);
+        const f = r[0];
         if (! f) {
             return;
         }
         const fWarn = $(`.${mfId} .sr-input-warning`);
+        const invalidClass = 'ng-invalid ng-dirty';
         fWarn.text(msg);
         fWarn.hide();
         f.setCustomValidity('');
+        r.removeClass(invalidClass);
         if (! isValid) {
+            r.addClass(invalidClass);
             f.setCustomValidity(msg);
             fWarn.show();
         }
@@ -1629,6 +1633,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('input.form-control').prop('readonly', ! isEnabled);
         $(fc).find('select.form-control').prop('disabled', ! isEnabled);
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
+    };
+
+    self.enableArrayField = function(model, field, index, isEnabled) {
+        $(fieldClass(model, field)).find('input.form-control').eq(index).prop('readonly', ! isEnabled);
     };
 
     self.enableFields = function(model, fieldInfo) {
