@@ -114,6 +114,7 @@ SIREPO.app.factory('cloudmcService', function(appState) {
         if (! a.score || ! findScore(a.tallies, a.tally, a.score)) {
             a.score = findTally(a.tallies, a.tally).scores[0].score;
         }
+        appState.saveQuietly('openmcAnimation');
     };
     return self;
 });
