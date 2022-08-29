@@ -92,6 +92,11 @@ def sim_frame(frame_args):
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
     f = str(frame_args.run_dir.join(f"{frame_args.tally}.vtk"))
+    try:
+        # openmc doesn't have a has_filter() api
+        t.find_filter(openmc.MeshFilter)
+    except ValueError:
+        return PKDict(error=f"Tally {t.name} contains no Mesh")
     t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
         filename=f,
         datasets={
@@ -346,8 +351,7 @@ m.dimension = {_generate_array([int(v) for v in f.dimension])}
 m.lower_left = {_generate_array(f.lower_left)}
 m.upper_right = {_generate_array(f.upper_right)}
 """
-    if has_mesh:
-        res += f"""t{tally._index + 1} = openmc.Tally(name='{tally.name}')
+    res += f"""t{tally._index + 1} = openmc.Tally(name='{tally.name}')
 t{tally._index + 1}.filters = ["""
     for i in range(1, SCHEMA.constants.maxFilters + 1):
         f = tally[f"filter{i}"]
