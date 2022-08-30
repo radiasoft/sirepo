@@ -322,10 +322,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     return colors.filter((x, i) => i % 4 === 3).filter(x => x > 0).length === 0;
                 }
 
-                function appendData(pd, voxel) {
-                    pd.addInputData(voxel);
-                }
-
                 function doSkipX() {
                     if (! allHidden(scalars.slice(m, m + 4))) {
                         return false;
@@ -380,18 +376,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                                 center: [pts[n] + sx / 2, pts[n + 1] + sy / 2, pts[n + 2] + sz / 2],
                             }).getOutputData();
                             vtkPlotting.setColorScalars(s, scalars.slice(m, m + 4));
-                            appendData(ysrc, s);
+                            ysrc.addInputData(s);
                             n += 3;
                             m += 4;
                             ++numPolys;
                         }
-                        appendData(zsrc, ysrc.getOutputData());
+                        zsrc.addInputData(ysrc.getOutputData());
                         n += 3;
                     }
-                    appendData(source, zsrc.getOutputData());
+                    source.addInputData(zsrc.getOutputData());
                     n = n + 3 * (nx + 1);
                 }
-                if (! numPolys) {
+
+                if (source.getNumberOfInputPorts() <= 1) {
                     return;
                 }
 
