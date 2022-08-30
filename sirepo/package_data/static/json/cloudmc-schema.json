@@ -266,13 +266,13 @@
         "tally": {
             "aspect": ["Aspect to plot", "TallyAspect", "mean"],
             "aspects": ["Aspects", "TallyAspects", ["mean"]],
-            "colorMap": ["Color Map", "ColorMap", "jet"],
             "name": ["Name", "String", "t1"],
             "meshCellCount": ["Mesh cell count", "Point3D", [10, 10, 10]],
             "meshLowerLeft": ["Mesh lower left [cm]", "Point3D", [-5.0, -5.0, -5.0]],
             "meshUpperRight": ["Mesh upper right [cm]", "Point3D", [5.0, 5.0, 5.0]],
             "score": ["Score to plot", "TallyScore", "heating"],
-            "scores": ["Scores", "TallyScores", ["heating"]]
+            "scores": ["Scores", "TallyScores", ["heating"]],
+            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.10, "", 0.0, 1.0]
         },
         "tabular": {
             "_super": [ "_", "model", "univariate"],
@@ -433,7 +433,7 @@
                     "tally.score",
                     "tally.aspects",
                     "tally.aspect",
-                    "tally.colorMap"
+                    "tally.voxelInsetPct"
                 ]]
             ],
             "advanced": []
