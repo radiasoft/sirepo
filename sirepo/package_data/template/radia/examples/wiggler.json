@@ -12,6 +12,7 @@
             "paths": [
                 {
                     "_super": "fieldPath",
+                    "axis": "y",
                     "begin": "0, -225, 0",
                     "end": "0, 225, 0",
                     "id": 0,

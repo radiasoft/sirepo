@@ -11,6 +11,10 @@ import zipfile
 
 def extract_zip(in_zip, target_name):
     files = []
+    required = PKDict({
+        'Config': False,
+        'flash.par': False,
+    })
     with zipfile.ZipFile(pkio.py_path(in_zip)) as zin:
         with zipfile.ZipFile(target_name, 'w') as zout:
             for f in zin.infolist():
@@ -24,6 +28,11 @@ def extract_zip(in_zip, target_name):
                     continue
                 zout.writestr(f.filename, zin.read(f))
                 files.append(PKDict(name=f.filename))
+                if f.filename in required:
+                    required[f.filename] = True
+    if not all(required.values()):
+        raise AssertionError(
+            'Problem file archive is missing required Config and/or flash.par file')
     sirepo.sim_data.get_class('flash').put_sim_file(
         '{{ simulationId }}',
         target_name,

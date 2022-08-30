@@ -324,13 +324,13 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     self.updateRSOptElements = function() {
         const optElModel = 'rsOptElement';
         const optEls = SIREPO.APP_SCHEMA.constants.rsOptElements;
-        let items = (appState.models.beamline || []).filter(function(i) {
-            return optEls[i.type];
-        });
-        let els = appState.models.exportRsOpt.elements;
-        for (let item of items) {
+        const items = (appState.models.beamline || []).filter(i => optEls[i.type]);
+        const els = appState.models.exportRsOpt.elements;
+        for (const item of items) {
             let e = self.findRSOptElement(item.id);
             if (e) {
+                // element name may have changed
+                e.title = item.title;
                 continue;
             }
             e = appState.setModelDefaults({}, optElModel);
@@ -339,8 +339,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             e.title = item.title;
             e.type = item.type;
             e.id = item.id;
-            let props = optEls[item.type];
-            for (let p in props) {
+            const props = optEls[item.type];
+            for (const p in props) {
                 appState.setFieldDefaults(
                     e,
                     self.rsOptElementOffsetField(p),
@@ -352,7 +352,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     initial: [],
                     offsets: [],
                 };
-                for (let f of props[p].fieldNames || []) {
+                for (const f of props[p].fieldNames || []) {
                     e[p].initial.push(item[f] ? parseFloat(item[f]) : 0.0);
                 }
             }
@@ -849,7 +849,8 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     });
 });
 
-SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) {
+
+SIREPO.app.directive('appFooter', function() {
     return {
         restrict: 'A',
         scope: {
@@ -858,66 +859,8 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-is-required="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openShadowSimulation()">
-              <div data-ng-if="!displayLink()"> Create a Shadow simulation with an equivalent beamline? </div>
-              <div data-ng-if="displayLink()">
-                Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
-              </div>
-            </div>
+            <div data-sim-conversion-modal="" data-conv-method="create_shadow_simulation"></div>
         `,
-        controller: function($scope) {
-            $scope.newSimURL = false;
-
-            function createNewSim(data) {
-                requestSender.sendRequest(
-                    'newSimulation',
-                    function(shadowData) {
-                        var sim = shadowData.models.simulation;
-                        ['simulationId', 'simulationSerial'].forEach(function(f) {
-                            data.models.simulation[f] = sim[f];
-                        });
-                        data.version = shadowData.version;
-                        requestSender.sendRequest(
-                            'saveSimulationData',
-                            genSimURL,
-                            data);
-                    },
-                    newSimData(data));
-            }
-
-            function newSimData(data) {
-                var res = appState.clone(data.models.simulation);
-                res.simulationType = data.simulationType;
-                return res;
-            }
-
-            function genSimURL(data) {
-                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
-            }
-
-            $scope.closeModal = function() {
-                $('#sr-shadow-dialog').modal('hide');
-                $scope.resetURL();
-            };
-
-            $scope.resetURL = function() {
-                $scope.newSimURL = false;
-            };
-
-            $scope.openShadowSimulation = function() {
-                const d = appState.models;
-                d.method = 'create_shadow_simulation';
-                requestSender.sendStatefulCompute(appState, createNewSim, d);
-                return false;
-            };
-
-            $scope.displayLink = function() {
-                if ($scope.newSimURL) {
-                    return true;
-                }
-                return false;
-            };
-        },
     };
 });
 
@@ -1003,7 +946,6 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
         ]);
         panelState.showField('simulation', 'photonEnergy', isSource);
     }
-
     var modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
     $scope.whenSelected = updateSelected;
     $scope.watchFields = [
@@ -1666,7 +1608,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             };
 
             $scope.openShadowConfirm = function() {
-                $('#sr-shadow-dialog').modal('show');
+                $('#sr-conv-dialog').modal('show');
             };
 
             $scope.openExportRsOpt = function() {
@@ -1822,7 +1764,7 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService, validationService) {
+SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState, srwService, utilities, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -1893,11 +1835,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                         }
                         numParams += e[srwService.rsOptElementOffsetField(p)]
                             .split(',')
-                            .map(parseFloat)
-                            .filter((x) => {
-                                return x != 0;
-                            })
-                            .length;
+                            .reduce((c, x) => c + (parseFloat(x) ? 1 : 0), 0);
                     }
                 }
                 $scope.model.totalSamples = numParams === 0 ? 0 :
@@ -1969,29 +1907,62 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
 
             $scope.$on('exportRsOpt.editor.show', () => {
                 updateElements();
-                // set form dirty so user does not have to change anything to export
-                $scope.form.$setDirty();
             });
 
-            appState.whenModelsLoaded($scope, function() {
-                updateElements();
-                updateElementWatchFields();
+            updateElements();
+            updateElementWatchFields();
+            panelState.waitForUI(() => {
                 panelState.enableField('exportRsOpt', 'totalSamples', false);
-                appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
-                appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
-                appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
-                $scope.$on('beamline.changed', updateElements);
-                $scope.$on('exportRsOpt.changed', updateElements);
-                $scope.$on('exportRsOpt.saved', () => {
-                    requestSender.newWindow('exportRSOptConfig', {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`,
-                    });
-                });
             });
+            appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
+            appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
+            appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
+            $scope.$on('beamline.changed', updateElements);
+            $scope.$on('exportRsOpt.changed', updateElements);
         },
     };
+});
+
+SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSimulation, requestSender, $scope, $rootScope) {
+
+    const self = this;
+    self.simScope = $scope;
+    self.simComputeModel = 'exportRsOpt';
+
+    self.simHandleStatus = data => {
+        if (self.simState.isStopped()) {
+            $('#sr-download-status').modal('hide');
+        }
+        if (self.simState.isStateCompleted()) {
+            requestSender.newWindow('downloadDataFile', {
+                '<simulation_id>': appState.models.simulation.simulationId,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<model>': 'exportRsOpt',
+                '<frame>': SIREPO.nonDataFileFrame,
+                '<suffix>': 'zip'
+            });
+        }
+    };
+
+    self.startSimulation = function(model) {
+        $('#sr-download-status').modal('show');
+        $rootScope.$broadcast('download.started', self.simState, 'Export Script', 'Exporting exportRsOpt.zip');
+        self.simState.saveAndRunSimulation([model]);
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    $scope.export = () => {
+        self.startSimulation($scope.modelName);
+    };
+
+    $scope.whenSelected = () => {
+        // set form dirty so user does not have to change anything to export
+        $scope.$parent.form.$setDirty();
+    };
+
+    $scope.$on('exportRsOpt.saved', $scope.export);
+
 });
 
 
@@ -2484,7 +2455,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         },
         template: `
            <div data-ng-if="(simState.getFrameCount() > 0) || errorMessage()" class="well well-lg">
-              <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW log file</a>
+              <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW run log file</a>
+              <br>
+              <a style="position: relative;" href="{{ progressLogURL() }}" target="_blank">SRW progress log file</a>
            </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
@@ -2569,13 +2542,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (! appState.isLoaded()) {
                     return '';
                 }
-                return  requestSender.formatUrl('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': $scope.simState.model,
-                    '<frame>': -1,
-                    '<suffix>': 'run.log',
-                });
+                return logFileRequest('run.log');
+            };
+
+            $scope.progressLogURL = () => {
+                return logFileRequest('__srwl_logs__');
             };
 
             self.simHandleStatus = function(data) {
@@ -2623,6 +2594,16 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     return false;
                 }
                 return true;
+            }
+
+            function logFileRequest(logKind) {
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': $scope.simState.model,
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<suffix>': logKind,
+                });
             }
 
             $scope.cancelPersistentSimulation = function() {

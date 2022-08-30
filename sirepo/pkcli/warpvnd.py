@@ -17,16 +17,16 @@ import sirepo.template.warpvnd as template
 def run(cfg_dir):
     template_common.exec_parameters()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data['report'] == 'fieldReport':
+    if data["report"] == "fieldReport":
         res = template.generate_field_report(data, cfg_dir)
-        res['tof_expected'] = field_results.tof_expected
-        res['steps_expected'] = field_results.steps_expected,
-        res['e_cross'] = field_results.e_cross
-    elif data['report'] == 'fieldComparisonReport':
+        res["tof_expected"] = field_results.tof_expected
+        res["steps_expected"] = (field_results.steps_expected,)
+        res["e_cross"] = field_results.e_cross
+    elif data["report"] == "fieldComparisonReport":
         wp.step(template.COMPARISON_STEP_SIZE)
         res = template.generate_field_comparison_report(data, cfg_dir)
     else:
-        raise AssertionError('unknown report: {}'.format(data['report']))
+        raise AssertionError("unknown report: {}".format(data["report"]))
     template_common.write_sequential_result(res)
 
 
@@ -37,13 +37,18 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run warpvnd in
     """
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    #TODO(pjm): only run with mpi for 3d case for now
-    if data.models.simulationGrid.simulation_mode == '3d' \
-        and not data.report == 'optimizerAnimation' \
-        and data.models.simulation.executionMode == 'parallel':
-        simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
-            'mpiCores': mpi.cfg.cores,
-        })
+    # TODO(pjm): only run with mpi for 3d case for now
+    if (
+        data.models.simulationGrid.simulation_mode == "3d"
+        and not data.report == "optimizerAnimation"
+        and data.models.simulation.executionMode == "parallel"
+    ):
+        simulation_db.write_json(
+            py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE),
+            {
+                "mpiCores": mpi.cfg.cores,
+            },
+        )
         template_common.exec_parameters_with_mpi()
     else:
         template_common.exec_parameters()

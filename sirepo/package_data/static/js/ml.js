@@ -30,6 +30,14 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="TrimButton" class="col-sm-5">
           <div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="URL" class="col-sm-7" data-field-class="fieldClass">
+          <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
+          <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength || 0 }} bytes</span>
+          <div class="sr-input-warning"></div>
+          <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
+          </div>
+        </div>
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
@@ -48,6 +56,7 @@ SIREPO.app.factory('mlService', function(appState, panelState) {
         optionalParameterValues: null,
     };
 
+    self.devMode = false;
     self.addSubreport = function(parent, action) {
         let report = appState.clone(parent);
         let subreports = self.getSubreports();
@@ -248,7 +257,7 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
     };
 });
 
-SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope) {
+SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope, $window) {
     var self = this;
     var currentFile = null;
     self.subplots = null;
@@ -319,74 +328,21 @@ SIREPO.app.controller('AnalysisController', function (appState, mlService, panel
 });
 
 SIREPO.app.controller('DataController', function (appState, panelState, requestSender, $scope) {
-    var self = this;
-
-    function computeColumnInfo() {
-        var dataFile = appState.models.dataFile;
-        if (! dataFile.file) {
-            appState.models.columnReports = [];
-            appState.saveChanges('columnReports');
-            return;
-        }
-        if (dataFile.file == dataFile.oldFile) {
-            return;
-        }
-        dataFile.oldFile = dataFile.file;
-        appState.saveQuietly('dataFile');
-        requestSender.sendStatefulCompute(
-            appState,
-            function(data) {
-                appState.models.columnInfo = data;
-                computeDefaultPartition();
-                appState.models.columnReports = [];
-                appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
-            },
-            {
-                method: 'compute_column_info',
-                dataFile: dataFile,
-            }
-        );
-    }
-
-    function computeDefaultPartition() {
-        var size = appState.models.columnInfo.rowCount;
-        var partition = appState.models.partition;
-        if (! partition.cutoff0 || ! partition.cutoff1
-            || partition.cutoff0 > size
-            || partition.cutoff1 > size) {
-            partition.cutoff0 = parseInt(0.125 * size);
-            partition.cutoff1 = parseInt((1 - 0.125) * size);
-        }
-    }
-
-    function dataFileChanged() {
-        computeColumnInfo();
-        const dataFile = appState.models.dataFile;
-        const partition = appState.models.partition;
-        if (dataFile.appMode == 'regression'
-            && partition.training + partition.testing >= 100) {
-            ['training', 'testing', 'validation'].forEach(function(f) {
-                delete partition[f];
-            });
-            appState.setModelDefaults(partition, 'partition');
-        }
-        else if (dataFile.appMode == 'classification') {
-            if (partition.training + partition.testing < 100) {
-                partition.testing = 100 - partition.training;
-            }
-        }
-        appState.saveQuietly('partition');
-    }
+    const self = this;
 
     self.hasDataFile = function() {
         return appState.isLoaded() && appState.applicationState().dataFile.file;
     };
 
-    appState.whenModelsLoaded($scope, function() {
-        $scope.$on('dataFile.changed', dataFileChanged);
-        //TODO(pjm): enable when analysis tab is completed
-        //panelState.showEnum('dataFile', 'appMode', 'analysis', false);
-    });
+    self.isTextData = () => {
+        return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'text';
+    };
+
+    //appState.whenModelsLoaded($scope, function() {
+    //    $scope.$on('dataFile.changed', dataFileChanged);
+    //    //TODO(pjm): enable when analysis tab is completed
+    //    //panelState.showEnum('dataFile', 'appMode', 'analysis', false);
+    //});
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
@@ -1434,52 +1390,79 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     appState.whenModelsLoaded($scope, loadReports);
 });
 
-SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
+SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, stringsService) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            layerTarget: '=',
+            childIndex: '=',
+            parentLayer: '=',
+        },
         template: `
             <form name="form" class="form-horizontal">
               <div class="form-group form-group-sm">
-                <table class="table table-striped table-condensed">
-                  <tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">
+              <button class="add-remove-child-btn" data-ng-if="removableChild()" data-ng-click="removeChild(childIndex)"> Remove this child </button>
+                <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b; position: relative;">
+                  <tr data-ng-repeat="layer in layerLevel track by $index" data-ng-init="layerIndex = $index">
                     <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
                       <div data-ng-if="fieldInfo.field">
-                        <b>{{ fieldInfo.label }}</b>
-                        <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="\'neuralNetLayer\'" data-model="layer"></div>
+                        <b>{{ fieldInfo.label }} </b>
+                        <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="layerName(layer)" data-model="layer"></div>
+                        <div data-ng-if="branching(layer)">
+                         <button class="add-remove-child-btn" data-ng-click="addChild(layer)">Add another child</button>
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                    <td colspan="100%">
+                      <div data-ng-if="checkBranch(layer)">
+                        <div data-ng-repeat="l in layer.children track by $index" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
+                      </div>
+                    </td>
+                    <td colspan="100%">
+                      <div class="sr-nn-button-bar-parent pull-right">
+                        <div class="ml-button-bar">
+                          <button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)">
+                            <span class="glyphicon glyphicon-arrow-up"></span>
+                          </button>
+                          <button class="btn btn-info btn-xs" data-ng-disabled="$index == layerLevel.layers.length - 1" data-ng-click="moveLayer(1, $index)">
+                            <span class="glyphicon glyphicon-arrow-down"></span>
+                          </button>
+                          <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs">
+                            <span class="glyphicon glyphicon-remove"></span>
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   <tr>
                     <td>
                       <b>Add Layer</b>
-                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>
+                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
                     </td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td colspan="100%"></td>
+                    <td colspan="100%"></td>
                   </tr>
-                  <tr>
-                    <td>
-                      <b>Output Layer</b>
-                      <p class="form-control-static">Densely Connected NN</p>
-                    </td>
-                    <td>
-                      <b>Dimensionality</b>
-                      <p class="form-control-static text-right">{{ outputColCount()  }}</p>
-                    </td>
-                    <td>
-                      <b>Activation</b>
-                      <p class="form-control-static">Linear (identity)</p>
-                    </td>
-                    <td></td>
-                    </tr>
                 </table>
+                <div data-ng-if="root()">
+                    <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b;">
+                        <tr style="display: flex;">
+                        <td>
+                            <b>Output Layer</b>
+                            <p class="form-control-static">Densely Connected NN</p>
+                        </td>
+                        <td>
+                            <b>Dimensionality</b>
+                            <p class="form-control-static text-right">{{ outputColCount()  }}</p>
+                        </td>
+                        <td>
+                            <b>Activation</b>
+                            <p class="form-control-static">Linear (identity)</p>
+                        </td>
+                        </tr>
+                    </table>
+                </div>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
-                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
                 <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
               </div>
             </form>
@@ -1487,23 +1470,62 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
         controller: function($scope, $element) {
             var layerFields = {};
             var layerInfo = [];
-            $scope.appState = appState;
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
+            $scope.layerLevel = getLayerLevel();
+            $scope.root = () => {
+                return ! Boolean($scope.layerTarget);
+            };
 
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
                     return;
                 }
-                var neuralNet = appState.models.neuralNet;
+                if (branchingLayer($scope.selectedLayer)) {
+                    nest();
+                    $scope.selectedLayer = '';
+                    return;
+                }
+                var neuralNet = $scope.layerLevel;
                 if (! neuralNet.layers) {
                     neuralNet.layers = [];
                 }
-                var m = appState.setModelDefaults({}, 'neuralNetLayer');
+                const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
                 m.layer = $scope.selectedLayer;
-                neuralNet.layers.push(m);
+                neuralNet.push(m);
                 $scope.selectedLayer = '';
+            };
+
+            $scope.checkBranch = layer => {
+                const b = branchingLayer(layer.layer);
+                if (b && layer.children !== null) {
+                    return b;
+                }
+                layer.children = newChildren();
+                return b;
+            };
+
+            $scope.removeChild = childIndex => {
+                $scope.parentLayer.children.splice(childIndex, 1);
+                $scope.form.$setDirty();
+            };
+
+            $scope.branching = layer =>  {
+                return branchingLayer(layer.layer);
+            };
+
+            function branchingLayer(layer) {
+                return (layer == 'Add') || (layer == 'Concatenate');
+            }
+
+            $scope.addChild = layer => {
+                layer.children.push(newChild());
+                $scope.form.$setDirty();
+            };
+
+            $scope.layerName = layer => {
+                return stringsService.lcfirst(layer.layer);
             };
 
             $scope.cancelChanges = function() {
@@ -1512,17 +1534,20 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
             };
 
             $scope.deleteLayer = function(idx) {
-                appState.models.neuralNet.layers.splice(idx, 1);
+                $scope.layerLevel.splice(idx, 1);
                 $scope.form.$setDirty();
             };
 
             $scope.fieldTrack = function(layerIdx, idx) {
                 // changes the fields editor if the layer type changes
-                var layer = appState.models.neuralNet.layers[layerIdx];
+                var layer = $scope.layerLevel[layerIdx];
                 return layer.layer + idx;
             };
 
             $scope.hasChanges = function() {
+                if (! $scope.root()) {
+                    return false;
+                }
                 if ($scope.form.$dirty) {
                     return true;
                 }
@@ -1533,19 +1558,38 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 if (! appState.isLoaded()) {
                     return layerInfo;
                 }
-                var layer = appState.models.neuralNet.layers[idx];
+                var layer = $scope.layerLevel[idx];
                 layerInfo[idx] = layerFields[layer.layer];
                 return layerInfo[idx];
             };
 
             $scope.moveLayer = function(direction, currIdx) {
-                const n = appState.models.neuralNet;
-                n.layers.splice(
+                const n = $scope.layerLevel;
+                n.splice(
                     currIdx + direction,
                     0,
-                    n.layers.splice(currIdx, 1)[0]
+                    n.splice(currIdx, 1)[0]
                 );
                 $scope.form.$setDirty();
+            };
+
+            $scope.options = layerEnum => {
+                if (mlService.devMode) {
+                    return layerEnum;
+                }
+                const unSupportedLayers = [
+                    // 'Add',
+                    // 'Concatenate',
+                    'AveragePooling2D',
+                    // 'Conv2D',
+                    'Conv2DTranspose',
+                    'GlobalAveragePooling2D',
+                    'MaxPooling2D',
+                    'SeparableConv2D',
+                    'UpSampling2D',
+                    'ZeroPadding2D'
+                ];
+                return layerEnum.filter(x => !unSupportedLayers.includes(x[0]));
             };
 
             $scope.outputColCount = function() {
@@ -1562,9 +1606,11 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 $scope.form.$setPristine();
             };
 
+            $scope.removableChild = () => {
+                return ! $scope.root() && $scope.childIndex >= 2;
+            };
+
             function buildLayerFields() {
-                var MAX_FIELDS = 3;
-                var layerSchema = SIREPO.APP_SCHEMA.model.neuralNetLayer;
                 $scope.layerEnum.forEach(function(row) {
                     var name = row[0];
                     var cols = [
@@ -1573,20 +1619,55 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                             label: 'Layer',
                         },
                     ];
-                    Object.keys(layerSchema).sort().reverse().forEach(function(field) {
-                        if (field.toLowerCase().indexOf(name.toLowerCase()) == 0) {
-                            cols.push({
-                                field: field,
-                                label: layerSchema[field][0],
-                            });
-                        }
-                    });
-                    while (cols.length < MAX_FIELDS) {
-                        cols.push({});
+                    const layerSchema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
+                    if (layerSchema) {
+                        Object.keys(layerSchema)
+                            .sort()
+                            .reverse()
+                            .filter(f => f !== '_super' && f !== 'layer')
+                            .forEach(function(field) {
+                                cols.push({
+                                    field: field,
+                                    label: layerSchema[field][0],
+                                });
+                        });
                     }
                     layerFields[name] = cols;
                 });
+
             }
+
+            function getLayerLevel() {
+                if ($scope.layerTarget){
+                    return $scope.layerTarget.layers;
+                }
+                return appState.models.neuralNet.layers;
+            }
+
+            function newChild() {
+                return {layers: []};
+            }
+
+            function newChildren() {
+                return [
+                    newChild(),
+                    newChild(),
+                ];
+            }
+
+            function nest() {
+                const n = {
+                    layer: $scope.selectedLayer,
+                    children: newChildren(),
+                };
+                $scope.layerLevel.push(n);
+            }
+
+            $scope.$on('cancelChanges', (e, name) => {
+                if (name == 'neuralNet') {
+                    $scope.layerLevel = getLayerLevel();
+                }
+            });
 
             buildLayerFields();
         },
@@ -1915,20 +1996,185 @@ SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('dataFileView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimulation, requestSender, validationService, $rootScope, $scope) {
 
-    function processAppMode() {
-        const appMode = appState.models.dataFile.appMode;
-        panelState.showField(
-            'dataFile', 'inputsScaler',
-            ['regression', 'classification'].includes(appMode));
-        panelState.showField(
-            'dataFile', 'outputsScaler',
-            appMode == 'regression');
+    const modelName = $scope.modelName;
+    const self = this;
+
+    function computeColumnInfo() {
+        const dataFile = appState.models.dataFile;
+        if (! dataFile.file) {
+            appState.models.columnReports = [];
+            appState.saveChanges('columnReports');
+            return;
+        }
+        if (dataFile.file === dataFile.oldFile) {
+            return;
+        }
+        dataFile.oldFile = dataFile.file;
+        appState.saveQuietly('dataFile');
+        requestSender.sendStatefulCompute(
+            appState,
+            function(data) {
+                appState.models.columnInfo = data;
+                computeDefaultPartition();
+                appState.models.columnReports = [];
+                appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
+            },
+            {
+                method: 'compute_column_info',
+                dataFile: dataFile,
+            }
+        );
     }
 
-    $scope.whenSelected = processAppMode;
+    function computeDefaultPartition() {
+        const size = appState.models.columnInfo.rowCount;
+        const partition = appState.models.partition;
+        if (! partition.cutoff0 || ! partition.cutoff1
+            || partition.cutoff0 > size
+            || partition.cutoff1 > size
+        ) {
+            partition.cutoff0 = parseInt(0.125 * size);
+            partition.cutoff1 = parseInt((1 - 0.125) * size);
+        }
+    }
+
+    function dataFileChanged() {
+        computeColumnInfo();
+        const dataFile = appState.models.dataFile;
+        const partition = appState.models.partition;
+        if (dataFile.appMode === 'regression'
+            && partition.training + partition.testing >= 100) {
+            ['training', 'testing', 'validation'].forEach(function(f) {
+                delete partition[f];
+            });
+            appState.setModelDefaults(partition, 'partition');
+        }
+        else if (dataFile.appMode === 'classification') {
+            if (partition.training + partition.testing < 100) {
+                partition.testing = 100 - partition.training;
+            }
+        }
+        appState.saveQuietly('partition');
+    }
+
+    function processAppMode() {
+        const appMode = appState.models[modelName].appMode;
+        panelState.showField(
+            modelName, 'inputsScaler',
+            ['regression', 'classification'].includes(appMode));
+        panelState.showField(
+            modelName, 'outputsScaler',
+            appMode === 'regression');
+    }
+
+    function updateEditor() {
+        const dataFile = appState.models[modelName];
+        const o = dataFile.dataOrigin;
+        panelState.showField(modelName, 'file', o === 'file');
+        panelState.showField(modelName, 'url', o === 'url');
+        validateURL();
+    }
+
+    function validateURL() {
+        const dataFile = appState.models[modelName];
+        validationService.validateField(
+            modelName,
+            'url',
+            'input',
+            dataFile.dataOrigin === 'file' || ! ! dataFile.url,
+            'Enter a url'
+        );
+    }
+
+    //TODO(mvk): call this when loading data from url to update status bar
+    // Not needed by files
+    function getBytesLoaded() {
+        const dataFile = appState.models[modelName];
+        if (dataFile.dataOrigin === 'file' || ! dataFile.file) {
+            return;
+        }
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                if (d.error) {
+                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
+                }
+                if (d.bytesLoaded !== appState.models[modelName].bytesLoaded) {
+                    appState.models[modelName].bytesLoaded = d.bytesLoaded;
+                    appState.saveQuietly(modelName);
+                }
+            },
+            {
+                method: 'remote_data_bytes_loaded',
+                filename: dataFile.file,
+            }
+        );
+    }
+
+    function getRemoteData(headersOnly, callback) {
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                if (d.error) {
+                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
+                }
+                if (callback) {
+                    callback(d);
+                }
+            },
+            {
+                method: 'get_remote_data',
+                url: appState.models[modelName].url,
+                headers_only: headersOnly
+            },
+            {
+                onError: data => {
+                    //TODO: cancel
+                }
+            }
+        );
+    }
+
+    function updateData() {
+        const dataFile = appState.models[modelName];
+
+        //TODO(mvk): button to force reload; handle deletion of file; share files across users;
+        // store urls; share urls across apps
+        if (dataFile.dataOrigin === 'url') {
+            dataFile.oldURL = dataFile.url;
+            dataFile.bytesLoaded = 0;
+            dataFile.contentLength = 0;
+            dataFile.file = '';
+            appState.saveQuietly(modelName);
+            //TODO(mvk): two stages now; should be a single background call but not a "simulation"
+            // write in chunks on server and send updates - can we use websockets?
+            getRemoteData(true, d => {
+                //TODO(mvk): use length for progress bar
+                dataFile.contentLength = parseInt(d.headers['Content-Length']);
+                appState.saveQuietly(modelName);
+                getRemoteData(false, d => {
+                    dataFile.file = d.filename;
+                    dataFile.bytesLoaded = dataFile.contentLength;
+                    appState.saveQuietly(modelName);
+                    dataFileChanged();
+                });
+            });
+        }
+        dataFileChanged();
+    }
+
     $scope.watchFields = [
-        ['dataFile.appMode'], processAppMode,
+        [`${modelName}.appMode`], processAppMode,
+        [`${modelName}.dataOrigin`], updateEditor,
+        [`${modelName}.url`], validateURL,
     ];
+
+    $scope.whenSelected = () => {
+        processAppMode();
+        updateEditor();
+    };
+
+    $scope.$on( `${modelName}.changed`, updateData);
 });

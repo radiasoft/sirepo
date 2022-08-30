@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""?
+"""?
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,37 +14,37 @@ def test_srw_processed_image(fc):
     from pykern import pkunit
     from sirepo import srunit
 
-    r = fc.sr_sim_data('Sample from Image')
+    r = fc.sr_sim_data("Sample from Image")
     r = fc.sr_post(
-        'getApplicationData',
+        "getApplicationData",
         {
-            'simulationId': r.models.simulation.simulationId,
-            'simulationType': fc.sr_sim_type,
-            'method': 'processedImage',
-            'baseImage': 'sample.tif',
-            'model': {
-                'cutoffBackgroundNoise': 0.5,
-                'backgroundColor': 0,
-                'rotateAngle': 0,
-                'rotateReshape': '0',
-                'cropArea': '1',
-                'areaXStart': 0,
-                'areaXEnd': 1280,
-                'areaYStart': 0,
-                'areaYEnd': 834,
-                'shiftX': 0,
-                'shiftY': 0,
-                'invert': '0',
-                'tileImage': '0',
-                'tileRows': 1,
-                'tileColumns': 1,
-                'outputImageFormat': 'tif',
-            }
+            "simulationId": r.models.simulation.simulationId,
+            "simulationType": fc.sr_sim_type,
+            "method": "processedImage",
+            "baseImage": "sample.tif",
+            "model": {
+                "cutoffBackgroundNoise": 0.5,
+                "backgroundColor": 0,
+                "rotateAngle": 0,
+                "rotateReshape": "0",
+                "cropArea": "1",
+                "areaXStart": 0,
+                "areaXEnd": 1280,
+                "areaYStart": 0,
+                "areaYEnd": 834,
+                "shiftX": 0,
+                "shiftY": 0,
+                "invert": "0",
+                "tileImage": "0",
+                "tileRows": 1,
+                "tileColumns": 1,
+                "outputImageFormat": "tif",
+            },
         },
         {
-            'filename': 'foo.tif',
+            "filename": "foo.tif",
         },
         raw_response=True,
     )
-    with open(str(pkunit.work_dir().join('x.tif')), 'wb') as f:
+    with open(str(pkunit.work_dir().join("x.tif")), "wb") as f:
         f.write(r.data)

@@ -23,19 +23,19 @@ def run(cfg_dir):
         [sys.executable, template_common.PARAMETERS_PYTHON_FILE],
     )
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data.report == 'heightWeightReport':
+    if data.report == "heightWeightReport":
         res = _report(
-            'Dog Height and Weight Over Time',
-            ('height', 'weight'),
+            "Dog Height and Weight Over Time",
+            ("height", "weight"),
             data,
         )
     else:
-        raise AssertionError('unknown report: {}'.format(data.report))
+        raise AssertionError("unknown report: {}".format(data.report))
     template_common.write_sequential_result(res)
 
 
 def _csv_to_cols():
-    with open(template.OUTPUT_NAME, 'r') as f:
+    with open(template.OUTPUT_NAME, "r") as f:
         rows = csv.reader(f)
         headers = next(rows)
         cols = [[] for _ in headers]
@@ -51,23 +51,23 @@ def _label(field):
 
 def _plot(dog, field, cols):
     return {
-        'name': field,
-        'label': _label(field),
-        'points': cols[field],
+        "name": field,
+        "label": _label(field),
+        "points": cols[field],
     }
 
 
 def _report(title, fields, data):
     dog = data.models.dog
     cols = _csv_to_cols()
-    x_points = cols['year']
+    x_points = cols["year"]
     plots = [_plot(dog, f, cols) for f in fields]
     return {
-        'title': title,
-        'x_range': [x_points[0], x_points[-1]],
-        'y_label': _label(fields[0]) if len(fields) == 1 else '',
-        'x_label': 'Age (years)',
-        'x_points': x_points,
-        'plots': plots,
-        'y_range': template_common.compute_plot_color_and_range(plots),
+        "title": title,
+        "x_range": [x_points[0], x_points[-1]],
+        "y_label": _label(fields[0]) if len(fields) == 1 else "",
+        "x_label": "Age (years)",
+        "x_points": x_points,
+        "plots": plots,
+        "y_range": template_common.compute_plot_color_and_range(plots),
     }

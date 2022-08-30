@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""SiRepo front-end command line for :mod:`pykern.pkcli`.
+"""SiRepo front-end command line for :mod:`pykern.pkcli`.
 
 Example:
 
@@ -15,8 +15,8 @@ from pykern import pkcli
 
 
 def main():
-    return pkcli.main('sirepo')
+    return pkcli.main("sirepo")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

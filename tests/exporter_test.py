@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""?
+"""?
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,31 +22,41 @@ def test_create_zip(fc):
 
     imported = _import(fc)
     for sim_type, sim_name, expect in imported + [
-        ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'run.py', 'sirepo-data.json']),
-        ('srw', 'Tabulated Undulator Example', ['magnetic_measurements.zip', 'run.py', 'sirepo-data.json']),
-        ('warppba', 'Laser Pulse', ['run.py', 'sirepo-data.json']),
+        (
+            "elegant",
+            "bunchComp - fourDipoleCSR",
+            ["WAKE-inputfile.knsl45.liwake.sdds", "run.py", "sirepo-data.json"],
+        ),
+        (
+            "srw",
+            "Tabulated Undulator Example",
+            ["magnetic_measurements.zip", "run.py", "sirepo-data.json"],
+        ),
+        ("warppba", "Laser Pulse", ["run.py", "sirepo-data.json"]),
     ]:
-        sim_id = fc.sr_sim_data(sim_name, sim_type)['models']['simulation']['simulationId']
+        sim_id = fc.sr_sim_data(sim_name, sim_type)["models"]["simulation"][
+            "simulationId"
+        ]
         with pkio.save_chdir(pkunit.work_dir()) as d:
-            for t in 'zip', 'html':
+            for t in "zip", "html":
                 r = fc.sr_get(
-                    'exportArchive',
+                    "exportArchive",
                     PKDict(
                         simulation_type=sim_type,
                         simulation_id=sim_id,
-                        filename='anything.' + t,
-                    )
+                        filename="anything." + t,
+                    ),
                 )
-                p = d.join(sim_name + '.' + t)
+                p = d.join(sim_name + "." + t)
                 x = r.data
-                if t == 'html':
+                if t == "html":
                     x = pkcompat.from_bytes(x)
                     m = re.search(r'name="zip" \S+ value="([^"]+)"', x, flags=re.DOTALL)
                     x = base64.b64decode(pkcompat.to_bytes(m.group(1)))
                 p.write_binary(x)
                 e = expect
-                if t == 'html':
-                    e.remove('run.py')
+                if t == "html":
+                    e.remove("run.py")
                 pkeq(
                     e,
                     sorted(zipfile.ZipFile(str(p)).namelist()),
@@ -61,13 +71,13 @@ def _import(fc):
     import zipfile
 
     res = []
-    for f in pkio.sorted_glob(pkunit.data_dir().join('*.zip')):
+    for f in pkio.sorted_glob(pkunit.data_dir().join("*.zip")):
         with zipfile.ZipFile(str(f)) as z:
-            expect = sorted(z.namelist() + ['run.py'])
+            expect = sorted(z.namelist() + ["run.py"])
         d = fc.sr_post_form(
-            'importFile',
-            PKDict(folder='/exporter_test'),
-            PKDict(simulation_type=f.basename.split('_')[0]),
+            "importFile",
+            PKDict(folder="/exporter_test"),
+            PKDict(simulation_type=f.basename.split("_")[0]),
             file=f,
         )
         res.append((d.simulationType, d.models.simulation.name, expect))

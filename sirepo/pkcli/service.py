@@ -17,6 +17,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import contextlib
 import os
+import psutil
 import py
 import re
 import signal
@@ -35,15 +36,16 @@ def flask():
     with pkio.save_chdir(_run_dir()) as r:
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
-        assert pkconfig.channel_in('dev')
+        assert pkconfig.channel_in("dev")
         app = server.init(use_reloader=_cfg().use_reloader, is_server=True)
         # avoid WARNING: Do not use the development server in a production environment.
-        app.env = 'development'
+        app.env = "development"
         import werkzeug.serving
+
         werkzeug.serving.click = None
         app.run(
-            exclude_patterns=[str(r.join('*'))],
-            extra_files=util.files_to_watch_for_reload('json'),
+            exclude_patterns=[str(r.join("*"))],
+            extra_files=util.files_to_watch_for_reload("json"),
             host=_cfg().ip,
             port=_cfg().port,
             threaded=True,
@@ -56,6 +58,9 @@ def http():
 
     Used for development only.
     """
+
+    processes = []
+
     @contextlib.contextmanager
     def _handle_signals(signums):
         o = [(x, signal.getsignal(x)) for x in signums]
@@ -65,57 +70,101 @@ def http():
         finally:
             [signal.signal(x[0], x[1]) for x in o]
 
+    def _install_react():
+        p = pkio.py_path("../react/node_modules")
+        if p.exists():
+            return
+        pkdlog("Need to install react (takes a few minutes)...")
+        os.system(f"cd '{p.dirname}' && npm install")
+
     def _kill(*args):
         for p in processes:
             try:
-                p.terminate()
-                p.wait(1)
-            except (ProcessLookupError, ChildProcessError):
-                continue
-            except subprocess.TimeoutExpired:
-                p.kill()
+                for c in list(psutil.Process(p.pid).children(recursive=True)):
+                    _safe_kill_process(c)
+            except Exception:
+                # need to ignore exceptions while converting process children
+                # to a list so that the parent is still terminated
+                pass
+            _safe_kill_process(p)
 
-    def _start(service):
-        c = ['pyenv', 'exec', 'sirepo']
-        c.extend(service)
-        processes.append(subprocess.Popen(
-            c,
-            cwd=str(_run_dir()),
-            env=e,
-        ))
-
-    e = PKDict(os.environ)
-    e.SIREPO_JOB_DRIVER_MODULES = 'local'
-    processes = []
-    with pkio.save_chdir(_run_dir()), \
-        _handle_signals((signal.SIGINT, signal.SIGTERM)):
+    def _safe_kill_process(proc):
         try:
-            _start(['job_supervisor'])
-            # Avoid race condition on creating auth db
-            time.sleep(.3)
-            _start(['service', 'flask'])
-            p, _ = os.wait()
-        except ChildProcessError:
+            proc.terminate()
+            proc.wait(1)
+        except (
+            ProcessLookupError,
+            ChildProcessError,
+            psutil.NoSuchProcess,
+        ):
             pass
-        finally:
-            _kill()
+        except (psutil.TimeoutExpired, subprocess.TimeoutExpired):
+            proc.kill()
+
+    def _start(service, extra_environ, cwd=".", prefix=("pyenv", "exec", "sirepo")):
+        processes.append(
+            subprocess.Popen(
+                prefix + service,
+                cwd=str(_run_dir().join(cwd)),
+                env=PKDict(os.environ).pkupdate(extra_environ),
+            )
+        )
+
+    try:
+        with pkio.save_chdir(_run_dir()), _handle_signals(
+            (signal.SIGINT, signal.SIGTERM)
+        ):
+            r = _cfg().react_port
+            if r:
+                _install_react()
+            _start(
+                ("job_supervisor",),
+                extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
+            )
+            # Avoid race condition on creating auth db
+            time.sleep(0.3)
+            if r:
+                _start(
+                    ("npm", "start"),
+                    cwd="../react",
+                    prefix=(),
+                    extra_environ=PKDict(PORT=str(r)),
+                )
+                time.sleep(0.3)
+            _start(
+                ("service", "flask"),
+                extra_environ=PKDict(
+                    SIREPO_SERVER_REACT_SERVER=f"http://127.0.0.1:{r}/",
+                )
+                if r
+                else PKDict(),
+            )
+            p, _ = os.wait()
+    except ChildProcessError:
+        pass
+    finally:
+        _kill()
+
 
 def jupyterhub():
     import importlib
     import sirepo.template
     import socket
 
-    assert pkconfig.channel_in('dev')
-    sirepo.template.assert_sim_type('jupyterhublogin')
+    assert pkconfig.channel_in("dev")
+    sirepo.template.assert_sim_type("jupyterhublogin")
     # POSIT: versions same in container-beamsim-jupyter/build.sh
     # Order is important: jupyterlab-server should be last so it isn't
     # overwritten with a newer version.
-    for m, v in ('jupyterhub', '1.1.0'), ('jupyterlab', '2.1.0 jupyterlab-server==1.2.0'):
+    for m, v in ("jupyterhub", "1.4.2"), (
+        "jupyterlab",
+        "3.1.14 jupyterlab-server==2.8.2",
+    ):
         try:
             importlib.import_module(m)
         except ModuleNotFoundError:
             pkcli.command_error(
-                '{}: not installed run `pip install {}=={}`',
+                "{}: not installed run `pip install {}=={}`",
                 m,
                 m,
                 v,
@@ -124,26 +173,28 @@ def jupyterhub():
     import sirepo.server
 
     sirepo.server.init()
-    with pkio.save_chdir(_run_dir().join('jupyterhub').ensure(dir=True)) as d:
-        pksubprocess.check_call_with_signals((
-            'jupyter',
-            'serverextension',
-            'enable',
-            '--py',
-            'jupyterlab',
-            '--sys-prefix',
-        ))
-        f = d.join('conf.py')
+    with pkio.save_chdir(_run_dir().join("jupyterhub").ensure(dir=True)) as d:
+        pksubprocess.check_call_with_signals(
+            (
+                "jupyter",
+                "serverextension",
+                "enable",
+                "--py",
+                "jupyterlab",
+                "--sys-prefix",
+            )
+        )
+        f = d.join("conf.py")
         pkjinja.render_resource(
-            'jupyterhub_conf.py',
+            "jupyterhub_conf.py",
             PKDict(_cfg()).pkupdate(
                 # POSIT: Running with nginx and uwsgi
-                sirepo_uri=f'http://{socket.getfqdn()}:{_cfg().nginx_proxy_port}',
+                sirepo_uri=f"http://{socket.getfqdn()}:{_cfg().nginx_proxy_port}",
                 **sirepo.sim_api.jupyterhublogin.cfg,
             ),
             output=f,
         )
-        pksubprocess.check_call_with_signals(('jupyterhub', '-f', str(f)))
+        pksubprocess.check_call_with_signals(("jupyterhub", "-f", str(f)))
 
 
 def nginx_proxy():
@@ -153,12 +204,12 @@ def nginx_proxy():
     """
     import sirepo.template
 
-    assert pkconfig.channel_in('dev')
-    run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
+    assert pkconfig.channel_in("dev")
+    run_dir = _run_dir().join("nginx_proxy").ensure(dir=True)
     with pkio.save_chdir(run_dir) as d:
-        f = run_dir.join('default.conf')
+        f = run_dir.join("default.conf")
         c = PKDict(_cfg()).pkupdate(run_dir=str(d))
-        if sirepo.template.is_sim_type('jupyterhublogin'):
+        if sirepo.template.is_sim_type("jupyterhublogin"):
             import sirepo.sim_api.jupyterhublogin
             import sirepo.server
 
@@ -166,10 +217,10 @@ def nginx_proxy():
             c.pkupdate(
                 jupyterhub_root=sirepo.sim_api.jupyterhublogin.cfg.uri_root,
             )
-        pkjinja.render_resource('nginx_proxy.conf', c, output=f)
+        pkjinja.render_resource("nginx_proxy.conf", c, output=f)
         cmd = [
-            'nginx',
-            '-c',
+            "nginx",
+            "-c",
             str(f),
         ]
         pksubprocess.check_call_with_signals(cmd)
@@ -180,13 +231,15 @@ def uwsgi():
     run_dir = _run_dir()
     with pkio.save_chdir(run_dir):
         values = _cfg().copy()
-        values['logto'] = None if pkconfig.channel_in('dev') else str(run_dir.join('uwsgi.log'))
+        values["logto"] = (
+            None if pkconfig.channel_in("dev") else str(run_dir.join("uwsgi.log"))
+        )
         # uwsgi.py must be first, because values['uwsgi_py'] referenced by uwsgi.yml
-        for f in ('uwsgi.py', 'uwsgi.yml'):
+        for f in ("uwsgi.py", "uwsgi.yml"):
             output = run_dir.join(f)
-            values[f.replace('.', '_')] = str(output)
+            values[f.replace(".", "_")] = str(output)
             pkjinja.render_resource(f, values, output=output)
-        cmd = ['uwsgi', '--yaml=' + values['uwsgi_yml']]
+        cmd = ["uwsgi", "--yaml=" + values["uwsgi_yml"]]
         pksubprocess.check_call_with_signals(cmd)
 
 
@@ -194,22 +247,23 @@ def _cfg():
     global __cfg
     if not __cfg:
         __cfg = pkconfig.init(
-            ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
-            jupyterhub_port=(8002, _cfg_port, 'port on which jupyterhub listens'),
+            ip=("0.0.0.0", _cfg_ip, "what IP address to open"),
+            jupyterhub_port=(8002, _cfg_port, "port on which jupyterhub listens"),
             jupyterhub_debug=(
                 True,
                 bool,
-                'turn on debugging for jupyterhub (hub, spawner, ConfigurableHTTPProxy)',
+                "turn on debugging for jupyterhub (hub, spawner, ConfigurableHTTPProxy)",
             ),
-            nginx_proxy_port=(8080, _cfg_port, 'port on which nginx_proxy listens'),
-            port=(8000, _cfg_port, 'port on which uwsgi or http listens'),
-            processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
-            run_dir=(None, str, 'where to run the program (defaults db_dir)'),
+            nginx_proxy_port=(8080, _cfg_port, "port on which nginx_proxy listens"),
+            port=(8000, _cfg_port, "port on which uwsgi or http listens"),
+            react_port=(3000, _cfg_react_port, "port on which react listens"),
+            processes=(1, _cfg_int(1, 16), "how many uwsgi processes to start"),
+            run_dir=(None, str, "where to run the program (defaults db_dir)"),
             # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
             # so limit to 128, which is probably more than enough with
             # this application.
-            threads=(10, _cfg_int(1, 128), 'how many uwsgi threads in each process'),
-            use_reloader=(pkconfig.channel_in('dev'), bool, 'use the Flask reloader'),
+            threads=(10, _cfg_int(1, 128), "how many uwsgi threads in each process"),
+            use_reloader=(pkconfig.channel_in("dev"), bool, "use the Flask reloader"),
         )
     return __cfg
 
@@ -223,22 +277,23 @@ def _cfg_emails(value):
         list: validated emails
     """
     import pyisemail
+
     try:
         if not isinstance(value, (list, tuple)):
-            value = re.split(r'[,;:\s]+', value)
+            value = re.split(r"[,;:\s]+", value)
     except Exception:
-        pkcli.command_error('{}: invalid email list', value)
+        pkcli.command_error("{}: invalid email list", value)
     for v in value:
         if not pyisemail.is_email(value):
-            pkcli.command_error('{}: invalid email', v)
+            pkcli.command_error("{}: invalid email", v)
 
 
 def _cfg_int(lower, upper):
     def wrapper(value):
         v = int(value)
-        assert lower <= v <= upper, \
-            'value must be from {} to {}'.format(lower, upper)
+        assert lower <= v <= upper, "value must be from {} to {}".format(lower, upper)
         return v
+
     return wrapper
 
 
@@ -247,11 +302,17 @@ def _cfg_ip(value):
         socket.inet_aton(value)
         return value
     except socket.error:
-        pkcli.command_error('{}: ip is not a valid IPv4 address', value)
+        pkcli.command_error("{}: ip is not a valid IPv4 address", value)
 
 
 def _cfg_port(value):
-    return _cfg_int(5001, 32767)(value)
+    return _cfg_int(3000, 32767)(value)
+
+
+def _cfg_react_port(value):
+    if not value:
+        return None
+    return _cfg_int(3000, 32767)(value)
 
 
 def _run_dir():
@@ -259,5 +320,7 @@ def _run_dir():
     import sirepo.srdb
 
     if not isinstance(_cfg().run_dir, type(py.path.local())):
-        _cfg().run_dir = pkio.mkdir_parent(_cfg().run_dir) if _cfg().run_dir else sirepo.srdb.root()
+        _cfg().run_dir = (
+            pkio.mkdir_parent(_cfg().run_dir) if _cfg().run_dir else sirepo.srdb.root()
+        )
     return _cfg().run_dir

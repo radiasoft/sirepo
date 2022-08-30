@@ -1,0 +1,31 @@
+#!/bin/bash
+if [[ "$@" ]]; then
+    echo usage: bash '{{ shFileName }}' 1>&2
+    exit 0
+fi
+set -euo pipefail
+read -p "** This will run SRW {{ totalSamples }} times **. Continue? (Y/N): " confirm
+if [[ $confirm == [yY] ]]; then
+    echo Running SRW...
+else
+    exit 0
+fi
+run_dir=rsopt-srw-$(date +%Y%m%d%H%M%S)
+mkdir "$run_dir"
+cp '{{ ymlFileName }}' '{{ pyFileName }}' '{{ postProcFileName }}' {% for f in libFiles %}'{{ f }}' {% endfor %} "$run_dir"
+cd "$run_dir"
+run_rsopt=( rsopt sample configuration '{{ ymlFileName }}' )
+run_post=( python '{{ postProcFileName }}' )
+echo "Running $run_rsopt"
+echo "Output is in '{{ outFileName }}'"
+echo "Entering $PWD"
+"${run_rsopt[@]}" > '{{ outFileName }}' 2>&1
+if [ $? -eq 0 ]
+then
+    echo Collecting data
+    "${run_post[@]}"
+    echo Results are in results.h5
+else
+    echo "ERROR: rsopt failed with return code $?, see {{ outFileName }}"
+    exit 99
+fi

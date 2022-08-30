@@ -5,7 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-    SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
           '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
@@ -131,9 +130,11 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService)
     //TODO(pjm): also KB Mirror and  Monocromator
     self.toolbarItemNames = ['aperture', 'obstacle', 'emptyElement', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch', 'zonePlate'];
     self.prepareToSave = function() {};
-    self.showBeamStatisticsReport = () =>
-        ['bendingMagnet', 'geometricSource', 'undulator'].indexOf(
-            appState.models.simulation.sourceType) >= 0;
+    self.showBeamStatisticsReport = () => {
+        return ['bendingMagnet', 'geometricSource', 'undulator'].indexOf(
+            appState.models.simulation.sourceType) >= 0
+            && appState.applicationState().beamline.length;
+    };
 });
 
 SIREPO.app.controller('SourceController', function(appState, shadowService) {
@@ -410,6 +411,7 @@ SIREPO.viewLogic('geometricSourceView', function(appState, panelState, shadowSer
     ];
 });
 
+
 SIREPO.app.directive('appFooter', function() {
     return {
         restrict: 'A',
@@ -419,9 +421,11 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-dialog=""></div>
+            <div data-sim-conversion-modal="" data-conv-method="convert_to_srw"></div>
         `,
     };
 });
+
 
 SIREPO.app.directive('appHeader', function() {
     return {
@@ -440,6 +444,7 @@ SIREPO.app.directive('appHeader', function() {
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div><a href data-ng-click="openSRWConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New SRW Simulation</a></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -448,8 +453,14 @@ SIREPO.app.directive('appHeader', function() {
               </app-header-right-sim-list>
             </div>
         `,
+        controller: function($scope) {
+            $scope.openSRWConfirm = function() {
+                $('#sr-conv-dialog').modal('show');
+            };
+        }
     };
 });
+
 
 SIREPO.app.directive('reflectivityMaterial', function() {
     return {

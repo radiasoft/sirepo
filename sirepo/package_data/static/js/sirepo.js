@@ -5,6 +5,7 @@ SIREPO.srdbg = console.log.bind(console);
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
 SIREPO.debounce_timeout = 350;
+SIREPO.nonDataFileFrame = -1;
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
@@ -1027,6 +1028,10 @@ SIREPO.app.factory('stringsService', function() {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
+    function lcfirst(str) {
+        return str[0].toLowerCase() + str.substring(1);
+    }
+
     return {
         formatKey: (name) => {
             return ucfirst(strings[name]);
@@ -1056,7 +1061,8 @@ SIREPO.app.factory('stringsService', function() {
             return `End ${typeOfSimulation(modelName)}`;
         },
         typeOfSimulation: typeOfSimulation,
-        ucfirst: ucfirst
+        ucfirst: ucfirst,
+        lcfirst: lcfirst
     };
 });
 
@@ -1085,6 +1091,15 @@ SIREPO.app.factory('timeService', function() {
         );
     };
 
+    return self;
+});
+
+SIREPO.app.factory('userAgent', function() {
+    var self = {
+        HEADER: 'X-Sirepo-UserAgentId'
+    };
+
+    self.id = null;
     return self;
 });
 
@@ -1190,15 +1205,19 @@ SIREPO.app.service('validationService', function(utilities) {
     // html5 validation
     this.validateField = function (model, field, inputType, isValid, msg) {
         const mfId = utilities.modelFieldID(model, field);
-        const f = $(`.${mfId} ${inputType}`)[0];
+        const r = $(`.${mfId} ${inputType}`);
+        const f = r[0];
         if (! f) {
             return;
         }
         const fWarn = $(`.${mfId} .sr-input-warning`);
+        const invalidClass = 'ng-invalid ng-dirty';
         fWarn.text(msg);
         fWarn.hide();
         f.setCustomValidity('');
+        r.removeClass(invalidClass);
         if (! isValid) {
+            r.addClass(invalidClass);
             f.setCustomValidity(msg);
             fWarn.show();
         }
@@ -1616,6 +1635,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
     };
 
+    self.enableArrayField = function(model, field, index, isEnabled) {
+        $(fieldClass(model, field)).find('input.form-control').eq(index).prop('readonly', ! isEnabled);
+    };
+
     self.enableFields = function(model, fieldInfo) {
         applyToFields('enableField', model, fieldInfo);
     };
@@ -1693,7 +1716,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.isActiveField = function(model, field) {
-        return $(fieldClass(model, field)).find('input').is(':focus');
+        return $(fieldClass(model, field)).find('input, select').is(':focus');
     };
 
     self.isHidden = function(name) {
@@ -1931,7 +1954,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, userAgent, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2222,7 +2245,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         // needs to handle query params from calls using complete url differently
         u = u.split("?");
-        
+
         if(u.length > 1 && u[1].trim()) {
             $location.path(u[0]).search(u[1]);
         } else {
@@ -2294,6 +2317,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         t = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
+            headers: userAgent.id ? {[userAgent.HEADER]: userAgent.id} : {}
         };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
@@ -2387,6 +2411,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         };
         req.then(
             function(response) {
+                const i = response.headers(userAgent.HEADER);
+                if (i) {
+                    userAgent.id = i;
+                }
                 var data = response.data;
                 if (! angular.isObject(data) || data.state === 'srException') {
                     // properly handle file path returns from get_application_data, which do not live in json objects
@@ -2854,6 +2882,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         state.isStateCanceled = function() {
             return simulationStatus().state == 'canceled';
+        };
+
+        state.isStateCompleted = function() {
+            return simulationStatus().state == 'completed';
         };
 
         state.isStateError = function() {
@@ -3765,6 +3797,14 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 appState.autoSave(clearModels, errorCallback);
                 self.selectedItem = null;
             });
+    }
+
+    function beginSession() {
+        requestSender.sendRequest(
+            'beginSession',
+            () => {},
+            {simulationType: SIREPO.APP_SCHEMA.simulationType}
+            );
     }
 
     self.canDelete = function(item) {

@@ -28,6 +28,14 @@
             ["gmix", "Gaussian Mixture"],
             ["kmeans", "KMeans"]
         ],
+        "DataFormat": [
+            ["image", "Image"],
+            ["text", "Text"]
+        ],
+        "DataOrigin": [
+            ["file", "File"],
+            ["url", "URL"]
+        ],
         "InputOutputClass": [
             ["input", "Input"],
             ["output", "Output"],
@@ -50,13 +58,24 @@
             ["softsign", "Softsign"]
         ],
         "NeuralNetLayer": [
-            ["Activation", "Activation Funciton"],
+            ["Activation", "Activation Function"],
+            ["Add", "Add"],
             ["AlphaDropout", "Alpha Noise Dropout"],
+            ["AveragePooling2D", "Average Pooling"],
+            ["BatchNormalization", "Batch Normalization"],
+            ["Concatenate", "Concatenate"],
+            ["Conv2D", "Conv2D Layer"],
+            ["Conv2DTranspose", "Conv2DTranspose layer"],
+            ["SeparableConv2D", "Separable Conv2D Layer"],
             ["Dense", "Densely Connected NN"],
             ["Dropout", "Dropout"],
             ["Flatten", "Flatten"],
+            ["MaxPooling2D", "Max Pooling"],
             ["GaussianDropout", "Gaussian Noise Dropout"],
-            ["GaussianNoise", "Gaussian Noise"]
+            ["GaussianNoise", "Gaussian Noise"],
+            ["GlobalAveragePooling2D", "Global Average Pooling 2D"],
+            ["UpSampling2D", "UpSampling2D Layer"],
+            ["ZeroPadding2D", "Zero Padding Layer"]
         ],
         "NeuralNetLosses": [
             ["binary_crossentropy", "Binary Cross-Entropy"],
@@ -255,9 +274,12 @@
         },
         "dataFile": {
             "appMode": ["Application Mode", "AppMode", "regression"],
+            "dataOrigin": ["Data Origin", "DataOrigin", "file"],
+            "dataFormat": ["Data Format", "DataFormat", "text"],
             "file": ["Data File", "InputFile"],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
-            "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
+            "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
+            "url": ["Data URL", "URL", ""]
         },
         "dtClassifierClassificationMetricsAnimation": {},
         "dtClassifierConfusionMatrixAnimation": {
@@ -319,13 +341,84 @@
         },
         "neuralNetLayer": {
             "layer": ["Layer", "NeuralNetLayer", "Dense"],
-            "activationActivation": ["Activation", "NeuralNetActivation", "relu"],
-            "alphaDropoutRate": ["Rate", "Float", 0.5],
-            "denseActivation": ["Activation", "NeuralNetActivation", "relu"],
-            "denseDimensionality": ["Dimensionality", "Integer", 10],
-            "dropoutRate": ["Rate", "Float", 0.5],
-            "gaussianDropoutRate": ["Rate", "Float", 0.5],
-            "gaussianNoiseStddev": ["Standard Deviation", "Float", 0.01]
+            "dimensionality": ["Dimensionality", "Integer", 10],
+            "activation": ["Activation", "NeuralNetActivation", "relu"]
+        },
+        "activation": {
+            "layer": ["Layer", "NeuralNetLayer", "Activation"],
+            "activation": ["Activation", "NeuralNetActivation", "relu"]
+        },
+        "add": {
+            "layer": ["Layer", "NeuralNetLayer", "Add"]
+        },
+        "alphaDropout": {
+            "_super": ["-", "model", "dropout"],
+            "layer": ["Layer", "NeuralNetLayer", "AlphaDropout"]
+        },
+        "averagePooling2D": {
+            "_super": ["-", "model", "poolingLayer"],
+            "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"]
+        },
+        "batchNormalization": {
+            "layer": ["layer", "NeuralNetLayer", "BatchNormalization"],
+            "momentum": ["Momentum", "Float", 0.99]
+        },
+        "concatenate": {
+            "layer": ["Layer", "NeuralNetLayer", "Concatenate"]
+        },
+        "conv2D": {
+            "_super": ["-", "model", "neuralNetLayer"],
+            "layer": ["Layer", "NeuralNetLayer", "Conv2D"],
+            "kernel" : ["Kernel Size", "Integer", 3],
+            "strides": ["Strides", "Integer", 1],
+            "padding": ["Padding", "String", "same"]
+        },
+        "conv2DTranspose": {
+            "_super": ["-", "model", "conv2D"],
+            "layer": ["Layer", "NeuralNetLayer", "Conv2DTranspose"]
+        },
+        "dense": {
+            "_super": ["-", "model", "neuralNetLayer"]
+        },
+        "dropout": {
+            "layer": ["Layer", "NeuralNetLayer", "Dropout"],
+            "dropoutRate": ["Rate", "Float", 0.5]
+        },
+        "flatten": {
+            "layer": ["layer", "NeuralNetLayer", "Flatten"]
+        },
+        "globalAveragePooling2D": {
+            "layer": ["layer", "NeuralNetLayer", "GlobalAveragePooling2D"]
+        },
+        "gaussianDropout": {
+            "_super": ["-", "model", "dropout"],
+            "layer": ["Layer", "NeuralNetLayer", "GaussianDropout"]
+        },
+        "gaussianNoise": {
+            "layer": ["Layer", "NeuralNetLayer", "GaussianNoise"],
+            "stddev": ["Standard Deviation", "Float", 0.01]
+        },
+        "maxPooling2D": {
+            "_super": ["-", "model", "poolingLayer"],
+            "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"]
+        },
+        "poolingLayer": {
+            "size": ["Pool Size", "Integer", 2],
+            "strides": ["Strides", "Integer", 1],
+            "padding": ["Padding", "String", "same"]
+        },
+        "separableConv2D": {
+            "_super": ["-", "model", "conv2D"],
+            "layer": ["Layer", "NeuralNetLayer", "SeparableConv2D"]
+        },
+        "upSampling2D": {
+            "layer": ["layer", "NeuralNetLayer", "UpSampling2D"],
+            "size": ["Size", "Integer", 2],
+            "interpolation": ["Interpolation", "String", "nearest"]
+        },
+        "zeroPadding2D": {
+            "layer": ["layer", "NeuralNetLayer", "ZeroPadding2D"],
+            "padding": ["Padding", "Integer", 1]
         },
         "partition": {
             "training": ["Training %", "Float", 75, "", 1, 98],
@@ -421,7 +514,10 @@
             "title": "Data Source",
             "basic": [
                 "appMode",
+                "dataOrigin",
                 "file",
+                "url",
+                "dataFormat",
                 "inputsScaler",
                 "outputsScaler"
             ],

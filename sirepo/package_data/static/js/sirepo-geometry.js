@@ -53,6 +53,16 @@ class GeometryUtils {
     }
 
     /**
+     * Get the axis in BASIS that comes after the given axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {string}
+     */
+    static nextAxis(axis) {
+        const b = GeometryUtils.BASIS();
+        return b[(b.indexOf(axis) + 1) % b.length];
+    }
+
+    /**
      * Sort (with optional reversal) the point array by the values in the given dimension.
      * Array is cloned first so the original is unchanged
      * @param {[Point]} points - the points to sort

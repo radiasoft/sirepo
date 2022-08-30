@@ -57,6 +57,17 @@
                 ],
                 "stroke": "black"
             },
+            "cylinder": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [24.0, 12.0], [23.6, 15.1], [22.4, 18.0], [20.5, 20.5], [18.0, 22.4], [15.1, 23.6],
+                    [12.0, 24.0], [8.9, 23.6], [6.0, 22.4], [3.5, 20.5], [1.6, 18.0], [0.4, 15.1],
+                    [0.0, 12.0], [0.4, 8.9], [1.6, 6.0], [3.5, 3.5], [6.0, 1.6], [8.9, 0.4],
+                    [12.0, 0.0], [15.1, 0.4], [18.0, 1.6], [20.5, 3.5], [22.4, 6.0], [23.6, 8.9]
+                ],
+                "stroke": "black"
+            },
             "cee": {
                 "doClose": true,
                 "fill": "#97B6D5",
@@ -70,6 +81,14 @@
                 "fill": "#97B6D5",
                 "points": [
                     [0, 0], [8, 0], [8, 16], [24, 16], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
+            "extrudedPoints": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [8, 0], [16, 16], [24, 20], [24, 24], [0, 24]
                 ],
                 "stroke": "black"
             },
@@ -123,6 +142,13 @@
                     },
                     {
                         "isButton": false,
+                        "layoutShape": "circle",
+                        "model": "cylinder",
+                        "title": "Cylinder",
+                        "type": "cylinder"
+                    },
+                    {
+                        "isButton": false,
                         "layoutShape": "rect",
                         "model": "ell",
                         "title": "L-Bend",
@@ -143,10 +169,17 @@
                         "type": "jay"
                     },
                     {
+                        "isButton": false,
+                        "layoutShape": "polygon",
+                        "model": "extrudedPoints",
+                        "title": "Extruded",
+                        "type": "extrudedPoints"
+                    },
+                    {
                         "layoutShape": "rect",
                         "model": "geomGroup",
                         "title": "Group",
-                        "type": "group"
+                        "type": "geomGroup"
                     }
                 ],
                 "name": "Objects"
@@ -249,6 +282,10 @@
             ["standard", "Standard"],
             ["beam", "Beam"]
         ],
+        "CutRemoval": [
+            ["-1", "Body"],
+            ["1", "Corner"]
+        ],
         "BevelEdge": [
             ["0", "Top Left"],
             ["1", "Top Right"],
@@ -303,8 +340,10 @@
         ],
         "ObjectType": [
             ["cuboid", "Cuboid"],
+            ["cylinder", "Cylinder"],
             ["cee", "Extruded C-Bend"],
             ["ell", "Extruded L-Bend"],
+            ["extrudedPoints", "Extruded Points"],
             ["jay", "Extruded J-Bend"],
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"]
@@ -379,6 +418,12 @@
         "cuboid": {
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "cuboid"]
+        },
+        "cylinder": {
+            "_super": ["_", "model", "extrudedObject"],
+            "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
+            "radius": ["Radius", "Float", 5.0, "", 0.0],
+            "type": ["_", "ObjectType", "cylinder"]
         },
         "cee": {
             "_super": ["_", "model", "stemmed"],
@@ -662,12 +707,22 @@
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "ell"]
         },
-        "extrudedPoly": {
+        "extrudedPoints": {
+            "_super": ["_", "model", "extrudedPoly"],
+            "pointsFile": ["File", "InputFile", "", "", true],
+            "referencePoints": ["Points", "Points", []],
+            "type": ["_", "ObjectType", "extrudedPoints"]
+        },
+        "extrudedObject": {
             "_super": ["_", "model", "geomObject"],
+            "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"]
+        },
+        "extrudedPoly": {
+            "_super": ["_", "model", "extrudedObject"],
             "area": ["_", "Float", 0,0],
-            "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
             "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
             "heightAxis": ["_", "BeamAxis", "y"],
+            "layoutShape":  ["_", "String", "polygon"],
             "points": ["Points", "Points", []],
             "triangulationLevel": ["Triangulation Detail", "Range", 0.5, "Governs the max size of triangles used to subdivide the shape, from coarse to fine. Smaller triangles gain accuracy at the expense of longer solve times.", 0.0, 1.0],
             "widthAxis": ["_", "BeamAxis", "x"]
@@ -727,13 +782,14 @@
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
             "bevels": ["Bevels", "BevelTable", []],
+            "fillets": ["Fillets", "FilletTable", []],
             "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "segments": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
+            "segments": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$, N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$, N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "material": ["Material", "MaterialType", "NdFeB"],
+            "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Shape Type", "ObjectType", "cuboid"],
@@ -792,23 +848,39 @@
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
         },
+        "objectFillet": {
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
+            "edge": ["Filleted Edge", "BevelEdge", "0", "Index of base shape edge to fillet, relative to the view axis"],
+            "numSides": ["Number of Sides", "Integer", 10, "Resolution of the curved surface", 6],
+            "radius": ["Radius", "Float", 1.0]
+        },
         "objectBevel": {
+            "_super": ["_", "model", "objectCut"],
             "amountVert": ["Cut Distance in Vertical Direction [mm]", "Float", 1.0],
             "amountHoriz": ["Cut Distance in Horizontal Direction [mm]", "Float", 1.0],
-            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutDir": ["", "Array", [0, 0, 1]],
             "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
             "heightDir": ["", "Array", [0, 1, 0]],
             "widthDir": ["", "Array", [1, 0, 0]]
         },
+        "objectCut": {
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
+            "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
+            "cutPoint": ["Cut Point", "FloatStringArray", "0, 0, 0", "", "x, y, z"],
+            "type": ["_", "PathType", "manual"]
+        },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
+        },
+        "pointsReport": {
+            "doSnap": ["Snap to Grid", "Boolean", "0"],
+            "gridSize": ["Grid Size [mm]", "Float", "0.5", "", "0"]
         },
         "racetrack": {
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
             "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "currentDensity": ["Current Density [A/mm]", "Float", -2000.0],
+            "currentDensity": ["Current Density [A/$mm^2$]", "Float", -2000.0],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
             "height": ["Height ({{ appState.models.simulation.heightAxis }}) [mm]", "Float", 105.0, "", "Size along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
@@ -851,15 +923,16 @@
             "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
         },
         "solverAnimation":  {
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
             "method": ["Method", "SolveMethod", "4"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
-            "sbatchCores": ["Cores", "Integer", 1],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
             "sbatchProject": ["Project", "OptionalString", ""]
         },
         "spatialTransform": {
@@ -1190,7 +1263,7 @@
                     "segments",
                     "center",
                     "size"
-            ]],
+                ]],
                 ["Transforms", [
                     "transforms"
                 ]]
@@ -1254,13 +1327,29 @@
                 "cutAxis",
                 "edge",
                 "amountVert",
-                "amountHoriz"
+                "amountHoriz",
+                "cutRemoval"
             ],
             "advanced": [
                 "cutAxis",
                 "edge",
                 "amountVert",
-                "amountHoriz"
+                "amountHoriz",
+                "cutRemoval"
+            ]
+        },
+        "objectFillet": {
+            "basic": [
+                "cutAxis",
+                "edge",
+                "radius",
+                "numSides"
+            ],
+            "advanced": [
+                "cutAxis",
+                "edge",
+                "radius",
+                "numSides"
             ]
         },
         "objectShape": {
@@ -1271,7 +1360,9 @@
                 ["Dimensions", [
                     "type",
                     "color",
-                    "stemmed.extrusionAxis",
+                    "cylinder.radius",
+                    "extrudedObject.extrusionAxis",
+                    "cylinder.numSides",
                     "extrudedPoly.extrusionAxisSegments",
                     "extrudedPoly.triangulationLevel",
                     "stemmed.armHeight",
@@ -1281,10 +1372,23 @@
                     "jay.hookHeight",
                     "jay.hookWidth"
                 ]],
+                ["Point Editor", [
+                    "extrudedPoints.pointsFile",
+                    "extrudedPoints.referencePoints"
+                ]],
                 ["Modifications", [
-                    "bevels"
+                    "bevels",
+                    "fillets"
                 ]]
             ]
+        },
+        "pointsReport": {
+            "title": "Points",
+            "basic": [
+                "doSnap",
+                "gridSize"
+            ],
+            "advanced": []
         },
         "racetrack": {
             "title": "Race Track",

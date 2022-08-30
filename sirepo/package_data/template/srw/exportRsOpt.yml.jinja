@@ -1,0 +1,41 @@
+{%- macro fixSpaces(t) -%}
+{{ t | replace(" ", "_") }}
+{%- endmacro -%}
+
+codes:
+  - python:
+      settings:
+      parameters:
+        {% for e in rsOptElements %}
+        {% for p in rsOptParams %}
+        {% if p in e %}
+        {% for x in e[p].initial %}
+        {% if e[p].offsets[loop.index0] != 0 %}
+        {{ fixSpaces(e.title) }}_{{ e[p].fieldNames[loop.index0] }}:
+          min: {{ x - e[p].offsets[loop.index0] / 2.0 }}
+          max: {{ x + e[p].offsets[loop.index0] / 2.0 }}
+          samples: {{ numSamples }}
+          start: {{ x }}
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+      setup:
+        input_file: {{ pyFileName }}
+        function: rsopt_run
+        execution_type: parallel
+
+options:
+  {% if scanType == 'grid' %}
+  software: mesh_scan
+  {% elif scanType == 'random' %}
+  software: lh_scan
+  seed: {{ randomSeed }}
+  nworkers: {{ numWorkers }}
+  batch_size: {{ numSamples }}
+  {% endif %}
+  output_file: {{ fileBase }}
+  sym_links: {{ libFiles }}
+  sim_dirs_make: True
+

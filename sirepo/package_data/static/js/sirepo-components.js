@@ -134,6 +134,21 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
                 }
                 tabSelectedEvent();
             };
+
+            $scope.showPageNamed = (name, doShow) => {
+                const p = $scope.pages.filter(p => p.name === name)[0];
+                if (! p) {
+                    return;
+                }
+                const l = $(`li.${p.class}`);
+                if (doShow) {
+                    l.show();
+                }
+                else {
+                    l.hide();
+                }
+            };
+
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
                 $scope.pages = [];
@@ -731,7 +746,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
               </div>
               <div data-ng-switch-when="InputFile" class="col-sm-7">
-                <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected"></div>
+                <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[4]" data-empty-selection-text="No File Selected"></div>
               </div>
                <div data-ng-switch-when="Boolean" class="col-sm-7">
                  <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
@@ -1977,6 +1992,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
     return {
         restrict: 'A',
         scope: {
+            customStyle: '@',
             field: '=',
             info: '<',
             model: '<',
@@ -1985,8 +2001,8 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
         },
         template: `
             <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
-            <label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>
-            <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />
+            <label data-text-with-math="valueLabels[$index] || \'Plane \' + $index" style="margin-right: 1ex"></label>
+            <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right; {{ customStyle }}" required />
             </div>
         `,
         controller: function($scope) {
@@ -2249,6 +2265,7 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         restrict: 'A',
         transclude: true,
         scope: {
+            reportCfg: '=',
             reportPanel: '@',
             modelName: '@',
             panelTitle: '@',
@@ -2259,7 +2276,7 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         template: `
             <div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">
               <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>
-              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>
+              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"><div data-ng-transclude=""></div></div>
               <button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>
         `,
         controller: function($scope) {
@@ -2927,7 +2944,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 }
                 else {
                     $scope.showWarning = true;
-                    $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+                    $scope.warningText = 'Server reported an error, please contact support@sirepo.com.';
                 }
             }
 
@@ -2997,6 +3014,85 @@ SIREPO.app.directive('commonFooter', function() {
     };
 });
 
+
+SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            convMethod: '@',
+        },
+        template: `
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openConvertedSimulation()">
+              <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
+              <div data-ng-if="displayLink()">
+                {{ title }} simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.newSimURL = false;
+            $scope.title = $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';
+
+            function createNewSim(data) {
+                requestSender.sendRequest(
+                    'newSimulation',
+                    simData => {
+                        ['simulationId', 'simulationSerial'].forEach(function(f) {
+                            data.models.simulation[f] = simData.models.simulation[f];
+                        });
+                        data.version = simData.version;
+                        requestSender.sendRequest(
+                            'saveSimulationData',
+                            genSimURL,
+                            data);
+                    },
+                    newSimData(data));
+            }
+
+            function newSimData(data) {
+                const res = appState.clone(data.models.simulation);
+                res.simulationType = data.simulationType;
+                if (! res.name){
+                    res.name = 'newSim';
+                }
+                return res;
+            }
+
+            function genSimURL(data) {
+                $scope.newSimURL = requestSender.formatUrlLocal(
+                    'beamline',
+                    { 'simulationId': data.models.simulation.simulationId},
+                    data.simulationType
+                );
+            }
+
+            $scope.closeModal = function() {
+                $('#sr-conv-dialog').modal('hide');
+                $scope.resetURL();
+            };
+
+            $scope.resetURL = function() {
+                $scope.newSimURL = false;
+            };
+
+            $scope.openConvertedSimulation = function() {
+                const d = appState.models;
+                d.method = $scope.convMethod;
+                requestSender.sendStatefulCompute(
+                    appState,
+                    createNewSim,
+                    d
+                );
+                return false;
+            };
+
+            $scope.displayLink = function() {
+                return Boolean($scope.newSimURL);
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('simulationStatusTimer', function() {
     return {
         restrict: 'A',
@@ -3010,6 +3106,60 @@ SIREPO.app.directive('simulationStatusTimer', function() {
         `,
         controller: function($scope, appState) {
             $scope.appState = appState;
+        },
+    };
+});
+
+SIREPO.app.directive('downloadStatus', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=',
+            label: '=',
+            title: '=',
+        },
+        template: `
+            <div class="modal fade" id="sr-download-status" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <button type="button" class="close" data-ng-click="cancel()"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="col-sm-12">
+                          <div>{{ label }}{{ simState.dots }}</div>
+                          <div class="progress">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-sm-12 col-sm-offset-4">
+                          <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+
+            $scope.cancel = () => {
+                $scope.simState.cancelSimulation(() => {
+                    $('#sr-download-status').modal('hide');
+                });
+            };
+
+            $scope.$on('download.started', (e, simState, title, label) => {
+                $scope.simState = simState;
+                $scope.label = label;
+                $scope.title = title;
+            });
         },
     };
 });
@@ -3381,6 +3531,7 @@ SIREPO.app.directive('modelArray', function() {
             field: '=',
         },
         template: `
+            <div  style="position: relative; top: -25px">
             <div class="row">
               <div class="col-sm-11"><div class="row">
                 <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
@@ -3397,6 +3548,7 @@ SIREPO.app.directive('modelArray', function() {
                 </div>
               </div></div>
               <div class="col-sm-1"><button style="margin-left: -15px; margin-top: 5px" data-ng-show="! isEmpty($index)" data-ng-click="deleteRow($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div>
+            </div>
             </div>
         `,
         controller: function(appState, $scope) {
@@ -3960,8 +4112,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
         template: `
             <div class="clearfix"></div>
             <div style="margin-top: 10px" data-ng-show="showSbatchOptions()">
-                <div data-model-field="\'sbatchHours\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
-                <div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
+                <div data-ng-repeat="sbatchField in sbatchFields" data-model-field='sbatchField' data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
                 <div data-ng-show="showNERSCFields()">
                     <div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>
                     <div data-model-field="\'sbatchProject\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
@@ -3971,6 +4122,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
         `,
         controller: function($scope, authState, sbatchLoginStatusService, stringsService) {
             $scope.sbatchQueueFieldIsDirty = false;
+            $scope.sbatchFields = ['sbatchHours', 'sbatchCores', 'tasksPerNode'];
             function trimHoursAndCores() {
                 var m = appState.models[$scope.simState.model];
                 ['Hours', 'Cores'].forEach(function(e) {
@@ -4222,7 +4374,7 @@ SIREPO.app.service('fileUpload', function($http) {
 SIREPO.app.service('mathRendering', function() {
     // Renders math expressions in a plain text string using KaTeX.
     // The math expressions must be tightly bound by $, ex. $E = mc^2$
-    var RE = /\$[\-\w\\](.*\S)?\$/;
+    var RE = /\$[\-\(\w\\](.*\S)?\$/;
 
     function encodeHTML(text) {
         return $('<div />').text(text).html();
