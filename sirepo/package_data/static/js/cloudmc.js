@@ -211,7 +211,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
         controller: function($scope, $element) {
             $scope.isClientOnly = true;
             $scope.model = appState.models[$scope.modelName];
+            $scope.tally = appState.models.tally;
+
             let axesBoxes = {};
+            let basePolyData = null;
             let picker = null;
             let vtkScene = null;
             let selectedVolume = null;
@@ -231,16 +234,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             const _SCENE_BOX = '_scene';
 
             function addTally(str, name) {
-                const pd = SIREPO.VTK.VTKUtils.parseLegacy(str);
-                pd.buildCells();
+                // the only purpose of this polyData is to capture the field info
+                basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(str);
                 $rootScope.$broadcast('vtk.hideLoader');
-                const b = coordMapper.buildActorBundle();
-                tallyBundles[name] = b;
-                b.mapper.setInputData(pd);
-                setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
-                buildVoxels(name, pd);
-                b.setActorProperty('lighting', false);
-                //vtkScene.addActor(b.actor);
+                setColorsFromFieldData(name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
+                buildVoxels(name);
                 initAxes();
                 buildAxes();
                 vtkScene.renderer.resetCamera();
@@ -308,7 +306,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 return d;
             }
 
-            function buildVoxels(name, basePolyData) {
+            function buildVoxels(name) {
                 const tally = appState.models.tally;
                 const [nx, ny, nz] = tally.meshCellCount;
                 const nxy = nx * ny;
@@ -349,12 +347,14 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     return true;
                 }
 
-                const insetPct = 0.5;
+                if (tallyBundles[name]) {
+                    vtkScene.removeActor(tallyBundles[name].actor);
+                    delete tallyBundles[name];
+                }
                 const source = vtk.Filters.General.vtkAppendPolyData.newInstance();
                 const [sx, sy, sz] = tally.meshUpperRight.map(
-                    (x, i) => (1.0 - insetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]
+                    (x, i) => (1.0 - tally.voxelInsetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]
                 );
-                let numPolys = 0;
                 for (let k = 0; k < nz; ++k) {
                     if (doSkipZ()) {
                         continue;
@@ -379,7 +379,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                             ysrc.addInputData(s);
                             n += 3;
                             m += 4;
-                            ++numPolys;
                         }
                         zsrc.addInputData(ysrc.getOutputData());
                         n += 3;
@@ -391,11 +390,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 if (source.getNumberOfInputPorts() <= 1) {
                     return;
                 }
-
                 const b = coordMapper.buildActorBundle(source, {
                     'lighting': false,
                 });
+                tallyBundles[name] = b;
                 vtkScene.addActor(b.actor);
+                vtkScene.render();
             }
 
             function getVolumeById(volId) {
@@ -463,9 +463,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 });
             }
 
-            function setColorsFromFieldData(polyData, name, colorMap) {
+            function setColorsFromFieldData(name, colorMap) {
                 const dataColors = [];
-                const d = Array.from(polyData.getFieldData().getArrayByName(name).getData());
+                const d = Array.from(basePolyData.getFieldData().getArrayByName(name).getData());
                 const s = SIREPO.PLOTTING.Utils.colorScale(
                     SIREPO.UTILS.largeMin(d),
                     SIREPO.UTILS.largeMax(d),
@@ -479,22 +479,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                             d[i] === 0 ? 0 : Math.floor(255 * appState.models.geometry3DReport.opacity)
                         );
                     });
-                polyData.getCellData().setScalars(
+                basePolyData.getCellData().setScalars(
                     vtk.Common.Core.vtkDataArray.newInstance({
                         numberOfComponents: 4,
                         values: dataColors,
                         dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                     })
                 );
-                polyData.buildCells();
-            }
-
-            function setTallyOpacity(name, opacity) {
-                const pd = tallyBundles[name].mapper.getInputData();
-
             }
 
             function loadTally(name) {
+                basePolyData = null;
                 const u = requestSender.formatUrl(
                     'downloadDataFile',
                     {
@@ -642,6 +637,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             });
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
+
+            $scope.$on('tally.changed', () => {
+                buildVoxels(appState.models.tally.aspect);
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
