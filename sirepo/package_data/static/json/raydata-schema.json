@@ -14,12 +14,7 @@
             ]
         }
     },
-    "enum": {
-        "CatalogName": [
-            ["chx", "chx"],
-            ["csx", "csx"]
-        ]
-    },
+    "enum": {},
     "frameIdFields": {
         "animation": []
     },

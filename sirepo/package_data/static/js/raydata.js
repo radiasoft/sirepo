@@ -11,6 +11,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="SelectedScansTable" class="col-sm-12">
           <div data-scan-selector="" data-model-name="modelName"></div>
         </div>
+        <div data-ng-switch-when="CatalogName" data-ng-class="fieldClass">
+          <div data-catalog-picker="" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.appReportTypes  = `
         <div data-ng-switch-when="pngImage" data-png-image="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
@@ -570,34 +573,19 @@ SIREPO.app.directive('catalogPicker', function() {
     return {
         restrict: 'A',
         scope: {
-            args: '='
+            model: '=',
+            field: '=',
         },
         template: `
-            <div class="form-group">
-              <label for="sourceCatalog">Catalog:</label>
-              <select id="sourceCatalog" data-ng-model="selectedCatalog"  ng-change="changeSelectedCatalog()">
-                <option ng-repeat="catalog in allCatalogs">{{catalog}}</option>
-              </select>
-            </div>
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in allCatalogs"></select>
         `,
-        controller: function($scope, appState, panelState, raydataService, requestSender) {
-            $scope.selected = null;
-            $scope.selectedCatalog = appState.models.scans.catalogName;
-            $scope.allCatalogs = null;
-
-            $scope.changeSelectedCatalog = () => {
-                appState.models.scans['catalogName'] = $scope.selectedCatalog;
-                // TODO(rorour): remove catalog selector in scan selector
-                // TODO(rorour): fix stateless compute error?
-                appState.saveChanges('scans');
-            }
-
-            $scope.getAllCatalogs = () => {
+        controller: function($scope, appState, requestSender) {
+            $scope.allCatalogs = [];
+            (function() {
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
                         $scope.allCatalogs = json.data.catalogs;
-                        srdbg('catalogs to choose from are ', $scope.allCatalogs)
                     },
                     {
                         method: 'all_catalogs',
@@ -608,8 +596,7 @@ SIREPO.app.directive('catalogPicker', function() {
                         },
                     }
                 );
-            };
-            $scope.getAllCatalogs();
+            })();
         },
     };
 });
