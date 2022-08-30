@@ -100,18 +100,25 @@ def stateless_compute_all_catalogs(data):
 
 
 class ScanObject(PKDict):
-    def __init__(self, uid=''):
+    def __init__(self, uid=""):
         self.uid = uid
-        self.metadata = {'field1': 'val1', 'num_points': '1', 'start': {'time': '000', 'uid': uid, 'num_points': '2'}, 'stop': {'time': '001'}}
+        self.metadata = {
+            "field1": "val1",
+            "num_points": "1",
+            "start": {"time": "000", "uid": uid, "num_points": "2"},
+            "stop": {"time": "001"},
+        }
 
 
 def stateless_compute_completed_scans(data):
-    assert data.searchStartTime and data.searchStopTime, pkdformat(
-        "must have both searchStartTime and searchStopTime data={}", data
-    )
+    # TODO(e-carlin): get scans from daemon
     s = []
     for i, v in enumerate(
-        [('uid1', ScanObject('uid1')), ('uid2', ScanObject('uid2')), ('uid3', ScanObject('uid3'))]
+        [
+            ("uid1", ScanObject("uid1")),
+            ("uid2", ScanObject("uid2")),
+            ("uid3", ScanObject("uid3")),
+        ]
     ):
         if i > _MAX_NUM_SCANS:
             raise sirepo.util.UserAlert(
@@ -124,7 +131,7 @@ def stateless_compute_completed_scans(data):
 def stateless_compute_queued_scans(data):
     return PKDict(
         data=PKDict(
-            queuedScans=[ScanObject('uid4'), ScanObject('uid5'), ScanObject('uid6')],
+            queuedScans=[ScanObject("uid4"), ScanObject("uid5"), ScanObject("uid6")],
         )
     )
 

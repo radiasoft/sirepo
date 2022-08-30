@@ -97,6 +97,9 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         });
     };
 
+
+    // TODO(e-carlin): I think this can be deleted and all references to selected because
+    // we no longer select scans
     self.maybeToggleScanSelection = function(scan, selected) {
         if (selected !== undefined) {
             scan.selected = selected;
@@ -763,15 +766,13 @@ SIREPO.app.directive('scanSelector', function() {
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
                         <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
                         {{ column }}
-                        <input type="checkbox" data-ng-checked="selectAllColumns" data-ng-show="showSelectAllButton($index)" data-ng-click="toggleSelectAll()"/>
                         <button type="submit" class="btn btn-primary btn-xs" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="showAnalysisOutputModal(s)">
-                      <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="toggleScanSelection(s)"/></td>
-                      <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
+                      <td data-ng-repeat="c in columnHeaders.slice(0)">{{ getScanField(s, c) }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -826,7 +827,6 @@ SIREPO.app.directive('scanSelector', function() {
             $scope.orderByColumn = 'start';
             $scope.reverseSortScans = false;
             $scope.scans = [];
-            $scope.selectAllColumns = false;
 
             function searchStartOrStopTimeKey(startOrStop) {
                 return `search${startOrStop}Time`;
@@ -919,7 +919,6 @@ SIREPO.app.directive('scanSelector', function() {
             };
 
             $scope.showAnalysisOutputModal = (scan) => {
-                srdbg('showAnalysisOutputModal', scan)
                 $scope.selectedScan = scan;
                 var el = $('#sr-analysis-output');
                 el.modal('show');
@@ -946,7 +945,6 @@ SIREPO.app.directive('scanSelector', function() {
 
             $scope.setColumnHeaders = function() {
                 $scope.columnHeaders = [
-                    'selected',
                     ...$scope.defaultColumns,
                     ...appState.models.metadataColumns.selected
                 ];
@@ -956,25 +954,12 @@ SIREPO.app.directive('scanSelector', function() {
                 return index > $scope.defaultColumns.length && index === hoveredIndex;
             };
 
-            $scope.showSelectAllButton = (index) => {
-                return index === 0;
-            };
-
             $scope.sortCol = (column) => {
                 if (column === 'selected') {
                     return;
                 }
                 $scope.orderByColumn = column;
                 $scope.reverseSortScans = ! $scope.reverseSortScans;
-            };
-
-            $scope.toggleScanSelection = raydataService.maybeToggleScanSelection;
-
-            $scope.toggleSelectAll = () => {
-                for (let i = 0; i < $scope.scans.length; i++) {
-                    $scope.toggleScanSelection($scope.scans[i], ! $scope.selectAllColumns);
-                }
-                $scope.selectAllColumns = ! $scope.selectAllColumns;
             };
 
             $scope.$on('scans.changed', $scope.sendScanRequest);
