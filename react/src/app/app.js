@@ -16,9 +16,9 @@ import {
     formStatesSlice
 } from '../formState'
 import "./app.scss"
-import Schema from './schema'
+import { compileSchemaFromJson } from '../schema'
 import { Graph2dFromApi } from "../components/graph2d";
-import { SchemaEditorPanel } from "../components/form";
+import { EditorPanel } from "../components/form";
 import { 
     ContextAppInfo,
     ContextAppName,
@@ -187,7 +187,7 @@ function AppInfoWrapper(appInfo) {
 class AppViewBuilder{
     constructor (appInfo) { 
         this.components = {
-            'editor': SchemaEditorPanel(appInfo),
+            'editor': EditorPanel(appInfo),
             'graph2d': (viewInfo) => SimulationVisualWrapper(viewInfo.viewName, viewInfo.view.title, Graph2dFromApi, { width: '100%', height: '100%' })
         }
     }
@@ -253,7 +253,12 @@ const AppRoot = (props) => {
 
     const hasSchema = useSetup(true,
         (finishInitSchema) => {
-            updateSchema(Schema);
+            //updateSchema(Schema);
+            fetch('/react/schema/').then(resp => {
+                resp.json().then(json => {
+                    updateSchema(compileSchemaFromJson(json));
+                })
+            })
             finishInitSchema();
         }
     )

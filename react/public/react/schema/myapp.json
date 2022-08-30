@@ -1,0 +1,58 @@
+{
+    "enum": {
+        "Gender": [
+            ["male", "Male"],
+            ["female", "Female"]
+        ],
+        "DogDisposition": [
+            ["aggressive", "Aggressive"],
+            ["friendly", "Friendly"],
+            ["submissive", "Submissive"]
+        ]
+    },
+    "model": {
+        "dog": {
+            "breed": ["Breed", "String"],
+            "gender": ["Gender", "Gender", "male"],
+            "height": ["Height [cm]", "Float", 50.0, "Distance from front paws to withers"],
+            "weight": ["Weight [lbs]", "Float", 60.5],
+            "disposition": ["Disposition", "DogDisposition", "friendly"],
+            "favoriteTreat": ["Favorite Treat", "OptionalString", ""]
+        }
+    },
+    "view": {
+        "dog": {
+            "title": "Dog",
+            "type": "editor",
+            "config": {
+                "basic": [
+                    {
+                        "table": "fieldList",
+                        "fields": [
+                            "dog.breed",
+                            "dog.weight",
+                            "dog.height",
+                            "dog.disposition",
+                            "dog.favoriteTreat"
+                        ]
+                    }
+                ],
+                "advanced": [
+                    {
+                        "table": "fieldList",
+                        "fields": [
+                            "dog.breed",
+                            "dog.gender",
+                            "dog.weight",
+                            "dog.height"
+                        ]
+                    }
+                ]
+            }
+        },
+        "heightWeightReport": {
+            "title": "Physical Characteristics",
+            "type": "graph2d"
+        }
+    }
+}

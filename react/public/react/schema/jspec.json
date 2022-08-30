@@ -1,0 +1,570 @@
+{
+    "enum": {
+        "ElectronBeamShape": [
+            ["dc_uniform", "Cylindrical"],
+            ["bunched_gaussian", "Gaussian"],
+            ["bunched_uniform", "Cylindrical"],
+            ["bunched_uniform_elliptic", "Cylindrical (elliptical cross-section)"]
+        ],
+        "ElectronBeamShapeDescription": [
+            ["dc_uniform", "The unbunched electron beam is a continuous cylinder with circular cross-section."],
+            ["bunched_gaussian", "The electron beam is a 3D Gaussian distribution in space."],
+            ["bunched_uniform", "The electron beam is a uniformly-filled 3D cylinder with circular cross-section."],
+            ["bunched_uniform_elliptic", "The electron beam is a uniformly-filled 3D cylinder with elliptical cross-section."]
+        ],
+        "BeamColumn": [
+            ["emitx", "emit_x"],
+            ["emity", "emit_y"],
+            ["dpp", "dp/p"],
+            ["sigmas", "sigma_s"]
+        ],
+        "BeamOptionalColumn": [
+            ["emitx", "emit_x"],
+            ["emity", "emit_y"],
+            ["dpp", "dp/p"],
+            ["sigmas", "sigma_s"],
+            ["none", "None"]
+        ],
+        "BeamParticle": [
+            ["ALUMINUM", "Aluminum"],
+            ["COPPER", "Copper"],
+            ["DEUTERON", "Deuteron"],
+            ["GOLD", "Gold"],
+            ["HELIUM", "Helium"],
+            ["LEAD", "Lead"],
+            ["PROTON", "Proton"],
+            ["RUTHENIUM", "Ruthenium"],
+            ["URANIUM", "Uranium"],
+            ["ZIRCONIUM", "Zirconium"],
+            ["OTHER", "Other"]
+        ],
+        "BeamType": [
+            ["bunched", "Bunched Beam"],
+            ["continuous", "Continuous Beam"]
+        ],
+        "CoolingRatesColumn": [
+            ["rx", "rx"],
+            ["ry", "ry"],
+            ["rs", "rs"],
+            ["rxibs", "rx_ibs"],
+            ["ryibs", "ry_ibs"],
+            ["rsibs", "rs_ibs"],
+            ["rxecool", "rx_ecool"],
+            ["ryecool", "ry_ecool"],
+            ["rsecool", "rs_ecool"]
+        ],
+        "ColorRangeType": [
+            ["none", "None"],
+            ["fixed", "Fixed"]
+        ],
+        "CoolingRatesOptionalColumn": [
+            ["rx", "rx"],
+            ["ry", "ry"],
+            ["rs", "rs"],
+            ["rxibs", "rx_ibs"],
+            ["ryibs", "ry_ibs"],
+            ["rsibs", "rs_ibs"],
+            ["rxecool", "rx_ecool"],
+            ["ryecool", "ry_ecool"],
+            ["rsecool", "rs_ecool"],
+            ["none", "None"]
+        ],
+        "ForceFormula": [
+            ["parkhomchuk", "Parkhomchuk"],
+            ["derbenevskrinsky", "Derbenev-Skrinsky"],
+            ["meshkov", "Meshkov"],
+            ["unmagnetized", "Unmagnetized"],
+            ["budker", "Budker (un-magnetized)"],
+            ["pogorelov", "Pogorelov-Bruhwiler"],
+            ["pogorelov_warm", "Pogorelov-Bruhwiler warm electrons"]
+        ],
+        "ForceScaleFactor": [
+            ["negative", "-1"],
+            ["positive", "1"]
+        ],
+        "ForceTableColumn": [
+            ["fx", "Transverse Force"],
+            ["flong", "Longitudinal Force"],
+            ["Vtrans", "Transverse Velocity"],
+            ["Vlong", "Longitudinal Velocity"],
+            ["edensity", "Electron Density"]
+        ],
+        "ForceTablePlot": [
+            ["longitudinal", "Longitudinal"],
+            ["transverse", "Transverse"]
+        ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
+        "IBSLongitudinalMethod": [
+            ["nz", "Longitudinal Grid Size"],
+            ["log_c", "Coulomb Logarithm"]
+        ],
+        "IBSModel": [
+            ["bm", "Bjorken-Mtingwa"],
+            ["martini", "Martini"]
+        ],
+        "LatticeSource": [
+            ["madx", "Mad-X TFS File"],
+            ["elegant", "elegant twiss_output SDDS File"],
+            ["elegant-sirepo", "Sirepo elegant Simulation"]
+        ],
+        "ParticleColumn": [
+            ["x", "x"],
+            ["xp", "xp"],
+            ["y", "y"],
+            ["yp", "yp"],
+            ["ds", "ds"],
+            ["dpp", "dp/p"]
+        ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
+        ],
+        "SimulationModel": [
+            ["rms", "RMS"],
+            ["particle", "Particle"]
+        ],
+        "TwissParameter": [
+            ["betx", "betax"],
+            ["alfx", "alphax"],
+            ["mux", "mux"],
+            ["dx", "dx"],
+            ["dpx", "dpx"],
+            ["bety", "betay"],
+            ["alfy", "alphay"],
+            ["muy", "muy"],
+            ["dy", "dy"],
+            ["dpy", "dpy"],
+            ["none", "None"]
+        ]
+    },
+    "model": {
+        "beamEvolutionAnimation": {
+            "y1": ["Y1 Value", "BeamColumn", "emitx"],
+            "y2": ["Y2 Value", "BeamOptionalColumn", "emity"],
+            "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "notes": ["Notes", "Text", ""]
+        },
+        "cooler": {
+            "length": ["Length (lab frame) [m]", "Float", 3.4, "", 1e-99],
+            "section_number": ["Number of Coolers", "Integer", 1],
+            "magnetic_field": ["Magnetic Field [T]", "Float", 0.039],
+            "bet_x": ["Horizontal Beta [m]", "Float", 10.0, "Beta function", 1e-99],
+            "bet_y": ["Vertical Beta [m]", "Float", 10.0, "Beta function", 1e-99],
+            "disp_x": ["Horizontal Dispersion [m]", "Float", 0.0],
+            "disp_y": ["Vertical Dispersion [m]", "Float", 0.0],
+            "alpha_x": ["Horizontal Alpha", "Float", 0.0],
+            "alpha_y": ["Vertical Alpha", "Float", 0.0],
+            "disp_dx": ["Horizontal Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion"],
+            "disp_dy": ["Vertical Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion"]
+        },
+        "coolingRatesAnimation": {
+            "y1": ["Y1 Value", "CoolingRatesColumn", "rx"],
+            "y2": ["Y2 Value", "CoolingRatesOptionalColumn", "ry"],
+            "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "notes": ["Notes", "Text", ""]
+        },
+        "electronBeam": {
+            "gamma": ["Gamma", "Float", null, "Lorentz factor gamma for the cooling electron beam."],
+            "tmp_tr": ["Transverse Temperature [eV]", "Float", 0.1, "", 0],
+            "tmp_l": ["Longitudinal Temperature [eV]", "Float", 0.01, "", 0],
+            "shape": ["Shape", "ElectronBeamShape", "dc_uniform", "Shape of the electron beam."],
+            "radius": ["Radius [m]", "Float", 0.004, "", 1e-99],
+            "current": ["Current [A]", "Float", 2, "", 0],
+            "sigma_x": ["Horizontal RMS Size", "Float", 1.5e-2, "", 1e-99],
+            "sigma_y": ["Vertical RMS Size", "Float", 1.5e-2, "", 1e-99],
+            "sigma_z": ["RMS Bunch Length", "Float", 2e-2, "", 1e-99],
+            "length": ["Length [m]", "Float", 0.2, "", 1e-99],
+            "e_number": ["Number of Electrons", "Float", 1e8, "", 1],
+            "beam_type": ["Beam Type", "BeamType", "bunched"],
+            "rh": ["Horizontal Semi-Axis Length [m]", "Float", 0.004, "", 1e-99],
+            "rv": ["Vertical Semi-Axis Length [m]", "Float", 0.004, "", 1e-99]
+        },
+        "electronCoolingRate": {
+            "sample_number": ["Number of Sample Ions", "Float", 1e5, "", 1],
+            "force_formula": ["Force Formula", "ForceFormula", "parkhomchuk"]
+        },
+        "forceTableAnimation": {
+            "plot": ["Plot Type", "ForceTablePlot", "transverse"],
+            "x": ["X Value", "ForceTableColumn", "Vtrans"],
+            "y1": ["Y1 Value", "ForceTableColumn", "fx"],
+            "forceScale": ["Force Scale", "ForceScaleFactor", "negative"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "notes": ["Notes", "Text", ""]
+        },
+        "intrabeamScatteringRate": {
+            "ibs_model": ["Model", "IBSModel", "martini"],
+            "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration.", 1],
+            "nv": ["Vertical Grid Size", "Integer", 100, "Set the grid number in vertical direction for the 3D integration.", 1],
+            "longitudinalMethod": ["Longitudinal Method", "IBSLongitudinalMethod", "nz"],
+            "nz": ["Longitudinal Grid Size", "Integer", 40, "Set the grid number in longitudinal direction for the 3D integration.", 1],
+            "log_c": ["Coulomb Logarithm", "Float", 20.6, "", 1e-99],
+            "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1.", 0, 1]
+        },
+        "ionBeam": {
+            "particle": ["Particle", "BeamParticle", "PROTON", "Name of particle to be used"],
+            "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion.", 1e-99],
+            "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion.", 1e-99],
+            "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion.", 1e-99],
+            "norm_emit_x": ["RMS Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6, "", 1e-99],
+            "norm_emit_y": ["RMS Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6, "", 1e-99],
+            "momentum_spread": ["RMS Momentum Spread", "Float", 0.0006, "Momentum spread of the ion beam.", 0],
+            "particle_number": ["Number of Ions", "Float", 6.58e11, "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam.", 1],
+            "rms_bunch_length": ["RMS Bunch Length [m]", "Float", 7.0, "RMS bunch length for the bunched ion beam.", 1e-99],
+            "beam_type": ["Beam Type", "BeamType", "bunched"]
+        },
+        "particleAnimation": {
+            "x": ["X Value", "ParticleColumn"],
+            "y": ["Y Value", "ParticleColumn"],
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
+            "plotRangeType": ["Range", "PlotRangeType", "fit"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorRangeType": ["Range", "ColorRangeType", "none"],
+            "colorMin": ["Minimum Histogram Value", "Float", 0],
+            "colorMax": ["Maximum Histogram Value", "Float", 10]
+        },
+        "rateCalculationReport": {
+        },
+        "ring": {
+            "latticeSource": ["Lattice Source", "LatticeSource", "madx", ""],
+            "lattice": ["Ring Lattice File", "TwissFile", null, "This file should be in the MAD-X output format (*.tfs)."],
+            "elegantTwiss": ["Elegant twiss_output", "TwissFile", null, "This file should be the SDDS output from the twiss_output command."],
+            "elegantSirepo": ["Elegant Simulation", "ElegantSimList", null]
+        },
+        "simulationSettings": {
+            "time": ["Total Simulation Time [s]", "Float", 60, "", 1e-99],
+            "step_number": ["Total Number of Steps", "Integer", 60, "The time interval of each step is time/step_number.", 1],
+            "time_step": ["Time Step [s]", "Float", 1, "Number of steps per second", 1e-99],
+            "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
+            "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
+            "model": ["Model", "SimulationModel", "particle"],
+            "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero.", -1],
+            "ref_bet_x": ["Horizontal Beta Reference Point", "Float", 10, "TWISS parameters for the reference point. Only needed when the Particle model is selected and the electron cooling effect is not included in the simulation.", 1e-99],
+            "ref_bet_y": ["Vertical Beta Reference Point", "Float", 10, "", 1e-99],
+            "ref_alf_x": ["Horizontal Alpha Reference Point", "Float"],
+            "ref_alf_y": ["Vertical Alpha Reference Point", "Float"],
+            "ref_disp_x": ["Horizontal Dispersion Reference Point", "Float"],
+            "ref_disp_y": ["Vertical Dispersion Reference Point", "Float"],
+            "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float"],
+            "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float"]
+        },
+        "simulationStatus": {},
+        "twissReport": {
+            "y1": ["Y1 Value", "TwissParameter", "betx"],
+            "y2": ["Y2 Value", "TwissParameter", "bety"],
+            "y3": ["Y3 Value", "TwissParameter", "dx"]
+        }
+    },
+    "view": {
+        "beamEvolutionAnimation": {
+            "title": "RMS Ion Beam Evolution",
+            "advanced": [
+                ["Main", [
+                    "y1",
+                    "y2",
+                    "y3",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "cooler": {
+            "title": "Cooler",
+            "config": {
+                "basic": {
+                    "tabs": [
+                        {
+                            "items": [
+                                {
+                                    "layout": "fieldList",
+                                    "fields": [
+                                        "cooler.length",
+                                        "cooler.section_number",
+                                        "cooler.magnetic_field"
+                                    ]
+                                },
+                                {
+                                    "layout": "fieldTable",
+                                    "columns": [ "Horizontal", "Vertical" ],
+                                    "rows": [
+                                        {
+                                            "label": "Beta [m]",
+                                            "description": "Beta function",
+                                            "fields": [
+                                                "cooler.bet_x",
+                                                "cooler.bet_y"
+                                            ]
+                                        },
+                                        {
+                                            "label": "Dispersion [m]",
+                                            "fields": [
+                                                "cooler.disp_x",
+                                                "cooler.disp_y"
+                                            ]
+                                        },
+                                        {
+                                            "label": "Alpha",
+                                            "fields": [
+                                                "cooler.alpha_x",
+                                                "cooler.alpha_y"
+                                            ]
+                                        },
+                                        {
+                                            "label": "Dispersion Derivative",
+                                            "description": "Derivative of dispersion",
+                                            "fields": [
+                                                "cooler.disp_dx",
+                                                "cooler.disp_dy"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                        
+                    ]
+                }
+            }
+        },
+        "coolingRatesAnimation": {
+            "title": "IBS & Cooling Rates",
+            "advanced": [
+                ["Main", [
+                    "y1",
+                    "y2",
+                    "y3",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "electronBeam": {
+            "title": "Cooling Electron Beam",
+            "basic": [
+                "gamma",
+                "tmp_tr",
+                "tmp_l",
+                "beam_type",
+                "shape",
+                "radius",
+                "rh",
+                "rv",
+                "current",
+                "sigma_x",
+                "sigma_y",
+                "sigma_z",
+                "length",
+                "e_number"
+            ],
+            "advanced": [
+            ]
+        },
+        "forceTableAnimation": {
+            "title": "Friction Force",
+            "advanced": [
+                ["Main", [
+                    "plot",
+                    "forceScale",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "ionBeam": {
+            "title": "Ion Beam",
+            "basic": [
+                "particle",
+                "charge_number",
+                "mass",
+                "kinetic_energy",
+                "momentum_spread",
+                "particle_number",
+                "beam_type",
+                "rms_bunch_length",
+                [
+                    ["Horizontal", [
+                        "norm_emit_x"
+                    ]],
+                    ["Vertical", [
+                        "norm_emit_y"
+                    ]]
+                ]
+            ],
+            "advanced": [
+            ]
+        },
+        "particleAnimation": {
+            "title": "Ion Particle Animation",
+            "advanced": [
+                ["Main", [
+                    "x",
+                    "y",
+                    "histogramBins",
+                    "framesPerSecond"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Color", [
+                    "colorMap",
+                    "colorRangeType",
+                    "colorMin",
+                    "colorMax"
+                ]]
+            ]
+        },
+        "coolingAndIBS": {
+            "title": "Cooling and Intrabeam Scattering",
+            "basic": [
+                ["Electron Cooling", [
+                    "electronCoolingRate.sample_number",
+                    "electronCoolingRate.force_formula"
+                ]],
+                ["Intrabeam Scattering", [
+                    "intrabeamScatteringRate.ibs_model",
+                    "intrabeamScatteringRate.nu",
+                    "intrabeamScatteringRate.nv",
+                    "intrabeamScatteringRate.longitudinalMethod",
+                    "intrabeamScatteringRate.nz",
+                    "intrabeamScatteringRate.log_c",
+                    "intrabeamScatteringRate.coupling"
+                ]]
+            ],
+            "advanced": []
+        },
+        "rateCalculationReport": {
+            "title": "Rate Calculation Report",
+            "advanced": []
+        },
+        "ring": {
+            "title": "Ring",
+            "basic": [
+                "latticeSource",
+                "lattice",
+                "elegantTwiss",
+                "elegantSirepo"
+            ],
+            "advanced": [
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "time",
+                "step_number",
+                "time_step",
+                "model",
+                "save_particle_interval",
+                "electronCoolingRate.sample_number",
+                "ibs",
+                "e_cool",
+                [
+                    ["Horizontal", [
+                        "ref_bet_x",
+                        "ref_alf_x",
+                        "ref_disp_x",
+                        "ref_disp_dx"
+                    ]],
+                    ["Vertical", [
+                        "ref_bet_y",
+                        "ref_alf_y",
+                        "ref_disp_y",
+                        "ref_disp_dy"
+                    ]]
+                ]
+            ],
+            "advanced": [
+            ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
+        "twissReport": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
+        }
+    }
+}
