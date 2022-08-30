@@ -62,12 +62,10 @@
             "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
         },
         "scans": {
+            "catalogName": ["Catalog Name", "CatalogName", ""],
+            "scans": ["", "SelectedScansTable", null],
             "searchStartTime": ["Start", "DateTimePicker", null],
-            "searchStopTime": ["Stop", "DateTimePicker", null],
-            "catalogName": ["Catalog Name", "CatalogName", ""]
-        },
-        "selectedScans": {
-            "uids": ["", "SelectedScansTable", null]
+            "searchStopTime": ["Stop", "DateTimePicker", null]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
@@ -107,7 +105,7 @@
                 "catalogName",
                 "searchStartTime",
                 "searchStopTime",
-                "selectedScans.uids"
+                "scans"
             ],
             "advanced": []
         },
