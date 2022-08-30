@@ -638,7 +638,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
-            $scope.$on('tally.changed', () => {
+            appState.watchModelFields($scope, ['tally.voxelInsetPct'], () => {
                 buildVoxels(appState.models.tally.aspect);
             });
         },
