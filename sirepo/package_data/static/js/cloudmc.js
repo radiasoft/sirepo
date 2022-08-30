@@ -358,6 +358,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const [sx, sy, sz] = tally.meshUpperRight.map(
                     (x, i) => (1.0 - insetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]
                 );
+                let numPolys = 0;
                 for (let k = 0; k < nz; ++k) {
                     if (doSkipZ()) {
                         continue;
@@ -382,12 +383,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                             appendData(ysrc, s);
                             n += 3;
                             m += 4;
+                            ++numPolys;
                         }
                         appendData(zsrc, ysrc.getOutputData());
                         n += 3;
                     }
                     appendData(source, zsrc.getOutputData());
                     n = n + 3 * (nx + 1);
+                }
+                if (! numPolys) {
+                    return;
                 }
 
                 const b = coordMapper.buildActorBundle(source, {
