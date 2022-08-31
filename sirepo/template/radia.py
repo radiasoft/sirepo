@@ -205,9 +205,7 @@ def get_data_file(run_dir, model, frame, options):
     f = f"{model}.{sfx}"
     if model == "kickMapReport":
         _save_kick_map_sdds(
-            name,
-            f,
-            _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
+            name, f, _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
         )
         return f
     if model == "fieldLineoutReport":
