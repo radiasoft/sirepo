@@ -249,7 +249,11 @@ def get_data_file(run_dir, model, frame, options):
             return _save_field_csv(f_type, v, beam_axis, f)
         if sfx == "zip":
             return _save_field_srw(
-                f_type, data.models.hybridUndulator.gap, v, beam_axis, pkio.py_path(f)
+                f_type,
+                data.models[data.models.simulation.undulatorType].gap,
+                v,
+                beam_axis,
+                pkio.py_path(f),
             )
         return f
 
