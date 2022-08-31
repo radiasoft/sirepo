@@ -10,6 +10,7 @@ Radia "instance" goes away and references no longer have any meaning.
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
@@ -208,7 +209,7 @@ def get_data_file(run_dir, model, frame, options):
         if sfx == "sdds":
             _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
         if sfx == "txt":
-            pkio.write_text(f, km_dict.txt)
+            pkio.write_text(f, km_dict)
         return f
     if model == "fieldLineoutReport":
         f_type = rpt.fieldType
@@ -1124,7 +1125,7 @@ def _read_or_generate_kick_map(g_id, data):
     res = _read_kick_map()
     if res:
         return res
-    return _generate_kick_map(g_id, data.model)
+    return _generate_kick_map(g_id, data)
 
 
 def _read_solution():
