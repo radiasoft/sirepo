@@ -1,0 +1,16 @@
+import mpi4py
+import sirepo.template.radia
+from sirepo.template import radia_util
+from pykern.pkcollections import PKDict
+
+
+def test():
+    for i in range(100):
+        i + i
+
+def field_data():
+    return sirepo.template.radia._generate_field_data('{{ sim_id }}', {{ gid }}, '{{ name }}', '{{ f_type }}', [PKDict({{f_path}})]).data[0].vectors
+
+with radia_util.MPI() as m:
+    print(f'RANK {mpi4py.MPI.COMM_WORLD.Get_rank()}')
+    field_data()

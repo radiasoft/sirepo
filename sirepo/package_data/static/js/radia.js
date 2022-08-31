@@ -76,7 +76,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
-        return 'solverAnimation';
+        // return 'solverAnimation';
+        return 'fieldLineoutAnimation';
     };
 
     appState.setAppService(self);
@@ -1140,6 +1141,10 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.simHandleStatus = function(data) {
+        if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
+            frameCache.setFrameCount(1, data.computeModel);
+            return;
+        }
         if (data.error) {
             solving = false;
         }
@@ -2718,7 +2723,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
-SIREPO.app.directive('fieldLineoutAnimation', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService, utilities) {
+SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimulation, errorService, frameCache, geometry, layoutService, panelState, radiaService, utilities) {
 
     return {
         restrict: 'A',
@@ -2729,6 +2734,8 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, errorService, f
         template: `
             <div class="col-md-6">
                 <div data-basic-editor-panel="" data-view-name="fieldLineoutAnimation">
+                    <div data-report-panel="3d" data-model-name="fieldLineoutAnimation"></div>
+                    <div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation(modelName)"></div>
                 </div>
             </div>
         `,
@@ -2746,17 +2753,17 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, errorService, f
             //     };
             // };
 
-            // $scope.reset = function() {
-            //     $scope.viz.resetSimulation();
-            //     /*
-            //     $scope.viz.solution = null;
-            //     panelState.clear('geometryReport');
-            //     panelState.requestData('reset', function (d) {
-            //         frameCache.setFrameCount(0);
-            //     }, true);
+            $scope.reset = function() {
+                $scope.viz.resetSimulation();
+                /*
+                $scope.viz.solution = null;
+                panelState.clear('geometryReport');
+                panelState.requestData('reset', function (d) {
+                    frameCache.setFrameCount(0);
+                }, true);
 
-            //      */
-            // };
+                 */
+            };
 
             appState.whenModelsLoaded($scope, function () {
             });

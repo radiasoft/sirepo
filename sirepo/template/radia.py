@@ -265,6 +265,12 @@ def post_execution_processing(
     return template_common.parse_mpi_log(run_dir)
 
 
+def sim_frame_fieldLineoutAnimation(frame_args):
+    r = frame_args.frameReport
+    # TODO (gurhar1133): read output of animation param.py and send back
+    assert 0, f"Frame args report : {r}"
+
+
 def stateful_compute_build_shape_points(data):
     import csv
 
@@ -558,6 +564,7 @@ _FIELD_PT_BUILDERS = {
 
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
+    # TODO (gurhar1133): v needs to be result of param.py for fieldLineoutAnimation
     v = (
         _generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path])
         .data[0]
@@ -701,6 +708,19 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     report = data.get("report", "")
     rpt_out = f"{_REPORT_RES_MAP.get(report, report)}"
     res, v = template_common.generate_parameters_file(data)
+    if report == "fieldLineoutAnimation":
+        v.gid = _get_g_id()
+        v.sim_id = data.models.simulation.simulationId
+        v.name = data.models.simulation.name
+        v.f_type = data.models.fieldLineoutReport.fieldType
+        v.f_path = data.models.fieldLineoutReport.fieldPath
+        return template_common.render_jinja(
+            SIM_TYPE,
+            v,
+            f"{rpt_out}.py",
+            jinja_env=PKDict(loader=jinja2.PackageLoader("sirepo", "template")),
+        )
+
     if rpt_out in _POST_SIM_REPORTS:
         return res
 
