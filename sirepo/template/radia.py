@@ -76,7 +76,7 @@ _METHODS = [
     "get_kick_map",
     "save_field",
 ]
-_POST_SIM_REPORTS = ["fieldIntegralReport", "fieldLineoutReport", "kickMapReport"]
+_POST_SIM_REPORTS = ["electronTrajectoryReport", "fieldIntegralReport", "fieldLineoutReport", "kickMapReport"]
 _SIM_REPORTS = ["geometryReport", "reset", "solverAnimation"]
 _REPORTS = [
     "electronTrajectoryReport",
@@ -1089,6 +1089,11 @@ def _parse_input_file_arg_str(s):
 
 
 def _prep_new_sim(data, new_sim_data=None):
+    def _electron_initial_pos(axis, factor):
+        return sirepo.util.to_comma_delimited_string(
+            factor * radia_util.AXIS_VECTORS[axis]
+        )
+
     data.models.geometryReport.name = data.models.simulation.name
     if new_sim_data is None:
         return
@@ -1098,16 +1103,25 @@ def _prep_new_sim(data, new_sim_data=None):
     s = new_sim_data[f"{t}Type"]
     m = data.models[s]
     data.models.simulation.notes = _MAGNET_NOTES[t][s]
+    data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
+        new_sim_data.beamAxis,
+        -1.0,
+    )
+    data.models.fieldLineoutReport.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
     data.models.simulation.coordinateSystem = "beam"
     if s == "undulatorBasic":
         data.models.geometryReport.isSolvable = "0"
+    f = (m.numPeriods + 0.5) * m.periodLength
     data.models.fieldPaths.paths.append(
-        _build_field_axis(
-            3 * (m.numPeriods + 0.5) * m.periodLength, new_sim_data.beamAxis
-        )
+        _build_field_axis(3 * f, new_sim_data.beamAxis)
     )
+    data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
+        new_sim_data.beamAxis,
+        -f,
+    )
+    data.models.electronTrajectoryReport.finalBeamPosition = f
     data.models.simulation.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
 
