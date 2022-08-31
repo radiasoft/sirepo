@@ -389,6 +389,7 @@
     },
     "frameIdFields": {
         "solverAnimation": [],
+        "fieldLineoutAnimation": [],
         "magnetViewer": []
     },
     "localRoutes": {
@@ -927,6 +928,8 @@
             "sbatchCores": ["Cores", "Integer", 1],
             "sbatchProject": ["Project", "OptionalString", ""]
         },
+        "fieldLineoutAnimation": {
+        },
         "spatialTransform": {
         },
         "stemmed": {
@@ -1460,6 +1463,11 @@
                 "maxIterations",
                 "method"
             ],
+            "advanced": []
+        },
+        "fieldLineoutAnimation": {
+            "title": "Lineout",
+            "basic": [],
             "advanced": []
         },
         "symmetryTransform": {

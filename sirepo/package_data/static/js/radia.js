@@ -2718,6 +2718,55 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
+SIREPO.app.directive('fieldLineoutAnimation', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService, utilities) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            viz: '<',
+            modelName: '@',
+        },
+        template: `
+            <div class="col-md-6">
+                <div data-basic-editor-panel="" data-view-name="fieldLineoutAnimation">
+                </div>
+            </div>
+        `,
+        controller: function($scope, $element) {
+
+            $scope.model = appState.models[$scope.modelName];
+
+            // $scope.solution = function() {
+            //     var s = $scope.viz.solution;
+            //     return {
+            //         time: s ? utilities.roundToPlaces(1000 * s.time, 3) : '',
+            //         steps: s ? s.steps : '',
+            //         maxM: s ? utilities.roundToPlaces(s.maxM, 4) : '',
+            //         maxH: s ?  utilities.roundToPlaces(s.maxH, 4) : '',
+            //     };
+            // };
+
+            // $scope.reset = function() {
+            //     $scope.viz.resetSimulation();
+            //     /*
+            //     $scope.viz.solution = null;
+            //     panelState.clear('geometryReport');
+            //     panelState.requestData('reset', function (d) {
+            //         frameCache.setFrameCount(0);
+            //     }, true);
+
+            //      */
+            // };
+
+            appState.whenModelsLoaded($scope, function () {
+            });
+
+
+        },
+    };
+});
+
+
 SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $interval, $rootScope) {
 
     return {
