@@ -178,7 +178,17 @@ def _build_ui_nn(model):
 
     nn = _set_inbound(model, nn)
     nn = _set_outbound(nn)
-    pkdp('\n\n\n nn: {}', nn)
+    # r = "\n\n ======================================"
+    # for l in nn.layers:
+    #     r += f"\n\n\n layer: {l.layer.name}"
+    #     if "inbound" in l:
+    #         for i in l.inbound:
+    #             r += f"\n in: {i.name}"
+    #     if "outbound" in l:
+    #         for o in l.outbound:
+    #             r += f"\n out: {o.name}"
+    # r += "\n\n ======================================"
+    # pkdp(r)
     return nn
 
 
@@ -192,10 +202,20 @@ def _get_relevant_nodes(model):
 def _set_outbound(nn):
     for l in nn.layers:
         for i in l.inbound:
-            # TODO (gurhar1133): get the layer i by name in nn.layers
-            # and append l to it's outbound
-            continue
+            # TODO (gurhar1133): go to layer where layer name is i.name and set outbound
+            layer = _get_layer_by_name(nn, i.name)
+            if "outbound" in layer:
+                layer.outbound.append(l.layer)
+                continue
+            layer["outbound"] = [l.layer]
     return nn
+
+
+def _get_layer_by_name(nn, name):
+    for l in nn.layers:
+        if l.layer.name == name:
+            return l
+    raise AssertionError(f"could not find layer with name={name}")
 
 
 def _set_inbound(model, nn):

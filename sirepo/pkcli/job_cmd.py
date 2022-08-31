@@ -198,7 +198,6 @@ def _do_fastcgi(msg, template):
     while True:
         try:
             m = _recv()
-            pkdp('\n\n\nm: {}', m)
             if not m:
                 return
             with _update_run_dir_and_maybe_chdir(m):
