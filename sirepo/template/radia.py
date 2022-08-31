@@ -201,15 +201,14 @@ def get_data_file(run_dir, model, frame, options):
     sim_id = sim.simulationId
     beam_axis = _AXIS_ROTATIONS[sim.beamAxis]
     rpt = data.models[model]
-    default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
-    sfx = options.suffix or default_sfx
+    sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
     if model == "kickMapReport":
-        km_dict = _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
-        if sfx == "sdds":
-            _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
-        if sfx == "txt":
-            pkio.write_text(f, km_dict)
+        _save_kick_map_sdds(
+            name,
+            f,
+            _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
+        )
         return f
     if model == "fieldLineoutReport":
         f_type = rpt.fieldType
@@ -1234,29 +1233,15 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     return path
 
 
-def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
+def _save_kick_map_sdds(name, path, km_data):
     s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
     s.setDescription(f"Kick Map for {name}", "x(m), y(m), h(T2m2), v(T2m2)")
-    col_data = []
-    x = []
-    y = []
-    h = []
-    v = []
-    # TODO: better way to do this...
-    for i in range(len(x_vals)):
-        for j in range(len(x_vals)):
-            x.append(0.001 * x_vals[j])
-    for i in range(len(y_vals)):
-        for j in range(len(y_vals)):
-            y.append(0.001 * y_vals[i])
-    for i in range(len(x_vals)):
-        for j in range(len(y_vals)):
-            h.append(h_vals[i][j])
-            v.append(v_vals[i][j])
-    col_data.append([x])
-    col_data.append([y])
-    col_data.append([h])
-    col_data.append([v])
+    col_data = [
+        [numpy.tile(0.001 * numpy.array(km_data.x), len(km_data.x)).tolist()],
+        [numpy.repeat(0.001 * numpy.array(km_data.y), len(km_data.y)).tolist()],
+        [numpy.array(km_data.h).flatten().tolist()],
+        [numpy.array(km_data.v).flatten().tolist()],
+    ]
     for i, n in enumerate(_KICK_MAP_COLS):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))

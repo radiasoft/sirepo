@@ -22,12 +22,6 @@
                     "title": "Save for SRW import",
                     "suffix": "zip"
                 }
-            ],
-            "kickMapReport": [
-                {
-                    "title": "Save as Text",
-                    "suffix": "txt"
-                }
             ]
         },
         "detailFields": {
