@@ -565,6 +565,12 @@ _FIELD_PT_BUILDERS = {
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
     # TODO (gurhar1133): v needs to be result of param.py for fieldLineoutAnimation
+    # TODO (gurhar1133): state difference in here vs param.py fieldLineout Animation?
+    import os
+    pkdp("\n\n\n ls in template radia: {}", os.listdir())
+    import pykern.pkjson
+    # pkdp("in.json")
+    pkdp(pykern.pkjson.load_any("in.json"))
     v = (
         _generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path])
         .data[0]
