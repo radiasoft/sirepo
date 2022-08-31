@@ -21,6 +21,10 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="EquationParameters" class="col-sm-7">
           <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>
         </div>
+        <div data-ng-switch-when="DataList" class="col-sm-5">
+          <select class="form-control" data-ng-model="model.selectedData" data-ng-options="f for f in model[field]">
+          </select>
+        </div>
         <div data-ng-switch-when="ClusterFields" class="col-sm-7">
           <div data-cluster-fields="" data-model="model" data-field="field"></div>
         </div>
@@ -32,7 +36,7 @@ SIREPO.app.config(function() {
         </div>
         <div data-ng-switch-when="URL" class="col-sm-7" data-field-class="fieldClass">
           <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
-          <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength || 0 }} bytes</span>
+          <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ UTILS.formatToThousands(model.bytesLoaded, 1, true) || 0 }} of {{ UTILS.formatToThousands(model.contentLength, 1, true) || 0 }} {{ UTILS.orderOfMagnitude(model.contentLength, true).suffix }}B</span>
           <div class="sr-input-warning"></div>
           <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
@@ -1111,6 +1115,67 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
     };
 });
 
+SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <form name="form">
+              <table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">
+                <colgroup>
+                  <col style="width: 3em">
+                  <col style="width: 100%">
+                  <col span="3" style="width: 6em">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th> </th>
+                    <th>Data Path</th>
+                    <th class="text-center">Input</th>
+                    <th class="text-center">Output</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="path in getPaths()">
+                    <td class="form-group form-group-sm"> </td>
+                    <td class="form-group form-group-sm">{{ path }}</td>
+                    <td class="text-center">
+                      <input data-ng-model="model.selectedPaths[path].inputOutput" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />
+                    </td>
+                    <td class="text-center">
+                      <input data-ng-model="model.selectedPaths[path].inputOutput" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="sr-input-warning"></div>
+              <div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+            </form>
+        `,
+        controller: function($scope) {
+            $scope.modelName = 'dataPathInfo';
+            $scope.model = appState.models[$scope.modelName];
+            $scope.fields = ['inputOutput'];
+
+            $scope.getPaths = () => {
+                return appState.models.dataFile.dataList;
+            };
+
+            if (! $scope.model.selectedPaths) {
+                $scope.model.selectedPaths = {};
+                for (const p of $scope.getPaths()) {
+                    $scope.model.selectedPaths[p] = {
+                        inputOutput: '',
+                    };
+                }
+                appState.saveChanges($scope.modelName);
+            }
+
+        },
+    };
+});
+
 SIREPO.app.directive('equation', function(appState, mlService, $timeout) {
     return {
         scope: {
@@ -2003,12 +2068,12 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     function computeColumnInfo() {
         const dataFile = appState.models.dataFile;
-        if (! dataFile.file) {
+        if (! dataFile.file || (isArchiveFile(dataFile.file) && ! dataFile.selectedData)) {
             appState.models.columnReports = [];
             appState.saveChanges('columnReports');
             return;
         }
-        if (dataFile.file === dataFile.oldFile) {
+        if (dataFile.file === dataFile.oldFile && ! isArchiveFile(dataFile.file)) {
             return;
         }
         dataFile.oldFile = dataFile.file;
@@ -2041,8 +2106,15 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function dataFileChanged() {
-        computeColumnInfo();
         const dataFile = appState.models.dataFile;
+        if (! isArchiveFile(dataFile.file)) {
+            dataFile.selectedData = null;
+        }
+        else {
+            getArchiveDataList();
+        }
+        updateEditor();
+        computeColumnInfo();
         const partition = appState.models.partition;
         if (dataFile.appMode === 'regression'
             && partition.training + partition.testing >= 100) {
@@ -2057,6 +2129,13 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             }
         }
         appState.saveQuietly('partition');
+    }
+
+    function isArchiveFile(filename) {
+        if (! filename) {
+            return false;
+        }
+        return [".tar.gz", ".zip"].some(x => filename.endsWith(x));
     }
 
     function processAppMode() {
@@ -2074,6 +2153,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         const o = dataFile.dataOrigin;
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
+        panelState.showField(modelName, 'dataList', isArchiveFile(dataFile.file) && dataFile.dataFormat === 'text');
         validateURL();
     }
 
@@ -2113,6 +2193,51 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         );
     }
 
+    function getArchiveDataList() {
+        function setDataList(l) {
+            appState.models[modelName].dataList = l;
+            appState.models.dataFileCache[dataFile.file].dataList = l;
+            updateSelectedData(dataFile);
+            appState.saveChanges('dataFileCache');
+            appState.saveQuietly(modelName);
+        }
+
+        const dataFile = appState.models[modelName];
+        if (! dataFile.file || ! isArchiveFile(dataFile.file)) {
+            appState.models[modelName].dataList = null;
+            dataFile.selectedData = null;
+            appState.saveQuietly(modelName);
+            return;
+        }
+
+        const f = appState.models.dataFileCache[dataFile.file];
+        if (f) {
+            setDataList(f.dataList);
+            return;
+        }
+
+        appState.models.dataFileCache[dataFile.file] = {
+            dataList: null,
+        };
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                setDataList(d.datalist);
+            },
+            {
+                method: 'get_archive_file_list',
+                filename: dataFile.file,
+                data_type: dataFile.dataFormat,
+            },
+        );
+    }
+
+    function updateSelectedData(dataFile) {
+        if (dataFile.dataList && ! dataFile.dataList.includes(dataFile.selectedData)) {
+            dataFile.selectedData = dataFile.dataList[0];
+        }
+    }
+
     function getRemoteData(headersOnly, callback) {
         requestSender.sendStatelessCompute(
             appState,
@@ -2139,14 +2264,28 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     function updateData() {
         const dataFile = appState.models[modelName];
+        const dataFileCache = appState.models.dataFileCache;
+        const urlCache = appState.models.urlCache;
 
         //TODO(mvk): button to force reload; handle deletion of file; share files across users;
         // store urls; share urls across apps
         if (dataFile.dataOrigin === 'url') {
             dataFile.oldURL = dataFile.url;
+            const f = urlCache[dataFile.url];
+            if (f) {
+                dataFile.file = f.file;
+                dataFile.dataList = f.dataList;
+                dataFile.bytesLoaded = f.size;
+                dataFile.contentLength = f.size;
+                appState.saveQuietly(modelName);
+                dataFileChanged();
+                return;
+            }
             dataFile.bytesLoaded = 0;
             dataFile.contentLength = 0;
             dataFile.file = '';
+            dataFile.dataList = [];
+            dataFile.selectedData = null;
             appState.saveQuietly(modelName);
             //TODO(mvk): two stages now; should be a single background call but not a "simulation"
             // write in chunks on server and send updates - can we use websockets?
@@ -2157,17 +2296,24 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
                     dataFile.bytesLoaded = dataFile.contentLength;
+                    urlCache[dataFile.url] = {
+                        file: dataFile.file,
+                        size: dataFile.contentLength,
+                    };
+                    appState.saveChanges('urlCache');
                     appState.saveQuietly(modelName);
                     dataFileChanged();
                 });
             });
         }
-        dataFileChanged();
+        else {
+            dataFileChanged();
+        }
     }
 
     $scope.watchFields = [
         [`${modelName}.appMode`], processAppMode,
-        [`${modelName}.dataOrigin`], updateEditor,
+        [`${modelName}.dataOrigin`, `${modelName}.file`, `${modelName}.dataFormat`], updateEditor,
         [`${modelName}.url`], validateURL,
     ];
 

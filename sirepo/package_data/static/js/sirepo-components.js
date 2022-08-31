@@ -786,6 +786,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
         controller: function($scope, $element) {
             $scope.appState = appState;
             $scope.utilities = utilities;
+            $scope.UTILS = SIREPO.UTILS;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
                     (fieldType == 'Integer' || fieldType.indexOf('Float') >= 0)
