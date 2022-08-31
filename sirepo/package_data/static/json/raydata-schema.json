@@ -90,6 +90,8 @@
                 "notes"
             ],
             "basic": [
+                "scans.catalogName",
+                "scans.scans"
             ]
         },
         "inputFiles": {
