@@ -19,17 +19,9 @@
         "animation": []
     },
     "localRoutes": {
-        "analysis": {
-            "route": "/analysis/:simulationId",
-            "config": {
-                "controller": "AnalysisController as analysis",
-                "templateUrl": "/static/html/raydata-analysis.html"
-          }
-        },
         "analysisQueue": {
             "route": "/analysis-queue/:simulationId",
             "config": {
-                "controller": "AnalysisQueueController as analysis",
                 "templateUrl": "/static/html/raydata-analysis-queue.html"
           }
         },
@@ -43,7 +35,6 @@
         "replay": {
             "route": "/replay/:simulationId",
             "config": {
-                "controller": "ReplayController as replay",
                 "templateUrl": "/static/html/raydata-replay.html"
           }
         }

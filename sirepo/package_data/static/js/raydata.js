@@ -119,36 +119,9 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     return self;
 });
 
-SIREPO.app.controller('AnalysisController', function(appState, persistentSimulation, raydataService, timeService, $scope) {
-    const self = this;
-    self.modelKey = 'analysisStatus';
-    self.simScope = $scope;
-
-    self.simComputeModel = 'pollBlueskyForScansAnimation';
-
-    self.simState = persistentSimulation.initSimulationState(self);
-
-    self.showStartNewPollButton = () => {
-        return appState.models.pollBlueskyForScansAnimation.minutes > 0;
-    };
-
-    return self;
-});
-
 SIREPO.app.controller('DataSourceController', function() {
     // TODO(e-carlin): only let certain files to be uploaded
     const self = this;
-    return self;
-});
-
-SIREPO.app.controller('ReplayController', function() {
-    const self = this;
-    return self;
-});
-
-SIREPO.app.controller('AnalysisQueueController', function() {
-    const self = this;
-    self.modelKey = 'analysisQueue';
     return self;
 });
 
@@ -294,7 +267,6 @@ SIREPO.app.directive('appHeader', function(appState) {
                 <div data-ng-if="nav.isLoaded()" data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('data-source')}"><a href data-ng-click="nav.openSection('dataSource')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-queue')}"><a href data-ng-click="nav.openSection('analysisQueue')"><span class="glyphicon glyphicon-picture"></span> Analysis Queue</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis')}"><a data-ng-href="{{ nav.sectionURL('analysis') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('replay')}"><a href data-ng-click="nav.openSection('replay')"><span class="glyphicon glyphicon-picture"></span> Replay</a></li>
                 </div>
               </app-header-right-sim-loaded>
