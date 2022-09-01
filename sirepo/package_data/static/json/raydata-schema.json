@@ -1,7 +1,7 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "dataSource"
+            "localRoute": "analysisCompleted"
         }
     },
     "dynamicFiles": {
@@ -25,11 +25,10 @@
                 "templateUrl": "/static/html/raydata-analysis-queue.html"
           }
         },
-        "dataSource": {
-            "route": "/data-source/:simulationId",
+        "analysisCompleted": {
+            "route": "/analysis-completed/:simulationId",
             "config": {
-                "controller": "DataSourceController as dataSource",
-                "templateUrl": "/static/html/raydata-data-source.html"
+                "templateUrl": "/static/html/raydata-analysis-completed.html"
           }
         },
         "replay": {
@@ -40,9 +39,6 @@
         }
     },
     "model": {
-        "analysisStatus": {
-            "notes": ["Notes", "Text", ""]
-        },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
@@ -51,7 +47,7 @@
         },
         "scans": {
             "catalogName": ["Catalog Name", "CatalogName", ""],
-            "scans": ["", "SelectedScansTable", null],
+            "scans": ["", "ScansTable", null],
             "searchStartTime": ["Start", "DateTimePicker", null],
             "searchStopTime": ["Stop", "DateTimePicker", null],
             "runningScans": ["", "ScansTableWithModal", null]
@@ -67,12 +63,6 @@
         "typeOfSimulation": "poll"
     },
     "view": {
-        "analysisStatus": {
-            "title": "Analysis Status",
-            "advanced": [
-                "notes"
-            ]
-        },
         "analysisQueue": {
             "title": "Analysis Queue",
             "basic": [

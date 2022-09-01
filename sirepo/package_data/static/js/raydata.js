@@ -4,16 +4,15 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
-    // TODO(e-carlin): rename selectedScansTable to something like ScansTable
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="DateTimePicker" data-ng-class="fieldClass">
           <div data-date-time-picker="" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="SelectedScansTable" class="col-sm-12">
-          <div data-scan-selector="" data-model-name="modelName"></div>
+        <div data-ng-switch-when="ScansTable" class="col-sm-12">
+          <div data-scans-table="" data-model-name="modelName"></div>
         </div>
         <div data-ng-switch-when="ScansTableWithModal" class="col-sm-12">
-          <div data-scan-selector-with-modal="" data-model-name="modelName"></div>
+          <div data-scans-table-with-modal="" data-model-name="modelName"></div>
         </div>
         <div data-ng-switch-when="CatalogName" data-ng-class="fieldClass">
           <div data-catalog-picker="" data-model="model" data-field="field"></div>
@@ -74,7 +73,6 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         );
     };
 
-
     self.nextPngImageId = function() {
         return 'raydata-png-image-' + (++id);
     };
@@ -116,12 +114,6 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     };
 
     appState.setAppService(self);
-    return self;
-});
-
-SIREPO.app.controller('DataSourceController', function() {
-    // TODO(e-carlin): only let certain files to be uploaded
-    const self = this;
     return self;
 });
 
@@ -191,20 +183,6 @@ SIREPO.app.directive('analysisQueuePanel', function() {
     };
 });
 
-SIREPO.app.directive('analysisStatusPanel', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            args: '='
-        },
-        template: `
-TODO(e-carlin): impl
-        `,
-        controller: function() {
-        }
-    };
-});
-
 SIREPO.app.factory('runMulti', function(panelState, requestSender) {
     const self = {};
 
@@ -265,8 +243,8 @@ SIREPO.app.directive('appHeader', function(appState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-ng-if="nav.isLoaded()" data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('data-source')}"><a href data-ng-click="nav.openSection('dataSource')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-queue')}"><a href data-ng-click="nav.openSection('analysisQueue')"><span class="glyphicon glyphicon-picture"></span> Analysis Queue</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-completed')}"><a href data-ng-click="nav.openSection('analysisCompleted')"><span class="glyphicon glyphicon-picture"></span> Completed</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-queue')}"><a href data-ng-click="nav.openSection('analysisQueue')"><span class="glyphicon glyphicon-picture"></span> Queued</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('replay')}"><a href data-ng-click="nav.openSection('replay')"><span class="glyphicon glyphicon-picture"></span> Replay</a></li>
                 </div>
               </app-header-right-sim-loaded>
@@ -442,14 +420,14 @@ SIREPO.app.directive('replayPanel', function() {
     };
 });
 
-SIREPO.app.directive('scanSelectorWithModal', function() {
+SIREPO.app.directive('scansTableWithModal', function() {
     return {
         restrict: 'A',
         scope: {
             modelName: '=',
         },
         template: `
-            <div data-scan-selector="" data-model-name="modelName" data-selected-scan="selectedScan" data-scans-wanted="scansWanted"></div>
+            <div data-scans-table="" data-model-name="modelName" data-selected-scan="selectedScan" data-scans-wanted="scansWanted"></div>
             <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -517,7 +495,7 @@ SIREPO.app.directive('scanSelectorWithModal', function() {
     };
 });
 
-SIREPO.app.directive('scanSelector', function() {
+SIREPO.app.directive('scansTable', function() {
     return {
         restrict: 'A',
         scope: {
@@ -612,6 +590,7 @@ SIREPO.app.directive('scanSelector', function() {
                 if (!appState.models.scans.searchStartTime || !appState.models.scans.searchStopTime) {
                     return;
                 }
+                // TODO(rorour): remove selected stuff below
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
@@ -629,6 +608,7 @@ SIREPO.app.directive('scanSelector', function() {
                         });
                         cols = raydataService.updateScanInfoTableColsInCache(json.data.cols);
                         appState.saveQuietly('selectedScans');
+
                     },
                     {
                         catalogName: appState.models.scans.catalogName,
