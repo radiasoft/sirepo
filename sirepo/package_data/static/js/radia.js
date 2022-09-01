@@ -1760,7 +1760,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 });
 
 SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimulation, frameCache) {
-
+    // TODO (gurhar1133): Solver triggers re-animation for fieldLineoutAnimation
     return {
         restrict: 'A',
         scope: {
@@ -1768,11 +1768,11 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
         },
         template: `
             <div class="col-md-6">
-                <div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
+              <div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
                 <div data-ng-if="simState.isProcessing()" class="progress">
-                    <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+                  <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
                 </div>
-                </div>
+              </div>
             </div>
         `,
         controller: function($scope) {
