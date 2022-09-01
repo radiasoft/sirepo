@@ -2734,7 +2734,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
         template: `
             <div class="col-md-6">
                 <div data-basic-editor-panel="" data-view-name="fieldLineoutAnimation">
-                    <div data-report-panel="3d" data-model-name="fieldLineoutAnimation"></div>
+                    <div data-report-panel="parameter" data-model-name="fieldLineoutAnimation"></div>
                     <div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation(modelName)"></div>
                 </div>
             </div>

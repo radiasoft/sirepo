@@ -212,7 +212,7 @@ def get_data_file(run_dir, model, frame, options):
         return f
     if model == "fieldLineoutReport":
         f_type = rpt.fieldType
-        fd = _generate_field_data(sim_id, _get_g_id(), name, f_type, [rpt.fieldPath])
+        fd = generate_field_data(sim_id, _get_g_id(), name, f_type, [rpt.fieldPath])
         v = fd.data[0].vectors
         if sfx == "sdds":
             return _save_fm_sdds(name, v, beam_axis, f)
@@ -266,9 +266,22 @@ def post_execution_processing(
 
 
 def sim_frame_fieldLineoutAnimation(frame_args):
-    r = frame_args.frameReport
-    # TODO (gurhar1133): read output of animation param.py and send back
-    assert 0, f"Frame args report : {r}"
+    # r = frame_args.frameReport
+    from pykern import pkjson
+    from pykern import pkio
+
+    f = pkjson.load_any(pkio.py_path("field_data.json"))
+    pkdp("\n\n\n field data: {}", f)
+
+    d = _field_lineout_plot(
+        frame_args.sim_in.models.simulation.simulationId,
+        frame_args.sim_in.models.simulation.name,
+        frame_args.sim_in.models.fieldLineoutReport.fieldType,
+        frame_args.sim_in.models.fieldLineoutReport.fieldPath,
+        frame_args.sim_in.models.fieldLineoutReport.plotAxis,
+        f,
+    )
+    return d
 
 
 def stateful_compute_build_shape_points(data):
@@ -563,19 +576,16 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
+def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=False):
     # TODO (gurhar1133): v needs to be result of param.py for fieldLineoutAnimation
     # TODO (gurhar1133): state difference in here vs param.py fieldLineout Animation?
-    import os
-    pkdp("\n\n\n ls in template radia: {}", os.listdir())
-    import pykern.pkjson
-    # pkdp("in.json")
-    pkdp(pykern.pkjson.load_any("in.json"))
+    from pykern import pkjson
+    from pykern import pkio
     v = (
-        _generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path])
+        generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path])
         .data[0]
         .vectors
-    )
+    ) if not field_data else field_data
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     f = numpy.array(v.directions).reshape(-1, 3)
@@ -641,7 +651,7 @@ def _fit_poles_in_h_bend(**kwargs):
     return s, c
 
 
-def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
+def generate_field_data(sim_id, g_id, name, field_type, field_paths):
     assert (
         field_type in radia_util.FIELD_TYPES
     ), "field_type={}: invalid field type".format(field_type)
@@ -681,7 +691,7 @@ def _generate_data(sim_id, g_id, name, view_type, field_type, field_paths=None):
         if view_type == SCHEMA.constants.viewTypeObjects:
             return o
         elif view_type == SCHEMA.constants.viewTypeFields:
-            g = _generate_field_data(sim_id, g_id, name, field_type, field_paths)
+            g = generate_field_data(sim_id, g_id, name, field_type, field_paths)
             _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
@@ -936,7 +946,7 @@ def _get_geom_data(
 ):
     assert view_type in VIEW_TYPES, "view_type={}: invalid view type".format(view_type)
     if view_type == SCHEMA.constants.viewTypeFields:
-        res = _generate_field_data(sim_id, g_id, name, field_type, field_paths)
+        res = generate_field_data(sim_id, g_id, name, field_type, field_paths)
         res.data += _get_geom_data(
             sim_id,
             g_id,

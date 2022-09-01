@@ -1,16 +1,20 @@
 import mpi4py
 import sirepo.template.radia
+import radia
 from sirepo.template import radia_util
 from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp
+from pykern import pkjson
 
-
-def test():
-    for i in range(100):
-        i + i
 
 def field_data():
-    return sirepo.template.radia._generate_field_data('{{ sim_id }}', {{ gid }}, '{{ name }}', '{{ f_type }}', [PKDict({{f_path}})]).data[0].vectors
+    from pykern import pkjson
+    from pykern import pkio
+
+    {# TODO (gurhar1133): need to work out a way to abstract id out of here #}
+    id = radia_util.load_bin(pkio.read_binary("geometry.dat"))
+    return sirepo.template.radia.generate_field_data('{{ sim_id }}', id, '{{ name }}','{{ f_type }}', [PKDict({{ f_path }})]).data[0].vectors
 
 with radia_util.MPI() as m:
     print(f'RANK {mpi4py.MPI.COMM_WORLD.Get_rank()}')
-    field_data()
+    pkjson.dump_pretty(field_data(), "field_data.json")
