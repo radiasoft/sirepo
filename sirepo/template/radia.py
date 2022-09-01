@@ -10,6 +10,7 @@ Radia "instance" goes away and references no longer have any meaning.
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
@@ -145,7 +146,7 @@ def extract_report_data(run_dir, sim_in):
         )
         d = _get_geom_data(
             sim_in.models.simulation.simulationId,
-            _get_g_id(),
+            get_g_id(),
             sim_in.models.simulation.name,
             v_type,
             f_type,
@@ -164,7 +165,7 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result(
             _generate_field_integrals(
                 sim_in.models.simulation.simulationId,
-                _get_g_id(),
+                get_g_id(),
                 sim_in.models.fieldPaths.paths or [],
             ),
             run_dir=run_dir,
@@ -204,7 +205,7 @@ def get_data_file(run_dir, model, frame, options):
     sfx = options.suffix or default_sfx
     f = f"{model}.{sfx}"
     if model == "kickMapReport":
-        km_dict = _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
+        km_dict = _read_or_generate_kick_map(get_g_id(), data.models.kickMapReport)
         if sfx == "sdds":
             _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
         if sfx == "txt":
@@ -212,7 +213,7 @@ def get_data_file(run_dir, model, frame, options):
         return f
     if model == "fieldLineoutReport":
         f_type = rpt.fieldType
-        fd = generate_field_data(sim_id, _get_g_id(), name, f_type, [rpt.fieldPath])
+        fd = generate_field_data(sim_id, get_g_id(), name, f_type, [rpt.fieldPath])
         v = fd.data[0].vectors
         if sfx == "sdds":
             return _save_fm_sdds(name, v, beam_axis, f)
@@ -266,22 +267,14 @@ def post_execution_processing(
 
 
 def sim_frame_fieldLineoutAnimation(frame_args):
-    # r = frame_args.frameReport
-    from pykern import pkjson
-    from pykern import pkio
-
-    f = pkjson.load_any(pkio.py_path("field_data.json"))
-    pkdp("\n\n\n field data: {}", f)
-
-    d = _field_lineout_plot(
+    return _field_lineout_plot(
         frame_args.sim_in.models.simulation.simulationId,
         frame_args.sim_in.models.simulation.name,
         frame_args.sim_in.models.fieldLineoutReport.fieldType,
         frame_args.sim_in.models.fieldLineoutReport.fieldPath,
         frame_args.sim_in.models.fieldLineoutReport.plotAxis,
-        f,
+        pkjson.load_any(pkio.py_path("field_data.json")),
     )
-    return d
 
 
 def stateful_compute_build_shape_points(data):
@@ -577,12 +570,8 @@ _FIELD_PT_BUILDERS = {
 
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=False):
-    # TODO (gurhar1133): v needs to be result of param.py for fieldLineoutAnimation
-    # TODO (gurhar1133): state difference in here vs param.py fieldLineout Animation?
-    from pykern import pkjson
-    from pykern import pkio
     v = (
-        generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path])
+        generate_field_data(sim_id, get_g_id(), name, f_type, [f_path])
         .data[0]
         .vectors
     ) if not field_data else field_data
@@ -725,7 +714,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     rpt_out = f"{_REPORT_RES_MAP.get(report, report)}"
     res, v = template_common.generate_parameters_file(data)
     if report == "fieldLineoutAnimation":
-        v.gid = _get_g_id()
+        v.gid = get_g_id()
         v.sim_id = data.models.simulation.simulationId
         v.name = data.models.simulation.name
         v.f_type = data.models.fieldLineoutReport.fieldType
@@ -931,7 +920,7 @@ def _get_ell_points(o, stemmed_info):
     )
 
 
-def _get_g_id():
+def get_g_id():
     return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
 
@@ -1027,7 +1016,7 @@ def _get_sdds(cols, units):
 def _kick_map_plot(model):
     from sirepo import srschema
 
-    g_id = _get_g_id()
+    g_id = get_g_id()
     component = model.component
     km = _generate_kick_map(g_id, model)
     if not km:
