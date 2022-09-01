@@ -103,6 +103,7 @@
     },
     "rootRedirectUri": {
         "fete": "/warpvnd",
+        "ml": "/activait",
         "plans": "/en/plans.html",
         "warp": "/warppba"
     },
