@@ -12,6 +12,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="SelectedScansTable" class="col-sm-12">
           <div data-scan-selector="" data-model-name="modelName"></div>
         </div>
+        <div data-ng-switch-when="ScansTableWithModal" class="col-sm-12">
+          <div data-scan-selector-with-modal="" data-model-name="modelName"></div>
+        </div>
         <div data-ng-switch-when="CatalogName" data-ng-class="fieldClass">
           <div data-catalog-picker="" data-model="model" data-field="field"></div>
         </div>
@@ -477,12 +480,86 @@ SIREPO.app.directive('replayPanel', function() {
     };
 });
 
-// TODO(rorour): fix template indentation
+SIREPO.app.directive('scanSelectorWithModal', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+        },
+        template: `
+            <div data-scan-selector="" data-model-name="modelName" data-selected-scan="selectedScan"></div>
+            <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">Output for scan {{ selectedScan.suid }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <span data-loading-spinner data-sentinel="images">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="col-sm-12">
+                            <div data-ng-repeat="i in images">
+                              <div class="panel panel-info">
+                                <div class="panel-heading"><span class="sr-panel-heading">{{ i.filename }}</span></div>
+                                <div class="panel-body">
+                                  <div data-png-image="" data-image="{{ i.image }}"></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <br/>
+                      <div class="row">
+                        <div class="col-sm-offset-6 col-sm-3">
+                        <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                        </div>
+                      </div>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
+            $scope.appState = appState;
+            $scope.selectedScan = null;
+
+            $scope.showAnalysisOutputModal = (scan) => {
+                let el = $('#sr-analysis-output');
+                el.modal('show');
+                el.on('hidden.bs.modal', function() {
+                    el.off();
+                });
+
+                requestSender.sendAnalysisJob(
+                    appState,
+                    (data) => $scope.images = data.data,
+                    {
+                        method: 'output_files',
+                        models: appState.models,
+                        report: $scope.selectedScan.uid,
+                    }
+                );
+            }
+
+            $scope.$watch('selectedScan', ()=>{
+                if ($scope.selectedScan !== null) {
+                    $scope.showAnalysisOutputModal($scope.selectedScan);
+                }
+            })
+        },
+    };
+});
+
 SIREPO.app.directive('scanSelector', function() {
     return {
         restrict: 'A',
         scope: {
             modelName: '=',
+            selectedScan: '=?',
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="scans">
@@ -499,45 +576,11 @@ SIREPO.app.directive('scanSelector', function() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="showAnalysisOutputModal(s)">
+                    <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
                       <td data-ng-repeat="c in columnHeaders.slice(0)">{{ getScanField(s, c) }}</td>
                     </tr>
                   </tbody>
                 </table>
-              </div>
-            </div>
-            <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
-              <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                  <div class="modal-header bg-warning">
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                    <span class="lead modal-title text-info">Output for scan {{ selectedScan.suid }}</span>
-                  </div>
-                  <div class="modal-body">
-                    <span data-loading-spinner data-sentinel="images">
-                    <div class="container-fluid">
-                      <div class="row">
-                        <div class="col-sm-12">
-                              <div data-ng-repeat="i in images">
-                            <div class="panel panel-info">
-                              <div class="panel-heading"><span class="sr-panel-heading">{{ i.filename }}</span></div>
-                                <div class="panel-body">
-                                      <div data-png-image="" data-image="{{ i.image }}"></div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <br />
-                      <div class="row">
-                        <div class="col-sm-offset-6 col-sm-3">
-                          <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
-                        </div>
-                      </div>
-                    </div>
-                    </span>
-                </div>
               </div>
             </div>
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
@@ -601,7 +644,6 @@ SIREPO.app.directive('scanSelector', function() {
                 $scope.setAvailableColumns();
             };
 
-
             $scope.sendScanRequest = function() {
                 if (!appState.models.scans.searchStartTime || !appState.models.scans.searchStopTime) {
                     return;
@@ -646,25 +688,6 @@ SIREPO.app.directive('scanSelector', function() {
                 );
             };
 
-            $scope.showAnalysisOutputModal = (scan) => {
-                $scope.selectedScan = scan;
-                var el = $('#sr-analysis-output');
-                el.modal('show');
-                el.on('hidden.bs.modal', function() {
-                    el.off();
-                });
-
-                requestSender.sendAnalysisJob(
-                    appState,
-                    (data) => $scope.images = data.data,
-                    {
-                        method: 'output_files',
-                        models: appState.models,
-                        report: $scope.selectedScan.uid,
-                    }
-                );
-            }
-
             $scope.setAvailableColumns = function() {
                 $scope.availableColumns = masterListColumns.filter((value) => {
                     return value !== 'uid' && ! $scope.columnHeaders.includes(value);
@@ -678,8 +701,12 @@ SIREPO.app.directive('scanSelector', function() {
                 ];
             };
 
+            $scope.setSelectedScan = (scan) => {
+                $scope.selectedScan = scan;
+            };
+
             $scope.showDeleteButton = (index) => {
-                return index > $scope.defaultColumns.length && index === hoveredIndex;
+                return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
             };
 
             $scope.sortCol = (column) => {

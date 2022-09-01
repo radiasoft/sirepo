@@ -52,9 +52,6 @@
         "analysisStatus": {
             "notes": ["Notes", "Text", ""]
         },
-        "analysisQueue": {
-            "notes": ["Notes", "Text", ""]
-        },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
@@ -65,7 +62,8 @@
             "catalogName": ["Catalog Name", "CatalogName", ""],
             "scans": ["", "SelectedScansTable", null],
             "searchStartTime": ["Start", "DateTimePicker", null],
-            "searchStopTime": ["Stop", "DateTimePicker", null]
+            "searchStopTime": ["Stop", "DateTimePicker", null],
+            "runningScans": ["", "ScansTableWithModal", null]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
@@ -86,13 +84,11 @@
         },
         "analysisQueue": {
             "title": "Analysis Queue",
-            "advanced": [
-                "notes"
-            ],
             "basic": [
                 "scans.catalogName",
-                "scans.scans"
-            ]
+                "scans.runningScans"
+            ],
+            "advanced": []
         },
         "inputFiles": {
             "title": "Input Files",
