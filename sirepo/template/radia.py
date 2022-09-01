@@ -31,9 +31,21 @@ import uuid
 _AXES_UNIT = [1, 1, 1]
 
 _AXIS_ROTATIONS = PKDict(
-    x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
-    y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
-    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+    x=PKDict(
+        x=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+        y=Rotation.from_matrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
+        z=Rotation.from_matrix([[0, 0, -1], [0, 1, 0], [1, 0, 0]]),
+    ),
+    y=PKDict(
+        x=Rotation.from_matrix([[0, 1, 0], [-1, 0, 0], [0, 0, 1]]),
+        y=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+        z=Rotation.from_matrix([[1, 0, 0], [0, 0, 1], [0, -1, 0]]),
+    ),
+    z=PKDict(
+        x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+        y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+        z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+    ),
 )
 
 _DIPOLE_NOTES = PKDict(
@@ -175,7 +187,8 @@ def extract_report_data(run_dir, sim_in):
             _geom_directions(
                 sim_in.models.simulation.beamAxis, sim_in.models.simulation.heightAxis
             ),
-            sim_in.models.simulation.coordinateSystem,
+            'beam',
+            #sim_in.models.simulation.coordinateSystem,
         )
         a = sim_in.models.electronTrajectoryReport.initialAngles + ",0"
         template_common.write_sequential_result(
@@ -196,6 +209,7 @@ def extract_report_data(run_dir, sim_in):
                 beam_axis=sim_in.models.simulation.beamAxis,
                 width_axis=sim_in.models.simulation.widthAxis,
                 height_axis=sim_in.models.simulation.heightAxis,
+                rotation=_rotate_axis(to_axis='y', from_axis=sim_in.models.simulation.beamAxis)
             )
         )
     if sim_in.report == "fieldLineoutReport":
@@ -227,7 +241,7 @@ def get_data_file(run_dir, model, frame, options):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    beam_axis = _AXIS_ROTATIONS[sim.beamAxis]
+    beam_axis = _rotate_axis(to_axis='z', from_axis=[sim.beamAxis])
     rpt = data.models[model]
     default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
     sfx = options.suffix or default_sfx
@@ -1211,6 +1225,10 @@ def _read_solution():
     if not s:
         return None
     return PKDict(steps=s[3], time=s[0], maxM=s[1], maxH=s[2])
+
+
+def _rotate_axis(to_axis='z', from_axis='x'):
+    return _AXIS_ROTATIONS[to_axis][from_axis]
 
 
 # mm -> m, rotate so the beam axis is aligned with z

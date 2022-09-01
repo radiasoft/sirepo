@@ -437,13 +437,25 @@ def get_geom_tree(g_id, recurse_depth=0):
 # where x/y is the width/height direction and z is the beam direction
 def get_electron_trajectory(g_id, **kwargs):
     d = PKDict(kwargs)
-    return radia.FldPtcTrj(
+    a = d.rotation.as_rotvec(degrees=True)
+    pkdp('TRJ IN {}', d)
+    _apply_rotation(
+        g_id,
+        PKDict(
+            center="0,0,0",
+            axis=sirepo.util.to_comma_delimited_string(a),
+            angle=numpy.linalg.norm(a)
+        )
+    )
+    t = radia.FldPtcTrj(
         g_id,
         d.energy,
         [d.pos[0], d.angles[0], d.pos[1], d.angles[1]],
         [d.pos[2], d.z],
         d.num_points,
     )
+    pkdp('TRJ OUT {}', t)
+    return t
 
 
 # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
