@@ -425,10 +425,6 @@ SIREPO.app.directive('replayPanel', function() {
         template: `
           <form>
             <div class="form-group">
-              <label for="newCatalog">Upload new catalog:</label>
-              <input type="file" id="newCatalog">
-            </div>
-            <div class="form-group">
               <label for="sourceCatalog">Source catalog:</label>
               <select id="sourceCatalog">
                 <option ng-repeat="catalog in catalogs">{{catalog}}</option>
@@ -439,22 +435,16 @@ SIREPO.app.directive('replayPanel', function() {
               <input type="text" id="numScans" required>
             </div>
             <div class="form-group">
-              <label for="analysisNotebook">Select analysis notebook to run:</label>
-              <select id="analysisNotebook">
-                <option ng-repeat="notebook in notebooks">{{notebook}}</option>
+              <label for="destinationCatalog">Destination catalog:</label>
+              <select id="destinationCatalog">
+                <option ng-repeat="catalog in catalogs">{{catalog}}</option>
               </select>
             </div>
             <button type="submit" class="btn btn-primary" data-ng-click="">Start Replay</button>
           </form>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
-            // TODO(rorour):
-            //  how does selected analysis notebook get saved with catalog? are there separate nbs (00-03) for csx and chx?
-            //  progress bar?
-            //  run notebook after replay?
-            //  how to get available notebooks?
             $scope.catalogs = [];
-            $scope.notebooks = ['00', '01'];
 
             $scope.sendCatalogsRequest = function() {
                 requestSender.sendStatelessCompute(
@@ -487,7 +477,7 @@ SIREPO.app.directive('scanSelectorWithModal', function() {
             modelName: '=',
         },
         template: `
-            <div data-scan-selector="" data-model-name="modelName" data-selected-scan="selectedScan"></div>
+            <div data-scan-selector="" data-model-name="modelName" data-selected-scan="selectedScan" data-scans-wanted="scansWanted"></div>
             <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -526,6 +516,7 @@ SIREPO.app.directive('scanSelectorWithModal', function() {
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
             $scope.appState = appState;
             $scope.selectedScan = null;
+            $scope.scansWanted = 'queued_scans';
 
             $scope.showAnalysisOutputModal = (scan) => {
                 let el = $('#sr-analysis-output');
@@ -560,6 +551,7 @@ SIREPO.app.directive('scanSelector', function() {
         scope: {
             modelName: '=',
             selectedScan: '=?',
+            scansWanted: '=?',
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="scans">
@@ -668,7 +660,7 @@ SIREPO.app.directive('scanSelector', function() {
                     },
                     {
                         catalogName: appState.models.scans.catalogName,
-                        method: 'completed_scans',
+                        method: $scope.scansWanted ? $scope.scansWanted : 'completed_scans',
                         searchStartTime: appState.models.scans[
                             searchStartOrStopTimeKey(startOrStop[0])
                         ],

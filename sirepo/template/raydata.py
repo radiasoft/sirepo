@@ -129,11 +129,20 @@ def stateless_compute_completed_scans(data):
 
 
 def stateless_compute_queued_scans(data):
-    return PKDict(
-        data=PKDict(
-            queuedScans=[ScanObject("uid4"), ScanObject("uid5"), ScanObject("uid6")],
-        )
-    )
+    s = []
+    for i, v in enumerate(
+        [
+            ("uid4", ScanObject("uid4")),
+            ("uid5", ScanObject("uid5")),
+            ("uid6", ScanObject("uid6")),
+        ]
+    ):
+        if i > _MAX_NUM_SCANS:
+            raise sirepo.util.UserAlert(
+                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
+            )
+        s.append(_scan_info(v[0], data, metadata=v[1].metadata))
+    return _scan_info_result(s)
 
 
 def stateless_compute_scan_fields(data):
