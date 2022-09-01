@@ -13,16 +13,6 @@
                     "suffix": "sdds"
                 }
             ],
-            "fieldLineoutReport": [
-                {
-                    "title": "Save as CSV",
-                    "suffix": "csv"
-                },
-                {
-                    "title": "Save for SRW import",
-                    "suffix": "zip"
-                }
-            ],
             "kickMapReport": [
                 {
                     "title": "Save as Text",
@@ -725,13 +715,6 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
-        "fieldLineoutReport": {
-            "fieldPath": ["_", "model.fieldPath", {}],
-            "fieldPaths": ["Path", "FieldPaths", []],
-            "fieldType": ["Field", "FieldType", "B"],
-            "inProgressText": ["_", "String", "Calculating"],
-            "plotAxis": ["Plot Axis", "BeamAxis", "z"]
-        },
         "fieldIntegralReport": {
             "lastCalculated": ["_", "Integer", -1]
         },
@@ -929,6 +912,11 @@
             "sbatchProject": ["Project", "OptionalString", ""]
         },
         "fieldLineoutAnimation": {
+            "fieldPath": ["_", "model.fieldPath", {}],
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "fieldType": ["Field", "FieldType", "B"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "plotAxis": ["Plot Axis", "BeamAxis", "z"]
         },
         "spatialTransform": {
         },
@@ -1172,15 +1160,6 @@
         "fieldIntegralReport": {
             "title": "Field Integrals (T · mm)",
             "advanced": [],
-            "basic": []
-        },
-        "fieldLineoutReport": {
-            "title": "Field on Path",
-            "advanced": [
-                "fieldPaths",
-                "fieldType",
-                "plotAxis"
-            ],
             "basic": []
         },
         "fieldMapPath": {
@@ -1466,9 +1445,13 @@
             "advanced": []
         },
         "fieldLineoutAnimation": {
-            "title": "Lineout",
+            "title": "Field on Path",
             "basic": [],
-            "advanced": []
+            "advanced": [
+                "fieldPaths",
+                "fieldType",
+                "plotAxis"
+            ]
         },
         "symmetryTransform": {
             "title": "Apply Symmetry",

@@ -21,7 +21,7 @@ SIREPO.app.config(function() {
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
         <div data-ng-switch-when="FieldPaths" class="col-sm-7">
-          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
+          <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
         </div>
         <div data-ng-switch-when="FilletTable" class="col-sm-12">
           <div data-fillet-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
@@ -72,7 +72,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
     let self = {};
 
-    const POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport',];
+    const POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutAnimation', 'kickMapReport',];
 
     // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
@@ -1141,10 +1141,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.simHandleStatus = function(data) {
-        if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
-            frameCache.setFrameCount(1, data.computeModel);
-            return;
-        }
         if (data.error) {
             solving = false;
         }
@@ -1173,6 +1169,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         self.simState.saveAndRunSimulation([model, 'simulation']);
     };
 
+    self.simComputeModel = 'solverAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
 });
@@ -1762,20 +1759,34 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
     };
 });
 
-SIREPO.app.directive('fieldLineoutReport', function(appState) {
+SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimulation, frameCache) {
+
     return {
         restrict: 'A',
         scope: {
-            modelName: '@'
+            modelName: '@',
         },
         template: `
             <div class="col-md-6">
-                <div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>
+                <div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
+                <div data-ng-if="simState.isProcessing()" class="progress">
+                    <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+                </div>
+                </div>
             </div>
         `,
         controller: function($scope) {
-            $scope.dataCleared = true;
             $scope.model = appState.models[$scope.modelName];
+            $scope.dataCleared = true;
+            $scope.simScope = $scope;
+            $scope.simComputeModel = $scope.modelName;
+
+            $scope.simHandleStatus = (data) => {
+                if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
+                    frameCache.setFrameCount(1, data.computeModel);
+                    frameCache.setFrameCount(2);
+                }
+            }
 
             function getPath(id) {
                 for (const p of appState.models.fieldPaths.paths) {
@@ -1813,8 +1824,17 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             };
 
             $scope.$on('radiaViewer.loaded', () => {
+                if ($scope.dataCleared) {
+                    $scope.simState.runSimulation();
+                }
                 $scope.dataCleared = false;
             });
+
+            $scope.$on('fieldLineoutAnimation.changed', function () {
+                if (! $scope.dataCleared && $scope.hasPaths()) {
+                    $scope.simState.runSimulation();
+                }
+            })
 
             $scope.$on('fieldPaths.changed', updatePath);
 
@@ -1825,6 +1845,7 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             });
 
             updatePath();
+            $scope.simState = persistentSimulation.initSimulationState($scope);
         },
     };
 });
@@ -2722,57 +2743,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         },
     };
 });
-
-SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimulation, errorService, frameCache, geometry, layoutService, panelState, radiaService, utilities) {
-
-    return {
-        restrict: 'A',
-        scope: {
-            viz: '<',
-            modelName: '@',
-        },
-        template: `
-            <div class="col-md-6">
-                <div data-basic-editor-panel="" data-view-name="fieldLineoutAnimation">
-                    <div data-report-panel="parameter" data-model-name="fieldLineoutAnimation"></div>
-                    <div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation(modelName)"></div>
-                </div>
-            </div>
-        `,
-        controller: function($scope, $element) {
-
-            $scope.model = appState.models[$scope.modelName];
-
-            // $scope.solution = function() {
-            //     var s = $scope.viz.solution;
-            //     return {
-            //         time: s ? utilities.roundToPlaces(1000 * s.time, 3) : '',
-            //         steps: s ? s.steps : '',
-            //         maxM: s ? utilities.roundToPlaces(s.maxM, 4) : '',
-            //         maxH: s ?  utilities.roundToPlaces(s.maxH, 4) : '',
-            //     };
-            // };
-
-            $scope.reset = function() {
-                $scope.viz.resetSimulation();
-                /*
-                $scope.viz.solution = null;
-                panelState.clear('geometryReport');
-                panelState.requestData('reset', function (d) {
-                    frameCache.setFrameCount(0);
-                }, true);
-
-                 */
-            };
-
-            appState.whenModelsLoaded($scope, function () {
-            });
-
-
-        },
-    };
-});
-
 
 SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $interval, $rootScope) {
 

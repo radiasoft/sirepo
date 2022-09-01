@@ -15,4 +15,9 @@ def field_data():
 
 with radia_util.MPI() as m:
     print(f'RANK {mpi4py.MPI.COMM_WORLD.Get_rank()}')
-    pkjson.dump_pretty(field_data(), "field_data.json")
+    f = field_data()
+    can_write_files = mpi4py.MPI.COMM_WORLD.Get_rank() == 0
+
+if can_write_files:
+    print("check")
+    pkjson.dump_pretty(f, "field_data.json")

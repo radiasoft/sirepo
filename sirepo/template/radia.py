@@ -270,9 +270,9 @@ def sim_frame_fieldLineoutAnimation(frame_args):
     return _field_lineout_plot(
         frame_args.sim_in.models.simulation.simulationId,
         frame_args.sim_in.models.simulation.name,
-        frame_args.sim_in.models.fieldLineoutReport.fieldType,
-        frame_args.sim_in.models.fieldLineoutReport.fieldPath,
-        frame_args.sim_in.models.fieldLineoutReport.plotAxis,
+        frame_args.sim_in.models.fieldLineoutAnimation.fieldType,
+        frame_args.sim_in.models.fieldLineoutAnimation.fieldPath,
+        frame_args.sim_in.models.fieldLineoutAnimation.plotAxis,
         pkjson.load_any(pkio.py_path("field_data.json")),
     )
 
@@ -717,8 +717,8 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         v.gid = get_g_id()
         v.sim_id = data.models.simulation.simulationId
         v.name = data.models.simulation.name
-        v.f_type = data.models.fieldLineoutReport.fieldType
-        v.f_path = data.models.fieldLineoutReport.fieldPath
+        v.f_type = data.models.fieldLineoutAnimation.fieldType
+        v.f_path = data.models.fieldLineoutAnimation.fieldPath
         return template_common.render_jinja(
             SIM_TYPE,
             v,
