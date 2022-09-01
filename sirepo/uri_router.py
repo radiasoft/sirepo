@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkinspect
+from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
@@ -114,6 +115,8 @@ def call_api(route_or_name, kwargs=None, data=None):
             sirepo.http_request.set_sim_type(s)
         sirepo.cookie.save_to_cookie(r)
         sirepo.events.emit("end_api_call", PKDict(resp=r))
+        if pkconfig.channel_in("dev"):
+            r.headers.add("Access-Control-Allow-Origin", "*")
         return r
 
 

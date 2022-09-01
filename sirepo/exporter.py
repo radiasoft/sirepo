@@ -94,7 +94,8 @@ def _create_zip(sim, want_python, out_dir):
     data.pkdel("report")
     files = sim_data.get_class(data).lib_files_for_export(data)
     if want_python:
-        files.append(_python(data))
+        for f in _python(data, sim):
+            files.append(f)
     with zipfile.ZipFile(
         str(path),
         mode="w",
@@ -110,7 +111,7 @@ def _create_zip(sim, want_python, out_dir):
     return path, data
 
 
-def _python(data):
+def _python(data, sim):
     """Generate python in current directory
 
     Args:
@@ -124,5 +125,19 @@ def _python(data):
 
     template = sirepo.template.import_module(data)
     res = pkio.py_path("run.py")
-    res.write(template.python_source_for_model(copy.deepcopy(data), None))
-    return res
+    d = copy.deepcopy(data)
+    d.file_ext = ".zip"
+    t = template.python_source_for_model(d, None)
+    if type(t) == pkcollections.PKDict:
+        return _write_multiple_export_files(t)
+    res.write(t)
+    return [res]
+
+
+def _write_multiple_export_files(source):
+    r = []
+    for k in source.keys():
+        p = pkio.py_path(k)
+        p.write(source[k])
+        r.append(p)
+    return r

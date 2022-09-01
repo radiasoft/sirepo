@@ -277,10 +277,14 @@
             "dataOrigin": ["Data Origin", "DataOrigin", "file"],
             "dataFormat": ["Data Format", "DataFormat", "text"],
             "file": ["Data File", "InputFile"],
+            "dataList": ["Data", "DataList", []],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
+            "selectedData": ["_", "String", ""],
             "url": ["Data URL", "URL", ""]
         },
+        "dataFileCache": {},
+        "dataPathInfo": {},
         "dtClassifierClassificationMetricsAnimation": {},
         "dtClassifierConfusionMatrixAnimation": {
             "colorMap": ["Color Map", "ColorMap", "blues"]
@@ -435,7 +439,8 @@
         },
         "partitionColumnReport": {},
         "partitionSelectionReport": {},
-        "simulationStatus": {}
+        "simulationStatus": {},
+        "urlCache": {}
     },
     "strings": {
         "completionState": ": {frameCount} epochs",
@@ -517,6 +522,7 @@
                 "dataOrigin",
                 "file",
                 "url",
+                "dataList",
                 "dataFormat",
                 "inputsScaler",
                 "outputsScaler"
@@ -637,6 +643,11 @@
         },
         "partitionSelectionReport": {
             "title": "Partition Selection",
+            "advanced": []
+        },
+        "pathChooser": {
+            "title": "Data Paths",
+            "basic": [],
             "advanced": []
         },
         "simulationSettings": {
