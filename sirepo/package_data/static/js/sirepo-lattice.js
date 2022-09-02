@@ -2840,9 +2840,11 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                 requestIndex++;
                 var currentRequestIndex = requestIndex;
                 if (ngModel.$isEmpty(value)) {
+                    scope.isBusy = false;
                     return null;
                 }
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
+                    scope.isBusy = false;
                     var v = parseFloat(value);
                     if (rpnVariableName) {
                         rpnService.recomputeCache(rpnVariableName, v);
