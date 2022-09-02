@@ -603,7 +603,7 @@ _FIELD_PT_BUILDERS = {
 
 def _electron_trajectory_plot(sim_id, **kwargs):
     d = PKDict(kwargs)
-    t = numpy.array(_generate_electron_trajectory(sim_id, _get_g_id(), **kwargs)).T
+    t = _generate_electron_trajectory(sim_id, _get_g_id(), **kwargs)
     pts = (0.001 * t[radia_util.axes_index(d.beam_axis)]).tolist()
     plots = []
     a = [d.width_axis, d.height_axis]

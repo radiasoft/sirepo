@@ -461,7 +461,7 @@ def get_electron_trajectory(g_id, **kwargs):
         d.num_points,
     )
     tt = numpy.array(t).T
-    tcx = d.rotation.inv().apply(numpy.array([tt[1], tt[0], tt[3]]).T)
+    tcx = d.rotation.inv().apply(numpy.array([tt[1], tt[0], tt[3]]).T).T
     # ignore angles for now
     return tcx
 
