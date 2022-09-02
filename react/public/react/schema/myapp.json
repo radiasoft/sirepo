@@ -27,19 +27,48 @@
             "config": {
                 "basic": [
                     {
-                        "table": "fieldList",
-                        "fields": [
-                            "dog.breed",
-                            "dog.weight",
-                            "dog.height",
-                            "dog.disposition",
-                            "dog.favoriteTreat"
+                        "layout": "tabs",
+                        "tabs": [
+                            {
+                                "name": "Physical Characteristics",
+                                "items": [
+                                    {
+                                        "layout": "fieldTable",
+                                        "columns": ["Height", "Weight"],
+                                        "rows": [
+                                            {
+                                                "label": "Size/Shape",
+                                                "fields": [
+                                                    "dog.height",
+                                                    "dog.weight"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "layout": "fieldList",
+                                        "fields": ["dog.breed"]
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Personality",
+                                "items": [
+                                    {
+                                        "layout": "fieldList",
+                                        "fields": [
+                                            "dog.disposition",
+                                            "dog.favoriteTreat"
+                                        ]
+                                    }
+                                ]
+                            }
                         ]
                     }
                 ],
                 "advanced": [
                     {
-                        "table": "fieldList",
+                        "layout": "fieldList",
                         "fields": [
                             "dog.breed",
                             "dog.gender",

@@ -673,10 +673,8 @@ class API(sirepo.api.Base):
         )
 
     def _proxy_react(self, path):
-        if not cfg.react_server or (path not in _PROXY_REACT_URIS and not str.startswith(path, "react")):
+        if path is None or not cfg.react_server or (path not in _PROXY_REACT_URIS and not str.startswith(path, "react")):
             return
-        if path in cfg.react_sim_types:
-            path = ""
         r = requests.get(cfg.react_server + path)
         # We want to throw an exception here, because it shouldn't happen
         r.raise_for_status()

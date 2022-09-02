@@ -1,4 +1,4 @@
-import { Form, Row } from "react-bootstrap";
+import { Form, Row, Col, Tabs, Tab, Container } from "react-bootstrap";
 import { LabelTooltip } from "./label";
 import { useSelector, useDispatch, useStore } from "react-redux";
 import { mapProperties } from "../helper";
@@ -10,17 +10,21 @@ import { DependencyCollector } from '../dependency';
 import { selectModels } from '../models';
 import { updateFormState } from "../formState";
 
+import "./form.scss";
+
 export function FormField(props) {
     let { label, tooltip } = props;
     return (
-        <Form.Group size="sm" as={Row} className="mb-2">
-            <Form.Label column="sm" sm={5} className="text-end">
+        <Form.Group size="sm" as={Row} className="justify-content-center">
+            <Form.Label column className="text-start">
                 {label}
                 {tooltip &&
                     <LabelTooltip text={tooltip} />
                 }
             </Form.Label>
-            {props.children}
+            <Col>
+                {props.children}
+            </Col>
         </Form.Group>
     )
 }
@@ -145,7 +149,7 @@ export class FormController {
     }
 }
 
-function createFieldElement(field) {
+function createFieldInput(field) {
     const onChange = (event) => {
         let nextValue = event.target.value;
         if (field.value.value !== nextValue) { // TODO fix field.value.value naming
@@ -153,14 +157,20 @@ function createFieldElement(field) {
         }
     }
     let InputComponent = field.dependency.type.component;
+    return (<InputComponent
+        valid={field.value.valid}
+        touched={field.value.touched}
+        value={field.value.value}
+        onChange={onChange}
+    />)
+}
+
+function createLabeledFieldInput(field) {
+    let fieldInput = createFieldInput(field);
+    
     return (
         <FormField label={field.dependency.displayName} tooltip={field.dependency.description} key={field.dependency.fieldName}>
-            <InputComponent
-                valid={field.value.valid}
-                touched={field.value.touched}
-                value={field.value.value}
-                onChange={onChange}
-            />
+            {fieldInput}
         </FormField>
     )
 }
@@ -176,33 +186,105 @@ export function EditorFieldGrid(config, { dependencyCollector, formController })
     els.push( // header row
         <Row>
             {(someRowHasLabel ? <Col></Col> : undefined)}
-            {columns.map(colName => <Col><Form.Label>{colName}</Form.Label></Col>)}
+            {columns.map(colName => <Col><Form.Label size={"sm"}>{colName}</Form.Label></Col>)}
         </Row>
     )
 
     for(let row of rows) {
         let fields = row.fields;
-        let labelElement = someRowHasLabel ? (<Form.Label>{row.label || ""}</Form.Label>) : undefined;
+        let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
         let rowElement = (
             <Row>
                 {labelElement ? <Col>{labelElement}</Col> : undefined}
                 {columns.map((_, index) => {
                     let field = fields[index];
                     let hookedField = formController.hookField(dependencyCollector.hookModelDependency(field));
-                    let inputElement = createFieldElement(hookedField);
-                    
+                    let inputElement = createFieldInput(hookedField);
+                    return inputElement;
                 })}
             </Row>
         )
+        els.push(rowElement);
+    }
+
+    return <Container>{els}</Container>
+}
+
+export function EditorFieldList(config, { dependencyCollector, formController }) {
+    let fields = config.fields;
+
+    return <Container>
+        {fields.map(field => createLabeledFieldInput(
+            formController.hookField(dependencyCollector.hookModelDependency(field))
+        ))}
+    </Container>
+}
+
+export function EditorTabs(config, { dependencyCollector, formController }) {
+    let tabs = config.tabs;
+
+    let tabEls = [];
+
+    let firstTabKey = undefined;
+
+    for(let tabConfig of tabs) {
+        let name = tabConfig.name;
+        let layouts = tabConfig.items;
+        firstTabKey = firstTabKey || name;
+        tabEls.push(
+            <Tab eventKey={name} title={name}>
+                {createElementsFromLayouts(layouts, { dependencyCollector, formController })}
+            </Tab>
+        )
+    }
+
+    return (
+        <Tabs defaultActiveKey={firstTabKey}>
+            {tabEls}
+        </Tabs>
+    )
+}
+
+function SpacedLayout(layoutFactory) {
+    let formatChild = (child) => {
+        return (
+            <div className="sr-form-layout">
+                {child}
+            </div>
+        )
+    }
+
+    return (cfg, {dependencyCollector, formController}) => {
+        return formatChild(
+            layoutFactory(cfg, {dependencyCollector, formController})
+        );
     }
 }
 
-export function EditorFieldList(config) {
+export function elementFactoryForLayoutName(layoutName) {
+    switch(layoutName) {
+        case "fieldList":
+            return SpacedLayout(EditorFieldList);
+        case "fieldTable":
+            return SpacedLayout(EditorFieldGrid);
+        case "tabs":
+            return EditorTabs;
+    }
 
+    return undefined;
 }
 
-export let EditorPanel = ({ schema }) => ({ view, viewName }) => {
-    let EditorPanelComponent = (props) => {
+export function createElementFromLayout(layoutConfig, { dependencyCollector, formController }) {
+    let factory = elementFactoryForLayoutName(layoutConfig.layout);
+    return factory(layoutConfig, { dependencyCollector, formController });
+}
+
+export function createElementsFromLayouts(layoutConfigs, { dependencyCollector, formController }) { 
+    return layoutConfigs?.map(cfg => createElementFromLayout(cfg, { dependencyCollector, formController }));
+}
+
+export let FormEditorPanel = ({ schema }) => ({ view, viewName }) => {
+    let FormEditorPanelComponent = (props) => {
         let formActions = useContext(ContextReduxFormActions); // TODO: make these generic
         let formSelectors = useContext(ContextReduxFormSelectors);
         let modelActions = useContext(ContextReduxModelActions);
@@ -233,7 +315,7 @@ export let EditorPanel = ({ schema }) => ({ view, viewName }) => {
             })
         }
 
-        let depCollector = new DependencyCollector({ modelActions, modelSelectors, schema });
+        let dependencyCollector = new DependencyCollector({ modelActions, modelSelectors, schema });
         let formController = new FormController({ formActions, formSelectors, simulationInfoPromise });
 
         let submit = () => {
@@ -242,48 +324,19 @@ export let EditorPanel = ({ schema }) => ({ view, viewName }) => {
             saveToServer(models);
         }
 
-        let collectModelField = (depStr) => depCollector.hookModelDependency(depStr);
-        let hookFormField = (dep) => formController.hookField(dep);
+        let basic = view.config.basic;
+        let advanced = view.config.advanced;
 
-        let configFields = {
-            basic: view.config.basic,
-            advanced: view.config.advanced
-        }
-
-        //let modelFields = mapProperties(configFields, (subviewName, depStrs) => depStrs.map(collectModelField));
-        //let formFields = mapProperties(modelFields, (subviewName, deps) => deps.map(hookFormField));
-
-        
-
-        let createFieldElementsForSubview = (subviewName) => {
-            return (formFields[subviewName] || []).map(field => {
-                const onChange = (event) => {
-                    let nextValue = event.target.value;
-                    if (field.value.value !== nextValue) { // TODO fix field.value.value naming
-                        field.updateValue(nextValue);
-                    }
-                }
-                let InputComponent = field.dependency.type.component;
-                return (
-                    <FormField label={field.dependency.displayName} tooltip={field.dependency.description} key={field.dependency.fieldName}>
-                        <InputComponent
-                            valid={field.value.valid}
-                            touched={field.value.touched}
-                            value={field.value.value}
-                            onChange={onChange}
-                        />
-                    </FormField>
-                )
-            })
-        }
+        let mainChildren = (!!basic) ? createElementsFromLayouts(basic, { dependencyCollector, formController }) : undefined;
+        let modalChildren = (!!advanced) ? createElementsFromLayouts(advanced, { dependencyCollector, formController }) : undefined;
 
         let formProps = {
             submit: submit,
             cancel: formController.cancelChanges,
             showButtons: formController.isFormStateDirty(),
             formValid: formController.isFormStateValid(),
-            mainChildren: createFieldElementsForSubview('basic'),
-            modalChildren: createFieldElementsForSubview('advanced'),
+            mainChildren,
+            modalChildren,
             title: view.title || viewName,
             id: viewName
         }
@@ -293,7 +346,7 @@ export let EditorPanel = ({ schema }) => ({ view, viewName }) => {
             </EditorPanel>
         )
     }
-    return EditorPanelComponent;
+    return FormEditorPanelComponent;
 }
 
 export const FormStateInitializer = ({ schema }) => (child) => {

@@ -2,15 +2,15 @@
 import { Col, Form } from "react-bootstrap";
 
 export class rsType {
-    constructor({ colSize, isRequired }) {
-        this.colSize = this.hasValue(colSize) ? colSize : 5;
+    constructor({ isRequired }) {
+        //this.colSize = this.hasValue(colSize) ? colSize : 5;
         this.isRequired = this.hasValue(isRequired) ? isRequired : true;
     }
 
     component = (props) => {
         let {value, valid, touched, onChange, ...otherProps} = props;
         return (
-            <Col sm={this.colSize}>
+            <Col>
                 {
                     this.inputComponent({
                         ...otherProps,
@@ -41,7 +41,7 @@ export class rsString extends rsType {
     }
     inputComponent(props) {
         return (
-            <Form.Control size="sm" className={this.align} type="text" {...props}></Form.Control>
+            <Form.Control className={this.align} type="text" {...props}></Form.Control>
         )
     }
     validate(value) {
@@ -56,7 +56,6 @@ export class rsNumber extends rsString {
     constructor(props) {
         super(props);
         this.align = "text-end";
-        this.colSize = 3;
     }
 }
 
@@ -87,6 +86,7 @@ export const globalTypes = {
 }
 
 export function enumTypeOf(allowedValues) {
+    console.log("allowedValues", allowedValues);
     return new (class extends rsType {
         inputComponent(props) {
             const options = allowedValues.map(allowedValue => (

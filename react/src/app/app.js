@@ -18,7 +18,7 @@ import {
 import "./app.scss"
 import { compileSchemaFromJson } from '../schema'
 import { Graph2dFromApi } from "../components/graph2d";
-import { EditorPanel } from "../components/form";
+import { FormEditorPanel } from "../components/form";
 import { 
     ContextAppInfo,
     ContextAppName,
@@ -172,6 +172,7 @@ function AppViewBuilderWrapper(child) {
 }
 
 function AppInfoWrapper(appInfo) {
+    console.log("appInfo", appInfo);
     return (child) => {
         let ChildComponent = child;
         return (props) => {
@@ -187,7 +188,7 @@ function AppInfoWrapper(appInfo) {
 class AppViewBuilder{
     constructor (appInfo) { 
         this.components = {
-            'editor': EditorPanel(appInfo),
+            'editor': FormEditorPanel(appInfo),
             'graph2d': (viewInfo) => SimulationVisualWrapper(viewInfo.viewName, viewInfo.view.title, Graph2dFromApi, { width: '100%', height: '100%' })
         }
     }
@@ -254,12 +255,15 @@ const AppRoot = (props) => {
     const hasSchema = useSetup(true,
         (finishInitSchema) => {
             //updateSchema(Schema);
-            fetch('/react/schema/').then(resp => {
+            console.log("fetching schema");
+            fetch(`/react/schema/${appName}.json`).then(resp => {
+                console.log("fetched schema");
                 resp.json().then(json => {
+                    console.log("converted schema to json");
                     updateSchema(compileSchemaFromJson(json));
+                    finishInitSchema();
                 })
             })
-            finishInitSchema();
         }
     )
 
