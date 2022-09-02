@@ -49,30 +49,6 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         return cols.length > 0 ? [firstColHeading].concat(cols) : [];
     };
 
-    self.getScansInfo = function(successCallback, options) {
-        requestSender.sendStatelessCompute(
-            appState,
-            (json) => {
-                self.updateScansInCache(json.data.scans);
-                self.updateScanInfoTableColsInCache(json.data.cols);
-                self.getScansInfo(successCallback, options);
-                successCallback(
-                    s.map(
-                        u => simulationDataCache.scans[u]
-                    ).sort((a, b) => a.start - b.start),
-                    simulationDataCache.scanInfoTableCols
-                );
-            },
-            {
-                catalogName: appState.models.scans.catalogName,
-                method: 'scan_info',
-                scans: s,
-                selectedColumns: appState.models.metadataColumns.selected,
-            },
-            options
-        );
-    };
-
     self.nextPngImageId = function() {
         return 'raydata-png-image-' + (++id);
     };
@@ -151,17 +127,17 @@ SIREPO.app.directive('analysisQueuePanel', function() {
             $scope.queuedScans = [];
 
             $scope.getHeader = function() {
-                return ['uid', 'Start', 'Stop']
+                return ['uid', 'Start', 'Stop'];
             };
 
             $scope.getQueuedScanFields = (scan, fieldName) => {
                 if (['Start', 'Stop'].includes(fieldName)) {
-                    return scan['metadata'][fieldName.toLowerCase()]['time']
+                    return scan.metadata[fieldName.toLowerCase()].time;
                 }
                 if (['uid'].includes(fieldName)) {
-                    return scan[fieldName.toLowerCase()]
+                    return scan[fieldName.toLowerCase()];
                 }
-            }
+            };
 
             $scope.sendScanRequest = function() {
                 requestSender.sendStatelessCompute(
@@ -269,7 +245,7 @@ SIREPO.app.directive('catalogPicker', function() {
         template: `
             <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in allCatalogs"></select>
         `,
-        controller: function($scope, appState, requestSender) {
+        controller: function($scope, appState, errorService, requestSender) {
             $scope.allCatalogs = [];
             (function() {
                 requestSender.sendStatelessCompute(
@@ -490,13 +466,13 @@ SIREPO.app.directive('scansTableWithModal', function() {
                         report: $scope.selectedScan.uid,
                     }
                 );
-            }
+            };
 
             $scope.$watch('selectedScan', ()=>{
                 if ($scope.selectedScan !== null) {
                     $scope.showAnalysisOutputModal($scope.selectedScan);
                 }
-            })
+            });
         },
     };
 });
