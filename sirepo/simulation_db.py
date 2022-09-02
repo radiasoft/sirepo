@@ -495,14 +495,21 @@ def migrate_sim_type(old_sim_type, new_sim_type, uid=None):
     # should exist by now?
     new_sim_dir = simulation_dir(new_sim_type, uid=uid)
     new_lib_dir = simulation_lib_dir(new_sim_type, uid=uid)
-    for p in pkio.sorted_glob(old_sim_dir.join("lib").join("*")):
-        # check if exists? recursive? read/write?
-        shutil.copy2(p, new_lib_dir.join(p.basename))
-    for p in pkio.sorted_glob(old_sim_dir.join("*", SIMULATION_DATA_FILE)):
-        new_p = new_sim_dir.join(_sim_from_path(p)[0])
-        # check if exists?
-        pkio.mkdir_parent(new_p)
-        shutil.copy2(p, new_p.join(SIMULATION_DATA_FILE))
+    with util.THREAD_LOCK:
+        for p in pkio.sorted_glob(old_sim_dir.join("lib").join("*")):
+            # check if exists? recursive? read/write?
+            shutil.copy2(p, new_lib_dir.join(p.basename))
+        for p in pkio.sorted_glob(old_sim_dir.join("*", SIMULATION_DATA_FILE)):
+            data = read_json(p)
+            sim = data.models.simulation
+            if sim.get("isExample"):
+                continue
+            new_p = new_sim_dir.join(_sim_from_path(p)[0])
+            # check if exists?
+            if new_p.exists():
+                continue
+            pkio.mkdir_parent(new_p)
+            shutil.copy2(p, new_p.join(SIMULATION_DATA_FILE))
 
 
 def process_simulation_list(res, path, data):
