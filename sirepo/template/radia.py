@@ -32,19 +32,19 @@ _AXES_UNIT = [1, 1, 1]
 
 _AXIS_ROTATIONS = PKDict(
     x=PKDict(
-        x=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+        x=Rotation.identity(),
         y=Rotation.from_matrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
         z=Rotation.from_matrix([[0, 0, -1], [0, 1, 0], [1, 0, 0]]),
     ),
     y=PKDict(
-        x=Rotation.from_matrix([[0, 1, 0], [-1, 0, 0], [0, 0, 1]]),
-        y=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+        x=Rotation.from_matrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
+        y=Rotation.identity(),
         z=Rotation.from_matrix([[1, 0, 0], [0, 0, 1], [0, -1, 0]]),
     ),
     z=PKDict(
         x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
         y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
-        z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+        z=Rotation.identity(),
     ),
 )
 
@@ -88,7 +88,12 @@ _METHODS = [
     "get_kick_map",
     "save_field",
 ]
-_POST_SIM_REPORTS = ["electronTrajectoryReport", "fieldIntegralReport", "fieldLineoutReport", "kickMapReport"]
+_POST_SIM_REPORTS = [
+    "electronTrajectoryReport",
+    "fieldIntegralReport",
+    "fieldLineoutReport",
+    "kickMapReport",
+]
 _SIM_REPORTS = ["geometryReport", "reset", "solverAnimation"]
 _REPORTS = [
     "electronTrajectoryReport",
@@ -183,33 +188,29 @@ def extract_report_data(run_dir, sim_in):
             run_dir=run_dir,
         )
     if sim_in.report == "electronTrajectoryReport":
-        m = _get_coord_matrix(
-            _geom_directions(
-                sim_in.models.simulation.beamAxis, sim_in.models.simulation.heightAxis
-            ),
-            'beam',
-            #sim_in.models.simulation.coordinateSystem,
+        a = sirepo.util.split_comma_delimited_string(
+            sim_in.models.electronTrajectoryReport.initialAngles + ",0",
+            float,
         )
-        a = sim_in.models.electronTrajectoryReport.initialAngles + ",0"
+        angles = [0, 0, 0]
+        angles[radia_util.axes_index(sim_in.models.simulation.widthAxis)] = a[0]
+        angles[radia_util.axes_index(sim_in.models.simulation.heightAxis)] = a[1]
         template_common.write_sequential_result(
             _electron_trajectory_plot(
                 sim_in.models.simulation.simulationId,
                 energy=sim_in.models.electronTrajectoryReport.energy,
-                pos=radia_util.multiply_vector_by_matrix(
-                    sirepo.util.split_comma_delimited_string(
-                        sim_in.models.electronTrajectoryReport.initialPosition, float
-                    ),
-                    m,
+                pos=sirepo.util.split_comma_delimited_string(
+                    sim_in.models.electronTrajectoryReport.initialPosition, float
                 ),
-                angles=radia_util.multiply_vector_by_matrix(
-                    sirepo.util.split_comma_delimited_string(a, float), m
-                ),
-                z=sim_in.models.electronTrajectoryReport.finalBeamPosition,
+                angles=angles,
+                y_final=sim_in.models.electronTrajectoryReport.finalBeamPosition,
                 num_points=sim_in.models.electronTrajectoryReport.numPoints,
                 beam_axis=sim_in.models.simulation.beamAxis,
                 width_axis=sim_in.models.simulation.widthAxis,
                 height_axis=sim_in.models.simulation.heightAxis,
-                rotation=_rotate_axis(to_axis='y', from_axis=sim_in.models.simulation.beamAxis)
+                rotation=_rotate_axis(
+                    to_axis="y", from_axis=sim_in.models.simulation.beamAxis
+                ),
             )
         )
     if sim_in.report == "fieldLineoutReport":
@@ -241,7 +242,7 @@ def get_data_file(run_dir, model, frame, options):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    beam_axis = _rotate_axis(to_axis='z', from_axis=[sim.beamAxis])
+    beam_axis = _rotate_axis(to_axis="z", from_axis=[sim.beamAxis])
     rpt = data.models[model]
     default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
     sfx = options.suffix or default_sfx
@@ -603,13 +604,15 @@ _FIELD_PT_BUILDERS = {
 def _electron_trajectory_plot(sim_id, **kwargs):
     d = PKDict(kwargs)
     t = numpy.array(_generate_electron_trajectory(sim_id, _get_g_id(), **kwargs)).T
-    pts = (0.001 * t[0]).tolist()
+    pts = (0.001 * t[radia_util.axes_index(d.beam_axis)]).tolist()
     plots = []
     a = [d.width_axis, d.height_axis]
     for i in range(2):
         plots.append(
             PKDict(
-                points=(0.001 * t[2 * i + 1]).tolist(), label=f"{a[i]}", style="line"
+                points=(0.001 * t[radia_util.axes_index(a[i])]).tolist(),
+                label=f"{a[i]}",
+                style="line",
             )
         )
 
@@ -646,7 +649,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
             )
         )
     return template_common.parameter_plot(
-        pts[:, radia_util.AXES.index(plot_axis)].tolist(),
+        pts[:, radia_util.axes_index(plot_axis)].tolist(),
         plots,
         PKDict(),
         PKDict(
@@ -1132,9 +1135,7 @@ def _prep_new_sim(data, new_sim_data=None):
     if s == "undulatorBasic":
         data.models.geometryReport.isSolvable = "0"
     f = (m.numPeriods + 0.5) * m.periodLength
-    data.models.fieldPaths.paths.append(
-        _build_field_axis(3 * f, new_sim_data.beamAxis)
-    )
+    data.models.fieldPaths.paths.append(_build_field_axis(3 * f, new_sim_data.beamAxis))
     data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
         new_sim_data.beamAxis,
         -f,
@@ -1227,7 +1228,7 @@ def _read_solution():
     return PKDict(steps=s[3], time=s[0], maxM=s[1], maxH=s[2])
 
 
-def _rotate_axis(to_axis='z', from_axis='x'):
+def _rotate_axis(to_axis="z", from_axis="x"):
     return _AXIS_ROTATIONS[to_axis][from_axis]
 
 

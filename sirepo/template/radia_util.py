@@ -153,7 +153,7 @@ def _apply_translation(g_id, xform):
     )
 
 
-def _axes_index(axis):
+def axes_index(axis):
     return AXES.index(axis)
 
 
@@ -309,7 +309,7 @@ def build_cylinder(**kwargs):
     g_id = radia.ObjCylMag(
         d.center,
         d.radius,
-        d.size[_axes_index(axis)],
+        d.size[axes_index(axis)],
         d.num_sides,
         d.extrusion_axis,
         d.magnetization,
@@ -432,30 +432,38 @@ def get_geom_tree(g_id, recurse_depth=0):
     return g_arr
 
 
-# the trajectory is of the form
-#   [[z0, x0, dx/dz0, y0, dy/dz0], ...]
-# where x/y is the width/height direction and z is the beam direction
+# Radia expects the electron to travel in the y direction so we must rotate all the
+# fields such that the simulation's beam axis points along y.
+# The resulting trajectory is of the form
+#   [[y0, x0, dx/dy0, z0, dz/dy0], [y1, x1, dx/dy1, z1, dz/dy1],...]
+# where x/z is the width/height direction and y is the beam direction
 def get_electron_trajectory(g_id, **kwargs):
     d = PKDict(kwargs)
-    a = d.rotation.as_rotvec(degrees=True)
-    pkdp('TRJ IN {}', d)
-    _apply_rotation(
-        g_id,
-        PKDict(
-            center="0,0,0",
-            axis=sirepo.util.to_comma_delimited_string(a),
-            angle=numpy.linalg.norm(a)
+    axis = d.rotation.as_rotvec(degrees=True)
+    angle = numpy.linalg.norm(axis)
+    # Identity Rotations produce a degenerate (all 0s) axis
+    if any(axis):
+        _apply_rotation(
+            g_id,
+            PKDict(
+                center="0,0,0",
+                axis=sirepo.util.to_comma_delimited_string(axis),
+                angle=angle,
+            ),
         )
-    )
+    p = d.rotation.apply(d.pos)
+    a = d.rotation.apply(d.angles)
     t = radia.FldPtcTrj(
         g_id,
         d.energy,
-        [d.pos[0], d.angles[0], d.pos[1], d.angles[1]],
-        [d.pos[2], d.z],
+        [p[0], a[0], p[2], a[2]],
+        [p[1], d.y_final],
         d.num_points,
     )
-    pkdp('TRJ OUT {}', t)
-    return t
+    tt = numpy.array(t).T
+    tcx = d.rotation.inv().apply(numpy.array([tt[1], tt[0], tt[3]]).T)
+    # ignore angles for now
+    return tcx
 
 
 # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
