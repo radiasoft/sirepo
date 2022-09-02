@@ -186,6 +186,11 @@ def _20220609_add_expiration_column_to_user_role_t():
     )
 
 
+# def _20220901_migrate_ml_to_activait():
+#    for u in sirepo.auth_db.all_uids():
+#        sirepo.simulation_db.migrate_sim_type("ml", "activait", uid=u)
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"
