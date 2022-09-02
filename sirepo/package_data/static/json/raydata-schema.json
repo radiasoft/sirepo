@@ -28,6 +28,7 @@
         "analysisCompleted": {
             "route": "/analysis-completed/:simulationId",
             "config": {
+                "controller": "DataSourceController as dataSource",
                 "templateUrl": "/static/html/raydata-analysis-completed.html"
           }
         },

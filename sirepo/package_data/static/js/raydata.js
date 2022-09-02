@@ -117,6 +117,12 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
     return self;
 });
 
+SIREPO.app.controller('DataSourceController', function() {
+    // TODO(e-carlin): only let certain files to be uploaded
+    const self = this;
+    return self;
+});
+
 SIREPO.app.directive('analysisQueuePanel', function() {
     return {
         restrict: 'A',
@@ -590,25 +596,14 @@ SIREPO.app.directive('scansTable', function() {
                 if (!appState.models.scans.searchStartTime || !appState.models.scans.searchStopTime) {
                     return;
                 }
-                // TODO(rorour): remove selected stuff below
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
                         $scope.scans = [];
                         json.data.scans.forEach((s) => {
-                            s.selected = s.uid in appState.models.selectedScans.uids;
                             $scope.scans.push(s);
                         });
-                        // Remove scans that were selected but are not in the new search results
-                        Object.keys(appState.models.selectedScans.uids).forEach((u) => {
-                            if ($scope.scans.some((e) => e.uid === u)) {
-                                return;
-                            }
-                            delete appState.models.selectedScans.uids[u];
-                        });
                         cols = raydataService.updateScanInfoTableColsInCache(json.data.cols);
-                        appState.saveQuietly('selectedScans');
-
                     },
                     {
                         catalogName: appState.models.scans.catalogName,
