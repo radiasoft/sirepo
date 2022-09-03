@@ -524,6 +524,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "2",
                         "heightDir": [
                             0,
@@ -545,6 +546,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "3",
                         "heightDir": [
                             0,
@@ -566,6 +568,7 @@
                             1,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "2",
                         "heightDir": [
                             0,
@@ -587,6 +590,7 @@
                             1,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "3",
                         "heightDir": [
                             0,
@@ -667,6 +671,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "heightDir": [
                             0,
                             0,

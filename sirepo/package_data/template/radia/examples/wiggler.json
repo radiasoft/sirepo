@@ -1,5 +1,10 @@
 {
     "models": {
+        "electronTrajectoryReport": {
+            "finalBeamPosition": 250,
+            "initialAngles": "0.0, 0.0",
+            "initialPosition": "0.0, -250, 0"
+        },
         "fieldDisplay": {
             "colorMap": "viridis",
             "scaling": "linear"
