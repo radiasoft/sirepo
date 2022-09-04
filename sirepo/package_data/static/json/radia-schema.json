@@ -702,10 +702,10 @@
         },
         "electronTrajectoryReport": {
             "energy": ["Electron Energy [GeV]", "Float", 1.0],
-            "initialPosition": ["Starting Position [mm]", "FloatStringArray", "0.0, 0.0, -1.0", "", "x, y, z"],
+            "initialPosition": ["Starting Position [mm]", "FloatStringArray", "0.0, 0.0, -10.0", "", "x, y, z"],
             "initialAngles": ["Starting Angles [rad]", "FloatStringArray", "0.0, 0.0", "", "d{{ appState.models.simulation.widthAxis }}/d{{ appState.models.simulation.beamAxis }}, d{{ appState.models.simulation.heightAxis }}/d{{ appState.models.simulation.beamAxis }}"],
             "inProgressText": ["_", "String", "Calculating"],
-            "finalBeamPosition": ["Final {{ appState.models.simulation.beamAxis }} Position [mm]", "Float", 1.0],
+            "finalBeamPosition": ["Final {{ appState.models.simulation.beamAxis }} Position [mm]", "Float", 10.0],
             "numPoints": ["Num Points", "Integer", 101, "", 2]
         },
         "ell": {
