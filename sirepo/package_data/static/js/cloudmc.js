@@ -450,7 +450,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
                     .forEach((c, i) => {
                         // when the field value is 0, don't draw the element at all
-                        dataColors.push(...c, d[i] === 0 ? 0 : Math.floor(255 * appState.models.geometry3DReport.opacity));
+                        dataColors.push(...c, d[i] === 0 ? 0 : Math.floor(255 * appState.models.openmcAnimation.opacity));
                     });
                 polyData.getCellData().setScalars(
                     vtk.Common.Core.vtkDataArray.newInstance({
@@ -612,7 +612,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             });
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
-            appState.watchModelFields($scope, ['tally.colorMap'], setTallyColors);
+            appState.watchModelFields($scope, ['openmcAnimation.colorMap'], setTallyColors);
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
