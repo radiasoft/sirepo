@@ -13,3 +13,6 @@ export const ContextAppViewBuilder = React.createContext();
 export const ContextAppInfo = React.createContext();
 
 export const ContextRelativeRouterHelper = React.createContext();
+
+export const ContextRelativeFormController = React.createContext();
+export const ContextRelativeDependencyCollector = React.createContext();
