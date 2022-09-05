@@ -786,6 +786,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
         controller: function($scope, $element) {
             $scope.appState = appState;
             $scope.utilities = utilities;
+            $scope.UTILS = SIREPO.UTILS;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
                     (fieldType == 'Integer' || fieldType.indexOf('Float') >= 0)
@@ -3531,30 +3532,43 @@ SIREPO.app.directive('modelArray', function() {
             field: '=',
         },
         template: `
-            <div  style="position: relative; top: -25px">
-            <div class="row">
-              <div class="col-sm-11"><div class="row">
-                <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
-                <div class="col-sm-3 text-center" data-ng-repeat="heading in headings track by $index">
-<div data-label-with-tooltip="" data-label="{{ heading[0] }}" data-tooltip="{{ heading[3] }}"></div>
-                </div></div>
-              </div>
-            </div>
-            <div class="form-group form-group-sm" data-ng-show="showRow($index)" data-ng-repeat="m in modelArray() track by $index">
-              <div class="col-sm-11"><div class="row">
-                <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
-                <div class="col-sm-3" data-ng-repeat="f in fields track by $index">
-                  <input data-string-to-number="" data-ng-model="m[f]" class="form-control" style="text-align: right" data-lpignore="true" />
+            <div style="position: relative; top: -25px">
+              <div class="row">
+                <div class="col-sm-11">
+                  <div class="row">
+                    <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
+                    <div class="col-sm-3 text-center"
+                      data-ng-repeat="heading in headings track by $index">
+                      <div data-label-with-tooltip="" data-label="{{ heading[0] }}"
+                        data-tooltip="{{ heading[3] }}"></div>
+                    </div>
+                  </div>
                 </div>
-              </div></div>
-              <div class="col-sm-1"><button style="margin-left: -15px; margin-top: 5px" data-ng-show="! isEmpty($index)" data-ng-click="deleteRow($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div>
-            </div>
+              </div>
+              <div class="form-group form-group-sm" data-ng-show="showRow($index)"
+                data-ng-repeat="m in modelArray() track by $index">
+                <div class="col-sm-11">
+                  <div class="row">
+                    <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
+                    <div class="col-sm-3" data-ng-repeat="f in fields track by $index">
+                      <input data-string-to-number="" data-ng-model="m[f]" class="form-control"
+                        style="text-align: right" data-lpignore="true" />
+                    </div>
+                  </div>
+                </div>
+                <div class="col-sm-1">
+                  <button style="margin-left: -15px; margin-top: 5px"
+                    data-ng-show="! isEmpty($index)" data-ng-click="deleteRow($index)"
+                    class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span>
+                  </button>
+                </div>
+              </div>
             </div>
         `,
         controller: function(appState, $scope) {
             const mView = SIREPO.APP_SCHEMA.view[$scope.field];
             $scope.fields = mView.advanced;
-            $scope.headings = SIREPO.APP_SCHEMA.model[$scope.field];
+            $scope.headings = $scope.fields.map(f => SIREPO.APP_SCHEMA.model[$scope.field][f]);
             $scope.pad = (4 - $scope.fields.length) * 3;
 
             function initArray() {
@@ -4219,9 +4233,6 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             <div data-canceled-due-to-timeout-alert="simState"></div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">
               <div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>
-              <div data-ng-show="simState.isStateError()">
-                <div class="col-sm-12">{{ stateAsText() }}</div>
-              </div>
               <div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0">
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
               </div>
