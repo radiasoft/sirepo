@@ -23,7 +23,7 @@
     "view": {
         "dog": {
             "title": "Dog",
-            "type": "editor",
+            "type": "panel",
             "config": {
                 "basic": [
                     {
@@ -81,7 +81,15 @@
         },
         "heightWeightReport": {
             "title": "Physical Characteristics",
-            "type": "graph2d"
+            "type": "panel",
+            "config": {
+                "basic": [
+                    {
+                        "layout": "graph2d",
+                        "simulation": "heightWeightReport"
+                    }
+                ]
+            }
         }
     }
 }

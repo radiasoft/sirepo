@@ -1,5 +1,17 @@
-import { Card, Modal, Col, Button, Form } from "react-bootstrap";
-import { useState, Fragment } from 'react';
+import { Card, Modal, Col, Button, Form, Tab, Tabs } from "react-bootstrap";
+import { useState, Fragment, useContext } from 'react';
+import { useStore } from "react-redux";
+import { FormController, FieldGridLayout, FieldListLayout } from "./form";
+import { DependencyCollector } from "../dependency";
+import { 
+    ContextRelativeDependencyCollector,
+    ContextRelativeFormController,
+    ContextReduxFormActions,
+    ContextReduxFormSelectors,
+    ContextReduxModelActions,
+    ContextReduxModelSelectors,
+    ContextSimulationInfoPromise
+} from "./context";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -99,4 +111,144 @@ export function EditorPanel(props) {
             {showButtons && actionButtons}
         </Panel>
     )
+}
+
+export function TabLayout(props) {
+    let { config } = props;
+
+    let tabs = config.tabs;
+
+    let tabEls = [];
+
+    let firstTabKey = undefined;
+
+    for(let tabConfig of tabs) {
+        let name = tabConfig.name;
+        let layouts = tabConfig.items;
+        firstTabKey = firstTabKey || name;
+        tabEls.push(
+            <Tab key={name} eventKey={name} title={name}>
+                <ViewLayouts configs={layouts}/>
+            </Tab>
+        )
+    }
+
+    return (
+        <Tabs defaultActiveKey={firstTabKey}>
+            {tabEls}
+        </Tabs>
+    )
+}
+
+function SpacedLayout(layoutElement) {
+    let ChildElement = layoutElement;
+    return (props) => {
+        return (
+            <div className="sr-form-layout">
+                <ChildElement {...props}/>
+            </div>
+        )
+    }
+}
+
+export function MissingLayout(props) {
+    return <>Missing layout!</>;
+}
+
+export function elementForLayoutName(layoutName) {
+    switch(layoutName) {
+        case "fieldList":
+            return SpacedLayout(FieldListLayout);
+        case "fieldTable":
+            return SpacedLayout(FieldGridLayout);
+        case "tabs":
+            return TabLayout;
+        default: 
+            return MissingLayout;
+
+    }
+}
+
+export function ViewLayout(props) {
+    let { config } = props;
+    let LayoutElement = elementForLayoutName(config.layout);
+    return <LayoutElement config={config}></LayoutElement>
+}
+
+export function ViewLayouts(props) { 
+    let { configs } = props;
+    // uses index as a key only because schema wont change, bad practice otherwise!
+    return <>
+        {configs.map((config, idx) => <ViewLayout key={idx} config={config}/>)}
+    </>
+}
+
+export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
+    let ViewLayoutsPanelComponent = (props) => {
+        let formActions = useContext(ContextReduxFormActions); // TODO: make these generic
+        let formSelectors = useContext(ContextReduxFormSelectors);
+        let modelActions = useContext(ContextReduxModelActions);
+        let modelSelectors = useContext(ContextReduxModelSelectors);
+
+        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
+
+        let store = useStore();
+
+        let getModels = () => {
+            console.log("state", store.getState());
+            return modelSelectors.selectModels(store.getState());
+        }
+
+        let saveToServer = (models) => {
+            simulationInfoPromise.then((simulationInfo) => {
+                simulationInfo.models = models;
+                fetch("/save-simulation", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(simulationInfo)
+                }).then(resp => {
+                    // TODO: error handling
+                    console.log("resp", resp);
+                })
+            })
+        }
+
+        let dependencyCollector = new DependencyCollector({ modelActions, modelSelectors, schema });
+        let formController = new FormController({ formActions, formSelectors, simulationInfoPromise });
+
+        let submit = () => {
+            let models = getModels();
+            formController.submitChanges();
+            saveToServer(models);
+        }
+
+        let basic = view.config.basic;
+        let advanced = view.config.advanced;
+
+        let mainChildren = (!!basic) ? <ViewLayouts configs={basic}/> : undefined;
+        let modalChildren = (!!advanced) ? <ViewLayouts configs={basic}/> : undefined;
+
+        let formProps = {
+            submit: submit,
+            cancel: formController.cancelChanges,
+            showButtons: formController.isFormStateDirty(),
+            formValid: formController.isFormStateValid(),
+            mainChildren,
+            modalChildren,
+            title: view.title || viewName,
+            id: {viewName}
+        }
+
+        return (
+            <ContextRelativeDependencyCollector.Provider value={dependencyCollector}>
+                <ContextRelativeFormController.Provider value={formController}>
+                    <EditorPanel {...formProps}>
+                    </EditorPanel>
+                </ContextRelativeFormController.Provider>
+            </ContextRelativeDependencyCollector.Provider>
+        )
+    }
+    return ViewLayoutsPanelComponent;
 }

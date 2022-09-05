@@ -17,8 +17,7 @@ import {
 } from '../formState'
 import "./app.scss"
 import { compileSchemaFromJson } from '../schema'
-import { Graph2dFromApi } from "../components/graph2d";
-import { FormEditorPanel } from "../components/form";
+import { ViewLayoutsPanel } from "../components/panel";
 import { 
     ContextAppInfo,
     ContextAppName,
@@ -188,13 +187,13 @@ function AppInfoWrapper(appInfo) {
 class AppViewBuilder{
     constructor (appInfo) { 
         this.components = {
-            'editor': FormEditorPanel(appInfo),
-            'graph2d': (viewInfo) => SimulationVisualWrapper(viewInfo.viewName, viewInfo.view.title, Graph2dFromApi, { width: '100%', height: '100%' })
+            'panel': ViewLayoutsPanel(appInfo)
+            //'graph2d': (viewInfo) => SimulationVisualWrapper(viewInfo.viewName, viewInfo.view.title, Graph2dFromApi, { width: '100%', height: '100%' })
         }
     }
 
     buildComponentForView = (viewInfo) => {
-        let componentBuilder = this.components[viewInfo.view.type || 'editor'];
+        let componentBuilder = this.components[viewInfo.view.type || 'panel'];
 
         if(!componentBuilder) {
             return MissingComponentPlaceholder;

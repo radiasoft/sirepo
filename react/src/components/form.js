@@ -1,12 +1,10 @@
-import { Form, Row, Col, Tabs, Tab, Container } from "react-bootstrap";
+import { Form, Row, Col, Container } from "react-bootstrap";
 import { LabelTooltip } from "./label";
 import { useSelector, useDispatch, useStore } from "react-redux";
 import { mapProperties } from "../helper";
-import { ContextReduxFormActions, ContextReduxFormSelectors, ContextReduxModelActions, ContextReduxModelSelectors, ContextRelativeDependencyCollector, ContextRelativeFormController, ContextSimulationInfoPromise } from './context'
+import { ContextRelativeDependencyCollector, ContextRelativeFormController } from './context'
 import { useContext } from "react";
 import { useSetup } from "../hooks";
-import { EditorPanel } from './panel';
-import { DependencyCollector } from '../dependency';
 import { selectModels } from '../models';
 import { updateFormState } from "../formState";
 
@@ -175,7 +173,7 @@ function LabeledFieldInput(props) {
     )
 }
 
-export function EditorFieldGrid(props) {
+export function FieldGridLayout(props) {
     let { config } = props;
 
     let dependencyCollector = useContext(ContextRelativeDependencyCollector);
@@ -215,7 +213,7 @@ export function EditorFieldGrid(props) {
     return <Container>{els}</Container>
 }
 
-export function EditorFieldList(props) {
+export function FieldListLayout(props) {
     let { config } = props;
 
     let dependencyCollector = useContext(ContextRelativeDependencyCollector);
@@ -228,146 +226,6 @@ export function EditorFieldList(props) {
             <LabeledFieldInput key={idx} field={formController.hookField(dependencyCollector.hookModelDependency(field))}></LabeledFieldInput>
         ))}
     </Container>
-}
-
-export function EditorTabs(props) {
-    let { config } = props;
-
-    let tabs = config.tabs;
-
-    let tabEls = [];
-
-    let firstTabKey = undefined;
-
-    for(let tabConfig of tabs) {
-        let name = tabConfig.name;
-        let layouts = tabConfig.items;
-        firstTabKey = firstTabKey || name;
-        tabEls.push(
-            <Tab key={name} eventKey={name} title={name}>
-                <ViewLayouts configs={layouts}/>
-            </Tab>
-        )
-    }
-
-    return (
-        <Tabs defaultActiveKey={firstTabKey}>
-            {tabEls}
-        </Tabs>
-    )
-}
-
-function SpacedLayout(layoutFactory) {
-    let formatChild = (child) => {
-        return (
-            <div className="sr-form-layout">
-                {child}
-            </div>
-        )
-    }
-
-    return (cfg, {dependencyCollector, formController}) => {
-        return formatChild(
-            layoutFactory(cfg, {dependencyCollector, formController})
-        );
-    }
-}
-
-export function elementFactoryForLayoutName(layoutName) {
-    switch(layoutName) {
-        case "fieldList":
-            return SpacedLayout(EditorFieldList);
-        case "fieldTable":
-            return SpacedLayout(EditorFieldGrid);
-        case "tabs":
-            return EditorTabs;
-    }
-
-    return undefined;
-}
-
-export function ViewLayout(props) {
-    let { config } = props;
-    let LayoutElement = elementFactoryForLayoutName(config.layout);
-    return <LayoutElement config={config}></LayoutElement>
-}
-
-export function ViewLayouts(props) { 
-    let { configs } = props;
-    // uses index as a key only because schema wont change, bad practice otherwise!
-    return <>
-        {configs.map((config, idx) => <ViewLayout key={idx} config={config}/>)}
-    </>
-}
-
-export let FormEditorPanel = ({ schema }) => ({ view, viewName }) => {
-    let FormEditorPanelComponent = (props) => {
-        let formActions = useContext(ContextReduxFormActions); // TODO: make these generic
-        let formSelectors = useContext(ContextReduxFormSelectors);
-        let modelActions = useContext(ContextReduxModelActions);
-        let modelSelectors = useContext(ContextReduxModelSelectors);
-
-        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
-
-        let store = useStore();
-
-        let getModels = () => {
-            console.log("state", store.getState());
-            return modelSelectors.selectModels(store.getState());
-        }
-
-        let saveToServer = (models) => {
-            simulationInfoPromise.then((simulationInfo) => {
-                simulationInfo.models = models;
-                fetch("/save-simulation", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(simulationInfo)
-                }).then(resp => {
-                    // TODO: error handling
-                    console.log("resp", resp);
-                })
-            })
-        }
-
-        let dependencyCollector = new DependencyCollector({ modelActions, modelSelectors, schema });
-        let formController = new FormController({ formActions, formSelectors, simulationInfoPromise });
-
-        let submit = () => {
-            let models = getModels();
-            formController.submitChanges();
-            saveToServer(models);
-        }
-
-        let basic = view.config.basic;
-        let advanced = view.config.advanced;
-
-        let mainChildren = (!!basic) ? <ViewLayouts configs={basic}/> : undefined;
-        let modalChildren = (!!advanced) ? <ViewLayouts configs={basic}/> : undefined;
-
-        let formProps = {
-            submit: submit,
-            cancel: formController.cancelChanges,
-            showButtons: formController.isFormStateDirty(),
-            formValid: formController.isFormStateValid(),
-            mainChildren,
-            modalChildren,
-            title: view.title || viewName,
-            id: {viewName}
-        }
-
-        return (
-            <ContextRelativeDependencyCollector.Provider value={dependencyCollector}>
-                <ContextRelativeFormController.Provider value={formController}>
-                    <EditorPanel {...formProps}>
-                    </EditorPanel>
-                </ContextRelativeFormController.Provider>
-            </ContextRelativeDependencyCollector.Provider>
-        )
-    }
-    return FormEditorPanelComponent;
 }
 
 export const FormStateInitializer = ({ schema }) => (child) => {
