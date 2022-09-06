@@ -260,6 +260,7 @@ def compute_field_range(args, compute_range):
         PKDict(
             simulationType=args["simulationType"],
             simulationId=args["simulationId"],
+            # TODO(pjm): pass animation model name in, default to "animation"
             report="animation",
         )
     )
