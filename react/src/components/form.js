@@ -3,8 +3,8 @@ import { LabelTooltip } from "./label";
 import { useSelector, useDispatch, useStore } from "react-redux";
 import { mapProperties } from "../helper";
 import { ContextRelativeDependencyCollector, ContextRelativeFormController } from './context'
-import { useContext } from "react";
-import { useSetup } from "../hooks";
+import { useContext, useState } from "react";
+import { useRenderCount, useSetup } from "../hooks";
 import { selectModels } from '../models';
 import { updateFormState } from "../formState";
 
@@ -54,11 +54,17 @@ export class FormController {
         let { selectFormState } = this.formSelectors;
         let { updateFormState } = this.formActions;
 
+        let formStateValue = selectFn(selectFormState(modelName));
+        console.log("formStateValue", formStateValue);
+
         if (!(modelName in this.models)) {
             let model = {
                 dependency,
-                value: { ...selectFn(selectFormState(modelName)) }, // TODO evaluate this clone, it feels like its needed to be safe
-                updateValue: (v) => dispatch(updateFormState({ name: modelName, value: v }))
+                value: { ...formStateValue }, // TODO evaluate this clone, it feels like its needed to be safe
+                updateValue: (v) => {
+                    console.log("updating value: ", v, " in ", modelName, dependency);
+                    return dispatch(updateFormState({ name: modelName, value: v }))
+                }
             }
             this.models[modelName] = model;
         }
@@ -80,8 +86,8 @@ export class FormController {
         }
 
         var field = findField(modelName, fieldName);
+        let model = this.getModel(modelName, dep.model);
         if (!field) {
-            let model = this.getModel(modelName, dep.model);
             let currentValue = model.value[fieldName];
             field = {
                 fieldName,
@@ -89,16 +95,19 @@ export class FormController {
                 model,
                 value: currentValue,
                 dependency: dep,
-                updateValue: (v) => dispatch(updateFormFieldState({
-                    name: modelName,
-                    field: fieldName,
-                    value: { // TODO, value should be defined as the param to the function??
-                        value: v,
-                        valid: dep.type.validate(v),
-                        touched: true,
-                        active: currentValue.active
-                    }
-                })),
+                updateValue: (v) => {
+                    console.log("updating value: ", v, " in ", modelName, fieldName);
+                    return dispatch(updateFormFieldState({
+                        name: modelName,
+                        field: fieldName,
+                        value: { // TODO, value should be defined as the param to the function??
+                            value: v,
+                            valid: dep.type.validate(v),
+                            touched: true,
+                            active: currentValue.active
+                        }
+                    }))
+                },
                 updateActive: (a) => dispatch(updateFormFieldState({
                     name: modelName,
                     field: fieldName,
@@ -149,8 +158,14 @@ export class FormController {
 
 function FieldInput(props) {
     let { field } = props;
+
+    useRenderCount("FieldInput");
+
     const onChange = (event) => {
+        console.log("field input onChange");
         let nextValue = event.target.value;
+        console.log("field.value.value", field.value.value);
+        console.log("nextValue", nextValue);
         if (field.value.value !== nextValue) { // TODO fix field.value.value naming
             field.updateValue(nextValue);
         }
@@ -166,6 +181,9 @@ function FieldInput(props) {
 
 function LabeledFieldInput(props) {
     let { field } = props;
+
+    useRenderCount("LabeledFieldInput");
+
     return (
         <FormField label={field.dependency.displayName} tooltip={field.dependency.description} key={field.dependency.fieldName}>
             <FieldInput field={field}></FieldInput>
@@ -173,59 +191,85 @@ function LabeledFieldInput(props) {
     )
 }
 
-export function FieldGridLayout(props) {
-    let { config } = props;
+export let FieldGridLayout = {
+    getDependencies: (config) => {
+        let fields = [];
+        for(let row of config.rows) {
+            fields.push(...(row.fields));
+        }
+        return fields;
+    },
 
-    let dependencyCollector = useContext(ContextRelativeDependencyCollector);
-    let formController = useContext(ContextRelativeFormController);
+    element: (props) => {
+        let { config } = props;
 
-    let columns = config.columns;
-    let rows = config.rows;
+        let renderCountFn = useRenderCount;
+        let contextFn = useContext;
 
-    let els = [];
+        renderCountFn("FieldGridLayout");
 
-    let someRowHasLabel = rows.reduce((prev, cur) => prev || !!cur.label);
-    
-    els.push( // header row
-        <Row key={"header"}>
-            {(someRowHasLabel ? <Col key={"label_dummy"}></Col> : undefined)}
-            {columns.map(colName => <Col key={colName}><Form.Label size={"sm"}>{colName}</Form.Label></Col>)}
-        </Row>
-    )
+        let dependencyCollector = contextFn(ContextRelativeDependencyCollector);
+        let formController = contextFn(ContextRelativeFormController);
 
-    for(let idx = 0; idx < rows.length; idx++) {
-        let row = rows[idx];
-        let fields = row.fields;
-        let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
-        let rowElement = (
-            <Row key={idx}>
-                {labelElement ? <Col>{labelElement}</Col> : undefined}
-                {columns.map((_, index) => {
-                    let field = fields[index];
-                    let hookedField = formController.hookField(dependencyCollector.hookModelDependency(field));
-                    return <FieldInput key={index} field={hookedField}></FieldInput>
-                })}
+        let columns = config.columns;
+        let rows = config.rows;
+
+        let els = [];
+
+        let someRowHasLabel = rows.reduce((prev, cur) => prev || !!cur.label);
+        
+        els.push( // header row
+            <Row key={"header"}>
+                {(someRowHasLabel ? <Col key={"label_dummy"}></Col> : undefined)}
+                {columns.map(colName => <Col key={colName}><Form.Label size={"sm"}>{colName}</Form.Label></Col>)}
             </Row>
         )
-        els.push(rowElement);
-    }
 
-    return <Container>{els}</Container>
+        for(let idx = 0; idx < rows.length; idx++) {
+            let row = rows[idx];
+            let fields = row.fields;
+            let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
+            let rowElement = (
+                <Row key={idx}>
+                    {labelElement ? <Col>{labelElement}</Col> : undefined}
+                    {columns.map((_, index) => {
+                        let field = fields[index];
+                        let hookedField = formController.hookField(dependencyCollector.hookModelDependency(field));
+                        return <FieldInput key={index} field={hookedField}></FieldInput>
+                    })}
+                </Row>
+            )
+            els.push(rowElement);
+        }
+
+        return <Container>{els}</Container>
+    }
 }
 
-export function FieldListLayout(props) {
-    let { config } = props;
+export let FieldListLayout = {
+    getDependencies: (config) => {
+        return config.fields;
+    },
 
-    let dependencyCollector = useContext(ContextRelativeDependencyCollector);
-    let formController = useContext(ContextRelativeFormController);
+    element: (props) => {
+        let { config } = props;
 
-    let fields = config.fields;
+        let renderCountFn = useRenderCount;
+        let contextFn = useContext;
 
-    return <Container>
-        {fields.map((field, idx) => (
-            <LabeledFieldInput key={idx} field={formController.hookField(dependencyCollector.hookModelDependency(field))}></LabeledFieldInput>
-        ))}
-    </Container>
+        renderCountFn("FieldListLayout");
+
+        let dependencyCollector = contextFn(ContextRelativeDependencyCollector);
+        let formController = contextFn(ContextRelativeFormController);
+
+        let fields = config.fields;
+
+        return <Container>
+            {fields.map((field, idx) => (
+                <LabeledFieldInput key={idx} field={formController.hookField(dependencyCollector.hookModelDependency(field))}></LabeledFieldInput>
+            ))}
+        </Container>
+    }
 }
 
 export const FormStateInitializer = ({ schema }) => (child) => {

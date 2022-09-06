@@ -27,10 +27,12 @@ export class DependencyCollector {
         let { updateModel } = this.modelActions;
         let { selectModel } = this.modelSelectors;
 
+        let modelValue = selectFn(selectModel(modelName));
+
         if (!(modelName in this.models)) {
             let model = {
                 schema: this.schema.models[modelName],
-                value: {...selectFn(selectModel(modelName))}, // TODO evaluate this clone, it feels like its needed to be safe
+                value: {...modelValue}, // TODO evaluate this clone, it feels like its needed to be safe
                 updateValue: (v) => {
                     dispatch(updateModel({ name: modelName, value: v }));
                     model.value = {...selectModel(modelName)(store.getState())} // TODO this is janky

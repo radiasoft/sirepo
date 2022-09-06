@@ -3,7 +3,7 @@ import { useState, Fragment, useContext } from 'react';
 import { useStore } from "react-redux";
 import { FormController, FieldGridLayout, FieldListLayout } from "./form";
 import { DependencyCollector } from "../dependency";
-import { 
+import {
     ContextRelativeDependencyCollector,
     ContextRelativeFormController,
     ContextReduxFormActions,
@@ -14,9 +14,10 @@ import {
 } from "./context";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useRenderCount } from "../hooks";
 
 export function Panel(props) {
-    let {title, buttons, panelBodyShown, ...otherProps} = props;
+    let { title, buttons, panelBodyShown, ...otherProps } = props;
     return (
         <Card>
             <Card.Header className="lead bg-info bg-opacity-25">
@@ -26,19 +27,19 @@ export function Panel(props) {
                 </div>
             </Card.Header>
             {panelBodyShown &&
-             <Card.Body>
-                 {props.children}
-             </Card.Body>
+                <Card.Body>
+                    {props.children}
+                </Card.Body>
             }
         </Card>
     );
 }
 
 function ViewPanelActionButtons(props) {
-    let {canSave, onSave, onCancel, ...otherProps} = props;
+    let { canSave, onSave, onCancel, ...otherProps } = props;
     return (
         <Col className="text-center" sm={12}>
-            <Button onClick={onSave} disabled={! canSave } variant="primary">Save Changes</Button>
+            <Button onClick={onSave} disabled={!canSave} variant="primary">Save Changes</Button>
             <Button onClick={onCancel} variant="light" className="ms-1">Cancel</Button>
         </Col>
     )
@@ -64,13 +65,15 @@ export function EditorPanel(props) {
         id
     } = props;
 
+    useRenderCount("EditorPanel");
+
     let [advancedModalShown, updateAdvancedModalShown] = useState(false);
     let [panelBodyShown, updatePanelBodyShown] = useState(true);
 
     let headerButtons = (
         <Fragment>
             <a className="ms-2" onClick={() => updateAdvancedModalShown(true)}><FontAwesomeIcon icon={Icon.faPencil} fixedWidth /></a>
-            <a className="ms-2" onClick={() => updatePanelBodyShown(! panelBodyShown)}><FontAwesomeIcon icon={panelBodyShown ? Icon.faChevronUp : Icon.faChevronDown} fixedWidth /></a>
+            <a className="ms-2" onClick={() => updatePanelBodyShown(!panelBodyShown)}><FontAwesomeIcon icon={panelBodyShown ? Icon.faChevronUp : Icon.faChevronDown} fixedWidth /></a>
         </Fragment>
     );
 
@@ -95,16 +98,16 @@ export function EditorPanel(props) {
 
             <Modal show={advancedModalShown} onHide={() => _cancel()} size="lg">
                 <Modal.Header className="lead bg-info bg-opacity-25">
-                    { title }
+                    {title}
                 </Modal.Header>
                 <Modal.Body>
                     <EditorForm key={id}>
                         {modalChildren}
                     </EditorForm>
                     {showButtons &&
-                     <Fragment>
-                         {actionButtons}
-                     </Fragment>
+                        <Fragment>
+                            {actionButtons}
+                        </Fragment>
                     }
                 </Modal.Body>
             </Modal>
@@ -113,78 +116,121 @@ export function EditorPanel(props) {
     )
 }
 
-export function TabLayout(props) {
-    let { config } = props;
+export let TabLayout = {
+    getDependencies: (config) => {
+        let fields = [];
 
-    let tabs = config.tabs;
+        for (let tab of config.tabs) {
+            for (let layoutConfig of tab.items) {
+                let ele = elementForLayoutName(layoutConfig.layout);
+                fields.push(...ele.getDependencies(layoutConfig));
+            }
+        }
 
-    let tabEls = [];
+        return fields;
+    },
 
-    let firstTabKey = undefined;
+    element: (props) => {
+        let { config } = props;
 
-    for(let tabConfig of tabs) {
-        let name = tabConfig.name;
-        let layouts = tabConfig.items;
-        firstTabKey = firstTabKey || name;
-        tabEls.push(
-            <Tab key={name} eventKey={name} title={name}>
-                <ViewLayouts configs={layouts}/>
-            </Tab>
+        let renderCountFn = useRenderCount;
+        renderCountFn("TabLayout");
+
+        console.log("TabLayout");
+
+        let tabs = config.tabs;
+
+        let tabEls = [];
+
+        let firstTabKey = undefined;
+
+        for (let tabConfig of tabs) {
+            let name = tabConfig.name;
+            let layouts = tabConfig.items;
+            let layoutElements = layouts.map((layoutConfig, idx) => {
+                let ele = elementForLayoutName(layoutConfig.layout)
+                let LayoutElement = ele.element;
+                return <LayoutElement key={idx} config={layoutConfig}></LayoutElement>
+            })
+            firstTabKey = firstTabKey || name;
+            tabEls.push(
+                <Tab key={name} eventKey={name} title={name}>
+                    {layoutElements}
+                </Tab>
+            )
+        }
+
+        return (
+            <Tabs defaultActiveKey={firstTabKey}>
+                {tabEls}
+            </Tabs>
         )
     }
-
-    return (
-        <Tabs defaultActiveKey={firstTabKey}>
-            {tabEls}
-        </Tabs>
-    )
 }
 
 function SpacedLayout(layoutElement) {
-    let ChildElement = layoutElement;
-    return (props) => {
-        return (
-            <div className="sr-form-layout">
-                <ChildElement {...props}/>
-            </div>
-        )
+    let ChildElement = layoutElement.element;
+    return {
+        getDependencies: layoutElement.getDependencies,
+
+        element: (props) => {
+            let renderCountFn = useRenderCount;
+            renderCountFn("SpacedLayout");
+
+            return (
+                <div className="sr-form-layout">
+                    <ChildElement {...props} />
+                </div>
+            )
+        }
     }
 }
 
-export function MissingLayout(props) {
-    return <>Missing layout!</>;
+export let MissingLayout = {
+    getDependencies: () => {
+        return [];
+    },
+
+    element: (props) => {
+        return <>Missing layout!</>;
+    }
+}
+
+let layoutElements = {
+    "fieldList": SpacedLayout(FieldListLayout),
+    "fieldTable": SpacedLayout(FieldGridLayout),
+    "tabs": TabLayout
 }
 
 export function elementForLayoutName(layoutName) {
-    switch(layoutName) {
-        case "fieldList":
-            return SpacedLayout(FieldListLayout);
-        case "fieldTable":
-            return SpacedLayout(FieldGridLayout);
-        case "tabs":
-            return TabLayout;
-        default: 
-            return MissingLayout;
-
-    }
+    console.log("layoutName", layoutName);
+    return layoutElements[layoutName] || MissingLayout
 }
 
-export function ViewLayout(props) {
+/*export function ViewLayout(props) {
     let { config } = props;
+
+    useRenderCount("ViewLayout");
+
     let LayoutElement = elementForLayoutName(config.layout);
     return <LayoutElement config={config}></LayoutElement>
 }
 
 export function ViewLayouts(props) { 
     let { configs } = props;
+
+    useRenderCount("ViewLayouts");
+
     // uses index as a key only because schema wont change, bad practice otherwise!
     return <>
         {configs.map((config, idx) => <ViewLayout key={idx} config={config}/>)}
     </>
-}
+}*/
 
 export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
     let ViewLayoutsPanelComponent = (props) => {
+        useRenderCount("ViewLayoutsPanel");
+
         let formActions = useContext(ContextReduxFormActions); // TODO: make these generic
         let formSelectors = useContext(ContextReduxFormSelectors);
         let modelActions = useContext(ContextReduxModelActions);
@@ -227,8 +273,19 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
         let basic = view.config.basic;
         let advanced = view.config.advanced;
 
-        let mainChildren = (!!basic) ? <ViewLayouts configs={basic}/> : undefined;
-        let modalChildren = (!!advanced) ? <ViewLayouts configs={basic}/> : undefined;
+        let mapLayoutToElement = (layoutConfig, idx) => {
+            console.log("layout", layoutConfig);
+            let ele = elementForLayoutName(layoutConfig.layout);
+            ele.getDependencies(layoutConfig).map(depStr => formController.hookField(dependencyCollector.hookModelDependency(depStr)));
+            let LayoutElement = ele.element;
+            console.log("LayoutElement", LayoutElement);
+            return <LayoutElement key={idx} config={layoutConfig}></LayoutElement>;
+        }
+
+        let mainChildren = (!!basic) ? basic.map(mapLayoutToElement) : undefined;
+        let modalChildren = (!!advanced) ? advanced.map(mapLayoutToElement) : undefined;
+
+        console.log("mainChildren", mainChildren);
 
         let formProps = {
             submit: submit,
@@ -238,7 +295,7 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
             mainChildren,
             modalChildren,
             title: view.title || viewName,
-            id: {viewName}
+            id: { viewName }
         }
 
         return (
