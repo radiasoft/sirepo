@@ -13,10 +13,14 @@
                     "suffix": "sdds"
                 }
             ],
-            "kickMapReport": [
+            "fieldLineoutReport": [
                 {
-                    "title": "Save as Text",
-                    "suffix": "txt"
+                    "title": "Save as CSV",
+                    "suffix": "csv"
+                },
+                {
+                    "title": "Save for SRW import",
+                    "suffix": "zip"
                 }
             ]
         },

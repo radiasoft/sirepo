@@ -18,8 +18,8 @@ import re
 import sirepo.sim_data.cloudmc
 import sirepo.simulation_db
 import sirepo.template.cloudmc
+import sirepo.util
 import uuid
-import zipfile
 
 
 _DATA_DIR = "data"
@@ -232,7 +232,7 @@ def _vtk_to_bin(vol_id):
         vti[n].ref.id = fn
         vti[n].size = int(len(v[n]))
         fns.append(f"{_DATA_DIR}/{fn}")
-    with zipfile.ZipFile(f"{vol_id}.zip", "w") as f:
+    with sirepo.util.write_zip(f"{vol_id}.zip") as f:
         f.writestr("index.json", json.dumps(vti))
         for fn in fns:
             f.write(fn)
