@@ -273,6 +273,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             let selectedVolume = null;
             let tally = null;
             const bundleByVolume = {};
+            const tallyBundles = {};
             // volumes are measured in centimeters
             const scale = 0.01;
             const coordMapper = new SIREPO.VTK.CoordMapper(
@@ -291,8 +292,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const pd = SIREPO.VTK.VTKUtils.parseLegacy(str);
                 $rootScope.$broadcast('vtk.hideLoader');
                 const b = coordMapper.buildActorBundle();
+                tallyBundles[aspect] = b;
                 b.mapper.setInputData(pd);
-                setColorsFromFieldData(pd, aspect, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
+                setColorsFromFieldData(pd, aspect);
                 b.setActorProperty('lighting', false);
                 vtkScene.addActor(b.actor);
                 initAxes();
@@ -427,18 +429,28 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 });
             }
 
-            function setColorsFromFieldData(polyData, name, colorMap) {
+            function setTallyColors() {
+                for (const n in tallyBundles) {
+                    setColorsFromFieldData(
+                        tallyBundles[n].mapper.getInputData(),
+                        n,
+                    );
+                }
+                vtkScene.render();
+            }
+
+            function setColorsFromFieldData(polyData, name) {
                 const dataColors = [];
                 const d = Array.from(polyData.getFieldData().getArrayByName(name).getData());
                 const s = SIREPO.PLOTTING.Utils.colorScale(
                     SIREPO.UTILS.largeMin(d),
                     SIREPO.UTILS.largeMax(d),
-                    colorMap
+                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.openmcAnimation.colorMap]
                 );
                 d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
                     .forEach((c, i) => {
                         // when the field value is 0, don't draw the element at all
-                        dataColors.push(...c, d[i] === 0 ? 0 : 255);
+                        dataColors.push(...c, d[i] === 0 ? 0 : Math.floor(255 * appState.models.openmcAnimation.opacity));
                     });
                 polyData.getCellData().setScalars(
                     vtk.Common.Core.vtkDataArray.newInstance({
@@ -447,7 +459,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                     })
                 );
-                polyData.buildCells();
+                polyData.modified();
             }
 
             function loadVolumes(volIds) {
@@ -476,6 +488,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         model().showEdges === '1'
                     );
                 }
+                setTallyColors();
                 vtkScene.render();
             }
 
@@ -599,6 +612,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             });
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
+            appState.watchModelFields($scope, ['openmcAnimation.colorMap'], setTallyColors);
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);

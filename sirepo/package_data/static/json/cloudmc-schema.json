@@ -332,6 +332,7 @@
         },
         "openmcAnimation": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
+            "colorMap": ["Color Map", "ColorMap", "jet"],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "tally": ["Tally", "TallyList"],
@@ -579,6 +580,7 @@
                 "tally",
                 "score",
                 "aspect",
+                "colorMap",
                 "opacity",
                 "bgColor",
                 "showEdges"
