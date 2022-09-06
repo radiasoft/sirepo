@@ -16,9 +16,7 @@ from sirepo import simulation_db
 from sirepo import template
 from sirepo import uri_router
 import base64
-import copy
 import sirepo.util
-import zipfile
 
 
 def create_archive(sim, sapi):
@@ -96,12 +94,7 @@ def _create_zip(sim, want_python, out_dir):
     if want_python:
         for f in _python(data, sim):
             files.append(f)
-    with zipfile.ZipFile(
-        str(path),
-        mode="w",
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
+    with sirepo.util.write_zip(str(path)) as z:
         for f in files:
             z.write(str(f), f.basename)
         z.writestr(
