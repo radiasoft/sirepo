@@ -16,6 +16,10 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useRenderCount } from "../hooks";
 
+import "./panel.scss";
+import { SimulationLayout } from "./simulation";
+import { Graph2dFromApi } from "./graph2d";
+
 export function Panel(props) {
     let { title, buttons, panelBodyShown, ...otherProps } = props;
     return (
@@ -38,7 +42,7 @@ export function Panel(props) {
 function ViewPanelActionButtons(props) {
     let { canSave, onSave, onCancel, ...otherProps } = props;
     return (
-        <Col className="text-center" sm={12}>
+        <Col className="text-center sr-form-action-buttons" sm={12}>
             <Button onClick={onSave} disabled={!canSave} variant="primary">Save Changes</Button>
             <Button onClick={onCancel} variant="light" className="ms-1">Cancel</Button>
         </Col>
@@ -199,7 +203,8 @@ export let MissingLayout = {
 let layoutElements = {
     "fieldList": SpacedLayout(FieldListLayout),
     "fieldTable": SpacedLayout(FieldGridLayout),
-    "tabs": TabLayout
+    "tabs": TabLayout,
+    "graph2d": SimulationLayout(Graph2dFromApi)
 }
 
 export function elementForLayoutName(layoutName) {

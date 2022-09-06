@@ -7,10 +7,27 @@ import { ContextSimulationListPromise,
         ContextAppViewBuilder} from "../components/context";
 import { useDispatch } from "react-redux";
 import { mapProperties } from "../helper";
-import { ViewGrid } from "../components/simulation";
 import { FormStateInitializer } from "../components/form";
+import { Row, Col, Container } from "react-bootstrap";
 
-
+export function ViewGrid(props) {
+    let { views, ...otherProps } = props;
+    let viewPanels = Object.entries(views).map(([id, view]) => {
+        let View = view;
+        return (
+            <Col md={6} className="mb-3" key={id}>
+                <View {...otherProps}/>
+            </Col>
+        )
+    });
+    return (
+        <Container fluid className="mt-3">
+            <Row>
+                {viewPanels}
+            </Row>
+        </Container>
+    )
+}
 
 function SimulationInfoInitializer(child) {
     return (props) => {

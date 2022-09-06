@@ -38,10 +38,16 @@ export function apiResponseToGraph2dConfig({
     }
 }
 
-export let Graph2dFromApi = (simulationData) => {
-    let config = apiResponseToGraph2dConfig(simulationData);
+export let Graph2dFromApi = {
+    getDependencies: (config) => {
+        return [];
+    },
 
-    return (props) => {
+    element: (props) => {
+        let { simulationData } = props;
+
+        let config = apiResponseToGraph2dConfig(simulationData);
+
         return (
             <Graph2d {...config} {...props}/>
         )
