@@ -2082,7 +2082,10 @@ def _process_image(data, tmp_dir):
 
 def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != "0"]
+    names = []
     for e in x:
+        e.title = _safe_beamline_item_name(e.title, names)
+        names.append(e.title)
         for p in _RSOPT_PARAMS:
             if p in e:
                 e[p].offsets = sirepo.util.split_comma_delimited_string(

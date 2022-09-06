@@ -588,8 +588,11 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
 SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelState, rpnService, $document, $rootScope, $window) {
     return {
         restrict: 'A',
+        // transcluded data contains html for tab panels defined with headerTabInfo
+        transclude: true,
         scope: {
             shiftClickHandler: '&?',
+            headerTabInfo: '=',
         },
         template: `
             <div data-ng-show="showEditor()" class="panel panel-info" style="margin-bottom: 0">
@@ -597,9 +600,16 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 <div class="sr-panel-options pull-right">
                   <a href data-ng-show="hasBeamlineView()" data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
                 </div>
+                <div data-ng-if="headerTabInfo" class="sr-panel-options pull-right hidden-md hidden-sm hidden-xs" style="margin-top: -2px">
+                  <ul class="nav nav-tabs">
+                    <li data-ng-class="{active: headerTabInfo.selected == t}" data-ng-repeat="t in headerTabInfo.names"><a href ng-click="headerTabInfo.selected = t">{{ t }}</a></li>
+                  </ul>
+                  <div class="clearfix"></div>
+                </div>
               </div>
-              <div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
-                <p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>
+              <div class="sr-lattice-editor-panel">
+              <div data-ng-show="! headerTabInfo || headerTabInfo.selected == headerTabInfo.elementsTabName" data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
+                <p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em><span data-sr-tooltip="{{ tooltip }}"></span></small></p>
                 <div data-ng-repeat="item in beamlineItems track by item.itemId" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">
                   <div style="display: inline-block;" class="sr-editor-item-hover">
                     <div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item)" data-ng-mousedown="onMouseDown(item, $event)" oncontextmenu="return false" data-ng-click="clickItem(item, $event)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="itemClass(item)">{{ item.name }}<span data-app-beamline-item-info="item" data-item-cache="itemCache"></span></div>
@@ -610,6 +620,8 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                   <div style="visibility: hidden" class="badge sr-lattice-item sr-badge-icon"><span>last</span></div>
                 </div>
               </div>
+              </div>
+              <div data-ng-transclude=""></div>
             </div>
             <div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ latticeService.selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ latticeService.selectedItem.name }}</strong>?</div>
             <div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save Changes" data-ok-clicked="createBeamlineFromElements()">
@@ -642,6 +654,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
         `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
+            $scope.tooltip = SIREPO.lattice.beamlineEditorTooltip;
             $scope.beamlineItems = [];
             $scope.newBeamline = {};
             // info is needed by the rpnValue editor
@@ -2761,13 +2774,20 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
         scope: {
             model: '=',
             field: '=',
+            isBusy: '<',
+            isError: '<',
         },
         template: `
             <div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap">{{ computedRpnValue(); }}</div>
         `,
         controller: function($scope) {
             $scope.computedRpnValue = function() {
-                return rpnService.getRpnValueForField($scope.model, $scope.field);
+                if ($scope.isBusy) {
+                    return 'calculating...';
+                }
+                return $scope.isError
+                    ? ''
+                    : rpnService.getRpnValueForField($scope.model, $scope.field);
             };
         },
     };
@@ -2781,9 +2801,13 @@ SIREPO.app.directive('rpnEditor', function() {
             <input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />
           </div>
           <div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">
-            <div data-rpn-static="" data-model="model" data-field="field"></div>
+            <div data-rpn-static="" data-model="model" data-field="field" data-is-busy="isBusy" data-is-error="isError"></div>
           </div>
         `,
+        controller: function($scope) {
+            $scope.isBusy = false;
+            $scope.isError = false;
+        },
     };
 });
 
@@ -2812,12 +2836,15 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
             };
 
             ngModel.$parsers.push(function(value) {
+                scope.isError = false;
                 requestIndex++;
                 var currentRequestIndex = requestIndex;
                 if (ngModel.$isEmpty(value)) {
+                    scope.isBusy = false;
                     return null;
                 }
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
+                    scope.isBusy = false;
                     var v = parseFloat(value);
                     if (rpnVariableName) {
                         rpnService.recomputeCache(rpnVariableName, v);
@@ -2831,12 +2858,15 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                     ngModel.$setValidity('', true);
                     return v;
                 }
+                scope.isBusy = true;
                 rpnService.computeRpnValue(value, function(v, err) {
                     // check for a stale request
                     if (requestIndex != currentRequestIndex) {
                         return;
                     }
-                    ngModel.$setValidity('', err ? false : true);
+                    scope.isBusy = false;
+                    scope.isError = err ? true : false;
+                    ngModel.$setValidity('', ! scope.isError);
                     if (rpnVariableName && ! err) {
                         rpnService.recomputeCache(rpnVariableName, v);
                     }

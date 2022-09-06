@@ -171,6 +171,7 @@ class VTKUtils {
         for (const a of parseFieldData(str)) {
             pd.getFieldData().addArray(a);
         }
+        pd.buildCells();
         return pd;
     }
 
