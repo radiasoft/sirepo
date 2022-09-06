@@ -287,11 +287,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             const _SCENE_BOX = '_scene';
 
-            function addTally(str, aspect) {
+            function addTally(data, aspect) {
                 // the only purpose of this polyData is to capture the field info
-                basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(str);
+                basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 $rootScope.$broadcast('vtk.hideLoader');
-                setColorsFromFieldData(aspect);
+                setColorsFromFieldData(basePolyData, aspect);
                 buildVoxels(aspect);
                 initAxes();
                 buildAxes();
@@ -360,8 +360,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 return d;
             }
 
-            function buildVoxels(name) {
-                const tally = appState.models.tally;
+            function buildVoxels(aspect) {
+
                 const [nx, ny, nz] = tally.meshCellCount;
                 const nxy = nx * ny;
                 const pts = basePolyData.getPoints().getData();
@@ -401,13 +401,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     return true;
                 }
 
-                if (tallyBundles[name]) {
-                    vtkScene.removeActor(tallyBundles[name].actor);
-                    delete tallyBundles[name];
+                if (tallyBundles[aspect]) {
+                    vtkScene.removeActor(tallyBundles[aspect].actor);
+                    delete tallyBundles[aspect];
                 }
                 const source = vtk.Filters.General.vtkAppendPolyData.newInstance();
                 const [sx, sy, sz] = tally.meshUpperRight.map(
-                    (x, i) => (1.0 - tally.voxelInsetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]
+                    (x, i) => (1.0 - openmcAnimation.voxelInsetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]
                 );
                 for (let k = 0; k < nz; ++k) {
                     if (doSkipZ()) {
