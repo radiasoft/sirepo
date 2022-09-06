@@ -714,7 +714,6 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     rpt_out = f"{_REPORT_RES_MAP.get(report, report)}"
     res, v = template_common.generate_parameters_file(data)
     if report == "fieldLineoutAnimation":
-        v.gid = get_g_id()
         v.sim_id = data.models.simulation.simulationId
         v.name = data.models.simulation.name
         v.f_type = data.models.fieldLineoutAnimation.fieldType

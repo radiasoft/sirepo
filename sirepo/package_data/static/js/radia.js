@@ -76,7 +76,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
-        // return 'solverAnimation';
         return 'fieldLineoutAnimation';
     };
 
@@ -1760,7 +1759,6 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 });
 
 SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimulation, frameCache) {
-    // TODO (gurhar1133): Solver triggers re-animation for fieldLineoutAnimation
     return {
         restrict: 'A',
         scope: {

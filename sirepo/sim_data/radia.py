@@ -33,7 +33,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        # TODO (gurhar1133): delete below if
         if analysis_model == "fieldLineoutAnimation":
             return "fieldLineoutAnimation"
         if analysis_model in ("solverAnimation", "reset"):
