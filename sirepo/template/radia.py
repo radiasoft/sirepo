@@ -1237,8 +1237,16 @@ def _save_kick_map_sdds(name, path, km_data):
     s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
     s.setDescription(f"Kick Map for {name}", "x(m), y(m), h(T2m2), v(T2m2)")
     col_data = [
-        [numpy.tile(_MILLIS_TO_METERS * numpy.array(km_data.x), len(km_data.x)).tolist()],
-        [numpy.repeat(_MILLIS_TO_METERS * numpy.array(km_data.y), len(km_data.y)).tolist()],
+        [
+            numpy.tile(
+                _MILLIS_TO_METERS * numpy.array(km_data.x), len(km_data.x)
+            ).tolist()
+        ],
+        [
+            numpy.repeat(
+                _MILLIS_TO_METERS * numpy.array(km_data.y), len(km_data.y)
+            ).tolist()
+        ],
         [numpy.array(km_data.h).flatten().tolist()],
         [numpy.array(km_data.v).flatten().tolist()],
     ]
