@@ -174,46 +174,61 @@ def _build_ui_nn(model):
     nn = PKDict(
         layers=[PKDict(
             layer=l,
+            name=l.name,
         ) for l in model._layers]
     )
 
     nn = _set_inbound(model, nn)
     nn = _set_outbound(nn)
-    # r = "\n\n ======================================"
-    # for l in nn.layers:
-    #     r += f"\n\n\n layer: {l.layer.name}"
-    #     if "inbound" in l:
-    #         for i in l.inbound:
-    #             r += f"\n in: {i.name}"
-    #     if "outbound" in l:
-    #         for o in l.outbound:
-    #             r += f"\n out: {o.name}"
-    # r += "\n\n ======================================"
-    # pkdp(r)
+    r = "\n\n ======================================"
+    for l in nn.layers:
+        r += f"\n\n\n layer: {l.layer.name}"
+        if "inbound" in l:
+            for i in l.inbound:
+                r += f"\n in: {i.name}"
+        if "outbound" in l:
+            for o in l.outbound:
+                r += f"\n out: {o.name}"
+    r += "\n\n ======================================"
+    pkdp(r)
     _get_add_and_set_children(nn)
     return nn
 
 
 def _get_add_and_set_children(nn):
     for l in nn.layers:
-        if "add" in l.layer.name:
+        if "add" in l.name:
             l["children"] = []
             for i in l.inbound:
                 l.children.append(
-                    _get_layer_by_name(
+                    _build_layer_chain(
+                        _get_layer_by_name(
+                            nn,
+                            i.name
+                        ),
                         nn,
-                        i.name
                     )
                 )
+            pkdp("\n\n\n l.children: {}", l.children)
             for c in l.children:
-                if not "add" in c.layer.name:
-                    _pop_child(nn, c)
+                for lyr in c:
+                    if not "add" in lyr.name:
+                        _pop_child(nn, lyr)
+                        pkdp("\n\n\n nn.layers after pop: {}",[l.name for l in nn.layers])
             l.visited = True
+
+
+def _build_layer_chain(child, nn):
+    lvl = []
+    while len(child.outbound) <= 1:
+        lvl.append(child)
+        child = _get_layer_by_name(nn, child.inbound[0].name)
+    return lvl
 
 
 def _pop_child(neural_net, child):
     for l in neural_net.layers:
-        if l.layer == child.layer:
+        if l.name == child.name:
             neural_net.layers.remove(l)
 
 
@@ -238,7 +253,7 @@ def _set_outbound(nn):
 
 def _get_layer_by_name(nn, name):
     for l in nn.layers:
-        if l.layer.name == name:
+        if l.name == name:
             return l
     raise AssertionError(f"could not find layer with name={name}")
 
