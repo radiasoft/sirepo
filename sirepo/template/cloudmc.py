@@ -153,7 +153,7 @@ def _generate_angle(angle):
     elif angle._type == "monodirectional":
         args.append(_generate_array(angle.reference_uvw))
     elif angle._type == "polarAzimuthal":
-        args += [_generate_angleribution(angle[v] for v in ["mu", "phi"])]
+        args += [_generate_distribution(angle[v]) for v in ["mu", "phi"]]
         args.append(_generate_array(angle.reference_uvw))
     else:
         raise AssertionError("unknown angle type: {}".format(angle._type))
@@ -270,6 +270,12 @@ def _generate_parameters_file(data):
     )
 
 
+def _generate_range(filter):
+    res = "numpy."
+    res += "linspace" if filter.space == "linear" else "logspace"
+    return f"{res}({filter.start}, {filter.stop}, {filter.num})"
+
+
 def _generate_source(source):
     return f"""openmc.Source(
     space={_generate_space(source.space)},
@@ -330,11 +336,6 @@ tallies.export_to_xml()
 """
     )
 
-    # TODO(pjm): implement these filters
-    # ["energyFilter", "EnergyFilter"],
-    # ["energyoutFilter", "EnergyoutFilter"],
-    # ["particleFilter", "ParticleFilter"]
-
 
 def _generate_tally(tally, volumes):
     has_mesh = False
@@ -365,6 +366,18 @@ t{tally._index + 1}.filters = ["""
         elif f._type == "meshFilter":
             res += f"""
     openmc.MeshFilter(m),
+"""
+        elif f._type == "energyFilter":
+            res += f"""
+    openmc.EnergyFilter({_generate_range(f)}),
+"""
+        elif f._type == "energyoutFilter":
+            res += f"""
+    openmc.EnergyoutFilter({_generate_range(f)}),
+"""
+        elif f._type == "particleFilter":
+            res += f"""
+    openmc.ParticleFilter([{'"' + '","'.join(v.value for v in f.bins) + '"'}]),
 """
         else:
             raise AssertionError("filter not yet implemented: {}".format(f._type))
