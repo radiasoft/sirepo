@@ -570,10 +570,14 @@ _FIELD_PT_BUILDERS = {
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=False):
     v = (
-        generate_field_data(sim_id, get_g_id(), name, f_type, [f_path])
-        .data[0]
-        .vectors
-    ) if not field_data else field_data
+        (
+            generate_field_data(sim_id, get_g_id(), name, f_type, [f_path])
+            .data[0]
+            .vectors
+        )
+        if not field_data
+        else field_data
+    )
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     f = numpy.array(v.directions).reshape(-1, 3)
