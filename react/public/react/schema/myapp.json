@@ -86,7 +86,7 @@
                 "basic": [
                     {
                         "layout": "graph2d",
-                        "simulation": "heightWeightReport"
+                        "report": "heightWeightReport"
                     }
                 ]
             }

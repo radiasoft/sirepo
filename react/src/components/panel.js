@@ -74,9 +74,11 @@ export function EditorPanel(props) {
     let [advancedModalShown, updateAdvancedModalShown] = useState(false);
     let [panelBodyShown, updatePanelBodyShown] = useState(true);
 
+    let hasModalChildren = !!modalChildren && modalChildren !== [];
+
     let headerButtons = (
         <Fragment>
-            <a className="ms-2" onClick={() => updateAdvancedModalShown(true)}><FontAwesomeIcon icon={Icon.faPencil} fixedWidth /></a>
+            {hasModalChildren && <a className="ms-2" onClick={() => updateAdvancedModalShown(true)}><FontAwesomeIcon icon={Icon.faPencil} fixedWidth /></a>}
             <a className="ms-2" onClick={() => updatePanelBodyShown(!panelBodyShown)}><FontAwesomeIcon icon={panelBodyShown ? Icon.faChevronUp : Icon.faChevronDown} fixedWidth /></a>
         </Fragment>
     );
@@ -100,7 +102,7 @@ export function EditorPanel(props) {
                 {mainChildren}
             </EditorForm>
 
-            <Modal show={advancedModalShown} onHide={() => _cancel()} size="lg">
+            {hasModalChildren && <Modal show={advancedModalShown} onHide={() => _cancel()} size="lg">
                 <Modal.Header className="lead bg-info bg-opacity-25">
                     {title}
                 </Modal.Header>
@@ -114,7 +116,7 @@ export function EditorPanel(props) {
                         </Fragment>
                     }
                 </Modal.Body>
-            </Modal>
+            </Modal>}
             {showButtons && actionButtons}
         </Panel>
     )
@@ -211,26 +213,6 @@ export function elementForLayoutName(layoutName) {
     console.log("layoutName", layoutName);
     return layoutElements[layoutName] || MissingLayout
 }
-
-/*export function ViewLayout(props) {
-    let { config } = props;
-
-    useRenderCount("ViewLayout");
-
-    let LayoutElement = elementForLayoutName(config.layout);
-    return <LayoutElement config={config}></LayoutElement>
-}
-
-export function ViewLayouts(props) { 
-    let { configs } = props;
-
-    useRenderCount("ViewLayouts");
-
-    // uses index as a key only because schema wont change, bad practice otherwise!
-    return <>
-        {configs.map((config, idx) => <ViewLayout key={idx} config={config}/>)}
-    </>
-}*/
 
 export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
     let ViewLayoutsPanelComponent = (props) => {

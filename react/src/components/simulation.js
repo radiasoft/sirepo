@@ -25,7 +25,7 @@ function pollRunSimulation({ appName, models, simulationId, report, pollInterval
                 if(state === 'completed') {
                     resolve(simulationStatus);
                 } else if (state === 'pending') {
-                    //setTimeout(doFetch, pollInterval); // TODO
+                    setTimeout(doFetch, pollInterval); // TODO
                 } else {
                     reject();
                 }
@@ -41,7 +41,7 @@ export function SimulationLayout(layoutElement) {
 
         element: (props) => {
             let { config } = props;
-            let { title, reportName } = config;
+            let { report } = config;
     
             let contextFn = useContext;
             let stateFn = useState;
@@ -60,7 +60,7 @@ export function SimulationLayout(layoutElement) {
                             appName,
                             models,
                             simulationId,
-                            report: reportName,
+                            report: report,
                             pollInterval: 500
                         }).then((simulationData) => {
                             console.log("finished polling simulation");
@@ -77,9 +77,9 @@ export function SimulationLayout(layoutElement) {
             let VisualComponent = simulationData ? layoutElement.element : undefined;
     
             return (
-                <Panel title={title} panelBodyShown={true}>
+                <>
                     {VisualComponent && <VisualComponent config={config} simulationData={simulationData}></VisualComponent>}
-                </Panel>
+                </>
             )
         }
     }
