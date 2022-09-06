@@ -4,9 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
-    SIREPO.appDownloadLinks = `
-        <li data-export-statepoints-link="" ></li>
-    `;
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-cfg="reportCfg" data-report-id="reportId"></div>
     `;
@@ -196,32 +193,6 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
               </app-header-right-sim-list>
             </div>
         `,
-    };
-});
-
-SIREPO.app.directive('exportStatepointsLink', function(appState, cloudmcService, panelState, requestSender) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: `
-            <a data-ng-href="{{ exportStatepointsUrl() }}" target="_blank">Statepoints</a>
-        `,
-        controller: function($scope) {
-            $scope.exportStatepointsUrl = function() {
-                if (! appState.isLoaded()) {
-                    return null;
-                }
-                return requestSender.formatUrl('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': cloudmcService.computeModel(
-                        panelState.findParentAttribute($scope, 'modelKey'),
-                    ),
-                    '<frame>': 1,
-                    '<suffix>': 'zip',
-                });
-            };
-        },
     };
 });
 
