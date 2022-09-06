@@ -1784,7 +1784,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
                     frameCache.setFrameCount(1, data.computeModel);
                     frameCache.setFrameCount(2);
                 }
-            }
+            };
 
             function getPath(id) {
                 for (const p of appState.models.fieldPaths.paths) {
@@ -1832,7 +1832,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
                 if (! $scope.dataCleared && $scope.hasPaths()) {
                     $scope.simState.runSimulation();
                 }
-            })
+            });
 
             $scope.$on('fieldPaths.changed', updatePath);
 
