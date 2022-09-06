@@ -103,9 +103,15 @@ SIREPO.app.factory('cloudmcService', function(appState) {
     }
 
     self.computeModel = modelKey => modelKey;
+
+    self.findTally = () => {
+        return findTally(appState.models.openmcAnimation.tallies, appState.models.openmcAnimation.tally)
+    };
+
     self.isGraveyard = volume => {
         return volume.name && volume.name.toLowerCase() == 'graveyard';
     };
+
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
         if (! a.tally || ! findTally(a.tallies, a.tally)) {
@@ -274,7 +280,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             let selectedVolume = null;
             let tally = null;
             const bundleByVolume = {};
-            const tallyBundles = {};
+            let tallyBundle = null;
             // volumes are measured in centimeters
             const scale = 0.01;
             const coordMapper = new SIREPO.VTK.CoordMapper(
@@ -282,17 +288,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     new SIREPO.GEOMETRY.SquareMatrix([[scale, 0, 0], [0, scale, 0], [0, 0, scale]])
                 )
             );
-            const geom3dCfg = $scope.reportCfg || {};
             const watchFields = [`{$scope.modelName}.bgColor`, `{$scope.modelName}.showEdges`];
 
             const _SCENE_BOX = '_scene';
 
-            function addTally(data, aspect) {
+            function addTally(data) {
                 // the only purpose of this polyData is to capture the field info
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 $rootScope.$broadcast('vtk.hideLoader');
-                setColorsFromFieldData(basePolyData, aspect);
-                buildVoxels(aspect);
+                setColorsFromFieldData(basePolyData);
+                buildVoxels();
                 initAxes();
                 buildAxes();
                 vtkScene.renderer.resetCamera();
@@ -360,9 +365,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 return d;
             }
 
-            function buildVoxels(aspect) {
+            function buildVoxels() {
+                if (tallyBundle) {
+                    vtkScene.removeActor(tallyBundle.actor);
+                    tallyBundle = null;
+                }
 
-                const [nx, ny, nz] = tally.meshCellCount;
+                const mesh = getMeshFilter();
+                if (! mesh) {
+                    return;
+                }
+
+                const [nx, ny, nz] = mesh.dimension;
                 const nxy = nx * ny;
                 const pts = basePolyData.getPoints().getData();
                 const scalars = Array.from(basePolyData.getCellData().getScalars().getData());
@@ -401,13 +415,22 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     return true;
                 }
 
-                if (tallyBundles[aspect]) {
-                    vtkScene.removeActor(tallyBundles[aspect].actor);
-                    delete tallyBundles[aspect];
+                function getMeshFilter() {
+                    const t = cloudmcService.findTally();
+                    for (const k of SIREPO.UTILS.indexArray(5, 1)) {
+                        // Only one mesh filter allowed?
+                        const f = t[`filter${k}`];
+                        if (f && f._type === 'meshFilter') {
+                            return f;
+                        }
+                    }
+                    return null;
                 }
+
                 const source = vtk.Filters.General.vtkAppendPolyData.newInstance();
-                const [sx, sy, sz] = tally.meshUpperRight.map(
-                    (x, i) => (1.0 - openmcAnimation.voxelInsetPct) * Math.abs(x - tally.meshLowerLeft[i]) / tally.meshCellCount[i]
+                const [sx, sy, sz] = mesh.upper_right.map(
+                    (x, i) =>
+                        (1.0 - appState.models.openmcAnimation.voxelInsetPct) * Math.abs(x - mesh.lower_left[i]) / mesh.dimension[i]
                 );
                 for (let k = 0; k < nz; ++k) {
                     if (doSkipZ()) {
@@ -444,11 +467,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 if (source.getNumberOfInputPorts() <= 1) {
                     return;
                 }
-                const b = coordMapper.buildActorBundle(source, {
+                tallyBundle = coordMapper.buildActorBundle(source, {
                     'lighting': false,
                 });
-                tallyBundles[name] = b;
-                vtkScene.addActor(b.actor);
+                vtkScene.addActor(tallyBundle.actor);
                 vtkScene.render();
             }
 
@@ -518,18 +540,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             }
 
             function setTallyColors() {
-                for (const n in tallyBundles) {
-                    setColorsFromFieldData(
-                        tallyBundles[n].mapper.getInputData(),
-                        n,
-                    );
-                }
+                setColorsFromFieldData(tallyBundle.mapper.getInputData());
                 vtkScene.render();
             }
 
-            function setColorsFromFieldData(polyData, name) {
+            function setColorsFromFieldData(polyData) {
                 const dataColors = [];
-                const d = Array.from(basePolyData.getFieldData().getArrayByName(name).getData());
+                const d = Array.from(
+                    basePolyData.getFieldData().getArrayByName(model().aspect).getData()
+                );
                 const s = SIREPO.PLOTTING.Utils.colorScale(
                     SIREPO.UTILS.largeMin(d),
                     SIREPO.UTILS.largeMax(d),
@@ -701,9 +720,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
-            appState.watchModelFields($scope, ['openmcAnimation.voxelInsetPct'], () => {
-                buildVoxels(appState.models.tally.aspect);
-            });
+            appState.watchModelFields($scope, ['openmcAnimation.voxelInsetPct'], buildVoxels);
 
             appState.watchModelFields($scope, ['openmcAnimation.colorMap'], setTallyColors);
 
