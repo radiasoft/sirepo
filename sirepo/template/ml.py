@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from tkinter import N
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -189,7 +190,31 @@ def _build_ui_nn(model):
     #             r += f"\n out: {o.name}"
     # r += "\n\n ======================================"
     # pkdp(r)
+    _get_add_and_set_children(nn)
     return nn
+
+
+def _get_add_and_set_children(nn):
+    for l in nn.layers:
+        if "add" in l.layer.name:
+            l["children"] = []
+            for i in l.inbound:
+                l.children.append(
+                    _get_layer_by_name(
+                        nn,
+                        i.name
+                    )
+                )
+            for c in l.children:
+                if not "add" in c.layer.name:
+                    _pop_child(nn, c)
+            l.visited = True
+
+
+def _pop_child(neural_net, child):
+    for l in neural_net.layers:
+        if l.layer == child.layer:
+            neural_net.layers.remove(l)
 
 
 def _get_relevant_nodes(model):
@@ -222,6 +247,8 @@ def _set_inbound(model, nn):
     r = _get_relevant_nodes(model)
     for l in nn.layers:
         i = []
+        if "add" in l.layer.name:
+            l["visited"] = False
         for node in l.layer._inbound_nodes:
             if r and node not in r:
                 # node is not part of the current network
