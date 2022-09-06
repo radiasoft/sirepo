@@ -60,6 +60,8 @@ _MAGNET_NOTES = PKDict(
     undulator=_UNDULATOR_NOTES,
 )
 
+_MILLIS_TO_METERS = 0.001
+
 # Note that these column names and units are required by elegant
 _FIELD_MAP_COLS = ["x", "y", "z", "Bx", "By", "Bz"]
 _FIELD_MAP_UNITS = ["m", "m", "m", "T", "T", "T"]
@@ -1137,7 +1139,7 @@ def _read_solution():
 
 # mm -> m, rotate so the beam axis is aligned with z
 def _rotate_fields(vectors, scipy_rotation, do_flatten):
-    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
+    pts = _MILLIS_TO_METERS * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
     mags = numpy.array(vectors.magnitudes)
     dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
     if do_flatten:
@@ -1235,8 +1237,8 @@ def _save_kick_map_sdds(name, path, km_data):
     s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
     s.setDescription(f"Kick Map for {name}", "x(m), y(m), h(T2m2), v(T2m2)")
     col_data = [
-        [numpy.tile(0.001 * numpy.array(km_data.x), len(km_data.x)).tolist()],
-        [numpy.repeat(0.001 * numpy.array(km_data.y), len(km_data.y)).tolist()],
+        [numpy.tile(_MILLIS_TO_METERS * numpy.array(km_data.x), len(km_data.x)).tolist()],
+        [numpy.repeat(_MILLIS_TO_METERS * numpy.array(km_data.y), len(km_data.y)).tolist()],
         [numpy.array(km_data.h).flatten().tolist()],
         [numpy.array(km_data.v).flatten().tolist()],
     ]
