@@ -180,23 +180,32 @@ def _build_ui_nn(model):
 
     nn = _set_inbound(model, nn)
     nn = _set_outbound(nn)
-    r = "\n\n ======================================"
-    for l in nn.layers:
-        r += f"\n\n\n layer: {l.layer.name}"
-        if "inbound" in l:
-            for i in l.inbound:
-                r += f"\n in: {i.name}"
-        if "outbound" in l:
-            for o in l.outbound:
-                r += f"\n out: {o.name}"
-    r += "\n\n ======================================"
-    pkdp(r)
-    _get_add_and_set_children(nn)
+    # r = "\n\n ======================================"
+    # for l in nn.layers:
+    #     r += f"\n\n\n layer: {l.layer.name}"
+    #     if "inbound" in l:
+    #         for i in l.inbound:
+    #             r += f"\n in: {i.name}"
+    #     if "outbound" in l:
+    #         for o in l.outbound:
+    #             r += f"\n out: {o.name}"
+    # r += "\n\n ======================================"
+    # pkdp(r)
+    _set_children(nn)
     return nn
 
 
-def _get_add_and_set_children(nn):
+def _build_levels_with_children(level):
+    # TODO (gurhar): recursively build the tree for the UI
+    # from the top down. But first adds that themselves are children
+    # need to be inserted into their child positions for the
+    # recursive process to work
+    pass
+
+
+def _set_children(nn):
     for l in nn.layers:
+        # TODO (gurhar1133): "add" in needs to be "add" or "concatenate" (maybe constant)
         if "add" in l.name:
             l["children"] = []
             for i in l.inbound:
@@ -209,21 +218,29 @@ def _get_add_and_set_children(nn):
                         nn,
                     )
                 )
-            pkdp("\n\n\n l.children: {}", l.children)
-            for c in l.children:
-                for lyr in c:
-                    if not "add" in lyr.name:
-                        _pop_child(nn, lyr)
-                        pkdp("\n\n\n nn.layers after pop: {}",[l.name for l in nn.layers])
-            l.visited = True
+            _pop_children(nn, l.children)
+    # TODO (gurhar1133): the adds that are children themselves need to be inserted into
+    # child position
+
+def _pop_children(nn, child_layers):
+    for l in child_layers:
+        for n in l:
+            if "add" not in n.name:
+                _pop_child(nn, n)
 
 
 def _build_layer_chain(child, nn):
+    if "add" in child.name:
+        return [child]
     lvl = []
-    while len(child.outbound) <= 1:
+    while _child_non_branching(child):
         lvl.append(child)
         child = _get_layer_by_name(nn, child.inbound[0].name)
     return lvl
+
+
+def _child_non_branching(child):
+    return len(child.outbound) <= 1
 
 
 def _pop_child(neural_net, child):
@@ -242,7 +259,6 @@ def _get_relevant_nodes(model):
 def _set_outbound(nn):
     for l in nn.layers:
         for i in l.inbound:
-            # TODO (gurhar1133): go to layer where layer name is i.name and set outbound
             layer = _get_layer_by_name(nn, i.name)
             if "outbound" in layer:
                 layer.outbound.append(l.layer)
@@ -262,8 +278,6 @@ def _set_inbound(model, nn):
     r = _get_relevant_nodes(model)
     for l in nn.layers:
         i = []
-        if "add" in l.layer.name:
-            l["visited"] = False
         for node in l.layer._inbound_nodes:
             if r and node not in r:
                 # node is not part of the current network
