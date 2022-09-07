@@ -1779,7 +1779,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             $scope.simScope = $scope;
             $scope.simComputeModel = $scope.modelName;
 
-            $scope.simHandleStatus = (data) => {
+            $scope.simHandleStatus = data => {
                 if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
                     frameCache.setFrameCount(1, data.computeModel);
                     frameCache.setFrameCount(2);
