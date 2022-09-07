@@ -1,5 +1,6 @@
 import mpi4py
 import sirepo.template.radia
+import sirepo.mpi
 from sirepo.template import radia_util
 from sirepo.template import radia
 from pykern.pkcollections import PKDict
@@ -15,7 +16,5 @@ def field_data():
 
 with radia_util.MPI() as m:
     f = field_data()
-    can_write_files = mpi4py.MPI.COMM_WORLD.Get_rank() == 0
-
-if can_write_files:
-    pkjson.dump_pretty(f, "field_data.json")
+    m.barrier()
+    sirepo.mpi.restrict_op_to_first_rank(lambda: pkjson.dump_pretty(f, "field_data.json"))

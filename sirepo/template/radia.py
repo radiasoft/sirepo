@@ -272,7 +272,7 @@ def sim_frame_fieldLineoutAnimation(frame_args):
         frame_args.sim_in.models.fieldLineoutAnimation.fieldType,
         frame_args.sim_in.models.fieldLineoutAnimation.fieldPath,
         frame_args.sim_in.models.fieldLineoutAnimation.plotAxis,
-        pkjson.load_any(pkio.py_path("field_data.json")),
+        field_data=pkjson.load_any(pkio.py_path("field_data.json")),
     )
 
 
@@ -568,7 +568,7 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=False):
+def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
         (
             generate_field_data(sim_id, get_g_id(), name, f_type, [f_path])
