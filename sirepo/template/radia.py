@@ -242,7 +242,7 @@ def get_data_file(run_dir, model, frame, options):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    beam_axis = _rotate_axis(to_axis="z", from_axis=[sim.beamAxis])
+    beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
     rpt = data.models[model]
     default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
     sfx = options.suffix or default_sfx
