@@ -180,17 +180,17 @@ def _build_ui_nn(model):
 
     nn = _set_inbound(model, nn)
     nn = _set_outbound(nn)
-    # r = "\n\n ======================================"
-    # for l in nn.layers:
-    #     r += f"\n\n\n layer: {l.layer.name}"
-    #     if "inbound" in l:
-    #         for i in l.inbound:
-    #             r += f"\n in: {i.name}"
-    #     if "outbound" in l:
-    #         for o in l.outbound:
-    #             r += f"\n out: {o.name}"
-    # r += "\n\n ======================================"
-    # pkdp(r)
+    r = "\n\n ======================================"
+    for l in nn.layers:
+        r += f"\n\n\n layer: {l.layer.name}"
+        if "inbound" in l:
+            for i in l.inbound:
+                r += f"\n in: {i.name}"
+        if "outbound" in l:
+            for o in l.outbound:
+                r += f"\n out: {o.name}"
+    r += "\n\n ======================================"
+    pkdp(r)
     _set_children(nn)
     return nn
 
@@ -206,7 +206,9 @@ def _build_levels_with_children(level):
 def _set_children(nn):
     for l in nn.layers:
         # TODO (gurhar1133): "add" in needs to be "add" or "concatenate" (maybe constant)
+        pkdp("\n\n\n l.name: {}", l.name)
         if "add" in l.name:
+            pkdp("\n\n\n l.name of hit for add: {}", l.name)
             l["children"] = []
             for i in l.inbound:
                 l.children.append(
@@ -236,6 +238,7 @@ def _build_layer_chain(child, nn):
     while _child_non_branching(child):
         lvl.append(child)
         child = _get_layer_by_name(nn, child.inbound[0].name)
+        pkdp("\n\n\n ----------- \n\n child: {} _child_non_branching(child): {}", child.name, _child_non_branching(child))
     return lvl
 
 
@@ -917,7 +920,7 @@ for layer in model.layers:
     if inbound:
         print('inbound layers: ', inbound)
     print('----------')
-model.save('./')
+model.save('m2.h5')
 """
 
 
