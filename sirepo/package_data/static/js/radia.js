@@ -1767,9 +1767,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
         template: `
             <div class="col-md-6">
               <div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
-                <div data-ng-if="simState.isProcessing()" class="progress">
-                  <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-                </div>
+                <div data-sim-status-panel="simState"></div>
               </div>
             </div>
         `,
@@ -1829,8 +1827,14 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             });
 
             $scope.$on('fieldLineoutAnimation.changed', function () {
+                srdbg('lineout changed and saved');
                 if (! $scope.dataCleared && $scope.hasPaths()) {
-                    $scope.simState.runSimulation();
+                    srdbg('jobRunMode:', appState.models.fieldLineoutAnimation.jobRunMode);
+                    if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
+                        srdbg('running sim');
+                        // Dont run automatically for sbatch or nersc
+                        $scope.simState.runSimulation();
+                    }
                 }
             });
 
@@ -1844,6 +1848,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
 
             updatePath();
             $scope.simState = persistentSimulation.initSimulationState($scope);
+            srdbg('job settings:', $scope.simState.showJobSettings())
         },
     };
 });
