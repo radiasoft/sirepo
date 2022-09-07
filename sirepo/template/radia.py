@@ -18,6 +18,7 @@ from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
 import copy
+import csv
 import h5py
 import math
 import numpy
@@ -247,6 +248,16 @@ def get_data_file(run_dir, model, frame, options):
     default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
     sfx = options.suffix or default_sfx
     f = f"{model}.{sfx}"
+    if model == "electronTrajectoryReport":
+        if sfx == "csv":
+            return _save_trajectory_csv(
+                f,
+                beam_axis=sim.beamAxis,
+                output=simulation_db.read_json(
+                    run_dir.join(template_common.OUTPUT_BASE_NAME)
+                ),
+            )
+        return f
     if model == "kickMapReport":
         km_dict = _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
         if sfx == "sdds":
@@ -310,8 +321,6 @@ def post_execution_processing(
 
 
 def stateful_compute_build_shape_points(data):
-    import csv
-
     pts = []
     with open(
         _SIM_DATA.lib_file_abspath(
@@ -1354,6 +1363,18 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     for i, n in enumerate(_KICK_MAP_COLS):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
+    return path
+
+
+def _save_trajectory_csv(path, **kwargs):
+    d = PKDict(kwargs)
+    data = d.output
+    with open(path, "w") as f:
+        out = csv.writer(f)
+        out.writerow([d.beam_axis] + [p.label for p in data.plots])
+        out.writerows(
+            numpy.array([data.x_points] + [p.points for p in data.plots]).T.tolist()
+        )
     return path
 
 

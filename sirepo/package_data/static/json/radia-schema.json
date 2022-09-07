@@ -9,14 +9,14 @@
         "dataDownloads": {
             "_default": [
                 {
-                    "title": "Save as SDDS",
-                    "suffix": "sdds"
+                    "title": "Save as CSV",
+                    "suffix": "csv"
                 }
             ],
             "fieldLineoutReport": [
                 {
-                    "title": "Save as CSV",
-                    "suffix": "csv"
+                    "title": "Save as SDDS",
+                    "suffix": "sdds"
                 },
                 {
                     "title": "Save for SRW import",
@@ -25,8 +25,8 @@
             ],
             "kickMapReport": [
                 {
-                    "title": "Save as Text",
-                    "suffix": "txt"
+                    "title": "Save as SDDS",
+                    "suffix": "sdds"
                 }
             ]
         },
