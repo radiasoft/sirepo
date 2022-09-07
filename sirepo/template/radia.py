@@ -10,6 +10,7 @@ Radia "instance" goes away and references no longer have any meaning.
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
@@ -71,6 +72,8 @@ _MAGNET_NOTES = PKDict(
     freehand=_FREEHAND_NOTES,
     undulator=_UNDULATOR_NOTES,
 )
+
+_MILLIS_TO_METERS = 0.001
 
 # Note that these column names and units are required by elegant
 _FIELD_MAP_COLS = ["x", "y", "z", "Bx", "By", "Bz"]
@@ -245,8 +248,7 @@ def get_data_file(run_dir, model, frame, options):
     sim_id = sim.simulationId
     beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
     rpt = data.models[model]
-    default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
-    sfx = options.suffix or default_sfx
+    sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
     if model == "electronTrajectoryReport":
         if sfx == "csv":
@@ -259,11 +261,9 @@ def get_data_file(run_dir, model, frame, options):
             )
         return f
     if model == "kickMapReport":
-        km_dict = _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
-        if sfx == "sdds":
-            _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
-        if sfx == "txt":
-            pkio.write_text(f, km_dict.txt)
+        _save_kick_map_sdds(
+            name, f, _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
+        )
         return f
     if model == "fieldLineoutReport":
         f_type = rpt.fieldType
@@ -1224,7 +1224,7 @@ def _read_or_generate_kick_map(g_id, data):
     res = _read_kick_map()
     if res:
         return res
-    return _generate_kick_map(g_id, data.model)
+    return _generate_kick_map(g_id, data)
 
 
 def _read_solution():
@@ -1243,7 +1243,7 @@ def _rotate_axis(to_axis="z", from_axis="x"):
 
 # mm -> m, rotate so the beam axis is aligned with z
 def _rotate_fields(vectors, scipy_rotation, do_flatten):
-    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
+    pts = _MILLIS_TO_METERS * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
     mags = numpy.array(vectors.magnitudes)
     dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
     if do_flatten:
@@ -1272,8 +1272,6 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 # zip file - data plus index.  This will likely be used to generate files for a range
 # of gaps later
 def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
-    import zipfile
-
     # no whitespace in filenames
     base_name = re.sub(r"\s", "_", path.purebasename)
     data_path = path.dirpath().join(f"{base_name}_{gap}.dat")
@@ -1306,12 +1304,7 @@ def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
     files = [data_path, index_path]
 
     # zip file
-    with zipfile.ZipFile(
-        str(path),
-        mode="w",
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
+    with sirepo.util.write_zip(str(path)) as z:
         for f in files:
             z.write(str(f), f.basename)
 
@@ -1337,29 +1330,23 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     return path
 
 
-def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
+def _save_kick_map_sdds(name, path, km_data):
     s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
     s.setDescription(f"Kick Map for {name}", "x(m), y(m), h(T2m2), v(T2m2)")
-    col_data = []
-    x = []
-    y = []
-    h = []
-    v = []
-    # TODO: better way to do this...
-    for i in range(len(x_vals)):
-        for j in range(len(x_vals)):
-            x.append(0.001 * x_vals[j])
-    for i in range(len(y_vals)):
-        for j in range(len(y_vals)):
-            y.append(0.001 * y_vals[i])
-    for i in range(len(x_vals)):
-        for j in range(len(y_vals)):
-            h.append(h_vals[i][j])
-            v.append(v_vals[i][j])
-    col_data.append([x])
-    col_data.append([y])
-    col_data.append([h])
-    col_data.append([v])
+    col_data = [
+        [
+            numpy.tile(
+                _MILLIS_TO_METERS * numpy.array(km_data.x), len(km_data.x)
+            ).tolist()
+        ],
+        [
+            numpy.repeat(
+                _MILLIS_TO_METERS * numpy.array(km_data.y), len(km_data.y)
+            ).tolist()
+        ],
+        [numpy.array(km_data.h).flatten().tolist()],
+        [numpy.array(km_data.v).flatten().tolist()],
+    ]
     for i, n in enumerate(_KICK_MAP_COLS):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))

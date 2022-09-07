@@ -588,8 +588,11 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
 SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelState, rpnService, $document, $rootScope, $window) {
     return {
         restrict: 'A',
+        // transcluded data contains html for tab panels defined with headerTabInfo
+        transclude: true,
         scope: {
             shiftClickHandler: '&?',
+            headerTabInfo: '=',
         },
         template: `
             <div data-ng-show="showEditor()" class="panel panel-info" style="margin-bottom: 0">
@@ -597,8 +600,15 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 <div class="sr-panel-options pull-right">
                   <a href data-ng-show="hasBeamlineView()" data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
                 </div>
+                <div data-ng-if="headerTabInfo" class="sr-panel-options pull-right hidden-md hidden-sm hidden-xs" style="margin-top: -2px">
+                  <ul class="nav nav-tabs">
+                    <li data-ng-class="{active: headerTabInfo.selected == t}" data-ng-repeat="t in headerTabInfo.names"><a href ng-click="headerTabInfo.selected = t">{{ t }}</a></li>
+                  </ul>
+                  <div class="clearfix"></div>
+                </div>
               </div>
-              <div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
+              <div class="sr-lattice-editor-panel">
+              <div data-ng-show="! headerTabInfo || headerTabInfo.selected == headerTabInfo.elementsTabName" data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
                 <p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em><span data-sr-tooltip="{{ tooltip }}"></span></small></p>
                 <div data-ng-repeat="item in beamlineItems track by item.itemId" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">
                   <div style="display: inline-block;" class="sr-editor-item-hover">
@@ -610,6 +620,8 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                   <div style="visibility: hidden" class="badge sr-lattice-item sr-badge-icon"><span>last</span></div>
                 </div>
               </div>
+              </div>
+              <div data-ng-transclude=""></div>
             </div>
             <div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ latticeService.selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ latticeService.selectedItem.name }}</strong>?</div>
             <div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save Changes" data-ok-clicked="createBeamlineFromElements()">
@@ -2828,9 +2840,11 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                 requestIndex++;
                 var currentRequestIndex = requestIndex;
                 if (ngModel.$isEmpty(value)) {
+                    scope.isBusy = false;
                     return null;
                 }
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
+                    scope.isBusy = false;
                     var v = parseFloat(value);
                     if (rpnVariableName) {
                         rpnService.recomputeCache(rpnVariableName, v);
