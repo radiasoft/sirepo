@@ -204,31 +204,35 @@ def _build_levels_with_children(level):
 
 
 def _set_children(nn):
+    pkdp("\n\n\n all layer names: {}", [l.name for l in nn.layers])
+    a = []
     for l in nn.layers:
         # TODO (gurhar1133): "add" in needs to be "add" or "concatenate" (maybe constant)
-        pkdp("\n\n\n l.name: {}", l.name)
         if "add" in l.name:
             pkdp("\n\n\n l.name of hit for add: {}", l.name)
             l["children"] = []
             for i in l.inbound:
-                l.children.append(
-                    _build_layer_chain(
-                        _get_layer_by_name(
+                chain = _build_layer_chain(
+                            _get_layer_by_name(
+                                nn,
+                                i.name
+                            ),
                             nn,
-                            i.name
-                        ),
-                        nn,
-                    )
+                        )
+
+                l.children.append(
+                    chain
                 )
-            _pop_children(nn, l.children)
+                for c in chain:
+                    a.append(c)
+    pkdp("\n\n\n\n all child nodes: {}", a)
+    _pop_children(nn, a)
     # TODO (gurhar1133): the adds that are children themselves need to be inserted into
     # child position
 
 def _pop_children(nn, child_layers):
     for l in child_layers:
-        for n in l:
-            if "add" not in n.name:
-                _pop_child(nn, n)
+        _pop_child(nn, l)
 
 
 def _build_layer_chain(child, nn):
