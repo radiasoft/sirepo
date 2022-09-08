@@ -1051,7 +1051,10 @@
     },
     "strings": {
         "completionState": "",
-        "typeOfSimulation": "solve"
+        "typeOfSimulation": "solve",
+        "fieldLineoutAnimation": {
+            "typeOfSimulation": "Field Plot"
+        }
     },
     "view": {
         "axisPath": {

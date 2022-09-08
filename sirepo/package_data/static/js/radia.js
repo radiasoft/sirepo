@@ -1107,9 +1107,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
-
-    let SINGLE_PLOTS = ['magnetViewer',];
+SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, $scope) {
 
     let solving = false;
 
@@ -1133,9 +1131,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         self.solution = null;
         solving = false;
         panelState.clear('geometryReport');
-        panelState.requestData('reset', () => {
-            frameCache.setFrameCount(0);
-            }, true);
+        panelState.requestData('reset', () => {}, true);
         radiaService.syncReports();
     };
 
@@ -1143,15 +1139,9 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         if (data.error) {
             solving = false;
         }
-        SINGLE_PLOTS.forEach(function(name) {
-            frameCache.setFrameCount(0, name);
-        });
         if ('percentComplete' in data && ! data.error) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
                 self.solution = data.solution;
-                SINGLE_PLOTS.forEach(function(name) {
-                    frameCache.setFrameCount(1, name);
-                });
                 if (solving) {
                     radiaService.syncReports();
                 }
@@ -1159,7 +1149,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                 radiaService.saveGeometry(false, true);
             }
         }
-        frameCache.setFrameCount(data.frameCount);
     };
 
     self.startSimulation = function(model) {
@@ -1779,8 +1768,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
 
             $scope.simHandleStatus = data => {
                 if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
-                    frameCache.setFrameCount(1, data.computeModel);
-                    frameCache.setFrameCount(2);
+                    frameCache.setFrameCount(1);
                 }
             };
 
@@ -1827,13 +1815,12 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             });
 
             $scope.$on('fieldLineoutAnimation.changed', function () {
-                srdbg('lineout changed and saved');
                 if (! $scope.dataCleared && $scope.hasPaths()) {
-                    srdbg('jobRunMode:', appState.models.fieldLineoutAnimation.jobRunMode);
+                    // Dont run automatically for sbatch or nersc
                     if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
-                        srdbg('running sim');
-                        // Dont run automatically for sbatch or nersc
-                        $scope.simState.runSimulation();
+                        if (! $scope.simState.isProcessing()) {
+                            $scope.simState.runSimulation();
+                        }
                     }
                 }
             });
@@ -1848,7 +1835,6 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
 
             updatePath();
             $scope.simState = persistentSimulation.initSimulationState($scope);
-            srdbg('job settings:', $scope.simState.showJobSettings())
         },
     };
 });
