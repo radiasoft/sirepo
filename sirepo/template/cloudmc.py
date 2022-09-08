@@ -98,14 +98,21 @@ def sim_frame(frame_args):
         t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
-    t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
-        filename=f,
-        datasets={
-            frame_args.aspect: getattr(t, frame_args.aspect)[
-                :, :, t.get_score_index(frame_args.score)
-            ],
-        },
-    )
+    try:
+        t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
+            filename=f,
+            datasets={
+                frame_args.aspect: getattr(t, frame_args.aspect)[
+                    :, :, t.get_score_index(frame_args.score)
+                ],
+            },
+        )
+    except RuntimeError as e:
+        if re.search(r"dataset mean should be equal to the number of cells", str(e)):
+            return PKDict(
+                error=f"Tally {frame_args.tally} contains a Mesh and another multi-binned Filter"
+            )
+        raise
     return PKDict(
         content=_grid_to_poly(f),
     )
@@ -271,9 +278,12 @@ def _generate_parameters_file(data):
 
 
 def _generate_range(filter):
-    res = "numpy."
-    res += "linspace" if filter.space == "linear" else "logspace"
-    return f"{res}({filter.start}, {filter.stop}, {filter.num})"
+    return "numpy.{}({}, {}, {})".format(
+        "linspace" if filter.space == "linear" else "logspace",
+        filter.start,
+        filter.stop,
+        filter.num,
+    )
 
 
 def _generate_source(source):
