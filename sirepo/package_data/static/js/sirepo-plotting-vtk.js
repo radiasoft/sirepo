@@ -492,8 +492,8 @@ class ActorBundle {
 
     /**
      *
-     * @param colors
-     * @param numColorComponents
+     * @param {[int]} colors - array of unsigned ints (0-255).
+     * @param {int} numColorComponents - the number of components in a color (3 for rgb or 4 for rgb + alpha)
      */
     setColorScalarsForCells(colors, numColorComponents) {
         const pd = this.mapper.getInputData();
