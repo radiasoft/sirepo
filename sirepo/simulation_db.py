@@ -26,7 +26,6 @@ import os
 import os.path
 import random
 import re
-import shutil
 import sirepo.auth
 import sirepo.const
 import sirepo.resource
@@ -484,34 +483,6 @@ def prepare_simulation(data, run_dir):
     return cmd, run_dir
 
 
-# to admin.py?
-def migrate_sim_type(old_sim_type, new_sim_type, uid=None):
-    if uid is None:
-        return
-    # can't use simulation_dir (or simulation_lib_dir) because the old sim doesn't exist
-    old_sim_dir = user_path(uid).join(old_sim_type)
-    if not old_sim_dir.exists():
-        return
-    # should exist by now?
-    new_sim_dir = simulation_dir(new_sim_type, uid=uid)
-    new_lib_dir = simulation_lib_dir(new_sim_type, uid=uid)
-    with util.THREAD_LOCK:
-        for p in pkio.sorted_glob(old_sim_dir.join("lib").join("*")):
-            # check if exists? recursive? read/write?
-            shutil.copy2(p, new_lib_dir.join(p.basename))
-        for p in pkio.sorted_glob(old_sim_dir.join("*", SIMULATION_DATA_FILE)):
-            data = read_json(p)
-            sim = data.models.simulation
-            if sim.get("isExample"):
-                continue
-            new_p = new_sim_dir.join(_sim_from_path(p)[0])
-            # check if exists?
-            if new_p.exists():
-                continue
-            pkio.mkdir_parent(new_p)
-            shutil.copy2(p, new_p.join(SIMULATION_DATA_FILE))
-
-
 def process_simulation_list(res, path, data):
     sim = data["models"]["simulation"]
     res.append(
@@ -646,6 +617,10 @@ def sim_data_file(sim_type, sim_id, uid=None):
         py.path.local: simulation path
     """
     return simulation_dir(sim_type, sim_id, uid=uid).join(SIMULATION_DATA_FILE)
+
+
+def sim_from_path(path):
+    return _sim_from_path(path)
 
 
 def simulation_dir(simulation_type, sid=None, uid=None):
