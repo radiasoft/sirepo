@@ -505,7 +505,7 @@ class ActorBundle {
             })
         );
         pd.modified();
-    };
+    }
 
     /**
      * Sets the mapper for this bundle as well as the actor

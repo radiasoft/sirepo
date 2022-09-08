@@ -105,7 +105,7 @@ SIREPO.app.factory('cloudmcService', function(appState) {
     self.computeModel = modelKey => modelKey;
 
     self.findTally = () => {
-        return findTally(appState.models.openmcAnimation.tallies, appState.models.openmcAnimation.tally)
+        return findTally(appState.models.openmcAnimation.tallies, appState.models.openmcAnimation.tally);
     };
 
     self.isGraveyard = volume => {
