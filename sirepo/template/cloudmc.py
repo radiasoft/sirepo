@@ -108,7 +108,7 @@ def sim_frame(frame_args):
             },
         )
     except RuntimeError as e:
-        if re.search(r"dataset mean should be equal to the number of cells", str(e)):
+        if re.search(r"should be equal to the number of cells", str(e)):
             return PKDict(
                 error=f"Tally {frame_args.tally} contains a Mesh and another multi-binned Filter"
             )
