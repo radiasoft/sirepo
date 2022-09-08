@@ -427,7 +427,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const source = vtk.Filters.General.vtkAppendPolyData.newInstance();
                 const [sx, sy, sz] = mesh.upper_right.map(
                     (x, i) =>
-                        (1.0 - appState.models.openmcAnimation.voxelInsetPct) * Math.abs(x - mesh.lower_left[i]) / mesh.dimension[i]
+                        (1.0 - appState.models.voxels.voxelInsetPct) * Math.abs(x - mesh.lower_left[i]) / mesh.dimension[i]
                 );
                 for (let k = 0; k < nz; ++k) {
                     if (doSkipZ()) {
@@ -559,7 +559,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const s = SIREPO.PLOTTING.Utils.colorScale(
                     SIREPO.UTILS.largeMin(d),
                     SIREPO.UTILS.largeMax(d),
-                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.openmcAnimation.colorMap]
+                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.voxels.colorMap]
                 );
                 d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
                     .forEach((c, i) => {
@@ -733,9 +733,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
-            appState.watchModelFields($scope, ['openmcAnimation.voxelInsetPct'], buildVoxels);
+            appState.watchModelFields($scope, ['voxels.voxelInsetPct'], buildVoxels);
 
-            appState.watchModelFields($scope, ['openmcAnimation.colorMap'], setTallyColors);
+            appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
 
         },
         link: function link(scope, element) {

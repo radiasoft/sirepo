@@ -434,6 +434,10 @@
             "_type": ["", "ProbabilityDistribution"]
         },
         "volumes": {},
+        "voxels": {
+            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.10, "", 0.0, 1.0]
+        },
         "watt": {
             "_super": [ "_", "model", "univariate"],
             "a": ["a", "Float", 0.988e6, "The Watt fission energy spectrum is characterized by two parameters $a$ and $b$ and has density function $p(E) dE = c e^{-E/a} \\sinh \\sqrt{b \\, E} dE$"],
@@ -581,8 +585,8 @@
                 "tally",
                 "score",
                 "aspect",
-                "voxelInsetPct",
-                "colorMap",
+                "voxels.voxelInsetPct",
+                "voxels.colorMap",
                 "opacity",
                 "bgColor",
                 "showEdges"
