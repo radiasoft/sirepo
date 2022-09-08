@@ -460,12 +460,7 @@ def export_rsopt_config(data, filename):
         )
     readme = template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
 
-    with zipfile.ZipFile(
-        fz,
-        mode="w",
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
+    with sirepo.util.write_zip(fz) as z:
         for t in tf:
             z.writestr(tf[t].file, tf[t].content)
         z.writestr(v.readmeFileName, readme)
