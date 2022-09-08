@@ -217,7 +217,9 @@ def _migrate_sim_type(old_sim_type, new_sim_type, uid=None):
     with sirepo.util.THREAD_LOCK:
         for p in pkio.sorted_glob(old_sim_dir.join("lib").join("*")):
             shutil.copy2(p, new_lib_dir.join(p.basename))
-        for p in pkio.sorted_glob(old_sim_dir.join("*", sirepo.simulation_db.SIMULATION_DATA_FILE)):
+        for p in pkio.sorted_glob(
+            old_sim_dir.join("*", sirepo.simulation_db.SIMULATION_DATA_FILE)
+        ):
             data = sirepo.simulation_db.read_json(p)
             sim = data.models.simulation
             if sim.get("isExample"):
