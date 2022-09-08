@@ -276,11 +276,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             let axesBoxes = {};
             let basePolyData = null;
             let picker = null;
-            let vtkScene = null;
+            let scalars = [];
             let selectedVolume = null;
             let tally = null;
             const bundleByVolume = {};
             let tallyBundle = null;
+            let vtkScene = null;
             // volumes are measured in centimeters
             const scale = 0.01;
             const coordMapper = new SIREPO.VTK.CoordMapper(
@@ -293,11 +294,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             const _SCENE_BOX = '_scene';
 
             function addTally(data) {
-                // the only purpose of this polyData is to capture the field info
-                basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
+                loadTally(data);
                 $rootScope.$broadcast('vtk.hideLoader');
-                setColorsFromFieldData(basePolyData);
-                buildVoxels();
                 initAxes();
                 buildAxes();
                 vtkScene.renderer.resetCamera();
@@ -379,7 +377,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const [nx, ny, nz] = mesh.dimension;
                 const nxy = nx * ny;
                 const pts = basePolyData.getPoints().getData();
-                const scalars = Array.from(basePolyData.getCellData().getScalars().getData());
 
                 let n = 0;
                 let m = 0;
@@ -452,8 +449,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                                 zLength: sz,
                                 center: [pts[n] + sx / 2, pts[n + 1] + sy / 2, pts[n + 2] + sz / 2],
                             }).getOutputData();
-                            vtkPlotting.setColorScalars(s, scalars.slice(m, m + 4));
-                            SIREPO.VTK.VTKUtils.setColorScalarsForCells(s, scalars.slice(m, m + 4));
                             ysrc.addInputData(s);
                             n += 3;
                             m += 4;
@@ -472,7 +467,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     'lighting': false,
                 });
                 vtkScene.addActor(tallyBundle.actor);
-                vtkScene.render();
+                setTallyColors();
             }
 
             function getVolumeById(volId) {
@@ -541,12 +536,23 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             }
 
             function setTallyColors() {
-                setColorsFromFieldData(tallyBundle.mapper.getInputData());
+                setColorsFromFieldData();
+                const cellsPerVoxel = 6;
+                const sc = [];
+                for (let m = 0; m < scalars.length; m += 4) {
+                    if (scalars[m + 3] === 0) {
+                        continue;
+                    }
+                    for (let j = 0; j < cellsPerVoxel; ++j) {
+                        sc.push(...scalars.slice(m, m + 4));
+                    }
+                }
+                tallyBundle.setColorScalarsForCells(sc, 4);
                 vtkScene.render();
             }
 
-            function setColorsFromFieldData(polyData) {
-                const dataColors = [];
+            function setColorsFromFieldData() {
+                scalars = [];
                 const d = Array.from(
                     basePolyData.getFieldData().getArrayByName(model().aspect).getData()
                 );
@@ -558,16 +564,22 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
                     .forEach((c, i) => {
                         // when the field value is 0, don't draw the element at all
-                        dataColors.push(...c, d[i] === 0 ? 0 : Math.floor(255 * appState.models.openmcAnimation.opacity));
+                        scalars.push(...c, d[i] === 0 ? 0 : Math.floor(255 * appState.models.openmcAnimation.opacity));
                     });
                 basePolyData.getCellData().setScalars(
                     vtk.Common.Core.vtkDataArray.newInstance({
                         numberOfComponents: 4,
-                        values: dataColors,
+                        values: scalars,
                         dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                     })
                 );
-                polyData.modified();
+                basePolyData.modified();
+            }
+
+            function loadTally(data) {
+                basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
+                setColorsFromFieldData();
+                buildVoxels();
             }
 
             function loadVolumes(volIds) {

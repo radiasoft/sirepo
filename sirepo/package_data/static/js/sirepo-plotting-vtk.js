@@ -176,38 +176,6 @@ class VTKUtils {
     }
 
     /**
-     *
-     * @param data
-     * @param color
-     */
-    static setColorScalarsForCells(data, color) {
-        data.buildCells();
-        const c = data.getCells();
-        srdbg(c);
-        const n = color.length * (c.getData().length / c.getNumberOfComponents());
-        const cd = data.getCellData();
-        const s = cd.getScalars();
-        const rgb = s ? s.getData() : new Uint8Array(n);
-        for (let i = 0; i < n; i += color.length) {
-            for (let j = 0; j < color.length; ++j) {
-                rgb[i + j] = color[j];
-            }
-        }
-        srdbg('SET COLOR SC', rgb);
-        /*
-        cd.setScalars(
-            vtk.Common.Core.vtkDataArray.newInstance({
-                name: 'color',
-                numberOfComponents: color.length,
-                values: rgb,
-            })
-        );
-        data.modified();
-        
-         */
-    };
-
-    /**
      * Creates a vtk user matrix from a SquareMatrix.
      * * @param {SquareMatrix} matrix - vtk actor
      * @returns {[[number]]}
@@ -521,6 +489,23 @@ class ActorBundle {
     setColor(color) {
         this.actorProperties.setColor(VTKUtils.colorToFloat(color));
     }
+
+    /**
+     *
+     * @param colors
+     * @param numColorComponents
+     */
+    setColorScalarsForCells(colors, numColorComponents) {
+        const pd = this.mapper.getInputData();
+        pd.getCellData().setScalars(
+            vtk.Common.Core.vtkDataArray.newInstance({
+                dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
+                numberOfComponents: numColorComponents,
+                values: colors,
+            })
+        );
+        pd.modified();
+    };
 
     /**
      * Sets the mapper for this bundle as well as the actor
