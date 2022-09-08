@@ -175,6 +175,37 @@ class VTKUtils {
         return pd;
     }
 
+    /**
+     *
+     * @param data
+     * @param color
+     */
+    static setColorScalarsForCells(data, color) {
+        data.buildCells();
+        const c = data.getCells();
+        srdbg(c);
+        const n = color.length * (c.getData().length / c.getNumberOfComponents());
+        const cd = data.getCellData();
+        const s = cd.getScalars();
+        const rgb = s ? s.getData() : new Uint8Array(n);
+        for (let i = 0; i < n; i += color.length) {
+            for (let j = 0; j < color.length; ++j) {
+                rgb[i + j] = color[j];
+            }
+        }
+        srdbg('SET COLOR SC', rgb);
+        /*
+        cd.setScalars(
+            vtk.Common.Core.vtkDataArray.newInstance({
+                name: 'color',
+                numberOfComponents: color.length,
+                values: rgb,
+            })
+        );
+        data.modified();
+        
+         */
+    };
 
     /**
      * Creates a vtk user matrix from a SquareMatrix.

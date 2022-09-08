@@ -453,6 +453,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                                 center: [pts[n] + sx / 2, pts[n + 1] + sy / 2, pts[n + 2] + sz / 2],
                             }).getOutputData();
                             vtkPlotting.setColorScalars(s, scalars.slice(m, m + 4));
+                            SIREPO.VTK.VTKUtils.setColorScalarsForCells(s, scalars.slice(m, m + 4));
                             ysrc.addInputData(s);
                             n += 3;
                             m += 4;
