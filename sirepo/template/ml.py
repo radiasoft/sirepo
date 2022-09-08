@@ -170,19 +170,35 @@ def stateless_compute_load_keras_model(data):
     pkdp('\n\n\n model: {}', model)
     return _build_ui_nn(model)
 
+
+def _make_layers(model):
+    nn = []
+    for l in model._layers:
+        n = PKDict(
+            obj=l,
+            layer=_get_layer_type(l),
+            name=l.name
+        )
+        if "add" not in l.name and "input" not in l.name:
+            # TODO (gurhar1133): still need to see if dimensionality as done here using units
+            # will make sense with conv layers etc.
+
+            n["dimensionality"] = l.units
+            n["activation"] = l.activation.__name__
+        nn.append(n)
+    return PKDict(layers=nn)
+
+
 def _build_ui_nn(model):
-    nn = PKDict(
-        layers=[PKDict(
-            layer=l,
-            name=l.name,
-        ) for l in model._layers]
-    )
+
+
+    nn = _make_layers(model)
 
     nn = _set_inbound(model, nn)
     nn = _set_outbound(nn)
     r = "\n\n ======================================"
     for l in nn.layers:
-        r += f"\n\n\n layer: {l.layer.name}"
+        r += f"\n\n\n layer: {l.obj.name}"
         if "inbound" in l:
             for i in l.inbound:
                 r += f"\n in: {i.name}"
@@ -194,6 +210,8 @@ def _build_ui_nn(model):
     _set_children(nn)
     return nn
 
+def _get_layer_type(layer):
+    return type(layer).__name__
 
 def _build_levels_with_children(level):
     # TODO (gurhar): recursively build the tree for the UI
@@ -219,9 +237,8 @@ def _set_children(nn):
                             ),
                             nn,
                         )
-
                 l.children.append(
-                    chain
+                    PKDict(layers=chain)
                 )
                 for c in chain:
                     a.append(c)
@@ -268,9 +285,9 @@ def _set_outbound(nn):
         for i in l.inbound:
             layer = _get_layer_by_name(nn, i.name)
             if "outbound" in layer:
-                layer.outbound.append(l.layer)
+                layer.outbound.append(l.obj)
                 continue
-            layer["outbound"] = [l.layer]
+            layer["outbound"] = [l.obj]
     return nn
 
 
@@ -285,7 +302,7 @@ def _set_inbound(model, nn):
     r = _get_relevant_nodes(model)
     for l in nn.layers:
         i = []
-        for node in l.layer._inbound_nodes:
+        for node in l.obj._inbound_nodes:
             if r and node not in r:
                 # node is not part of the current network
                 continue
