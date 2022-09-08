@@ -608,7 +608,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         model().showEdges === '1'
                     );
                 }
-                setTallyColors();
                 vtkScene.render();
             }
 
