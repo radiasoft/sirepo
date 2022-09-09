@@ -148,10 +148,10 @@
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
-                "ml.js"
+                "activait.js"
             ],
             "css": [
-                "ml.css"
+                "activait.css"
             ]
         }
     },
@@ -160,35 +160,35 @@
             "route": "/data/:simulationId",
             "config": {
                 "controller": "DataController as data",
-                "templateUrl": "/static/html/ml-data.html"
+                "templateUrl": "/static/html/activait-data.html"
             }
         },
         "analysis": {
             "route": "/analysis/:simulationId",
             "config": {
                 "controller": "AnalysisController as analysis",
-                "templateUrl": "/static/html/ml-analysis.html"
+                "templateUrl": "/static/html/activait-analysis.html"
             }
         },
         "partition": {
             "route": "/partition/:simulationId",
             "config": {
                 "controller": "PartitionController as partition",
-                "templateUrl": "/static/html/ml-partition.html"
+                "templateUrl": "/static/html/activait-partition.html"
             }
         },
         "regression": {
             "route": "/regression/:simulationId",
             "config": {
               "controller": "RegressionController as regression",
-                "templateUrl": "/static/html/ml-regression.html"
+                "templateUrl": "/static/html/activait-regression.html"
             }
         },
         "classification": {
             "route": "/classification/:simulationId",
             "config": {
               "controller": "ClassificationController as classification",
-              "templateUrl": "/static/html/ml-classification.html"
+              "templateUrl": "/static/html/activait-classification.html"
             }
         }
     },
