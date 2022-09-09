@@ -79,11 +79,11 @@ _METHODS = [
     "get_kick_map",
     "save_field",
 ]
-_POST_SIM_REPORTS = ["fieldIntegralReport", "fieldLineoutReport", "kickMapReport"]
+_POST_SIM_REPORTS = ["fieldIntegralReport", "kickMapReport"]
 _SIM_REPORTS = ["geometryReport", "reset", "solverAnimation"]
 _REPORTS = [
     "fieldIntegralReport",
-    "fieldLineoutReport",
+    "fieldLineoutAnimation",
     "geometryReport",
     "kickMapReport",
     "reset",
@@ -172,17 +172,6 @@ def extract_report_data(run_dir, sim_in):
             ),
             run_dir=run_dir,
         )
-    if sim_in.report == "fieldLineoutReport":
-        template_common.write_sequential_result(
-            _field_lineout_plot(
-                sim_in.models.simulation.simulationId,
-                sim_in.models.simulation.name,
-                sim_in.models.fieldLineoutReport.fieldType,
-                sim_in.models.fieldLineoutReport.fieldPath,
-                sim_in.models.fieldLineoutReport.plotAxis,
-            ),
-            run_dir=run_dir,
-        )
     if sim_in.report == "extrudedPolyReport":
         template_common.write_sequential_result(
             _extruded_points_plot(
@@ -207,10 +196,10 @@ def get_data_file(run_dir, model, frame, options):
     f = f"{model}.{sfx}"
     if model == "kickMapReport":
         _save_kick_map_sdds(
-            name, f, _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
+            name, f, _read_or_generate_kick_map(get_g_id(), data.models.kickMapReport)
         )
         return f
-    if model == "fieldLineoutReport":
+    if model == "fieldLineoutAnimation":
         f_type = rpt.fieldType
         fd = generate_field_data(sim_id, get_g_id(), name, f_type, [rpt.fieldPath])
         v = fd.data[0].vectors
@@ -570,13 +559,13 @@ _FIELD_PT_BUILDERS = {
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
-        (
+        field_data
+        if field_data
+        else (
             generate_field_data(sim_id, get_g_id(), name, f_type, [f_path])
             .data[0]
             .vectors
         )
-        if not field_data
-        else field_data
     )
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []

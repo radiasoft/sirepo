@@ -1721,7 +1721,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                 requestSender.newWindow('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': 'fieldLineoutReport',
+                    '<model>': 'fieldLineoutAnimation',
                     '<frame>': SIREPO.nonDataFileFrame,
                     '<suffix>': radiaService.pointFieldExports[$scope.tModel.exportType].extension
                 });
@@ -1755,7 +1755,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
         },
         template: `
             <div class="col-md-6">
-              <div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
+              <div data-ng-if="showFieldLineoutPanel()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
                 <div data-sim-status-panel="simState"></div>
               </div>
             </div>
@@ -1807,6 +1807,10 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
                 return appState.models.fieldPaths.paths && appState.models.fieldPaths.paths.length;
             };
 
+            $scope.showFieldLineoutPanel = () => {
+                return ! $scope.dataCleared && $scope.hasPaths();
+            };
+
             $scope.$on('radiaViewer.loaded', () => {
                 if ($scope.dataCleared) {
                     $scope.simState.runSimulation();
@@ -1815,7 +1819,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             });
 
             $scope.$on('fieldLineoutAnimation.changed', function () {
-                if (! $scope.dataCleared && $scope.hasPaths()) {
+                if ($scope.showFieldLineoutPanel()) {
                     // Dont run automatically for sbatch or nersc
                     if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
                         if (! $scope.simState.isProcessing()) {
