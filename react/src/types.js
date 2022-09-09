@@ -86,7 +86,6 @@ export const globalTypes = {
 }
 
 export function enumTypeOf(allowedValues) {
-    console.log("allowedValues", allowedValues);
     return new (class extends rsType {
         inputComponent(props) {
             const options = allowedValues.map(allowedValue => (

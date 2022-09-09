@@ -2,10 +2,11 @@ import { Form, Row, Col, Container } from "react-bootstrap";
 import { LabelTooltip } from "./label";
 import { useSelector, useDispatch, useStore } from "react-redux";
 import { mapProperties } from "../helper";
-import { ContextRelativeDependencyCollector, ContextRelativeFormController } from './context'
-import { useContext, useState } from "react";
+import { ContextRelativeHookedDependencyGroup, ContextRelativeFormController } from './context'
+import { useContext } from "react";
 import { useRenderCount, useSetup } from "../hooks";
 import { selectModels } from '../models';
+import { Dependency } from "../dependency";
 import { updateFormState } from "../formState";
 
 import "./form.scss";
@@ -38,63 +39,46 @@ export let formStateFromModel = (model, modelSchema) => mapProperties(modelSchem
 })
 
 export class FormController {
-    constructor({ formActions, formSelectors }) {
+    constructor({ formActions, formSelectors, hookedDependencies }) {
         this.formActions = formActions;
         this.formSelectors = formSelectors;
-        this.models = {};
-        this.fields = [];
-    }
 
-    getModel = (modelName, dependency) => {
         let selectFn = useSelector;
         let dispatchFn = useDispatch;
 
         let dispatch = dispatchFn();
 
         let { selectFormState } = this.formSelectors;
-        let { updateFormState } = this.formActions;
+        let { updateFormState, updateFormFieldState } = this.formActions;
 
-        let formStateValue = selectFn(selectFormState(modelName));
-        console.log("formStateValue", formStateValue);
+        this.hookedModels = {};
 
-        if (!(modelName in this.models)) {
-            let model = {
-                dependency,
-                value: { ...formStateValue }, // TODO evaluate this clone, it feels like its needed to be safe
-                updateValue: (v) => {
-                    console.log("updating value: ", v, " in ", modelName, dependency);
-                    return dispatch(updateFormState({ name: modelName, value: v }))
+        this.hookedFields = hookedDependencies.map(hookedDependency => {
+            let { fieldName, modelName } = hookedDependency;
+
+            if(!(modelName in this.hookedModels)) {
+                let formStateValue = selectFn(selectFormState(modelName));
+
+                this.hookedModels[modelName] = {
+                    dependency: hookedDependency.model,
+                    value: { ...formStateValue },
+                    updateValue: (v) => {
+                        console.log("updating value: ", v, " in ", modelName);
+                        return dispatch(updateFormState({ name: modelName, value: v }))
+                    }
                 }
             }
-            this.models[modelName] = model;
-        }
-        return this.models[modelName];
-    }
 
-    getField = (dep) => {
-        let dispatchFn = useDispatch;
+            let model = this.hookedModels[modelName];
 
-        let dispatch = dispatchFn();
-
-        let { fieldName, modelName } = dep;
-        let { updateFormFieldState } = this.formActions;
-
-        let findField = (modelName, fieldName) => {
-            return this.fields.find((o) => {
-                return o.modelName === modelName && o.fieldName === fieldName;
-            })
-        }
-
-        var field = findField(modelName, fieldName);
-        let model = this.getModel(modelName, dep.model);
-        if (!field) {
             let currentValue = model.value[fieldName];
-            field = {
+
+            return {
                 fieldName,
                 modelName,
                 model,
                 value: currentValue,
-                dependency: dep,
+                dependency: hookedDependency,
                 updateValue: (v) => {
                     console.log("updating value: ", v, " in ", modelName, fieldName);
                     return dispatch(updateFormFieldState({
@@ -102,7 +86,7 @@ export class FormController {
                         field: fieldName,
                         value: { // TODO, value should be defined as the param to the function??
                             value: v,
-                            valid: dep.type.validate(v),
+                            valid: hookedDependency.type.validate(v),
                             touched: true,
                             active: currentValue.active
                         }
@@ -117,41 +101,44 @@ export class FormController {
                     }
                 }))
             }
-            this.fields.push(field);
-        }
-        return field;
+        })
     }
 
-    hookField = (fieldModelDep) => {
-        return this.getField(fieldModelDep);
+    getHookedField = (dependency) => {
+        return this.hookedFields.find(hookedDependency => {
+            return (dependency.modelName === hookedDependency.modelName &&
+                dependency.fieldName === hookedDependency.fieldName);
+        })
     }
 
     submitChanges = () => {
-        Object.entries(this.models).forEach(([modelName, model]) => {
+        Object.entries(this.hookedModels).forEach(([modelName, model]) => {
             let changesObj = mapProperties(model.value, (fieldName, fieldState) => fieldState.value);
 
             let nextModelValue = { ...model.dependency.value };
             Object.assign(nextModelValue, changesObj);
 
-            model.dependency.updateValue(nextModelValue);
+            console.log("submitting value ", nextModelValue, " to ", modelName);
+            model.dependency.updateModel(nextModelValue);
             // this should make sure that if any part of the reducers are inconsistent / cause mutations
             // then the form state should remain consistent with saved model copy
-            model.updateValue(formStateFromModel(model.dependency.value, model.dependency.schema));
+            // TODO: this line has been changed with recent update, evaluate
+            model.updateValue(formStateFromModel(nextModelValue, model.dependency.schema));
         })
     }
 
     cancelChanges = () => {
-        Object.entries(this.models).forEach(([modelName, model]) => {
+        Object.entries(this.hookedModels).forEach(([modelName, model]) => {
             model.updateValue(formStateFromModel(model.dependency.value, model.dependency.schema));
         })
     }
 
     isFormStateDirty = () => {
-        let d = Object.values(this.fields).map(({ value: { active, touched } }) => active && touched).includes(true);
+        let d = Object.values(this.hookedFields).map(({ value: { active, touched } }) => active && touched).includes(true);
         return d;
     }
     isFormStateValid = () => {
-        let v = !Object.values(this.fields).map(({ value: { active, valid } }) => !active || valid).includes(false); // TODO: check completeness (missing defined variables?)
+        let v = !Object.values(this.hookedFields).map(({ value: { active, valid } }) => !active || valid).includes(false); // TODO: check completeness (missing defined variables?)
         return v;
     }
 }
@@ -208,7 +195,6 @@ export let FieldGridLayout = {
 
         renderCountFn("FieldGridLayout");
 
-        let dependencyCollector = contextFn(ContextRelativeDependencyCollector);
         let formController = contextFn(ContextRelativeFormController);
 
         let columns = config.columns;
@@ -234,7 +220,7 @@ export let FieldGridLayout = {
                     {labelElement ? <Col>{labelElement}</Col> : undefined}
                     {columns.map((_, index) => {
                         let field = fields[index];
-                        let hookedField = formController.hookField(dependencyCollector.hookModelDependency(field));
+                        let hookedField = formController.getHookedField(new Dependency(field));
                         return <FieldInput key={index} field={hookedField}></FieldInput>
                     })}
                 </Row>
@@ -259,14 +245,13 @@ export let FieldListLayout = {
 
         renderCountFn("FieldListLayout");
 
-        let dependencyCollector = contextFn(ContextRelativeDependencyCollector);
         let formController = contextFn(ContextRelativeFormController);
 
         let fields = config.fields;
 
         return <Container>
             {fields.map((field, idx) => (
-                <LabeledFieldInput key={idx} field={formController.hookField(dependencyCollector.hookModelDependency(field))}></LabeledFieldInput>
+                <LabeledFieldInput key={idx} field={formController.getHookedField(new Dependency(field))}></LabeledFieldInput>
             ))}
         </Container>
     }

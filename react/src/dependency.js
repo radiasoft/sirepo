@@ -1,64 +1,119 @@
 import { useSelector, useDispatch, useStore } from 'react-redux';
 
-let mapDependencyNameToParts = (dep) => {
-    let [modelName, fieldName] = dep.split('.').filter(s => s && s.length > 0);
-    return {
-        modelName,
-        fieldName
+export class Dependency {
+    constructor(dependencyString) {
+        let { modelName, fieldName } = this.mapDependencyNameToParts(dependencyString);
+        this.modelName = modelName;
+        this.fieldName = fieldName;
+    }
+
+    mapDependencyNameToParts = (dep) => {
+        let [modelName, fieldName] = dep.split('.').filter(s => s && s.length > 0);
+        return {
+            modelName,
+            fieldName
+        }
     }
 }
 
-export class DependencyCollector {
-    constructor({ modelActions, modelSelectors, schema }) {
-        this.models = {};
+export class Models {
+    constructor({ modelActions, modelSelectors }) {
         this.modelActions = modelActions;
         this.modelSelectors = modelSelectors;
-        this.schema = schema
-    }
 
-    getModel = (modelName) => {
-        let selectFn = useSelector;
+
         let dispatchFn = useDispatch;
-        let storeFn = useStore;
-
-        let dispatch = dispatchFn();
-        let store = storeFn();
-
-        let { updateModel } = this.modelActions;
-        let { selectModel } = this.modelSelectors;
-
-        let modelValue = selectFn(selectModel(modelName));
-
-        if (!(modelName in this.models)) {
-            let model = {
-                schema: this.schema.models[modelName],
-                value: {...modelValue}, // TODO evaluate this clone, it feels like its needed to be safe
-                updateValue: (v) => {
-                    dispatch(updateModel({ name: modelName, value: v }));
-                    model.value = {...selectModel(modelName)(store.getState())} // TODO this is janky
-                }
-            }
-            this.models[modelName] = model;
-        }
-
-        return this.models[modelName];
+        this.dispatch = dispatchFn();
     }
 
-    hookModelDependency = (depString) => {
-        let { modelName, fieldName } = mapDependencyNameToParts(depString);
-    
-        let model = this.getModel(modelName);
-        let fieldSchema = model.schema[fieldName];
+    getModel = (modelName, state) => {
+        return this.modelSelectors.selectModel(modelName)(state);
+    }
 
+    getModels = (state) => {
+        return this.modelSelectors.selectModels(state);
+    }
+
+    getIsLoaded = (state) => {
+        return this.modelSelectors.selectIsLoaded(state);
+    }
+
+    forModel = (modelName) => {
         return {
-            modelName,
-            fieldName,
-            model,
-            displayName: fieldSchema.name,
-            type: fieldSchema.type,
-            defaultValue: fieldSchema.defaultValue,
-            description: fieldSchema.description,
-            value: model.value[fieldName]
+            updateModel: (value) => {
+                return this.updateModel(modelName, value);
+            },
+            hookModel: () => {
+                return this.hookModel(modelName);
+            }
         }
+    }
+
+    updateModel = (modelName, value) => {
+        console.log("dispatching update to ", modelName, " changing to value ", value);
+        this.dispatch(this.modelActions.updateModel({
+            name: modelName,
+            value
+        }))
+    }
+
+    hookModel = (modelName) => {
+        let selectFn = useSelector;
+        return selectFn(this.modelSelectors.selectModel(modelName));
+    }
+
+    hookModels = () => {
+        let selectFn = useSelector;
+        return selectFn(this.modelSelectors.selectModels);
+    }
+
+    hookIsLoaded = () => {
+        let selectFn = useSelector;
+        return selectFn(this.modelSelectors.selectIsLoaded);
+    }
+}
+
+export class HookedDependencyGroup {
+    constructor({ dependencies, models, schemaModels }) {
+        this.models = models;
+        this.dependencies = dependencies;
+
+        let modelNames = [... new Set(dependencies.map(dep => dep.modelName))];
+        this.hookedModels = Object.fromEntries(
+            modelNames.map(modelName => {
+                let model = this.models.forModel(modelName);
+                let modelValue = model.hookModel();
+                let modelSchema = schemaModels[modelName];
+                return [modelName, {
+                    ...model,
+                    schema: modelSchema,
+                    value: modelValue
+                }]
+            })
+        );
+
+        this.hookedDependencies = this.dependencies.map(dependency => {
+            let { modelName, fieldName } = dependency;
+            let hookedModel = this.hookedModels[modelName];
+            let fieldSchema = hookedModel.schema[fieldName];
+            let { type, displayName, description, defaultValue } = fieldSchema;
+            return {
+                modelName,
+                fieldName,
+                model: hookedModel,
+                displayName,
+                type,
+                description,
+                defaultValue,
+                value: hookedModel.value[fieldName]
+            }
+        })
+    }
+
+    getHookedDependency = (dependency) => {
+        return this.hookedDependencies.find(hookedDependency => {
+            return (dependency.modelName === hookedDependency.modelName &&
+                dependency.fieldName === hookedDependency.fieldName);
+        })
     }
 }

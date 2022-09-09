@@ -2,15 +2,14 @@ import { Card, Modal, Col, Button, Form, Tab, Tabs } from "react-bootstrap";
 import { useState, Fragment, useContext } from 'react';
 import { useStore } from "react-redux";
 import { FormController, FieldGridLayout, FieldListLayout } from "./form";
-import { DependencyCollector } from "../dependency";
+import { Dependency, HookedDependencyGroup } from "../dependency";
 import {
-    ContextRelativeDependencyCollector,
+    ContextRelativeHookedDependencyGroup,
     ContextRelativeFormController,
     ContextReduxFormActions,
     ContextReduxFormSelectors,
-    ContextReduxModelActions,
-    ContextReduxModelSelectors,
-    ContextSimulationInfoPromise
+    ContextSimulationInfoPromise,
+    ContextModels as ContextRelativeModels
 } from "./context";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -142,8 +141,6 @@ export let TabLayout = {
         let renderCountFn = useRenderCount;
         renderCountFn("TabLayout");
 
-        console.log("TabLayout");
-
         let tabs = config.tabs;
 
         let tabEls = [];
@@ -210,7 +207,6 @@ let layoutElements = {
 }
 
 export function elementForLayoutName(layoutName) {
-    console.log("layoutName", layoutName);
     return layoutElements[layoutName] || MissingLayout
 }
 
@@ -220,16 +216,15 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
 
         let formActions = useContext(ContextReduxFormActions); // TODO: make these generic
         let formSelectors = useContext(ContextReduxFormSelectors);
-        let modelActions = useContext(ContextReduxModelActions);
-        let modelSelectors = useContext(ContextReduxModelSelectors);
+
+        let models = useContext(ContextRelativeModels);
 
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
 
         let store = useStore();
 
         let getModels = () => {
-            console.log("state", store.getState());
-            return modelSelectors.selectModels(store.getState());
+            return models.getModels(store.getState());
         }
 
         let saveToServer = (models) => {
@@ -248,8 +243,19 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
             })
         }
 
-        let dependencyCollector = new DependencyCollector({ modelActions, modelSelectors, schema });
-        let formController = new FormController({ formActions, formSelectors, simulationInfoPromise });
+        let basic = view.config.basic || [];
+        let advanced = view.config.advanced || [];
+
+        let dependencies = [...basic, ...advanced].map(layoutConfig => {
+            let ele = elementForLayoutName(layoutConfig.layout);
+            return ele.getDependencies(layoutConfig);
+        }).flat().map(dependencyString => new Dependency(dependencyString));
+
+        let hookedDependencyGroup = new HookedDependencyGroup({ schemaModels: schema.models, models, dependencies });
+
+        let hookedDependencies = dependencies.map(hookedDependencyGroup.getHookedDependency);
+
+        let formController = new FormController({ formActions, formSelectors, hookedDependencies });
 
         let submit = () => {
             let models = getModels();
@@ -257,22 +263,14 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
             saveToServer(models);
         }
 
-        let basic = view.config.basic;
-        let advanced = view.config.advanced;
-
         let mapLayoutToElement = (layoutConfig, idx) => {
-            console.log("layout", layoutConfig);
             let ele = elementForLayoutName(layoutConfig.layout);
-            ele.getDependencies(layoutConfig).map(depStr => formController.hookField(dependencyCollector.hookModelDependency(depStr)));
             let LayoutElement = ele.element;
-            console.log("LayoutElement", LayoutElement);
             return <LayoutElement key={idx} config={layoutConfig}></LayoutElement>;
         }
 
         let mainChildren = (!!basic) ? basic.map(mapLayoutToElement) : undefined;
         let modalChildren = (!!advanced) ? advanced.map(mapLayoutToElement) : undefined;
-
-        console.log("mainChildren", mainChildren);
 
         let formProps = {
             submit: submit,
@@ -286,12 +284,12 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
         }
 
         return (
-            <ContextRelativeDependencyCollector.Provider value={dependencyCollector}>
+            <ContextRelativeHookedDependencyGroup.Provider value={hookedDependencyGroup}>
                 <ContextRelativeFormController.Provider value={formController}>
                     <EditorPanel {...formProps}>
                     </EditorPanel>
                 </ContextRelativeFormController.Provider>
-            </ContextRelativeDependencyCollector.Provider>
+            </ContextRelativeHookedDependencyGroup.Provider>
         )
     }
     return ViewLayoutsPanelComponent;

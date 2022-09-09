@@ -4,10 +4,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
 import { useSetup } from "../hooks";
 import {
-    modelsSlice,
-    selectModel,
-    updateModel,
-    selectModels,
+    modelsSlice
 } from "../models";
 import {
     selectFormState,
@@ -24,8 +21,6 @@ import {
     ContextAppViewBuilder,
     ContextReduxFormActions, 
     ContextReduxFormSelectors, 
-    ContextReduxModelActions, 
-    ContextReduxModelSelectors,  
     ContextSimulationListPromise 
 } from '../components/context'
 import { SimulationBrowserRoot } from "./simbrowser";
@@ -50,7 +45,6 @@ function SimulationListInitializer(child) {
                         simulationType: appName
                     })
                 }).then(async (resp) => {
-                    console.log("retrieved simulation list");
                     let simulationList = await resp.json();
                     resolve(simulationList);
                 })
@@ -91,7 +85,6 @@ function AppViewBuilderWrapper(child) {
 }
 
 function AppInfoWrapper(appInfo) {
-    console.log("appInfo", appInfo);
     return (child) => {
         let ChildComponent = child;
         return (props) => {
@@ -128,15 +121,11 @@ let ReduxConstantsWrapper = (child) => {
         let ChildComponent = child;
 
         return (
-            <ContextReduxModelActions.Provider value={{updateModel}}>
-                <ContextReduxModelSelectors.Provider value={{selectModel, selectModels}}>
-                    <ContextReduxFormActions.Provider value={{updateFormFieldState, updateFormState}}>
-                        <ContextReduxFormSelectors.Provider value={{selectFormState}}>
-                            <ChildComponent {...props}></ChildComponent>
-                        </ContextReduxFormSelectors.Provider>
-                    </ContextReduxFormActions.Provider>
-                </ContextReduxModelSelectors.Provider>
-            </ContextReduxModelActions.Provider>
+            <ContextReduxFormActions.Provider value={{updateFormFieldState, updateFormState}}>
+                <ContextReduxFormSelectors.Provider value={{selectFormState}}>
+                    <ChildComponent {...props}></ChildComponent>
+                </ContextReduxFormSelectors.Provider>
+            </ContextReduxFormActions.Provider>
         )
     }
 }
@@ -173,12 +162,8 @@ const AppRoot = (props) => {
 
     const hasSchema = useSetup(true,
         (finishInitSchema) => {
-            //updateSchema(Schema);
-            console.log("fetching schema");
             fetch(`/react/schema/${appName}.json`).then(resp => {
-                console.log("fetched schema");
                 resp.json().then(json => {
-                    console.log("converted schema to json");
                     updateSchema(compileSchemaFromJson(json));
                     finishInitSchema();
                 })
@@ -203,5 +188,7 @@ const AppRoot = (props) => {
         )
     }
 }
+
+//function AppHeader
 
 export default AppRoot;

@@ -2,7 +2,6 @@ import { globalTypes, enumTypeOf } from "./types";
 import { mapProperties } from "./helper";
 
 export function compileSchemaFromJson(schemaObj) {
-    console.log("schemaObj", schemaObj);
     let enumTypes = {};
 
     if(schemaObj.enum) {
@@ -28,10 +27,10 @@ export function compileSchemaFromJson(schemaObj) {
     if(schemaObj.model) {
         models = mapProperties(schemaObj.model, (modelName, modelObj) => {
             return mapProperties(modelObj, (fieldName, field) => {
-                let [name, typeName, defaultValue] = field;
+                let [displayName, typeName, defaultValue] = field;
                 let type = types[typeName];
                 return {
-                    name,
+                    displayName,
                     type,
                     defaultValue
                 }

@@ -1,14 +1,20 @@
 import { useContext, useState, useEffect } from "react";
-import { ContextSimulationListPromise, 
-        ContextReduxModelActions, 
+import { ContextSimulationListPromise,
         ContextSimulationInfoPromise, 
         ContextAppName, 
         ContextAppInfo, 
-        ContextAppViewBuilder} from "../components/context";
+        ContextAppViewBuilder,
+        ContextModels} from "../components/context";
 import { useDispatch } from "react-redux";
 import { mapProperties } from "../helper";
 import { FormStateInitializer } from "../components/form";
 import { Row, Col, Container } from "react-bootstrap";
+import { Models } from "../dependency";
+import {
+    selectModel,
+    updateModel,
+    selectModels,
+} from "../models";
 
 export function ViewGrid(props) {
     let { views, ...otherProps } = props;
@@ -37,11 +43,21 @@ function SimulationInfoInitializer(child) {
         let dispatchFn = useDispatch;
 
         let simulationListPromise = contextFn(ContextSimulationListPromise);
-        let { updateModel } = contextFn(ContextReduxModelActions);
+        
         let [simulationInfoPromise, updateSimulationInfoPromise] = stateFn(undefined);
         let [hasInit, updateHasInit] = stateFn(false);
         let appName = contextFn(ContextAppName);
-        let dispatch = dispatchFn();
+        //let dispatch = dispatchFn();
+
+        let modelsWrapper = new Models({
+            modelActions: {
+                updateModel
+            },
+            modelSelectors: {
+                selectModel,
+                selectModels
+            }
+        })
 
         effectFn(() => {
             updateSimulationInfoPromise(new Promise((resolve, reject) => {
@@ -52,14 +68,9 @@ function SimulationInfoInitializer(child) {
                     fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
                         let simulationInfo = await resp.json();
                         let { models } = simulationInfo;
-                        console.log("retrieved simulation info", simulationInfo);
-                        // TODO: use models
 
                         for(let [modelName, model] of Object.entries(models)) {
-                            dispatch(updateModel({
-                                name: modelName,
-                                value: model
-                            }));
+                            modelsWrapper.updateModel(modelName, model);
                         }
 
                         resolve({...simulationInfo, simulationId});
@@ -71,11 +82,13 @@ function SimulationInfoInitializer(child) {
 
         let ChildComponent = child;
         return hasInit && simulationInfoPromise && (
-            <ContextSimulationInfoPromise.Provider value={simulationInfoPromise}>
-                <ChildComponent {...props}>
+            <ContextModels.Provider value={modelsWrapper}>
+                <ContextSimulationInfoPromise.Provider value={simulationInfoPromise}>
+                    <ChildComponent {...props}>
 
-                </ChildComponent>
-            </ContextSimulationInfoPromise.Provider>
+                    </ChildComponent>
+                </ContextSimulationInfoPromise.Provider>
+            </ContextModels.Provider>
         )
     }
 }

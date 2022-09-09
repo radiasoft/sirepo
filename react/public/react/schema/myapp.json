@@ -86,7 +86,10 @@
                 "basic": [
                     {
                         "layout": "graph2d",
-                        "report": "heightWeightReport"
+                        "report": "heightWeightReport",
+                        "dependencies": [
+                            "dog.*"
+                        ]
                     }
                 ]
             }
