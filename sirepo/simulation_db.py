@@ -232,6 +232,8 @@ def fixup_old_data(data, force=False, path=None):
             data.simulationType = "warppba"
         elif data.simulationType == "fete":
             data.simulationType = "warpvnd"
+        elif data.simulationType == "ml":
+            data.simulationType = "activait"
         if "simulationSerial" not in data.models.simulation:
             data.models.simulation.simulationSerial = 0
         if "lastModified" not in data.models.simulation:
@@ -615,6 +617,10 @@ def sim_data_file(sim_type, sim_id, uid=None):
         py.path.local: simulation path
     """
     return simulation_dir(sim_type, sim_id, uid=uid).join(SIMULATION_DATA_FILE)
+
+
+def sim_from_path(path):
+    return _sim_from_path(path)
 
 
 def simulation_dir(simulation_type, sid=None, uid=None):

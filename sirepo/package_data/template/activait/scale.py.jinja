@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import sirepo.numpy
-import sirepo.sim_data.ml
+import sirepo.sim_data.activait
 
 {% if dataFile_inputsScaler != 'None' %}
 from sklearn.preprocessing import {{ dataFile_inputsScaler }}
@@ -79,7 +79,7 @@ def scale_file(data_reader, data_path, column_types, inputs_scaler, outputs_scal
 
 
 scaled, in_idx, out_idx = scale_file(
-    sirepo.sim_data.ml.DataReader('{{ dataFile }}'),
+    sirepo.sim_data.activait.DataReader('{{ dataFile }}'),
     '{{ dataPath }}',
     {{ columnTypes }},
     {{ dataFile_inputsScaler }},
