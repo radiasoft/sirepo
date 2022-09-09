@@ -13,7 +13,7 @@
                     "suffix": "csv"
                 }
             ],
-            "fieldLineoutReport": [
+            "fieldLineoutAnimation": [
                 {
                     "title": "Save as SDDS",
                     "suffix": "sdds"
@@ -389,6 +389,7 @@
     },
     "frameIdFields": {
         "solverAnimation": [],
+        "fieldLineoutAnimation": [],
         "magnetViewer": []
     },
     "localRoutes": {
@@ -737,13 +738,6 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
-        "fieldLineoutReport": {
-            "fieldPath": ["_", "model.fieldPath", {}],
-            "fieldPaths": ["Path", "FieldPaths", []],
-            "fieldType": ["Field", "FieldType", "B"],
-            "inProgressText": ["_", "String", "Calculating"],
-            "plotAxis": ["Plot Axis", "BeamAxis", "z"]
-        },
         "fieldIntegralReport": {
             "lastCalculated": ["_", "Integer", -1]
         },
@@ -940,6 +934,19 @@
             "sbatchCores": ["Cores", "Integer", 1],
             "sbatchProject": ["Project", "OptionalString", ""]
         },
+        "fieldLineoutAnimation": {
+            "fieldPath": ["_", "model.fieldPath", {}],
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "fieldType": ["Field", "FieldType", "B"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""]
+        },
         "spatialTransform": {
         },
         "stemmed": {
@@ -1063,7 +1070,10 @@
     },
     "strings": {
         "completionState": "",
-        "typeOfSimulation": "solve"
+        "typeOfSimulation": "solve",
+        "fieldLineoutAnimation": {
+            "typeOfSimulation": "Field Plot"
+        }
     },
     "view": {
         "axisPath": {
@@ -1193,15 +1203,6 @@
         "fieldIntegralReport": {
             "title": "Field Integrals (T · mm)",
             "advanced": [],
-            "basic": []
-        },
-        "fieldLineoutReport": {
-            "title": "Field on Path",
-            "advanced": [
-                "fieldPaths",
-                "fieldType",
-                "plotAxis"
-            ],
             "basic": []
         },
         "fieldMapPath": {
@@ -1485,6 +1486,15 @@
                 "method"
             ],
             "advanced": []
+        },
+        "fieldLineoutAnimation": {
+            "title": "Field on Path",
+            "basic": [],
+            "advanced": [
+                "fieldPaths",
+                "fieldType",
+                "plotAxis"
+            ]
         },
         "symmetryTransform": {
             "title": "Apply Symmetry",
