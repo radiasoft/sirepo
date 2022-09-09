@@ -3,37 +3,6 @@ import { Dependency, useDependentValues } from "../dependency";
 import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModels } from "./context";
 
 function pollRunReport({ appName, models, simulationId, report, pollInterval}, callback) {
-    /*return new Promise((resolve, reject) => {
-        let doFetch = () => {
-            fetch('/run-simulation', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    models,
-                    forceRun: false,
-                    report,
-                    simulationId,
-                    simulationType: appName
-                })
-            }).then(async (resp) => {
-                let simulationStatus = await resp.json();
-                console.log("status", simulationStatus);
-                let { state } = simulationStatus;
-                console.log("polled report: " + state);
-                if(state === 'completed') {
-                    resolve(simulationStatus);
-                } else if (state === 'pending' || state === 'running') {
-                    setTimeout(doFetch, pollInterval); // TODO
-                } else {
-                    reject();
-                }
-            })
-        }
-        doFetch();
-    })*/
-
     let doFetch = () => {
         fetch('/run-simulation', {
             method: 'POST',
@@ -120,12 +89,9 @@ export function AutoRunReportLayout(layoutElement) {
                         }
                     })
                 })
-            }, dependentValues)
-    
-            
+            }, dependentValues)     
     
             let VisualComponent = simulationData ? layoutElement.element : undefined;
-            //let VisualComponent = layoutElement.element;
     
             return (
                 <>
