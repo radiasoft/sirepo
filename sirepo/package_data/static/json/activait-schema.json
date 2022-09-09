@@ -423,7 +423,7 @@
         "poolingLayer": {
             "size": ["Pool Size", "Integer", 2],
             "strides": ["Strides", "Integer", 1],
-            "padding": ["Padding", "String", "valid"]
+            "padding": ["Padding", "Padding", "valid"]
         },
         "separableConv2D": {
             "_super": ["-", "model", "conv2D"],
