@@ -19,6 +19,7 @@ from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
 import copy
+import csv
 import h5py
 import math
 import numpy
@@ -32,9 +33,21 @@ import uuid
 _AXES_UNIT = [1, 1, 1]
 
 _AXIS_ROTATIONS = PKDict(
-    x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
-    y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
-    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+    x=PKDict(
+        x=Rotation.identity(),
+        y=Rotation.from_matrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
+        z=Rotation.from_matrix([[0, 0, -1], [0, 1, 0], [1, 0, 0]]),
+    ),
+    y=PKDict(
+        x=Rotation.from_matrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
+        y=Rotation.identity(),
+        z=Rotation.from_matrix([[1, 0, 0], [0, 0, 1], [0, -1, 0]]),
+    ),
+    z=PKDict(
+        x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+        y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+        z=Rotation.identity(),
+    ),
 )
 
 _DIPOLE_NOTES = PKDict(
@@ -79,9 +92,14 @@ _METHODS = [
     "get_kick_map",
     "save_field",
 ]
-_POST_SIM_REPORTS = ["fieldIntegralReport", "kickMapReport"]
+_POST_SIM_REPORTS = [
+    "electronTrajectoryReport",
+    "fieldIntegralReport",
+    "kickMapReport",
+]
 _SIM_REPORTS = ["geometryReport", "reset", "solverAnimation"]
 _REPORTS = [
+    "electronTrajectoryReport",
     "fieldIntegralReport",
     "fieldLineoutAnimation",
     "geometryReport",
@@ -172,6 +190,32 @@ def extract_report_data(run_dir, sim_in):
             ),
             run_dir=run_dir,
         )
+    if sim_in.report == "electronTrajectoryReport":
+        a = sirepo.util.split_comma_delimited_string(
+            sim_in.models.electronTrajectoryReport.initialAngles + ",0",
+            float,
+        )
+        angles = [0, 0, 0]
+        angles[radia_util.axes_index(sim_in.models.simulation.widthAxis)] = a[0]
+        angles[radia_util.axes_index(sim_in.models.simulation.heightAxis)] = a[1]
+        template_common.write_sequential_result(
+            _electron_trajectory_plot(
+                sim_in.models.simulation.simulationId,
+                energy=sim_in.models.electronTrajectoryReport.energy,
+                pos=sirepo.util.split_comma_delimited_string(
+                    sim_in.models.electronTrajectoryReport.initialPosition, float
+                ),
+                angles=angles,
+                y_final=sim_in.models.electronTrajectoryReport.finalBeamPosition,
+                num_points=sim_in.models.electronTrajectoryReport.numPoints,
+                beam_axis=sim_in.models.simulation.beamAxis,
+                width_axis=sim_in.models.simulation.widthAxis,
+                height_axis=sim_in.models.simulation.heightAxis,
+                rotation=_rotate_axis(
+                    to_axis="y", from_axis=sim_in.models.simulation.beamAxis
+                ),
+            )
+        )
     if sim_in.report == "extrudedPolyReport":
         template_common.write_sequential_result(
             _extruded_points_plot(
@@ -190,10 +234,20 @@ def get_data_file(run_dir, model, frame, options):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    beam_axis = _AXIS_ROTATIONS[sim.beamAxis]
+    beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
     rpt = data.models[model]
     sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
+    if model == "electronTrajectoryReport":
+        if sfx == "csv":
+            return _save_trajectory_csv(
+                f,
+                beam_axis=sim.beamAxis,
+                output=simulation_db.read_json(
+                    run_dir.join(template_common.OUTPUT_BASE_NAME)
+                ),
+            )
+        return f
     if model == "kickMapReport":
         _save_kick_map_sdds(
             name, f, _read_or_generate_kick_map(get_g_id(), data.models.kickMapReport)
@@ -266,8 +320,6 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 
 
 def stateful_compute_build_shape_points(data):
-    import csv
-
     pts = []
     with open(
         _SIM_DATA.lib_file_abspath(
@@ -557,6 +609,34 @@ _FIELD_PT_BUILDERS = {
 }
 
 
+def _electron_trajectory_plot(sim_id, **kwargs):
+    d = PKDict(kwargs)
+    t = _generate_electron_trajectory(sim_id, _get_g_id(), **kwargs)
+    pts = (0.001 * t[radia_util.axes_index(d.beam_axis)]).tolist()
+    plots = []
+    a = [d.width_axis, d.height_axis]
+    for i in range(2):
+        plots.append(
+            PKDict(
+                points=(0.001 * t[radia_util.axes_index(a[i])]).tolist(),
+                label=f"{a[i]}",
+                style="line",
+            )
+        )
+
+    return template_common.parameter_plot(
+        pts,
+        plots,
+        PKDict(),
+        PKDict(
+            title=f"{d.energy} GeV",
+            y_label="Position [m]",
+            x_label=f"{d.beam_axis} [m]",
+            summaryData=PKDict(),
+        ),
+    )
+
+
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
         field_data
@@ -581,7 +661,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
             )
         )
     return template_common.parameter_plot(
-        pts[:, radia_util.AXES.index(plot_axis)].tolist(),
+        pts[:, radia_util.axes_index(plot_axis)].tolist(),
         plots,
         PKDict(),
         PKDict(
@@ -630,6 +710,13 @@ def _fit_poles_in_h_bend(**kwargs):
         + s * d.width_dir / 2
     )
     return s, c
+
+
+def _generate_electron_trajectory(sim_id, g_id, **kwargs):
+    try:
+        return radia_util.get_electron_trajectory(g_id, **kwargs)
+    except RuntimeError as e:
+        _backend_alert(sim_id, g_id, e)
 
 
 def generate_field_data(sim_id, g_id, name, field_type, field_paths):
@@ -1047,6 +1134,11 @@ def _parse_input_file_arg_str(s):
 
 
 def _prep_new_sim(data, new_sim_data=None):
+    def _electron_initial_pos(axis, factor):
+        return sirepo.util.to_comma_delimited_string(
+            factor * radia_util.AXIS_VECTORS[axis]
+        )
+
     data.models.geometryReport.name = data.models.simulation.name
     if new_sim_data is None:
         return
@@ -1056,16 +1148,23 @@ def _prep_new_sim(data, new_sim_data=None):
     s = new_sim_data[f"{t}Type"]
     m = data.models[s]
     data.models.simulation.notes = _MAGNET_NOTES[t][s]
+    data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
+        new_sim_data.beamAxis,
+        -1.0,
+    )
+    data.models.fieldLineoutAnimation.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
     data.models.simulation.coordinateSystem = "beam"
     if s == "undulatorBasic":
         data.models.geometryReport.isSolvable = "0"
-    data.models.fieldPaths.paths.append(
-        _build_field_axis(
-            3 * (m.numPeriods + 0.5) * m.periodLength, new_sim_data.beamAxis
-        )
+    f = (m.numPeriods + 0.5) * m.periodLength
+    data.models.fieldPaths.paths.append(_build_field_axis(3 * f, new_sim_data.beamAxis))
+    data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
+        new_sim_data.beamAxis,
+        -f,
     )
+    data.models.electronTrajectoryReport.finalBeamPosition = f
     data.models.simulation.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
 
@@ -1151,6 +1250,10 @@ def _read_solution():
     if not s:
         return None
     return PKDict(steps=s[3], time=s[0], maxM=s[1], maxH=s[2])
+
+
+def _rotate_axis(to_axis="z", from_axis="x"):
+    return _AXIS_ROTATIONS[to_axis][from_axis]
 
 
 # mm -> m, rotate so the beam axis is aligned with z
@@ -1262,6 +1365,18 @@ def _save_kick_map_sdds(name, path, km_data):
     for i, n in enumerate(_KICK_MAP_COLS):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
+    return path
+
+
+def _save_trajectory_csv(path, **kwargs):
+    d = PKDict(kwargs)
+    data = d.output
+    with open(path, "w") as f:
+        out = csv.writer(f)
+        out.writerow([d.beam_axis] + [p.label for p in data.plots])
+        out.writerows(
+            numpy.array([data.x_points] + [p.points for p in data.plots]).T.tolist()
+        )
     return path
 
 

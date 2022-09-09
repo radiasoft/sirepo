@@ -72,7 +72,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
     let self = {};
 
-    const POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutAnimation', 'kickMapReport',];
+    const POST_SIM_REPORTS = ['electronTrajectoryReport', 'fieldIntegralReport', 'fieldLineoutAnimation', 'kickMapReport',];
 
     // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
@@ -1742,6 +1742,30 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
+            });
+        },
+    };
+});
+
+
+SIREPO.app.directive('electronTrajectoryReport', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@'
+        },
+        template: `
+            <div class="col-md-6">
+                <div data-ng-if="! dataCleared" data-report-panel="parameter" data-request-priority="0" data-model-name="electronTrajectoryReport"></div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.dataCleared = true;
+            $scope.model = appState.models[$scope.modelName];
+
+
+            $scope.$on('radiaViewer.loaded', () => {
+                $scope.dataCleared = false;
             });
         },
     };
@@ -3601,6 +3625,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.$on('fieldPaths.changed', function () {
                 if (! $scope.model.fieldPoints) {
                     $scope.model.fieldPoints = [];
+                }
+                const r = 'fieldLineoutAnimation';
+                for (const p of appState.models.fieldPaths.paths) {
+                    if (p.id === appState.models[r].fieldPath.id) {
+                        appState.models[r].fieldPath = p;
+                        appState.saveChanges(r);
+                        break;
+                    }
                 }
                 updateViewer();
             });
