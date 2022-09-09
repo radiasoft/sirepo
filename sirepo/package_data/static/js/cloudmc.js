@@ -271,6 +271,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             let picker = null;
             let vtkScene = null;
             let selectedVolume = null;
+            let sourceBundles = [];
             let tally = null;
             const bundleByVolume = {};
             const tallyBundles = {};
@@ -285,6 +286,37 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             const watchFields = [`{$scope.modelName}.bgColor`, `{$scope.modelName}.showEdges`];
 
             const _SCENE_BOX = '_scene';
+
+            function addSources() {
+                function boxDims(space) {
+                    const sz = space.upper_right.map((x, i) => Math.abs(x - space.lower_left[i]));
+                    const ctr = sz.map((x, i) => space.lower_left[i] + 0.5 * x);
+                    return {
+                        sz: sz,
+                        ctr: ctr,
+                    };
+                }
+
+                for (const b of sourceBundles) {
+                    vtkScene.removeActor(b.actor);
+                }
+                sourceBundles = [];
+                const spatials = appState.models.settings.sources.filter(x => x.space);
+                for (const s of spatials.filter(x => x.space._type === 'box')) {
+                    const d = boxDims(s.space);
+                    const b = coordMapper.buildBox(
+                        d.sz,
+                        d.ctr,
+                        {
+                            edgeColor: [255, 0, 0],
+                            edgeVisibility: true,
+                            lighting: false,
+                        }
+                    );
+                    sourceBundles.push(b);
+                    vtkScene.addActor(b.actor);
+                }
+            }
 
             function addTally(str, aspect) {
                 //TODO(pjm): the axis lines are lost when actors are removed
@@ -593,6 +625,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     addTally(tally, model().aspect);
                     tally = null;
                 }
+                addSources();
                 vtkScene.resetView();
 
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
