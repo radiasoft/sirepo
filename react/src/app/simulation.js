@@ -5,7 +5,6 @@ import { ContextSimulationListPromise,
         ContextAppInfo, 
         ContextAppViewBuilder,
         ContextModels} from "../components/context";
-import { useDispatch } from "react-redux";
 import { mapProperties } from "../helper";
 import { FormStateInitializer } from "../components/form";
 import { Row, Col, Container } from "react-bootstrap";
@@ -40,14 +39,12 @@ function SimulationInfoInitializer(child) {
         let contextFn = useContext;
         let stateFn = useState;
         let effectFn = useEffect;
-        let dispatchFn = useDispatch;
 
         let simulationListPromise = contextFn(ContextSimulationListPromise);
         
         let [simulationInfoPromise, updateSimulationInfoPromise] = stateFn(undefined);
         let [hasInit, updateHasInit] = stateFn(false);
         let appName = contextFn(ContextAppName);
-        //let dispatch = dispatchFn();
 
         let modelsWrapper = new Models({
             modelActions: {

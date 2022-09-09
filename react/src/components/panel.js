@@ -16,7 +16,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useRenderCount } from "../hooks";
 
 import "./panel.scss";
-import { SimulationLayout } from "./simulation";
+import { ReportLayout } from "./report";
 import { Graph2dFromApi } from "./graph2d";
 
 export function Panel(props) {
@@ -203,7 +203,7 @@ let layoutElements = {
     "fieldList": SpacedLayout(FieldListLayout),
     "fieldTable": SpacedLayout(FieldGridLayout),
     "tabs": TabLayout,
-    "graph2d": SimulationLayout(Graph2dFromApi)
+    "graph2d": ReportLayout(Graph2dFromApi)
 }
 
 export function elementForLayoutName(layoutName) {

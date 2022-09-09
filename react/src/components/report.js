@@ -2,7 +2,7 @@ import { useContext, useState, useEffect } from "react";
 import { ContextSimulationInfoPromise, ContextAppName } from "./context";
 import { Panel } from "./panel";
 
-function pollRunSimulation({ appName, models, simulationId, report, pollInterval}) {
+function pollRunReport({ appName, models, simulationId, report, pollInterval}) {
     return new Promise((resolve, reject) => {
         let doFetch = () => {
             fetch('/run-simulation', {
@@ -21,7 +21,7 @@ function pollRunSimulation({ appName, models, simulationId, report, pollInterval
                 let simulationStatus = await resp.json();
                 console.log("status", simulationStatus);
                 let { state } = simulationStatus;
-                console.log("polled simulation: " + state);
+                console.log("polled report: " + state);
                 if(state === 'completed') {
                     resolve(simulationStatus);
                 } else if (state === 'pending') {
@@ -35,7 +35,7 @@ function pollRunSimulation({ appName, models, simulationId, report, pollInterval
     })
 }
 
-export function SimulationLayout(layoutElement) {
+export function ReportLayout(layoutElement) {
     return {
         getDependencies: layoutElement.getDependencies,
 
@@ -55,15 +55,15 @@ export function SimulationLayout(layoutElement) {
             effectFn(() => {
                 let simulationDataPromise= new Promise((resolve, reject) => {
                     simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-                        console.log("starting to poll simulation");
-                        pollRunSimulation({
+                        console.log("starting to poll report");
+                        pollRunReport({
                             appName,
                             models,
                             simulationId,
                             report: report,
                             pollInterval: 500
                         }).then((simulationData) => {
-                            console.log("finished polling simulation");
+                            console.log("finished polling report");
                             resolve(simulationData);
                         })
                     })
