@@ -1542,3 +1542,4 @@ SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panel
         ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
     ];
 });
+
