@@ -25,7 +25,7 @@ function pollRunReport({ appName, models, simulationId, report, pollInterval}) {
                 console.log("polled report: " + state);
                 if(state === 'completed') {
                     resolve(simulationStatus);
-                } else if (state === 'pending') {
+                } else if (state === 'pending' || state === 'running') {
                     setTimeout(doFetch, pollInterval); // TODO
                 } else {
                     reject();
