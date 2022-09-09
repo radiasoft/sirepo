@@ -9,14 +9,15 @@ import {
     ContextReduxFormActions,
     ContextReduxFormSelectors,
     ContextSimulationInfoPromise,
-    ContextModels as ContextRelativeModels
+    ContextModels as ContextRelativeModels,
+    ContextRelativeFormDependencies
 } from "./context";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useRenderCount } from "../hooks";
 
 import "./panel.scss";
-import { ReportLayout } from "./report";
+import { AutoRunReportLayout } from "./report";
 import { Graph2dFromApi } from "./graph2d";
 
 export function Panel(props) {
@@ -203,7 +204,7 @@ let layoutElements = {
     "fieldList": SpacedLayout(FieldListLayout),
     "fieldTable": SpacedLayout(FieldGridLayout),
     "tabs": TabLayout,
-    "graph2d": ReportLayout(Graph2dFromApi)
+    "graph2d": AutoRunReportLayout(Graph2dFromApi)
 }
 
 export function elementForLayoutName(layoutName) {
@@ -284,12 +285,14 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
         }
 
         return (
-            <ContextRelativeHookedDependencyGroup.Provider value={hookedDependencyGroup}>
-                <ContextRelativeFormController.Provider value={formController}>
-                    <EditorPanel {...formProps}>
-                    </EditorPanel>
-                </ContextRelativeFormController.Provider>
-            </ContextRelativeHookedDependencyGroup.Provider>
+            <ContextRelativeFormDependencies.Provider value={hookedDependencies}>
+                <ContextRelativeHookedDependencyGroup.Provider value={hookedDependencyGroup}>
+                    <ContextRelativeFormController.Provider value={formController}>
+                        <EditorPanel {...formProps}>
+                        </EditorPanel>
+                    </ContextRelativeFormController.Provider>
+                </ContextRelativeHookedDependencyGroup.Provider>
+            </ContextRelativeFormDependencies.Provider>
         )
     }
     return ViewLayoutsPanelComponent;

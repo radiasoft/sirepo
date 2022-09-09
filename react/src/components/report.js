@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect } from "react";
-import { ContextSimulationInfoPromise, ContextAppName } from "./context";
+import { Dependency, useDependentValues } from "../dependency";
+import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeHookedDependencyGroup, ContextRelativeFormDependencies, ContextModels } from "./context";
 import { Panel } from "./panel";
 
 function pollRunReport({ appName, models, simulationId, report, pollInterval}) {
@@ -35,25 +36,37 @@ function pollRunReport({ appName, models, simulationId, report, pollInterval}) {
     })
 }
 
-export function ReportLayout(layoutElement) {
+export function AutoRunReportLayout(layoutElement) {
     return {
         getDependencies: layoutElement.getDependencies,
 
         element: (props) => {
             let { config } = props;
             let { report } = config;
+
+            let dependencyStrings = config.dependencies;
     
             let contextFn = useContext;
             let stateFn = useState;
             let effectFn = useEffect;
+            let dependentValuesFn = useDependentValues;
     
             let simulationInfoPromise = contextFn(ContextSimulationInfoPromise);
             let appName = contextFn(ContextAppName);
+            let modelsWrapper = contextFn(ContextModels);
+
+            let formDependencies = contextFn(ContextRelativeFormDependencies);
+            let reportDependencies = dependencyStrings.map(dependencyString => new Dependency(dependencyString));
+
+            let dependentValues = dependentValuesFn(modelsWrapper, [...formDependencies, ...reportDependencies]);
+
+            console.log("dependentValues", dependentValues);
     
             let [simulationData, updateSimulationData] = stateFn(undefined);
     
             effectFn(() => {
-                let simulationDataPromise= new Promise((resolve, reject) => {
+                updateSimulationData(undefined);
+                let simulationDataPromise = new Promise((resolve, reject) => {
                     simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
                         console.log("starting to poll report");
                         pollRunReport({
@@ -70,11 +83,12 @@ export function ReportLayout(layoutElement) {
                 });
         
                 simulationDataPromise.then(updateSimulationData);
-            }, [])
+            }, dependentValues)
     
             
     
             let VisualComponent = simulationData ? layoutElement.element : undefined;
+            //let VisualComponent = layoutElement.element;
     
             return (
                 <>
