@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
 import { Dependency, useDependentValues } from "../dependency";
 import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModels } from "./context";
 
@@ -81,6 +81,7 @@ export function AutoRunReportLayout(layoutElement) {
             let stateFn = useState;
             let effectFn = useEffect;
             let dependentValuesFn = useDependentValues;
+            let refFn = useRef;
     
             let simulationInfoPromise = contextFn(ContextSimulationInfoPromise);
             let appName = contextFn(ContextAppName);
@@ -94,36 +95,31 @@ export function AutoRunReportLayout(layoutElement) {
             console.log("dependentValues", dependentValues);
     
             let [simulationData, updateSimulationData] = stateFn(undefined);
+
+            let simulationPollingVersionRef = refFn()
     
             effectFn(() => {
                 updateSimulationData(undefined);
-                let simulationDataPromise = new Promise((resolve, reject) => {
-                    simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-                        console.log("starting to poll report");
-                        /*pollRunReport({
-                            appName,
-                            models,
-                            simulationId,
-                            report: report,
-                            pollInterval: 500
-                        }).then((simulationData) => {
-                            console.log("finished polling report");
-                            resolve(simulationData);
-                        })*/
-                        pollRunReport({
-                            appName,
-                            models,
-                            simulationId,
-                            report: report,
-                            pollInterval: 500
-                        }, (simulationData) => {
-                            console.log("polling report yielded new data");
-                            resolve(simulationData);
-                        })
+                let pollingVersion = {};
+                simulationPollingVersionRef.current = pollingVersion;
+                simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
+                    console.log("starting to poll report");
+                    pollRunReport({
+                        appName,
+                        models,
+                        simulationId,
+                        report: report,
+                        pollInterval: 500
+                    }, (simulationData) => {
+                        console.log("polling report yielded new data");
+                        // guard concurrency
+                        if(simulationPollingVersionRef.current == pollingVersion) {
+                            updateSimulationData(simulationData);
+                        } else {
+                            console.log("polling data was not from newest request");
+                        }
                     })
-                });
-        
-                simulationDataPromise.then(updateSimulationData);
+                })
             }, dependentValues)
     
             
