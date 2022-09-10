@@ -297,24 +297,40 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     };
                 }
 
-                for (const b of sourceBundles) {
-                    vtkScene.removeActor(b.actor);
-                }
-                sourceBundles = [];
-                const spatials = appState.models.settings.sources.filter(x => x.space);
-                for (const s of spatials.filter(x => x.space._type === 'box')) {
-                    const d = boxDims(s.space);
-                    const b = coordMapper.buildBox(
+                function boxSource(space) {
+                    const d = boxDims(space);
+                    return coordMapper.buildBox(
                         d.sz,
                         d.ctr,
                         {
                             edgeColor: [255, 0, 0],
                             edgeVisibility: true,
-                            lighting: false,
+                            lighting: false
                         }
                     );
-                    sourceBundles.push(b);
-                    vtkScene.addActor(b.actor);
+                }
+
+                function pointSource(space) {
+                    //sphere?
+                }
+
+                for (const b of sourceBundles) {
+                    vtkScene.removeActor(b.actor);
+                }
+                sourceBundles = [];
+                for (const s of appState.models.settings.sources.filter(x => x.space)) {
+                    let b = null;
+                    const space = s.space;
+                    if (space._type === 'box') {
+                        b = boxSource(space);
+                    }
+                    if (space._type === 'point') {
+                        b = pointSource(space);
+                    }
+                    if (b) {
+                        sourceBundles.push(b);
+                        vtkScene.addActor(b.actor);
+                    }
                 }
             }
 
