@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ML simulation data operations
+"""activait simulation data operations
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,6 +17,8 @@ import tarfile
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
+        if data.simulationType == "ml":
+            data.simulationType = "activait"
         dm = data.models
         cls._init_models(
             dm,

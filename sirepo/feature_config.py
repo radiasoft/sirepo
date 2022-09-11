@@ -18,12 +18,12 @@ _DEPENDENT_CODES = [
 #: Codes on prod
 PROD_FOSS_CODES = frozenset(
     (
+        "activait",
         "controls",
         "elegant",
         "genesis",
         "jspec",
         "madx",
-        "ml",
         "opal",
         "radia",
         "shadow",

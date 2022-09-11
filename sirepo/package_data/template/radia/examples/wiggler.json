@@ -1,10 +1,15 @@
 {
     "models": {
+        "electronTrajectoryReport": {
+            "finalBeamPosition": 250,
+            "initialAngles": "0.0, 0.0",
+            "initialPosition": "0.0, -250, 0"
+        },
         "fieldDisplay": {
             "colorMap": "viridis",
             "scaling": "linear"
         },
-        "fieldLineoutReport": {
+        "fieldLineoutAnimation": {
             "plotAxis": "y"
         },
         "fieldPaths": {
@@ -51,6 +56,7 @@
             "enableKickMaps": "0",
             "exampleName": "Wiggler",
             "folder": "/Examples",
+            "heightAxis": "z",
             "isExample": true,
             "name": "Wiggler",
             "notes": "",
