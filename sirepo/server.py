@@ -9,27 +9,19 @@ from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import api_perm
 from sirepo import feature_config
-from sirepo import http_reply
 from sirepo import simulation_db
 from sirepo import srschema
-from sirepo import uri_router
-import contextlib
 import flask
 import re
-import requests
 import sirepo.api
-import sirepo.auth
-import sirepo.auth_db
-import sirepo.auth_role
 import sirepo.db_upgrade
 import sirepo.resource
 import sirepo.sim_data
-import sirepo.smtp
 import sirepo.srcontext
 import sirepo.template
 import sirepo.uri
+import sirepo.uri_router
 import sirepo.util
 import urllib
 import urllib.parse
@@ -411,12 +403,22 @@ class API(sirepo.api.Base):
     def api_exportJupyterNotebook(
         self, simulation_type, simulation_id, model=None, title=None
     ):
-        t = sirepo.template.import_module(simulation_type)
-        assert hasattr(t, "export_jupyter_notebook"), "Jupyter export unavailable"
-        d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
+        def _filename(req):
+            res = d.models.simulation.name
+            if req.title:
+                res += "-" + srschema.parse_name(title)
+            return res + ".ipynb"
+
+        def _data(req):
+            f = getattr(req.template, "export_jupyter_notebook", None)
+            if not f:
+                sirepo.util.raise_not_found(f"API not supported for tempate={req.type}")
+            return f(simulation_db.read_simulation_json(req.type, sid=req.id))
+
+        req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         return self.reply_file(
-            t.export_jupyter_notebook(d),
-            f"{d.models.simulation.name}{'-' + srschema.parse_name(title) if title else ''}.ipynb",
+            _data(req),
+            filename=_filename(req),
             content_type="application/json",
         )
 
@@ -464,13 +466,13 @@ class API(sirepo.api.Base):
             # We include dev so we can test
             if pkconfig.channel_in("prod", "dev"):
                 u = [
-                    sirepo.uri_router.uri_for_api("root", params={"path_info": x})
-                    for x in sorted(feature_config.cfg().sim_types)
+                    self.uri_for_app_root(x)
+                    for x in sorted(feature_config.cfg().sim_types, absolute=False)
                 ]
             else:
                 u = ["/"]
             _ROBOTS_TXT = "".join(
-                ["User-agent: *\n"] + ["Disallow: /{}\n".format(x) for x in u],
+                ["User-agent: *\n"] + ["Disallow: {}\n".format(x) for x in u],
             )
         return flask.Response(_ROBOTS_TXT, mimetype="text/plain")
 
@@ -517,7 +519,7 @@ class API(sirepo.api.Base):
         except simulation_db.CopyRedirect as e:
             if e.sr_response["redirect"] and section:
                 e.sr_response["redirect"]["section"] = section
-            return http_reply.headers_for_no_cache(self.reply_json(e.sr_response))
+            return self.headers_for_no_cache(self.reply_json(e.sr_response))
 
     @sirepo.api.Spec("require_user", search="SearchSpec")
     def api_listSimulations(self):
@@ -550,6 +552,7 @@ class API(sirepo.api.Base):
 
     @sirepo.api.Spec("allow_visitor")
     def api_srUnit(self):
+        import contextlib
         import sirepo.auth
         import sirepo.cookie
 
@@ -577,7 +580,7 @@ class API(sirepo.api.Base):
         self._proxy_react("static/" + path_info)
         p = sirepo.resource.static(sirepo.util.safe_path(path_info))
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
-            return http_reply.headers_for_cache(
+            return self.headers_for_cache(
                 flask.make_response(
                     _google_tag_manager_re.sub(
                         _google_tag_manager,
@@ -674,6 +677,8 @@ class API(sirepo.api.Base):
         )
 
     def _proxy_react(self, path):
+        import requests
+
         if not cfg.react_server or path not in _PROXY_REACT_URIS:
             return
         if path in cfg.react_sim_types:
@@ -699,7 +704,7 @@ class API(sirepo.api.Base):
     def _simulation_data_reply(self, req, data):
         if hasattr(req.template, "prepare_for_client"):
             d = req.template.prepare_for_client(data)
-        return http_reply.headers_for_no_cache(self.reply_json(data))
+        return self.headers_for_no_cache(self.reply_json(data))
 
 
 def init(uwsgi=None, use_reloader=False, is_server=False):
