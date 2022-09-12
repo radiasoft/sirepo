@@ -9,17 +9,14 @@ from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import feature_config
 from sirepo import simulation_db
-from sirepo import srschema
-import flask
 import re
 import sirepo.api
 import sirepo.db_upgrade
+import sirepo.feature_config
 import sirepo.resource
 import sirepo.sim_data
-import sirepo.srcontext
-import sirepo.template
+import sirepo.srschema
 import sirepo.uri
 import sirepo.uri_router
 import sirepo.util
@@ -31,7 +28,7 @@ import werkzeug.exceptions
 
 # TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
 if any(
-    k in feature_config.cfg().sim_types
+    k in sirepo.feature_config.cfg().sim_types
     for k in ("flash", "rs4pi", "radia", "synergia", "silas", "warppba", "warpvnd")
 ):
     import h5py
@@ -136,7 +133,7 @@ class API(sirepo.api.Base):
         n = req.sim_data.lib_file_name_without_type(req.filename)
         p = req.sim_data.lib_file_abspath(req.filename)
         try:
-            return self.reply_file(p, filename=n)
+            return self.reply_attachment(p, filename=n)
         except Exception as e:
             if pkio.exception_is_not_found(e):
                 sirepo.util.raise_not_found("lib_file={} not found", p)
@@ -144,7 +141,7 @@ class API(sirepo.api.Base):
 
     @sirepo.api.Spec("allow_visitor", spec="ErrorLoggingSpec")
     def api_errorLogging(self):
-        ip = self.flask.request.remote_addr
+        ip = self.sreq.remote_addr
         try:
             pkdlog(
                 "{}: javascript error: {}",
@@ -178,8 +175,8 @@ class API(sirepo.api.Base):
     def api_favicon(self):
         """Routes to favicon.ico file."""
         # SECURITY: We control the path of the file so using send_file is ok.
-        return flask.send_file(
-            str(sirepo.resource.static("img", "favicon.ico")),
+        return self.reply_file(
+            sirepo.resource.static("img", "favicon.ico"),
             mimetype="image/vnd.microsoft.icon",
         )
 
@@ -277,7 +274,7 @@ class API(sirepo.api.Base):
                 res != None
             ), f"unhandled application data method: {req.req_data.method}"
             if "filename" in req and isinstance(res, pkconst.PY_PATH_LOCAL_TYPE):
-                return self.reply_file(
+                return self.reply_attachment(
                     res,
                     filename=req.filename,
                     content_type=req.req_data.get("contentType", None),
@@ -292,10 +289,10 @@ class API(sirepo.api.Base):
         Params:
             data: what to import
         """
-        import sirepo.importer
+        from sirepo import importer
 
-        # special http_request parsing here
-        data = sirepo.importer.do_form(flask.request.form, self)
+        # special request parsing here
+        data = importer.do_form(flask.request.form, self)
         m = simulation_db.get_schema(data.simulationType).appModes.default
         return self.reply_redirect_for_local_route(
             data.simulationType,
@@ -318,7 +315,7 @@ class API(sirepo.api.Base):
             file: file data
             folder: where to import to
         """
-        import sirepo.importer
+        from sirepo import importer
 
         error = None
         f = None
@@ -347,11 +344,11 @@ class API(sirepo.api.Base):
                 return self._save_new_and_reply(req, data)
 
             if pkio.has_file_extension(req.filename, "json"):
-                data = sirepo.importer.read_json(req.file_stream.read(), self, req.type)
+                data = importer.read_json(req.file_stream.read(), self, req.type)
             # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
             # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, "zip") and req.type != "rs4pi":
-                data = sirepo.importer.read_zip(
+                data = importer.read_zip(
                     req.file_stream.read(), self, sim_type=req.type
                 )
             else:
@@ -406,7 +403,7 @@ class API(sirepo.api.Base):
         def _filename(req):
             res = d.models.simulation.name
             if req.title:
-                res += "-" + srschema.parse_name(title)
+                res += "-" + sirepo.srschema.parse_name(title)
             return res + ".ipynb"
 
         def _data(req):
@@ -416,7 +413,7 @@ class API(sirepo.api.Base):
             return f(simulation_db.read_simulation_json(req.type, sid=req.id))
 
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
-        return self.reply_file(
+        return self.reply_attachment(
             _data(req),
             filename=_filename(req),
             content_type="application/json",
@@ -450,7 +447,7 @@ class API(sirepo.api.Base):
         suffix = simulation_db.get_schema(
             simulation_type
         ).constants.simulationSourceExtension
-        return self.reply_file(
+        return self.reply_attachment(
             req.template.python_source_for_model(d, m),
             "{}.{}".format(
                 d.models.simulation.name + ("-" + title if title else ""),
@@ -467,7 +464,9 @@ class API(sirepo.api.Base):
             if pkconfig.channel_in("prod", "dev"):
                 u = [
                     self.uri_for_app_root(x)
-                    for x in sorted(feature_config.cfg().sim_types, absolute=False)
+                    for x in sorted(
+                        sirepo.feature_config.cfg().sim_types, absolute=False
+                    )
                 ]
             else:
                 u = ["/"]
@@ -478,10 +477,12 @@ class API(sirepo.api.Base):
 
     @sirepo.api.Spec("allow_visitor", path_info="PathInfo")
     def api_root(self, path_info):
+        from sirepo import template
+
         self._proxy_react(path_info)
         if path_info is None:
             return self.reply_redirect(cfg.home_page_uri)
-        if sirepo.template.is_sim_type(path_info):
+        if template.is_sim_type(path_info):
             return self._render_root_page("index", PKDict(app_name=path_info))
         u = sirepo.uri.unchecked_root_redirect(path_info)
         if u:
@@ -553,16 +554,15 @@ class API(sirepo.api.Base):
     @sirepo.api.Spec("allow_visitor")
     def api_srUnit(self):
         import contextlib
-        import sirepo.auth
-        import sirepo.cookie
+        from sirepo import auth, cookie
 
         v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
         u = contextlib.nullcontext
         if v.want_user:
-            sirepo.cookie.set_sentinel()
-            sirepo.auth.login(sirepo.auth.guest, is_mock=True)
+            cookie.set_sentinel()
+            auth.login(auth.guest, is_mock=True)
         if v.want_cookie:
-            sirepo.cookie.set_sentinel()
+            cookie.set_sentinel()
         v.op()
         return self.reply_ok()
 
@@ -591,20 +591,20 @@ class API(sirepo.api.Base):
             )
         if re.match(r"^(html|en)/[^/]+html$", path_info):
             return self.reply_html(p)
-        return flask.send_file(p, conditional=True)
+        return self.reply_file(p)
 
     @sirepo.api.Spec("require_user", oldName="SimFolderPath", newName="SimFolderPath")
     def api_updateFolder(self):
         # TODO(robnagler) Folder should have a serial, or should it be on data
         req = self.parse_post()
-        o = srschema.parse_folder(req.req_data["oldName"])
+        o = sirepo.srschema.parse_folder(req.req_data["oldName"])
         if o == "/":
             raise sirepo.util.Error(
                 'cannot rename root ("/") folder',
                 "old folder is root req={}",
                 req,
             )
-        n = srschema.parse_folder(req.req_data["newName"])
+        n = sirepo.srschema.parse_folder(req.req_data["newName"])
         if n == "/":
             raise sirepo.util.Error(
                 'cannot rename folder to root ("/")',
@@ -714,7 +714,9 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     if _app:
         return
     if is_server:
-        sirepo.srcontext.init_for_flask()
+        from sirepo import srcontext
+
+        srcontext.init_for_flask()
     global _google_tag_manager
     if cfg.google_tag_manager_id:
         _google_tag_manager = f"""<script>
@@ -748,11 +750,11 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
 
 
 def init_apis(*args, **kwargs):
-    import sirepo.job
+    from sirepo import job
 
     for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
         _app.register_error_handler(int(e), _handle_error)
-    sirepo.job.init_by_server(_app)
+    job.init_by_server(_app)
 
 
 def _cfg_react_server(value):
@@ -783,7 +785,7 @@ def _handle_error(error):
         error_file = DEFAULT_ERROR_FILE
     return (
         # SECURITY: We control the path of the file so using send_file is ok.
-        flask.send_file(str(sirepo.resource.static("html", error_file))),
+        self.reply_file(sirepo.resource.static("html", error_file)),
         status_code,
     )
 

@@ -54,9 +54,9 @@ def begin(sreq):
         s.request_time = sirepo.srtime.utc_now()
         s.save()
 
-    i = sreq.headers().get(_USER_AGENT_ID_HEADER)
+    i = sreq.unchecked_header(_USER_AGENT_ID_HEADER)
     if not sreq.method_is_post():
-        yield
+        yieldp
         return
     if not i:
         i = _new_session()

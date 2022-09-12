@@ -68,7 +68,7 @@ def assert_api_name_and_auth(name, allowed):
         raise AssertionError(f"api={name} not in allowed={allowed}")
 
 
-def call_api(seq, route_or_name, kwargs=None, data=None):
+def call_api(sreq, route_or_name, kwargs=None, data=None):
     """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
 
     Call another API with permission checks.
@@ -76,6 +76,7 @@ def call_api(seq, route_or_name, kwargs=None, data=None):
     Note: also calls `save_to_cookie`.
 
     Args:
+        sreq (sirepo.request.Base): request object
         route_or_name (object): api function or name (without `api_` prefix)
         kwargs (dict): to be passed to API [None]
         data (dict): will be returned `http_request.parse_json`
@@ -111,7 +112,7 @@ def call_api(seq, route_or_name, kwargs=None, data=None):
                 pkdc("api={} exception={} stack={}", route_or_name, e, pkdexc())
             else:
                 pkdlog("api={} exception={} stack={}", route_or_name, e, pkdexc())
-            r = sirepo.http_reply.gen_exception(e)
+            r = sirepo.http_reply.gen_exception(sreq, e)
         finally:
             # http_request tries to keep a valid sim_type so
             # this is ok to call (even if s is None)

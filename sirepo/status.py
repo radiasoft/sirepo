@@ -8,11 +8,7 @@ from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
-from sirepo import api_perm
-from sirepo import http_reply
-from sirepo import server
 from sirepo import simulation_db
-from sirepo import uri_router
 import datetime
 import random
 import re

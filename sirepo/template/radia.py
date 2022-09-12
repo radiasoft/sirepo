@@ -144,7 +144,7 @@ def create_archive(sim, sapi):
     from sirepo import http_reply
 
     if sim.filename.endswith("dat"):
-        return sapi.reply_file(
+        return sapi.reply_attachment(
             simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
             content_type="application/octet-stream",
             filename=sim.filename,

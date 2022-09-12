@@ -21,6 +21,9 @@ class Base(PKDict):
         """
         return uri_router.call_api(self.sreq, name, kwargs=kwargs, data=data)
 
+    def headers_for_no_cache(self, resp):
+        return http_reply.headers_for_no_cache(resp)
+
     def parse_json(self):
         return http_request.parse_json()
 
@@ -30,10 +33,25 @@ class Base(PKDict):
     def parse_post(self, **kwargs):
         return http_request.parse_post(**kwargs)
 
-    def reply_file(self, content_or_path, filename=None, content_type=None):
+    def reply_as_proxy(self, response):
+        r = http_reply.gen_response(response.content)
+        # TODO(robnagler) requests seems to return content-encoding gzip, but
+        # it doesn't seem to be coming from npm
+        r.headers["Content-Type"] = response.headers["Content-Type"]
+        return http_reply.headers_for_no_cache(r)
+
+    def reply_attachment(self, content_or_path, filename=None, content_type=None):
         return http_reply.gen_file_as_attachment(
-            content_or_path, filename=filename, content_type=content_type
+            self, content_or_path, filename=filename, content_type=content_type
         )
+
+    def reply_file(self, path, content_type=None):
+        import flask
+
+        return flask.send_file(str(path), content_type=content_type, conditional=True)
+
+    def reply_html(self, path):
+        return http_reply.render_html(path)
 
     def reply_json(self, value, pretty=False, response_kwargs=None):
         return http_reply.gen_json(
@@ -53,31 +71,22 @@ class Base(PKDict):
             sim_type=sim_type, route=route, params=params, query=query, **kwargs
         )
 
-    def reply_html(self, path):
-        return http_reply.render_html(path)
-
-    def reply_as_proxy(self, response):
-        r = http_reply.gen_response(response.content)
-        # TODO(robnagler) requests seems to return content-encoding gzip, but
-        # it doesn't seem to be coming from npm
-        r.headers["Content-Type"] = response.headers["Content-Type"]
-        return http_reply.headers_for_no_cache(r)
-
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
-    def uri_for_app_root(self, sim_type):
+    def uri_for_app_root(self, sim_type, absolute=True):
         """Return absolute uri for sim_type
 
         Args:
             sim_type (str): sim_type (must be defined)
+            absolute (bool): generate uri with host name
         Returns:
             str: uri
         """
 
         from sirepo import uri
 
-        return uri.app_root(sim_type, external=True)
+        return uri.app_root(sim_type, external=absolute)
 
     def user_agent_headers(self):
         return http_request.user_agent_headers(self.sreq)

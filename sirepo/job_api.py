@@ -82,7 +82,7 @@ class API(sirepo.api.Base):
                 f = d.listdir()
                 if len(f) > 0:
                     assert len(f) == 1, "too many files={}".format(f)
-                    return self.reply_file(f[0])
+                    return self.reply_attachment(f[0])
             except requests.exceptions.HTTPError:
                 # TODO(robnagler) HTTPError is too coarse a check
                 pass

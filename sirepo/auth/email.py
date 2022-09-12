@@ -64,7 +64,9 @@ class API(sirepo.api.Base):
             u = AuthEmailUser.search_by(token=token)
             if u and u.expires >= srtime.utc_now():
                 n = self._verify_confirm(
-                    req.type, token, auth.need_complete_registration(u)
+                    req.type,
+                    token,
+                    auth.need_complete_registration(u),
                 )
                 AuthEmailUser.delete_changed_email(u)
                 u.user_name = u.unverified_email
@@ -129,9 +131,9 @@ class API(sirepo.api.Base):
             subject="Sign in to Sirepo",
             body="""
     Click the link below to {} your Sirepo account.
-    
+
     This link will expire in {} hours and can only be used once.
-    
+
     {}
     """.format(
                 login_text, _EXPIRES_MINUTES / 60, uri

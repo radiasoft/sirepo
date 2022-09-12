@@ -43,7 +43,7 @@ def create_archive(sim, sapi):
             t = "application/zip"
         else:
             f, t = _create_html(f, c)
-        return sapi.reply_file(
+        return sapi.reply_attachment(
             f,
             content_type=t,
             filename=sim.filename,
