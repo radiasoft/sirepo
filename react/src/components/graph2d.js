@@ -1,11 +1,12 @@
+// import { React }
 import { Zoom } from '@visx/zoom';
 import { Axis, ClipPath, Scale, Shape } from '@visx/visx';
 
 export function apiResponseToGraph2dConfig({
-    plots, 
-    title, 
-    x_label: xLabel, 
-    x_points: xPoints, 
+    plots,
+    title,
+    x_label: xLabel,
+    x_points: xPoints,
     x_range: xRange,
     y_range: yRange,
     y_label: yLabel
@@ -55,23 +56,24 @@ export let Graph2dFromApi = {
 }
 
 /**
- * 
+ *
  * @param {{
  *  plots: [
  *      { color, label, points: [{ x: float, y:float }] }
  *  ],
- *  xRange, 
+ *  xRange,
  *  yRange,
  *  xLabel,
  *  yLabel
- * }} props 
- * @returns 
+ * }} props
+ * @returns
  */
 export function Graph2d(props) {
     let { width, height, plots, xRange, yRange, xLabel, yLabel } = props;
 
-    const intHeight = 500;
     const intWidth = 500;
+    //TODO(pjm): aspect ratio
+    const intHeight = Number.parseInt(intWidth * 9 / 16);
 
     let xAxisSize = 30;
     let yAxisSize = 30;
@@ -86,86 +88,100 @@ export function Graph2d(props) {
     let graphX = yAxisSize + margin;
     let graphY = margin;
 
+    function constrain(transformMatrix) {
+        // no Y zoom
+        transformMatrix.scaleY = 1;
+        transformMatrix.translateY = 0;
+        // constrain X zoom/pan within plot boundaries
+        if (transformMatrix.scaleX < 1) {
+            transformMatrix.scaleX = 1;
+            transformMatrix.translateX = 0;
+        }
+        else {
+            if (transformMatrix.translateX > 0) {
+                transformMatrix.translateX = 0;
+            }
+            else if (graphWidth * transformMatrix.scaleX + transformMatrix.translateX < graphWidth) {
+                transformMatrix.translateX = graphWidth - graphWidth * transformMatrix.scaleX;
+            }
+        }
+        return transformMatrix;
+    }
+
     return (
-        
-            <Zoom
-            
-            height={intHeight} 
+        <Zoom
+            height={intHeight}
             width={intWidth}
-            scaleXMax={2}
-            scaleXMin={1}
-            scaleYMax={2}
-            scaleYMin={1}
-            
-            
-            >
-                {(zoom) => {
-                    let xScale = Scale.scaleLinear({
-                        domain: [xRange.min, xRange.max],
-                        range: [0, graphWidth],
-                        round: true
-                    });
+            constrain={constrain}
+        >
+            {(zoom) => {
+                let xScale = Scale.scaleLinear({
+                    domain: [xRange.min, xRange.max],
+                    range: [0, graphWidth],
+                    round: true
+                });
 
-                    let yScale = Scale.scaleLinear({
-                        domain: [yRange.min, yRange.max],
-                        range: [graphHeight, 0],
-                        round: true
-                    });
+                let yScale = Scale.scaleLinear({
+                    //TODO(pjm): scale y range over visible points
+                    domain: [yRange.min, yRange.max],
+                    range: [graphHeight, 0],
+                    round: true,
+                    nice: true,
+                });
 
-                    let xScaleZoom = Scale.scaleLinear({
-                        domain: [xScale.invert((xScale(xRange.min) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),
-                                xScale.invert((xScale(xRange.max) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),],
-                        range: [0, graphWidth],
-                        round: true
-                    });
-                
-                    let yScaleZoom = Scale.scaleLinear({
-                        domain: [xScale.invert((yScale(yRange.min) - zoom.transformMatrix.translateY) / zoom.transformMatrix.scaleY),
-                                xScale.invert((yScale(yRange.max) - zoom.transformMatrix.translateY) / zoom.transformMatrix.scaleY),],
-                        range: [graphHeight, 0],
-                        round: true
-                    });
+                let xScaleZoom = Scale.scaleLinear({
+                    domain: [xScale.invert((xScale(xRange.min) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),
+                             xScale.invert((xScale(xRange.max) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),],
+                    range: [0, graphWidth],
+                    round: true
+                });
 
-                    let toPath = (plot, index) => {
-                        return (
-                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color}>
-                            
-                        </Shape.LinePath>
-                        )
-                    }
-
-                    let paths = plots.map((plot, i) => toPath(plot, i));
-
+                let toPath = (plot, index) => {
                     return (
-                        <svg
+                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color}>
+
+                        </Shape.LinePath>
+                    )
+                }
+
+                let paths = plots.map((plot, i) => toPath(plot, i));
+                const cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
+
+                return (
+                    <svg
                         height={height}
                         width={width}
                         ref={zoom.containerRef}
-                        style={{'textSelect': 'none', 'cursor': 'default'}}
+                        style={{'userSelect': 'none'}}
                         viewBox={`${0} ${0} ${intWidth} ${intHeight}`}
-                        >
-                            <ClipPath.RectClipPath id={"graph-clip"} width={graphWidth} height={graphHeight}/>
-                            <g transform={`translate(${graphX} ${graphY})`} width={graphWidth} height={graphHeight}>
-                                <Axis.AxisBottom
-                                    stroke={"#888"}
-                                    tickStroke={"#888"}
-                                    scale={xScaleZoom}
-                                    top={graphHeight}
-                                />
-                                <Axis.AxisLeft
-                                    stroke={"#888"}
-                                    tickStroke={"#888"}
-                                    scale={yScaleZoom}
-                                />
-                                <g clipPath="url(#graph-clip)">
-                                    <g transform={zoom.toString()} >
-                                        {paths}
-                                    </g>
+                    >
+                        <ClipPath.RectClipPath id={"graph-clip"} width={graphWidth} height={graphHeight}/>
+                        <g transform={`translate(${graphX} ${graphY})`} width={graphWidth} height={graphHeight}>
+                            <Axis.AxisBottom
+                                stroke={"#888"}
+                                tickStroke={"#888"}
+                                scale={xScaleZoom}
+                                top={graphHeight}
+                            />
+                            <Axis.AxisLeft
+                                stroke={"#888"}
+                                tickStroke={"#888"}
+                                scale={yScale}
+                            />
+                            <g clipPath="url(#graph-clip)">
+                                <g transform={zoom.toString()} >
+                                    {paths}
                                 </g>
                             </g>
-                        </svg>
-                    )
-                }}
-            </Zoom>
+                            <rect
+                                width={graphWidth}
+                                height={graphHeight}
+                                style={{'fill': 'none', 'cursor': cursor, 'pointerEvents': 'all'}}
+                            ></rect>
+                        </g>
+                    </svg>
+                )
+            }}
+        </Zoom>
     )
 }
