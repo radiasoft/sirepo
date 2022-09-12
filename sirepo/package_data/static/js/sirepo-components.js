@@ -4362,6 +4362,7 @@ SIREPO.app.service('fileUpload', function($http) {
             headers: {'Content-Type': undefined}
         }).then(
             function(response) {
+                srdbg(response.data);
                 callback(response.data);
             },
             function() {

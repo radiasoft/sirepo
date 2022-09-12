@@ -285,6 +285,26 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
 
     };
 
+    self.dataFilePath = function(model, filename) {
+        if (! appState.isLoaded()) {
+            return '';
+        }
+        
+        requestSender.sendStatelessCompute(
+            appState,
+            (data) => {
+                srdbg("dataFilePath: ", data.html);
+                appState.models.elegantLogHTML = data.html
+            },
+            {
+                method: 'log_to_html',
+                model: model,
+                filename: filename,
+                simulationId: appState.models.simulation.simulationId
+            });
+        
+    };
+
     self.findFirstCommand = function(types, commands) {
         if (! commands) {
             if (! appState.isLoaded()) {
@@ -620,6 +640,13 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     self.logFileURL = function() {
         return elegantService.dataFileURL(self.simState.model, -1);
+    };
+
+    self.logFilePath = function() {
+        elegantService.dataFilePath(self.simState.model, 'elegant.log');
+        srdbg("appstate", appState.models.simulationStatus.animation.computeModel);
+        srdbg("simState", self.simState.model);
+        return appState.models.elegantLogHTML;
     };
 
     self.runningStatusText = function() {
@@ -1440,6 +1467,73 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
                     ['bunch.emit_x', 'bunch.emit_y', 'bunch.emit_nx', 'bunch.emit_ny'],
                     updateEmittance);
             });
+        },
+    };
+});
+
+
+SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+
+        },
+        template: `
+            <div class="well well-lg">
+                <div data-ng-if="visualization.simulationAlerts">
+                  <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
+                  <p class="elegant-error-box">{{ visualization.simulationAlerts }}</p>
+                  <br>
+                </div>
+                <a href data-ng-click="viewLog()">Look At Log</a>
+            </div>
+
+            <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <button type="button" class="close" data-dismiss="modal">
+                      <span>&times;</span>
+                    </button>
+                    <span class="lead modal-title text-info">Title</span>
+                  </div>
+                  <div class="modal-body" style="padding: 0">
+                    <iframe id="sr-text-iframe"
+                      style="border: 0; width: 100%; height: 80vh" src=""></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function(appState, requestSender, $scope) {
+
+            //function setIFrameHTML(html) {
+                //$('#sr-text-iframe').contents().find('html').html(html);
+            //}
+
+            $scope.viewLog = function(model, filename) {
+                if (! appState.isLoaded()) {
+                    return '';
+                }
+
+                //$('#sr-iframe-text-view').modal('show');
+                //setIFrameHTML('<div style="text-align: center; padding: 1em">Loading Log</div>');
+
+                requestSender.sendStatelessCompute(
+                    appState,
+                    (data) => {
+                        srdbg("dataFilePath: ", data.html);
+                        appState.models.modelLog = data.html;
+                        srdbg("form app state: ", appState.models.modelLog);
+                    },
+                    {
+                        model: appState.models.simulationStatus.animation.computeModel,
+                        filename: 'elegant.log',
+                        simulationId: appState.models.simulation.simulationId
+                    });
+                
+                //setIFrameHTML(appState.models.modelLog)
+            };
         },
     };
 });

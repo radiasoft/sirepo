@@ -28,6 +28,9 @@ import re
 import sirepo.lib
 import sirepo.sim_data
 import stat
+import pygments
+import pygments.formatters
+import pygments.lexers
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -1453,3 +1456,60 @@ def _sdds_init():
     _x = getattr(_s, "SDDS_LONGDOUBLE", None)
     _SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
     _SDDS_STRING_TYPE = _s.SDDS_STRING
+
+"""
+def _generate_html(t):
+    return PKDict(
+        html=pygments.highlight(
+            t,
+            pygments.lexers.get_lexer_by_name("text"),
+            pygments.formatters.HtmlFormatter(
+                noclasses=True,
+                linenos="inline" if t == "fortran" else False,
+            ),
+        ),
+    )
+"""
+
+def stateless_compute_log_to_html(data):
+    #return PKDict(test=_SIM_DATA)
+    r = simulation_db.simulation_run_dir(
+        PKDict(
+            simulationType=data.simulationType,
+            simulationId=data.simulationId,
+            report="animation",
+        )
+    )
+    t = pkio.read_text(r.join(data.filename))
+    #h = _generate_html(t)
+    return PKDict(html=t)
+
+
+def stateless_compute_format_text_file(data):
+    if data.filename == _SIM_DATA.FLASH_PAR_FILE and data.models.get("flashSchema"):
+        text = _generate_par_file(PKDict(models=data.models))
+    else:
+        with zipfile.ZipFile(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.flash_app_lib_basename(data.simulationId),
+            )
+        ) as f:
+            text = f.read(data.filename)
+    t = "text"
+    if re.search(r"\.par$", data.filename, re.IGNORECASE):
+        # works pretty well for par files
+        t = "bash"
+    elif re.search(r"\.f90", data.filename, re.IGNORECASE):
+        t = "fortran"
+    elif data.filename.lower() == "makefile":
+        t = "makefile"
+    return PKDict(
+        html=pygments.highlight(
+            text,
+            pygments.lexers.get_lexer_by_name(t),
+            pygments.formatters.HtmlFormatter(
+                noclasses=True,
+                linenos="inline" if t == "fortran" else False,
+            ),
+        ),
+    )
