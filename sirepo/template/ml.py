@@ -215,24 +215,65 @@ def _get_layer_type(layer):
 
 
 def _set_children(nn):
-    nn = _levels_with_children(nn)
+    cur_node = nn.layers[0]
+    nn = _levels_with_children(cur_node, nn)
     pkdp("\n\n\n NN after first pass: {}", nn)
-    return nn
+    return PKDict(layers=nn)
     # nn = _set_child_ops(nn)
 
+def _get_next_node(node, nn):
+    if not _non_branching(node):
+        raise AssertionError(f"node {node.name} has multiple outbound layers")
+    if not node.outbound:
+        return False
+    return _get_layer_by_name(nn, node.outbound[0].name)
 
-def _levels_with_children(nn):
-    #l = []
-    #cur_node = nn.layers[0]
-    #while _continue_down_path(cur_node):
-    #    if non_branching(node):
-    #        l.append(node)
-    #    else:
-    #        for child in cur_node.outbound:
-    #            l.append(_levels_with_children(child))
-    #    cur_node = _get_next_node(cur_node)
-    #return move_adds_reversed_front(l)
-    pass
+
+def _non_branching(node):
+    return len(node.outbound) < 2
+
+
+def _levels_with_children(cur_node, nn):
+    l = []
+    while _continue_down_path(cur_node, nn):
+       c = cur_node
+       l.append(cur_node)
+       if not _non_branching(cur_node):
+           for child in cur_node.outbound:
+               lvl = _levels_with_children(
+                   _get_layer_by_name(nn, child.name),
+                   nn
+                )
+               c = lvl[0] # <- adds reversed in front of list
+               l.append(lvl)
+       cur_node = _get_next_node(c, nn)
+       if not _continue_down_path(cur_node, nn):
+           l.append(cur_node)
+           break
+
+    return _move_ops_reversed_front(l)
+
+def _move_ops_reversed_front(level):
+    ops = []
+    nodes = []
+    pkdp("\n\n\n level in move_ops_reversed_front: {}", level)
+    for n in level:
+        if type(n) == list:
+            nodes.append(n)
+        elif n.layer in ["Add", "Concatenate"]:
+            ops.append(n)
+        else:
+            nodes.append(n)
+    return list(reversed(ops)) + nodes
+
+def _continue_down_path(cur_node, nn):
+    pkdp("\n\n\n\n continue down path with cur_node: {}", cur_node)
+    if not cur_node.outbound:
+        return False
+    if cur_node.layer in ["Add", "Concatenate"]:
+        if not _get_next_node(cur_node, nn).layer in ["Add", "Concatenate"]:
+            return False
+    return True
 
 
 def _set_child_ops(nn):
@@ -263,12 +304,12 @@ def _get_relevant_nodes(model):
 
 def _set_outbound(nn):
     for l in nn.layers:
+        l["outbound"] = []
+    for l in nn.layers:
         for i in l.inbound:
             layer = _get_layer_by_name(nn, i.name)
             if "outbound" in layer:
                 layer.outbound.append(l.obj)
-                continue
-            layer["outbound"] = [l.obj]
     return nn
 
 
