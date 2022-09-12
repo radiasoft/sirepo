@@ -33,7 +33,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        if analysis_model in ("solverAnimation", "reset"):
+        if analysis_model == "fieldLineoutAnimation":
+            return "fieldLineoutAnimation"
+        elif analysis_model in ("solverAnimation", "reset"):
             return "solverAnimation"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
@@ -46,6 +48,29 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _fixup_box_to_cuboid(cls, model, field):
         if model.get(field) == "box":
             model[field] = "cuboid"
+
+    @classmethod
+    def _fixup_example(cls, models):
+        if not models.simulation.get("exampleName"):
+            models.simulation.exampleName = models.simulation.name
+        if models.simulation.name == "Dipole":
+            models.simulation.beamAxis = "x"
+            models.simulation.heightAxis = "z"
+            models.simulation.widthAxis = "y"
+        if models.simulation.name == "Wiggler":
+            models.geometryReport.isSolvable = "0"
+            if not len(models.fieldPaths.paths):
+                models.fieldPaths.paths.append(
+                    PKDict(
+                        _super="fieldPath",
+                        begin="0, -225, 0",
+                        end="0, 225, 0",
+                        id=0,
+                        name="y axis",
+                        numPoints=101,
+                        type="line",
+                    )
+                )
 
     @classmethod
     def _fixup_obj_types(cls, dm):
@@ -80,22 +105,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not dm.fieldPaths.get("paths"):
             dm.fieldPaths.paths = []
         if dm.simulation.get("isExample"):
-            if not dm.simulation.get("exampleName"):
-                dm.simulation.exampleName = dm.simulation.name
-            if dm.simulation.name == "Wiggler":
-                dm.geometryReport.isSolvable = "0"
-                if not len(dm.fieldPaths.paths):
-                    dm.fieldPaths.paths.append(
-                        PKDict(
-                            _super="fieldPath",
-                            begin="0, -225, 0",
-                            end="0, 225, 0",
-                            id=0,
-                            name="y axis",
-                            numPoints=101,
-                            type="line",
-                        )
-                    )
+            cls._fixup_example(dm)
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
@@ -104,6 +114,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 o.triangulationLevel = 0.5
             if not o.get("bevels"):
                 o.bevels = []
+            for b in o.bevels:
+                if not b.get("cutRemoval"):
+                    b["cutRemoval"] = "1"
             if not o.get("fillets"):
                 o.fillets = []
             if not o.get("segments"):

@@ -1,0 +1,20 @@
+import mpi4py
+import sirepo.template.radia
+import sirepo.mpi
+from sirepo.template import radia_util
+from sirepo.template import radia
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp
+from pykern import pkjson
+
+
+def field_data():
+    from pykern import pkjson
+    from pykern import pkio
+
+    return radia.generate_field_data('{{ sim_id }}', radia.get_g_id(), '{{ name }}','{{ f_type }}', [PKDict({{ f_path }})]).data[0].vectors
+
+with radia_util.MPI() as m:
+    f = field_data()
+    m.barrier()
+    sirepo.mpi.restrict_op_to_first_rank(lambda: pkjson.dump_pretty(f, "field_data.json"))

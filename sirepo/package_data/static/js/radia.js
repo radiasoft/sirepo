@@ -21,7 +21,7 @@ SIREPO.app.config(function() {
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
         <div data-ng-switch-when="FieldPaths" class="col-sm-7">
-          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
+          <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
         </div>
         <div data-ng-switch-when="FilletTable" class="col-sm-12">
           <div data-fillet-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
@@ -72,11 +72,11 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
     let self = {};
 
-    const POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport',];
+    const POST_SIM_REPORTS = ['electronTrajectoryReport', 'fieldIntegralReport', 'fieldLineoutAnimation', 'kickMapReport',];
 
     // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
-        return 'solverAnimation';
+        return 'fieldLineoutAnimation';
     };
 
     appState.setAppService(self);
@@ -1107,9 +1107,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
-
-    let SINGLE_PLOTS = ['magnetViewer',];
+SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, $scope) {
 
     let solving = false;
 
@@ -1133,9 +1131,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         self.solution = null;
         solving = false;
         panelState.clear('geometryReport');
-        panelState.requestData('reset', () => {
-            frameCache.setFrameCount(0);
-            }, true);
+        panelState.requestData('reset', () => {}, true);
         radiaService.syncReports();
     };
 
@@ -1143,15 +1139,9 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         if (data.error) {
             solving = false;
         }
-        SINGLE_PLOTS.forEach(function(name) {
-            frameCache.setFrameCount(0, name);
-        });
         if ('percentComplete' in data && ! data.error) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
                 self.solution = data.solution;
-                SINGLE_PLOTS.forEach(function(name) {
-                    frameCache.setFrameCount(1, name);
-                });
                 if (solving) {
                     radiaService.syncReports();
                 }
@@ -1159,7 +1149,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                 radiaService.saveGeometry(false, true);
             }
         }
-        frameCache.setFrameCount(data.frameCount);
     };
 
     self.startSimulation = function(model) {
@@ -1168,6 +1157,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         self.simState.saveAndRunSimulation([model, 'simulation']);
     };
 
+    self.simComputeModel = 'solverAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
 });
@@ -1731,7 +1721,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                 requestSender.newWindow('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': 'fieldLineoutReport',
+                    '<model>': 'fieldLineoutAnimation',
                     '<frame>': SIREPO.nonDataFileFrame,
                     '<suffix>': radiaService.pointFieldExports[$scope.tModel.exportType].extension
                 });
@@ -1757,7 +1747,8 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
     };
 });
 
-SIREPO.app.directive('fieldLineoutReport', function(appState) {
+
+SIREPO.app.directive('electronTrajectoryReport', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -1765,12 +1756,45 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
         },
         template: `
             <div class="col-md-6">
-                <div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>
+                <div data-ng-if="! dataCleared" data-report-panel="parameter" data-request-priority="0" data-model-name="electronTrajectoryReport"></div>
             </div>
         `,
         controller: function($scope) {
             $scope.dataCleared = true;
             $scope.model = appState.models[$scope.modelName];
+
+
+            $scope.$on('radiaViewer.loaded', () => {
+                $scope.dataCleared = false;
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimulation, frameCache) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: `
+            <div class="col-md-6">
+              <div data-ng-if="showFieldLineoutPanel()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
+                <div data-sim-status-panel="simState"></div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.model = appState.models[$scope.modelName];
+            $scope.dataCleared = true;
+            $scope.simScope = $scope;
+            $scope.simComputeModel = $scope.modelName;
+
+            $scope.simHandleStatus = data => {
+                if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
+                    frameCache.setFrameCount(1);
+                }
+            };
 
             function getPath(id) {
                 for (const p of appState.models.fieldPaths.paths) {
@@ -1807,8 +1831,26 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
                 return appState.models.fieldPaths.paths && appState.models.fieldPaths.paths.length;
             };
 
+            $scope.showFieldLineoutPanel = () => {
+                return ! $scope.dataCleared && $scope.hasPaths();
+            };
+
             $scope.$on('radiaViewer.loaded', () => {
+                if ($scope.dataCleared) {
+                    $scope.simState.runSimulation();
+                }
                 $scope.dataCleared = false;
+            });
+
+            $scope.$on('fieldLineoutAnimation.changed', function () {
+                if ($scope.showFieldLineoutPanel()) {
+                    // Dont run automatically for sbatch or nersc
+                    if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
+                        if (! $scope.simState.isProcessing()) {
+                            $scope.simState.runSimulation();
+                        }
+                    }
+                }
             });
 
             $scope.$on('fieldPaths.changed', updatePath);
@@ -1820,6 +1862,7 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             });
 
             updatePath();
+            $scope.simState = persistentSimulation.initSimulationState($scope);
         },
     };
 });
@@ -3582,6 +3625,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.$on('fieldPaths.changed', function () {
                 if (! $scope.model.fieldPoints) {
                     $scope.model.fieldPoints = [];
+                }
+                const r = 'fieldLineoutAnimation';
+                for (const p of appState.models.fieldPaths.paths) {
+                    if (p.id === appState.models[r].fieldPath.id) {
+                        appState.models[r].fieldPath = p;
+                        appState.saveChanges(r);
+                        break;
+                    }
                 }
                 updateViewer();
             });
