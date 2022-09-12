@@ -329,7 +329,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     boundsBox = SIREPO.VTK.VTKUtils.buildBoundingBox(actor.getBounds());
                 }
                 else {
+                    // always clear the scene box
                     name = _SCENE_BOX;
+                    vtkScene.removeActor(axesBoxes[name]);
+                    delete axesBoxes[name];
                     boundsBox = vtkScene.sceneBoundingBox(0.02);
                 }
                 if (! axesBoxes[name]) {
@@ -379,6 +382,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const pts = basePolyData.getPoints().getData();
 
                 let n = 0;
+                let numVoxels = 0;
                 let m = 0;
 
                 function allHidden(colors) {
@@ -450,6 +454,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                                 center: [pts[n] + sx / 2, pts[n + 1] + sy / 2, pts[n + 2] + sz / 2],
                             }).getOutputData();
                             ysrc.addInputData(s);
+                            ++numVoxels;
                             n += 3;
                             m += 4;
                         }
@@ -460,7 +465,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     n = n + 3 * (nx + 1);
                 }
 
-                if (source.getNumberOfInputPorts() <= 1) {
+                if (! numVoxels) {
                     return;
                 }
                 tallyBundle = coordMapper.buildActorBundle(source, {
