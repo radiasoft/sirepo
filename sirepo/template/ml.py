@@ -234,6 +234,7 @@ def _non_branching(node):
 
 
 def _levels_with_children(cur_node, nn):
+    # POSIT (gurhar1133): add/concate nodes will not have multiple outbound
     l = []
     while _continue_down_path(cur_node, nn):
        c = cur_node
@@ -246,10 +247,13 @@ def _levels_with_children(cur_node, nn):
                 )
                c = lvl[0] # <- adds reversed in front of list
                l.append(lvl)
-       cur_node = _get_next_node(c, nn)
-       if not _continue_down_path(cur_node, nn):
-           l.append(cur_node)
-           break
+       if cur_node != c:
+           cur_node = c
+       else:
+           cur_node = _get_next_node(c, nn)
+           if not _continue_down_path(cur_node, nn):
+               l.append(cur_node)
+               break
 
     return _move_ops_reversed_front(l)
 
@@ -265,6 +269,10 @@ def _move_ops_reversed_front(level):
         else:
             nodes.append(n)
     return list(reversed(ops)) + nodes
+
+
+#TODO (gurhar1133): what if an add/concat has multiple outbound branches?
+# is that possible? if so, how does our UI express this?
 
 def _continue_down_path(cur_node, nn):
     pkdp("\n\n\n\n continue down path with cur_node: {}", cur_node)
