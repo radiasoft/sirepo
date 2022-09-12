@@ -362,10 +362,12 @@ def need_complete_registration(model):
 
 @contextlib.contextmanager
 def process_request(sreq, unit_test=None):
-    with auth_db.session(), cookie.process_header(unit_test), sirepo.session.begin(
-        sreq
+    with (
+        auth_db.session(),
+        cookie.process_header(sreq=sreq, unit_test=unit_test),
+        sirepo.session.begin(sreq),
     ):
-        # Logging happens after the return to Flask so the log user must persist
+        # Logging happens after the return to the server so the log user must persist
         # beyond the life of process_request
         _set_log_user()
         yield
@@ -797,6 +799,8 @@ def _plan(data):
 
 
 def _set_log_user():
+    if not sirepo.util.in_flask_request():
+        return
     a = sirepo.util.flask_app()
     if not a or not a.sirepo_uwsgi:
         # Only works for uWSGI (service.uwsgi). sirepo.service.http uses

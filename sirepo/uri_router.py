@@ -9,7 +9,6 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
-import flask
 import importlib
 import inspect
 import os
@@ -26,7 +25,6 @@ import sirepo.sim_api
 import sirepo.srcontext
 import sirepo.uri
 import sirepo.util
-import werkzeug.exceptions
 
 
 #: route for sirepo.srunit
@@ -70,7 +68,7 @@ def assert_api_name_and_auth(name, allowed):
         raise AssertionError(f"api={name} not in allowed={allowed}")
 
 
-def call_api(route_or_name, kwargs=None, data=None):
+def call_api(seq, route_or_name, kwargs=None, data=None):
     """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
 
     Call another API with permission checks.
@@ -84,6 +82,9 @@ def call_api(route_or_name, kwargs=None, data=None):
     Returns:
         flask.Response: result
     """
+    import flask
+    import werkzeug.exceptions
+
     p = None
     s = None
     with _set_api_attr(route_or_name):
@@ -99,7 +100,9 @@ def call_api(route_or_name, kwargs=None, data=None):
             try:
                 if data:
                     p = sirepo.http_request.set_post(data)
-                r = flask.make_response(getattr(f.cls(), f.func_name)(**kwargs))
+                r = flask.make_response(
+                    getattr(f.cls(sreq=sreq), f.func_name)(**kwargs)
+                )
             finally:
                 if data:
                     sirepo.http_request.set_post(p)
@@ -230,6 +233,8 @@ def uri_for_api(api_name, params=None, external=True):
     Returns:
         str: formmatted external URI
     """
+    import flask
+
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
@@ -299,12 +304,18 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
+    import flask
     import sirepo.auth
 
-    with sirepo.auth.process_request(sirepo.request.begin()):
+    sreq = sirepo.request.Base(
+        headers=flask.request.headers,
+        method=flask.request.method,
+        remote_addr=flask.request.remote_addr,
+    )
+    with sirepo.auth.process_request(sreq):
         try:
             if path is None:
-                return call_api(_default_route, PKDict(path_info=None))
+                return call_api(sreq, _default_route, PKDict(path_info=None))
             # werkzeug doesn't convert '+' to ' '
             parts = re.sub(r"\+", " ", path).split("/")
             try:
@@ -330,7 +341,7 @@ def _dispatch(path):
                 raise sirepo.util.raise_not_found(
                     "{}: unknown parameters in uri ({})", parts, path
                 )
-            return call_api(route, kwargs)
+            return call_api(sreq, route, kwargs)
         except Exception as e:
             pkdlog("exception={} path={} stack={}", e, path, pkdexc())
             raise

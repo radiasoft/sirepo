@@ -7,7 +7,6 @@ from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
-from sirepo import http_reply
 from sirepo import simulation_db
 from sirepo.template import template_common
 import inspect
@@ -17,8 +16,6 @@ import re
 import requests
 import sirepo.api
 import sirepo.auth
-import sirepo.http_reply
-import sirepo.http_request
 import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data

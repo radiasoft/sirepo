@@ -15,8 +15,6 @@ import sirepo.auth
 import sirepo.events
 import sirepo.sim_db_file
 import sirepo.simulation_db
-import sirepo.srcontext
-import sirepo.srdb
 import sirepo.tornado
 import tornado.gen
 import tornado.ioloop

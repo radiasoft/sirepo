@@ -14,7 +14,6 @@ import sirepo.auth
 import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.feature_config
-import sirepo.http_request
 import sirepo.simulation_db
 import sirepo.smtp
 import sirepo.uri
@@ -47,9 +46,7 @@ class API(sirepo.api.Base):
                     PKDict(
                         app_name=info.app_name,
                         display_name=info.display_name,
-                        link=sirepo.uri.app_root(
-                            sirepo.auth_role.sim_type(info.role), external=True
-                        ),
+                        link=self.uri_for_app_root(sirepo.auth_role.sim_type(info.role)),
                     ),
                 ),
             )
@@ -153,7 +150,7 @@ class API(sirepo.api.Base):
                 role=sirepo.auth_role.for_sim_type(d.simulationType),
                 sim_type=d.simulationType,
                 uid=u,
-            ).pkupdate(sirepo.http_request.user_agent_headers())
+            ).pkupdate(self.user_agent_headers())
         )
         return self.reply_ok()
 

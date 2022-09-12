@@ -22,15 +22,14 @@ def app_root(sim_type, external=False):
     """Generate uri for application root
 
     Args:
-        sim_type (str): application name
+        sim_type (str): application name (may be None)
         external (bool): if True, make the uri absolute [False]
     Returns:
         str: formatted URI
     """
-    t = http_request.sim_type(sim_type)
     return uri_router.uri_for_api(
         "root",
-        params=PKDict(path_info=t) if t else None,
+        params=PKDict(path_info=sim_type) if sim_type else None,
         external=external,
     )
 

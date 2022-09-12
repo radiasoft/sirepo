@@ -27,6 +27,7 @@ import sirepo.db_upgrade
 import sirepo.resource
 import sirepo.sim_data
 import sirepo.smtp
+import sirepo.srcontext
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -151,7 +152,7 @@ class API(sirepo.api.Base):
 
     @sirepo.api.Spec("allow_visitor", spec="ErrorLoggingSpec")
     def api_errorLogging(self):
-        ip = flask.request.remote_addr
+        ip = self.flask.request.remote_addr
         try:
             pkdlog(
                 "{}: javascript error: {}",
@@ -707,6 +708,8 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
 
     if _app:
         return
+    if is_server:
+        sirepo.srcontext.init_for_flask()
     global _google_tag_manager
     if cfg.google_tag_manager_id:
         _google_tag_manager = f"""<script>

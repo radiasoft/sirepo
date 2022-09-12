@@ -429,12 +429,12 @@ def init_model(callback):
 @contextlib.contextmanager
 def session():
     init()
-    with sirepo.srcontext.create() as c:
+    with sirepo.srcontext.singleton():
         try:
-            _create_session(c)
+            sirepo.srcontext.set(_SRCONTEXT_SESSION_KEY, sqlalchemy.orm.Session(bind=_engine))
             yield
         finally:
-            _destroy_session(c)
+            sirepo.srcontext.pop(_SRCONTEXT_SESSION_KEY).rollback()
 
 
 @contextlib.contextmanager
@@ -445,14 +445,10 @@ def session_and_lock():
         yield
 
 
-def _create_session(context):
-    s = context.get(_SRCONTEXT_SESSION_KEY)
-    assert not s, f"existing session={s}"
-    context[_SRCONTEXT_SESSION_KEY] = sqlalchemy.orm.Session(bind=_engine)
+def _create_session():
 
 
 def _destroy_session(context):
-    context.pop(_SRCONTEXT_SESSION_KEY).rollback()
 
 
 def _migrate_db_file(fn):

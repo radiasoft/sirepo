@@ -8,6 +8,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pykern.pkconfig
 import re
+import sirepo.feature_config
 import tornado.httpclient
 import tornado.web
 import urllib
@@ -26,7 +27,7 @@ def routes():
         "/static/js/bundle.js",
         "/static/js/bundle.js.map",
     ]
-    for x in cfg.sim_types:
+    for x in sirepo.feature_config.cfg().sim_types:
         x = "/" + x
         p.append(x)
         p.append(f"{x}-schema.json")
@@ -36,7 +37,7 @@ def routes():
 class _Request(tornado.web.RequestHandler):
     async def get(self, *args, **kwargs):
         p = self.request.uri[1:]
-        if p in cfg.sim_types:
+        if p in sirepo.feature_config.cfg().sim_types:
             p = ""
         r = await tornado.httpclient.AsyncHTTPClient().fetch(cfg.uri + p)
         self.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -70,5 +71,4 @@ def _init():
         return
     cfg = pykern.pkconfig.init(
         uri=(None, _uri, "Base URL of npm start server"),
-        sim_types=(("myapp",), set, "React apps"),
     )

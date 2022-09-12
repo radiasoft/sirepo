@@ -163,17 +163,6 @@ def gen_redirect_for_anchor(uri, **kwargs):
     )
 
 
-def gen_redirect_for_app_root(sim_type):
-    """Redirect to app root for sim_type
-
-    Args:
-        sim_type (str): valid sim_type or None [http_request.sim_type]
-    Returns:
-        flask.Response: reply object
-    """
-    return gen_redirect_for_anchor(sirepo.uri.app_root(sim_type))
-
-
 def gen_redirect_for_local_route(
     sim_type=None, route=None, params=None, query=None, **kwargs
 ):

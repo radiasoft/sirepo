@@ -12,7 +12,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import base64
 import contextlib
 import cryptography.fernet
-import flask
 import itertools
 import re
 import sirepo.srcontext
@@ -47,8 +46,8 @@ def has_sentinel():
 
 
 @contextlib.contextmanager
-def process_header(unit_test=None):
-    with _set_state(unit_test or flask.request.environ.get("HTTP_COOKIE", "")):
+def process_header(sreq=None, unit_test=None):
+    with _set_state(unit_test or sreq.unchecked_header("HTTP-Cookie")):
         yield
 
 

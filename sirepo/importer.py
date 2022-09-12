@@ -10,7 +10,6 @@ from pykern.pkdebug import pkdp
 from pykern import pkcompat
 import base64
 import pykern.pkio
-import sirepo.http_request
 import sirepo.util
 import six
 import zipfile

@@ -6,7 +6,7 @@
 from pykern.pkcollections import PKDict
 
 
-class Base:
+class Base(PKDict):
     """Holds request context for all API calls."""
 
     def call_api(self, name, kwargs=None, data=None):
@@ -19,7 +19,7 @@ class Base:
         Returns:
             flask.Response: result
         """
-        return uri_router.call_api(name, kwargs=kwargs, data=data)
+        return uri_router.call_api(self.sreq, name, kwargs=kwargs, data=data)
 
     def parse_json(self):
         return http_request.parse_json()
@@ -46,9 +46,6 @@ class Base:
     def reply_redirect(self, uri):
         return http_reply.gen_redirect(uri)
 
-    def reply_redirect_for_app_root(self, sim_type):
-        return http_reply.gen_redirect_for_app_root(sim_type)
-
     def reply_redirect_for_local_route(
         self, sim_type=None, route=None, params=None, query=None, **kwargs
     ):
@@ -68,6 +65,22 @@ class Base:
 
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
+
+    def uri_for_app_root(self, sim_type):
+        """Return absolute uri for sim_type
+
+        Args:
+            sim_type (str): sim_type (must be defined)
+        Returns:
+            str: uri
+        """
+
+        from sirepo import uri
+
+        return uri.app_root(sim_type, external=True)
+
+    def user_agent_headers(self):
+        return http_request.user_agent_headers(self.sreq)
 
 
 class Spec:

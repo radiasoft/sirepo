@@ -10,7 +10,6 @@ import sirepo.auth_db
 import sirepo.events
 import sirepo.srcontext
 import sirepo.srtime
-import sirepo.uri_router  # TODO(rorour) remove
 import sirepo.util
 import sqlalchemy
 
@@ -56,7 +55,7 @@ def begin(sreq):
         s.save()
 
     i = sreq.headers().get(_USER_AGENT_ID_HEADER)
-    if not sreq.has_params():
+    if not sreq.method_is_post():
         yield
         return
     if not i:

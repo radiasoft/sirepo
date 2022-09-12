@@ -6,7 +6,6 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import flask
 import sirepo.sim_data
 import sirepo.srcontext
 import sirepo.srschema
@@ -24,6 +23,8 @@ def init(**imports):
 
 
 def is_spider():
+    import flask
+
     a = flask.request.headers.get("User-Agent")
     if "python-requests" in a:
         # user_agents doesn't see Python's requests module as a bot.
@@ -33,6 +34,8 @@ def is_spider():
 
 
 def parse_json():
+    import flask
+
     d = set_post()
     if d:
         return d
@@ -167,7 +170,7 @@ def sim_type(value=None):
     return sirepo.srcontext.get(_SIM_TYPE_ATTR)
 
 
-def user_agent_headers():
+def user_agent_headers(sreq):
     def _dns_reverse_lookup(ip):
         import dns.resolver
         import dns.reversename
@@ -192,7 +195,7 @@ def user_agent_headers():
         return "No Reverse DNS Lookup"
 
     return PKDict(
-        ip_addr=flask.request.remote_addr,
-        domain_name=_dns_reverse_lookup(flask.request.remote_addr),
-        user_agent=flask.request.headers.get("User-Agent"),
+        ip_addr=sreq.remote_addr,
+        domain_name=_dns_reverse_lookup(sreq.remote_addr),
+        user_agent=sreq.headers.get("User-Agent"),
     )

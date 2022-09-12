@@ -17,7 +17,7 @@ def test_set_get():
     from pykern.pkdebug import pkdp
     from sirepo import cookie
 
-    with cookie.process_header("x"):
+    with cookie.process_header(unit_test="x"):
         with pkunit.pkexcept("KeyError"):
             cookie.get_value("hi1")
         with pkunit.pkexcept("AssertionError"):
@@ -42,7 +42,7 @@ def test_cookie_outside_of_flask_request():
         pkeq(None, cookie.unchecked_get_value("hi4"))
         # Nest cookie contexts
         with cookie.process_header(
-            "sirepo_dev={}".format(pkcompat.from_bytes(r.args[1])),
+            unit_test="sirepo_dev={}".format(pkcompat.from_bytes(r.args[1])),
         ):
             pkeq("hello", cookie.get_value("hi4"))
 
