@@ -12,7 +12,18 @@ cd react
 if [[ ! -d node_modules ]]; then
     npm install
 fi
+
+_kill() {
+    declare pid=$1
+    declare p
+    for p in $(ps -o pid= --ppid "$pid"); do
+        _kill "$pid"
+    done
+    echo "KILL $pid"
+    kill -9 "$pid" >& /dev/null || true
+}
+
 TERM=dumb NO_COLOR=true npm start &
-trap "kill -9 $! >& /dev/null" EXIT
+trap "_kill $!" EXIT
 cd -
 sirepo job_supervisor

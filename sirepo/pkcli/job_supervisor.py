@@ -14,7 +14,6 @@ import copy
 import functools
 import importlib
 import signal
-import sirepo.events
 import sirepo.feature_config
 import sirepo.job
 import sirepo.job_driver

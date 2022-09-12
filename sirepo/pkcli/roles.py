@@ -14,7 +14,6 @@ import sirepo.auth
 import sirepo.auth_role
 import sirepo.auth_db
 import sirepo.server
-import sirepo.srcontext
 
 
 def add(uid_or_email, *roles):

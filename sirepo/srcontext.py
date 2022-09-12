@@ -7,7 +7,6 @@
 # Limit imports
 from pykern.pkcollections import PKDict
 import contextlib
-import sirepo.events
 import sirepo.util
 
 _self = _Base()
