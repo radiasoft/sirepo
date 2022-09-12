@@ -25,10 +25,15 @@ export function compileSchemaFromJson(schemaObj) {
     let models = {};
 
     if(schemaObj.model) {
+        let missingTypeNames = [];
+
         models = mapProperties(schemaObj.model, (modelName, modelObj) => {
             return mapProperties(modelObj, (fieldName, field) => {
                 let [displayName, typeName, defaultValue] = field;
                 let type = types[typeName];
+                if(!type) {
+                    missingTypeNames.push(typeName);
+                }
                 return {
                     displayName,
                     type,
@@ -36,6 +41,10 @@ export function compileSchemaFromJson(schemaObj) {
                 }
             })
         })
+
+        if(missingTypeNames.length > 0) {
+            throw new Error("types could not be found for type names " + JSON.stringify(missingTypeNames));
+        }
     }
 
     return {

@@ -244,7 +244,6 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "colorRangeType": ["Range", "ColorRangeType", "none"],
             "colorMin": ["Minimum Histogram Value", "Float", 0],
             "colorMax": ["Maximum Histogram Value", "Float", 10]
@@ -619,7 +618,6 @@
                                     {
                                         "layout": "fieldList",
                                         "fields": [
-                                            "particleAnimation.colorMap",
                                             "particleAnimation.colorRangeType",
                                             "particleAnimation.colorMin",
                                             "particleAnimation.colorMax"

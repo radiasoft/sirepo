@@ -159,6 +159,7 @@ function FieldInput(props) {
     }
     let InputComponent = field.dependency.type.component;
     return (<InputComponent
+        dependency={field.dependency}
         valid={field.value.valid}
         touched={field.value.touched}
         value={field.value.value}
