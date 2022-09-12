@@ -207,70 +207,51 @@ def _build_ui_nn(model):
                 r += f"\n out: {o.name}"
     r += "\n\n ======================================"
     pkdp(r)
-    _set_children(nn)
+    nn = _set_children(nn)
     return nn
 
 def _get_layer_type(layer):
     return type(layer).__name__
 
-def _build_levels_with_children(level):
-    # TODO (gurhar): recursively build the tree for the UI
-    # from the top down. But first adds that themselves are children
-    # need to be inserted into their child positions for the
-    # recursive process to work
+
+def _set_children(nn):
+    nn = _levels_with_children(nn)
+    pkdp("\n\n\n NN after first pass: {}", nn)
+    return nn
+    # nn = _set_child_ops(nn)
+
+
+def _levels_with_children(nn):
+    #l = []
+    #cur_node = nn.layers[0]
+    #while _continue_down_path(cur_node):
+    #    if non_branching(node):
+    #        l.append(node)
+    #    else:
+    #        for child in cur_node.outbound:
+    #            l.append(_levels_with_children(child))
+    #    cur_node = _get_next_node(cur_node)
+    #return move_adds_reversed_front(l)
     pass
 
 
-def _set_children(nn):
-    pkdp("\n\n\n all layer names: {}", [l.name for l in nn.layers])
-    a = []
-    for l in nn.layers:
-        # TODO (gurhar1133): "add" in needs to be "add" or "concatenate" (maybe constant)
-        if "add" in l.name:
-            pkdp("\n\n\n l.name of hit for add: {}", l.name)
-            l["children"] = []
-            for i in l.inbound:
-                chain = _build_layer_chain(
-                            _get_layer_by_name(
-                                nn,
-                                i.name
-                            ),
-                            nn,
-                        )
-                l.children.append(
-                    PKDict(layers=chain)
-                )
-                for c in chain:
-                    a.append(c)
-    pkdp("\n\n\n\n all child nodes: {}", a)
-    _pop_children(nn, a)
-    # TODO (gurhar1133): the adds that are children themselves need to be inserted into
-    # child position
-
-def _pop_children(nn, child_layers):
-    for l in child_layers:
-        _pop_child(nn, l)
+def _set_child_ops(nn):
+    #for layer in nn:
+        #if layer.subgroup:
+        #    _group(sub_layer)
+    pass
 
 
-def _build_layer_chain(child, nn):
-    if "add" in child.name:
-        return [child]
-    lvl = []
-    while _child_non_branching(child):
-        lvl.append(child)
-        child = _get_layer_by_name(nn, child.inbound[0].name)
-        pkdp("\n\n\n ----------- \n\n child: {} _child_non_branching(child): {}", child.name, _child_non_branching(child))
-    return lvl
 
-
-def _child_non_branching(child):
-    return len(child.outbound) <= 1
-
-
-def _pop_child(neural_net, child):
-    for l in neural_net.layers:
-        if l.name == child.name:
-            neural_net.layers.remove(l)
+def _group(sub_layer):
+    #while sub_layer has ops:
+    #    p = _group_and_pop(sub_layer)
+    #    all_ops.append(p)
+    #for child in sub_layer:
+    #    for l in child:
+    #        if _has_sublayers(l):
+    #           group(l)
+    pass
 
 
 def _get_relevant_nodes(model):
