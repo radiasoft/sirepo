@@ -165,20 +165,16 @@ def stateless_compute_load_keras_model(data):
         _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.file)
     )
 
-    pkdp('\n\n\n l : {}', l)
+    pkdp("\n\n\n l : {}", l)
     model = keras.models.load_model(l)
-    pkdp('\n\n\n model: {}', model)
+    pkdp("\n\n\n model: {}", model)
     return _build_ui_nn(model)
 
 
 def _make_layers(model):
     nn = []
     for l in model._layers:
-        n = PKDict(
-            obj=l,
-            layer=_get_layer_type(l),
-            name=l.name
-        )
+        n = PKDict(obj=l, layer=_get_layer_type(l), name=l.name)
         if "add" not in l.name and "input" not in l.name:
             # TODO (gurhar1133): still need to see if dimensionality as done here using units
             # will make sense with conv layers etc.
@@ -190,7 +186,6 @@ def _make_layers(model):
 
 
 def _build_ui_nn(model):
-
 
     nn = _make_layers(model)
 
@@ -210,6 +205,7 @@ def _build_ui_nn(model):
     nn = _set_children(nn)
     return nn
 
+
 def _get_layer_type(layer):
     return type(layer).__name__
 
@@ -220,6 +216,7 @@ def _set_children(nn):
     pkdp("\n\n\n NN after first pass: {}", nn)
     return PKDict(layers=nn)
     # nn = _set_child_ops(nn)
+
 
 def _get_next_node(node, nn):
     if not _non_branching(node):
@@ -237,25 +234,38 @@ def _levels_with_children(cur_node, nn):
     # POSIT (gurhar1133): add/concate nodes will not have multiple outbound
     l = []
     while _continue_down_path(cur_node, nn):
-       c = cur_node
-       l.append(cur_node)
-       if not _non_branching(cur_node):
-           for child in cur_node.outbound:
-               lvl = _levels_with_children(
-                   _get_layer_by_name(nn, child.name),
-                   nn
-                )
-               c = lvl[0] # <- adds reversed in front of list
-               l.append(lvl)
-       if cur_node != c:
-           cur_node = c
-       else:
-           cur_node = _get_next_node(c, nn)
-           if not _continue_down_path(cur_node, nn):
-               l.append(cur_node)
-               break
+        c = cur_node
+
+        l.append(cur_node)
+        if not _non_branching(cur_node):
+            for child in cur_node.outbound:
+                lvl = _levels_with_children(_get_layer_by_name(nn, child.name), nn)
+                c = _get_c(lvl)  # <- adds reversed in front of list
+                l.append(lvl)
+        if cur_node != c:
+            pkdp("\n\n\n curr_node != c! cur_node: {}, c: {}", cur_node.name, c.name)
+            cur_node = c
+
+
+            if _get_next_node(cur_node, nn).layer in ["Add", "Concatenate"]:
+                while cur_node.layer in ["Add", "Concatenate"]:
+                    pkdp("\n\n\n appending={}", cur_node.name)
+                    l.append(cur_node)
+                    cur_node = _get_next_node(cur_node, nn)
+                return _move_ops_reversed_front(l)
+            elif cur_node.layer in ["Add", "Concatenate"]:
+                l.append(cur_node)
+        cur_node = _get_next_node(cur_node, nn)
 
     return _move_ops_reversed_front(l)
+
+
+def _get_c(lvl):
+    for i, l in enumerate(lvl):
+        if l.layer not in ["Concatenate", "Add"] and i != 0:
+            return lvl[i - 1]
+
+    assert 0, "_get_c failed"
 
 def _move_ops_reversed_front(level):
     ops = []
@@ -271,32 +281,29 @@ def _move_ops_reversed_front(level):
     return list(reversed(ops)) + nodes
 
 
-#TODO (gurhar1133): what if an add/concat has multiple outbound branches?
+# TODO (gurhar1133): what if an add/concat has multiple outbound branches?
 # is that possible? if so, how does our UI express this?
+
 
 def _continue_down_path(cur_node, nn):
     pkdp("\n\n\n\n continue down path with cur_node: {}", cur_node)
     if not cur_node.outbound:
         return False
-    if cur_node.layer in ["Add", "Concatenate"]:
-        if not _get_next_node(cur_node, nn).layer in ["Add", "Concatenate"]:
-            return False
     return True
 
 
 def _set_child_ops(nn):
-    #for layer in nn:
-        #if layer.subgroup:
-        #    _group(sub_layer)
+    # for layer in nn:
+    # if layer.subgroup:
+    #    _group(sub_layer)
     pass
 
 
-
 def _group(sub_layer):
-    #while sub_layer has ops:
+    # while sub_layer has ops:
     #    p = _group_and_pop(sub_layer)
     #    all_ops.append(p)
-    #for child in sub_layer:
+    # for child in sub_layer:
     #    for l in child:
     #        if _has_sublayers(l):
     #           group(l)
@@ -343,8 +350,9 @@ def _set_inbound(model, nn):
                 _,
             ) in node.iterate_inbound():
                 i.append(inbound_layer)
-            l['inbound'] = i
+            l["inbound"] = i
     return nn
+
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
