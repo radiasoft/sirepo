@@ -46,7 +46,9 @@ class API(sirepo.api.Base):
                     PKDict(
                         app_name=info.app_name,
                         display_name=info.display_name,
-                        link=self.uri_for_app_root(sirepo.auth_role.sim_type(info.role)),
+                        link=self.uri_for_app_root(
+                            sirepo.auth_role.sim_type(info.role)
+                        ),
                     ),
                 ),
             )
@@ -85,12 +87,13 @@ class API(sirepo.api.Base):
 
     @sirepo.api.Spec("require_adm")
     def api_admModerateRedirect(self):
-        t = set(
-            sirepo.feature_config.cfg().sim_types
-            - sirepo.feature_config.auth_controlled_sim_types(),
-        ).pop()
+        def _type():
+            x = sirepo.feature_config.auth_controlled_sim_types()
+            res = sorted(sirepo.feature_config.cfg().sim_types - x)
+            return res[0] if res else sorted(x)[0]
+
         raise sirepo.util.Redirect(
-            sirepo.uri.local_route(t, route_name="admRoles", external=True)
+            sirepo.uri.local_route(_type(), route_name="admRoles", external=True)
         )
 
     @sirepo.api.Spec("require_adm")
