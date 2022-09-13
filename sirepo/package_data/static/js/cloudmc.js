@@ -290,7 +290,14 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 )
             );
             const watchFields = [`{$scope.modelName}.bgColor`, `{$scope.modelName}.showEdges`];
-
+            const voxelPoly = [
+                [0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [4, 5, 1, 0],
+                [3, 2, 6, 7],
+                [4, 0, 3, 7],
+                [1, 5, 6, 2],
+            ];
             const _SCENE_BOX = '_scene';
 
             function addTally(data) {
@@ -366,60 +373,26 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 return d;
             }
 
+            function buildVoxel(lowerLeft, wx, wy, wz, points, polys) {
+                const pi = points.length / 3;
+                points.push(...lowerLeft);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1], lowerLeft[2]]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1] + wy, lowerLeft[2]]);
+                points.push(...[lowerLeft[0], lowerLeft[1] + wy, lowerLeft[2]]);
+                points.push(...[lowerLeft[0], lowerLeft[1], lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1], lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1] + wy, lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0], lowerLeft[1] + wy, lowerLeft[2] + wz]);
+                for (const r of voxelPoly) {
+                    polys.push(4);
+                    polys.push(...r.map(v => v + pi));
+                }
+            }
+
             function buildVoxels() {
-                if (tallyBundle) {
-                    vtkScene.removeActor(tallyBundle.actor);
-                    tallyBundle = null;
-                }
-
-                const mesh = getMeshFilter();
-                if (! mesh) {
-                    return;
-                }
-
-                const [nx, ny, nz] = mesh.dimension;
-                const nxy = nx * ny;
-                const pts = basePolyData.getPoints().getData();
-
-                let n = 0;
-                let numVoxels = 0;
-                let m = 0;
-
-                function allHidden(colors) {
-                    return colors.filter((x, i) => i % 4 === 3).filter(x => x > 0).length === 0;
-                }
-
-                function doSkipX() {
-                    if (! allHidden(scalars.slice(m, m + 4))) {
-                        return false;
-                    }
-                    m += 4;
-                    n += 3;
-                    return true;
-                }
-
-                function doSkipY() {
-                    if (! allHidden(scalars.slice(m, m + 4 * nx))) {
-                        return false;
-                    }
-                    m += 4 * nx;
-                    n += 3 * (nx + 1);
-                    return true;
-                }
-
-                function doSkipZ() {
-                    if (! allHidden(scalars.slice(m, m + 4 * nxy))) {
-                        return false;
-                    }
-                    m += 4 * nxy;
-                    n += 3 * (nx + 1) * (ny + 1);
-                    return true;
-                }
-
                 function getMeshFilter() {
                     const t = cloudmcService.findTally();
-                    for (const k of SIREPO.UTILS.indexArray(5, 1)) {
-                        // Only one mesh filter allowed?
+                    for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
                         const f = t[`filter${k}`];
                         if (f && f._type === 'meshFilter') {
                             return f;
@@ -428,49 +401,58 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     return null;
                 }
 
-                const source = vtk.Filters.General.vtkAppendPolyData.newInstance();
-                const [sx, sy, sz] = mesh.upper_right.map(
-                    (x, i) =>
-                        (1.0 - appState.models.voxels.voxelInsetPct) * Math.abs(x - mesh.lower_left[i]) / mesh.dimension[i]
-                );
-                for (let k = 0; k < nz; ++k) {
-                    if (doSkipZ()) {
-                        continue;
-                    }
-                    const zsrc = vtk.Filters.General.vtkAppendPolyData.newInstance();
-                    for (let j = 0; j < ny; ++j) {
-                        if (doSkipY()) {
-                            continue;
-                        }
-                        const ysrc = vtk.Filters.General.vtkAppendPolyData.newInstance();
-                        for (let i = 0; i < nx; ++i) {
-                            if (doSkipX()) {
-                                continue;
-                            }
-                            const s = vtk.Filters.Sources.vtkCubeSource.newInstance({
-                                xLength: sx,
-                                yLength: sy,
-                                zLength: sz,
-                                center: [pts[n] + sx / 2, pts[n + 1] + sy / 2, pts[n + 2] + sz / 2],
-                            }).getOutputData();
-                            ysrc.addInputData(s);
-                            ++numVoxels;
-                            n += 3;
-                            m += 4;
-                        }
-                        zsrc.addInputData(ysrc.getOutputData());
-                        n += 3;
-                    }
-                    source.addInputData(zsrc.getOutputData());
-                    n = n + 3 * (nx + 1);
+                if (tallyBundle) {
+                    vtkScene.removeActor(tallyBundle.actor);
+                    tallyBundle = null;
                 }
-
-                if (! numVoxels) {
+                const mesh = getMeshFilter();
+                if (! mesh) {
                     return;
                 }
-                tallyBundle = coordMapper.buildActorBundle(source, {
-                    'lighting': false,
-                });
+                const [nx, ny, nz] = mesh.dimension;
+                const [wx, wy, wz] = [
+                    scale * (mesh.upper_right[0] - mesh.lower_left[0]) / mesh.dimension[0],
+                    scale * (mesh.upper_right[1] - mesh.lower_left[1]) / mesh.dimension[1],
+                    scale * (mesh.upper_right[2] - mesh.lower_left[2]) / mesh.dimension[2],
+                ];
+                const [sx, sy, sz] = mesh.upper_right.map(
+                    (x, i) => (1.0 - appState.models.voxels.voxelInsetPct)
+                        * Math.abs(x - mesh.lower_left[i] * scale) / mesh.dimension[i]
+                );
+                const points = [];
+                const polys = [];
+                const fd = basePolyData.getFieldData().getArrayByName(model().aspect).getData();
+                for (let zi = 0; zi < nz; zi++) {
+                    for (let yi = 0; yi < ny; yi++) {
+                        for (let xi = 0; xi < nx; xi++) {
+                            const f = fd[zi * nx * ny + yi * nx + xi];
+                            if (f == 0) {
+                                continue;
+                            }
+                            const p = [
+                                xi * wx + mesh.lower_left[0] * scale,
+                                yi * wy + mesh.lower_left[1] * scale,
+                                zi * wz + mesh.lower_left[2] * scale,
+                            ];
+                            buildVoxel(p, wx, wy, wz, points, polys);
+                        }
+                    }
+                }
+                basePolyData.getPoints().setData(new window.Float32Array(points), 3);
+                basePolyData.getPolys().setData(new window.Uint32Array(polys));
+
+                //TODO(pjm): get working with tally bundle
+                // tallyBundle = coordMapper.buildActorBundle(basePolyData, {
+                //     'lighting': false,
+                // });
+                var mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                var actor = vtk.Rendering.Core.vtkActor.newInstance();
+                mapper.setInputData(basePolyData);
+                actor.setMapper(mapper);
+                actor.getProperty().setLighting(false);
+                tallyBundle = {
+                    actor: actor,
+                };
                 vtkScene.addActor(tallyBundle.actor);
                 setTallyColors();
             }
@@ -552,7 +534,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         sc.push(...scalars.slice(m, m + 4));
                     }
                 }
-                tallyBundle.setColorScalarsForCells(sc, 4);
+                //TODO(pjm): get working with tally bundle
+                //tallyBundle.setColorScalarsForCells(sc, 4);
+                basePolyData.getCellData().setScalars(
+                    vtk.Common.Core.vtkDataArray.newInstance({
+                        dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
+                        numberOfComponents: 4,
+                        values: sc,
+                    })
+                );
+                basePolyData.modified();
                 vtkScene.render();
             }
 
@@ -1547,4 +1538,3 @@ SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panel
         ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
     ];
 });
-
