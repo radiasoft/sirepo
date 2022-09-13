@@ -233,11 +233,13 @@ def _non_branching(node):
 def _levels_with_children(cur_node, nn):
     # POSIT (gurhar1133): add/concate nodes will not have multiple outbound
     l = []
-    while _continue_down_path(cur_node, nn):
+    branch_open = False
+    while _continue_down_path(cur_node, nn, branch_open):
         c = cur_node
 
         l.append(cur_node)
         if not _non_branching(cur_node):
+            branch_open = True
             for child in cur_node.outbound:
                 lvl = _levels_with_children(_get_layer_by_name(nn, child.name), nn)
                 c = _get_c(lvl)  # <- adds reversed in front of list
@@ -246,21 +248,22 @@ def _levels_with_children(cur_node, nn):
             pkdp("\n\n\n curr_node != c! cur_node: {}, c: {}", cur_node.name, c.name)
             cur_node = c
 
+            # while cur_node.layer in ["Add", "Concatenate"]:
+            #     pkdp("\n\n\n appending={}", cur_node.name)
+            #     l.append(cur_node)
+            #     cur_node = _get_next_node(cur_node, nn)
 
-            if _get_next_node(cur_node, nn).layer in ["Add", "Concatenate"]:
-                while cur_node.layer in ["Add", "Concatenate"]:
-                    pkdp("\n\n\n appending={}", cur_node.name)
-                    l.append(cur_node)
-                    cur_node = _get_next_node(cur_node, nn)
-                return _move_ops_reversed_front(l)
-            elif cur_node.layer in ["Add", "Concatenate"]:
-                l.append(cur_node)
+        if cur_node.layer in ["Add", "Concatenate"] and not branch_open:
+            # l.append(cur_node)
+            return _move_ops_reversed_front(l)
+
         cur_node = _get_next_node(cur_node, nn)
 
     return _move_ops_reversed_front(l)
 
 
 def _get_c(lvl):
+    # return lvl[-1]
     for i, l in enumerate(lvl):
         if l.layer not in ["Concatenate", "Add"] and i != 0:
             return lvl[i - 1]
@@ -285,9 +288,11 @@ def _move_ops_reversed_front(level):
 # is that possible? if so, how does our UI express this?
 
 
-def _continue_down_path(cur_node, nn):
+def _continue_down_path(cur_node, nn, branch_open):
     pkdp("\n\n\n\n continue down path with cur_node: {}", cur_node)
     if not cur_node.outbound:
+        return False
+    if branch_open and cur_node.layer in ["Add", "Concatenate"]:
         return False
     return True
 
