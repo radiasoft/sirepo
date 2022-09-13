@@ -369,10 +369,30 @@ def _extract_coherent_modes(model, out_info):
     )
     return out_file
 
+def _get_recent(data_filename, backup_data_filename):
+    pkdp("\n\n\n .dat time: {}, .bkp time: {}", os.path.getmtime(data_filename), os.path.getmtime(backup_data_filename))
+    if os.path.getmtime(backup_data_filename) > os.path.getmtime(data_filename):
+        return PKDict(
+            recent=backup_data_filename,
+            old=data_filename,
+        )
+    return PKDict(
+            recent=data_filename,
+            old=backup_data_filename,
+        )
+
+
 def _check_backup(animation_meta_data):
+    import os
+    from pykern import pkio
     # get most recent unless most recent has less lines
     # this would mean it is partially written
-    pass
+    b = animation_meta_data.filename + ".bkp"
+    i = _get_recent(animation_meta_data.filename, b)
+    pkdp("\n\n\n i: {}", i)
+    if len(pkio.read_text(i.recent).splitlines()) >= len(pkio.read_text(i.old).splitlines()):
+        return i.recent
+    return i.old
 
 def extract_report_data(sim_in):
     r = sim_in.report
@@ -387,7 +407,10 @@ def extract_report_data(sim_in):
     if r == _SIM_DATA.EXPORT_RSOPT:
         return out
     if out.get("check_backup"):
+        # TODO (gurhar1133): might want to change this check v.sbatchBackup == '1' or something?
+        # to see if v.
         out.filename = _check_backup(out)
+        pkdp("\n\n\n out.filename for {} is {}", r, out.filename)
     # TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ("coherenceXAnimation", "coherenceYAnimation"):
         _fix_file_header(out.filename)
