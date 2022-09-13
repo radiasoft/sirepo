@@ -7,7 +7,6 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import sirepo.sim_data
-import sirepo.srcontext
 import sirepo.srschema
 import sirepo.template
 import sirepo.util
@@ -35,7 +34,7 @@ def parse_json(sapi):
         return d
     if not sapi.sreq.content_type_eq("application/json"):
         sirepo.util.raise_bad_request(
-            "content-type is not application/json: mimetype={}",
+            "Content-Type={} must be application/json",
             sapi.sreq.unchecked_header("Content-Type"),
         )
     # Adapted from flask.wrappers.Request.get_json
@@ -86,7 +85,7 @@ def parse_post(sapi, kwargs):
 
         assert not isinstance(v, bool), "missing type in params/post={}".format(kwargs)
         auth.check_sim_type_role(sapi, v)
-        sapi.sreq.set_sim_type(sreq, v)
+        sapi.sreq.set_sim_type(v)
         res.sim_data = sirepo.sim_data.get_class(v)
         return v
 

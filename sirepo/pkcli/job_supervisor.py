@@ -22,7 +22,6 @@ import sirepo.react_proxy
 import sirepo.sim_db_file
 import sirepo.srdb
 import sirepo.srtime
-import sirepo.tornado_router
 import sirepo.util
 import tornado.autoreload
 import tornado.httpserver
@@ -48,7 +47,6 @@ def default_command():
     sirepo.util.in_flask_request = lambda: False
     app = tornado.web.Application(
         sirepo.react_proxy.routes()
-        + sirepo.tornado_router.routes()
         + [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),

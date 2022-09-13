@@ -123,14 +123,14 @@ class API(sirepo.api.Base):
         return self.reply_redirect_for_app_root(req and req.type)
 
 
-def check_sim_type_role(sim_type):
+def check_sim_type_role(sapi, sim_type):
     from sirepo import oauth
     from sirepo import auth_role_moderation
 
     t = sirepo.template.assert_sim_type(sim_type)
     if t not in sirepo.feature_config.auth_controlled_sim_types():
         return
-    if not uri_router.maybe_sim_type_required_for_api():
+    if not uri_router.maybe_sim_type_required_for_api(sapi):
         return
     u = logged_in_user()
     r = sirepo.auth_role.for_sim_type(t)
@@ -362,11 +362,9 @@ def need_complete_registration(model):
 
 @contextlib.contextmanager
 def process_request(sreq, unit_test=None):
-    with (
-        auth_db.session(),
-        cookie.process_header(sreq=sreq, unit_test=unit_test),
-        sirepo.session.begin(sreq),
-    ):
+    with auth_db.session(), cookie.process_header(
+        sreq=sreq, unit_test=unit_test
+    ), sirepo.session.begin(sreq):
         # Logging happens after the return to the server so the log user must persist
         # beyond the life of process_request
         _set_log_user()
@@ -515,7 +513,7 @@ def user_dir_not_found(user_dir, uid):
             u.delete()
     reset_state()
     raise util.Redirect(
-        uri_router.uri_for_api("root", external=False),
+        sirepo.uri.app_root(absolute=False),
         "simulation_db dir={} not found, deleted uid={}",
         user_dir,
         uid,

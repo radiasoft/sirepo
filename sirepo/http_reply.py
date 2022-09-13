@@ -112,7 +112,7 @@ def gen_json(value, pretty=False, response_kwargs=None):
         response_kwargs = PKDict()
     return gen_response(
         simulation_db.generate_json(value, pretty=pretty),
-        mimetype=MIME_TYPE.json,
+        content_type=MIME_TYPE.json,
         **response_kwargs,
     )
 
@@ -185,12 +185,15 @@ def gen_redirect_for_local_route(
         Response: reply object
     """
     return gen_redirect_for_anchor(
-        sirepo.uri.local_route(sreq, sim_type, route, params, query),
+        sirepo.uri.local_route(sreq.sim_type(sim_type), route, params, query),
         **kwargs,
     )
 
 
 def gen_response(*args, **kwargs):
+    if "content_type" in kwargs:
+        kwargs["mimetype"] = kwargs["content_type"]
+        del kwargs["content_type"]
     return sirepo.util.flask_app().response_class(*args, **kwargs)
 
 
@@ -249,7 +252,7 @@ def render_static_jinja(base, ext, j2_ctx, cache_ok=False):
     p = sirepo.resource.static(ext, f"{base}.{ext}")
     r = gen_response(
         pkjinja.render_file(p, j2_ctx, strict_undefined=True),
-        mimetype=MIME_TYPE[ext],
+        content_type=MIME_TYPE[ext],
     )
     if cache_ok:
         return headers_for_cache(r, path=p)
@@ -268,7 +271,7 @@ def render_html(path):
     return headers_for_cache(
         gen_response(
             sirepo.html.render(path),
-            mimetype=MIME_TYPE.html,
+            content_type=MIME_TYPE.html,
         ),
         path=path,
     )
@@ -289,7 +292,7 @@ def _gen_exception_error(sreq, exc):
 <body><h1>Internal Server Error</h1></body>
 </html>
 """,
-            mimetype=MIME_TYPE.html,
+            content_type=MIME_TYPE.html,
             status=500,
         )
     return gen_redirect_for_local_route(sreq, None, route="error")
@@ -304,7 +307,7 @@ def _gen_exception_reply(sreq, exc):
     pkdc("exception={} sr_args={}", exc, exc.sr_args)
     if not f:
         return _gen_exception_error(sreq, exc)
-    return f(exc.sr_args)
+    return f(sreq, exc.sr_args)
 
 
 def _gen_exception_reply_Error(sreq, args):

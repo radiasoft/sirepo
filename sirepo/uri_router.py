@@ -223,22 +223,22 @@ def register_api_module(module=None):
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
-def uri_for_api(api_name, params=None, external=True):
+def uri_for_api(api_name, params=None, absolute=True):
     """Generate uri for api method
 
     Args:
         api_name (str): full name of api
         params (PKDict): paramters to pass to uri
-        external (bool): if True, make the uri absolute [True]
+        absolute (bool): if True, make the uri absolute [True]
     Returns:
-        str: formmatted external URI
+        str: formmatted absolute URI
     """
     import flask
 
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
-    s = flask.url_for("_dispatch_empty", _external=external) if external else "/"
+    s = flask.url_for("_dispatch_empty", _external=absolute) if absolute else "/"
     res = (s + r.base_uri).rstrip("/")
     for p in r.params:
         if p.name in params:
@@ -407,13 +407,13 @@ def _register_sim_oauth_modules(oauth_sim_types):
 
 
 @contextlib.contextmanager
-def _set_api_attr(route_or_name):
-    a = sapi.get(_API_ATTR)
+def _set_api_attr(sreq, route_or_name):
+    a = sreq.get(_API_ATTR)
     try:
-        sapi[_API_ATTR] = route_or_name
+        sreq[_API_ATTR] = route_or_name
         yield
     finally:
-        sapi[_API_ATTR] = a
+        sreq[_API_ATTR] = a
 
 
 def _split_uri(uri):

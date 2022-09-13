@@ -429,10 +429,11 @@ def init_model(callback):
 @contextlib.contextmanager
 def session():
     init()
-    with sirepo.srcontext.singleton():
+    with sirepo.srcontext.create():
         try:
             sirepo.srcontext.set(
-                _SRCONTEXT_SESSION_KEY, sqlalchemy.orm.Session(bind=_engine)
+                _SRCONTEXT_SESSION_KEY,
+                sqlalchemy.orm.Session(bind=_engine),
             )
             yield
         finally:

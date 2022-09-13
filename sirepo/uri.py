@@ -18,19 +18,19 @@ PARAM_RE = r"([\?\*]?)<{}>"
 PATH_INFO_CHAR = "*"
 
 
-def app_root(sim_type, external=False):
+def app_root(sim_type=None, absolute=False):
     """Generate uri for application root
 
     Args:
-        sim_type (str): application name (may be None)
-        external (bool): if True, make the uri absolute [False]
+        sim_type (str): application name [None]
+        absolute (bool): if True, make the uri absolute [False]
     Returns:
         str: formatted URI
     """
     return uri_router.uri_for_api(
         "root",
         params=PKDict(path_info=sim_type) if sim_type else None,
-        external=external,
+        absolute=absolute,
     )
 
 
@@ -44,15 +44,15 @@ def init(**imports):
     sirepo.util.setattr_imports(imports)
 
 
-def local_route(sim_type, route_name=None, params=None, query=None, external=False):
+def local_route(sim_type, route_name=None, params=None, query=None, absolute=False):
     """Generate uri for local route with params
 
     Args:
-        sim_type (str): application name
+        sim_type (str): simulation type (must be valid)
         route_name (str): a local route [defaults to local default]
         params (dict): paramters to pass to route
         query (dict): query values (joined and escaped)
-        external (bool): if True, make the uri absolute [False]
+        absolute (bool): if True, make the uri absolute [False]
     Returns:
         str: formatted URI
     """
@@ -67,7 +67,7 @@ def local_route(sim_type, route_name=None, params=None, query=None, external=Fal
             if not params or p not in params:
                 continue
         u += "/" + _to_uri(params[p])
-    return app_root(t, external=external) + "#" + u + _query(query)
+    return app_root(sim_type, absolute=absolute) + "#" + u + _query(query)
 
 
 def server_route(route_or_uri, params, query):

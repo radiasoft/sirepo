@@ -42,7 +42,7 @@ def create_archive(sim, sapi):
         if want_zip:
             t = "application/zip"
         else:
-            f, t = _create_html(f, c)
+            f, t = _create_html(f, c, sapi)
         return sapi.reply_attachment(
             f,
             content_type=t,
@@ -50,7 +50,7 @@ def create_archive(sim, sapi):
         )
 
 
-def _create_html(zip_path, data):
+def _create_html(zip_path, data, sapi):
     """Convert zip to html data
 
     Args:
@@ -62,8 +62,8 @@ def _create_html(zip_path, data):
     # Use same tmp directory
     fp = zip_path.new(ext=".html")
     values = pkcollections.Dict(data=data)
-    values.uri = uri_router.uri_for_api("importArchive", external=False)
-    values.server = uri_router.uri_for_api("importArchive")[: -len(values.uri)]
+    values.uri = sapi.uri_for_api("importArchive", absolute_import=False)
+    values.server = sapi.uri_for_app_root()
     sc = simulation_db.SCHEMA_COMMON
     values.appLongName = sc.appInfo[data.simulationType].longName
     values.appShortName = sc.appInfo[data.simulationType].shortName

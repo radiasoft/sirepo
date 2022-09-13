@@ -56,7 +56,7 @@ def begin(sreq):
 
     i = sreq.unchecked_header(_USER_AGENT_ID_HEADER)
     if not sreq.method_is_post():
-        yieldp
+        yield
         return
     if not i:
         i = _new_session()

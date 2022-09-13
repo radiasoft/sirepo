@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
+import flask
 import re
 import sirepo.api
 import sirepo.db_upgrade
@@ -177,7 +178,7 @@ class API(sirepo.api.Base):
         # SECURITY: We control the path of the file so using send_file is ok.
         return self.reply_file(
             sirepo.resource.static("img", "favicon.ico"),
-            mimetype="image/vnd.microsoft.icon",
+            content_type="image/vnd.microsoft.icon",
         )
 
     @sirepo.api.Spec("allow_visitor")
@@ -473,7 +474,7 @@ class API(sirepo.api.Base):
             _ROBOTS_TXT = "".join(
                 ["User-agent: *\n"] + ["Disallow: {}\n".format(x) for x in u],
             )
-        return flask.Response(_ROBOTS_TXT, mimetype="text/plain")
+        return self.reply(_ROBOTS_TXT, content_type="text/plain")
 
     @sirepo.api.Spec("allow_visitor", path_info="PathInfo")
     def api_root(self, path_info):
@@ -568,12 +569,12 @@ class API(sirepo.api.Base):
 
     @sirepo.api.Spec("allow_visitor", path_info="FilePath")
     def api_staticFile(self, path_info=None):
-        """flask.send_from_directory for static folder.
+        """Send file from static folder.
 
         Args:
             path_info (str): relative path to join
         Returns:
-            flask.Response: flask.send_from_directory response
+            Response: reply with file
         """
         if not path_info:
             sirepo.util.raise_not_found("empty path info")
@@ -581,7 +582,7 @@ class API(sirepo.api.Base):
         p = sirepo.resource.static(sirepo.util.safe_path(path_info))
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
             return self.headers_for_cache(
-                flask.make_response(
+                self.reply(
                     _google_tag_manager_re.sub(
                         _google_tag_manager,
                         pkio.read_text(p),
@@ -713,10 +714,6 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
 
     if _app:
         return
-    if is_server:
-        from sirepo import srcontext
-
-        srcontext.init_for_flask()
     global _google_tag_manager
     if cfg.google_tag_manager_id:
         _google_tag_manager = f"""<script>
@@ -741,7 +738,7 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
             p.append(x)
             p.append(f"{x}-schema.json")
         _PROXY_REACT_URIS = set(p)
-    uri_router.init(_app, simulation_db)
+    sirepo.uri_router.init(_app, simulation_db)
     if is_server:
         sirepo.db_upgrade.do_all()
         # Currently used for a special case in sirepo.util.in_flask_request. Do not use widely, because we should avoid server vs pkcli dependencies.

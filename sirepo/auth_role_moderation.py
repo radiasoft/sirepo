@@ -47,7 +47,7 @@ class API(sirepo.api.Base):
                         app_name=info.app_name,
                         display_name=info.display_name,
                         link=self.uri_for_app_root(
-                            sirepo.auth_role.sim_type(info.role)
+                            sirepo.auth_role.sim_type(info.role),
                         ),
                     ),
                 ),
@@ -93,7 +93,7 @@ class API(sirepo.api.Base):
             return res[0] if res else sorted(x)[0]
 
         raise sirepo.util.Redirect(
-            sirepo.uri.local_route(_type(), route_name="admRoles", external=True)
+            sirepo.uri.local_route(_type(), route_name="admRoles", absolute=True)
         )
 
     @sirepo.api.Spec("require_adm")
@@ -118,12 +118,11 @@ class API(sirepo.api.Base):
             )
 
         req = self.parse_post()
-        d = req.req_data
         u = sirepo.auth.logged_in_user()
-        r = sirepo.auth_role.for_sim_type(d.simulationType)
+        r = sirepo.auth_role.for_sim_type(req.type)
         with sirepo.util.THREAD_LOCK:
             if sirepo.auth_db.UserRole.has_role(u, r):
-                raise sirepo.util.Redirect(sirepo.uri.local_route(d.simulationType))
+                raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
             try:
                 sirepo.auth_db.UserRoleInvite(
                     uid=u,
@@ -143,15 +142,15 @@ class API(sirepo.api.Base):
                     f"You've already submitted a moderation request.",
                 )
 
-        l = sirepo.uri_router.uri_for_api("admModerateRedirect")
+        l = self.uri_for_api("admModerateRedirect")
         _send_request_email(
             PKDict(
                 display_name=sirepo.auth.user_display_name(u),
                 email_addr=sirepo.auth.user_name(),
                 link=l,
-                reason=d.reason,
-                role=sirepo.auth_role.for_sim_type(d.simulationType),
-                sim_type=d.simulationType,
+                reason=req.req_data.reason,
+                role=sirepo.auth_role.for_sim_type(req.type),
+                sim_type=req.type,
                 uid=u,
             ).pkupdate(self.user_agent_headers())
         )

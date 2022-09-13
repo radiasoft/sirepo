@@ -29,12 +29,15 @@ class Base(PKDict):
 
     def parse_params(self, **kwargs):
         return http_request.parse_post(
-            sapi,
+            self,
             PKDict(kwargs).pksetdefault(req_data=PKDict),
         )
 
     def parse_post(self, **kwargs):
         return http_request.parse_post(self, PKDict(kwargs))
+
+    def reply(self, *args, **kwargs):
+        return http_reply.gen_response(*args, **kwargs)
 
     def reply_as_proxy(self, response):
         r = http_reply.gen_response(response.content)
@@ -51,7 +54,7 @@ class Base(PKDict):
     def reply_file(self, path, content_type=None):
         import flask
 
-        return flask.send_file(str(path), content_type=content_type, conditional=True)
+        return flask.send_file(str(path), mimetype=content_type, conditional=True)
 
     def reply_html(self, path):
         return http_reply.render_html(path)
@@ -87,7 +90,23 @@ class Base(PKDict):
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
-    def uri_for_app_root(self, sim_type, absolute=True):
+    def uri_for_api(self, api_name, params=None, absolute=True):
+        """Generate uri for api method
+
+        Args:
+            api_name (str): full name of api
+            params (PKDict): paramters to pass to uri
+            absolute (bool): if True, make the uri absolute [True]
+        Returns:
+            str: formmatted absolute URI
+        """
+        return uri_router.uri_for_api(
+            api_name=api_name,
+            params=params,
+            absolute=absolute,
+        )
+
+    def uri_for_app_root(self, sim_type=None, absolute=True):
         """Return absolute uri for sim_type
 
         Args:
@@ -99,7 +118,7 @@ class Base(PKDict):
 
         from sirepo import uri
 
-        return uri.app_root(sim_type, external=absolute)
+        return uri.app_root(sim_type=sim_type, absolute=absolute)
 
     def user_agent_headers(self):
         return http_request.user_agent_headers(self.sreq)
