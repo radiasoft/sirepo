@@ -285,26 +285,6 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
 
     };
 
-    self.dataFilePath = function(model, filename) {
-        if (! appState.isLoaded()) {
-            return '';
-        }
-        
-        requestSender.sendStatelessCompute(
-            appState,
-            (data) => {
-                srdbg("dataFilePath: ", data.html);
-                appState.models.elegantLogHTML = data.html
-            },
-            {
-                method: 'log_to_html',
-                model: model,
-                filename: filename,
-                simulationId: appState.models.simulation.simulationId
-            });
-        
-    };
-
     self.findFirstCommand = function(types, commands) {
         if (! commands) {
             if (! appState.isLoaded()) {
@@ -640,13 +620,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     self.logFileURL = function() {
         return elegantService.dataFileURL(self.simState.model, -1);
-    };
-
-    self.logFilePath = function() {
-        elegantService.dataFilePath(self.simState.model, 'elegant.log');
-        srdbg("appstate", appState.models.simulationStatus.animation.computeModel);
-        srdbg("simState", self.simState.model);
-        return appState.models.elegantLogHTML;
     };
 
     self.runningStatusText = function() {
@@ -1478,13 +1451,9 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
         scope: {
 
         },
+        // TODO: At error case for when log cannot be found, edit case below
         template: `
             <div class="well well-lg">
-                <div data-ng-if="visualization.simulationAlerts">
-                  <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
-                  <p class="elegant-error-box">{{ visualization.simulationAlerts }}</p>
-                  <br>
-                </div>
                 <a href data-ng-click="viewLog()">Look At Log</a>
             </div>
 
@@ -1507,32 +1476,36 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
         `,
         controller: function(appState, requestSender, $scope) {
 
-            //function setIFrameHTML(html) {
-                //$('#sr-text-iframe').contents().find('html').html(html);
-            //}
+            function setIFrameHTML(html) {
+                $('#sr-text-iframe').contents().find('html').html(html);
+            }
 
             $scope.viewLog = function(model, filename) {
                 if (! appState.isLoaded()) {
                     return '';
                 }
 
-                //$('#sr-iframe-text-view').modal('show');
-                //setIFrameHTML('<div style="text-align: center; padding: 1em">Loading Log</div>');
+                setIFrameHTML('<div style="text-align: center; padding: 1em">Loading Log</div>');
+                $('#sr-iframe-text-view').modal('show');
 
+                srdbg("before");
                 requestSender.sendStatelessCompute(
                     appState,
                     (data) => {
                         srdbg("dataFilePath: ", data.html);
+                        srdbg("appState: ", appState);
                         appState.models.modelLog = data.html;
-                        srdbg("form app state: ", appState.models.modelLog);
+                        srdbg("from app state: ", appState.models.modelLog);
                     },
                     {
                         model: appState.models.simulationStatus.animation.computeModel,
                         filename: 'elegant.log',
                         simulationId: appState.models.simulation.simulationId
                     });
+                srdbg("after");
                 
-                //setIFrameHTML(appState.models.modelLog)
+                setIFrameHTML(appState.models.modelLog);
+                srdbg("appState: ", appState);
             };
         },
     };

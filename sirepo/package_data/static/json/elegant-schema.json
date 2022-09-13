@@ -494,13 +494,6 @@
         }
     },
     "model": {
-        "problemFiles": {
-            "archive": ["ZIP Archive", "InputFile", "", "ZIP archive containing files for a FLASH problem (Config, Makefile, F90)."],
-            "archiveFiles": ["", "ArchiveFileArray"],
-            "flashExampleName": ["", "OptionalString", ""],
-            "initialParFile": ["", "OptionalString", ""],
-            "archiveLibId": ["", "OptionalString", ""]
-        },
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
@@ -4519,14 +4512,6 @@
         "importText": "Import an elegant command (.ele) or lattice (.lte or .madx) file"
     },
     "view": {
-        "problemFiles": {
-            "title": "Problem Files",
-            "basic": [
-                "archive",
-                "archiveFiles"
-            ],
-            "advanced": []
-        },
         "beamlineReport": {
             "title": "Lattice",
             "hasDataFile": false,

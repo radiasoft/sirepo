@@ -1456,20 +1456,7 @@ def _sdds_init():
     _x = getattr(_s, "SDDS_LONGDOUBLE", None)
     _SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
     _SDDS_STRING_TYPE = _s.SDDS_STRING
-
-"""
-def _generate_html(t):
-    return PKDict(
-        html=pygments.highlight(
-            t,
-            pygments.lexers.get_lexer_by_name("text"),
-            pygments.formatters.HtmlFormatter(
-                noclasses=True,
-                linenos="inline" if t == "fortran" else False,
-            ),
-        ),
-    )
-"""
+    
 
 def stateless_compute_log_to_html(data):
     #return PKDict(test=_SIM_DATA)
