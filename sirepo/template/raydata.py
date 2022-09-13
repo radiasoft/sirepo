@@ -113,7 +113,7 @@ def stateless_compute_catalog_names(data):
 def stateless_compute_scans(data):
     # TODO(e-carlin): get scans from daemon
     l = []
-    if data.scansStatus == 'completed_scans':
+    if data.scansStatus == "completed_scans":
         assert data.searchStartTime and data.searchStopTime, pkdformat(
             "must have both searchStartTime and searchStopTime data={}", data
         )
@@ -122,7 +122,7 @@ def stateless_compute_scans(data):
             ("uid2", ScanObject("uid2")),
             ("uid3", ScanObject("uid3")),
         ]
-    elif data.scansStatus == 'queued_scans':
+    elif data.scansStatus == "queued_scans":
         l = [
             ("uid4", ScanObject("uid4")),
             ("uid5", ScanObject("uid5")),
