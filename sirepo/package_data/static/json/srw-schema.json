@@ -513,7 +513,7 @@
         "coherentModesAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 32],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
@@ -836,7 +836,7 @@
         "multiElectronAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 32],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],

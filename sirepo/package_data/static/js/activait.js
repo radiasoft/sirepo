@@ -1501,7 +1501,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                   <tr>
                     <td>
                       <b>Add Layer</b>
-                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
+                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>
                     </td>
                     <td colspan="100%"></td>
                     <td colspan="100%"></td>
@@ -1638,25 +1638,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.form.$setDirty();
             };
 
-            $scope.options = layerEnum => {
-                if (mlService.devMode) {
-                    return layerEnum;
-                }
-                const unSupportedLayers = [
-                    // 'Add',
-                    // 'Concatenate',
-                    'AveragePooling2D',
-                    // 'Conv2D',
-                    'Conv2DTranspose',
-                    'GlobalAveragePooling2D',
-                    'MaxPooling2D',
-                    'SeparableConv2D',
-                    'UpSampling2D',
-                    'ZeroPadding2D'
-                ];
-                return layerEnum.filter(x => !unSupportedLayers.includes(x[0]));
-            };
-
             $scope.outputColCount = function() {
                 if (! appState.isLoaded()) {
                     return '';
@@ -1686,16 +1667,12 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     ];
                     const layerSchema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
                     if (layerSchema) {
-                        Object.keys(layerSchema)
-                            .sort()
-                            .reverse()
-                            .filter(f => f !== '_super' && f !== 'layer')
-                            .forEach(function(field) {
-                                cols.push({
-                                    field: field,
-                                    label: layerSchema[field][0],
-                                });
-                        });
+                        for (const f of SIREPO.APP_SCHEMA.view[stringsService.lcfirst(name)].columns) {
+                            cols.push({
+                                field: f,
+                                label: layerSchema[f][0],
+                            });
+                        }
                     }
                     layerFields[name] = cols;
                 });

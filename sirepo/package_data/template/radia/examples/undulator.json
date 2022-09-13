@@ -4,7 +4,12 @@
             "colorMap": "viridis",
             "scaling": "linear"
         },
-        "fieldLineoutReport": {
+        "electronTrajectoryReport": {
+            "finalBeamPosition": 150,
+            "initialAngles": "0.0, 0.0",
+            "initialPosition": "0.0, -150, 0"
+        },
+        "fieldLineoutAnimation": {
             "plotAxis": "y"
         },
         "fieldPaths": {

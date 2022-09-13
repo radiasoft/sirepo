@@ -271,7 +271,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
               data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope, $element) {
-            const isGeometryOnly = $scope.modelName == 'geometry3DReport';
+            const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.isClientOnly = isGeometryOnly;
             let axesBoxes = {};
             let basePolyData = null;
@@ -289,7 +289,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     new SIREPO.GEOMETRY.SquareMatrix([[scale, 0, 0], [0, scale, 0], [0, 0, scale]])
                 )
             );
-            const watchFields = [`{$scope.modelName}.bgColor`, `{$scope.modelName}.showEdges`];
+            const watchFields = [`${$scope.modelName}.bgColor`, `${$scope.modelName}.showEdges`];
+            const clientOnlyFields = ['voxels.colorMap'].concat(watchFields);
             const voxelPoly = [
                 [0, 1, 2, 3],
                 [4, 5, 6, 7],
@@ -640,6 +641,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     });
             }
 
+            $scope.onlyClientFieldsChanged = false;
+
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
                 vtkScene = null;
@@ -651,6 +654,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             $scope.load = json => {
                 if (vtkScene) {
+                    $rootScope.$broadcast('vtk.showLoader');
                     addTally(json.content, model().aspect);
                 }
                 else {
@@ -675,6 +679,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     margin: '0 auto',
                 };
             };
+
+            $scope.$on('fieldsChanged', function(e, modelFields) {
+                $scope.onlyClientFieldsChanged = modelFields && modelFields.every(x => clientOnlyFields.includes(x));
+            });
 
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
@@ -727,8 +735,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             });
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
-
-            appState.watchModelFields($scope, ['voxels.voxelInsetPct'], buildVoxels);
 
             appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
 

@@ -98,14 +98,21 @@ def sim_frame(frame_args):
         t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
-    t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
-        filename=f,
-        datasets={
-            frame_args.aspect: getattr(t, frame_args.aspect)[
-                :, :, t.get_score_index(frame_args.score)
-            ],
-        },
-    )
+    try:
+        t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
+            filename=f,
+            datasets={
+                frame_args.aspect: getattr(t, frame_args.aspect)[
+                    :, :, t.get_score_index(frame_args.score)
+                ],
+            },
+        )
+    except RuntimeError as e:
+        if re.search(r"should be equal to the number of cells", str(e)):
+            return PKDict(
+                error=f"Tally {frame_args.tally} contains a Mesh and another multi-binned Filter"
+            )
+        raise
     return PKDict(
         content=_grid_to_poly(f),
     )
@@ -153,7 +160,7 @@ def _generate_angle(angle):
     elif angle._type == "monodirectional":
         args.append(_generate_array(angle.reference_uvw))
     elif angle._type == "polarAzimuthal":
-        args += [_generate_angleribution(angle[v] for v in ["mu", "phi"])]
+        args += [_generate_distribution(angle[v]) for v in ["mu", "phi"]]
         args.append(_generate_array(angle.reference_uvw))
     else:
         raise AssertionError("unknown angle type: {}".format(angle._type))
@@ -270,6 +277,15 @@ def _generate_parameters_file(data):
     )
 
 
+def _generate_range(filter):
+    return "numpy.{}({}, {}, {})".format(
+        "linspace" if filter.space == "linear" else "logspace",
+        filter.start,
+        filter.stop,
+        filter.num,
+    )
+
+
 def _generate_source(source):
     return f"""openmc.Source(
     space={_generate_space(source.space)},
@@ -330,11 +346,6 @@ tallies.export_to_xml()
 """
     )
 
-    # TODO(pjm): implement these filters
-    # ["energyFilter", "EnergyFilter"],
-    # ["energyoutFilter", "EnergyoutFilter"],
-    # ["particleFilter", "ParticleFilter"]
-
 
 def _generate_tally(tally, volumes):
     has_mesh = False
@@ -365,6 +376,18 @@ t{tally._index + 1}.filters = ["""
         elif f._type == "meshFilter":
             res += f"""
     openmc.MeshFilter(m),
+"""
+        elif f._type == "energyFilter":
+            res += f"""
+    openmc.EnergyFilter({_generate_range(f)}),
+"""
+        elif f._type == "energyoutFilter":
+            res += f"""
+    openmc.EnergyoutFilter({_generate_range(f)}),
+"""
+        elif f._type == "particleFilter":
+            res += f"""
+    openmc.ParticleFilter([{'"' + '","'.join(v.value for v in f.bins) + '"'}]),
 """
         else:
             raise AssertionError("filter not yet implemented: {}".format(f._type))
