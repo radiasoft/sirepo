@@ -5,55 +5,32 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 # Limit imports
+from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 import contextlib
+import sirepo.events
 import sirepo.util
 
-_self = _Base()
+_FLASK_G_SR_CONTEXT_KEY = "srcontext"
 
-def singleton():
-    """Shared context
+_non_threaded_context = None
 
-    Returns:
-        object: global context instance
+
+@contextlib.contextmanager
+def create():
+    """Create an srcontext approprieate for our current state (flask or not)
+
+    It is possible to have both _non_threaded_context and flask.g set
+    (ex in tests).
     """
-    return _self
-
-
-def init_for_flask():
-    global _self
-    if not _self:
-        _self = _FlaskContext()
-
-
-class _Async(PKDict):
-    def __enter(self):
-        # could assert items
-        return None
-
-    def __exit__(self):
-        self.clear()
-        return False
-
-
-class _Flask:
-    def __enter(self):
-        assert not flask.g.get(
-            _FLASK_G_SR_CONTEXT_KEY
-        ), f"existing srcontext on flask.g={flask.g}"
-        flask.g.setdefault(_FLASK_G_SR_CONTEXT_KEY, PKDict())
-        return None
-
-    def __exit__(self, *args, **kwargs):
-        return False
-
-    def get
-
-    if sirepo.util.in_flask_request():
-        return _self
-    return
     try:
-            _flask_push()
+        if sirepo.util.in_flask_request():
+            import flask
+
+            assert not flask.g.get(
+                _FLASK_G_SR_CONTEXT_KEY
+            ), f"existing srcontext on flask.g={flask.g}"
+            flask.g.setdefault(_FLASK_G_SR_CONTEXT_KEY, PKDict())
         else:
             global _non_threaded_context
             assert (
@@ -63,11 +40,12 @@ class _Flask:
         yield _context()
     finally:
         if sirepo.util.in_flask_request():
-            _flask_pop()
+            import flask
+
+            c = flask.g.pop(_FLASK_G_SR_CONTEXT_KEY)
         else:
             c = _non_threaded_context
             _non_threaded_context = None
-
 
 
 def get(key, default=None):
@@ -88,7 +66,6 @@ def setdefault(key, default=None):
 
 def _context():
     if sirepo.util.in_flask_request():
-        return _FlaskContext()
         import flask
 
         c = flask.g.get(_FLASK_G_SR_CONTEXT_KEY)
@@ -99,14 +76,3 @@ def _context():
     if c is None:
         raise AssertionError("no _non_threaded_context")
     return c
-
-
-def _flask_push():
-    import flask
-
-
-
-def _flask_pop():
-    import flask
-
-    c = flask.g.pop(_FLASK_G_SR_CONTEXT_KEY)
