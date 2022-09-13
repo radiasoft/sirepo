@@ -7,7 +7,10 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import email.utils
+import pykern.pkcompat
 import sirepo.util
+import user_agents
+
 
 _POST_ATTR = "sirepo_http_request_post"
 
@@ -25,6 +28,17 @@ class Base(PKDict):
 
     def content_type_eq(self, value):
         return self.__content_type()._key.lower() == value.lower()
+
+    def is_spider(self):
+        a = self.unchecked_header("User-Agent")
+        if not a:
+            # assume it's a spider if there's no header
+            return True
+        if "python-requests" in a:
+            # user_agents doesn't see Python's requests module as a bot.
+            # The package robot_detection does see it, but we don't want to introduce another dependency.
+            return True
+        return user_agents.parse(a).is_bot
 
     def method_is_post(self):
         return self.method == "POST"
@@ -110,7 +124,7 @@ class Base(PKDict):
             if i >= 0:
                 name = p[:i].strip().lower()
                 value = p[i + 1 :].strip()
-                params.append((name, native_str(value)))
+                params.append((name, value))
         decoded_params = email.utils.decode_params(params)
         decoded_params.pop(0)  # get rid of the dummy again
         pdict = {}

@@ -4,6 +4,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
+import dns.resolver
+import dns.reversename
+import sirepo.api_perm
 
 
 class Base(PKDict):
@@ -121,7 +124,31 @@ class Base(PKDict):
         return uri.app_root(sim_type=sim_type, absolute=absolute)
 
     def user_agent_headers(self):
-        return http_request.user_agent_headers(self.sreq)
+        def _dns_reverse_lookup(ip):
+            try:
+                if ip:
+                    return ", ".join(
+                        [
+                            str(i)
+                            for i in dns.resolver.resolve(
+                                dns.reversename.from_address(ip), "PTR"
+                            ).rrset.items
+                        ]
+                    )
+            # 127.0.0.1 is not reverse mapped, resulting in dns.resolver.NoNameservers exception
+            except (
+                dns.resolver.NoAnswer,
+                dns.resolver.NXDOMAIN,
+                dns.resolver.NoNameservers,
+            ):
+                pass
+            return "No Reverse DNS Lookup"
+
+        return PKDict(
+            ip_addr=self.sreq.remote_addr,
+            domain_name=_dns_reverse_lookup(self.sreq.remote_addr),
+            user_agent=self.sreq.unchecked_header("User-Agent"),
+        )
 
 
 class Spec:
@@ -130,8 +157,6 @@ class Spec:
         self.kwargs = PKDict(kwargs)
 
     def __call__(self, func):
-        import sirepo.api_perm
-
         def _wrapper(*args, **kwargs):
             return self.func(*args, **kwargs)
 

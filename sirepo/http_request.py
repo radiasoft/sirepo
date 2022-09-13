@@ -10,22 +10,10 @@ import sirepo.sim_data
 import sirepo.srschema
 import sirepo.template
 import sirepo.util
-import user_agents
 
 
 def init(**imports):
     sirepo.util.setattr_imports(imports)
-
-
-def is_spider():
-    import flask
-
-    a = flask.request.headers.get("User-Agent")
-    if "python-requests" in a:
-        # user_agents doesn't see Python's requests module as a bot.
-        # The package robot_detection does see it, but we don't want to introduce another dependency.
-        return True
-    return user_agents.parse(a).is_bot
 
 
 def parse_json(sapi):
@@ -74,7 +62,7 @@ def parse_post(sapi, kwargs):
     res = PKDict()
     r = kwargs.pkdel("req_data")
     if r is None:
-        r = parse_json()
+        r = parse_json(sapi)
     if kwargs.pkdel("fixup_old_data"):
         r = simulation_db.fixup_old_data(r)[0]
     res.pkupdate(req_data=r)
@@ -122,34 +110,3 @@ def parse_post(sapi, kwargs):
         sirepo.util.raise_not_found("type={} sid={} does not exist", res.type, res.id)
     assert not kwargs, "unexpected kwargs={}".format(kwargs)
     return res
-
-
-def user_agent_headers(sreq):
-    def _dns_reverse_lookup(ip):
-        import dns.resolver
-        import dns.reversename
-
-        try:
-            if ip:
-                return ", ".join(
-                    [
-                        str(i)
-                        for i in dns.resolver.resolve(
-                            dns.reversename.from_address(ip), "PTR"
-                        ).rrset.items
-                    ]
-                )
-        # 127.0.0.1 is not reverse mapped, resulting in dns.resolver.NoNameservers exception
-        except (
-            dns.resolver.NoAnswer,
-            dns.resolver.NXDOMAIN,
-            dns.resolver.NoNameservers,
-        ):
-            pass
-        return "No Reverse DNS Lookup"
-
-    return PKDict(
-        ip_addr=sreq.remote_addr,
-        domain_name=_dns_reverse_lookup(sreq.remote_addr),
-        user_agent=sreq.headers.get("User-Agent"),
-    )

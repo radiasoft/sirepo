@@ -47,7 +47,7 @@ def has_sentinel():
 
 @contextlib.contextmanager
 def process_header(sreq=None, unit_test=None):
-    with _set_state(unit_test or sreq.unchecked_header("HTTP-Cookie")):
+    with _set_state(unit_test or sreq.unchecked_header("Cookie")):
         yield
 
 
