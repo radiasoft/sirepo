@@ -928,7 +928,7 @@
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 32],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchCores": ["Cores", "Integer", 1],
