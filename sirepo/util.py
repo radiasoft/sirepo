@@ -163,6 +163,19 @@ class WWWAuthenticate(Reply):
         super().__init__(PKDict(), *args, **kwargs)
 
 
+def assert_sim_type(sim_type):
+    """Validate simulation type
+
+    Args:
+        sim_type (str): to check
+
+    Returns:
+        str: validated sim_type
+    """
+    assert is_sim_type(sim_type), f"invalid simulation type={sim_type}"
+    return sim_type
+
+
 def convert_exception(exception, display_text="unexpected error"):
     """Convert exception so can be raised
 
@@ -292,6 +305,20 @@ def in_flask_request():
 
 def is_python_identifier(name):
     return _VALID_PYTHON_IDENTIFIER.search(name)
+
+
+def is_sim_type(sim_type):
+    """Validate simulation type
+
+    Args:
+        sim_type (str): to check
+
+    Returns:
+        bool: true if is a sim_type
+    """
+    from sirepo import feature_config
+
+    return sim_type in feature_config.cfg().sim_types
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):

@@ -56,8 +56,7 @@ def local_route(sim_type, route_name=None, params=None, query=None, external=Fal
     Returns:
         str: formatted URI
     """
-    t = http_request.sim_type(sim_type)
-    s = simulation_db.get_schema(t)
+    s = simulation_db.get_schema(sim_type)
     if not route_name:
         route_name = default_local_route_name(s)
     parts = s.localRoutes[route_name].route.split("/:")

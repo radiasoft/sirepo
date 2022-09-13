@@ -25,13 +25,16 @@ class Base(PKDict):
         return http_reply.headers_for_no_cache(resp)
 
     def parse_json(self):
-        return http_request.parse_json()
+        return http_request.parse_json(sapi)
 
     def parse_params(self, **kwargs):
-        return http_request.parse_params(**kwargs)
+        return http_request.parse_post(
+            sapi,
+            PKDict(kwargs).pksetdefault(req_data=PKDict),
+        )
 
     def parse_post(self, **kwargs):
-        return http_request.parse_post(**kwargs)
+        return http_request.parse_post(self, PKDict(kwargs))
 
     def reply_as_proxy(self, response):
         r = http_reply.gen_response(response.content)
@@ -65,10 +68,20 @@ class Base(PKDict):
         return http_reply.gen_redirect(uri)
 
     def reply_redirect_for_local_route(
-        self, sim_type=None, route=None, params=None, query=None, **kwargs
+        self,
+        sim_type=None,
+        route=None,
+        params=None,
+        query=None,
+        **kwargs,
     ):
         return http_reply.gen_redirect_for_local_route(
-            sim_type=sim_type, route=route, params=params, query=query, **kwargs
+            self.sreq,
+            sim_type=sim_type,
+            route=route,
+            params=params,
+            query=query,
+            **kwargs,
         )
 
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):

@@ -22,7 +22,6 @@ import sirepo.http_reply
 import sirepo.http_request
 import sirepo.request
 import sirepo.sim_api
-import sirepo.srcontext
 import sirepo.uri
 import sirepo.util
 
@@ -79,7 +78,7 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
         sreq (sirepo.request.Base): request object
         route_or_name (object): api function or name (without `api_` prefix)
         kwargs (dict): to be passed to API [None]
-        data (dict): will be returned `http_request.parse_json`
+        data (dict): will be returned `sreq.parse_json`
     Returns:
         flask.Response: result
     """
@@ -88,25 +87,25 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
 
     p = None
     s = None
-    with _set_api_attr(route_or_name):
+    with _set_api_attr(sreq, route_or_name):
         try:
             # must be first so exceptions have access to sim_type
             if kwargs:
                 # Any (GET) uri will have simulation_type in uri if it is application
                 # specific.
-                s = sirepo.http_request.set_sim_type(kwargs.get("simulation_type"))
+                s = sreq.set_sim_type(kwargs.get("simulation_type"))
             else:
                 kwargs = PKDict()
             f = _check_api_call(route_or_name)
             try:
-                if data:
-                    p = sirepo.http_request.set_post(data)
+                if data is not None:
+                    p = sreq.set_post(data)
                 r = flask.make_response(
                     getattr(f.cls(sreq=sreq), f.func_name)(**kwargs)
                 )
             finally:
                 if data:
-                    sirepo.http_request.set_post(p)
+                    sreq.set_post(p)
         except Exception as e:
             if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
                 pkdc("api={} exception={} stack={}", route_or_name, e, pkdexc())
@@ -116,7 +115,7 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
         finally:
             # http_request tries to keep a valid sim_type so
             # this is ok to call (even if s is None)
-            sirepo.http_request.set_sim_type(s)
+            sreq.set_sim_type(s)
         sirepo.cookie.save_to_cookie(r)
         sirepo.events.emit("end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
@@ -174,8 +173,8 @@ def init(app, simulation_db):
     sirepo.session.init()
 
 
-def maybe_sim_type_required_for_api():
-    a = sirepo.srcontext.get(_API_ATTR)
+def maybe_sim_type_required_for_api(sapi):
+    a = sapi.sreq.get(_API_ATTR)
     if not a:
         return True
     return sirepo.api_auth.maybe_sim_type_required_for_api(a.func)
@@ -312,6 +311,7 @@ def _dispatch(path):
         headers=flask.request.headers,
         method=flask.request.method,
         remote_addr=flask.request.remote_addr,
+        _internal_req=flask.request,
     )
     with sirepo.auth.process_request(sreq):
         try:
@@ -408,12 +408,12 @@ def _register_sim_oauth_modules(oauth_sim_types):
 
 @contextlib.contextmanager
 def _set_api_attr(route_or_name):
-    a = sirepo.srcontext.get(_API_ATTR)
+    a = sapi.get(_API_ATTR)
     try:
-        sirepo.srcontext.set(_API_ATTR, route_or_name)
+        sapi[_API_ATTR] = route_or_name
         yield
     finally:
-        sirepo.srcontext.set(_API_ATTR, a)
+        sapi[_API_ATTR] = a
 
 
 def _split_uri(uri):

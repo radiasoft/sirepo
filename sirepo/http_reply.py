@@ -163,7 +163,12 @@ def gen_redirect_for_anchor(uri, **kwargs):
 
 
 def gen_redirect_for_local_route(
-    sim_type=None, route=None, params=None, query=None, **kwargs
+    sreq,
+    sim_type=None,
+    route=None,
+    params=None,
+    query=None,
+    **kwargs,
 ):
     """Generate a javascript redirect to sim_type/route/params
 
@@ -171,7 +176,8 @@ def gen_redirect_for_local_route(
     application_mode/appMode.
 
     Args:
-        sim_type (str): how to find the schema [http_request.sim_type]
+        sreq (sirepo.request.Base): request object
+        sim_type (str): how to find the schema [sreq.sim_type]
         route (str): name in localRoutes [None: use default route]
         params (dict): parameters for route (including :Name)
 
@@ -179,7 +185,8 @@ def gen_redirect_for_local_route(
         Response: reply object
     """
     return gen_redirect_for_anchor(
-        sirepo.uri.local_route(sim_type, route, params, query), **kwargs
+        sirepo.uri.local_route(sreq, sim_type, route, params, query),
+        **kwargs,
     )
 
 
@@ -285,7 +292,7 @@ def _gen_exception_error(sreq, exc):
             mimetype=MIME_TYPE.html,
             status=500,
         )
-    return gen_redirect_for_local_route(None, route="error")
+    return gen_redirect_for_local_route(sreq, None, route="error")
 
 
 def _gen_exception_reply(sreq, exc):
@@ -302,7 +309,7 @@ def _gen_exception_reply(sreq, exc):
 
 def _gen_exception_reply_Error(sreq, args):
     try:
-        t = sirepo.http_request.sim_type(args.pkdel("sim_type"))
+        t = sreq.sim_type(args.pkdel("sim_type"))
         s = simulation_db.get_schema(sim_type=t)
     except Exception:
         # sim_type is bad so don't cascade errors, just
@@ -320,7 +327,7 @@ def _gen_exception_reply_Error(sreq, args):
             pkdlog('error in "error" query {}={} exception={}', k, v, e)
             continue
         q[k] = v
-    return gen_redirect_for_local_route(t, route="error", query=q)
+    return gen_redirect_for_local_route(sreq, t, route="error", query=q)
 
 
 def _gen_exception_reply_Redirect(sreq, args):
@@ -339,7 +346,7 @@ def _gen_exception_reply_SRException(sreq, args):
     r = args.routeName
     p = args.params or PKDict()
     try:
-        t = sirepo.http_request.sim_type(p.pkdel("sim_type"))
+        t = sreq.sim_type(p.pkdel("sim_type"))
         s = simulation_db.get_schema(sim_type=t)
     except Exception as e:
         pkdc("exception={} stack={}", e, pkdexc())
@@ -372,6 +379,7 @@ def _gen_exception_reply_SRException(sreq, args):
         )
     pkdc("redirect to route={} params={}  type={}", r, p, t)
     return gen_redirect_for_local_route(
+        sreq,
         t,
         route=r,
         params=p,

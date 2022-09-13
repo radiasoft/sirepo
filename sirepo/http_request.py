@@ -13,10 +13,6 @@ import sirepo.template
 import sirepo.util
 import user_agents
 
-_SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
-
-_POST_ATTR = "sirepo_http_request_post"
-
 
 def init(**imports):
     sirepo.util.setattr_imports(imports)
@@ -33,17 +29,14 @@ def is_spider():
     return user_agents.parse(a).is_bot
 
 
-def parse_json():
-    import flask
-
-    d = set_post()
+def parse_json(sapi):
+    d = sapi.sreq.set_post()
     if d:
         return d
-    req = flask.request
-    if req.mimetype != "application/json":
+    if not sapi.sreq.content_type_eq("application/json"):
         sirepo.util.raise_bad_request(
             "content-type is not application/json: mimetype={}",
-            req.mimetype,
+            sapi.sreq.unchecked_header("Content-Type"),
         )
     # Adapted from flask.wrappers.Request.get_json
     # We accept a request charset against the specification as
@@ -51,16 +44,12 @@ def parse_json():
     # fits our general approach of being nice in what we accept
     # and strict in what we send out.
     return simulation_db.json_load(
-        req.get_data(cache=False),
-        encoding=req.mimetype_params.get("charset"),
+        sapi.sreq.body_as_bytes(),
+        encoding=sapi.sreq.content_type_encoding(),
     )
 
 
-def parse_params(**kwargs):
-    return parse_post(req_data=PKDict(), **kwargs)
-
-
-def parse_post(**kwargs):
+def parse_post(sapi, kwargs):
     """Parse a post augmented by inline args
 
     Arguments are either `bool` or another `object`.
@@ -84,7 +73,6 @@ def parse_post(**kwargs):
         PKDict: with arg names set to parsed values
     """
     res = PKDict()
-    kwargs = PKDict(kwargs)
     r = kwargs.pkdel("req_data")
     if r is None:
         r = parse_json()
@@ -97,9 +85,8 @@ def parse_post(**kwargs):
         from sirepo import auth
 
         assert not isinstance(v, bool), "missing type in params/post={}".format(kwargs)
-        auth.check_sim_type_role(v)
-        # Do this in order to maintain explicit coupling of _SIM_TYPE_ATTR
-        set_sim_type(v)
+        auth.check_sim_type_role(sapi, v)
+        sapi.sreq.set_sim_type(sreq, v)
         res.sim_data = sirepo.sim_data.get_class(v)
         return v
 
@@ -136,38 +123,6 @@ def parse_post(**kwargs):
         sirepo.util.raise_not_found("type={} sid={} does not exist", res.type, res.id)
     assert not kwargs, "unexpected kwargs={}".format(kwargs)
     return res
-
-
-def set_post(data=None):
-    """Interface for uri_router"""
-    # Always remove data (if there)
-    res = sirepo.srcontext.pop(_POST_ATTR, None)
-    if data is not None:
-        sirepo.srcontext.set(_POST_ATTR, data)
-    return res
-
-
-def set_sim_type(sim_type):
-    """Interface for uri_router"""
-    if not sirepo.template.is_sim_type(sim_type):
-        # Don't change sim_type unless we have a valid one
-        return None
-    res = sirepo.srcontext.pop(_SIM_TYPE_ATTR, None)
-    sirepo.srcontext.setdefault(_SIM_TYPE_ATTR, sim_type)
-    return res
-
-
-def sim_type(value=None):
-    """Return value or request's sim_type
-
-    Args:
-        value (str): will be validated if not None
-    Returns:
-        str: sim_type or possibly None
-    """
-    if value:
-        return sirepo.template.assert_sim_type(value)
-    return sirepo.srcontext.get(_SIM_TYPE_ATTR)
 
 
 def user_agent_headers(sreq):

@@ -431,7 +431,9 @@ def session():
     init()
     with sirepo.srcontext.singleton():
         try:
-            sirepo.srcontext.set(_SRCONTEXT_SESSION_KEY, sqlalchemy.orm.Session(bind=_engine))
+            sirepo.srcontext.set(
+                _SRCONTEXT_SESSION_KEY, sqlalchemy.orm.Session(bind=_engine)
+            )
             yield
         finally:
             sirepo.srcontext.pop(_SRCONTEXT_SESSION_KEY).rollback()
@@ -443,12 +445,6 @@ def session_and_lock():
     # git.radiasoft.org/sirepo/issues/3516
     with session():
         yield
-
-
-def _create_session():
-
-
-def _destroy_session(context):
 
 
 def _migrate_db_file(fn):
