@@ -33,6 +33,17 @@ _OUTPUT_FILE = "out.ipynb"
 
 _BLUESKY_POLL_TIME_FILE = "bluesky-poll-time.txt"
 
+# TODO(rorour): replace with actual scans
+class ScanObject(PKDict):
+    def __init__(self, uid=""):
+        self.uid = uid
+        self.metadata = {
+            "field1": "val1",
+            "num_points": "1",
+            "start": {"time": "000", "uid": uid, "num_points": "2"},
+            "stop": {"time": "001"},
+        }
+
 
 def analysis_job_output_files(data):
     def _filename_and_image(path):
@@ -91,7 +102,7 @@ def catalog(scans_data_or_catalog_name):
     ]
 
 
-def stateless_compute_all_catalogs(data):
+def stateless_compute_catalog_names(data):
     return PKDict(
         data=PKDict(
             catalogs=[str(s) for s in databroker.catalog.keys()],
@@ -99,44 +110,27 @@ def stateless_compute_all_catalogs(data):
     )
 
 
-class ScanObject(PKDict):
-    def __init__(self, uid=""):
-        self.uid = uid
-        self.metadata = {
-            "field1": "val1",
-            "num_points": "1",
-            "start": {"time": "000", "uid": uid, "num_points": "2"},
-            "stop": {"time": "001"},
-        }
-
-
-def stateless_compute_completed_scans(data):
+def stateless_compute_scans(data):
     # TODO(e-carlin): get scans from daemon
-    s = []
-    for i, v in enumerate(
-        [
+    l = []
+    if data.scansStatus == 'completed_scans':
+        assert data.searchStartTime and data.searchStopTime, pkdformat(
+            "must have both searchStartTime and searchStopTime data={}", data
+        )
+        l = [
             ("uid1", ScanObject("uid1")),
             ("uid2", ScanObject("uid2")),
             ("uid3", ScanObject("uid3")),
         ]
-    ):
-        if i > _MAX_NUM_SCANS:
-            raise sirepo.util.UserAlert(
-                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
-            )
-        s.append(_scan_info(v[0], data, metadata=v[1].metadata))
-    return _scan_info_result(s)
-
-
-def stateless_compute_queued_scans(data):
-    s = []
-    for i, v in enumerate(
-        [
+    elif data.scansStatus == 'queued_scans':
+        l = [
             ("uid4", ScanObject("uid4")),
             ("uid5", ScanObject("uid5")),
             ("uid6", ScanObject("uid6")),
         ]
-    ):
+
+    s = []
+    for i, v in enumerate(l):
         if i > _MAX_NUM_SCANS:
             raise sirepo.util.UserAlert(
                 f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
@@ -151,30 +145,6 @@ def stateless_compute_scan_fields(data):
 
 def stateless_compute_scan_info(data):
     return _scan_info_result([_scan_info(s, data) for s in data.scans])
-
-
-def stateless_compute_scans(data):
-    assert data.searchStartTime and data.searchStopTime, pkdformat(
-        "must have both searchStartTime and searchStopTime data={}", data
-    )
-    s = []
-    for i, v in enumerate(
-        catalog(data)
-        .search(
-            databroker.queries.TimeRange(
-                since=data.searchStartTime,
-                until=data.searchStopTime,
-                timezone="utc",
-            )
-        )
-        .items()
-    ):
-        if i > _MAX_NUM_SCANS:
-            raise sirepo.util.UserAlert(
-                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
-            )
-        s.append(_scan_info(v[0], data, metadata=v[1].metadata))
-    return _scan_info_result(s)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -239,7 +209,7 @@ def _scan_info(scan_uuid, scans_data, metadata=None):
     for c in _DEFAULT_COLUMNS:
         d[c] = locals()[f"_get_{c}"](m)
 
-    for c in scans_data.get("selectedColumns") or []:
+    for c in scans_data.get("selectedColumns", []):
         d[c] = m["start"].get(c)
     return d
 

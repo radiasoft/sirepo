@@ -22,19 +22,21 @@
         "analysisQueue": {
             "route": "/analysis-queue/:simulationId",
             "config": {
+                "controller": "AnalysisQueueController as analysisQueue",
                 "templateUrl": "/static/html/raydata-analysis-queue.html"
           }
         },
         "analysisCompleted": {
             "route": "/analysis-completed/:simulationId",
             "config": {
-                "controller": "DataSourceController as dataSource",
+                "controller": "AnalysisCompletedController as analysisCompleted",
                 "templateUrl": "/static/html/raydata-analysis-completed.html"
           }
         },
         "replay": {
             "route": "/replay/:simulationId",
             "config": {
+                "controller": "ReplayController as replay",
                 "templateUrl": "/static/html/raydata-replay.html"
           }
         }
@@ -46,12 +48,21 @@
         "pollBlueskyForScansAnimation": {
             "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
         },
-        "scans": {
-            "catalogName": ["Catalog Name", "CatalogName", ""],
-            "scans": ["", "ScansTable", null],
-            "searchStartTime": ["Start", "DateTimePicker", null],
-            "searchStopTime": ["Stop", "DateTimePicker", null],
-            "runningScans": ["", "ScansTableWithModal", null]
+        "catalog": {
+            "catalogName": ["Catalog Name", "CatalogName", ""]
+        },
+        "completedScans": {
+            "searchStartTime":["Start", "DateTimePicker", null],
+            "searchStopTime":["Stop", "DateTimePicker", null],
+            "scans": ["", "CompletedScansTable", ""]
+        },
+        "queuedScans": {
+            "scans": ["", "QueuedScansTable", ""]
+        },
+        "replay": {
+            "sourceCatalog": ["Source Catalog", "CatalogName", ""],
+            "destinationCatalog": ["Destination Catalog", "CatalogName", ""],
+            "numScans": ["Number of Scans", "Integer", null]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
@@ -67,8 +78,8 @@
         "analysisQueue": {
             "title": "Analysis Queue",
             "basic": [
-                "scans.catalogName",
-                "scans.runningScans"
+                "catalog.catalogName",
+                "queuedScans.scans"
             ],
             "advanced": []
         },
@@ -79,21 +90,24 @@
             ],
             "advanced": []
         },
-        "scans": {
-            "title": "Scans",
+        "completedScans": {
+            "title": "Completed Scans",
             "basic": [
-                "catalogName",
+                "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
                 "scans"
             ],
             "advanced": []
         },
-        "replayPanel": {
+        "replay": {
             "title": "Replay",
             "advanced": [
             ],
             "basic": [
+              "sourceCatalog",
+              "destinationCatalog",
+              "numScans"
             ]
         },
         "simulationStatus": {

@@ -8,10 +8,10 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="DateTimePicker" data-ng-class="fieldClass">
           <div data-date-time-picker="" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="ScansTable" class="col-sm-12">
+        <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName"></div>
         </div>
-        <div data-ng-switch-when="ScansTableWithModal" class="col-sm-12">
+        <div data-ng-switch-when="CompletedScansTable" class="col-sm-12">
           <div data-scans-table-with-modal="" data-model-name="modelName"></div>
         </div>
         <div data-ng-switch-when="CatalogName" data-ng-class="fieldClass">
@@ -23,16 +23,9 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.factory('raydataService', function(appState, panelState, requestSender, runMulti, simulationDataCache, timeService, $rootScope) {
+SIREPO.app.factory('raydataService', function(appState, panelState, requestSender, timeService, $rootScope) {
     const self = {};
     let id = 0;
-
-    function removeScanFromCache(scan) {
-        if (! simulationDataCache.scans) {
-            return;
-        }
-        delete simulationDataCache.scans[scan.uid];
-    }
 
     self.columnPickerModal = () => {
         return $('#' + panelState.modalId('columnPicker'));
@@ -45,10 +38,6 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         return scan[field];
     };
 
-    self.getScanInfoTableHeader = function(firstColHeading, cols) {
-        return cols.length > 0 ? [firstColHeading].concat(cols) : [];
-    };
-
     self.nextPngImageId = function() {
         return 'raydata-png-image-' + (++id);
     };
@@ -57,147 +46,22 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
         element.src = 'data:image/png;base64,' + png;
     };
 
-    self.updateScanInfoTableColsInCache = function(cols) {
-        simulationDataCache.scanInfoTableCols = cols;
-        return cols;
-    };
-
-    self.updateScansInCache = function(scans) {
-        if (!simulationDataCache.scans) {
-            simulationDataCache.scans = {};
-        }
-        return scans.map((s) => {
-            simulationDataCache.scans[s.uid] = angular.extend(
-                simulationDataCache.scans[s.uid] || {},
-                s
-            );
-            return simulationDataCache.scans[s.uid];
-        });
-    };
-
-    self.updateScansInCacheFromRunMulti = function(reply) {
-        return reply.map(s => {
-            // runMulti replies have a 'request' and 'response' field
-            // for each of the individual requests. This allows one to
-            // map the request to the specific response in cases where
-            // the response contains no identifying information. For
-            // example, runStatus may return just the state and
-            // lastUpdateTime which doesn't contain any info to know
-            // which scan (uid) this is the status for.
-            s.response.uid = s.request.report;
-            return self.updateScansInCache([s.response])[0];
-        });
-    };
-
     appState.setAppService(self);
     return self;
 });
 
-SIREPO.app.controller('DataSourceController', function() {
-    // TODO(e-carlin): only let certain files to be uploaded
+SIREPO.app.controller('AnalysisQueueController', function() {
     const self = this;
     return self;
 });
 
-SIREPO.app.directive('analysisQueuePanel', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            args: '='
-        },
-        template: `
-            <div>
-              <table class="table table-striped table-hover col-sm-4">
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th data-ng-repeat="h in getHeader()">{{ h }}</th>
-                  </tr>
-                </thead>
-                <tbody ng-repeat="s in queuedScans">
-                  <tr>
-                    <td><span data-header-tooltip="s.state"></span></td>
-                    <td data-ng-repeat="c in getHeader()">{{ getQueuedScanFields(s, c) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-        `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, runMulti, stringsService, $interval, $rootScope, $scope) {
-            $scope.queuedScans = [];
-
-            $scope.getHeader = function() {
-                return ['uid', 'Start', 'Stop'];
-            };
-
-            $scope.getQueuedScanFields = (scan, fieldName) => {
-                if (['Start', 'Stop'].includes(fieldName)) {
-                    return scan.metadata[fieldName.toLowerCase()].time;
-                }
-                if (['uid'].includes(fieldName)) {
-                    return scan[fieldName.toLowerCase()];
-                }
-            };
-
-            $scope.sendScanRequest = function() {
-                requestSender.sendStatelessCompute(
-                    appState,
-                    (json) => {
-                        $scope.queuedScans = [];
-                        json.data.queuedScans.forEach((s) => {
-                            $scope.queuedScans.push(s);
-                        });
-                    },
-                    {
-                        catalogName: appState.models.scans.catalogName,
-                        method: 'queued_scans',
-                    },
-                    {
-                        onError: (data) => {
-                            errorService.alertText(data.error);
-                        },
-                    }
-                );
-            };
-
-            $scope.sendScanRequest();
-        }
-    };
+SIREPO.app.controller('AnalysisCompletedController', function() {
+    const self = this;
+    return self;
 });
 
-SIREPO.app.factory('runMulti', function(panelState, requestSender) {
-    const self = {};
-
-    function sendRunMulti(api, successCallback, data, awaitReply, options) {
-        panelState.maybeSetState(options.modelName, 'loading');
-        requestSender.sendRequest(
-            'runMulti',
-            (data) => {
-                panelState.maybeSetState(options.modelName, 'loadingDone');
-                successCallback(data);
-            },
-            data.map((m) => {
-                m.awaitReply = awaitReply;
-                m.api = api;
-                return m;
-            }),
-            () => {
-                if (options.onError) {
-                    options.onError();
-                }
-                panelState.maybeSetState(options.modelName, 'error');
-            }
-        );
-    }
-
-    self.simulation = function(data, options) {
-        sendRunMulti('runSimulation', () => {}, data, false, options);
-    };
-
-    self.status = function(data, successCallback, options) {
-        sendRunMulti('runStatus', successCallback, data, true, options);
-    };
-
+SIREPO.app.controller('ReplayController', function() {
+    const self = this;
     return self;
 });
 
@@ -243,26 +107,25 @@ SIREPO.app.directive('catalogPicker', function() {
             field: '=',
         },
         template: `
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in allCatalogs"></select>
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
         `,
         controller: function($scope, appState, errorService, requestSender) {
-            $scope.allCatalogs = [];
-            (function() {
-                requestSender.sendStatelessCompute(
-                    appState,
-                    (json) => {
-                        $scope.allCatalogs = json.data.catalogs;
+            $scope.catalogNames = [];
+
+            requestSender.sendStatelessCompute(
+                appState,
+                json => {
+                    $scope.catalogNames = json.data.catalogs;
+                },
+                {
+                    method: 'catalog_names',
+                },
+                {
+                    onError: data => {
+                        errorService.alertText(data.error);
                     },
-                    {
-                        method: 'all_catalogs',
-                    },
-                    {
-                        onError: (data) => {
-                            errorService.alertText(data.error);
-                        },
-                    }
-                );
-            })();
+                }
+            );
         },
     };
 });
@@ -355,25 +218,7 @@ SIREPO.app.directive('replayPanel', function() {
             modelName: '=',
         },
         template: `
-          <form>
-            <div class="form-group">
-              <label for="sourceCatalog">Source catalog:</label>
-              <select id="sourceCatalog">
-                <option ng-repeat="catalog in catalogs">{{catalog}}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="numScans">Number of scans:</label>
-              <input type="text" id="numScans" required>
-            </div>
-            <div class="form-group">
-              <label for="destinationCatalog">Destination catalog:</label>
-              <select id="destinationCatalog">
-                <option ng-repeat="catalog in catalogs">{{catalog}}</option>
-              </select>
-            </div>
-            <button type="submit" class="btn btn-primary" data-ng-click="">Start Replay</button>
-          </form>
+          <button type="submit" class="btn btn-primary" data-ng-click="">Start Replay</button>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
             $scope.catalogs = [];
@@ -385,7 +230,7 @@ SIREPO.app.directive('replayPanel', function() {
                         $scope.catalogs = json.data.catalogs;
                     },
                     {
-                        method: 'all_catalogs',
+                        method: 'catalog_names',
                     },
                     {
                         modelName: $scope.modelName,
@@ -409,7 +254,7 @@ SIREPO.app.directive('scansTableWithModal', function() {
             modelName: '=',
         },
         template: `
-            <div data-scans-table="" data-model-name="modelName" data-selected-scan="selectedScan" data-scans-wanted="scansWanted"></div>
+            <div data-scans-table="" data-model-name="modelName" data-selected-scan="selectedScan" data-scans-status="scansStatus"></div>
             <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -446,12 +291,11 @@ SIREPO.app.directive('scansTableWithModal', function() {
             </div>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
-            $scope.appState = appState;
             $scope.selectedScan = null;
-            $scope.scansWanted = 'queued_scans';
+            $scope.scansStatus = 'completed_scans';
 
             $scope.showAnalysisOutputModal = (scan) => {
-                let el = $('#sr-analysis-output');
+                const el = $('#sr-analysis-output');
                 el.modal('show');
                 el.on('hidden.bs.modal', function() {
                     el.off();
@@ -468,7 +312,7 @@ SIREPO.app.directive('scansTableWithModal', function() {
                 );
             };
 
-            $scope.$watch('selectedScan', ()=>{
+            $scope.$watch('selectedScan', () => {
                 if ($scope.selectedScan !== null) {
                     $scope.showAnalysisOutputModal($scope.selectedScan);
                 }
@@ -483,11 +327,11 @@ SIREPO.app.directive('scansTable', function() {
         scope: {
             modelName: '=',
             selectedScan: '=?',
-            scansWanted: '=?',
+            scansStatus: '=?',
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="scans">
-              <div data-ng-if="appState.models.scans.searchStartTime && appState.models.scans.searchStopTime">
+              <div>
                 <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right;"><span class="glyphicon glyphicon-plus"></span></button>
                 <table class="table table-striped table-hover">
                   <thead>
@@ -550,7 +394,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.getHeader = function() {
-                return raydataService.getScanInfoTableHeader('select', cols);
+                return cols.length > 0 ? ['select'].concat(cols) : [];
             };
 
             $scope.getScanField = raydataService.getScanField;
@@ -569,25 +413,22 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.sendScanRequest = function() {
-                if (!appState.models.scans.searchStartTime || !appState.models.scans.searchStopTime) {
+                if ($scope.scansStatus && (!appState.models.completedScans.searchStartTime || !appState.models.completedScans.searchStopTime)) {
                     return;
                 }
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
-                        $scope.scans = [];
-                        json.data.scans.forEach((s) => {
-                            $scope.scans.push(s);
-                        });
-                        cols = raydataService.updateScanInfoTableColsInCache(json.data.cols);
+                        $scope.scans = json.data.scans.slice();
                     },
                     {
-                        catalogName: appState.models.scans.catalogName,
-                        method: $scope.scansWanted ? $scope.scansWanted : 'completed_scans',
-                        searchStartTime: appState.models.scans[
+                        catalogName: appState.models.catalog.catalogName,
+                        method: 'scans',
+                        scansStatus: $scope.scansStatus ? $scope.scansStatus : 'queued_scans',
+                        searchStartTime: appState.models.completedScans[
                             searchStartOrStopTimeKey(startOrStop[0])
                         ],
-                        searchStopTime: appState.models.scans[
+                        searchStopTime: appState.models.completedScans[
                             searchStartOrStopTimeKey(startOrStop[1])
                         ],
                         selectedColumns: appState.models.metadataColumns.selected,
@@ -632,7 +473,7 @@ SIREPO.app.directive('scansTable', function() {
                 $scope.reverseSortScans = ! $scope.reverseSortScans;
             };
 
-            $scope.$on('scans.changed', $scope.sendScanRequest);
+            $scope.$on('completedScans.changed', $scope.sendScanRequest);
             $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {
                 if (newValue !== previousValue) {
                     $scope.sendScanRequest();
@@ -648,7 +489,7 @@ SIREPO.app.directive('scansTable', function() {
                     $scope.setAvailableColumns();
                 },
                 {
-                    catalogName: appState.models.scans.catalogName,
+                    catalogName: appState.models.catalog.catalogName,
                     method: 'scan_fields',
                 }
             );
