@@ -214,13 +214,15 @@ def _get_layer_type(layer):
 
 def _set_children(nn):
     cur_node = nn.layers[-1]
-    nn = _levels_with_children(cur_node, nn)
+    pkdp("\n\n\n STARTING WITH: {}", cur_node.name)
+    nn = _levels_with_children(cur_node, nn)[2]
     return PKDict(layers=nn)
     # nn = _set_child_ops(nn)
 
 
 def _get_next_node(node, nn):
-    pass
+    assert len(node.inbound) == 1, f"get next should have one inbound node={node.name}, node.indbound={[n.name for n in node.inbound]}"
+    return _get_layer_by_name(nn, node.inbound[0].name)
 
 
 def _is_branching(node):
@@ -234,18 +236,46 @@ def _is_merge_node(node):
 def _levels_with_children(cur_node, nn):
     # POSIT (gurhar1133): add/concate nodes will not have multiple outbound
     l = []
-    parent = cur_node.inbound[0]
-    parent_sum = None
+
+    parent_sum = 1
     while _continue_building_level(cur_node, nn):
         l.insert(0, cur_node)
+
         if _is_merge_node(cur_node):
-
+            c = []
+            parent_sum = 0
             for i in cur_node.inbound:
-                p, s, lvl = _levels_with_children(i, nn)
+                p, s, lvl = _levels_with_children(
+                    _get_layer_by_name(nn, i.name),
+                    nn
+                )
+                parent_sum += s
+                c.append(lvl)
                 #
-    return parent, parent_sum, l
+            l.insert(0, c)
+            cur_node = _get_layer_by_name(nn, p.name)
+            if len(cur_node.outbound) != parent_sum:
+                return cur_node, parent_sum, l
+            else:
+                l.insert(0, cur_node)
+        else:
+            if not cur_node.inbound:
+                break
+            cur_node = _get_next_node(cur_node, nn)
 
 
+    return cur_node, parent_sum, l
+
+
+def _continue_building_level(cur_node, nn):
+    if cur_node.inbound:
+        l = _get_layer_by_name(nn, cur_node.inbound[0].name)
+        if _is_branching(l) and not _is_merge_node(l):
+            return False
+    else:
+        return False
+
+    return True
 
 def _get_relevant_nodes(model):
     relevant_nodes = []
