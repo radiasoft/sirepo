@@ -435,7 +435,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                                 yi * wy + mesh.lower_left[1],
                                 zi * wz + mesh.lower_left[2],
                             ];
-                            buildVoxel(p, wx, wy, wz, points, polys);
+                            buildVoxel(p, sx, sy, sz, points, polys);
                         }
                     }
                 }
