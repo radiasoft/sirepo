@@ -1453,18 +1453,21 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
         },
         // TODO: At error case for when log cannot be found, edit case below
         template: `
-            <div class="well well-lg">
-                <a href data-ng-click="viewLog()">Look At Log</a>
-            </div>
-
+            <a href data-ng-click="viewLog()">View Log</a>
             <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
-                    <button type="button" class="close" data-dismiss="modal">
-                      <span>&times;</span>
-                    </button>
-                    <span class="lead modal-title text-info">Title</span>
+                    <span class="lead modal-title text-info">Log</span>
+                    <div class="sr-panel-options pull-right">
+                      <a data-ng-href="{{ downloadLog() }}" target="_blank">
+                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span>
+                      </a>
+                      &nbsp&nbsp
+                      <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                      </button>
+                    </div>
                   </div>
                   <div class="modal-body" style="padding: 0">
                     <iframe id="sr-text-iframe"
@@ -1480,32 +1483,40 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
                 $('#sr-text-iframe').contents().find('html').html(html);
             }
 
+            function getDownloadURL(model, index) {
+                if (! appState.isLoaded() || ! model) {
+                    return '';
+                }
+                return requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': model,
+                    '<frame>': index,
+                });
+            }
+
             $scope.viewLog = function(model, filename) {
                 if (! appState.isLoaded()) {
                     return '';
                 }
-
-                setIFrameHTML('<div style="text-align: center; padding: 1em">Loading Log</div>');
-                $('#sr-iframe-text-view').modal('show');
-
-                srdbg("before");
+                
                 requestSender.sendStatelessCompute(
                     appState,
                     (data) => {
-                        srdbg("dataFilePath: ", data.html);
-                        srdbg("appState: ", appState);
                         appState.models.modelLog = data.html;
-                        srdbg("from app state: ", appState.models.modelLog);
+                        setIFrameHTML(appState.models.modelLog);
                     },
                     {
+                        method: 'log_to_html',
                         model: appState.models.simulationStatus.animation.computeModel,
                         filename: 'elegant.log',
                         simulationId: appState.models.simulation.simulationId
                     });
-                srdbg("after");
-                
-                setIFrameHTML(appState.models.modelLog);
-                srdbg("appState: ", appState);
+                $('#sr-iframe-text-view').modal('show');
+            };
+
+            $scope.downloadLog = function() {
+                return getDownloadURL(appState.models.simulationStatus.animation.computeModel, -1);
             };
         },
     };
