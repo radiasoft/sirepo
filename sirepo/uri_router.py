@@ -314,6 +314,9 @@ def _dispatch(path):
         remote_addr=flask.request.remote_addr,
         _internal_req=flask.request,
     )
+process_request is not here, but after we have a sapi
+separate out the parsing of the route from call_api, which access sreq,
+which can include
     with sirepo.auth.process_request(sreq):
         try:
             if path is None:
@@ -330,6 +333,7 @@ def _dispatch(path):
             for p in route.params:
                 if not parts:
                     if not p.is_optional:
+todo: instead sapi is not_found
                         raise sirepo.util.raise_not_found(
                             "{}: uri missing parameter ({})", path, p.name
                         )
@@ -340,6 +344,7 @@ def _dispatch(path):
                     break
                 kwargs[p.name] = parts.pop(0)
             if parts:
+sapi is not found
                 raise sirepo.util.raise_not_found(
                     "{}: unknown parameters in uri ({})", parts, path
                 )

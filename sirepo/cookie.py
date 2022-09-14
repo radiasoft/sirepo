@@ -39,7 +39,7 @@ def process_header(sreq):
     sreq.cookie = Base(sreq.unchecked_header("Cookie"))
 
 
-class Base(dict):
+class Base:
     def __init__(self, header):
         super().__init__()
         self.__crypto = None
@@ -47,13 +47,13 @@ class Base(dict):
         self._from_cookie_header(header)
 
     def get_value(key):
-        return self[key]
+        return self.__values[key]
 
     def has_key(key):
-        return key in self
+        return key in self.__values
 
     def has_sentinel():
-        return _COOKIE_SENTINEL in self
+        return _COOKIE_SENTINEL in self.__values
 
     def reset_state(self, error):
         """Clear all values and log `error` with values.
@@ -62,7 +62,7 @@ class Base(dict):
             error (str): to be logged
         """
         pkdlog("resetting cookie: error={} values={}", error, _state())
-        self.clear()
+        self.__values.clear()
 
     def save_to_cookie(self, resp):
         if not 200 <= resp.status_code < 400:
@@ -82,7 +82,7 @@ class Base(dict):
         )
 
     def set_sentinel(self):
-        self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
+        self.__values[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
 
     def set_value(self, key, value):
         value = str(value)
@@ -90,20 +90,15 @@ class Base(dict):
             not _SERIALIZER_SEP in value
         ), 'value must not container serializer sep "{}"'.format(_SERIALIZER_SEP)
         assert (
-            key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in self
+            key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in self.__values
         ), "key={} is _COOKIE_SENTINEL={_COOKIE_SENTINEL} or exist in self".format(key)
-        self[key] = value
+        self.__values[key] = value
 
     def unchecked_get_value(self, key, default=None):
-        return self.get(key, default)
+        return self.__values.get(key, default)
 
     def unchecked_remove(self, key):
-        try:
-            res = self[key]
-            del self[key]
-            return res
-        except KeyError:
-            return None
+        return self.__values.pkdel(key)
 
     def _crypto(self):
         if not self._crypto_alg:
@@ -143,6 +138,7 @@ class Base(dict):
         )
 
     def _from_cookie_header(self, header):
+        self.__values = PKDict()
         if not header:
             return
         s = None
@@ -154,7 +150,7 @@ class Base(dict):
             )
             if match:
                 s = self._decrypt(match.group(1))
-                self.update(auth_hook_from_header(self._deserialize(s)))
+                self.__values.update(auth_hook_from_header(self._deserialize(s)))
                 self.__incoming_serialized = s
                 return
         except Exception as e:
@@ -170,7 +166,7 @@ class Base(dict):
     def _serialize(self):
         return _SERIALIZER_SEP.join(
             itertools.chain.from_iterable(
-                [(k, self[k]) for k in sorted(self.keys())],
+                [(k, self.__values[k]) for k in sorted(self.__values.keys())],
             ),
         )
 
