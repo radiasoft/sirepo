@@ -384,10 +384,10 @@ class VTKScene {
         if (direction) {
             this.viewDirection = Math.sign(direction);
         }
-        this.viewSide = side;
-        const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[side]
+        this.viewSide = side || this.resetSide;
+        const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[this.viewSide]
             .map(c =>  c * this.viewDirection);
-        this.setCam(pos, this.camProperties[side].viewUp);
+        this.setCam(pos, this.camProperties[this.viewSide].viewUp);
     }
 
     /**
