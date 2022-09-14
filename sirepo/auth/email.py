@@ -86,11 +86,11 @@ class API(sirepo.api.Base):
                     u.unverified_email,
                 )
             # if user is already logged in via email, then continue to the app
-            if auth.user_if_logged_in(AUTH_METHOD):
+            if auth.user_if_logged_in(self.sreq, AUTH_METHOD):
                 pkdlog(
                     "user already logged in. ignoring invalid token: {}, user: {}",
                     token,
-                    auth.logged_in_user(),
+                    auth.logged_in_user(self.sreq),
                 )
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
             auth.login_fail_redirect(req.type, this_module, "email-token")

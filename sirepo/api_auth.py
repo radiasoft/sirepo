@@ -10,7 +10,6 @@ from pykern import pkconfig
 from pykern import pkinspect
 from sirepo import api_perm
 import sirepo.auth
-import sirepo.cookie
 import sirepo.util
 
 
@@ -26,7 +25,7 @@ def assert_api_def(func):
         )
 
 
-def check_api_call(func):
+def check_api_call(sreq, func):
     expect = getattr(func, api_perm.ATTR)
     a = api_perm.APIPerm
     if expect in (
@@ -35,25 +34,25 @@ def check_api_call(func):
         a.REQUIRE_USER,
         a.REQUIRE_ADM,
     ):
-        if not sirepo.cookie.has_sentinel():
+        if not sreq.cookie.has_sentinel():
             raise sirepo.util.SRException("missingCookies", None)
         if expect == a.REQUIRE_USER:
-            sirepo.auth.require_user()
+            sirepo.auth.require_user(sreq)
         elif expect == a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER:
-            sirepo.auth.require_email_user()
+            sirepo.auth.require_email_user(sreq)
         elif expect == a.REQUIRE_ADM:
-            sirepo.auth.require_adm()
+            sirepo.auth.require_adm(sreq)
     elif expect == a.ALLOW_VISITOR:
         pass
     elif expect == a.INTERNAL_TEST:
         if not pkconfig.channel_in_internal_test():
             sirepo.util.raise_forbidden("Only available in internal test")
     elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
-        sirepo.cookie.set_sentinel()
+        sreq.cookie.set_sentinel()
         if expect == a.ALLOW_COOKIELESS_REQUIRE_USER:
-            sirepo.auth.require_user()
+            sirepo.auth.require_user(sreq)
     elif expect == a.REQUIRE_AUTH_BASIC:
-        sirepo.auth.require_auth_basic()
+        sirepo.auth.require_auth_basic(sreq)
     else:
         raise AssertionError("unhandled api_perm={}".format(expect))
 

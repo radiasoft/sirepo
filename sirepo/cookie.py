@@ -33,119 +33,43 @@ _SERIALIZER_SEP = " "
 _SRCONTEXT_KEY = __name__
 
 
-def get_value(key):
-    return _state()[key]
-
-
-def has_key(key):
-    return key in _state()
-
-
-def has_sentinel():
-    return _COOKIE_SENTINEL in _state()
-
-
 @contextlib.contextmanager
-def process_header(sreq=None, unit_test=None):
-    with _set_state(unit_test or sreq.unchecked_header("Cookie")):
-        yield
+def process_header(sreq):
+    assert "cookie" not in sreq, f"cookie already set on sreq={sreq}"
+    sreq.cookie = Base(sreq.unchecked_header("Cookie"))
 
 
-def reset_state(error):
-    """Clear all values and log `error` with values.
-
-    Args:
-        error (str): to be logged
-    """
-    pkdlog("resetting cookie: error={} values={}", error, _state())
-    _state().clear()
-
-
-def save_to_cookie(resp):
-    _state().save_to_cookie(resp)
-
-
-@contextlib.contextmanager
-def set_cookie_outside_of_flask_request(cookie_header=""):
-    """A mock cookie for utilities"""
-    assert (
-        not sirepo.util.in_flask_request()
-    ), "Only call from outside a flask request context"
-    if cookie_header:
-        cookie_header = f"{cfg.http_name}={cookie_header}"
-    with _set_state(cookie_header):
-        set_sentinel()
-        yield
-
-
-def set_sentinel(values=None):
-    """Bypasses the state where the cookie has not come back from the client.
-
-    For auth methods that are used outside the GUI (bluesky and basic) and
-    testing.
-
-    Args:
-        values (dict): set sentinel in this if supplied [None]
-    """
-    _state().set_sentinel(values)
-
-
-def set_value(key, value):
-    value = str(value)
-    assert (
-        not _SERIALIZER_SEP in value
-    ), 'value must not container serializer sep "{}"'.format(_SERIALIZER_SEP)
-    s = _state()
-    assert (
-        key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in s
-    ), "cookie is not valid so cannot set key={}".format(key)
-    s[key] = value
-
-
-def unchecked_get_value(key, default=None):
-    return _state().get(key, default)
-
-
-def unchecked_remove(key):
-    try:
-        s = _state(check_none=False)
-        res = s[key]
-        del s[key]
-        return res
-    except KeyError:
-        return None
-
-
-@contextlib.contextmanager
-def _set_state(header):
-    # Maintain cookie states on stack to allow setting of cookies
-    # within a state where a cookie is already set
-    p = _state(check_none=False)
-    try:
-        sirepo.srcontext.set(_SRCONTEXT_KEY, _State(header))
-        yield
-    finally:
-        sirepo.srcontext.set(_SRCONTEXT_KEY, p)
-
-
-class _State(dict):
+class Base(dict):
     def __init__(self, header):
-        super(_State, self).__init__()
-        self.crypto = None
-        self.incoming_serialized = ""
+        super().__init__()
+        self.__crypto = None
+        self.__incoming_serialized = ""
         self._from_cookie_header(header)
 
-    def set_sentinel(self, values=None):
-        if not values:
-            values = self
-        values[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
+    def get_value(key):
+        return self[key]
+
+    def has_key(key):
+        return key in self
+
+    def has_sentinel():
+        return _COOKIE_SENTINEL in self
+
+    def reset_state(self, error):
+        """Clear all values and log `error` with values.
+
+        Args:
+            error (str): to be logged
+        """
+        pkdlog("resetting cookie: error={} values={}", error, _state())
+        self.clear()
 
     def save_to_cookie(self, resp):
         if not 200 <= resp.status_code < 400:
             return
         self.set_sentinel()
         s = self._serialize()
-        if s == self.incoming_serialized:
+        if s == self.__incoming_serialized:
             return
         resp.set_cookie(
             cfg.http_name,
@@ -157,8 +81,32 @@ class _State(dict):
             # samesite='Strict',
         )
 
+    def set_sentinel(self):
+        self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
+
+    def set_value(self, key, value):
+        value = str(value)
+        assert (
+            not _SERIALIZER_SEP in value
+        ), 'value must not container serializer sep "{}"'.format(_SERIALIZER_SEP)
+        assert (
+            key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in self
+        ), "key={} is _COOKIE_SENTINEL={_COOKIE_SENTINEL} or exist in self".format(key)
+        self[key] = value
+
+    def unchecked_get_value(self, key, default=None):
+        return self.get(key, default)
+
+    def unchecked_remove(self, key):
+        try:
+            res = self[key]
+            del self[key]
+            return res
+        except KeyError:
+            return None
+
     def _crypto(self):
-        if not self.crypto:
+        if not self._crypto_alg:
             if cfg.private_key is None:
                 assert pkconfig.channel_in(
                     "dev"
@@ -171,8 +119,8 @@ class _State(dict):
             assert (
                 len(base64.urlsafe_b64decode(cfg.private_key)) == 32
             ), "private_key must be 32 characters and encoded with urlsafe_b64encode"
-            self.crypto = cryptography.fernet.Fernet(cfg.private_key)
-        return self.crypto
+            self._crypto_alg = cryptography.fernet.Fernet(cfg.private_key)
+        return self._crypto_alg
 
     def _decrypt(self, value):
         d = self._crypto().decrypt(
@@ -207,7 +155,7 @@ class _State(dict):
             if match:
                 s = self._decrypt(match.group(1))
                 self.update(auth_hook_from_header(self._deserialize(s)))
-                self.incoming_serialized = s
+                self.__incoming_serialized = s
                 return
         except Exception as e:
             if "crypto" in type(e).__module__:
@@ -233,13 +181,6 @@ def _cfg_http_name(value):
         r"^\w{1,32}$", value
     ), "must be 1-32 word characters; http_name={}".format(value)
     return value
-
-
-def _state(check_none=True):
-    s = sirepo.srcontext.get(_SRCONTEXT_KEY)
-    if check_none and s is None:
-        raise AssertionError(f"no {_SRCONTEXT_KEY}")
-    return s
 
 
 cfg = pkconfig.init(

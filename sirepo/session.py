@@ -25,13 +25,13 @@ _USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
 @contextlib.contextmanager
 def begin(sreq):
     def _new_session():
-        l = sirepo.auth.is_logged_in()
+        l = sirepo.auth.is_logged_in(sreq)
         t = sirepo.srtime.utc_now()
         i = sirepo.util.random_base62()
         _Session(
             user_agent_id=i,
             login_state=l,
-            uid=sirepo.auth.logged_in_user(check_path=False) if l else None,
+            uid=sirepo.auth.logged_in_user(sreq, check_path=False) if l else None,
             start_time=t,
             request_time=t,
         ).save()
@@ -42,7 +42,7 @@ def begin(sreq):
     def _update_session(user_agent_id):
         s = _Session.search_by(user_agent_id=user_agent_id)
         assert s, f"No session for user_agent_id={user_agent_id}"
-        l = sirepo.auth.is_logged_in()
+        l = sirepo.auth.is_logged_in(sreq)
         t = s.request_time
         if (
             sirepo.srtime.utc_now() - t

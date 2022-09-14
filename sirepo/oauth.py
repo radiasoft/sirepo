@@ -8,7 +8,6 @@ from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
-from sirepo import cookie
 import authlib.integrations.base_client
 import authlib.integrations.requests_client
 import flask
@@ -24,10 +23,10 @@ _COOKIE_NONCE = "sroan"
 _COOKIE_SIM_TYPE = "sroas"
 
 
-def check_authorized_callback(github_auth=False):
+def check_authorized_callback(sapi, github_auth=False):
     # clear temporary cookie values first
-    s = cookie.unchecked_remove(_COOKIE_NONCE)
-    t = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
+    s = sapi.sreq.cookie.unchecked_remove(_COOKIE_NONCE)
+    t = sapi.sreq.cookie.unchecked_remove(_COOKIE_SIM_TYPE)
     assert t
     c = _client(t, github_auth)
     try:
@@ -46,11 +45,11 @@ def check_authorized_callback(github_auth=False):
     sirepo.util.raise_forbidden(f"user denied access from sim_type={t}")
 
 
-def raise_authorize_redirect(sim_type, github_auth=False):
-    cookie.set_value(_COOKIE_SIM_TYPE, sim_type)
+def raise_authorize_redirect(sapi, sim_type, github_auth=False):
+    sapi.sreq.cookie.set_value(_COOKIE_SIM_TYPE, sim_type)
     c = _cfg(sim_type, github_auth)
     u, s = _client(sim_type, github_auth).create_authorization_url(c.authorize_url)
-    cookie.set_value(_COOKIE_NONCE, s)
+    sapi.sreq.cookie.set_value(_COOKIE_NONCE, s)
     raise sirepo.util.Redirect(u)
 
 

@@ -555,15 +555,15 @@ class API(sirepo.api.Base):
     @sirepo.api.Spec("allow_visitor")
     def api_srUnit(self):
         import contextlib
-        from sirepo import auth, cookie
+        from sirepo import auth
 
         v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
         u = contextlib.nullcontext
         if v.want_user:
-            cookie.set_sentinel()
-            auth.login(auth.guest, is_mock=True)
+            sapi.sreq.cookie.set_sentinel()
+            auth.login(sapi, auth.guest, is_mock=True)
         if v.want_cookie:
-            cookie.set_sentinel()
+            sapi.sreq.cookie.set_sentinel()
         v.op()
         return self.reply_ok()
 

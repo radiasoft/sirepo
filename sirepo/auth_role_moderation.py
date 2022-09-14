@@ -75,7 +75,7 @@ class API(sirepo.api.Base):
             app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
                 sirepo.auth_role.sim_type(i.role)
             ].longName,
-            display_name=sirepo.auth.user_display_name(i.uid),
+            display_name=sirepo.auth.user_display_name(self.sreq, i.uid),
             role=i.role,
             status=req.req_data.status,
             uid=i.uid,
@@ -145,7 +145,7 @@ class API(sirepo.api.Base):
         l = self.uri_for_api("admModerateRedirect")
         _send_request_email(
             PKDict(
-                display_name=sirepo.auth.user_display_name(u),
+                display_name=sirepo.auth.user_display_name(self.sreq, u),
                 email_addr=sirepo.auth.user_name(),
                 link=l,
                 reason=req.req_data.reason,
@@ -157,14 +157,14 @@ class API(sirepo.api.Base):
         return self.reply_ok()
 
 
-def raise_control_for_user(uid, role):
+def raise_control_for_user(sapi, uid, role):
     s = sirepo.auth_db.UserRoleInvite.get_status(uid, role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)
     if s == sirepo.auth_role.ModerationStatus.DENY:
         sirepo.util.raise_forbidden(f"uid={uid} role={role} already denied")
     assert s is None, f"Unexpected status={s} for uid={uid} and role={role}"
-    sirepo.auth.require_email_user()
+    sirepo.auth.require_email_user(sapi.sreq)
     raise sirepo.util.SRException("moderationRequest", None)
 
 

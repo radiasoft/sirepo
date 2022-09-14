@@ -143,7 +143,9 @@ class API(sirepo.api.Base):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
             sirepo.uri_router.assert_api_name_and_auth(
-                api, ("runSimulation", "runStatus")
+                sapi,
+                api,
+                ("runSimulation", "runStatus"),
             )
             # Necessary so dispatch to job supervisor works correctly
             return "api_" + api

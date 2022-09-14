@@ -53,16 +53,17 @@ _api_modules = []
 _api_funcs = PKDict()
 
 
-def assert_api_name_and_auth(name, allowed):
+def assert_api_name_and_auth(sapi, name, allowed):
     """Check if `name` is executable and in allowed
 
     Args:
+        sapi (sirepo.API.Base)
         name (str): name of the api
         allowed (tuple): names that are allowed to be called
     Returns:
         str: api name
     """
-    _check_api_call(name)
+    _check_api_call(sapi.sreq, name)
     if name not in allowed:
         raise AssertionError(f"api={name} not in allowed={allowed}")
 
@@ -96,7 +97,7 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
                 s = sreq.set_sim_type(kwargs.get("simulation_type"))
             else:
                 kwargs = PKDict()
-            f = _check_api_call(route_or_name)
+            f = _check_api_call(sreq, route_or_name)
             try:
                 if data is not None:
                     p = sreq.set_post(data)
@@ -116,7 +117,7 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
             # http_request tries to keep a valid sim_type so
             # this is ok to call (even if s is None)
             sreq.set_sim_type(s)
-        sirepo.cookie.save_to_cookie(r)
+        sreq.cookie.save_to_cookie(r)
         sirepo.events.emit("end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
             r.headers.add("Access-Control-Allow-Origin", "*")
@@ -280,7 +281,7 @@ class _URIParams(PKDict):
     pass
 
 
-def _check_api_call(route_or_name):
+def _check_api_call(sreq, route_or_name):
     """Check if API is callable by current user (proper credentials)
 
     Args:
@@ -291,7 +292,7 @@ def _check_api_call(route_or_name):
         if isinstance(route_or_name, _Route)
         else _api_to_route[route_or_name]
     )
-    sirepo.api_auth.check_api_call(f.func)
+    sirepo.api_auth.check_api_call(sreq, f.func)
     return f
 
 

@@ -10,7 +10,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
-from sirepo import cookie
 from sirepo import srtime
 import datetime
 import sirepo.api
@@ -37,13 +36,13 @@ class API(sirepo.api.Base):
         """You have to be an anonymous or logged in user at this point"""
         req = self.parse_params(type=simulation_type)
         # if already logged in as guest, just redirect
-        if auth.user_if_logged_in(AUTH_METHOD):
-            auth.login_success_response(req.type, self)
+        if auth.user_if_logged_in(self.sreq, AUTH_METHOD):
+            auth.login_success_response(self, req.type)
         auth.login(this_module, sim_type=req.type, sapi=self)
         raise AssertionError("auth.login returned unexpectedly")
 
 
-def is_login_expired(res=None):
+def is_login_expired(sreq, res=None):
     """If expiry is configured, check timestamp
 
     Args:
@@ -55,7 +54,7 @@ def is_login_expired(res=None):
     if not cfg.expiry_days:
         return False
     n = srtime.utc_now_as_int()
-    t = int(cookie.unchecked_get_value(_COOKIE_EXPIRY_TIMESTAMP, 0))
+    t = int(sreq.cookie.unchecked_get_value(_COOKIE_EXPIRY_TIMESTAMP, 0))
     if n <= t:
         # cached timestamp less than expiry
         return False
@@ -75,18 +74,18 @@ def is_login_expired(res=None):
     if t2 < t:
         t = t2
     t -= datetime.datetime.utcfromtimestamp(0)
-    cookie.set_value(_COOKIE_EXPIRY_TIMESTAMP, int(t.total_seconds()))
+    sreq.cookie.set_value(_COOKIE_EXPIRY_TIMESTAMP, int(t.total_seconds()))
     return False
 
 
-def validate_login():
+def validate_login(sreq):
     """If expiry is configured, check timestamp
 
     Returns:
         object: if valid, None, otherwise flask.Response.
     """
     msg = PKDict()
-    if is_login_expired(msg):
+    if is_login_expired(sreq, msg):
         raise sirepo.util.SRException(
             "loginFail",
             PKDict({":method": "guest", ":reason": "guest-expired"}),

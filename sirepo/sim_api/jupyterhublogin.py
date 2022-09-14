@@ -57,7 +57,7 @@ class API(sirepo.api.Base):
         if not d.doMigration:
             create_user()
             return self.reply_redirect("jupyterHub")
-        sirepo.oauth.raise_authorize_redirect(_SIM_TYPE, github_auth=True)
+        sirepo.oauth.raise_authorize_redirect(self, _SIM_TYPE, github_auth=True)
 
     @sirepo.api.Spec("require_user")
     def api_redirectJupyterHub(self):
