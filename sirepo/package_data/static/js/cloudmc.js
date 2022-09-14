@@ -312,6 +312,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
                 function pointSource(space) {
                     //sphere?
+
                 }
 
                 for (const b of sourceBundles) {
@@ -336,7 +337,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             function addTally(str, aspect) {
                 //TODO(pjm): the axis lines are lost when actors are removed
-                vtkScene.removeActors();
+                //vtkScene.removeActors();
                 const pd = SIREPO.VTK.VTKUtils.parseLegacy(str);
                 $rootScope.$broadcast('vtk.hideLoader');
                 const b = coordMapper.buildActorBundle();
