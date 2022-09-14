@@ -447,7 +447,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     {
                         lighting: false,
                     }
-                )
+                );
                 vtkScene.addActor(tallyBundle.actor);
                 setTallyColors();
             }
@@ -529,15 +529,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         sc.push(...scalars.slice(m, m + 4));
                     }
                 }
-                //TODO(pjm): get working with tally bundle
-                //tallyBundle.setColorScalarsForCells(sc, 4);
-                basePolyData.getCellData().setScalars(
-                    vtk.Common.Core.vtkDataArray.newInstance({
-                        dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
-                        numberOfComponents: 4,
-                        values: sc,
-                    })
-                );
+                tallyBundle.setColorScalarsForCells(sc, 4);
                 basePolyData.modified();
                 vtkScene.render();
             }
