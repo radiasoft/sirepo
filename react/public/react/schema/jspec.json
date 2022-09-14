@@ -1,149 +1,268 @@
 {
-    "enum": {
-        "ElectronBeamShape": [
-            ["dc_uniform", "Cylindrical"],
-            ["bunched_gaussian", "Gaussian"],
-            ["bunched_uniform", "Cylindrical"],
-            ["bunched_uniform_elliptic", "Cylindrical (elliptical cross-section)"]
-        ],
-        "ElectronBeamShapeDescription": [
-            ["dc_uniform", "The unbunched electron beam is a continuous cylinder with circular cross-section."],
-            ["bunched_gaussian", "The electron beam is a 3D Gaussian distribution in space."],
-            ["bunched_uniform", "The electron beam is a uniformly-filled 3D cylinder with circular cross-section."],
-            ["bunched_uniform_elliptic", "The electron beam is a uniformly-filled 3D cylinder with elliptical cross-section."]
-        ],
-        "BeamColumn": [
-            ["emitx", "emit_x"],
-            ["emity", "emit_y"],
-            ["dpp", "dp/p"],
-            ["sigmas", "sigma_s"]
-        ],
-        "BeamOptionalColumn": [
-            ["emitx", "emit_x"],
-            ["emity", "emit_y"],
-            ["dpp", "dp/p"],
-            ["sigmas", "sigma_s"],
-            ["none", "None"]
-        ],
-        "BeamParticle": [
-            ["ALUMINUM", "Aluminum"],
-            ["COPPER", "Copper"],
-            ["DEUTERON", "Deuteron"],
-            ["GOLD", "Gold"],
-            ["HELIUM", "Helium"],
-            ["LEAD", "Lead"],
-            ["PROTON", "Proton"],
-            ["RUTHENIUM", "Ruthenium"],
-            ["URANIUM", "Uranium"],
-            ["ZIRCONIUM", "Zirconium"],
-            ["OTHER", "Other"]
-        ],
-        "BeamType": [
-            ["bunched", "Bunched Beam"],
-            ["continuous", "Continuous Beam"]
-        ],
-        "CoolingRatesColumn": [
-            ["rx", "rx"],
-            ["ry", "ry"],
-            ["rs", "rs"],
-            ["rxibs", "rx_ibs"],
-            ["ryibs", "ry_ibs"],
-            ["rsibs", "rs_ibs"],
-            ["rxecool", "rx_ecool"],
-            ["ryecool", "ry_ecool"],
-            ["rsecool", "rs_ecool"]
-        ],
-        "ColorRangeType": [
-            ["none", "None"],
-            ["fixed", "Fixed"]
-        ],
-        "CoolingRatesOptionalColumn": [
-            ["rx", "rx"],
-            ["ry", "ry"],
-            ["rs", "rs"],
-            ["rxibs", "rx_ibs"],
-            ["ryibs", "ry_ibs"],
-            ["rsibs", "rs_ibs"],
-            ["rxecool", "rx_ecool"],
-            ["ryecool", "ry_ecool"],
-            ["rsecool", "rs_ecool"],
-            ["none", "None"]
-        ],
-        "ForceFormula": [
-            ["parkhomchuk", "Parkhomchuk"],
-            ["derbenevskrinsky", "Derbenev-Skrinsky"],
-            ["meshkov", "Meshkov"],
-            ["unmagnetized", "Unmagnetized"],
-            ["budker", "Budker (un-magnetized)"],
-            ["pogorelov", "Pogorelov-Bruhwiler"],
-            ["pogorelov_warm", "Pogorelov-Bruhwiler warm electrons"]
-        ],
-        "ForceScaleFactor": [
-            ["negative", "-1"],
-            ["positive", "1"]
-        ],
-        "ForceTableColumn": [
-            ["fx", "Transverse Force"],
-            ["flong", "Longitudinal Force"],
-            ["Vtrans", "Transverse Velocity"],
-            ["Vlong", "Longitudinal Velocity"],
-            ["edensity", "Electron Density"]
-        ],
-        "ForceTablePlot": [
-            ["longitudinal", "Longitudinal"],
-            ["transverse", "Transverse"]
-        ],
-        "FramesPerSecond": [
-            ["1", "1"],
-            ["2", "2"],
-            ["5", "5"],
-            ["10", "10"],
-            ["15", "15"],
-            ["20", "20"]
-        ],
-        "IBSLongitudinalMethod": [
-            ["nz", "Longitudinal Grid Size"],
-            ["log_c", "Coulomb Logarithm"]
-        ],
-        "IBSModel": [
-            ["bm", "Bjorken-Mtingwa"],
-            ["martini", "Martini"]
-        ],
-        "LatticeSource": [
-            ["madx", "Mad-X TFS File"],
-            ["elegant", "elegant twiss_output SDDS File"],
-            ["elegant-sirepo", "Sirepo elegant Simulation"]
-        ],
-        "ParticleColumn": [
-            ["x", "x"],
-            ["xp", "xp"],
-            ["y", "y"],
-            ["yp", "yp"],
-            ["ds", "ds"],
-            ["dpp", "dp/p"]
-        ],
-        "PlotRangeType": [
-            ["none", "None"],
-            ["fit", "Fit Data"],
-            ["fixed", "Fixed"]
-        ],
-        "SimulationModel": [
-            ["rms", "RMS"],
-            ["particle", "Particle"]
-        ],
-        "TwissParameter": [
-            ["betx", "betax"],
-            ["alfx", "alphax"],
-            ["mux", "mux"],
-            ["dx", "dx"],
-            ["dpx", "dpx"],
-            ["bety", "betay"],
-            ["alfy", "alphay"],
-            ["muy", "muy"],
-            ["dy", "dy"],
-            ["dpy", "dpy"],
-            ["none", "None"]
-        ]
+    "type": {
+        "TwissFile": {
+            "base": "File",
+            "settings": {
+                "pattern": ".+\\.tfs",
+                "isRequired": true
+            }
+        },
+        "ElegantSimList": {
+            "base": "StatefulComputeEnum",
+            "settings": {
+                "computeMethod": "get_elegant_sim_list",
+                "resultName": "simList"
+            }
+        },
+        "ElectronBeamShape": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["dc_uniform", "Cylindrical"],
+                    ["bunched_gaussian", "Gaussian"],
+                    ["bunched_uniform", "Cylindrical"],
+                    ["bunched_uniform_elliptic", "Cylindrical (elliptical cross-section)"]
+                ]
+            }
+        },
+        "ElectronBeamShapeDescription": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["dc_uniform", "The unbunched electron beam is a continuous cylinder with circular cross-section."],
+                    ["bunched_gaussian", "The electron beam is a 3D Gaussian distribution in space."],
+                    ["bunched_uniform", "The electron beam is a uniformly-filled 3D cylinder with circular cross-section."],
+                    ["bunched_uniform_elliptic", "The electron beam is a uniformly-filled 3D cylinder with elliptical cross-section."]
+                ]
+            }
+        },
+        "BeamColumn": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["emitx", "emit_x"],
+                    ["emity", "emit_y"],
+                    ["dpp", "dp/p"],
+                    ["sigmas", "sigma_s"]
+                ]
+            }
+        },
+        "BeamOptionalColumn": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["emitx", "emit_x"],
+                    ["emity", "emit_y"],
+                    ["dpp", "dp/p"],
+                    ["sigmas", "sigma_s"],
+                    ["none", "None"]
+                ]
+            }
+        },
+        "BeamParticle": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["ALUMINUM", "Aluminum"],
+                    ["COPPER", "Copper"],
+                    ["DEUTERON", "Deuteron"],
+                    ["GOLD", "Gold"],
+                    ["HELIUM", "Helium"],
+                    ["LEAD", "Lead"],
+                    ["PROTON", "Proton"],
+                    ["RUTHENIUM", "Ruthenium"],
+                    ["URANIUM", "Uranium"],
+                    ["ZIRCONIUM", "Zirconium"],
+                    ["OTHER", "Other"]
+                ]
+            }
+        },
+        "BeamType": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["bunched", "Bunched Beam"],
+                    ["continuous", "Continuous Beam"]
+                ]
+            }
+        },
+        "CoolingRatesColumn": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["rx", "rx"],
+                    ["ry", "ry"],
+                    ["rs", "rs"],
+                    ["rxibs", "rx_ibs"],
+                    ["ryibs", "ry_ibs"],
+                    ["rsibs", "rs_ibs"],
+                    ["rxecool", "rx_ecool"],
+                    ["ryecool", "ry_ecool"],
+                    ["rsecool", "rs_ecool"]
+                ]
+            }
+        },
+        "ColorRangeType": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["none", "None"],
+                    ["fixed", "Fixed"]
+                ]
+            }
+        },
+        "CoolingRatesOptionalColumn": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["rx", "rx"],
+                    ["ry", "ry"],
+                    ["rs", "rs"],
+                    ["rxibs", "rx_ibs"],
+                    ["ryibs", "ry_ibs"],
+                    ["rsibs", "rs_ibs"],
+                    ["rxecool", "rx_ecool"],
+                    ["ryecool", "ry_ecool"],
+                    ["rsecool", "rs_ecool"],
+                    ["none", "None"]
+                ]
+            }
+        },
+        "ForceFormula": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["parkhomchuk", "Parkhomchuk"],
+                    ["derbenevskrinsky", "Derbenev-Skrinsky"],
+                    ["meshkov", "Meshkov"],
+                    ["unmagnetized", "Unmagnetized"],
+                    ["budker", "Budker (un-magnetized)"],
+                    ["pogorelov", "Pogorelov-Bruhwiler"],
+                    ["pogorelov_warm", "Pogorelov-Bruhwiler warm electrons"]
+                ]
+            }
+        },
+        "ForceScaleFactor": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["negative", "-1"],
+                    ["positive", "1"]
+                ]
+            }
+        },
+        "ForceTableColumn": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["fx", "Transverse Force"],
+                    ["flong", "Longitudinal Force"],
+                    ["Vtrans", "Transverse Velocity"],
+                    ["Vlong", "Longitudinal Velocity"],
+                    ["edensity", "Electron Density"]
+                ]
+            }
+        },
+        "ForceTablePlot": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["longitudinal", "Longitudinal"],
+                    ["transverse", "Transverse"]
+                ]
+            }
+        },
+        "FramesPerSecond": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["1", "1"],
+                    ["2", "2"],
+                    ["5", "5"],
+                    ["10", "10"],
+                    ["15", "15"],
+                    ["20", "20"]
+                ]
+            }
+        },
+        "IBSLongitudinalMethod": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["nz", "Longitudinal Grid Size"],
+                    ["log_c", "Coulomb Logarithm"]
+                ]
+            }
+        },
+        "IBSModel": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["bm", "Bjorken-Mtingwa"],
+                    ["martini", "Martini"]
+                ]
+            }
+        },
+        "LatticeSource": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["madx", "Mad-X TFS File"],
+                    ["elegant", "elegant twiss_output SDDS File"],
+                    ["elegant-sirepo", "Sirepo elegant Simulation"]
+                ]
+            }
+        },
+        "ParticleColumn": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["x", "x"],
+                    ["xp", "xp"],
+                    ["y", "y"],
+                    ["yp", "yp"],
+                    ["ds", "ds"],
+                    ["dpp", "dp/p"]
+                ]
+            }
+        },
+        "PlotRangeType": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["none", "None"],
+                    ["fit", "Fit Data"],
+                    ["fixed", "Fixed"]
+                ]
+            }
+        },
+        "SimulationModel": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["rms", "RMS"],
+                    ["particle", "Particle"]
+                ]
+            }
+        },
+        "TwissParameter": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["betx", "betax"],
+                    ["alfx", "alphax"],
+                    ["mux", "mux"],
+                    ["dx", "dx"],
+                    ["dpx", "dpx"],
+                    ["bety", "betay"],
+                    ["alfy", "alphay"],
+                    ["muy", "muy"],
+                    ["dy", "dy"],
+                    ["dpy", "dpy"],
+                    ["none", "None"]
+                ]
+            }
+        }
     },
     "model": {
         "beamEvolutionAnimation": {
@@ -283,6 +402,7 @@
     "view": {
         "beamEvolutionAnimation": {
             "title": "RMS Ion Beam Evolution",
+            "type": "panel",
             "config": {
                 "advanced": [
                     {
@@ -341,6 +461,7 @@
         },
         "cooler": {
             "title": "Cooler",
+            "type": "panel",
             "config": {
                 "basic": [
                     {
@@ -392,6 +513,7 @@
         },
         "coolingRatesAnimation": {
             "title": "IBS & Cooling Rates",
+            "type": "panel",
             "config": {
                 "advanced": [
                     {
@@ -450,6 +572,7 @@
         },
         "electronBeam": {
             "title": "Cooling Electron Beam",
+            "type": "panel",
             "config": {
                 "basic": [
                     {
@@ -476,6 +599,7 @@
         },
         "forceTableAnimation": {
             "title": "Friction Force",
+            "type": "panel",
             "config": {
                 "advanced": [
                     {
@@ -532,6 +656,7 @@
         },
         "ionBeam": {
             "title": "Ion Beam",
+            "type": "panel",
             "config": {
                 "basic": [
                     {
@@ -562,6 +687,7 @@
         },
         "particleAnimation": {
             "title": "Ion Particle Animation",
+            "type": "panel",
             "config": {
                 "advanced": [
                     {
@@ -632,84 +758,161 @@
         },
         "coolingAndIBS": {
             "title": "Cooling and Intrabeam Scattering",
-            "basic": [
-                ["Electron Cooling", [
-                    "electronCoolingRate.sample_number",
-                    "electronCoolingRate.force_formula"
-                ]],
-                ["Intrabeam Scattering", [
-                    "intrabeamScatteringRate.ibs_model",
-                    "intrabeamScatteringRate.nu",
-                    "intrabeamScatteringRate.nv",
-                    "intrabeamScatteringRate.longitudinalMethod",
-                    "intrabeamScatteringRate.nz",
-                    "intrabeamScatteringRate.log_c",
-                    "intrabeamScatteringRate.coupling"
-                ]]
-            ],
-            "advanced": []
+            "type": "panel",
+            "config": {
+                "basic": [
+                    {
+                        "layout": "tabs",
+                        "tabs": [
+                            {
+                                "name": "Electron Cooling",
+                                "items": [
+                                    {
+                                        "layout": "fieldList",
+                                        "fields": [
+                                            "electronCoolingRate.sample_number",
+                                            "electronCoolingRate.force_formula"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Intrabeam Scattering",
+                                "items": [
+                                    {
+                                        "layout": "fieldList",
+                                        "fields": [
+                                            "intrabeamScatteringRate.ibs_model",
+                                            "intrabeamScatteringRate.nu",
+                                            "intrabeamScatteringRate.nv",
+                                            "intrabeamScatteringRate.longitudinalMethod",
+                                            "intrabeamScatteringRate.nz",
+                                            "intrabeamScatteringRate.log_c",
+                                            "intrabeamScatteringRate.coupling"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
         },
         "rateCalculationReport": {
             "title": "Rate Calculation Report",
-            "advanced": []
+            "type": "panel",
+            "config": {}
         },
         "ring": {
             "title": "Ring",
-            "basic": [
-                "latticeSource",
-                "lattice",
-                "elegantTwiss",
-                "elegantSirepo"
-            ],
-            "advanced": [
-            ]
+            "type": "panel",
+            "config": {
+                "basic": [
+                    {
+                        "layout": "fieldList",
+                        "fields": [
+                            "ring.latticeSource",
+                            "ring.lattice",
+                            "ring.elegantTwiss",
+                            "ring.elegantSirepo"
+                        ]
+                    }
+                ]
+            }
+            
         },
         "simulation": {
             "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
+            "type": "TODO",
+            "config": {
+                "advanced": [
+                    {
+                        "layout": "fieldList",
+                        "fields": [
+                            "simulation.name"
+                        ]
+                    }
+                ]
+            }
         },
         "simulationSettings": {
             "title": "Simulation Settings",
-            "basic": [
-                "time",
-                "step_number",
-                "time_step",
-                "model",
-                "save_particle_interval",
-                "electronCoolingRate.sample_number",
-                "ibs",
-                "e_cool",
-                [
-                    ["Horizontal", [
-                        "ref_bet_x",
-                        "ref_alf_x",
-                        "ref_disp_x",
-                        "ref_disp_dx"
-                    ]],
-                    ["Vertical", [
-                        "ref_bet_y",
-                        "ref_alf_y",
-                        "ref_disp_y",
-                        "ref_disp_dy"
-                    ]]
+            "type": "panel",
+            "config": {
+                "basic": [
+                    {
+                        "layout": "fieldList",
+                        "fields": [
+                            "simulationSettings.time",
+                            "simulationSettings.step_number",
+                            "simulationSettings.time_step",
+                            "simulationSettings.model",
+                            "simulationSettings.save_particle_interval",
+                            "electronCoolingRate.sample_number",
+                            "simulationSettings.ibs",
+                            "simulationSettings.e_cool"
+                        ]
+                    },
+                    {
+                        "layout": "fieldTable",
+                        "columns": [
+                            "Horizontal",
+                            "Vertical"
+                        ],
+                        "rows": [
+                            {
+                                "label": "Beta Reference Point",
+                                "fields": [
+                                    "simulationSettings.ref_bet_x",
+                                    "simulationSettings.ref_bet_y"
+                                ]
+                            },
+                            {
+                                "label": "Alpha Reference Point",
+                                "fields": [
+                                    "simulationSettings.ref_alf_x",
+                                    "simulationSettings.ref_alf_y"
+                                ]
+                            },
+                            {
+                                "label": "Dispersion Reference Point",
+                                "fields": [
+                                    "simulationSettings.ref_disp_x",
+                                    "simulationSettings.ref_disp_y"
+                                ]
+                            },
+                            {
+                                "label": "Dispersion Derivative Reference Point",
+                                "fields": [
+                                    "simulationSettings.ref_disp_dx",
+                                    "simulationSettings.ref_disp_dy"
+                                ]
+                            }
+                        ]
+                    }
                 ]
-            ],
-            "advanced": [
-            ]
+            }
         },
         "simulationStatus": {
             "title": "Simulation Status",
-            "advanced": []
+            "type": "TODO",
+            "config": {}
         },
         "twissReport": {
             "title": "Twiss Parameters",
-            "advanced": [
-                "y1",
-                "y2",
-                "y3"
-            ]
+            "type": "panel",
+            "config":{
+                "advanced": [
+                    {
+                        "layout": "fieldList",
+                        "fields": [
+                            "twissReport.y1",
+                            "twissReport.y2",
+                            "twissReport.y3"
+                        ]
+                    }
+                ]
+            }
         }
     }
 }

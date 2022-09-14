@@ -244,6 +244,10 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
             })
         }
 
+        if(!view.config) {
+            throw new Error("view missing config: " + viewName);
+        }
+
         let basic = view.config.basic || [];
         let advanced = view.config.advanced || [];
 

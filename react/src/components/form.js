@@ -113,7 +113,13 @@ export class FormController {
 
     submitChanges = () => {
         Object.entries(this.hookedModels).forEach(([modelName, model]) => {
-            let changesObj = mapProperties(model.value, (fieldName, fieldState) => fieldState.value);
+            let changesObj = mapProperties(model.value, (fieldName, fieldState) => {
+                let hookedDependency = this.getHookedField({
+                    fieldName,
+                    modelName
+                });
+                return hookedDependency.type.dbValue(fieldState.value)
+            });
 
             let nextModelValue = { ...model.dependency.value };
             Object.assign(nextModelValue, changesObj);

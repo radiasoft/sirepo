@@ -1,14 +1,24 @@
 {
-    "enum": {
-        "Gender": [
-            ["male", "Male"],
-            ["female", "Female"]
-        ],
-        "DogDisposition": [
-            ["aggressive", "Aggressive"],
-            ["friendly", "Friendly"],
-            ["submissive", "Submissive"]
-        ]
+    "type": {
+        "Gender": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["male", "Male"],
+                    ["female", "Female"]
+                ]
+            }
+        },
+        "DogDisposition": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["aggressive", "Aggressive"],
+                    ["friendly", "Friendly"],
+                    ["submissive", "Submissive"]
+                ]
+            }
+        }
     },
     "model": {
         "dog": {

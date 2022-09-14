@@ -109,6 +109,7 @@ class AppViewBuilder{
         let componentBuilder = this.components[viewInfo.view.type || 'panel'];
 
         if(!componentBuilder) {
+            console.error("missing view builder for view: " + viewInfo.view.viewName + ": " + viewInfo.view.type)
             return MissingComponentPlaceholder;
         }
 

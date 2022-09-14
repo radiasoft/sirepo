@@ -1,39 +1,34 @@
 import { useContext, useState, useEffect, useRef } from "react";
 import { Dependency, useDependentValues } from "../dependency";
 import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModels } from "./context";
+import { pollStateful } from "../compute";
 
-function pollRunReport({ appName, models, simulationId, report, pollInterval}, callback) {
-    let doFetch = () => {
-        fetch('/run-simulation', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                models,
-                forceRun: false,
-                report,
-                simulationId,
-                simulationType: appName
-            })
-        }).then(async (resp) => {
-            let simulationStatus = await resp.json();
-            console.log("status", simulationStatus);
-            let { state } = simulationStatus;
-            console.log("polled report: " + state);
-            if(state === 'completed') {
-                callback(simulationStatus);
-            } else if (state === 'pending' || state === 'running') {
-                setTimeout(doFetch, pollInterval); // TODO
-                if(state === 'running') {
-                    callback(simulationStatus);
-                }
-            } else {
-                throw new Error("simulation status could not be handled: ", simulationStatus);
-            }
+function pollRunReport({ appName, models, simulationId, report, pollInterval, callback }) {
+    let doFetch = () => fetch('/run-simulation', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            models,
+            forceRun: false,
+            report,
+            simulationId,
+            simulationType: appName
         })
-    }
-    doFetch();
+    });
+
+    pollStateful({
+        doFetch,
+        pollInterval,
+        callback: (respObj) => {
+            let { state } = respObj;
+
+            if(state === 'completed' || state === 'running') {
+                callback(respObj);
+            }
+        }
+    })
 }
 
 export function AutoRunReportLayout(layoutElement) {
@@ -78,14 +73,15 @@ export function AutoRunReportLayout(layoutElement) {
                         models,
                         simulationId,
                         report: report,
-                        pollInterval: 500
-                    }, (simulationData) => {
-                        console.log("polling report yielded new data");
-                        // guard concurrency
-                        if(simulationPollingVersionRef.current == pollingVersion) {
-                            updateSimulationData(simulationData);
-                        } else {
-                            console.log("polling data was not from newest request");
+                        pollInterval: 500,
+                        callback: (simulationData) => {
+                            console.log("polling report yielded new data");
+                            // guard concurrency
+                            if(simulationPollingVersionRef.current == pollingVersion) {
+                                updateSimulationData(simulationData);
+                            } else {
+                                console.log("polling data was not from newest request");
+                            }
                         }
                     })
                 })

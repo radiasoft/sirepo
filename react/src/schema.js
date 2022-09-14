@@ -1,25 +1,22 @@
-import { globalTypes, enumTypeOf } from "./types";
+import { globalTypes, partialTypes } from "./types";
 import { mapProperties } from "./helper";
 
 export function compileSchemaFromJson(schemaObj) {
     let enumTypes = {};
+    let additionalTypes = {};
 
-    if(schemaObj.enum) {
-        enumTypes = mapProperties(schemaObj.enum, (name, allowedValues) => {
-            allowedValues = allowedValues.map(allowedValue => {
-                let [value, displayName] = allowedValue;
-                return {
-                    value, 
-                    displayName
-                }
-            })
-            return enumTypeOf(allowedValues);
+    if(schemaObj.type) {
+        additionalTypes = mapProperties(schemaObj.type, (name, {base, settings}) => {
+            let partialTypeFactory = partialTypes[base];
+            let partialType = partialTypeFactory(settings);
+            return partialType;
         })
     }
 
     let types = {
         ...globalTypes,
-        ...enumTypes
+        ...enumTypes,
+        ...additionalTypes
     }
 
     let models = {};
