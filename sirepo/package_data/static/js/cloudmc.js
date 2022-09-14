@@ -412,13 +412,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 }
                 const [nx, ny, nz] = mesh.dimension;
                 const [wx, wy, wz] = [
-                    scale * (mesh.upper_right[0] - mesh.lower_left[0]) / mesh.dimension[0],
-                    scale * (mesh.upper_right[1] - mesh.lower_left[1]) / mesh.dimension[1],
-                    scale * (mesh.upper_right[2] - mesh.lower_left[2]) / mesh.dimension[2],
+                    (mesh.upper_right[0] - mesh.lower_left[0]) / mesh.dimension[0],
+                    (mesh.upper_right[1] - mesh.lower_left[1]) / mesh.dimension[1],
+                    (mesh.upper_right[2] - mesh.lower_left[2]) / mesh.dimension[2],
                 ];
                 const [sx, sy, sz] = mesh.upper_right.map(
                     (x, i) => (1.0 - appState.models.voxels.voxelInsetPct)
-                        * Math.abs(x - mesh.lower_left[i] * scale) / mesh.dimension[i]
+                        * Math.abs(x - mesh.lower_left[i]) / mesh.dimension[i]
                 );
                 const points = [];
                 const polys = [];
@@ -427,13 +427,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     for (let yi = 0; yi < ny; yi++) {
                         for (let xi = 0; xi < nx; xi++) {
                             const f = fd[zi * nx * ny + yi * nx + xi];
-                            if (f == 0) {
+                            if (f === 0) {
                                 continue;
                             }
                             const p = [
-                                xi * wx + mesh.lower_left[0] * scale,
-                                yi * wy + mesh.lower_left[1] * scale,
-                                zi * wz + mesh.lower_left[2] * scale,
+                                xi * wx + mesh.lower_left[0],
+                                yi * wy + mesh.lower_left[1],
+                                zi * wz + mesh.lower_left[2],
                             ];
                             buildVoxel(p, wx, wy, wz, points, polys);
                         }
@@ -442,18 +442,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 basePolyData.getPoints().setData(new window.Float32Array(points), 3);
                 basePolyData.getPolys().setData(new window.Uint32Array(polys));
 
-                //TODO(pjm): get working with tally bundle
-                // tallyBundle = coordMapper.buildActorBundle(basePolyData, {
-                //     'lighting': false,
-                // });
-                var mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-                var actor = vtk.Rendering.Core.vtkActor.newInstance();
-                mapper.setInputData(basePolyData);
-                actor.setMapper(mapper);
-                actor.getProperty().setLighting(false);
-                tallyBundle = {
-                    actor: actor,
-                };
+                tallyBundle = coordMapper.buildPolyData(
+                    basePolyData,
+                    {
+                        lighting: false,
+                    }
+                )
                 vtkScene.addActor(tallyBundle.actor);
                 setTallyColors();
             }
