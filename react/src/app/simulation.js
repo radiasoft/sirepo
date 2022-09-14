@@ -4,16 +4,18 @@ import { ContextSimulationListPromise,
         ContextAppName, 
         ContextAppInfo, 
         ContextAppViewBuilder,
-        ContextModels} from "../components/context";
-import { mapProperties } from "../helper";
+        ContextModels,
+        ContextRelativeRouterHelper} from "../components/context";
+import { mapProperties, RouteHelper } from "../helper";
 import { FormStateInitializer } from "../components/form";
-import { Row, Col, Container } from "react-bootstrap";
+import { Row, Col, Container, Navbar, Nav } from "react-bootstrap";
 import { Models } from "../dependency";
 import {
     selectModel,
     updateModel,
     selectModels,
 } from "../models";
+import { useResolvedPath } from "react-router-dom";
 
 export function ViewGrid(props) {
     let { views, ...otherProps } = props;
@@ -90,6 +92,48 @@ function SimulationInfoInitializer(child) {
     }
 }
 
+export function SimulationOuter(props) {
+    let appInfo = useContext(ContextAppInfo);
+    let appName = useContext(ContextAppName);
+
+    let simBrowerRelativeRouter = useContext(ContextRelativeRouterHelper);
+
+    let pathPrefix = useResolvedPath('');
+    let currentRelativeRouter = new RouteHelper(pathPrefix);
+
+    let titleCaseAppName = appName.split(" ").map(word => {
+        return word.substring(0,1).toUpperCase() + (word.length > 1 ? word.substring(1) : "");
+    }).join(" ");
+
+    // TODO: navbar should route to home, when one is made
+    return (
+        <Container>
+            <Navbar>
+                <Container>
+                    <Navbar.Brand href={simBrowerRelativeRouter.getCurrentPath()}>
+                        <img
+                        alt=""
+                        src="/react/img/sirepo.gif"
+                        width="30"
+                        height="30"
+                        className="d-inline-block align-top"
+                        />{' '}
+                        {titleCaseAppName}
+                    </Navbar.Brand>
+                    <Nav variant="tabs">
+
+                    </Nav>
+                </Container>
+            </Navbar>
+            <ContextRelativeRouterHelper.Provider value={currentRelativeRouter}>
+                {props.children}
+            </ContextRelativeRouterHelper.Provider>
+        </Container>
+        
+    )
+
+}
+
 export function SimulationRoot(props) {
     let { simulation } = props;
 
@@ -97,19 +141,13 @@ export function SimulationRoot(props) {
     let viewBuilder = useContext(ContextAppViewBuilder);
     let { schema } = appInfo;
 
-    let viewInfos = mapProperties(schema.views, (viewName, view) => {
-        return {
-            view,
-            viewName: viewName
-        }
-    })
-    let viewComponents = mapProperties(viewInfos, (viewName, viewInfo) => viewBuilder.buildComponentForView(viewInfo));
+    let viewComponents = schema.views.map((view) => viewBuilder.buildComponentForView(view));
 
     let buildSimulationRoot = (simulation) => {
         return SimulationInfoInitializer(
-            FormStateInitializer({ viewInfos, schema })(
+            FormStateInitializer({ schema })(
                 () => {
-                    return <ViewGrid views={Object.values(viewComponents)}/>
+                    return <ViewGrid views={viewComponents}/>
                 }
             )
         );
@@ -117,5 +155,9 @@ export function SimulationRoot(props) {
 
     let SimulationChild = buildSimulationRoot(simulation);
 
-    return <SimulationChild></SimulationChild>
+    return (
+        <SimulationOuter>
+            <SimulationChild/>
+        </SimulationOuter>
+    )
 }

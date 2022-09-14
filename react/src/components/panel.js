@@ -211,9 +211,11 @@ export function elementForLayoutName(layoutName) {
     return layoutElements[layoutName] || MissingLayout
 }
 
-export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
+export let ViewLayoutsPanel = ({ schema }) => (view) => {
     let ViewLayoutsPanelComponent = (props) => {
         useRenderCount("ViewLayoutsPanel");
+
+        let { config } = view;
 
         let formActions = useContext(ContextReduxFormActions); // TODO: make these generic
         let formSelectors = useContext(ContextReduxFormSelectors);
@@ -244,12 +246,12 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
             })
         }
 
-        if(!view.config) {
-            throw new Error("view missing config: " + viewName);
+        if(!config) {
+            throw new Error("view missing config: " + view.name);
         }
 
-        let basic = view.config.basic || [];
-        let advanced = view.config.advanced || [];
+        let basic = config.basic || [];
+        let advanced = config.advanced || [];
 
         let dependencies = [...basic, ...advanced].map(layoutConfig => {
             let ele = elementForLayoutName(layoutConfig.layout);
@@ -284,8 +286,8 @@ export let ViewLayoutsPanel = ({ schema }) => ({ view, viewName }) => {
             formValid: formController.isFormStateValid(),
             mainChildren,
             modalChildren,
-            title: view.title || viewName,
-            id: { viewName }
+            title: config.title || view.name,
+            id: view.name
         }
 
         return (

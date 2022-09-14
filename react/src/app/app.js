@@ -101,19 +101,18 @@ class AppViewBuilder{
     constructor (appInfo) { 
         this.components = {
             'panel': ViewLayoutsPanel(appInfo)
-            //'graph2d': (viewInfo) => SimulationVisualWrapper(viewInfo.viewName, viewInfo.view.title, Graph2dFromApi, { width: '100%', height: '100%' })
         }
     }
 
-    buildComponentForView = (viewInfo) => {
-        let componentBuilder = this.components[viewInfo.view.type || 'panel'];
+    buildComponentForView = (view) => {
+        let componentBuilder = this.components[view.type || 'panel'];
 
         if(!componentBuilder) {
-            console.error("missing view builder for view: " + viewInfo.view.viewName + ": " + viewInfo.view.type)
+            console.error("missing view builder for view: " + view.name + ": " + view.type)
             return MissingComponentPlaceholder;
         }
 
-        return componentBuilder(viewInfo);
+        return componentBuilder(view);
     }
 }
 

@@ -30,11 +30,12 @@
             "favoriteTreat": ["Favorite Treat", "OptionalString", ""]
         }
     },
-    "view": {
-        "dog": {
-            "title": "Dog",
+    "view": [
+        {
+            "name": "dog",
             "type": "panel",
             "config": {
+                "title": "Dog",
                 "basic": [
                     {
                         "layout": "tabs",
@@ -89,10 +90,11 @@
                 ]
             }
         },
-        "heightWeightReport": {
-            "title": "Physical Characteristics",
+        {
+            "name": "heightWeightReport",
             "type": "panel",
             "config": {
+                "title": "Physical Characteristics",
                 "basic": [
                     {
                         "layout": "graph2d",
@@ -104,5 +106,5 @@
                 ]
             }
         }
-    }
+    ]
 }

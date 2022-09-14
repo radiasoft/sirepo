@@ -56,6 +56,10 @@ export class RouteHelper {
         this.pathPrefix = pathPrefix;
     }
 
+    getCurrentPath() { 
+        return joinPath(this.pathPrefix.pathname, this.pathPrefix.search);
+    }
+
     getRelativePath(route) {
         let path = joinPath(this.pathPrefix.pathname, route, this.pathPrefix.search);
         return path;

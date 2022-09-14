@@ -399,11 +399,19 @@
             "y3": ["Y3 Value", "TwissParameter", "dx"]
         }
     },
-    "view": {
-        "beamEvolutionAnimation": {
-            "title": "RMS Ion Beam Evolution",
+    "view": [
+        {
+            "name": "navtabs",
+            "type": "navtabs",
+            "config": {
+
+            }
+        },
+        {
+            "name": "beamEvolutionAnimation",
             "type": "panel",
             "config": {
+                "title": "RMS Ion Beam Evolution",
                 "advanced": [
                     {
                         "layout": "tabs",
@@ -459,10 +467,11 @@
             }
             
         },
-        "cooler": {
-            "title": "Cooler",
+        {
+            "name": "cooler",
             "type": "panel",
             "config": {
+                "title": "Cooler",
                 "basic": [
                     {
                         "layout": "fieldList",
@@ -511,10 +520,11 @@
                 ]
             }
         },
-        "coolingRatesAnimation": {
-            "title": "IBS & Cooling Rates",
+        {
+            "name": "coolingRatesAnimation",
             "type": "panel",
             "config": {
+                "title": "IBS & Cooling Rates",
                 "advanced": [
                     {
                         "layout": "tabs",
@@ -570,10 +580,11 @@
             }
             
         },
-        "electronBeam": {
-            "title": "Cooling Electron Beam",
+        { 
+            "name": "electronBeam",
             "type": "panel",
             "config": {
+                "title": "Cooling Electron Beam",
                 "basic": [
                     {
                         "layout": "fieldList",
@@ -597,10 +608,11 @@
                 ]
             }
         },
-        "forceTableAnimation": {
-            "title": "Friction Force",
+        {
+            "name": "forceTableAnimation",
             "type": "panel",
             "config": {
+                "title": "Friction Force",
                 "advanced": [
                     {
                         "layout": "tabs",
@@ -654,10 +666,11 @@
                 ]
             }
         },
-        "ionBeam": {
-            "title": "Ion Beam",
+        {
+            "name": "ionBeam",
             "type": "panel",
             "config": {
+                "title": "Ion Beam",
                 "basic": [
                     {
                         "layout": "fieldList",
@@ -685,10 +698,11 @@
                 ]
             }
         },
-        "particleAnimation": {
-            "title": "Ion Particle Animation",
+        {
+            "name": "particleAnimation",
             "type": "panel",
             "config": {
+                "title": "Ion Particle Animation",
                 "advanced": [
                     {
                         "layout": "tabs",
@@ -756,10 +770,11 @@
                 ]
             }
         },
-        "coolingAndIBS": {
-            "title": "Cooling and Intrabeam Scattering",
+        {
+            "name": "coolingAndIBS",
             "type": "panel",
             "config": {
+                "title": "Cooling and Intrabeam Scattering",
                 "basic": [
                     {
                         "layout": "tabs",
@@ -798,15 +813,18 @@
                 ]
             }
         },
-        "rateCalculationReport": {
-            "title": "Rate Calculation Report",
-            "type": "panel",
-            "config": {}
-        },
-        "ring": {
-            "title": "Ring",
+        {
+            "name": "rateCalculationReport",
             "type": "panel",
             "config": {
+                "title": "Rate Calculation Report"
+            }
+        },
+        {
+            "name": "ring",
+            "type": "panel",
+            "config": {
+                "title": "Ring",
                 "basic": [
                     {
                         "layout": "fieldList",
@@ -821,10 +839,11 @@
             }
             
         },
-        "simulation": {
-            "title": "Simulation",
+        {
+            "name": "simulation",
             "type": "TODO",
             "config": {
+                "title": "Simulation",
                 "advanced": [
                     {
                         "layout": "fieldList",
@@ -835,10 +854,11 @@
                 ]
             }
         },
-        "simulationSettings": {
-            "title": "Simulation Settings",
+        {
+            "name": "simulationSettings",
             "type": "panel",
             "config": {
+                "title": "Simulation Settings",
                 "basic": [
                     {
                         "layout": "fieldList",
@@ -893,15 +913,18 @@
                 ]
             }
         },
-        "simulationStatus": {
-            "title": "Simulation Status",
+        {
+            "name": "simulationStatus",
             "type": "TODO",
-            "config": {}
+            "config": {
+                "title": "Simulation Status"
+            }
         },
-        "twissReport": {
-            "title": "Twiss Parameters",
-            "type": "panel",
+        {
+            "name": "twissReport",
+            "type": "TODO",
             "config":{
+                "title": "Twiss Parameters",
                 "advanced": [
                     {
                         "layout": "fieldList",
@@ -914,5 +937,5 @@
                 ]
             }
         }
-    }
+    ]
 }
