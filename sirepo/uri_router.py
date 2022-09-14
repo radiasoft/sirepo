@@ -91,12 +91,16 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
     with _set_api_attr(sreq, route_or_name):
         try:
             # must be first so exceptions have access to sim_type
+parse_post or parse_params? we know what we need
+this can be part of the parsing. possibly get from the data if any
             if kwargs:
                 # Any (GET) uri will have simulation_type in uri if it is application
                 # specific.
                 s = sreq.set_sim_type(kwargs.get("simulation_type"))
             else:
                 kwargs = PKDict()
+already has route
+
             f = _check_api_call(sreq, route_or_name)
             try:
                 if data is not None:
@@ -320,6 +324,9 @@ which can include
     with sirepo.auth.process_request(sreq):
         try:
             if path is None:
+route is an object so taht can make the call with sreq
+path_info is put
+every api has a spec
                 return call_api(sreq, _default_route, PKDict(path_info=None))
             # werkzeug doesn't convert '+' to ' '
             parts = re.sub(r"\+", " ", path).split("/")
@@ -414,6 +421,7 @@ def _register_sim_oauth_modules(oauth_sim_types):
 
 @contextlib.contextmanager
 def _set_api_attr(sreq, route_or_name):
+this should be on sapi
     a = sreq.get(_API_ATTR)
     try:
         sreq[_API_ATTR] = route_or_name
