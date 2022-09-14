@@ -202,6 +202,8 @@ def _build_ui_nn(model):
                 r += f"\n out: {o.name}"
     r += "\n\n ======================================"
     pkdp(r)
+
+    pkdp("\n\n\n\n\n\n last node: {}", nn.layers[-1])
     nn = _set_children(nn)
     return nn
 
@@ -211,108 +213,38 @@ def _get_layer_type(layer):
 
 
 def _set_children(nn):
-    cur_node = nn.layers[0]
+    cur_node = nn.layers[-1]
     nn = _levels_with_children(cur_node, nn)
-    pkdp("\n\n\n NN after first pass: {}", nn)
     return PKDict(layers=nn)
     # nn = _set_child_ops(nn)
 
 
 def _get_next_node(node, nn):
-    if not _non_branching(node):
-        raise AssertionError(f"node {node.name} has multiple outbound layers")
-    if not node.outbound:
-        return False
-    return _get_layer_by_name(nn, node.outbound[0].name)
+    pass
 
 
-def _non_branching(node):
-    return len(node.outbound) < 2
+def _is_branching(node):
+    return len(node.outbound) > 1
+
+
+def _is_merge_node(node):
+    return node.layer in ["Add", "Concatenate"]
 
 
 def _levels_with_children(cur_node, nn):
     # POSIT (gurhar1133): add/concate nodes will not have multiple outbound
     l = []
-    branch_open = False
-    while _continue_down_path(cur_node, nn, branch_open):
-        c = cur_node
+    parent = cur_node.inbound[0]
+    parent_sum = None
+    while _continue_building_level(cur_node, nn):
+        l.insert(0, cur_node)
+        if _is_merge_node(cur_node):
 
-        l.append(cur_node)
-        if not _non_branching(cur_node):
-            branch_open = True
-            for child in cur_node.outbound:
-                lvl = _levels_with_children(_get_layer_by_name(nn, child.name), nn)
-                c = _get_c(lvl)  # <- adds reversed in front of list
-                l.append(lvl)
-        if cur_node != c:
-            pkdp("\n\n\n curr_node != c! cur_node: {}, c: {}", cur_node.name, c.name)
-            cur_node = c
+            for i in cur_node.inbound:
+                p, s, lvl = _levels_with_children(i, nn)
+                #
+    return parent, parent_sum, l
 
-            # while cur_node.layer in ["Add", "Concatenate"]:
-            #     pkdp("\n\n\n appending={}", cur_node.name)
-            #     l.append(cur_node)
-            #     cur_node = _get_next_node(cur_node, nn)
-
-        if cur_node.layer in ["Add", "Concatenate"] and not branch_open:
-            # l.append(cur_node)
-            return _move_ops_reversed_front(l)
-
-        cur_node = _get_next_node(cur_node, nn)
-
-    return _move_ops_reversed_front(l)
-
-
-def _get_c(lvl):
-    # return lvl[-1]
-    for i, l in enumerate(lvl):
-        if l.layer not in ["Concatenate", "Add"] and i != 0:
-            return lvl[i - 1]
-
-    assert 0, "_get_c failed"
-
-def _move_ops_reversed_front(level):
-    ops = []
-    nodes = []
-    pkdp("\n\n\n level in move_ops_reversed_front: {}", level)
-    for n in level:
-        if type(n) == list:
-            nodes.append(n)
-        elif n.layer in ["Add", "Concatenate"]:
-            ops.append(n)
-        else:
-            nodes.append(n)
-    return list(reversed(ops)) + nodes
-
-
-# TODO (gurhar1133): what if an add/concat has multiple outbound branches?
-# is that possible? if so, how does our UI express this?
-
-
-def _continue_down_path(cur_node, nn, branch_open):
-    pkdp("\n\n\n\n continue down path with cur_node: {}", cur_node)
-    if not cur_node.outbound:
-        return False
-    if branch_open and cur_node.layer in ["Add", "Concatenate"]:
-        return False
-    return True
-
-
-def _set_child_ops(nn):
-    # for layer in nn:
-    # if layer.subgroup:
-    #    _group(sub_layer)
-    pass
-
-
-def _group(sub_layer):
-    # while sub_layer has ops:
-    #    p = _group_and_pop(sub_layer)
-    #    all_ops.append(p)
-    # for child in sub_layer:
-    #    for l in child:
-    #        if _has_sublayers(l):
-    #           group(l)
-    pass
 
 
 def _get_relevant_nodes(model):
