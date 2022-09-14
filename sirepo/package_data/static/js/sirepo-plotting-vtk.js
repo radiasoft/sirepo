@@ -320,7 +320,7 @@ class VTKScene {
 
     /**
      * Gets the bounds of all the objects in the scene
-     * @returns {number[]}
+     * @returns {[number]}
      */
     bounds() {
         this.renderer.resetCamera();
@@ -328,7 +328,8 @@ class VTKScene {
     }
 
     /**
-     *
+     * Rotates the camera around the axis pointing into/out of the screen
+     * @param {number} angle - the angle ini degrees
      */
     rotate(angle) {
         this.cam.roll(angle);
