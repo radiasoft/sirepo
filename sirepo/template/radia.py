@@ -95,14 +95,13 @@ _METHODS = [
 _POST_SIM_REPORTS = [
     "electronTrajectoryReport",
     "fieldIntegralReport",
-    "fieldLineoutReport",
     "kickMapReport",
 ]
 _SIM_REPORTS = ["geometryReport", "reset", "solverAnimation"]
 _REPORTS = [
     "electronTrajectoryReport",
     "fieldIntegralReport",
-    "fieldLineoutReport",
+    "fieldLineoutAnimation",
     "geometryReport",
     "kickMapReport",
     "reset",
@@ -167,7 +166,7 @@ def extract_report_data(run_dir, sim_in):
         )
         d = _get_geom_data(
             sim_in.models.simulation.simulationId,
-            _get_g_id(),
+            get_g_id(),
             sim_in.models.simulation.name,
             v_type,
             f_type,
@@ -186,7 +185,7 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result(
             _generate_field_integrals(
                 sim_in.models.simulation.simulationId,
-                _get_g_id(),
+                get_g_id(),
                 sim_in.models.fieldPaths.paths or [],
             ),
             run_dir=run_dir,
@@ -216,17 +215,6 @@ def extract_report_data(run_dir, sim_in):
                     to_axis="y", from_axis=sim_in.models.simulation.beamAxis
                 ),
             )
-        )
-    if sim_in.report == "fieldLineoutReport":
-        template_common.write_sequential_result(
-            _field_lineout_plot(
-                sim_in.models.simulation.simulationId,
-                sim_in.models.simulation.name,
-                sim_in.models.fieldLineoutReport.fieldType,
-                sim_in.models.fieldLineoutReport.fieldPath,
-                sim_in.models.fieldLineoutReport.plotAxis,
-            ),
-            run_dir=run_dir,
         )
     if sim_in.report == "extrudedPolyReport":
         template_common.write_sequential_result(
@@ -262,12 +250,12 @@ def get_data_file(run_dir, model, frame, options):
         return f
     if model == "kickMapReport":
         _save_kick_map_sdds(
-            name, f, _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
+            name, f, _read_or_generate_kick_map(get_g_id(), data.models.kickMapReport)
         )
         return f
-    if model == "fieldLineoutReport":
+    if model == "fieldLineoutAnimation":
         f_type = rpt.fieldType
-        fd = _generate_field_data(sim_id, _get_g_id(), name, f_type, [rpt.fieldPath])
+        fd = generate_field_data(sim_id, get_g_id(), name, f_type, [rpt.fieldPath])
         v = fd.data[0].vectors
         if sfx == "sdds":
             return _save_fm_sdds(name, v, beam_axis, f)
@@ -318,6 +306,17 @@ def post_execution_processing(
     if success_exit or not is_parallel:
         return None
     return template_common.parse_mpi_log(run_dir)
+
+
+def sim_frame_fieldLineoutAnimation(frame_args):
+    return _field_lineout_plot(
+        frame_args.sim_in.models.simulation.simulationId,
+        frame_args.sim_in.models.simulation.name,
+        frame_args.sim_in.models.fieldLineoutAnimation.fieldType,
+        frame_args.sim_in.models.fieldLineoutAnimation.fieldPath,
+        frame_args.sim_in.models.fieldLineoutAnimation.plotAxis,
+        field_data=pkjson.load_any(pkio.py_path("field_data.json")),
+    )
 
 
 def stateful_compute_build_shape_points(data):
@@ -612,7 +611,7 @@ _FIELD_PT_BUILDERS = {
 
 def _electron_trajectory_plot(sim_id, **kwargs):
     d = PKDict(kwargs)
-    t = _generate_electron_trajectory(sim_id, _get_g_id(), **kwargs)
+    t = _generate_electron_trajectory(sim_id, get_g_id(), **kwargs)
     pts = (0.001 * t[radia_util.axes_index(d.beam_axis)]).tolist()
     plots = []
     a = [d.width_axis, d.height_axis]
@@ -638,11 +637,15 @@ def _electron_trajectory_plot(sim_id, **kwargs):
     )
 
 
-def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
+def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
-        _generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path])
-        .data[0]
-        .vectors
+        field_data
+        if field_data
+        else (
+            generate_field_data(sim_id, get_g_id(), name, f_type, [f_path])
+            .data[0]
+            .vectors
+        )
     )
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
@@ -716,7 +719,7 @@ def _generate_electron_trajectory(sim_id, g_id, **kwargs):
         _backend_alert(sim_id, g_id, e)
 
 
-def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
+def generate_field_data(sim_id, g_id, name, field_type, field_paths):
     assert (
         field_type in radia_util.FIELD_TYPES
     ), "field_type={}: invalid field type".format(field_type)
@@ -756,7 +759,7 @@ def _generate_data(sim_id, g_id, name, view_type, field_type, field_paths=None):
         if view_type == SCHEMA.constants.viewTypeObjects:
             return o
         elif view_type == SCHEMA.constants.viewTypeFields:
-            g = _generate_field_data(sim_id, g_id, name, field_type, field_paths)
+            g = generate_field_data(sim_id, g_id, name, field_type, field_paths)
             _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
@@ -789,6 +792,18 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     report = data.get("report", "")
     rpt_out = f"{_REPORT_RES_MAP.get(report, report)}"
     res, v = template_common.generate_parameters_file(data)
+    if report == "fieldLineoutAnimation":
+        v.sim_id = data.models.simulation.simulationId
+        v.name = data.models.simulation.name
+        v.f_type = data.models.fieldLineoutAnimation.fieldType
+        v.f_path = data.models.fieldLineoutAnimation.fieldPath
+        return template_common.render_jinja(
+            SIM_TYPE,
+            v,
+            f"{rpt_out}.py",
+            jinja_env=PKDict(loader=jinja2.PackageLoader("sirepo", "template")),
+        )
+
     if rpt_out in _POST_SIM_REPORTS:
         return res
 
@@ -983,7 +998,7 @@ def _get_ell_points(o, stemmed_info):
     )
 
 
-def _get_g_id():
+def get_g_id():
     return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
 
@@ -998,7 +1013,7 @@ def _get_geom_data(
 ):
     assert view_type in VIEW_TYPES, "view_type={}: invalid view type".format(view_type)
     if view_type == SCHEMA.constants.viewTypeFields:
-        res = _generate_field_data(sim_id, g_id, name, field_type, field_paths)
+        res = generate_field_data(sim_id, g_id, name, field_type, field_paths)
         res.data += _get_geom_data(
             sim_id,
             g_id,
@@ -1079,7 +1094,7 @@ def _get_sdds(cols, units):
 def _kick_map_plot(model):
     from sirepo import srschema
 
-    g_id = _get_g_id()
+    g_id = get_g_id()
     component = model.component
     km = _generate_kick_map(g_id, model)
     if not km:
@@ -1137,7 +1152,7 @@ def _prep_new_sim(data, new_sim_data=None):
         new_sim_data.beamAxis,
         -1.0,
     )
-    data.models.fieldLineoutReport.plotAxis = new_sim_data.beamAxis
+    data.models.fieldLineoutAnimation.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
     data.models.simulation.coordinateSystem = "beam"

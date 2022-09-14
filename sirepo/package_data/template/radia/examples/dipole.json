@@ -9,7 +9,7 @@
             "colorMap": "jet",
             "scaling": "uniform"
         },
-        "fieldLineoutReport": {
+        "fieldLineoutAnimation": {
             "plotAxis": "x"
         },
         "fieldPaths": {

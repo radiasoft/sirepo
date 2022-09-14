@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Wrapper to run ML from the command line.
+"""Wrapper to run activait from the command line.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,7 +10,7 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
-import sirepo.template.ml as template
+import sirepo.template.activait as template
 
 
 def run(cfg_dir):

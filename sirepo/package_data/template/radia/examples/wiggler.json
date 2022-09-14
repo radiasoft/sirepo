@@ -9,7 +9,7 @@
             "colorMap": "viridis",
             "scaling": "linear"
         },
-        "fieldLineoutReport": {
+        "fieldLineoutAnimation": {
             "plotAxis": "y"
         },
         "fieldPaths": {

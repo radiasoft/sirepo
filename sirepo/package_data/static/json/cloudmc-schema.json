@@ -239,7 +239,7 @@
             "r": ["R distribution", "Univariate", {"_type": "None"}],
             "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
             "z": ["Z distribution", "Univariate", {"_type": "None"}],
-            "origin": ["Origin", "Point3D [cm]", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the cylindrical reference frame for the source."]
+            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the cylindrical reference frame for the source."]
         },
         "energyFilter": {
             "_super": ["_", "model", "filter"],
