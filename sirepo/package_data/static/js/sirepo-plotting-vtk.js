@@ -328,6 +328,14 @@ class VTKScene {
     }
 
     /**
+     *
+     */
+    rotate(angle) {
+        this.cam.roll(angle);
+        this.render();
+    }
+
+    /**
      * Sets the background color of the renderer
      * @param {string|[number]} color
      */
@@ -2799,6 +2807,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         height: Math.max(0, $(canvasHolder).height()),
                     }
                 };
+            };
+
+            $scope.rotate = angle => {
+                $scope.vtkScene.rotate(angle);
+                refresh(true);
             };
 
             $scope.setInteractionMode = mode => {
