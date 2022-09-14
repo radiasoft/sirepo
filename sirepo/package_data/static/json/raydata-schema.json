@@ -45,9 +45,6 @@
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
-        "pollBlueskyForScansAnimation": {
-            "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
-        },
         "catalog": {
             "catalogName": ["Catalog Name", "CatalogName", ""]
         },
@@ -116,7 +113,6 @@
                 "notes"
             ],
             "basic": [
-                "pollBlueskyForScansAnimation.minutes"
             ]
         }
     }
