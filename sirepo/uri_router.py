@@ -479,6 +479,36 @@ def _split_uri(uri):
     return res
 
 
+def _uri_to_route(path):
+    if path is None:
+        return (None, _default_route, PKDict(path_info=None))
+    parts = re.sub(r"\+", " ", path).split("/")nn
+    route = None
+    kwargs = None
+    try:
+        route = _uri_to_route[parts[0]]
+        parts.pop(0)
+    except KeyError:
+        # _default_route is "/" always so just pass to it
+        route = _default_route
+        kwargs = PKDict()
+        for p in route.params:
+            if not parts:
+                if not p.is_optional:
+                    return (f"uri={path} missing parameter={p.name}", route, kwargs)
+                break
+            if p.is_path_info:
+                kwargs[p.name] = "/".join(parts)
+                parts = None
+                break
+            kwargs[p.name] = parts.pop(0)
+        if parts:
+            return (f"uri={path} has too many parts={pargs}", route, kwargs)
+    except Exception as e:
+        return (f"uri={path} parse exception={e} path={path} stack={pkdexc()}", route, kwargs)
+    return (None, route, kwargs)
+
+
 def _validate_root_redirect_uris(uri_to_route, simulation_db):
     from sirepo import feature_config
 
