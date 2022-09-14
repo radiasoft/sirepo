@@ -236,11 +236,9 @@ def _is_merge_node(node):
 def _levels_with_children(cur_node, nn):
     # POSIT (gurhar1133): add/concate nodes will not have multiple outbound
     l = []
-
     parent_sum = 1
-    while _continue_building_level(cur_node, nn):
+    while cur_node.inbound:
         l.insert(0, cur_node)
-
         if _is_merge_node(cur_node):
             c = []
             parent_sum = 0
@@ -261,21 +259,23 @@ def _levels_with_children(cur_node, nn):
         else:
             if not cur_node.inbound:
                 break
+            if _is_branching(_get_next_node(cur_node, nn)):
+                break
             cur_node = _get_next_node(cur_node, nn)
 
 
     return cur_node, parent_sum, l
 
 
-def _continue_building_level(cur_node, nn):
-    if cur_node.inbound:
-        l = _get_layer_by_name(nn, cur_node.inbound[0].name)
-        if _is_branching(l) and not _is_merge_node(l):
-            return False
-    else:
-        return False
+# def _continue_building_level(cur_node, nn):
+#     if cur_node.inbound:
+#         l = _get_layer_by_name(nn, cur_node.inbound[0].name)
+#         if _is_branching(l) and not _is_merge_node(l):
+#             return False
+#     else:
+#         return False
 
-    return True
+#     return True
 
 def _get_relevant_nodes(model):
     relevant_nodes = []
