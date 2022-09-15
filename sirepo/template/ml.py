@@ -5,7 +5,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from calendar import c
 from tkinter import N
+from jinja2 import pass_environment
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -234,48 +236,51 @@ def _is_merge_node(node):
 
 
 def _levels_with_children(cur_node, nn):
-    # POSIT (gurhar1133): add/concate nodes will not have multiple outbound
     l = []
     parent_sum = 1
-    while cur_node.inbound:
+    # loop through graph while cur_node.inbound < 2 and not is merge node
+    while _continue_building_level(cur_node, nn):
         l.insert(0, cur_node)
+    #   if cur_node is branching
         if _is_merge_node(cur_node):
+            pkdp("\n\n\n BRANCHING ON NODE={}", cur_node.name)
+    #        children = []
             c = []
+    #         parent_sum = 0
             parent_sum = 0
+    #        for inbound of cur_node:
             for i in cur_node.inbound:
                 p, s, lvl = _levels_with_children(
-                    _get_layer_by_name(nn, i.name),
+                    _get_layer_by_name(
+                        nn,
+                        i.name
+                    ),
                     nn
                 )
+    #            n, p, lvl = _levels_with_children(inbound)
                 parent_sum += s
                 c.append(lvl)
-                #
+    #            parent_sum += 1
             l.insert(0, c)
-            cur_node = _get_layer_by_name(nn, p.name)
-            if len(cur_node.outbound) != parent_sum:
-                return cur_node, parent_sum, l
+            pkdp("\n\n\n PARENT_SUME={}, \n\n CHILDREN={}, \n\n PARENT={}", parent_sum, c, p.name)
+            if len(p.outbound) == parent_sum:
+                cur_node = p
             else:
-                l.insert(0, cur_node)
+                return p, parent_sum, l
         else:
-            if not cur_node.inbound:
-                break
-            if _is_branching(_get_next_node(cur_node, nn)):
-                break
             cur_node = _get_next_node(cur_node, nn)
-
-
     return cur_node, parent_sum, l
 
 
-# def _continue_building_level(cur_node, nn):
-#     if cur_node.inbound:
-#         l = _get_layer_by_name(nn, cur_node.inbound[0].name)
-#         if _is_branching(l) and not _is_merge_node(l):
-#             return False
-#     else:
-#         return False
+def _continue_building_level(cur_node, nn):
+    if len(cur_node.outbound) > 1:
+        # if _is_merge_node(cur_node):
+        #     return True
+        pkdp("STOPING THE BUILD FOR NODE={}", cur_node.name)
+        return False
+    return True
 
-#     return True
+
 
 def _get_relevant_nodes(model):
     relevant_nodes = []
