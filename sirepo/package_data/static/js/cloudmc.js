@@ -257,22 +257,30 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display"
+            <div data-vtk-display="" class="vtk-display col-sm-11"
               data-ng-style="sizeStyle()" data-show-border="true"
               data-report-id="reportId" data-model-name="{{ modelName }}"
               data-event-handlers="eventHandlers" data-reset-side="y"
               data-enable-axes="true" data-axis-cfg="axisCfg"
               data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div class="col-sm-1" style="padding-left: 0;">
+                <div class="colorbar"></div>
+            </div>
         `,
         controller: function($scope, $element) {
-            const isGeometryOnly = $scope.modelName == 'geometry3DReport';
+            const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.isClientOnly = isGeometryOnly;
             let axesBoxes = {};
+            let colorbar = null;
+            let colorbarPtr = null;
+            let colorScale = null;
             let picker = null;
             let vtkScene = null;
             let selectedVolume = null;
             let tally = null;
+
             const bundleByVolume = {};
+            const colorbarThickness = 30;
             const tallyBundles = {};
             // volumes are measured in centimeters
             const scale = 0.01;
@@ -442,12 +450,14 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             function setColorsFromFieldData(polyData, name) {
                 const dataColors = [];
                 const d = Array.from(polyData.getFieldData().getArrayByName(name).getData());
-                const s = SIREPO.PLOTTING.Utils.colorScale(
+                colorScale = SIREPO.PLOTTING.Utils.colorScale(
                     SIREPO.UTILS.largeMin(d),
                     SIREPO.UTILS.largeMax(d),
                     SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.openmcAnimation.colorMap]
                 );
-                d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
+                colorbar.scale(colorScale);
+                colorbarPtr = d3.select('.colorbar').call(colorbar);
+                d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(colorScale(x)).map(x => Math.floor(255 * x)))
                     .forEach((c, i) => {
                         // when the field value is 0, don't draw the element at all
                         dataColors.push(...c, d[i] === 0 ? 0 : Math.floor(255 * appState.models.openmcAnimation.opacity));
@@ -563,6 +573,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
+                colorbar = Colorbar()
+                    .margin({top: 5, right: colorbarThickness + 10, bottom: 0, left: 0})
+                    .thickness(colorbarThickness)
+                    .orient('vertical')
+                    .barlength($('.vtk-canvas-holder').height())
+                    .origin([0, 0]);
                 vtkScene = d;
                 const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
