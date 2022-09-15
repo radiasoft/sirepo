@@ -1,7 +1,7 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "dataSource"
+            "localRoute": "analysisCompleted"
         }
     },
     "dynamicFiles": {
@@ -14,48 +14,52 @@
             ]
         }
     },
-    "enum": {
-        "CatalogName": [
-            ["chx", "chx"],
-            ["csx", "csx"]
-        ]
-    },
+    "enum": {},
     "frameIdFields": {
         "animation": []
     },
     "localRoutes": {
-        "analysis": {
-            "route": "/analysis/:simulationId",
+        "analysisCompleted": {
+            "route": "/analysis-completed/:simulationId",
             "config": {
-                "controller": "AnalysisController as analysis",
-                "templateUrl": "/static/html/raydata-analysis.html"
+                "controller": "AnalysisCompletedController as analysisCompleted",
+                "templateUrl": "/static/html/raydata-analysis-completed.html"
           }
         },
-        "dataSource": {
-            "route": "/data-source/:simulationId",
+        "analysisQueue": {
+            "route": "/analysis-queue/:simulationId",
             "config": {
-                "controller": "DataSourceController as dataSource",
-                "templateUrl": "/static/html/raydata-data-source.html"
+                "controller": "AnalysisQueueController as analysisQueue",
+                "templateUrl": "/static/html/raydata-analysis-queue.html"
+          }
+        },
+        "replay": {
+            "route": "/replay/:simulationId",
+            "config": {
+                "controller": "ReplayController as replay",
+                "templateUrl": "/static/html/raydata-replay.html"
           }
         }
     },
     "model": {
-        "analysisStatus": {
-            "notes": ["Notes", "Text", ""]
+        "catalog": {
+            "catalogName": ["Catalog Name", "CatalogName", ""]
+        },
+        "completedScans": {
+            "searchStartTime":["Start", "DateTimePicker", null],
+            "searchStopTime":["Stop", "DateTimePicker", null],
+            "scans": ["", "CompletedScansTable", ""]
         },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
-        "pollBlueskyForScansAnimation": {
-            "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
+        "queuedScans": {
+            "scans": ["", "QueuedScansTable", ""]
         },
-        "scans": {
-            "searchStartTime": ["Start", "DateTimePicker", null],
-	    "searchStopTime": ["Stop", "DateTimePicker", null],
-            "catalogName": ["Catalog Name", "CatalogName", ""]
-        },
-        "selectedScans": {
-	    "uids": ["", "SelectedScansTable", null]
+        "replay": {
+            "sourceCatalog": ["Source Catalog", "CatalogName", ""],
+            "destinationCatalog": ["Destination Catalog", "CatalogName", ""],
+            "numScans": ["Number of Scans", "Integer", null]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
@@ -68,11 +72,23 @@
         "typeOfSimulation": "poll"
     },
     "view": {
-        "analysisStatus": {
-            "title": "Analysis Status",
-            "advanced": [
-                "notes"
-            ]
+        "analysisQueue": {
+            "title": "Analysis Queue",
+            "basic": [
+                "catalog.catalogName",
+                "queuedScans.scans"
+            ],
+            "advanced": []
+        },
+        "completedScans": {
+            "title": "Completed Scans",
+            "basic": [
+                "catalog.catalogName",
+                "searchStartTime",
+                "searchStopTime",
+                "scans"
+            ],
+            "advanced": []
         },
         "inputFiles": {
             "title": "Input Files",
@@ -81,23 +97,20 @@
             ],
             "advanced": []
         },
-        "scans": {
-            "title": "Scans",
+        "replay": {
+            "title": "Replay",
             "basic": [
-                "catalogName",
-                "searchStartTime",
-                "searchStopTime",
-                "selectedScans.uids"
+              "sourceCatalog",
+              "destinationCatalog",
+              "numScans"
             ],
             "advanced": []
         },
         "simulationStatus": {
             "title": "Poll For New Scans",
+            "basic": [],
             "advanced": [
                 "notes"
-            ],
-            "basic": [
-                "pollBlueskyForScansAnimation.minutes"
             ]
         }
     }

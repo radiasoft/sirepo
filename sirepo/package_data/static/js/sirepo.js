@@ -316,7 +316,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, simulationDataCache, utilities, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -653,7 +653,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId) {
             return;
         }
-        simulationDataCache.clear();
         self.clearModels();
         var routeObj = {
             routeName: 'simulationData',
@@ -994,22 +993,6 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         return SIREPO.APP_SCHEMA.cookies[notification.cookie];
     }
 
-    return self;
-});
-
-/*
-Cache for data not on models (never sent to the server) that can be used
-within a single simulation (sid).
-*/
-SIREPO.app.factory('simulationDataCache', function ($rootScope){
-    const self = {};
-    self.clear = () => {
-        for (let k in self) {
-            if (k !== 'clear') {
-                delete self[k];
-            }
-        }
-    };
     return self;
 });
 
