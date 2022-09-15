@@ -1457,10 +1457,12 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
                   <div class="modal-header bg-warning">
                     <span class="lead modal-title text-info">Log</span>
                     <div class="sr-panel-options pull-right">
-                      <a data-ng-href="{{ downloadLog() }}" target="_blank" style="margin-left: 1ex">
-                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span>
+                      <a data-ng-href="{{ downloadLog() }}" target="_blank">
+                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download"></span>
                       </a>
-                      <button type="button" class="close" data-dismiss="modal"></button>
+                      <button type="button" class="close" data-dismiss="modal" style="margin-left: 10px">
+                        <span>&times;</span>
+                      </button>
                     </div>
                   </div>
                   <div class="modal-body" style="padding: 0">
