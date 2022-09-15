@@ -19,18 +19,18 @@
         "animation": []
     },
     "localRoutes": {
-        "analysisQueue": {
-            "route": "/analysis-queue/:simulationId",
-            "config": {
-                "controller": "AnalysisQueueController as analysisQueue",
-                "templateUrl": "/static/html/raydata-analysis-queue.html"
-          }
-        },
         "analysisCompleted": {
             "route": "/analysis-completed/:simulationId",
             "config": {
                 "controller": "AnalysisCompletedController as analysisCompleted",
                 "templateUrl": "/static/html/raydata-analysis-completed.html"
+          }
+        },
+        "analysisQueue": {
+            "route": "/analysis-queue/:simulationId",
+            "config": {
+                "controller": "AnalysisQueueController as analysisQueue",
+                "templateUrl": "/static/html/raydata-analysis-queue.html"
           }
         },
         "replay": {
@@ -42,9 +42,6 @@
         }
     },
     "model": {
-        "inputFiles": {
-            "mask": ["Mask ZIP", "InputFile"]
-        },
         "catalog": {
             "catalogName": ["Catalog Name", "CatalogName", ""]
         },
@@ -52,6 +49,9 @@
             "searchStartTime":["Start", "DateTimePicker", null],
             "searchStopTime":["Stop", "DateTimePicker", null],
             "scans": ["", "CompletedScansTable", ""]
+        },
+        "inputFiles": {
+            "mask": ["Mask ZIP", "InputFile"]
         },
         "queuedScans": {
             "scans": ["", "QueuedScansTable", ""]
@@ -80,13 +80,6 @@
             ],
             "advanced": []
         },
-        "inputFiles": {
-            "title": "Input Files",
-            "basic": [
-                "mask"
-            ],
-            "advanced": []
-        },
         "completedScans": {
             "title": "Completed Scans",
             "basic": [
@@ -97,22 +90,27 @@
             ],
             "advanced": []
         },
+        "inputFiles": {
+            "title": "Input Files",
+            "basic": [
+                "mask"
+            ],
+            "advanced": []
+        },
         "replay": {
             "title": "Replay",
-            "advanced": [
-            ],
             "basic": [
               "sourceCatalog",
               "destinationCatalog",
               "numScans"
-            ]
+            ],
+            "advanced": []
         },
         "simulationStatus": {
             "title": "Poll For New Scans",
+            "basic": [],
             "advanced": [
                 "notes"
-            ],
-            "basic": [
             ]
         }
     }
