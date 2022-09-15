@@ -920,7 +920,7 @@
             "name": "simulationRenameNavButton",
             "type": "navbarModalButton",
             "config": {
-                "name": "%simulation.name%",
+                "name": "$(simulation.name)",
                 "icon": "",
                 "modal": {
                     "title": "Simulation",

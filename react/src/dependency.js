@@ -46,7 +46,7 @@ export function useDependentValues(models, dependencies) {
 }
 
 export function useCompiledReplacementString(models, str) {
-    let regexp = /\%([^\%]+)\%/g;
+    let regexp = /\$\(([^\%]+)\)/g;
     let mappingsArr = str.matchAll(regexp).map(([originalString, mappedGroup]) => {
         let dependency = new Dependency(mappedGroup);
         return {
