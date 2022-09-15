@@ -262,13 +262,18 @@ def _levels_with_children(cur_node, nn):
                 c.append(lvl)
     #            parent_sum += 1
             l.insert(0, c)
-            pkdp("\n\n\n PARENT_SUME={}, \n\n CHILDREN={}, \n\n PARENT={}", parent_sum, c, p.name)
+            pkdp("\n\n\n PARENT_SUM={}, \n\n CHILDREN={}, \n\n PARENT={}", parent_sum, c, p.name)
+            cur_node = p
             if len(p.outbound) == parent_sum:
-                cur_node = p
+
+                l.insert(0, cur_node)
+
             else:
-                return p, parent_sum, l
-        else:
-            cur_node = _get_next_node(cur_node, nn)
+                break
+        if "input" in cur_node.name:
+            break
+        cur_node = _get_next_node(cur_node, nn)
+    print("\n\n\n RETURNING cur={}, parent_sum={}", cur_node, parent_sum)
     return cur_node, parent_sum, l
 
 
