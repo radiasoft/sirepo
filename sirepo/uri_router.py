@@ -81,7 +81,7 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
         kwargs (dict): to be passed to API [None]
         data (dict): will be returned `sreq.parse_json`
     Returns:
-        flask.Response: result
+        Response: result
     """
     import flask
     import werkzeug.exceptions
@@ -243,6 +243,7 @@ def uri_for_api(api_name, params=None, absolute=True):
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
+uri_app_root
     s = flask.url_for("_dispatch_empty", _external=absolute) if absolute else "/"
     res = (s + r.base_uri).rstrip("/")
     for p in r.params:
@@ -309,15 +310,32 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
-    import flask
-    import sirepo.auth
+    error, route, qargs = _uri_to_route(path)
+    if error:
+        r = route
+        route = _not_found_route
 
-    sreq = sirepo.request.Base(
+    qcall = route.cls(sroute=route, qargs=qargs)
+    import flask
+    qcall.sreq = sirepo.request.Base(
         headers=flask.request.headers,
         method=flask.request.method,
         remote_addr=flask.request.remote_addr,
         _internal_req=flask.request,
+        _absolute_uri=flask.url_for("_dispatch_empty", _external=True),
+    ),
+
+    import sirepo.auth
+
+
+    f = (
+        route_or_name
+        if isinstance(route_or_name, _Route)
+        else _api_to_route[route_or_name]
     )
+
+
+    sreq =
 process_request is not here, but after we have a sapi
 separate out the parsing of the route from call_api, which access sreq,
 which can include
@@ -434,7 +452,7 @@ def _split_uri(uri):
     """Parse the URL for parameters
 
     Args:
-        uri (str): full path with parameter args in flask format
+        uri (str): full path with parameter args in uri format
 
     Returns:
         Dict: with base_uri, func, params, etc.
