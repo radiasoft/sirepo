@@ -263,7 +263,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
               data-event-handlers="eventHandlers" data-reset-side="y"
               data-enable-axes="true" data-axis-cfg="axisCfg"
               data-axis-obj="axisObj" data-enable-selection="true"></div>
-            <div class="col-sm-1" style="padding-left: 0;">
+            <div class="col-sm-1" style="padding-left: 0;" data-ng-if="supportsColorbar()">
                 <div class="colorbar"></div>
             </div>
         `,
@@ -305,6 +305,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 setColorsFromFieldData(pd, aspect);
                 b.setActorProperty('lighting', false);
                 vtkScene.addActor(b.actor);
+                picker.addPickList(b.actor);
                 initAxes();
                 buildAxes();
                 vtkScene.renderer.resetCamera();
@@ -326,6 +327,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 });
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
+                picker.addPickList(b.actor);
                 return res;
             }
 
@@ -407,6 +409,22 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
 
                 const actor = picker.getActors()[0];
+                if (! isGeometryOnly) {
+                    const cid = picker.getCellId();
+                    if (cid < 0) {
+                        return;
+                    }
+                    const pd = actor.getMapper().getInputData();
+                    if (! pd) {
+                        return;
+                    }
+                    //TODO(mvk): get 1st cell with non-0 field - otherwise we cel
+                    colorbarPtr.pointTo(
+                        Array.from(pd.getFieldData().getArrayByName(model().aspect).getData())[cid]
+                    );
+                    return;
+                }
+
                 const v = getVolumeByActor(actor);
                 if (selectedVolume) {
                     vtkScene.removeActor(axesBoxes[selectedVolume.name]);
@@ -471,6 +489,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 );
                 polyData.modified();
             }
+
+            $scope.supportsColorbar = () => ! isGeometryOnly;
 
             function loadVolumes(volIds) {
                 //TODO(pjm): update progress bar with each promise resolve?
@@ -574,7 +594,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
                 colorbar = Colorbar()
-                    .margin({top: 5, right: colorbarThickness + 10, bottom: 0, left: 0})
+                    .margin({top: 5, right: colorbarThickness + 10, bottom: 5, left: 0})
                     .thickness(colorbarThickness)
                     .orient('vertical')
                     .barlength($('.vtk-canvas-holder').height())
@@ -595,6 +615,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     )
                 );
 
+                picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
+                picker.setPickFromList(true);
+                vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
+
                 const vols = [];
                 for (const n in appState.models.volumes) {
                     if (! cloudmcService.isGraveyard(appState.models.volumes[n])) {
@@ -611,9 +635,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 }
                 vtkScene.resetView();
 
-                picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
-                picker.setPickFromList(false);
-                vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
