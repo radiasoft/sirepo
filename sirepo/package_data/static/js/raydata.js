@@ -23,7 +23,7 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.factory('raydataService', function(appState, panelState, requestSender, timeService, $rootScope) {
+SIREPO.app.factory('raydataService', function(appState, panelState, timeService) {
     const self = {};
     let id = 0;
 
@@ -220,30 +220,6 @@ SIREPO.app.directive('replayPanel', function() {
         template: `
           <button type="submit" class="btn btn-primary" data-ng-click="">Start Replay</button>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
-            $scope.catalogs = [];
-
-            $scope.sendCatalogsRequest = function() {
-                requestSender.sendStatelessCompute(
-                    appState,
-                    (json) => {
-                        $scope.catalogs = json.data.catalogs;
-                    },
-                    {
-                        method: 'catalog_names',
-                    },
-                    {
-                        modelName: $scope.modelName,
-                        onError: (data) => {
-                            errorService.alertText(data.error);
-                        },
-                        panelState: panelState,
-                    }
-                );
-            };
-
-            $scope.sendCatalogsRequest();
-        },
     };
 });
 
@@ -290,7 +266,7 @@ SIREPO.app.directive('scansTableWithModal', function() {
               </div>
             </div>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
+        controller: function(appState, requestSender, $scope) {
             $scope.selectedScan = null;
             $scope.scansStatus = 'completed_scans';
 
