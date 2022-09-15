@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 import { Modal } from "react-bootstrap";
-import { useCompiledReplacementString } from "../dependency";
+import { useInterpolatedString } from "../dependency";
 import { ContextModels } from "./context";
 import { elementForLayoutName } from "./panel";
 
@@ -10,7 +10,7 @@ export let NavBarModalButton = ({ schema }) => (view) => {
         let { modal } = config;
 
         let models = useContext(ContextModels);
-        let title = useCompiledReplacementString(models, config.title);
+        let title = useInterpolatedString(models, config.title);
 
         let [modalShown, updateModalShown] = useState(false);
 

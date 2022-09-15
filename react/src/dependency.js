@@ -45,13 +45,11 @@ export function useDependentValues(models, dependencies) {
     return dependentValues;
 }
 
-export function useCompiledReplacementString(models, str) {
-    let regexp = /\$\(([^\%]+)\)/g;
-    let mappingsArr = str.matchAll(regexp).map(([originalString, mappedGroup]) => {
-        let dependency = new Dependency(mappedGroup);
+export function useInterpolatedString(models, str) {
+    let mappingsArr = str.matchAll(/\$\(([^\%]+)\)/g).map(([originalString, mappedGroup]) => {
         return {
             original: originalString,
-            dependency
+            dependency: new Dependency(mappedGroup)
         }
     });
 
@@ -64,6 +62,8 @@ export function useCompiledReplacementString(models, str) {
         ]
     }));
 
+    let interpolatedStr = str;
+
     mappingsArr.map(mapping => {
         let { modelName, fieldName } = mapping.dependency; 
         return {
@@ -71,10 +71,10 @@ export function useCompiledReplacementString(models, str) {
             value: modelValues[modelName][fieldName]
         }
     }).forEach(({ original, value }) => {
-        str = str.replace(original, `${value}`);
+        interpolatedStr = interpolatedStr.replace(original, `${value}`);
     })
 
-    return str;
+    return interpolatedStr;
 }
 
 export class Models {

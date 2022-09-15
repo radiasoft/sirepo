@@ -2,7 +2,7 @@ import { Card, Modal, Col, Button, Form, Tab, Tabs } from "react-bootstrap";
 import { useState, Fragment, useContext } from 'react';
 import { useStore } from "react-redux";
 import { FormController, FieldGridLayout, FieldListLayout } from "./form";
-import { Dependency, HookedDependencyGroup, useCompiledReplacementString } from "../dependency";
+import { Dependency, HookedDependencyGroup, useInterpolatedString } from "../dependency";
 import {
     ContextRelativeHookedDependencyGroup,
     ContextRelativeFormController,
@@ -221,7 +221,7 @@ export let ViewLayoutsPanel = ({ schema }) => (view) => {
         let formSelectors = useContext(ContextReduxFormSelectors);
 
         let models = useContext(ContextRelativeModels);
-        let title = useCompiledReplacementString(models, config.title);
+        let title = useInterpolatedString(models, config.title);
 
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
 
