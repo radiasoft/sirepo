@@ -2,7 +2,7 @@ import { Card, Modal, Col, Button, Form, Tab, Tabs } from "react-bootstrap";
 import { useState, Fragment, useContext } from 'react';
 import { useStore } from "react-redux";
 import { FormController, FieldGridLayout, FieldListLayout } from "./form";
-import { Dependency, HookedDependencyGroup } from "../dependency";
+import { Dependency, HookedDependencyGroup, useCompiledReplacementString } from "../dependency";
 import {
     ContextRelativeHookedDependencyGroup,
     ContextRelativeFormController,
@@ -221,6 +221,7 @@ export let ViewLayoutsPanel = ({ schema }) => (view) => {
         let formSelectors = useContext(ContextReduxFormSelectors);
 
         let models = useContext(ContextRelativeModels);
+        let title = useCompiledReplacementString(models, config.title);
 
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
 
@@ -286,7 +287,7 @@ export let ViewLayoutsPanel = ({ schema }) => (view) => {
             formValid: formController.isFormStateValid(),
             mainChildren,
             modalChildren,
-            title: config.title || view.name,
+            title: title || view.name,
             id: view.name
         }
 

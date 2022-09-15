@@ -21,7 +21,7 @@ export class Dependency {
 }
 
 export function useDependentValues(models, dependencies) {
-    let modelNames = dependencies.map(dependency => dependency.modelName);
+    let modelNames = [...new Set(dependencies.map(dependency => dependency.modelName))];
 
     let modelValues = Object.fromEntries(modelNames.map(modelName => {
         return [
@@ -29,8 +29,6 @@ export function useDependentValues(models, dependencies) {
             models.hookModel(modelName)
         ]
     }))
-
-    console.log("modelValues", modelValues);
 
     let dependentValues = dependencies.map(dependency => {
         let { modelName, fieldName } = dependency;
@@ -45,6 +43,38 @@ export function useDependentValues(models, dependencies) {
     }).flat();
 
     return dependentValues;
+}
+
+export function useCompiledReplacementString(models, str) {
+    let regexp = /\%([^\%]+)\%/g;
+    let mappingsArr = str.matchAll(regexp).map(([originalString, mappedGroup]) => {
+        let dependency = new Dependency(mappedGroup);
+        return {
+            original: originalString,
+            dependency
+        }
+    });
+
+    let modelNames = [...new Set(mappingsArr.map(mapping => mapping.modelName))];
+
+    let modelValues = Object.fromEntries(modelNames.map(modelName => {
+        return [
+            modelName,
+            models.hookModel(modelName)
+        ]
+    }));
+
+    mappingsArr.map(mapping => {
+        let { modelName, fieldName } = mapping.dependency; 
+        return {
+            ...mapping,
+            value: modelValues[modelName][fieldName]
+        }
+    }).forEach(({ original, value }) => {
+        str = str.replace(original, `${value}`);
+    })
+
+    return str;
 }
 
 export class Models {
