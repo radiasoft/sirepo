@@ -25,6 +25,18 @@ import socket
 import subprocess
 import time
 
+#: port on which uwsgi or http listens
+HTTP_PORT = 8000
+
+#: port on which jupyterhub listens
+JUPYTERHUB_PORT = 8002
+
+#: port on which jupyterhub listens
+NGINX_PROXY_PORT = 8080
+
+#: port on which react listens"
+REACT_PORT = 3000
+
 __cfg = None
 
 
@@ -248,15 +260,23 @@ def _cfg():
     if not __cfg:
         __cfg = pkconfig.init(
             ip=("0.0.0.0", _cfg_ip, "what IP address to open"),
-            jupyterhub_port=(8002, _cfg_port, "port on which jupyterhub listens"),
+            jupyterhub_port=(
+                JUPYTERHUB_PORT,
+                _cfg_port,
+                "port on which jupyterhub listens",
+            ),
             jupyterhub_debug=(
                 True,
                 bool,
                 "turn on debugging for jupyterhub (hub, spawner, ConfigurableHTTPProxy)",
             ),
-            nginx_proxy_port=(8080, _cfg_port, "port on which nginx_proxy listens"),
-            port=(8000, _cfg_port, "port on which uwsgi or http listens"),
-            react_port=(3000, _cfg_react_port, "port on which react listens"),
+            nginx_proxy_port=(
+                NGINX_PROXY_PORT,
+                _cfg_port,
+                "port on which nginx_proxy listens",
+            ),
+            port=(HTTP_PORT, _cfg_port, "port on which uwsgi or http listens"),
+            react_port=(REACT_PORT, _cfg_react_port, "port on which react listens"),
             processes=(1, _cfg_int(1, 16), "how many uwsgi processes to start"),
             run_dir=(None, str, "where to run the program (defaults db_dir)"),
             # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
@@ -306,13 +326,13 @@ def _cfg_ip(value):
 
 
 def _cfg_port(value):
-    return _cfg_int(3000, 32767)(value)
+    return _cfg_int(REACT_PORT, 32767)(value)
 
 
 def _cfg_react_port(value):
     if not value:
         return None
-    return _cfg_int(3000, 32767)(value)
+    return _cfg_int(REACT_PORT, 32767)(value)
 
 
 def _run_dir():
