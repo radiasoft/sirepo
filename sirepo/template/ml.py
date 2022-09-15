@@ -237,52 +237,38 @@ def _is_merge_node(node):
 
 def _levels_with_children(cur_node, nn):
     l = []
-    parent_sum = 1
-    # loop through graph while cur_node.inbound < 2 and not is merge node
     while _continue_building_level(cur_node, nn):
+        parent_sum = 1
         l.insert(0, cur_node)
-    #   if cur_node is branching
         if _is_merge_node(cur_node):
-            pkdp("\n\n\n BRANCHING ON NODE={}", cur_node.name)
-    #        children = []
             c = []
-    #         parent_sum = 0
             parent_sum = 0
-    #        for inbound of cur_node:
             for i in cur_node.inbound:
-                p, s, lvl = _levels_with_children(
-                    _get_layer_by_name(
-                        nn,
-                        i.name
-                    ),
-                    nn
-                )
-    #            n, p, lvl = _levels_with_children(inbound)
+                child_node = _get_layer_by_name(nn, i.name)
+                p, s, lvl = _levels_with_children(child_node, nn)
                 parent_sum += s
                 c.append(lvl)
-    #            parent_sum += 1
             l.insert(0, c)
-            pkdp("\n\n\n PARENT_SUM={}, \n\n CHILDREN={}, \n\n PARENT={}", parent_sum, c, p.name)
             cur_node = p
-            if len(p.outbound) == parent_sum:
-
-                l.insert(0, cur_node)
-
-            else:
+            if len(p.outbound) != parent_sum:
                 break
-        if "input" in cur_node.name:
+        elif _is_branching(_get_next_node(cur_node, nn)):
             break
-        cur_node = _get_next_node(cur_node, nn)
-    print("\n\n\n RETURNING cur={}, parent_sum={}", cur_node, parent_sum)
+        else:
+            cur_node = _get_next_node(cur_node, nn)
+    pkdp("\n\n RETURNING ON CUR_NODE={}, PARENT_SUM={}", cur_node.name, parent_sum)
     return cur_node, parent_sum, l
 
 
 def _continue_building_level(cur_node, nn):
-    if len(cur_node.outbound) > 1:
-        # if _is_merge_node(cur_node):
-        #     return True
-        pkdp("STOPING THE BUILD FOR NODE={}", cur_node.name)
+    if "input" in cur_node.name:
+        pkdp("\n\n\n Break on cur_node={}", cur_node.name)
         return False
+
+    if _is_branching(cur_node) > 1:
+        pkdp("\n\n\n Break on cur_node={}", cur_node.name)
+        return False
+
     return True
 
 
