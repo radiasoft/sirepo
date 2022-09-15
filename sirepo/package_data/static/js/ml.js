@@ -1972,9 +1972,9 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
                 appState,
                 (data) => {
                     srdbg('data: ', data);
-                    // appState.models.neuralNet.layers = data.layers.slice(1, -1);
-                    // appState.saveChanges('neuralNet');
-                    // srdbg('appState.models after:', appState.models);
+                    appState.models.neuralNet.layers = data.layers.slice(0, -1);
+                    appState.saveChanges('neuralNet');
+                    srdbg('appState.models after:', appState.models);
                 },
                 {
                     method: 'load_keras_model',

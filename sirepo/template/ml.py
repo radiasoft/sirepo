@@ -219,21 +219,21 @@ def _set_children(nn):
     cur_node = nn.layers[-1]
     pkdp("\n\n\n STARTING WITH: {}", cur_node.name)
     nn = _levels_with_children(cur_node, nn)[2]
-    nn = _move_children_in_add(nn)[:-1]
-    return PKDict(layers=nn)
+    nn = _move_children_in_add(nn)
+    return nn
     # nn = _set_child_ops(nn)
 
 
 def _move_children_in_add(nn):
-    new_nn = []
+    new_nn = PKDict(layers=[])
     for i, l in enumerate(nn):
         if type(l) == list:
             continue
+        l["children"] = []
         if _is_merge_node(l):
-            l["children"] = []
             for c in nn[i -1]:
                 l["children"].append(_move_children_in_add(c))
-        new_nn.append(l)
+        new_nn.layers.append(l)
     return new_nn
 
 
