@@ -303,7 +303,20 @@ def _slurm_not_installed():
 def _subprocess_setup(request, cfg=None, uwsgi=False):
     """setup the supervisor"""
     import os
+    import sirepo.job
+    import sirepo.pkcli.service
     from pykern.pkcollections import PKDict
+
+    ports = PKDict()
+
+    # different port than default so can run tests when supervisor running
+    def _next_conftest_port(port_key, port_pkg):
+        p = ports.get(port_key)
+        if p:
+            ports[port_key] = p + 1
+        else:
+            ports[port_key] = getattr(port_pkg, port_key) + 100
+        return str(ports[port_key])
 
     sbatch_module = "sbatch" in request.module.__name__
     env = PKDict(os.environ)
@@ -312,8 +325,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     from pykern import pkunit
     from pykern import pkio
 
-    # different port than default so can run tests when supervisor running
-    p = "8101"
+    p = _next_conftest_port("DEFAULT_PORT", sirepo.job)
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME="1",
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
@@ -321,8 +333,11 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
     if uwsgi:
-        cfg.SIREPO_PKCLI_SERVICE_PORT = "8102"
-        cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = "8180"
+        cfg.SIREPO_PKCLI_SERVICE_PORT = _next_conftest_port("DEFAULT_PORT", sirepo.job)
+        cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _next_conftest_port(
+            "NGINX_PROXY_PORT",
+            sirepo.pkcli.service,
+        )
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
         cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
             _LOCALHOST, p
