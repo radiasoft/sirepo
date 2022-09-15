@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from calendar import c
 from tkinter import N
+from aenum import enum
 from jinja2 import pass_environment
 from pykern import pkcompat
 from pykern import pkio
@@ -218,8 +219,25 @@ def _set_children(nn):
     cur_node = nn.layers[-1]
     pkdp("\n\n\n STARTING WITH: {}", cur_node.name)
     nn = _levels_with_children(cur_node, nn)[2]
+    nn = _move_children_in_add(nn)[:-1]
     return PKDict(layers=nn)
     # nn = _set_child_ops(nn)
+
+
+def _move_children_in_add(nn):
+    new_nn = []
+    for i, l in enumerate(nn):
+        if type(l) == list:
+            continue
+        if _is_merge_node(l):
+            l["children"] = []
+            for c in nn[i -1]:
+                l["children"].append(_move_children_in_add(c))
+        new_nn.append(l)
+    return new_nn
+
+
+
 
 
 def _get_next_node(node, nn):
@@ -253,7 +271,7 @@ def _levels_with_children(cur_node, nn):
             if len(p.outbound) != parent_sum:
                 break
         elif _is_branching(_get_next_node(cur_node, nn)):
-            break
+            return _get_next_node(cur_node, nn), parent_sum, l
         else:
             cur_node = _get_next_node(cur_node, nn)
     pkdp("\n\n RETURNING ON CUR_NODE={}, PARENT_SUM={}", cur_node.name, parent_sum)
