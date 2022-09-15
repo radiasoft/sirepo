@@ -1448,10 +1448,7 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
 SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
     return {
         restrict: 'A',
-        scope: {
-
-        },
-        // TODO: At error case for when log cannot be found, edit case below
+        scope: {},
         template: `
             <a href data-ng-click="viewLog()">View Log</a>
             <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
@@ -1460,13 +1457,10 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
                   <div class="modal-header bg-warning">
                     <span class="lead modal-title text-info">Log</span>
                     <div class="sr-panel-options pull-right">
-                      <a data-ng-href="{{ downloadLog() }}" target="_blank">
+                      <a data-ng-href="{{ downloadLog() }}" target="_blank" style="margin-left: 1ex">
                         <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span>
                       </a>
-                      &nbsp&nbsp
-                      <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                      </button>
+                      <button type="button" class="close" data-dismiss="modal"></button>
                     </div>
                   </div>
                   <div class="modal-body" style="padding: 0">
@@ -1500,16 +1494,14 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
                     return '';
                 }
                 
-                requestSender.sendStatelessCompute(
+                requestSender.sendAnalysisJob(
                     appState,
                     (data) => {
-                        appState.models.modelLog = data.html;
-                        setIFrameHTML(appState.models.modelLog);
+                        setIFrameHTML(data.html);
                     },
                     {
                         method: 'log_to_html',
-                        model: appState.models.simulationStatus.animation.computeModel,
-                        filename: 'elegant.log',
+                        computeModel: appState.models.simulationStatus.animation.computeModel,
                         simulationId: appState.models.simulation.simulationId
                     });
                 $('#sr-iframe-text-view').modal('show');
