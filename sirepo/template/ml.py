@@ -233,12 +233,14 @@ def _move_children_in_add(nn):
         if _is_merge_node(l):
             for c in nn[i -1]:
                 l["children"].append(_move_children_in_add(c))
-        new_nn.layers.append(l)
+        new_nn.layers.append(_clean_layer(l))
     return new_nn
 
 
-
-
+def _clean_layer(l):
+    for k in ("obj", "inbound", "outbound", "name"):
+        l.pop(k)
+    return l
 
 def _get_next_node(node, nn):
     assert len(node.inbound) == 1, f"get next should have one inbound node={node.name}, node.indbound={[n.name for n in node.inbound]}"
