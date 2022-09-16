@@ -216,10 +216,12 @@ def _get_layer_type(layer):
 
 
 def _set_children(nn):
+    from pykern import pkjson
     cur_node = nn.layers[-1]
     pkdp("\n\n\n STARTING WITH: {}", cur_node.name)
     nn = _levels_with_children(cur_node, nn)[2]
     nn = _move_children_in_add(nn)
+    pkjson.dump_pretty(nn.layers, filename="x.json")
     return nn
     # nn = _set_child_ops(nn)
 
