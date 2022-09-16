@@ -15,7 +15,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def raydata_notebook_zip_filename(cls, data):
-        return data.models.scans.catalogName + ".zip"
+        return data.models.catalog.catalogName + ".zip"
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
