@@ -7,7 +7,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
     SIREPO.SHOW_HELP_BUTTONS = true;
     SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-    SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'coherentModesAnimation', 'fluxAnimation', 'multiElectronAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'coherentModesAnimation', 'fluxAnimation', 'machineLearningAnimation', 'multiElectronAnimation'];
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appReportTypes = `
@@ -814,6 +814,30 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
     });
 });
 
+SIREPO.app.controller('MLController', function (appState, panelState, persistentSimulation, srwService, $scope) {
+    const self = this;
+    self.appState = appState;
+    self.srwService = srwService;
+    self.simScope = $scope;
+
+    self.simHandleStatus = function(data) {
+        if (data.error) {
+        }
+        if ('percentComplete' in data && ! data.error) {
+            if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
+            }
+        }
+    };
+
+    self.startSimulation = function(model) {
+        self.simState.saveAndRunSimulation([model, 'simulation']);
+    };
+
+    self.simComputeModel = 'machineLearningAnimation';
+    self.simState = persistentSimulation.initSimulationState(self);
+
+});
+
 SIREPO.app.controller('SourceController', function (appState, panelState, srwService, $scope) {
     var self = this;
     self.appState = appState;
@@ -1532,11 +1556,11 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             '<div data-sim-sections="">',
               '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li class="sim-section" data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+              '<li data-ng-if="showRsOptML()" class="sim-section" data-ng-class="{active: nav.isActive(\'ml\')}"><a href data-ng-click="nav.openSection(\'ml\')"><span class="glyphicon glyphicon-equalizer"></span> Machine Learning</a></li>',
             '</div>',
           '</app-header-right-sim-loaded>',
           '<app-settings>',
             '<div data-ng-if="showOpenShadow()"><a href data-ng-click="openShadowConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New Shadow Simulation</a></div>',
-            '<div data-ng-if="showRsOptML()"><a href data-ng-click="openExportRsOpt()"><span class="glyphicon glyphicon-download"></span> Export ML Script</a></div>',
           '</app-settings>',
           '<app-header-right-sim-list>',
             '<ul class="nav navbar-nav sr-navbar-right">',
