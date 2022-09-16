@@ -2224,6 +2224,7 @@ def _rsopt_jinja_context(data):
         outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
         randomSeed=model.randomSeed if model.randomSeed is not None else "",
         readmeFileName="README.txt",
+        rsOptCharacteristic=model.characteristic,
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROT,
