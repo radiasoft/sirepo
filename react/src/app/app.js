@@ -7,9 +7,6 @@ import {
     modelsSlice
 } from "../models";
 import {
-    selectFormState,
-    updateFormState,
-    updateFormFieldState,
     formStatesSlice
 } from '../formState'
 import "./app.scss"
@@ -121,11 +118,7 @@ let ReduxConstantsWrapper = (child) => {
         let ChildComponent = child;
 
         return (
-            <ContextReduxFormActions.Provider value={{updateFormFieldState, updateFormState}}>
-                <ContextReduxFormSelectors.Provider value={{selectFormState}}>
-                    <ChildComponent {...props}></ChildComponent>
-                </ContextReduxFormSelectors.Provider>
-            </ContextReduxFormActions.Provider>
+            <ChildComponent {...props}></ChildComponent>
         )
     }
 }

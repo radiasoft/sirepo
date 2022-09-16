@@ -1,4 +1,4 @@
-import { globalTypes, partialTypes } from "./types";
+import { globalTypes, partialTypes } from "../types";
 import { mapProperties } from "./helper";
 
 export function compileSchemaFromJson(schemaObj) {

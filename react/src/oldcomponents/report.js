@@ -1,35 +1,7 @@
 import { useContext, useState, useEffect, useRef } from "react";
-import { Dependency, useDependentValues } from "../dependency";
-import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModels } from "./context";
+import { Dependency, useDependentValues } from "../dependency/dependency";
+import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModels } from "../components/context";
 import { pollStateful } from "../compute";
-
-function pollRunReport({ appName, models, simulationId, report, pollInterval, callback }) {
-    let doFetch = () => fetch('/run-simulation', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            models,
-            forceRun: false,
-            report,
-            simulationId,
-            simulationType: appName
-        })
-    });
-
-    pollStateful({
-        doFetch,
-        pollInterval,
-        callback: (respObj) => {
-            let { state } = respObj;
-
-            if(state === 'completed' || state === 'running') {
-                callback(respObj);
-            }
-        }
-    })
-}
 
 export function AutoRunReportLayout(layoutElement) {
     return {

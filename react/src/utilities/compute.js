@@ -1,4 +1,4 @@
-export function pollStateful({ doFetch, pollInterval, callback }) {
+export function pollCompute({ doFetch, pollInterval, callback }) {
     let doIteration = () => {
         doFetch().then(async (resp) => {
             let respObj = await resp.json();
@@ -29,13 +29,41 @@ export function pollStatefulCompute({ pollInterval, method, simulationId, appNam
         })
     });
 
-    pollStateful({
+    pollCompute({
         doFetch,
         pollInterval,
         callback: (respObj) => {
             let { state } = respObj;
 
             if(state === 'completed') {
+                callback(respObj);
+            }
+        }
+    })
+}
+
+function pollRunReport({ appName, models, simulationId, report, pollInterval, callback }) {
+    let doFetch = () => fetch('/run-simulation', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            models,
+            forceRun: false,
+            report,
+            simulationId,
+            simulationType: appName
+        })
+    });
+
+    pollCompute({
+        doFetch,
+        pollInterval,
+        callback: (respObj) => {
+            let { state } = respObj;
+
+            if(state === 'completed' || state === 'running') {
                 callback(respObj);
             }
         }

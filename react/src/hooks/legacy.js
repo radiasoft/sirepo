@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * Implements useEffect with the ability to block until the returned callback is called. Will run the
@@ -31,15 +30,4 @@ export function useSetup(shouldRun, callback) {
         }
     });
     return hasSetup;
-}
-
-export function useRenderCount(name) {
-    const renderCount = useRef(0);
-    const domRenderCount = useRef(0);
-    ++renderCount.current;
-    useEffect(() => {
-        ++domRenderCount.current;
-        //console.log(`DOM render ${name} ${domRenderCount.current} (${renderCount.current})`);
-    })
-    //console.log(`Render ${name} ${(++renderCount.current)}`);
 }

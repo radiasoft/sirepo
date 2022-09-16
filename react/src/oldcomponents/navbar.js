@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { Modal } from "react-bootstrap";
-import { useInterpolatedString } from "../dependency";
-import { ContextModels } from "./context";
+import { useInterpolatedString } from "../dependency/dependency";
+import { ContextModels } from "../components/context";
 import { elementForLayoutName } from "./panel";
 
 export let NavBarModalButton = ({ schema }) => (view) => {
