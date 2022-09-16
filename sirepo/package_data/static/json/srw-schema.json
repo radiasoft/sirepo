@@ -649,7 +649,7 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "exportRsOpt": {
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
+            "characteristic": ["Characteristic to Extract", "Characteristic"],
             "elements": ["Beamline Elements", "RSOptElements", []],
             "numCores": ["Number of Cores", "Integer", 4],
             "numSamples": ["Samples per Parameter", "Integer", 100, "", 1],
