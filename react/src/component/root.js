@@ -1,7 +1,7 @@
-import { Routes, Route, useParams } from "react-router-dom";
-import { ContextAppName } from "../components/context";
+import { useParams, Routes, Route } from "react-router-dom";
+import { ContextAppName } from "../context";
 
-function AppWrapper(props) {
+function AppNameWrapper(props) {
     let { appName } = useParams();
 
     return (
@@ -15,9 +15,9 @@ export function RootRouter(props) {
     return (
         <Routes>
             <Route path="react/:appName/*" element={
-                 <AppWrapper>
+                 <AppNameWrapper>
                     {props.children}
-                </AppWrapper>
+                </AppNameWrapper>
             }>
             </Route>
         </Routes>

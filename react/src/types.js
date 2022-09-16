@@ -1,8 +1,8 @@
 //import { React }
 import { useContext, useEffect, useState } from "react";
 import { Col, Form } from "react-bootstrap";
-import { ContextAppName, ContextSimulationInfoPromise } from "./components/context";
-import { pollStatefulCompute } from "./compute";
+import { ContextAppName, ContextSimulationInfoPromise } from "./context";
+import { pollStatefulCompute } from "./utility/compute";
 
 export class rsType {
     constructor({ isRequired }) {

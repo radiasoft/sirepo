@@ -1,12 +1,12 @@
-import { Link, Route, Routes, Navigate, useParams, useResolvedPath } from "react-router-dom";
-import { Row, Col, Container, Accordion } from "react-bootstrap";
-import { ContextRelativeRouterHelper, ContextSimulationListPromise } from "../components/context";
-import React, { useContext, useState, useEffect } from "react";
-import { SimulationRoot } from "./simulation";
-import { joinPath, removeSeparators, RouteHelper } from "../helper";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import * as Icon from "@fortawesome/free-solid-svg-icons";
-import "./simbrowser.scss"
+import { trimPathSeparators, joinPath } from "../utility/path";
+import { useContext, useState, useEffect } from "react";
+import {
+    Accordion,
+    Icon,
+    Container,
+    Row,
+    Col
+} from "react-bootstrap";
 
 function buildSimulationsTree(simulations) {
     let root = {
@@ -27,7 +27,7 @@ function buildSimulationsTree(simulations) {
     }
 
     let placeItemIntoFolder = (simulation) => {
-        simulation.folder = removeSeparators(simulation.folder, { start: true, end: true });
+        simulation.folder = trimPathSeparators(simulation.folder, { start: true, end: true });
         let paths = simulation.folder.split('/');
 
         let tree = root;

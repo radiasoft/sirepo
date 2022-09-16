@@ -1,11 +1,13 @@
+import { ContextLayouts } from "../context";
+
 export class TabLayout extends View {
-    getFormDependencies = (config) => {
+    getFormDependencies = (layouts, config) => {
         let fields = [];
 
         for (let tab of config.tabs) {
             for (let layoutConfig of tab.items) {
-                let ele = elementForLayoutName(layoutConfig.layout);
-                fields.push(...ele.getDependencies(layoutConfig));
+                let ele = layouts.getLayoutForConfig(layoutConfig);
+                fields.push(...ele.getFormDependencies(layouts, layoutConfig));
             }
         }
 
@@ -17,15 +19,17 @@ export class TabLayout extends View {
 
         let tabs = config.tabs;
 
+        let layouts = useContext(ContextLayouts);
+
         let tabEls = [];
 
         let firstTabKey = undefined;
 
         for (let tabConfig of tabs) {
             let name = tabConfig.name;
-            let layouts = tabConfig.items;
-            let layoutElements = layouts.map((layoutConfig, idx) => {
-                let ele = elementForLayoutName(layoutConfig.layout)
+            let layoutConfigs = tabConfig.items;
+            let layoutElements = layoutConfigs.map((layoutConfig, idx) => {
+                let ele = layouts.getLayoutForConfig(layoutConfig)
                 let LayoutElement = ele.element;
                 return <LayoutElement key={idx} config={layoutConfig}></LayoutElement>
             })

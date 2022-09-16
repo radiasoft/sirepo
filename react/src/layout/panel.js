@@ -1,5 +1,7 @@
+import { ContextLayouts, ContextRelativeFormState } from "../context";
+
 export class PanelLayout extends View {
-    getDependencies = (config) => {
+    getFormDependencies = (config) => {
         // TODO
         return [];
     }
@@ -9,11 +11,12 @@ export class PanelLayout extends View {
 
         let { config } = props;
 
-        let formActions = useContext(ContextReduxFormActions); // TODO: make these generic
-        let formSelectors = useContext(ContextReduxFormSelectors);
-
+        
+        let formState = useContext(ContextRelativeFormState);
         let models = useContext(ContextRelativeModels);
         let title = useInterpolatedString(models, config.title);
+
+        let layouts = useContext(ContextLayouts);
 
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
 
@@ -47,15 +50,15 @@ export class PanelLayout extends View {
         let advanced = config.advanced || [];
 
         let dependencies = [...basic, ...advanced].map(layoutConfig => {
-            let ele = elementForLayoutName(layoutConfig.layout);
-            return ele.getDependencies(layoutConfig);
+            let layout = layouts.getLayoutForConfig(layoutConfig);
+            return layout.getFormDependencies(layoutConfig);
         }).flat().map(dependencyString => new Dependency(dependencyString));
 
         let hookedDependencyGroup = new HookedDependencyGroup({ schemaModels: schema.models, models, dependencies });
 
         let hookedDependencies = dependencies.map(hookedDependencyGroup.getHookedDependency);
 
-        let formController = new FormController({ formActions, formSelectors, hookedDependencies });
+        let formController = new FormController({ formState, hookedDependencies });
 
         let submit = () => {
             let models = getModels();
@@ -64,9 +67,9 @@ export class PanelLayout extends View {
         }
 
         let mapLayoutToElement = (layoutConfig, idx) => {
-            let ele = elementForLayoutName(layoutConfig.layout);
-            let LayoutElement = ele.element;
-            return <LayoutElement key={idx} config={layoutConfig}></LayoutElement>;
+            let layout = layouts.getLayoutForConfig(layoutConfig);
+            let LayoutComponent = layout.component;
+            return <LayoutComponent key={idx} config={layoutConfig}></LayoutComponent>;
         }
 
         let mainChildren = (!!basic) ? basic.map(mapLayoutToElement) : undefined;

@@ -1,17 +1,27 @@
-import { useDispatch, useStore } from "react-redux";
-import { ContextModels, ContextRelativeFormState, ContextSchema } from '../components/context'
-import { useContext, useEffect, useState } from "react";
-import { useSetup } from "../hooks";
-import { selectModels } from '../store/models';
-import {
-    selectFormState,
-    updateFormState,
-    updateFormFieldState
-} from '../store/formState'
+export function FormField(props) {
+    let { label, tooltip } = props;
+    return (
+        <Form.Group size="sm" as={Row} className="justify-content-center">
+            <Form.Label column className="text-start">
+                {label}
+                {tooltip &&
+                    <LabelTooltip text={tooltip} />
+                }
+            </Form.Label>
+            <Col>
+                {props.children}
+            </Col>
+        </Form.Group>
+    )
+}
 
-import "./form.scss";
-import { FormState } from "../data/form";
-
+export function EditorForm(props) {
+    return (
+        <Form>
+            {props.children}
+        </Form>
+    );
+}
 
 export function FormStateInitializer(props) {
     let [hasInit, updateHasInit] = useState(undefined);

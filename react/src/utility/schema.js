@@ -1,5 +1,5 @@
 import { globalTypes, partialTypes } from "../types";
-import { mapProperties } from "./helper";
+import { mapProperties } from "./object";
 
 export function compileSchemaFromJson(schemaObj) {
     let enumTypes = {};

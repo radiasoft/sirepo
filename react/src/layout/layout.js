@@ -1,4 +1,4 @@
-import { useRenderCount } from "../hooks";
+import { useRenderCount } from "../hook/debug";
 
 export class View {
 
@@ -18,14 +18,15 @@ export class View {
          */
         let originalComponentDef = this.component;
         this.component = (props) => {
-            this._componentBaseInit(props);
-            originalComponentDef(props);
+            let newProps = this._componentBaseInit(props);
+            originalComponentDef(newProps);
         }
     }
 
     _componentBaseInit(props) {
         let renderCountFn = useRenderCount;
         renderCountFn(this.name);
+        return props;
     }
 
     /**
@@ -43,5 +44,28 @@ export class View {
      */
     component = (props) => {
         throw new Error("component() not implemented")
+    }
+}
+
+export class Layouts {
+    constructor () { 
+        this.components = {
+            // TODO: fill this in
+        }
+    }
+
+    getLayoutForConfig = (config) => {
+        if(!config.layout) {
+            throw new Error(`missing layout for config: ${JSON.stringify(config)}`);
+        }
+
+        let componentBuilder = this.components[config.layout];
+
+        if(!componentBuilder) {
+            console.error("missing view builder for view: " + config.layout)
+            return MissingLayout;
+        }
+
+        return componentBuilder(config);
     }
 }
