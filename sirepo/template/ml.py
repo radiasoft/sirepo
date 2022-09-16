@@ -174,16 +174,55 @@ def stateless_compute_load_keras_model(data):
     return _build_ui_nn(model)
 
 
+def _set_fields_by_layer_type(l, new_layer):
+    # TODO (gurhar1133): commented out below are unsupported currently
+    if "input" not in l.name:
+        k = PKDict(
+            Activation=lambda l :PKDict(
+                activation=l.activation.__name__
+            ),
+            Add=lambda l: PKDict(),
+            # AlphaDropout=lambda layer: layer.dropoutRate,
+            # AveragePooling2D=lambda layer: _pooling_args(layer),
+            BatchNormalization=lambda l: PKDict(momentum=l.momentum),
+            Concatenate=lambda l: PKDict(),
+            Conv2D=lambda l: PKDict(
+                strides=l.strides[0],
+                padding=l.padding,
+                kernel=l.kernel_size[0],
+                dimensionality=l._trainable_weights[0].shape[-1],
+                activation=l.activation.__name__,
+            ),
+            Dense=lambda l: PKDict(
+                dimensionality=l.units,
+                activation=l.activation.__name__,
+            ),
+            # Dropout=lambda layer: layer.dropoutRate,
+            # Flatten=lambda layer: "",
+            # GaussianDropout=lambda layer: layer.dropoutRate,
+            # GaussianNoise=lambda layer: layer.stddev,
+            # GlobalAveragePooling2D=lambda layer: "",
+            MaxPooling2D=lambda l: PKDict(
+                strides=l.strides[0],
+                padding=l.padding,
+                size=l.pool_size[0],
+            ),
+            # SeparableConv2D=lambda layer: _conv_args(layer),
+            # Conv2DTranspose=lambda layer: _conv_args(layer),
+            # UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
+            # ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
+        )
+
+        # assert 0, f"key={new_layer.layer} k[key]={k[new_layer.layer]}"
+        return new_layer.pkmerge(k[new_layer.layer](l))
+    return new_layer
+
+
 def _make_layers(model):
     nn = []
     for l in model._layers:
         n = PKDict(obj=l, layer=_get_layer_type(l), name=l.name)
-        if "add" not in l.name and "input" not in l.name:
-            # TODO (gurhar1133): still need to see if dimensionality as done here using units
-            # will make sense with conv layers etc.
-
-            n["dimensionality"] = l.units
-            n["activation"] = l.activation.__name__
+        n = _set_fields_by_layer_type(l, n)
         nn.append(n)
     return PKDict(layers=nn)
 
@@ -221,7 +260,7 @@ def _set_children(nn):
     pkdp("\n\n\n STARTING WITH: {}", cur_node.name)
     nn = _levels_with_children(cur_node, nn)[2]
     nn = _move_children_in_add(nn)
-    pkjson.dump_pretty(nn.layers, filename="x.json")
+    pkjson.dump_pretty(nn.layers, filename="conv.json")
     return nn
     # nn = _set_child_ops(nn)
 
