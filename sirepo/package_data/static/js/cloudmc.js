@@ -276,7 +276,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             let axesBoxes = {};
             let basePolyData = null;
             let picker = null;
-            let scalars = [];
+            let minField, maxField;
             let selectedVolume = null;
             let tally = null;
             const bundleByVolume = {};
@@ -423,12 +423,20 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const points = [];
                 const polys = [];
                 const fd = basePolyData.getFieldData().getArrayByName(model().aspect).getData();
+                minField = Number.MAX_VALUE;
+                maxField = Number.MIN_VALUE;
                 for (let zi = 0; zi < nz; zi++) {
                     for (let yi = 0; yi < ny; yi++) {
                         for (let xi = 0; xi < nx; xi++) {
                             const f = fd[zi * nx * ny + yi * nx + xi];
-                            if (f === 0) {
+                            if (! isInFieldThreshold(f)) {
                                 continue;
+                            }
+                            if (f < minField) {
+                                minField = f;
+                            }
+                            else if (f > maxField) {
+                                maxField = f;
                             }
                             const p = [
                                 xi * wx + mesh.lower_left[0],
@@ -517,16 +525,28 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 });
             }
 
+            function isInFieldThreshold(value) {
+                //TODO(pjm): add a min threshold value to openmcAnimation model
+                return value > 0;
+            }
+
             function setTallyColors() {
-                setColorsFromFieldData();
-                const cellsPerVoxel = 6;
+                const cellsPerVoxel = voxelPoly.length;
+                const s = SIREPO.PLOTTING.Utils.colorScale(
+                    minField,
+                    maxField,
+                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.voxels.colorMap],
+                );
                 const sc = [];
-                for (let m = 0; m < scalars.length; m += 4) {
-                    if (scalars[m + 3] === 0) {
+                const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
+                for (const f of basePolyData.getFieldData().getArrayByName(model().aspect).getData()) {
+                    if (! isInFieldThreshold(f)) {
                         continue;
                     }
-                    for (let j = 0; j < cellsPerVoxel; ++j) {
-                        sc.push(...scalars.slice(m, m + 4));
+                    const c = SIREPO.VTK.VTKUtils.colorToFloat(s(f)).map(v => Math.floor(255 * v));
+                    c.push(o);
+                    for (let j = 0; j < cellsPerVoxel; j++) {
+                        sc.push(...c);
                     }
                 }
                 tallyBundle.setColorScalarsForCells(sc, 4);
@@ -534,34 +554,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 vtkScene.render();
             }
 
-            function setColorsFromFieldData() {
-                scalars = [];
-                const d = Array.from(
-                    basePolyData.getFieldData().getArrayByName(model().aspect).getData()
-                );
-                const s = SIREPO.PLOTTING.Utils.colorScale(
-                    SIREPO.UTILS.largeMin(d),
-                    SIREPO.UTILS.largeMax(d),
-                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.voxels.colorMap]
-                );
-                d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
-                    .forEach((c, i) => {
-                        // when the field value is 0, don't draw the element at all
-                        scalars.push(...c, d[i] === 0 ? 0 : Math.floor(255 * appState.models.openmcAnimation.opacity));
-                    });
-                basePolyData.getCellData().setScalars(
-                    vtk.Common.Core.vtkDataArray.newInstance({
-                        numberOfComponents: 4,
-                        values: scalars,
-                        dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
-                    })
-                );
-                basePolyData.modified();
-            }
-
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
-                setColorsFromFieldData();
                 buildVoxels();
             }
 

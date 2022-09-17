@@ -338,7 +338,7 @@
             "showEdges": ["Show edges", "Boolean", "0"],
             "tally": ["Tally", "TallyList"],
             "score": ["Score", "ScoreList"],
-            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.10, "", 0.0, 1.0]
+            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.0, "", 0.0, 1.0]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]
