@@ -310,7 +310,9 @@ def _levels_with_children(cur_node, nn):
     pkdp("\n\n\n call on cur_node={}", cur_node.name)
     l = []
     parent_sum = 1
-    while _continue_building_level(cur_node, nn):
+    x = False
+    while _continue_building_level(cur_node, nn) or x:
+        x = False
         l.insert(0, cur_node)
         if _is_merge_node(cur_node):
             c = []
@@ -324,12 +326,14 @@ def _levels_with_children(cur_node, nn):
             l.insert(0, c)
             cur_node = p
             if len(p.outbound) != parent_sum:
-                break
+                return p, parent_sum, l
             else:
                 pkdp("\n\n p={}", cur_node.name)
-                l.insert(0, cur_node)
-                cur_node = _get_next_node(cur_node, nn)
-
+                if not _is_merge_node(cur_node):
+                    l.insert(0, cur_node)
+                    cur_node = _get_next_node(cur_node, nn)
+                else:
+                    x = True
         else:
             cur_node = _get_next_node(cur_node, nn)
         # elif _is_branching(_get_next_node(cur_node, nn)):
@@ -347,7 +351,7 @@ def _continue_building_level(cur_node, nn):
         pkdp("\n\n\n Break on cur_node={}", cur_node.name)
         return False
 
-    if _is_branching(cur_node) and not _is_merge_node(cur_node):
+    if _is_branching(cur_node):
         pkdp("\n\n\n branch Break on cur_node={}", cur_node.name)
         return False
 
