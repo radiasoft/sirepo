@@ -175,7 +175,6 @@ class VTKUtils {
         return pd;
     }
 
-
     /**
      * Creates a vtk user matrix from a SquareMatrix.
      * * @param {SquareMatrix} matrix - vtk actor
@@ -492,6 +491,23 @@ class ActorBundle {
     }
 
     /**
+     *
+     * @param {[int]} colors - array of unsigned ints (0-255).
+     * @param {int} numColorComponents - the number of components in a color (3 for rgb or 4 for rgb + alpha)
+     */
+    setColorScalarsForCells(colors, numColorComponents) {
+        const pd = this.mapper.getInputData();
+        pd.getCellData().setScalars(
+            vtk.Common.Core.vtkDataArray.newInstance({
+                dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
+                numberOfComponents: numColorComponents,
+                values: colors,
+            })
+        );
+        pd.modified();
+    }
+
+    /**
      * Sets the mapper for this bundle as well as the actor
      * @param {vtk.Rendering.Core.vtkMapper} mapper
      */
@@ -632,6 +648,30 @@ class PlaneBundle extends ActorBundle {
 }
 
 /**
+ * A bundle for a line source defined by two points
+ */
+class PolyDataBundle extends ActorBundle {
+    /**
+     * @param vtk.Common.DataModel.vtkPolyData polyData
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        polyData,
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
+    ) {
+        super(
+            null,
+            transform,
+            actorProperties
+        );
+        this.polyData = polyData;
+        this.mapper.setInputData(polyData);
+    }
+}
+
+/**
  * A bundle for a sphere source
  */
 class SphereBundle extends ActorBundle {
@@ -738,6 +778,15 @@ class CoordMapper {
      */
     buildPlane(labOrigin, labP1, labP2, actorProperties) {
         return new PlaneBundle(labOrigin, labP1, labP2, this.transform, actorProperties);
+    }
+
+    /**
+     * Creates a Bundle from PolyData
+     * @param {vtk.Common.DataModel.vtkPolyData} polyData
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    buildPolyData(polyData, actorProperties) {
+        return new PolyDataBundle(polyData, this.transform, actorProperties);
     }
 
     /**
