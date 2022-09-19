@@ -99,10 +99,13 @@ def stateless_compute_scans(data):
         l = [ScanObject("uid1"), ScanObject("uid2"), ScanObject("uid3")]
     elif data.scansStatus == "queued_scans":
         r = requests.post(
-            "http://127.0.0.1:9001/scan-monitor",
-            data=f'{{"method": "_queued_analyses", "catalogName": "{data.catalogName}"}}',
+            sirepo.feature_config.for_sim_type(SIM_TYPE).scan_monitor_url,
+            json=PKDict(method="queued_analyses", catalog_name=data.catalogName),
         )
+        r.raise_for_status()
         l = pkjson.load_any(r.content).scans
+    else:
+        raise AssertionError("unrecognized scanStatus={data.scanStatus}")
 
     s = []
     for i, v in enumerate(l):
@@ -110,7 +113,7 @@ def stateless_compute_scans(data):
             raise sirepo.util.UserAlert(
                 f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
             )
-        s.append(_scan_info(v.uid, data, metadata=(v.get("metadata", {}))))
+        s.append(_scan_info(v.uid, data))
     return _scan_info_result(s)
 
 
@@ -160,7 +163,7 @@ def _generate_parameters_file(data, run_dir):
     )
 
 
-def _scan_info(scan_uuid, scans_data, metadata=None):
+def _scan_info(scan_uuid, scans_data):
     def _get_start(metadata):
         return metadata["start"]["time"]
 
@@ -170,9 +173,7 @@ def _scan_info(scan_uuid, scans_data, metadata=None):
     def _get_suid(metadata):
         return _suid(metadata["start"]["uid"])
 
-    m = metadata
-    if not m:
-        m = catalog(scans_data)[scan_uuid].metadata
+    m = catalog(scans_data)[scan_uuid].metadata
     # POSIT: uid is no displayed but all of the code expects uid field to exist
     d = PKDict(uid=scan_uuid)
     for c in _DEFAULT_COLUMNS:
