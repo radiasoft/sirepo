@@ -1582,7 +1582,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     // 'Concatenate',
                     'AveragePooling2D',
                     // 'Conv2D',
-                    'Conv2DTranspose',
+                    // 'Conv2DTranspose',
                     'GlobalAveragePooling2D',
                     // 'MaxPooling2D',
                     'SeparableConv2D',

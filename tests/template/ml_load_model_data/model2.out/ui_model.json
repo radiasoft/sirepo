@@ -165,6 +165,7 @@
         "activation": "linear",
         "children": [],
         "dimensionality": 1,
-        "layer": "Dense"
+        "layer": "Dense",
+        "outbound": []
     }
 ]

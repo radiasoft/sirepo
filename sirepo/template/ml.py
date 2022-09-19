@@ -174,6 +174,16 @@ def stateless_compute_load_keras_model(data):
     return _build_ui_nn(model)
 
 
+def _conv(l):
+    return PKDict(
+        strides=l.strides[0],
+        padding=l.padding,
+        kernel=l.kernel_size[0],
+        dimensionality=l._trainable_weights[0].shape[-1],
+        activation=l.activation.__name__,
+    )
+
+
 def _set_fields_by_layer_type(l, new_layer):
     # TODO (gurhar1133): commented out below are unsupported currently
     if "input" not in l.name:
@@ -186,18 +196,12 @@ def _set_fields_by_layer_type(l, new_layer):
             # AveragePooling2D=lambda layer: _pooling_args(layer),
             BatchNormalization=lambda l: PKDict(momentum=l.momentum),
             Concatenate=lambda l: PKDict(),
-            Conv2D=lambda l: PKDict(
-                strides=l.strides[0],
-                padding=l.padding,
-                kernel=l.kernel_size[0],
-                dimensionality=l._trainable_weights[0].shape[-1],
-                activation=l.activation.__name__,
-            ),
+            Conv2D=lambda l: _conv(l),
             Dense=lambda l: PKDict(
                 dimensionality=l.units,
                 activation=l.activation.__name__,
             ),
-            # Dropout=lambda layer: layer.dropoutRate,
+            Dropout=lambda l: PKDict(rate=l.rate),
             # Flatten=lambda layer: "",
             # GaussianDropout=lambda layer: layer.dropoutRate,
             # GaussianNoise=lambda layer: layer.stddev,
@@ -208,7 +212,7 @@ def _set_fields_by_layer_type(l, new_layer):
                 size=l.pool_size[0],
             ),
             # SeparableConv2D=lambda layer: _conv_args(layer),
-            # Conv2DTranspose=lambda layer: _conv_args(layer),
+            Conv2DTranspose=lambda l: _conv(l),
             # UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
             # ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
         )
@@ -259,6 +263,8 @@ def _set_children(nn):
     cur_node = nn.layers[-1]
     pkdp("\n\n\n STARTING WITH: {}", cur_node.name)
     nn = _levels_with_children(cur_node, nn)[2]
+    pkjson.dump_pretty(nn, filename="nn.json")
+    pkdp("\n\n\n ================================== \n\n nn: {} \n\n =============================", nn)
     nn = _move_children_in_add(nn)
     pkjson.dump_pretty(nn.layers, filename="conv.json")
     return nn
@@ -270,8 +276,9 @@ def _move_children_in_add(nn):
     for i, l in enumerate(nn):
         if type(l) == list:
             continue
+        pkdp("\n\n L :{}", l)
         l["children"] = []
-        if _is_merge_node(l):
+        if _is_merge_node(l) and type(nn[i - 1]) == list:
             for c in nn[i -1]:
                 l["children"].append(_move_children_in_add(c))
         new_nn.layers.append(_clean_layer(l))
@@ -280,10 +287,13 @@ def _move_children_in_add(nn):
 
 def _clean_layer(l):
     for k in ("obj", "inbound", "outbound", "name"):
-        l.pop(k)
+        if l.get(k):
+            l.pop(k)
     return l
 
 def _get_next_node(node, nn):
+    if _is_merge_node(node):
+        return node
     assert len(node.inbound) == 1, f"get next should have one inbound node={node.name}, node.indbound={[n.name for n in node.inbound]}"
     return _get_layer_by_name(nn, node.inbound[0].name)
 
@@ -297,14 +307,16 @@ def _is_merge_node(node):
 
 
 def _levels_with_children(cur_node, nn):
+    pkdp("\n\n\n call on cur_node={}", cur_node.name)
     l = []
+    parent_sum = 1
     while _continue_building_level(cur_node, nn):
-        parent_sum = 1
         l.insert(0, cur_node)
         if _is_merge_node(cur_node):
             c = []
             parent_sum = 0
             for i in cur_node.inbound:
+                pkdp("\n\n\n child node={}", i.name)
                 child_node = _get_layer_by_name(nn, i.name)
                 p, s, lvl = _levels_with_children(child_node, nn)
                 parent_sum += s
@@ -313,21 +325,30 @@ def _levels_with_children(cur_node, nn):
             cur_node = p
             if len(p.outbound) != parent_sum:
                 break
-        elif _is_branching(_get_next_node(cur_node, nn)):
-            return _get_next_node(cur_node, nn), parent_sum, l
+            else:
+                pkdp("\n\n p={}", cur_node.name)
+                l.insert(0, cur_node)
+                cur_node = _get_next_node(cur_node, nn)
+
         else:
             cur_node = _get_next_node(cur_node, nn)
+        # elif _is_branching(_get_next_node(cur_node, nn)):
+        #     return _get_next_node(cur_node, nn), parent_sum, l
+        parent_sum = 1
+        pkdp("\n\n\n next={}", cur_node.name)
     pkdp("\n\n RETURNING ON CUR_NODE={}, PARENT_SUM={}", cur_node.name, parent_sum)
     return cur_node, parent_sum, l
 
 
 def _continue_building_level(cur_node, nn):
+    # pkdp("\n\n\n continue building on={}?", cur_node.name)
+    # pkdp("\n\n\n _is_branching() of cur_node={}")
     if "input" in cur_node.name:
         pkdp("\n\n\n Break on cur_node={}", cur_node.name)
         return False
 
-    if _is_branching(cur_node) > 1:
-        pkdp("\n\n\n Break on cur_node={}", cur_node.name)
+    if _is_branching(cur_node) and not _is_merge_node(cur_node):
+        pkdp("\n\n\n branch Break on cur_node={}", cur_node.name)
         return False
 
     return True
@@ -889,7 +910,7 @@ def _build_model_py(v):
         return "".join(", " + n for n in v.layerImplementationNames if n != "Dense")
 
     def _conv_args(layer):
-        if layer.layer not in ("Conv2D", "Transpose", "SeparableConv2D"):
+        if layer.layer not in ("Conv2D", "Conv2DTranspose", "SeparableConv2D"):
             return
         return f"""{layer.dimensionality},
     activation="{layer.activation}",
