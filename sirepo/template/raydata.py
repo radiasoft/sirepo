@@ -5,7 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import glob
-from pykern import pkcompat
+from pykern import pkcompat, pkjson
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdformat
@@ -13,6 +13,7 @@ from sirepo.template import template_common
 import base64
 import databroker
 import databroker.queries
+import requests
 import sirepo.feature_config
 import sirepo.sim_data
 import sirepo.simulation_db
@@ -95,17 +96,10 @@ def stateless_compute_scans(data):
         assert data.searchStartTime and data.searchStopTime, pkdformat(
             "must have both searchStartTime and searchStopTime data={}", data
         )
-        l = [
-            ("uid1", ScanObject("uid1")),
-            ("uid2", ScanObject("uid2")),
-            ("uid3", ScanObject("uid3")),
-        ]
+        l = [ScanObject("uid1"), ScanObject("uid2"), ScanObject("uid3")]
     elif data.scansStatus == "queued_scans":
-        l = [
-            ("uid4", ScanObject("uid4")),
-            ("uid5", ScanObject("uid5")),
-            ("uid6", ScanObject("uid6")),
-        ]
+        r = requests.post("http://127.0.0.1:9001/scan-monitor", data=f'{{"method": "_queued_analyses", "catalogName": "{data.catalogName}"}}')
+        l = pkjson.load_any(r.content).scans
 
     s = []
     for i, v in enumerate(l):
@@ -113,7 +107,7 @@ def stateless_compute_scans(data):
             raise sirepo.util.UserAlert(
                 f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
             )
-        s.append(_scan_info(v[0], data, metadata=v[1].metadata))
+        s.append(_scan_info(v.uid, data, metadata=(v.get('metadata', {}))))
     return _scan_info_result(s)
 
 
