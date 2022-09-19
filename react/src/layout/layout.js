@@ -1,7 +1,6 @@
 import { useRenderCount } from "../hook/debug";
 
 export class View {
-
     constructor() {
         this.name = this.constructor.name;
 
@@ -44,28 +43,5 @@ export class View {
      */
     component = (props) => {
         throw new Error("component() not implemented")
-    }
-}
-
-export class Layouts {
-    constructor () { 
-        this.components = {
-            // TODO: fill this in
-        }
-    }
-
-    getLayoutForConfig = (config) => {
-        if(!config.layout) {
-            throw new Error(`missing layout for config: ${JSON.stringify(config)}`);
-        }
-
-        let componentBuilder = this.components[config.layout];
-
-        if(!componentBuilder) {
-            console.error("missing view builder for view: " + config.layout)
-            return MissingLayout;
-        }
-
-        return componentBuilder(config);
     }
 }

@@ -1,3 +1,6 @@
+import { Zoom } from '@visx/zoom';
+import { Axis, ClipPath, Scale, Shape } from '@visx/visx';
+
 /**
  *
  * @param {{

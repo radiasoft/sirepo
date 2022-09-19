@@ -1,3 +1,8 @@
+import { 
+    useRef,
+    useEffect
+} from "react";
+
 export function useRenderCount(name) {
     const renderCount = useRef(0);
     const domRenderCount = useRef(0);

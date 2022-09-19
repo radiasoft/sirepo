@@ -1,4 +1,7 @@
-function FieldInput(props) {
+import { useRenderCount } from "../hook/debug";
+import { FormField } from "./form";
+
+export function FieldInput(props) {
     let { field } = props;
 
     useRenderCount("FieldInput");
@@ -22,7 +25,7 @@ function FieldInput(props) {
     />)
 }
 
-function LabeledFieldInput(props) {
+export function LabeledFieldInput(props) {
     let { field } = props;
 
     useRenderCount("LabeledFieldInput");

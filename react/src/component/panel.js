@@ -1,3 +1,14 @@
+import {
+    Card,
+    Col,
+    Button,
+    Modal
+} from "react-bootstrap";
+import { useState, Fragment } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import * as Icon from "@fortawesome/free-solid-svg-icons";
+import { EditorForm } from "./form";
+
 export function Panel(props) {
     let { title, buttons, panelBodyShown, ...otherProps } = props;
     return (

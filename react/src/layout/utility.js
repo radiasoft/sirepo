@@ -1,12 +1,18 @@
 export function SpacedLayout(subView) {
-    return new class extends subView {
-        component = (props) => {
-            let ChildComponent = super.component;
-            return (
-                <div className="sr-form-layout">
-                    <ChildComponent {...props} />
-                </div>
-            )
+    return class extends subView {
+        constructor(config) {
+            super(config);
+
+            let oldComponent = this.component;
+
+            this.component = (props) => {
+                let ChildComponent = oldComponent;
+                return (
+                    <div className="sr-form-layout">
+                        <ChildComponent {...props} />
+                    </div>
+                )
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+import { useDispatch, useSelector } from "react-redux";
+
 export class Models {
     constructor({ modelActions, modelSelectors }) {
         this.modelActions = modelActions;
@@ -32,7 +34,7 @@ export class Models {
 
     updateModel = (modelName, value) => {
         console.log("dispatching update to ", modelName, " changing to value ", value);
-        dispatch(this.modelActions.updateModel({
+        this.dispatch(this.modelActions.updateModel({
             name: modelName,
             value
         }))

@@ -12,7 +12,8 @@ import { useSetup } from "../hook/setup";
 import { compileSchemaFromJson } from "../utility/schema";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "../component/simbrowser";
-import { Layouts } from "../layout/layout";
+import { Layouts } from "../layout/layouts";
+import "./app.scss";
 
 function SimulationListInitializer(props) {
     let stateFn = useState;

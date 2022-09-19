@@ -1,4 +1,21 @@
-import { ContextLayouts, ContextRelativeFormState } from "../context";
+import { 
+    ContextLayouts, 
+    ContextRelativeFormState,
+    ContextModels,
+    ContextSimulationInfoPromise,
+    ContextRelativeFormDependencies,
+    ContextRelativeHookedDependencyGroup,
+    ContextRelativeFormController,
+    ContextSchema
+} from "../context";
+import { useContext } from "react";
+import { useInterpolatedString } from "../hook/string";
+import { View } from "./layout";
+import { useStore } from "react-redux";
+import { Dependency, HookedDependencyGroup } from "../data/dependency";
+import { FormController } from "../data/form";
+import { EditorPanel } from "../component/panel";
+import "./panel.scss";
 
 export class PanelLayout extends View {
     getFormDependencies = (config) => {
@@ -13,7 +30,7 @@ export class PanelLayout extends View {
 
         
         let formState = useContext(ContextRelativeFormState);
-        let models = useContext(ContextRelativeModels);
+        let models = useContext(ContextModels);
         let title = useInterpolatedString(models, config.title);
 
         let layouts = useContext(ContextLayouts);
@@ -51,7 +68,7 @@ export class PanelLayout extends View {
 
         let dependencies = [...basic, ...advanced].map(layoutConfig => {
             let layout = layouts.getLayoutForConfig(layoutConfig);
-            return layout.getFormDependencies(layoutConfig);
+            return layout.getFormDependencies(layoutConfig, layouts);
         }).flat().map(dependencyString => new Dependency(dependencyString));
 
         let hookedDependencyGroup = new HookedDependencyGroup({ schemaModels: schema.models, models, dependencies });

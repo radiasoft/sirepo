@@ -1,3 +1,28 @@
+import {
+    Form,
+    Row,
+    Col
+} from "react-bootstrap";
+import { LabelTooltip } from "../component/label";
+import {
+    useState,
+    useContext,
+    useEffect
+} from "react";
+import {
+    ContextSchema,
+    ContextModels,
+    ContextRelativeFormState
+} from "../context";
+import { FormState } from "../data/form";
+import {
+    updateFormFieldState,
+    updateFormState,
+    selectFormState
+} from "../store/formState";
+import { formStateFromModel } from "../data/form";
+import { useStore } from "react-redux";
+
 export function FormField(props) {
     let { label, tooltip } = props;
     return (
@@ -28,6 +53,8 @@ export function FormStateInitializer(props) {
 
     let schema = useContext(ContextSchema);
 
+    let store = useStore();
+
     let models = useContext(ContextModels);
     let formState = new FormState({
         formActions: {
@@ -40,7 +67,7 @@ export function FormStateInitializer(props) {
     })
 
     useEffect(() => {
-        Object.entries(models.getModels()).forEach(([modelName, model]) => {
+        Object.entries(models.getModels(store.getState())).forEach(([modelName, model]) => {
             if (modelName in schema.models) { // TODO non-model data should not be stored with models in store
                 formState.updateModel(modelName, formStateFromModel(model, schema.models[modelName]))
             }

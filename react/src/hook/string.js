@@ -1,5 +1,8 @@
+import { Dependency } from "../data/dependency";
+
 export function useInterpolatedString(models, str) {
-    let mappingsArr = str.matchAll(/\$\(([^\%]+)\)/g).map(([originalString, mappedGroup]) => {
+    let matches = [...str.matchAll(/\$\(([^\%]+)\)/g)];
+    let mappingsArr = matches.map(([originalString, mappedGroup]) => {
         return {
             original: originalString,
             dependency: new Dependency(mappedGroup)

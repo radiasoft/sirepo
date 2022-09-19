@@ -1,21 +1,33 @@
-export function ViewGrid(props) {
-    let { views, ...otherProps } = props;
-    let viewPanels = Object.entries(views).map(([id, view]) => {
-        let View = view;
-        return (
-            <Col md={6} className="mb-3" key={id}>
-                <View {...otherProps}/>
-            </Col>
-        )
-    });
-    return (
-        <Container fluid className="mt-3">
-            <Row>
-                {viewPanels}
-            </Row>
-        </Container>
-    )
-}
+import { 
+    Col,
+    Row,
+    Container,
+    Nav,
+    Navbar
+} from "react-bootstrap";
+import {
+    useState,
+    useEffect,
+    useContext
+} from "react";
+import {
+    ContextAppName,
+    ContextSimulationListPromise,
+    ContextRelativeRouterHelper,
+    ContextLayouts,
+    ContextSchema,
+    ContextModels,
+    ContextSimulationInfoPromise
+} from "../context";
+import {
+    updateModel,
+    selectModel,
+    selectModels
+} from "../store/models";
+import { Models } from "../data/model";
+import { FormStateInitializer } from "../component/form";
+import { useResolvedPath } from "react-router-dom";
+import { RouteHelper } from "../hook/route";
 
 function SimulationInfoInitializer (props) {
     let contextFn = useContext;
@@ -110,29 +122,32 @@ export function SimulationOuter(props) {
 }
 
 export function SimulationRoot(props) {
-    let { simulation } = props;
-
-    let viewBuilder = useContext(ContextAppViewBuilder);
+    let layouts = useContext(ContextLayouts);
 
     let schema = useContext(ContextSchema);
 
-    let viewComponents = schema.views.map((view) => viewBuilder.buildComponentForView(view));
+    let viewComponents = schema.views.map((view, index) => {
+        let layout = layouts.getLayoutForConfig(view);
+        let Component = layout.component;
+        return (
+            <Col md={6} className="mb-3" key={index}>
+                <Component config={view}></Component>
+            </Col>
+        )
+    });
 
-    let buildSimulationRoot = (simulation) => {
-        return SimulationInfoInitializer(
-            FormStateInitializer({ schema })(
-                () => {
-                    return <ViewGrid views={viewComponents}/>
-                }
-            )
-        );
-    }
-
-    let SimulationChild = buildSimulationRoot(simulation);
-
+    // TODO: use multiple rows
     return (
         <SimulationOuter>
-            <SimulationChild/>
+            <SimulationInfoInitializer>
+                <FormStateInitializer>
+                    <Container fluid className="mt-3">
+                        <Row>
+                            {viewComponents}
+                        </Row>
+                    </Container>
+                </FormStateInitializer>
+            </SimulationInfoInitializer>
         </SimulationOuter>
     )
 }

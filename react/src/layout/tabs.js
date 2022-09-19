@@ -1,13 +1,16 @@
 import { ContextLayouts } from "../context";
+import { useContext } from "react";
+import { View } from "./layout";
+import { Tab, Tabs } from "react-bootstrap";
 
 export class TabLayout extends View {
-    getFormDependencies = (layouts, config) => {
+    getFormDependencies = (config, layouts) => {
         let fields = [];
 
         for (let tab of config.tabs) {
             for (let layoutConfig of tab.items) {
                 let ele = layouts.getLayoutForConfig(layoutConfig);
-                fields.push(...ele.getFormDependencies(layouts, layoutConfig));
+                fields.push(...ele.getFormDependencies(layoutConfig, layouts));
             }
         }
 
@@ -30,7 +33,7 @@ export class TabLayout extends View {
             let layoutConfigs = tabConfig.items;
             let layoutElements = layoutConfigs.map((layoutConfig, idx) => {
                 let ele = layouts.getLayoutForConfig(layoutConfig)
-                let LayoutElement = ele.element;
+                let LayoutElement = ele.component;
                 return <LayoutElement key={idx} config={layoutConfig}></LayoutElement>
             })
             firstTabKey = firstTabKey || name;

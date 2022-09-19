@@ -1,3 +1,6 @@
+import { Graph2d } from "../component/graph2d";
+import { View } from "./layout";
+
 export function apiResponseToGraph2dConfig({
     plots,
     title,

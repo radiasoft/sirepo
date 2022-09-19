@@ -1,6 +1,9 @@
-import { useContext, useState, useRef } from "react";
-import { Dependency, useDependentValues } from "../dependency/dependency";
+import { useContext, useState, useRef, useEffect } from "react";
+import { Dependency } from "../data/dependency";
 import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModels, ContextLayouts } from "../context";
+import { useDependentValues } from "../hook/dependency";
+import { View } from "./layout";
+import { pollRunReport } from "../utility/compute";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
@@ -26,7 +29,7 @@ export class AutoRunReportLayout extends View {
 
         let simulationPollingVersionRef = useRef()
 
-        effectFn(() => {
+        useEffect(() => {
             updateSimulationData(undefined);
             let pollingVersion = {};
             simulationPollingVersionRef.current = pollingVersion;
@@ -53,7 +56,7 @@ export class AutoRunReportLayout extends View {
 
         let layoutElement = layouts.getLayoutForConfig(reportLayout);
 
-        let VisualComponent = simulationData ? layoutElement.element : undefined;
+        let VisualComponent = simulationData ? layoutElement.component : undefined;
 
         return (
             <>
