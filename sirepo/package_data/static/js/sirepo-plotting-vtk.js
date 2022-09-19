@@ -251,6 +251,15 @@ class VTKScene {
     }
 
     /**
+     * Gets the bounds of all the objects in the scene
+     * @returns {[number]}
+     */
+    bounds() {
+        this.renderer.resetCamera();
+        return this.renderer.computeVisiblePropBounds();
+    }
+
+    /**
      * Gets an icon based on the view direction ("into/out of the screen")
      * @returns {string}
      */
@@ -263,6 +272,20 @@ class VTKScene {
      */
     hasMarker() {
         return ! ! this.marker;
+    }
+
+    /**
+     * Refreshes the visibility of the orientation marker, if one exists
+     * @param doRender - if true, perform a render
+     */
+    refreshMarker(doRender=true) {
+        if (! this.hasMarker()) {
+            return;
+        }
+        this.marker.setEnabled(this.isMarkerEnabled);
+        if (doRender) {
+            this.render();
+        }
     }
 
     /**
@@ -306,6 +329,15 @@ class VTKScene {
     }
 
     /**
+     * Rotates the camera around the axis pointing into/out of the screen
+     * @param {number} angle - the angle ini degrees
+     */
+    rotate(angle) {
+        this.cam.roll(angle);
+        this.render();
+    }
+
+    /**
      * Builds a wireframe box around all the objects in the scene, with optional padding
      * @param {number} padPct - additional padding as a percentage of the size
      * @returns {BoxBundle}
@@ -314,16 +346,6 @@ class VTKScene {
         // must reset the camera before computing the bounds
         this.renderer.resetCamera();
         return VTKUtils.buildBoundingBox(this.bounds(), padPct);
-    }
-
-
-    /**
-     * Gets the bounds of all the objects in the scene
-     * @returns {number[]}
-     */
-    bounds() {
-        this.renderer.resetCamera();
-        return this.renderer.computeVisiblePropBounds();
     }
 
     /**
@@ -375,24 +397,10 @@ class VTKScene {
         if (direction) {
             this.viewDirection = Math.sign(direction);
         }
-        this.viewSide = side;
-        const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[side]
+        this.viewSide = side || this.resetSide;
+        const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[this.viewSide]
             .map(c =>  c * this.viewDirection);
-        this.setCam(pos, this.camProperties[side].viewUp);
-    }
-
-    /**
-     * Refreshes the visibility of the orientation marker, if one exists
-     * @param doRender - if true, perform a render
-     */
-    refreshMarker(doRender=true) {
-        if (! this.hasMarker()) {
-            return;
-        }
-        this.marker.setEnabled(this.isMarkerEnabled);
-        if (doRender) {
-            this.render();
-        }
+        this.setCam(pos, this.camProperties[this.viewSide].viewUp);
     }
 
     /**
@@ -2848,6 +2856,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         height: Math.max(0, $(canvasHolder).height()),
                     }
                 };
+            };
+
+            $scope.rotate = angle => {
+                $scope.vtkScene.rotate(angle);
+                refresh(true);
             };
 
             $scope.setInteractionMode = mode => {
