@@ -98,7 +98,10 @@ def stateless_compute_scans(data):
         )
         l = [ScanObject("uid1"), ScanObject("uid2"), ScanObject("uid3")]
     elif data.scansStatus == "queued_scans":
-        r = requests.post("http://127.0.0.1:9001/scan-monitor", data=f'{{"method": "_queued_analyses", "catalogName": "{data.catalogName}"}}')
+        r = requests.post(
+            "http://127.0.0.1:9001/scan-monitor",
+            data=f'{{"method": "_queued_analyses", "catalogName": "{data.catalogName}"}}',
+        )
         l = pkjson.load_any(r.content).scans
 
     s = []
@@ -107,7 +110,7 @@ def stateless_compute_scans(data):
             raise sirepo.util.UserAlert(
                 f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
             )
-        s.append(_scan_info(v.uid, data, metadata=(v.get('metadata', {}))))
+        s.append(_scan_info(v.uid, data, metadata=(v.get("metadata", {}))))
     return _scan_info_result(s)
 
 
