@@ -37,8 +37,20 @@ _FUNC_PREFIX = "api_"
 #: modules that must be initialized. server must be first
 _REQUIRED_MODULES = ("server", "auth", "srtime")
 
+#: uri for default dispatches
+_ROUTE_URI_DEFAULT = ""
+
+#: uri for not found dispatches
+_ROUTE_URI_NOT_FOUND = "not-found"
+
 #: Where to route when no routes match (root)
-_default_route = None
+_route_default = None
+
+#: Where to route when no routes match (root)
+_route_default = None
+
+#: Where to route when a route is not found (notFound)
+_route_default = None
 
 #: dict of base_uri to route (base_uri, func, name, decl_uri, params)
 _uri_to_route = None
@@ -91,7 +103,7 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
     with _set_api_attr(sreq, route_or_name):
         try:
             # must be first so exceptions have access to sim_type
-parse_post or parse_params? we know what we need
+rjn parse_post or parse_params? we know what we need
 this can be part of the parsing. possibly get from the data if any
             if kwargs:
                 # Any (GET) uri will have simulation_type in uri if it is application
@@ -99,7 +111,7 @@ this can be part of the parsing. possibly get from the data if any
                 s = sreq.set_sim_type(kwargs.get("simulation_type"))
             else:
                 kwargs = PKDict()
-already has route
+rjn already has route
 
             f = _check_api_call(sreq, route_or_name)
             try:
@@ -204,7 +216,7 @@ def register_api_module(module=None):
         )
 
     assert (
-        not _default_route
+        not _route_default
     ), "_init_uris already called. All APIs must registered at init"
     m = module or pkinspect.caller_module()
     if m in _api_modules:
@@ -243,7 +255,7 @@ def uri_for_api(api_name, params=None, absolute=True):
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
-uri_app_root
+rjn uri_app_root
     s = flask.url_for("_dispatch_empty", _external=absolute) if absolute else "/"
     res = (s + r.base_uri).rstrip("/")
     for p in r.params:
@@ -310,10 +322,11 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
-    error, route, qargs = _uri_to_route(path)
+    error, route, kwargs = _path_to_route(path)
     if error:
-        r = route
+        pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
         route = _not_found_route
+        qargs = None
 
     qcall = route.cls(sroute=route, qargs=qargs)
     import flask
@@ -326,7 +339,6 @@ def _dispatch(path):
     ),
 
     import sirepo.auth
-
 
     f = (
         route_or_name
@@ -345,7 +357,7 @@ which can include
 route is an object so taht can make the call with sreq
 path_info is put
 every api has a spec
-                return call_api(sreq, _default_route, PKDict(path_info=None))
+                return call_api(sreq, _route_default, PKDict(path_info=None))
             # werkzeug doesn't convert '+' to ' '
             parts = re.sub(r"\+", " ", path).split("/")
             try:
@@ -353,7 +365,7 @@ every api has a spec
                 parts.pop(0)
             except KeyError:
                 # sim_types (applications)
-                route = _default_route
+                route = _route_default
             kwargs = PKDict()
             for p in route.params:
                 if not parts:
@@ -385,9 +397,9 @@ def _dispatch_empty():
 
 
 def _init_uris(app, simulation_db, sim_types):
-    global _default_route, srunit_uri, _api_to_route, _uri_to_route
+    global _route_default, srunit_uri, _api_to_route, _uri_to_route
 
-    assert not _default_route, "_init_uris called twice"
+    assert not _route_default, "_init_uris called twice"
     _uri_to_route = PKDict()
     _api_to_route = PKDict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
@@ -405,14 +417,52 @@ def _init_uris(app, simulation_db, sim_types):
         ), "{}: duplicate end point; other={}".format(v, _uri_to_route[r.base_uri])
         _uri_to_route[r.base_uri] = r
         _api_to_route[k] = r
-        if r.base_uri == "":
-            _default_route = r
-        if "srunit" in v:
+        if r.base_uri == _ROUTE_URI_DEFAULT:
+            _route_default = r
+        elif if r.base_uri == _ROUTE_URI_NOT_FOUND:
+            _not_found_route = r
+        elif "srunit" in v:
             srunit_uri = v
-    assert _default_route, "missing default route"
+    assert _route_default, f"missing constant route: default /{_ROUTE_URI_DEFAULT}"
+    assert _not_found_route, f"missing constant route: not found /{_ROUTE_URI_NOT_FOUND}"
     _validate_root_redirect_uris(_uri_to_route, simulation_db)
     app.add_url_rule("/<path:path>", "_dispatch", _dispatch, methods=("GET", "POST"))
     app.add_url_rule("/", "_dispatch_empty", _dispatch_empty, methods=("GET", "POST"))
+
+
+def _path_to_route(path):
+    if path is None:
+        return (None, _route_default, PKDict(path_info=None))
+    parts = re.sub(r"\+", " ", path).split("/")nn
+    route = None
+    kwargs = None
+    try:
+        try:
+            route = _uri_to_route[parts[0]]
+            parts.pop(0)
+        except KeyError:
+            # Get here if the first part of the uri doesn't match a
+            # route (all routes have only top level uris). It's likely
+            # to be a sim_type, but could be other top level route items.
+            # There should be no other parts so /foo/bar is going to yield
+            # "too many parts" below.
+            route = _route_default
+        kwargs = PKDict()
+        for p in route.params:
+            if not parts:
+                if not p.is_optional:
+                    return (f"missing parameter={p.name}", route, kwargs)
+                break
+            if p.is_path_info:
+                kwargs[p.name] = "/".join(parts)
+                parts = None
+                break
+            kwargs[p.name] = parts.pop(0)
+        if parts:
+            return (f"has too many parts={parts}", route, kwargs)
+    except Exception as e:
+        return (f"parse exception={e} stack={pkdexc()}", route, kwargs)
+    return (None, route, kwargs)
 
 
 def _register_sim_api_modules():
@@ -495,36 +545,6 @@ def _split_uri(uri):
             )
     res.base_uri = first or ""
     return res
-
-
-def _uri_to_route(path):
-    if path is None:
-        return (None, _default_route, PKDict(path_info=None))
-    parts = re.sub(r"\+", " ", path).split("/")nn
-    route = None
-    kwargs = None
-    try:
-        route = _uri_to_route[parts[0]]
-        parts.pop(0)
-    except KeyError:
-        # _default_route is "/" always so just pass to it
-        route = _default_route
-        kwargs = PKDict()
-        for p in route.params:
-            if not parts:
-                if not p.is_optional:
-                    return (f"uri={path} missing parameter={p.name}", route, kwargs)
-                break
-            if p.is_path_info:
-                kwargs[p.name] = "/".join(parts)
-                parts = None
-                break
-            kwargs[p.name] = parts.pop(0)
-        if parts:
-            return (f"uri={path} has too many parts={pargs}", route, kwargs)
-    except Exception as e:
-        return (f"uri={path} parse exception={e} path={path} stack={pkdexc()}", route, kwargs)
-    return (None, route, kwargs)
 
 
 def _validate_root_redirect_uris(uri_to_route, simulation_db):
