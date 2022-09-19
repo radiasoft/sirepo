@@ -435,6 +435,10 @@ class API(sirepo.api.Base):
             req.template.new_simulation(d, req.req_data)
         return self._save_new_and_reply(req, d)
 
+    @sirepo.api.Spec("allow_visitor")
+    def api_notFound(self):
+        sirepo.util.raise_not_found("app forced not found (uri parsing error)")
+
     @sirepo.api.Spec(
         "require_user",
         simulation_id="SimId",

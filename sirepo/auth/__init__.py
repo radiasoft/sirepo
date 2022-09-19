@@ -352,9 +352,9 @@ class Base:
 
     @contextlib.contextmanager
     def process_request(sreq):
-auth_db session comes after cookie parsing?
-sirepo.session is a hook?
 
+rjn: auth_db session comes after cookie parsing?
+sirepo.session is a hook?
         with auth_db.session():
 todo: process auth basic header, too. this should not cookie but route to auth_basic.
             sirepo.cookie.process_header(sreq)
