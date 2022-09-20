@@ -1477,7 +1477,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             };
-            srdbg(appState.models.neuralNet);
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
                     return;
@@ -1951,8 +1950,8 @@ SIREPO.app.directive('trimButton', function(appState, mlService) {
 
 SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $scope) {
     // TODO (gurhar1133): below line leads to flicker. Find better place
+    appState.models.mlModel.mlModule = 'neuralnet';
     panelState.showField('mlModel', 'modelFile', appState.models.mlModel.mlModule == 'modelFile');
-
     function displayFileInput() {
         if (appState.models.mlModel.mlModule == 'modelFile') {
             panelState.showField('mlModel', 'modelFile', true);
@@ -1971,10 +1970,10 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
             requestSender.sendStatelessCompute(
                 appState,
                 (data) => {
-                    srdbg('data: ', data);
                     appState.models.neuralNet.layers = data.layers.slice(0, -1);
                     appState.saveChanges('neuralNet');
-                    srdbg('appState.models after:', appState.models);
+                    appState.models.mlModel.mlModule = 'neuralnet';
+                    appState.saveChanges('mlModel');
                 },
                 {
                     method: 'load_keras_model',
