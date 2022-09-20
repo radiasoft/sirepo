@@ -492,6 +492,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 return null;
             }
 
+            function showField(callData) {
+                if (vtkScene.renderer !== callData.pokedRenderer) {
+                    return;
+                }
+                const pos = callData.position;
+                picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
+                const cid = picker.getCellId();
+                if (cid >= 0) {
+                    colorbarPtr.pointTo(fieldData[Math.floor(cid / 6)]);
+                }
+            }
+
             function handlePick(callData) {
                 if (vtkScene.renderer !== callData.pokedRenderer) {
                     return;
@@ -508,19 +520,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
 
                 const actor = picker.getActors()[0];
-                if (! isGeometryOnly) {
-                    const cid = picker.getCellId();
-                    if (cid < 0) {
-                        return;
-                    }
-                    const pd = actor.getMapper().getInputData();
-                    if (! pd) {
-                        return;
-                    }
-                    colorbarPtr.pointTo(fieldData[Math.floor(cid / 6)]);
-                    return;
-                }
-
                 const v = getVolumeByActor(actor);
                 if (selectedVolume) {
                     vtkScene.removeActor(axesBoxes[selectedVolume.name]);
@@ -721,6 +720,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(true);
                 vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                if (! isGeometryOnly) {
+                    vtkScene.renderWindow.getInteractor().onMouseMove(showField);
+                }
 
                 const vols = [];
                 for (const n in appState.models.volumes) {
