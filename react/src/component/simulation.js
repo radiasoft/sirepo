@@ -30,15 +30,11 @@ import { useResolvedPath } from "react-router-dom";
 import { RouteHelper } from "../hook/route";
 
 function SimulationInfoInitializer (props) {
-    let contextFn = useContext;
-    let stateFn = useState;
-    let effectFn = useEffect;
-
-    let simulationListPromise = contextFn(ContextSimulationListPromise);
+    let simulationListPromise = useContext(ContextSimulationListPromise);
     
-    let [simulationInfoPromise, updateSimulationInfoPromise] = stateFn(undefined);
-    let [hasInit, updateHasInit] = stateFn(false);
-    let appName = contextFn(ContextAppName);
+    let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
+    let [hasInit, updateHasInit] = useState(false);
+    let appName = useContext(ContextAppName);
 
     let modelsWrapper = new Models({
         modelActions: {
@@ -50,7 +46,7 @@ function SimulationInfoInitializer (props) {
         }
     })
 
-    effectFn(() => {
+    useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
             simulationListPromise.then(simulationList => {
                 let simulation = simulationList[0];
