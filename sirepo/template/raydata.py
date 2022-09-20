@@ -4,16 +4,17 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import glob
 from pykern import pkcompat, pkjson
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog, pkdformat
+from pykern.pkdebug import pkdp, pkdlog, pkdformat, pkdexc
 from sirepo.template import template_common
 import base64
 import databroker
 import databroker.queries
+import glob
 import requests
+import requests.exceptions
 import sirepo.feature_config
 import sirepo.sim_data
 import sirepo.simulation_db
@@ -98,12 +99,9 @@ def stateless_compute_scans(data):
         )
         l = [ScanObject("uid1"), ScanObject("uid2"), ScanObject("uid3")]
     elif data.scansStatus == "queued_scans":
-        r = requests.post(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).scan_monitor_url,
-            json=PKDict(method="queued_analyses", catalog_name=data.catalogName),
-        )
-        r.raise_for_status()
-        l = pkjson.load_any(r.content).scans
+        l = _request_scan_monitor(
+            PKDict(method="queued_analyses", catalog_name=data.catalogName)
+        ).scans
     else:
         raise AssertionError("unrecognized scanStatus={data.scanStatus}")
 
@@ -126,10 +124,7 @@ def stateless_compute_scan_info(data):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, run_dir),
-    )
+    raise NotImplementedError("Raydata does not run simulations")
 
 
 def _dir_for_scan_uuid(scan_uuid):
@@ -138,29 +133,21 @@ def _dir_for_scan_uuid(scan_uuid):
     )
 
 
-def _generate_parameters_file(data, run_dir):
-    s = _parse_scan_uuid(data)
-    m = (
-        run_dir.join(
-            _SIM_DATA.lib_file_name_with_model_field(
-                "inputFiles",
-                "mask",
-                data.models.inputFiles.mask,
-            )
+def _request_scan_monitor(data):
+    try:
+        r = requests.post(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).scan_monitor_url,
+            json=data,
         )
-        if data.models.inputFiles.mask
-        else ""
-    )
-    return template_common.render_jinja(
-        SIM_TYPE,
-        PKDict(
-            input_name=run_dir.join(_SIM_DATA.raydata_notebook_zip_filename(data)),
-            mask_path=m,
-            output_name=_OUTPUT_FILE,
-            scan_dir=_dir_for_scan_uuid(s),
-            scan_uuid=s,
-        ),
-    )
+        r.raise_for_status()
+    except requests.exceptions.ConnectionError as e:
+        raise sirepo.util.UserAlert(
+            "Could not connect to scan monitor. Please contact an administrator.",
+            "could not connect to scan monitor error={} stack={}",
+            e,
+            pkdexc(),
+        )
+    return pkjson.load_any(r.content)
 
 
 def _scan_info(scan_uuid, scans_data):
