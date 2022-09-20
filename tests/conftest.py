@@ -3,6 +3,7 @@ import os
 import pytest
 import requests
 import subprocess
+import sirepo.const
 
 #: Convenience constant
 _LOCALHOST = "127.0.0.1"
@@ -239,27 +240,33 @@ def _config_sbatch_supervisor_env(env):
     )
 
 
-def _job_supervisor_check(env):
+def _port(ip, port):
     import socket
+    from pykern.pkdebug import pkdlog
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         s.bind(
             (
-                env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
-                int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT),
+                ip,
+                port,
             )
         )
+        return port
     except Exception:
-        raise AssertionError(
-            "job_supervisor still running on ip={} port={}".format(
-                env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
-                env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT,
-            ),
-        )
+        msg = f"ip={ip} port={port} in use"
+        try:
+            pkdlog(msg)
+            return _port(ip, port + sirepo.const.PORT_DELTA_FOR_TEST)
+        except Exception:
+            raise AssertionError(msg)
     finally:
         s.close()
+
+
+def _job_supervisor_check(env):
+    _ = _port(env.SIREPO_PKCLI_JOB_SUPERVISOR_IP, int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT))
 
 
 def _fc(request, fc_module, new_user=False):
