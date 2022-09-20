@@ -586,9 +586,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function scoreUnits() {
-                return mathRendering.mathAsHTML(
-                    SIREPO.APP_SCHEMA.constants.scoreUnits[appState.models.openmcAnimation.score] || ''
-                );
+                return SIREPO.APP_SCHEMA.constants.scoreUnits[appState.models.openmcAnimation.score] || '';
             }
 
             function setGlobalProperties() {

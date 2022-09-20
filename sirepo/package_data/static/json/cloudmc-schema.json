@@ -9,7 +9,7 @@
         "volumeProperties": ["color", "opacity"],
         "scoreUnits": {
             "damage-energy": "eV",
-            "decay-rate": "1/s",
+            "decay-rate": "$s^{-1}$",
             "fission-q-prompt": "eV",
             "fission-q-recoverable": "eV",
             "flux": "cm",
