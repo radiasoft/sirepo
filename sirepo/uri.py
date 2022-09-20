@@ -17,7 +17,7 @@ PARAM_RE = r"([\?\*]?)<{}>"
 PATH_INFO_CHAR = "*"
 
 
-def app_root(sim_type=None, absolute=False):
+def app_root(qcall, sim_type=None, absolute=False):
     """Generate uri for application root
 
     Args:
@@ -27,6 +27,7 @@ def app_root(sim_type=None, absolute=False):
         str: formatted URI
     """
     return uri_router.uri_for_api(
+        qcall,
         "root",
         params=PKDict(path_info=sim_type) if sim_type else None,
         absolute=absolute,

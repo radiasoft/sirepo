@@ -14,6 +14,9 @@ class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
     def create_sreq(self, **kwargs):
+        import sirepo.request
+
+        self.sreq = sirepo.request(
 
     def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
@@ -121,7 +124,7 @@ class API(pykern.quest.API):
         Returns:
             str: uri
         """
-        return sirepo.uri.app_root(sim_type=sim_type, absolute=absolute)
+        return sirepo.uri.app_root(self, sim_type=sim_type, absolute=absolute)
 
     def user_agent_headers(self):
         def _dns_reverse_lookup(ip):

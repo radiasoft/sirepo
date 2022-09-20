@@ -255,8 +255,7 @@ def uri_for_api(api_name, params=None, absolute=True):
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
-rjn uri_app_root
-    s = flask.url_for("_dispatch_empty", _external=absolute) if absolute else "/"
+    s =  qcall.sreq._absolute_root_uri if absolute else "/"
     res = (s + r.base_uri).rstrip("/")
     for p in r.params:
         if p.name in params:
@@ -337,7 +336,7 @@ def _dispatch(path):
         http_method=flask.request.method,
         remote_addr=flask.request.remote_addr,
         _internal_req=flask.request,
-        _absolute_uri=flask.url_for("_dispatch_empty", _external=True),
+        _absolute_root_uri=flask.url_for("_dispatch_empty", _external=True),
     ),
 
     import sirepo.auth

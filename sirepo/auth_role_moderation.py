@@ -92,6 +92,7 @@ class API(sirepo.quest.API):
             res = sorted(sirepo.feature_config.cfg().sim_types - x)
             return res[0] if res else sorted(x)[0]
 
+rjn: absolute_uri should be a separate call, only needed in a few places. A pain to cascade
         raise sirepo.util.Redirect(
             sirepo.uri.local_route(_type(), route_name="admRoles", absolute=True)
         )
