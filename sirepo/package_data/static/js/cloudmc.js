@@ -496,6 +496,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 if (vtkScene.renderer !== callData.pokedRenderer) {
                     return;
                 }
+                srdbg(picker.getPickPosition());
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
                 const cid = picker.getCellId();
@@ -504,12 +505,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     return;
                 }
                 const f = fieldData[Math.floor(cid / 6)];
-                $scope.$broadcast('vtk.selected', {info: f});
+                $scope.$broadcast('vtk.selected', {info: `${f} (${pos.x}, ${pos.y}, ${pos.z})`});
                 colorbarPtr.pointTo(f);
             }
 
             function handlePick(callData) {
-                if (vtkScene.renderer !== callData.pokedRenderer) {
+                if (vtkScene.renderer !== callData.pokedRenderer || isGeometryOnly) {
                     return;
                 }
 
