@@ -350,7 +350,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     name = _SCENE_BOX;
                     vtkScene.removeActor(axesBoxes[name]);
                     delete axesBoxes[name];
-                    boundsBox = vtkScene.sceneBoundingBox(0.02);
+                    boundsBox = vtkScene.sceneBoundingBox();
                 }
                 if (! axesBoxes[name]) {
                     vtkScene.addActor(boundsBox.actor);
@@ -496,7 +496,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 if (vtkScene.renderer !== callData.pokedRenderer) {
                     return;
                 }
-                srdbg(picker.getPickPosition());
+                //srdbg(picker.getPickPosition());
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
                 const cid = picker.getCellId();
