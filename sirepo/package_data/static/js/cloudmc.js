@@ -277,10 +277,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.isClientOnly = isGeometryOnly;
             let axesBoxes = {};
+            let basePolyData = null;
             let colorbar = null;
             let colorbarPtr = null;
-            let colorScale = null;
-            let basePolyData = null;
+            let fieldData = [];
             let picker = null;
             let minField, maxField;
             let selectedVolume = null;
@@ -432,8 +432,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 );
                 const points = [];
                 const polys = [];
+                fieldData = [];
                 const fd = basePolyData.getFieldData().getArrayByName(model().aspect).getData();
-                srdbg(fd);
                 minField = Number.MAX_VALUE;
                 maxField = Number.MIN_VALUE;
                 for (let zi = 0; zi < nz; zi++) {
@@ -449,6 +449,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                             else if (f > maxField) {
                                 maxField = f;
                             }
+                            fieldData.push(f);
                             const p = [
                                 xi * wx + mesh.lower_left[0],
                                 yi * wy + mesh.lower_left[1],
@@ -512,17 +513,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     if (cid < 0) {
                         return;
                     }
-                    const vid = Math.floor(cid / 6)
-                    srdbg('CID', cid, 'V', vid);
                     const pd = actor.getMapper().getInputData();
                     if (! pd) {
                         return;
                     }
-                    //TODO(mvk): get 1st cell with non-0 field - otherwise we cel
-                    srdbg('F', Array.from(pd.getFieldData().getArrayByName(model().aspect).getData())[vid]);
-                    colorbarPtr.pointTo(
-                        Array.from(pd.getFieldData().getArrayByName(model().aspect).getData())[vid]
-                    );
+                    colorbarPtr.pointTo(fieldData[Math.floor(cid / 6)]);
                     return;
                 }
 
