@@ -1,4 +1,5 @@
-import { Nav , Modal, Tabs, Tab} from "react-bootstrap";
+import { Nav , Modal} from "react-bootstrap";
+import { Routes, Route, Navigate, useRoutes, Outlet, Link } from "react-router-dom";
 import { NavbarContainerId } from "../component/simulation";
 import { ContextModelsWrapper } from "../context";
 import { useInterpolatedString } from "../hook/string";
@@ -43,6 +44,18 @@ export class NavTabsLayout extends View {
         return [];
     }
 
+    tabComponent = (props) => {
+        let { tab } = props;
+
+        let children = tab.items.map((layoutConfig, idx) => {
+            let layout = this.layoutsWrapper.getLayoutForConfig(layoutConfig);
+            let LayoutComponent = layout.component;
+            return <LayoutComponent key={idx} config={layoutConfig}/>
+        })
+
+        return <>{children}</>;
+    }
+
     component = (props) => {
         let { config } = props;
         let { tabs } = config;
@@ -53,44 +66,44 @@ export class NavTabsLayout extends View {
             bindTo: document && document.getElementById(NavbarContainerId)
         })
 
-        const ContentContainerId = "nav-content-container";
-
-        let { Portal: ContentPortal } = usePortal({
-            bindTo: document && document.getElementById(ContentContainerId)
-        })
-
         if(tabs.length == 0) {
             throw new Error("navtabs component contained no tabs");
         }
 
         let firstTabName = tabs[0].name;
 
+        let routedElement = useRoutes([
+            {
+                path: '/',
+                element: <Navigate to={`${firstTabName}`}></Navigate>
+            },
+            ...tabs.map(tab => {
+                let TabComponent = this.tabComponent;
+
+                return {
+                    path: `${tab.name}`,
+                    element: <TabComponent key={tab.name} tab={tab}></TabComponent>
+                }
+            })
+        ])
+
         return (
             <>
                 <NavbarPortal>
-                    <Tabs defaultActiveKey={firstTabName}>
+                    <Nav variant="tabs" >
                         {
-                            tabs.map(tab => {
-                                let children = tab.items.map((layoutConfig, idx) => {
-                                    let layout = this.layoutsWrapper.getLayoutForConfig(layoutConfig);
-                                    let LayoutComponent = layout.component;
-                                    return <LayoutComponent key={idx} config={layoutConfig}/>
-                                })
-                
-                                return (
-                                    <Tab key={tab.name} eventKey={tab.name} title={useInterpolatedString(modelsWrapper, tab.title)}>
-                                        <ContentPortal>
-                                            {children}
-                                        </ContentPortal>
-                                    </Tab>
-                                )
-                            })
+                            tabs.map(tab => (
+                                <Nav.Item key={tab.name}>
+                                    <Nav.Link eventKey={`${tab.name}`} as={Link} to={`${tab.name}`}>
+                                        {useInterpolatedString(modelsWrapper, tab.title)}
+                                    </Nav.Link>
+                                </Nav.Item>
+                            ))
                         }
-                    </Tabs>
+                    </Nav>
                 </NavbarPortal>
-                
-                <div id="nav-content-container">
-                </div>
+
+                {routedElement}
             </>
         )
     }

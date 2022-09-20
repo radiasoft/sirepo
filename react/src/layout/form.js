@@ -125,9 +125,7 @@ export class FieldListLayout extends View {
     component = (props) => {
         let { config } = props;
 
-        let contextFn = useContext;
-
-        let formController = contextFn(ContextRelativeFormController);
+        let formController = useContext(ContextRelativeFormController);
 
         let fields = config.fields;
 
