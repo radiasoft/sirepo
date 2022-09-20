@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkdebug import pkdp
+import re
 import sirepo.sim_data
 
 
@@ -15,7 +16,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def raydata_notebook_zip_filename(cls, data):
-        return data.models.scans.catalogName + ".zip"
+        c = data.models.catalog.catalogName
+        assert not re.search(r"[^\w-]+", c), "invalid characters in catalogName={c}"
+        return c + ".zip"
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

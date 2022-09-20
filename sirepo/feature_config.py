@@ -168,6 +168,11 @@ def _init():
                 _data_dir,
                 "abspath of dir to store raydata analysis output",
             ),
+            scan_monitor_url=(
+                "http://127.0.0.1:9001/scan-monitor",
+                str,
+                "url to reach scan monitor daemon",
+            ),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         slack_uri=(
