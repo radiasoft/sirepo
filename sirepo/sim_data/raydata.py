@@ -15,12 +15,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         pass
 
     @classmethod
-    def raydata_notebook_zip_filename(cls, data):
-        c = data.models.catalog.catalogName
-        assert not re.search(r"[^\w-]+", c), "invalid characters in catalogName={c}"
-        return c + ".zip"
-
-    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         return []
 
@@ -30,11 +24,4 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        def _input_files():
-            for k, v in data.models.inputFiles.items():
-                if v:
-                    yield cls.lib_file_name_with_model_field("inputFiles", k, v)
-
-        return [
-            cls.raydata_notebook_zip_filename(data),
-        ] + list(_input_files())
+        return []
