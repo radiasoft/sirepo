@@ -1399,7 +1399,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             parentLayer: '=',
         },
         template: `
-            <form name="form" class="form-horizontal">
+            <form name="form" class="form-horizontal" data-ng-if="! needRebuild">
               <div class="form-group form-group-sm">
               <button class="add-remove-child-btn" data-ng-if="removableChild()" data-ng-click="removeChild(childIndex)"> Remove this child </button>
                 <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b; position: relative;">
@@ -1633,7 +1633,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     }
                     layerFields[name] = cols;
                 });
-
             }
 
             function getLayerLevel() {
@@ -1666,6 +1665,15 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 if (name == 'neuralNet') {
                     $scope.layerLevel = getLayerLevel();
                 }
+            });
+
+            $scope.$on('neuralNet.changed', () => {
+                $scope.needRebuild = true;
+                $scope.layerLevel = getLayerLevel();
+                panelState.waitForUI(() => {
+                    // calling this later will cause the form's ng-if to destroy the directive contents
+                    $scope.needRebuild = false;
+                });
             });
 
             buildLayerFields();
