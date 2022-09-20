@@ -499,9 +499,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
                 const cid = picker.getCellId();
-                if (cid >= 0) {
-                    colorbarPtr.pointTo(fieldData[Math.floor(cid / 6)]);
+                if (cid < 0) {
+                    $scope.$broadcast('vtk.selected', null);
+                    return;
                 }
+                const f = fieldData[Math.floor(cid / 6)];
+                $scope.$broadcast('vtk.selected', {info: f});
+                colorbarPtr.pointTo(f);
             }
 
             function handlePick(callData) {
