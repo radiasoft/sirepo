@@ -1,7 +1,9 @@
 import { useRenderCount } from "../hook/debug";
 
 export class View {
-    constructor() {
+    constructor(layoutsWrapper) {
+        this.layoutsWrapper = layoutsWrapper;
+
         this.name = this.constructor.name;
 
         /*

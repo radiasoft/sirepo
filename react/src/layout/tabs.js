@@ -4,13 +4,13 @@ import { View } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
 
 export class TabLayout extends View {
-    getFormDependencies = (config, layouts) => {
+    getFormDependencies = (config) => {
         let fields = [];
 
         for (let tab of config.tabs) {
             for (let layoutConfig of tab.items) {
-                let ele = layouts.getLayoutForConfig(layoutConfig);
-                fields.push(...ele.getFormDependencies(layoutConfig, layouts));
+                let ele = this.layoutsWrapper.getLayoutForConfig(layoutConfig);
+                fields.push(...ele.getFormDependencies(layoutConfig, this.layoutsWrapper));
             }
         }
 
@@ -22,8 +22,6 @@ export class TabLayout extends View {
 
         let tabs = config.tabs;
 
-        let layouts = useContext(ContextLayouts);
-
         let tabEls = [];
 
         let firstTabKey = undefined;
@@ -32,7 +30,7 @@ export class TabLayout extends View {
             let name = tabConfig.name;
             let layoutConfigs = tabConfig.items;
             let layoutElements = layoutConfigs.map((layoutConfig, idx) => {
-                let ele = layouts.getLayoutForConfig(layoutConfig)
+                let ele = this.layoutsWrapper.getLayoutForConfig(layoutConfig)
                 let LayoutElement = ele.component;
                 return <LayoutElement key={idx} config={layoutConfig}></LayoutElement>
             })

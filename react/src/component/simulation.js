@@ -16,7 +16,7 @@ import {
     ContextRelativeRouterHelper,
     ContextLayouts,
     ContextSchema,
-    ContextModels,
+    ContextModelsWrapper,
     ContextSimulationInfoPromise
 } from "../context";
 import {
@@ -24,7 +24,7 @@ import {
     selectModel,
     selectModels
 } from "../store/models";
-import { Models } from "../data/model";
+import { ModelsWrapper } from "../data/model";
 import { FormStateInitializer } from "../component/form";
 import { useResolvedPath } from "react-router-dom";
 import { RouteHelper } from "../hook/route";
@@ -36,7 +36,7 @@ function SimulationInfoInitializer (props) {
     let [hasInit, updateHasInit] = useState(false);
     let appName = useContext(ContextAppName);
 
-    let modelsWrapper = new Models({
+    let modelsWrapper = new ModelsWrapper({
         modelActions: {
             updateModel
         },
@@ -68,13 +68,15 @@ function SimulationInfoInitializer (props) {
     }, [])
 
     return hasInit && simulationInfoPromise && (
-        <ContextModels.Provider value={modelsWrapper}>
+        <ContextModelsWrapper.Provider value={modelsWrapper}>
             <ContextSimulationInfoPromise.Provider value={simulationInfoPromise}>
                 {props.children}
             </ContextSimulationInfoPromise.Provider>
-        </ContextModels.Provider>
+        </ContextModelsWrapper.Provider>
     )
 }
+
+export const NavbarContainerId = "nav-tabs-container";
 
 export function SimulationOuter(props) {
     let appName = useContext(ContextAppName);
@@ -92,7 +94,7 @@ export function SimulationOuter(props) {
     return (
         <Container>
             <Navbar>
-                <Container>
+                <Container id={NavbarContainerId}>
                     <Navbar.Brand href={simBrowerRelativeRouter.getCurrentPath()}>
                         <img
                         alt=""
@@ -103,9 +105,6 @@ export function SimulationOuter(props) {
                         />{' '}
                         {titleCaseAppName}
                     </Navbar.Brand>
-                    <Nav variant="tabs">
-
-                    </Nav>
                 </Container>
             </Navbar>
             <ContextRelativeRouterHelper.Provider value={currentRelativeRouter}>

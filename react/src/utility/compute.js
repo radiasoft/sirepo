@@ -64,6 +64,7 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
             let { state } = respObj;
 
             if(state === 'completed' || state === 'running') {
+                console.log("poll response", respObj);
                 callback(respObj);
             }
         }

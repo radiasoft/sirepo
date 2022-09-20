@@ -11,7 +11,7 @@ import {
 } from "react";
 import {
     ContextSchema,
-    ContextModels,
+    ContextModelsWrapper,
     ContextRelativeFormState
 } from "../context";
 import { FormState } from "../data/form";
@@ -24,9 +24,9 @@ import { formStateFromModel } from "../data/form";
 import { useStore } from "react-redux";
 
 export function FormField(props) {
-    let { label, tooltip } = props;
+    let { label, tooltip, ...passedProps } = props;
     return (
-        <Form.Group size="sm" as={Row} className="justify-content-center">
+        <Form.Group {...passedProps} size="sm" as={Row} className="sr-form-row justify-content-center">
             <Form.Label column className="text-start">
                 {label}
                 {tooltip &&
@@ -55,7 +55,7 @@ export function FormStateInitializer(props) {
 
     let store = useStore();
 
-    let models = useContext(ContextModels);
+    let models = useContext(ContextModelsWrapper);
     let formState = new FormState({
         formActions: {
             updateFormFieldState,

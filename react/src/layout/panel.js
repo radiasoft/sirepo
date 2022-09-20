@@ -1,7 +1,6 @@
 import { 
-    ContextLayouts, 
     ContextRelativeFormState,
-    ContextModels,
+    ContextModelsWrapper,
     ContextSimulationInfoPromise,
     ContextRelativeFormDependencies,
     ContextRelativeHookedDependencyGroup,
@@ -12,85 +11,59 @@ import { useContext } from "react";
 import { useInterpolatedString } from "../hook/string";
 import { View } from "./layout";
 import { useStore } from "react-redux";
-import { Dependency, HookedDependencyGroup } from "../data/dependency";
+import { HookedDependencyGroup } from "../data/dependency";
 import { FormController } from "../data/form";
 import { EditorPanel } from "../component/panel";
 import "./panel.scss";
 
 export class PanelLayout extends View {
+    getChildLayoutByConfig = (layoutConfig) => {
+        return {
+            layout: this.layoutsWrapper.getLayoutForConfig(layoutConfig),
+            config: layoutConfig
+        }
+    }
+
+    getChildLayouts = (config) => {
+        let { basic, advanced } = config;
+        return [...(basic || []), ...(advanced || [])].map(this.getChildLayoutByConfig);
+    }
+
     getFormDependencies = (config) => {
-        // TODO
-        return [];
+        return this.getChildLayouts(config).map(childLayout => childLayout.layout.getFormDependencies(childLayout.config)).flat();
     }
 
     component = (props) => {
-        let schema = useContext(ContextSchema);
-
         let { config } = props;
-
-        
-        let formState = useContext(ContextRelativeFormState);
-        let models = useContext(ContextModels);
-        let title = useInterpolatedString(models, config.title);
-
-        let layouts = useContext(ContextLayouts);
-
-        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
-
-        let store = useStore();
-
-        let getModels = () => {
-            return models.getModels(store.getState());
-        }
-
-        let saveToServer = (models) => {
-            simulationInfoPromise.then((simulationInfo) => {
-                simulationInfo.models = models;
-                fetch("/save-simulation", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(simulationInfo)
-                }).then(resp => {
-                    // TODO: error handling
-                    console.log("resp", resp);
-                })
-            })
-        }
+        let { basic, advanced } = config;
 
         if(!config) {
             throw new Error("view missing config: " + config.name);
         }
 
-        let basic = config.basic || [];
-        let advanced = config.advanced || [];
+        let modelsWrapper = useContext(ContextModelsWrapper);
+        let formController = useContext(ContextRelativeFormController);
+        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
 
-        let dependencies = [...basic, ...advanced].map(layoutConfig => {
-            let layout = layouts.getLayoutForConfig(layoutConfig);
-            return layout.getFormDependencies(layoutConfig, layouts);
-        }).flat().map(dependencyString => new Dependency(dependencyString));
+        let store = useStore();
 
-        let hookedDependencyGroup = new HookedDependencyGroup({ schemaModels: schema.models, models, dependencies });
+        let title = useInterpolatedString(modelsWrapper, config.title);
 
-        let hookedDependencies = dependencies.map(hookedDependencyGroup.getHookedDependency);
+        let mapLayoutConfigsToElements = (layoutConfigs) => layoutConfigs.map(this.getChildLayoutByConfig).map((child, idx) => {
+            let LayoutComponent = child.layout.component;
+            return <LayoutComponent key={idx} config={child.config}></LayoutComponent>;
+        });
 
-        let formController = new FormController({ formState, hookedDependencies });
+        let mainChildren = (!!basic) ? mapLayoutConfigsToElements(basic) : undefined;
+        let modalChildren = (!!advanced) ? mapLayoutConfigsToElements(advanced) : undefined;
 
         let submit = () => {
-            let models = getModels();
-            formController.submitChanges();
-            saveToServer(models);
+            formController.saveToModels();
+            simulationInfoPromise.then(simulationInfo => {
+                modelsWrapper.saveToServer(simulationInfo, store.getState());
+            })
+            
         }
-
-        let mapLayoutToElement = (layoutConfig, idx) => {
-            let layout = layouts.getLayoutForConfig(layoutConfig);
-            let LayoutComponent = layout.component;
-            return <LayoutComponent key={idx} config={layoutConfig}></LayoutComponent>;
-        }
-
-        let mainChildren = (!!basic) ? basic.map(mapLayoutToElement) : undefined;
-        let modalChildren = (!!advanced) ? advanced.map(mapLayoutToElement) : undefined;
 
         let formProps = {
             submit: submit,
@@ -104,14 +77,8 @@ export class PanelLayout extends View {
         }
 
         return (
-            <ContextRelativeFormDependencies.Provider value={hookedDependencies}>
-                <ContextRelativeHookedDependencyGroup.Provider value={hookedDependencyGroup}>
-                    <ContextRelativeFormController.Provider value={formController}>
-                        <EditorPanel {...formProps}>
-                        </EditorPanel>
-                    </ContextRelativeFormController.Provider>
-                </ContextRelativeHookedDependencyGroup.Provider>
-            </ContextRelativeFormDependencies.Provider>
+            <EditorPanel {...formProps}>
+            </EditorPanel>
         )
     }
 }

@@ -286,7 +286,7 @@ export function SimulationBrowserRoot(props) {
                     }/>
                     <Route path="/simulations" element={<SimulationBrowser tree={simInfo.simulationTree} />}/>
                     <Route path="/simulations/:simulationFolder/*" element={<SimulationBrowser tree={simInfo.simulationTree} />}/>
-                    <Route path="/source/:id" element={
+                    <Route path="/source/:id/*" element={
                         <SimulationRootWrapper simulationList={simInfo.simulationList}/>
                     }/>
                 </Routes>

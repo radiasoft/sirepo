@@ -26,12 +26,12 @@ export function FieldInput(props) {
 }
 
 export function LabeledFieldInput(props) {
-    let { field } = props;
+    let { field, ...passedProps } = props;
 
     useRenderCount("LabeledFieldInput");
 
     return (
-        <FormField label={field.dependency.displayName} tooltip={field.dependency.description} key={field.dependency.fieldName}>
+        <FormField {...passedProps} label={field.dependency.displayName} tooltip={field.dependency.description} key={field.dependency.fieldName}>
             <FieldInput field={field}></FieldInput>
         </FormField>
     )

@@ -6,10 +6,65 @@ import {
     Form,
     Container
 } from "react-bootstrap";
-import { ContextRelativeFormController } from "../context";
-import { Dependency } from "../data/dependency";
+import { 
+    ContextRelativeFormController,
+    ContextRelativeFormDependencies,
+    ContextRelativeFormState,
+    ContextSchema,
+    ContextModelsWrapper,
+    ContextRelativeHookedDependencyGroup
+} from "../context";
+import { Dependency, HookedDependencyGroup } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/input";
+import { FormController } from "../data/form";
 import "./form.scss";
+
+export function LayoutWithFormController(subLayout) {
+    return class extends subLayout {
+        constructor(layoutsWrapper) {
+            super(layoutsWrapper);
+
+            let oldComponent = this.component;
+
+            this.component = (props) => {
+                let ChildComponent = oldComponent;
+                let FormComponent = this.formComponent;
+                return (
+                    <FormComponent {...props}>
+                        <ChildComponent {...props}/>
+                    </FormComponent>
+                )
+            }
+        }
+
+        formComponent = (props) => {
+            let { config } = props;
+
+            let contextFn = useContext;
+            let formState = contextFn(ContextRelativeFormState);
+            let schema = contextFn(ContextSchema);
+            let modelsWrapper = contextFn(ContextModelsWrapper);
+    
+            let dependencies = this.getFormDependencies(config);
+    
+            let hookedDependencyGroup = new HookedDependencyGroup({ schemaModels: schema.models, modelsWrapper, dependencies });
+    
+            let hookedDependencies = dependencies.map(hookedDependencyGroup.getHookedDependency);
+    
+            let formController = new FormController({ formState, hookedDependencies });
+    
+            return (
+                <ContextRelativeFormDependencies.Provider value={hookedDependencies}>
+                    <ContextRelativeHookedDependencyGroup.Provider value={hookedDependencyGroup}>
+                        <ContextRelativeFormController.Provider value={formController}>
+                            { props.children }
+                        </ContextRelativeFormController.Provider>
+                    </ContextRelativeHookedDependencyGroup.Provider>
+                </ContextRelativeFormDependencies.Provider>
+            )
+        }
+    }
+}
 
 export class FieldGridLayout extends View {
     getFormDependencies = (config) => {
@@ -17,7 +72,7 @@ export class FieldGridLayout extends View {
         for(let row of config.rows) {
             fields.push(...(row.fields));
         }
-        return fields;
+        return fields.map(f => new Dependency(f));
     }
 
     component = (props) => {
@@ -35,7 +90,7 @@ export class FieldGridLayout extends View {
         let someRowHasLabel = rows.reduce((prev, cur) => prev || !!cur.label);
         
         els.push( // header row
-            <Row key={"header"}>
+            <Row className="sr-form-row" key={"header"}>
                 {(someRowHasLabel ? <Col key={"label_dummy"}></Col> : undefined)}
                 {columns.map(colName => <Col key={colName}><Form.Label size={"sm"}>{colName}</Form.Label></Col>)}
             </Row>
@@ -46,7 +101,7 @@ export class FieldGridLayout extends View {
             let fields = row.fields;
             let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
             let rowElement = (
-                <Row key={idx}>
+                <Row className="sr-form-row" key={idx}>
                     {labelElement ? <Col>{labelElement}</Col> : undefined}
                     {columns.map((_, index) => {
                         let field = fields[index];
@@ -64,7 +119,7 @@ export class FieldGridLayout extends View {
 
 export class FieldListLayout extends View {
     getFormDependencies = (config) => {
-        return config.fields;
+        return (config.fields || []).map(f => new Dependency(f));
     }
 
     component = (props) => {

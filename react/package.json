@@ -21,8 +21,10 @@
     "react-dom": "^18.2.0",
     "react-fontawesome": "^1.7.1",
     "react-redux": "^8.0.2",
-    "react-router-dom": "^6.3.0",
+    "react-router": "^6.4.0",
+    "react-router-dom": "^6.4.0",
     "react-scripts": "^5.0.1",
+    "react-useportal": "^1.0.17",
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1",
     "sass": "^1.52.3"

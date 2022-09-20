@@ -1,7 +1,7 @@
-export function SpacedLayout(subView) {
+export function LayoutWithSpacing(subView) {
     return class extends subView {
-        constructor(config) {
-            super(config);
+        constructor(layoutsWrapper) {
+            super(layoutsWrapper);
 
             let oldComponent = this.component;
 

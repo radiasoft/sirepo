@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 
-export class Models {
+export class ModelsWrapper {
     constructor({ modelActions, modelSelectors }) {
         this.modelActions = modelActions;
         this.modelSelectors = modelSelectors;
@@ -53,5 +53,20 @@ export class Models {
     hookIsLoaded = () => {
         let selectFn = useSelector;
         return selectFn(this.modelSelectors.selectIsLoaded);
+    }
+
+    saveToServer = (simulationInfo, state) => {
+        let models = this.getModels(state);
+        simulationInfo.models = models;
+        fetch("/save-simulation", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(simulationInfo)
+        }).then(resp => {
+            // TODO: error handling
+            console.log("resp", resp);
+        })
     }
 }

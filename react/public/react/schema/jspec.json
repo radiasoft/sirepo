@@ -402,15 +402,16 @@
     "view": [
         {
             "name": "navtabs",
-            "type": "navTabs",
+            "layout": "navTabs",
             "tabs": [
                 {
-                    "name": "Source",
+                    "name": "source",
+                    "title": "Source",
                     "icon": "",
-                    "views": [
+                    "items": [
                         {
                             "name": "ionBeam",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Ion Beam",
                                 "basic": [
                                     {
@@ -440,7 +441,7 @@
                         },
                         {
                             "name": "coolingAndIBS",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Cooling and Intrabeam Scattering",
                             "basic": [
                                 {
@@ -481,12 +482,12 @@
                         },
                         {
                             "name": "rateCalculationReport",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Rate Calculation Report"
                         },
                         {
                             "name": "ring",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Ring",
                             "basic": [
                                 {
@@ -502,7 +503,7 @@
                         },
                         { 
                             "name": "electronBeam",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Cooling Electron Beam",
                             "basic": [
                                 {
@@ -528,7 +529,7 @@
                         },
                         {
                             "name": "cooler",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Cooler",
                             "basic": [
                                 {
@@ -580,12 +581,13 @@
                     ]
                 },
                 {
-                    "name": "Visualization",
+                    "name": "visualization",
+                    "title": "Visualization",
                     "icon": "",
-                    "views": [
+                    "items": [
                         {
                             "name": "simulationSettings",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Simulation Settings",
                             "basic": [
                                 {
@@ -642,12 +644,12 @@
                         },
                         {
                             "name": "simulationStatus",
-                            "type": "TODO",
+                            "layout": "TODO",
                             "title": "Simulation Status"
                         },
                         {
                             "name": "beamEvolutionAnimation",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "RMS Ion Beam Evolution",
                             "advanced": [
                                 {
@@ -704,7 +706,7 @@
                         },
                         {
                             "name": "coolingRatesAnimation",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "IBS & Cooling Rates",
                             "advanced": [
                                 {
@@ -761,7 +763,7 @@
                         },
                         {
                             "name": "forceTableAnimation",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Friction Force",
                             "advanced": [
                                 {
@@ -817,7 +819,7 @@
                         },
                         {
                             "name": "particleAnimation",
-                            "type": "panel",
+                            "layout": "panel",
                             "title": "Ion Particle Animation",
                             "advanced": [
                                 {
@@ -891,7 +893,7 @@
         },
         {
             "name": "simulationRenameNavButton",
-            "type": "navbarModalButton",
+            "layout": "navbarModalButton",
             "title": "$(simulation.name)",
             "icon": "",
             "modal": {
@@ -915,7 +917,7 @@
         },
         {
             "name": "twissReport",
-            "type": "TODO",
+            "layout": "TODO",
             "title": "Twiss Parameters",
             "advanced": [
                 {

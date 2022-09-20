@@ -1,23 +1,22 @@
-import { FieldGridLayout, FieldListLayout } from "./form";
+import { FieldGridLayout, FieldListLayout, LayoutWithFormController } from "./form";
 import { Graph2dFromApi } from "./graph2d";
 import { MissingLayout } from "./missing";
 import { PanelLayout } from "./panel";
 import { AutoRunReportLayout } from "./report";
 import { TabLayout } from "./tabs";
-import { SpacedLayout } from "./utility";
-
-let SpacedFieldListLayout = SpacedLayout(FieldListLayout);
-let SpacedFieldGridLayout = SpacedLayout(FieldGridLayout);
+import { LayoutWithSpacing } from "./spaced";
+import { NavTabsLayout } from "./navbar";
 
 export class Layouts {
     constructor () { 
         this.components = {
-            tabs: new TabLayout(),
-            fieldList: new SpacedFieldListLayout(),
-            fieldTable: new SpacedFieldGridLayout(),
-            panel: new PanelLayout(),
-            autoRunReport: new AutoRunReportLayout(),
-            graph2d: new Graph2dFromApi()
+            tabs: new TabLayout(this),
+            fieldList: new (LayoutWithSpacing(FieldListLayout))(this),
+            fieldTable: new (LayoutWithSpacing(FieldGridLayout))(this),
+            panel: new (LayoutWithFormController(PanelLayout))(this),
+            autoRunReport: new AutoRunReportLayout(this),
+            graph2d: new Graph2dFromApi(this),
+            navTabs: new NavTabsLayout(this)
         }
     }
 

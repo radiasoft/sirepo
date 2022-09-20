@@ -1,15 +1,21 @@
 import { Graph2d } from "../component/graph2d";
 import { View } from "./layout";
 
-export function apiResponseToGraph2dConfig({
-    plots,
-    title,
-    x_label: xLabel,
-    x_points: xPoints,
-    x_range: xRange,
-    y_range: yRange,
-    y_label: yLabel
-}) {
+export function apiResponseToGraph2dConfig(apiResponse) {
+    let {
+        plots,
+        title,
+        x_label: xLabel,
+        x_points: xPoints,
+        x_range: xRange,
+        y_range: yRange,
+        y_label: yLabel
+    } = apiResponse;
+
+    if(!plots) {
+        return undefined; // fault tolerance. server behavior is inconsistent here
+    }
+
     let tempPlots = plots.map(({ color, label, points }) => {
         let tempPoints = points.map((y, i) => { return { x: xPoints[i], y } })
         return {
@@ -49,7 +55,7 @@ export class Graph2dFromApi extends View {
         let config = apiResponseToGraph2dConfig(simulationData);
 
         return (
-            <Graph2d {...config} {...props}/>
+            <>{config && <Graph2d {...config} {...props}/>}</>
         )
     }
 }

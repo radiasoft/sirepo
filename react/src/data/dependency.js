@@ -19,14 +19,14 @@ export class Dependency {
 }
 
 export class HookedDependencyGroup {
-    constructor({ dependencies, models, schemaModels }) {
-        this.models = models;
+    constructor({ dependencies, modelsWrapper, schemaModels }) {
+        this.modelsWrapper = modelsWrapper;
         this.dependencies = dependencies;
 
         let modelNames = [... new Set(dependencies.map(dep => dep.modelName))];
         this.hookedModels = Object.fromEntries(
             modelNames.map(modelName => {
-                let model = this.models.forModel(modelName);
+                let model = this.modelsWrapper.forModel(modelName);
                 let modelValue = model.hookModel();
                 let modelSchema = schemaModels[modelName];
                 return [modelName, {

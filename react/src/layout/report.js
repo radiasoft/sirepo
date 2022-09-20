@@ -1,6 +1,6 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
-import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModels, ContextLayouts } from "../context";
+import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModelsWrapper, ContextLayouts } from "../context";
 import { useDependentValues } from "../hook/dependency";
 import { View } from "./layout";
 import { pollRunReport } from "../utility/compute";
@@ -17,7 +17,7 @@ export class AutoRunReportLayout extends View {
 
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
         let appName = useContext(ContextAppName);
-        let modelsWrapper = useContext(ContextModels);
+        let modelsWrapper = useContext(ContextModelsWrapper);
         let layouts = useContext(ContextLayouts);
 
         let formDependencies = useContext(ContextRelativeFormDependencies);

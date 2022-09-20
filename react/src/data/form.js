@@ -120,7 +120,7 @@ export class FormController {
         })
     }
 
-    submitChanges = () => {
+    saveToModels = () => {
         Object.entries(this.hookedModels).forEach(([modelName, model]) => {
             let changesObj = mapProperties(model.value, (fieldName, fieldState) => {
                 let hookedField = this.getHookedField({

@@ -3,7 +3,7 @@ import React from 'react';
 //export const ContextReduxFormActions = React.createContext();
 //export const ContextReduxFormSelectors = React.createContext();
 
-export const ContextModels = React.createContext();
+export const ContextModelsWrapper = React.createContext();
 export const ContextRelativeFormState = React.createContext();
 
 export const ContextSimulationListPromise = React.createContext();
