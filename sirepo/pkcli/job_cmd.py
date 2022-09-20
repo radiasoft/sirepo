@@ -204,7 +204,6 @@ def _do_fastcgi(msg, template):
                 r = globals()["_do_" + m.jobCmd](
                     m, sirepo.template.import_module(m.simulationType)
                 )
-            pkdp("r: {}", r)
             r = PKDict(r).pksetdefault(state=job.COMPLETED)
             c = 0
         except _AbruptSocketCloseError:

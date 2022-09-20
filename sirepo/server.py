@@ -634,7 +634,6 @@ class API(sirepo.api.Base):
             template=True,
             type=simulation_type,
         )
-        pkdp('\n\n\n req {}', req)
         e = None
         in_use = None
         with simulation_db.tmp_dir() as d:

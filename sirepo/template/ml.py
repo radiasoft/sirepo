@@ -5,10 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from calendar import c
-from tkinter import N
-from aenum import enum
-from jinja2 import pass_environment
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
