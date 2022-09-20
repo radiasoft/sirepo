@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from operator import ne
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -268,40 +269,61 @@ def _is_merge_node(node):
     return node.layer in ("Add", "Concatenate")
 
 
+def _children(cur_node, neural_net):
+    c = []
+    t = 0
+    for i in cur_node.inbound:
+        child_node = _get_layer_by_name(neural_net, i.name)
+        p, s, l = _levels_with_children(child_node, neural_net)
+        t += s
+        c.append(l)
+    return PKDict(
+        parent_sum=t,
+        children=c,
+        parent_node=p,
+    )
+
+
+def _close_completed_branch(level, cur_node, neural_net):
+    if not _is_merge_node(cur_node):
+        level.insert(0, cur_node)
+        return PKDict(
+            cur_node=_get_next_node(cur_node, neural_net),
+            merge_continue=False,
+        )
+    return PKDict(
+            cur_node=cur_node,
+            merge_continue=True,
+    )
+
+
+def _parent_is_complete(node, parent_sum):
+    return len(node.outbound) == parent_sum
+
+
 def _levels_with_children(cur_node, neural_net):
     l = []
-    parent_sum = 1
-    x = False
-    while _continue_building_level(cur_node) or x:
-        x = False
+    m = False
+    while _continue_building_level(cur_node, m):
+        m = False
         l.insert(0, cur_node)
         if _is_merge_node(cur_node):
-            c = []
-            parent_sum = 0
-            for i in cur_node.inbound:
-                child_node = _get_layer_by_name(neural_net, i.name)
-                p, s, lvl = _levels_with_children(child_node, neural_net)
-                parent_sum += s
-                c.append(lvl)
-            l.insert(0, c)
-            cur_node = p
-            if len(p.outbound) != parent_sum:
-                return p, parent_sum, l
-            else:
-                if not _is_merge_node(cur_node):
-                    l.insert(0, cur_node)
-                    cur_node = _get_next_node(cur_node, neural_net)
-                else:
-                    x = True
-        else:
-            cur_node = _get_next_node(cur_node, neural_net)
-        parent_sum = 1
-    return cur_node, parent_sum, l
+            r = _children(cur_node, neural_net)
+            l.insert(0, r.children)
+            cur_node = r.parent_node
+            if not _parent_is_complete(cur_node, r.parent_sum):
+                return cur_node, r.parent_sum, l
+            b = _close_completed_branch(l, cur_node, neural_net)
+            m = b.merge_continue
+            cur_node = b.cur_node
+            continue
+        cur_node = _get_next_node(cur_node, neural_net)
+    return cur_node, 1, l
 
 
-def _continue_building_level(cur_node):
+def _continue_building_level(cur_node, merge_continue):
     if "input" in cur_node.name or _is_branching(cur_node):
-        return False
+        return False or merge_continue
     return True
 
 
