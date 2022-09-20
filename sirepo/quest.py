@@ -1,15 +1,16 @@
 """Requests hold context for API calls
 
-:copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2019-2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
 import dns.resolver
 import dns.reversename
+import pykern.quest
 import sirepo.api_perm
+import sirepo.uri
 
-
-class Base(PKDict):
+class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
     def create_sreq(self, **kwargs):
@@ -120,10 +121,7 @@ class Base(PKDict):
         Returns:
             str: uri
         """
-
-        from sirepo import uri
-
-        return uri.app_root(sim_type=sim_type, absolute=absolute)
+        return sirepo.uri.app_root(sim_type=sim_type, absolute=absolute)
 
     def user_agent_headers(self):
         def _dns_reverse_lookup(ip):
@@ -153,11 +151,13 @@ class Base(PKDict):
         )
 
 
-class Spec:
+class Spec(pykern.quest.Spec):
     def __init__(self, perm, **kwargs):
         self.perm = perm
         self.kwargs = PKDict(kwargs)
+        super().__init__()
 
+    #TODO(robnagler) put this in super and just setattr perm.
     def __call__(self, func):
         def _wrapper(*args, **kwargs):
             return self.func(*args, **kwargs)
