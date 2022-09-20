@@ -255,7 +255,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRendering, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -492,23 +492,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 return null;
             }
 
-            function showField(callData) {
-                if (vtkScene.renderer !== callData.pokedRenderer) {
-                    return;
-                }
-                //srdbg(picker.getPickPosition());
-                const pos = callData.position;
-                picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
-                const cid = picker.getCellId();
-                if (cid < 0) {
-                    $scope.$broadcast('vtk.selected', null);
-                    return;
-                }
-                const f = fieldData[Math.floor(cid / 6)];
-                $scope.$broadcast('vtk.selected', {info: `${f} (${pos.x}, ${pos.y}, ${pos.z})`});
-                colorbarPtr.pointTo(f);
-            }
-
             function handlePick(callData) {
                 if (vtkScene.renderer !== callData.pokedRenderer || isGeometryOnly) {
                     return;
@@ -602,6 +585,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 return appState.models[$scope.modelName];
             }
 
+            function scoreUnits() {
+                return mathRendering.mathAsHTML(
+                    SIREPO.APP_SCHEMA.constants.scoreUnits[appState.models.openmcAnimation.score] || ''
+                );
+            }
+
             function setGlobalProperties() {
                 if (! vtkScene.renderer) {
                     return;
@@ -625,6 +614,24 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             function setVolumeProperty(bundle, name, value) {
                 bundle.setActorProperty(name, value);
                 vtkScene.render();
+            }
+
+            function showField(callData) {
+                if (vtkScene.renderer !== callData.pokedRenderer) {
+                    return;
+                }
+                //srdbg(picker.getPickPosition());
+                const pos = callData.position;
+                picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
+                const cid = picker.getCellId();
+                if (cid < 0) {
+                    $scope.$broadcast('vtk.selected', null);
+                    return;
+                }
+                const f = fieldData[Math.floor(cid / 6)];
+                //$scope.$broadcast('vtk.selected', {info: `${f} ${scoreUnits()} (${pos.x}, ${pos.y}, ${pos.z})`});
+                $scope.$broadcast('vtk.selected', {info: `${f} ${scoreUnits()}`});
+                colorbarPtr.pointTo(f);
             }
 
             function volumesError(reason) {

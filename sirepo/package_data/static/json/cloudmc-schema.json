@@ -6,7 +6,18 @@
     },
     "constants": {
         "maxFilters": 5,
-        "volumeProperties": ["color", "opacity"]
+        "volumeProperties": ["color", "opacity"],
+        "scoreUnits": {
+            "damage-energy": "eV",
+            "decay-rate": "1/s",
+            "fission-q-prompt": "eV",
+            "fission-q-recoverable": "eV",
+            "flux": "cm",
+            "heating": "eV",
+            "heating-local": "eV",
+            "inverse-velocity": "cm/s",
+            "kappa-fission": "eV"
+        }
     },
     "enum": {
         "BinSpace": [
