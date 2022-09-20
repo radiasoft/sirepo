@@ -8,7 +8,7 @@ from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
-import sirepo.api
+import sirepo.quest
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db
@@ -35,8 +35,8 @@ _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = "jupyterhub_logout_user_name"
 _SIM_TYPE = "jupyterhublogin"
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("require_user")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("require_user")
     def api_checkAuthJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
@@ -46,7 +46,7 @@ class API(sirepo.api.Base):
             u = create_user()
         return self.reply_ok(PKDict(username=u))
 
-    @sirepo.api.Spec(
+    @sirepo.quest.Spec(
         "require_user", do_migration="Bool", sim_type=f"SimType default={_SIM_TYPE}"
     )
     def api_migrateJupyterhub(self):
@@ -59,7 +59,7 @@ class API(sirepo.api.Base):
             return self.reply_redirect("jupyterHub")
         sirepo.oauth.raise_authorize_redirect(self, _SIM_TYPE, github_auth=True)
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_redirectJupyterHub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name()

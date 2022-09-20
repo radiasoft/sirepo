@@ -13,7 +13,7 @@ from sirepo import simulation_db
 from sirepo import util
 import base64
 import hashlib
-import sirepo.api
+import sirepo.quest
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
@@ -39,8 +39,8 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = "-"
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("allow_cookieless_set_user", sid="SimId")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("allow_cookieless_set_user", sid="SimId")
     def api_authBlueskyLogin(self):
         req = self.parse_post(id=True)
         auth_hash(req.req_data, verify=True)
@@ -62,7 +62,7 @@ class API(sirepo.api.Base):
             ),
         )
 
-    @sirepo.api.Spec("allow_cookieless_set_user")
+    @sirepo.quest.Spec("allow_cookieless_set_user")
     def api_blueskyAuth(self):
         """Deprecated use `api_authBlueskyLogin`"""
         return self.api_authBlueskyLogin()

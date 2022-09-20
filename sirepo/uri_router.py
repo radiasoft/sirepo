@@ -14,7 +14,7 @@ import inspect
 import os
 import pkgutil
 import re
-import sirepo.api
+import sirepo.quest
 import sirepo.api_auth
 import sirepo.cookie
 import sirepo.events

@@ -4,7 +4,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from pykern.pkcollections import PKDict
 import contextlib
 import datetime
-import sirepo.api
+import sirepo.quest
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.events

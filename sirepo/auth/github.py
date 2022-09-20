@@ -13,7 +13,7 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import util
-import sirepo.api
+import sirepo.quest
 import sirepo.events
 import sirepo.oauth
 import sqlalchemy
@@ -28,8 +28,8 @@ AuthGithubUser = None
 UserModel = None
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("allow_cookieless_set_user")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("allow_cookieless_set_user")
     def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.
 
@@ -54,7 +54,7 @@ class API(sirepo.api.Base):
             )
             raise AssertionError("auth.login returned unexpectedly")
 
-    @sirepo.api.Spec("require_cookie_sentinel")
+    @sirepo.quest.Spec("require_cookie_sentinel")
     def api_authGithubLogin(self, simulation_type):
         """Redirects to Github"""
         sirepo.oauth.raise_authorize_redirect(
@@ -63,7 +63,7 @@ class API(sirepo.api.Base):
             github_auth=True,
         )
 
-    @sirepo.api.Spec("allow_cookieless_set_user")
+    @sirepo.quest.Spec("allow_cookieless_set_user")
     def api_oauthAuthorized(self, oauth_type):
         """Deprecated use `api_authGithubAuthorized`"""
         return self.api_authGithubAuthorized()

@@ -9,7 +9,7 @@ from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import datetime
-import sirepo.api
+import sirepo.quest
 import sirepo.util
 import time
 
@@ -45,8 +45,8 @@ def adjust_time(days, sapi=None):
         sapi.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("internal_test", days="TimeDeltaDays optional")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("internal_test", days="TimeDeltaDays optional")
     def api_adjustTime(self, days=None):
         """Shift the system time by days and get the adjusted time
 

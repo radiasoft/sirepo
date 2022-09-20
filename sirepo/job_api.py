@@ -13,7 +13,7 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
-import sirepo.api
+import sirepo.quest
 import sirepo.auth
 import sirepo.job
 import sirepo.mpi
@@ -26,8 +26,8 @@ import sirepo.util
 _MAX_FRAME_SEARCH_DEPTH = 6
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("internal_test", days="TimeDeltaDays")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("internal_test", days="TimeDeltaDays")
     def api_adjustSupervisorSrtime(self, days):
         return self.request(
             api_name="not used",
@@ -35,17 +35,17 @@ class API(sirepo.api.Base):
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
         )
 
-    @sirepo.api.Spec("require_adm")
+    @sirepo.quest.Spec("require_adm")
     def api_admJobs(self):
         return self.request(
             _request_content=PKDict(**self.parse_post()),
         )
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_analysisJob(self):
         return self.request()
 
-    @sirepo.api.Spec(
+    @sirepo.quest.Spec(
         "require_user",
         sid="SimId",
         model="AnalysisModel",
@@ -92,7 +92,7 @@ class API(sirepo.api.Base):
                 "frame={} not found {id} {type}".format(frame, **req)
             )
 
-    @sirepo.api.Spec("allow_visitor")
+    @sirepo.quest.Spec("allow_visitor")
     def api_jobSupervisorPing(self):
         import requests.exceptions
 
@@ -120,7 +120,7 @@ class API(sirepo.api.Base):
             e = "unexpected exception"
         return PKDict(state="error", error=e)
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_ownJobs(self):
         return self.request(
             _request_content=self.parse_post().pkupdate(
@@ -128,7 +128,7 @@ class API(sirepo.api.Base):
             ),
         )
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_runCancel(self):
         try:
             return self.request()
@@ -137,7 +137,7 @@ class API(sirepo.api.Base):
         # Always true from the client's perspective
         return self.reply_json({"state": "canceled"})
 
-    @sirepo.api.Spec("require_user", data="RunMultiSpec")
+    @sirepo.quest.Spec("require_user", data="RunMultiSpec")
     def api_runMulti(self):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
@@ -159,18 +159,18 @@ class API(sirepo.api.Base):
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
         )
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_runSimulation(self):
         r = self._request_content(PKDict(fixup_old_data=True))
         if r.isParallel:
             r.isPremiumUser = sirepo.auth.is_premium_user()
         return self.request(_request_content=r)
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_runStatus(self):
         return self.request()
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_sbatchLogin(self):
         r = self._request_content(
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
@@ -178,7 +178,7 @@ class API(sirepo.api.Base):
         r.sbatchCredentials = r.pkdel("data")
         return self.request(_request_content=r)
 
-    @sirepo.api.Spec("require_user", frame_id="SimFrameId")
+    @sirepo.quest.Spec("require_user", frame_id="SimFrameId")
     def api_simulationFrame(self, frame_id):
         return template_common.sim_frame(
             frame_id,
@@ -192,11 +192,11 @@ class API(sirepo.api.Base):
             self,
         )
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_statefulCompute(self):
         return self._request_compute()
 
-    @sirepo.api.Spec("require_user")
+    @sirepo.quest.Spec("require_user")
     def api_statelessCompute(self):
         return self._request_compute()
 

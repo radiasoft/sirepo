@@ -8,7 +8,7 @@ from pykern import pkconfig
 from pykern.pkdebug import pkdexc, pkdp, pkdlog
 from pykern.pkcollections import PKDict
 from pykern import pkjinja
-import sirepo.api
+import sirepo.quest
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db
@@ -32,8 +32,8 @@ _ACTIVE = frozenset(
 )
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec(
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec(
         "require_adm", token="AuthModerationToken", status="AuthModerationStatus"
     )
     def api_admModerate(self):
@@ -85,7 +85,7 @@ class API(sirepo.api.Base):
         _send_moderation_status_email(p)
         return self.reply_ok()
 
-    @sirepo.api.Spec("require_adm")
+    @sirepo.quest.Spec("require_adm")
     def api_admModerateRedirect(self):
         def _type():
             x = sirepo.feature_config.auth_controlled_sim_types()
@@ -96,7 +96,7 @@ class API(sirepo.api.Base):
             sirepo.uri.local_route(_type(), route_name="admRoles", absolute=True)
         )
 
-    @sirepo.api.Spec("require_adm")
+    @sirepo.quest.Spec("require_adm")
     def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
@@ -104,7 +104,7 @@ class API(sirepo.api.Base):
             ),
         )
 
-    @sirepo.api.Spec(
+    @sirepo.quest.Spec(
         "allow_sim_typeless_require_email_user", reason="AuthModerationReason"
     )
     def api_saveModerationReason(self):

@@ -21,7 +21,7 @@ from sirepo import uri_router
 import datetime
 import hashlib
 import pyisemail
-import sirepo.api
+import sirepo.quest
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -49,8 +49,8 @@ _EXPIRES_MINUTES = 8 * 60
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("allow_cookieless_set_user", token="EmailAuthToken")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("allow_cookieless_set_user", token="EmailAuthToken")
     def api_authEmailAuthorized(self, simulation_type, token):
         """Clicked by user in an email
 
@@ -94,7 +94,7 @@ class API(sirepo.api.Base):
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
             auth.login_fail_redirect(req.type, this_module, "email-token")
 
-    @sirepo.api.Spec("require_cookie_sentinel", email="Email")
+    @sirepo.quest.Spec("require_cookie_sentinel", email="Email")
     def api_authEmailLogin(self):
         """Start the login process for the user.
 

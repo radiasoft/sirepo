@@ -12,7 +12,7 @@ from sirepo import simulation_db
 import datetime
 import random
 import re
-import sirepo.api
+import sirepo.quest
 import time
 
 
@@ -28,8 +28,8 @@ _SIM_NAME = "Undulator Radiation"
 _SIM_REPORT = "initialIntensityReport"
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("require_auth_basic")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("require_auth_basic")
     def api_serverStatus(self):
         """Allow for remote monitoring of the web server status.
 

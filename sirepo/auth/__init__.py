@@ -19,7 +19,7 @@ import contextlib
 import datetime
 import importlib
 import pyisemail
-import sirepo.api
+import sirepo.quest
 import sirepo.auth_role
 import sirepo.cookie
 import sirepo.feature_config
@@ -84,8 +84,8 @@ uri_router = None
 cfg = None
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("require_cookie_sentinel", display_name="UserDisplayName")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("require_cookie_sentinel", display_name="UserDisplayName")
     def api_authCompleteRegistration(self):
         # Needs to be explicit, because we would need a special permission
         # for just this API.
@@ -96,7 +96,7 @@ class API(sirepo.api.Base):
         )
         return self.reply_ok()
 
-    @sirepo.api.Spec("allow_visitor")
+    @sirepo.quest.Spec("allow_visitor")
     def api_authState(self):
         return self.reply_static_jinja(
             "auth-state",
@@ -104,7 +104,7 @@ class API(sirepo.api.Base):
             PKDict(auth_state=_auth_state()),
         )
 
-    @sirepo.api.Spec("allow_visitor")
+    @sirepo.quest.Spec("allow_visitor")
     def api_authLogout(self, simulation_type=None):
         """Set the current user as logged out.
 

@@ -11,7 +11,7 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 from sirepo import srtime
 import datetime
-import sirepo.api
+import sirepo.quest
 import sirepo.util
 
 
@@ -29,8 +29,8 @@ _COOKIE_EXPIRY_TIMESTAMP = "srazt"
 _ONE_DAY = datetime.timedelta(days=1)
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("require_cookie_sentinel")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("require_cookie_sentinel")
     def api_authGuestLogin(self, simulation_type):
         """You have to be an anonymous or logged in user at this point"""
         req = self.parse_params(type=simulation_type)
