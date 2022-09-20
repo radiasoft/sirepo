@@ -167,10 +167,7 @@ def stateless_compute_load_keras_model(data):
     l = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.file)
     )
-
-    pkdp("\n\n\n l : {}", l)
     model = keras.models.load_model(l)
-    pkdp("\n\n\n model: {}", model)
     return _build_ui_nn(model)
 
 
@@ -185,101 +182,72 @@ def _conv(l):
 
 
 def _set_fields_by_layer_type(l, new_layer):
-    # TODO (gurhar1133): commented out below are unsupported currently
+    # TODO (gurhar1133): needs more layer type support
     if "input" not in l.name:
-        k = PKDict(
-            Activation=lambda l :PKDict(
-                activation=l.activation.__name__
-            ),
-            Add=lambda l: PKDict(),
-            # AlphaDropout=lambda layer: layer.dropoutRate,
-            # AveragePooling2D=lambda layer: _pooling_args(layer),
-            BatchNormalization=lambda l: PKDict(momentum=l.momentum),
-            Concatenate=lambda l: PKDict(),
-            Conv2D=lambda l: _conv(l),
-            Dense=lambda l: PKDict(
-                dimensionality=l.units,
-                activation=l.activation.__name__,
-            ),
-            Dropout=lambda l: PKDict(dropoutRate=l.rate),
-            # Flatten=lambda layer: "",
-            # GaussianDropout=lambda layer: layer.dropoutRate,
-            # GaussianNoise=lambda layer: layer.stddev,
-            # GlobalAveragePooling2D=lambda layer: "",
-            MaxPooling2D=lambda l: PKDict(
-                strides=l.strides[0],
-                padding=l.padding,
-                size=l.pool_size[0],
-            ),
-            # SeparableConv2D=lambda layer: _conv_args(layer),
-            Conv2DTranspose=lambda l: _conv(l),
-            # UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
-            # ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
+        return new_layer.pkmerge(
+            PKDict(
+                Activation=lambda l :PKDict(
+                    activation=l.activation.__name__
+                ),
+                Add=lambda l: PKDict(),
+                BatchNormalization=lambda l: PKDict(momentum=l.momentum),
+                Concatenate=lambda l: PKDict(),
+                Conv2D=lambda l: _conv(l),
+                Dense=lambda l: PKDict(
+                    dimensionality=l.units,
+                    activation=l.activation.__name__,
+                ),
+                Dropout=lambda l: PKDict(dropoutRate=l.rate),
+                MaxPooling2D=lambda l: PKDict(
+                    strides=l.strides[0],
+                    padding=l.padding,
+                    size=l.pool_size[0],
+                ),
+                Conv2DTranspose=lambda l: _conv(l),
+            )[new_layer.layer](l)
         )
-
-        # assert 0, f"key={new_layer.layer} k[key]={k[new_layer.layer]}"
-        return new_layer.pkmerge(k[new_layer.layer](l))
     return new_layer
 
 
 def _make_layers(model):
-    nn = []
+    neural_net = []
     for l in model._layers:
         n = PKDict(obj=l, layer=_get_layer_type(l), name=l.name)
         n = _set_fields_by_layer_type(l, n)
-        nn.append(n)
-    return PKDict(layers=nn)
+        neural_net.append(n)
+    return PKDict(layers=neural_net)
 
 
 def _build_ui_nn(model):
-
-    nn = _make_layers(model)
-
-    nn = _set_inbound(model, nn)
-    nn = _set_outbound(nn)
-    r = "\n\n ======================================"
-    for l in nn.layers:
-        r += f"\n\n\n layer: {l.obj.name}"
-        if "inbound" in l:
-            for i in l.inbound:
-                r += f"\n in: {i.name}"
-        if "outbound" in l:
-            for o in l.outbound:
-                r += f"\n out: {o.name}"
-    r += "\n\n ======================================"
-    pkdp(r)
-
-    pkdp("\n\n\n\n\n\n last node: {}", nn.layers[-1])
-    nn = _set_children(nn)
-    return nn
+    return _set_children(
+        _set_outbound(
+            _set_inbound(
+                model,
+                _make_layers(model)
+            )
+        )
+    )
 
 
 def _get_layer_type(layer):
     return type(layer).__name__
 
 
-def _set_children(nn):
-    cur_node = nn.layers[-1]
-    pkdp("\n\n\n STARTING WITH: {}", cur_node.name)
-    nn = _levels_with_children(cur_node, nn)[2]
-    pkdp("\n\n\n ================================== \n\n nn: {} \n\n =============================", nn)
-    nn = _move_children_in_add(nn)
-    return nn
-    # nn = _set_child_ops(nn)
+def _set_children(neural_net):
+    c = neural_net.layers[-1]
+    return _move_children_in_add(_levels_with_children(c, neural_net)[2])
 
 
-def _move_children_in_add(nn):
-    new_nn = PKDict(layers=[])
-    for i, l in enumerate(nn):
-        if type(l) == list:
-            continue
-        pkdp("\n\n L :{}", l)
-        l["children"] = []
-        if _is_merge_node(l) and type(nn[i - 1]) == list:
-            for c in nn[i -1]:
-                l["children"].append(_move_children_in_add(c))
-        new_nn.layers.append(_clean_layer(l))
-    return new_nn
+def _move_children_in_add(neural_net):
+    n = PKDict(layers=[])
+    for i, l in enumerate(neural_net):
+        if not type(l) == list:
+            l["children"] = []
+            if _is_merge_node(l) and type(neural_net[i - 1]) == list:
+                for c in neural_net[i -1]:
+                    l["children"].append(_move_children_in_add(c))
+            n.layers.append(_clean_layer(l))
+    return n
 
 
 def _clean_layer(l):
@@ -288,11 +256,12 @@ def _clean_layer(l):
             l.pop(k)
     return l
 
-def _get_next_node(node, nn):
+
+def _get_next_node(node, neural_net):
     if _is_merge_node(node):
         return node
     assert len(node.inbound) == 1, f"get next should have one inbound node={node.name}, node.indbound={[n.name for n in node.inbound]}"
-    return _get_layer_by_name(nn, node.inbound[0].name)
+    return _get_layer_by_name(neural_net, node.inbound[0].name)
 
 
 def _is_branching(node):
@@ -300,24 +269,22 @@ def _is_branching(node):
 
 
 def _is_merge_node(node):
-    return node.layer in ["Add", "Concatenate"]
+    return node.layer in ("Add", "Concatenate")
 
 
-def _levels_with_children(cur_node, nn):
-    pkdp("\n\n\n call on cur_node={}", cur_node.name)
+def _levels_with_children(cur_node, neural_net):
     l = []
     parent_sum = 1
     x = False
-    while _continue_building_level(cur_node, nn) or x:
+    while _continue_building_level(cur_node) or x:
         x = False
         l.insert(0, cur_node)
         if _is_merge_node(cur_node):
             c = []
             parent_sum = 0
             for i in cur_node.inbound:
-                pkdp("\n\n\n child node={}", i.name)
-                child_node = _get_layer_by_name(nn, i.name)
-                p, s, lvl = _levels_with_children(child_node, nn)
+                child_node = _get_layer_by_name(neural_net, i.name)
+                p, s, lvl = _levels_with_children(child_node, neural_net)
                 parent_sum += s
                 c.append(lvl)
             l.insert(0, c)
@@ -325,79 +292,64 @@ def _levels_with_children(cur_node, nn):
             if len(p.outbound) != parent_sum:
                 return p, parent_sum, l
             else:
-                pkdp("\n\n p={}", cur_node.name)
                 if not _is_merge_node(cur_node):
                     l.insert(0, cur_node)
-                    cur_node = _get_next_node(cur_node, nn)
+                    cur_node = _get_next_node(cur_node, neural_net)
                 else:
                     x = True
         else:
-            cur_node = _get_next_node(cur_node, nn)
-        # elif _is_branching(_get_next_node(cur_node, nn)):
-        #     return _get_next_node(cur_node, nn), parent_sum, l
+            cur_node = _get_next_node(cur_node, neural_net)
         parent_sum = 1
-        pkdp("\n\n\n next={}", cur_node.name)
-    pkdp("\n\n RETURNING ON CUR_NODE={}, PARENT_SUM={}", cur_node.name, parent_sum)
     return cur_node, parent_sum, l
 
 
-def _continue_building_level(cur_node, nn):
-    # pkdp("\n\n\n continue building on={}?", cur_node.name)
-    # pkdp("\n\n\n _is_branching() of cur_node={}")
-    if "input" in cur_node.name:
-        pkdp("\n\n\n Break on cur_node={}", cur_node.name)
+def _continue_building_level(cur_node):
+    if "input" in cur_node.name or _is_branching(cur_node):
         return False
-
-    if _is_branching(cur_node):
-        pkdp("\n\n\n branch Break on cur_node={}", cur_node.name)
-        return False
-
     return True
 
 
-
 def _get_relevant_nodes(model):
-    relevant_nodes = []
+    r = []
     for v in model._nodes_by_depth.values():
-        relevant_nodes += v
-    return relevant_nodes
+        r += v
+    return r
 
 
-def _set_outbound(nn):
-    for l in nn.layers:
+def _set_outbound(neural_net):
+    for l in neural_net.layers:
         l["outbound"] = []
-    for l in nn.layers:
+    for l in neural_net.layers:
         for i in l.inbound:
-            layer = _get_layer_by_name(nn, i.name)
-            if "outbound" in layer:
-                layer.outbound.append(l.obj)
-    return nn
+            c = _get_layer_by_name(neural_net, i.name)
+            if "outbound" in c:
+                c.outbound.append(l.obj)
+    return neural_net
 
 
-def _get_layer_by_name(nn, name):
-    for l in nn.layers:
+def _get_layer_by_name(neural_net, name):
+    for l in neural_net.layers:
         if l.name == name:
             return l
     raise AssertionError(f"could not find layer with name={name}")
 
 
-def _set_inbound(model, nn):
+def _set_inbound(model, neural_net):
     r = _get_relevant_nodes(model)
-    for l in nn.layers:
+    for l in neural_net.layers:
         i = []
-        for node in l.obj._inbound_nodes:
-            if r and node not in r:
-                # node is not part of the current network
+        for n in l.obj._inbound_nodes:
+            if r and n not in r:
                 continue
             for (
                 inbound_layer,
                 node_index,
                 tensor_index,
                 _,
-            ) in node.iterate_inbound():
+            ) in n.iterate_inbound():
                 i.append(inbound_layer)
             l["inbound"] = i
-    return nn
+    return neural_net
 
 
 def python_source_for_model(data, model):
@@ -986,46 +938,6 @@ input_args = Input(shape=({v.inputDim},))
 {_build_layers(net)}
 x = Dense({v.outputDim}, activation="linear")(x)
 model = Model(input_args, x)
-
-model.summary(print_fn=lambda x: print(x.split('\\n')))
-
-
-relevant_nodes = []
-for v in model._nodes_by_depth.values():
-    relevant_nodes += v
-
-print('model attrs: ', model.__dict__)
-for layer in model.layers:
-    print('layer:', layer._name)
-    print('layer attrs:', layer.__dict__)
-    inbound = []
-    for node in layer._inbound_nodes:
-        if relevant_nodes and node not in relevant_nodes:
-                # node is not part of the current network
-            continue
-
-        for (
-            inbound_layer,
-            node_index,
-            tensor_index,
-            _,
-        ) in node.iterate_inbound():
-            inbound.append(inbound_layer.name)
-        try:
-            for (
-                outbound_layer,
-                node_index,
-                tensor_index,
-                _,
-            ) in node.iterate_outbound():
-                print("outbound:", outbound_layer.name)
-        except Exception:
-            print("outbound didn't work")
-
-    if inbound:
-        print('inbound layers: ', inbound)
-    print('----------')
-model.save('m2.h5')
 """
 
 
