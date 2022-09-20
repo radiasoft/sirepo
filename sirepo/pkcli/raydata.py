@@ -9,7 +9,7 @@ from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
 
 
-def create_scans(num_scans, delay=True):
+def create_scans(num_scans, catalog_name, delay=True):
     from sirepo.template import raydata
     import bluesky
     import bluesky.plans
@@ -19,7 +19,7 @@ def create_scans(num_scans, delay=True):
 
     num_scans = int(num_scans)
     assert num_scans > 0, f"num_scans={num_scans} must be > 0"
-    d = databroker.Broker.named(raydata.catalog().name)
+    d = databroker.Broker.named(raydata.catalog(catalog_name).name)
     RE = bluesky.RunEngine({})
     RE.subscribe(d.insert)
     for i in range(num_scans):

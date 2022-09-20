@@ -103,9 +103,15 @@ SIREPO.app.factory('cloudmcService', function(appState) {
     }
 
     self.computeModel = modelKey => modelKey;
+
+    self.findTally = () => {
+        return findTally(appState.models.openmcAnimation.tallies, appState.models.openmcAnimation.tally);
+    };
+
     self.isGraveyard = volume => {
         return volume.name && volume.name.toLowerCase() == 'graveyard';
     };
+
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
         if (! a.tally || ! findTally(a.tallies, a.tally)) {
@@ -274,14 +280,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             let colorbar = null;
             let colorbarPtr = null;
             let colorScale = null;
+            let basePolyData = null;
             let picker = null;
-            let vtkScene = null;
+            let minField, maxField;
             let selectedVolume = null;
             let tally = null;
 
             const bundleByVolume = {};
             const colorbarThickness = 30;
-            const tallyBundles = {};
+            let tallyBundle = null;
+            let vtkScene = null;
             // volumes are measured in centimeters
             const scale = 0.01;
             const coordMapper = new SIREPO.VTK.CoordMapper(
@@ -289,23 +297,21 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     new SIREPO.GEOMETRY.SquareMatrix([[scale, 0, 0], [0, scale, 0], [0, 0, scale]])
                 )
             );
-            const geom3dCfg = $scope.reportCfg || {};
-            const watchFields = [`{$scope.modelName}.bgColor`, `{$scope.modelName}.showEdges`];
-
+            const watchFields = [`${$scope.modelName}.bgColor`, `${$scope.modelName}.showEdges`];
+            const clientOnlyFields = ['voxels.colorMap'].concat(watchFields);
+            const voxelPoly = [
+                [0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [4, 5, 1, 0],
+                [3, 2, 6, 7],
+                [4, 0, 3, 7],
+                [1, 5, 6, 2],
+            ];
             const _SCENE_BOX = '_scene';
 
-            function addTally(str, aspect) {
-                //TODO(pjm): the axis lines are lost when actors are removed
-                vtkScene.removeActors();
-                const pd = SIREPO.VTK.VTKUtils.parseLegacy(str);
+            function addTally(data) {
+                loadTally(data);
                 $rootScope.$broadcast('vtk.hideLoader');
-                const b = coordMapper.buildActorBundle();
-                tallyBundles[aspect] = b;
-                b.mapper.setInputData(pd);
-                setColorsFromFieldData(pd, aspect);
-                b.setActorProperty('lighting', false);
-                vtkScene.addActor(b.actor);
-                picker.addPickList(b.actor);
                 initAxes();
                 buildAxes();
                 vtkScene.renderer.resetCamera();
@@ -340,7 +346,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     boundsBox = SIREPO.VTK.VTKUtils.buildBoundingBox(actor.getBounds());
                 }
                 else {
+                    // always clear the scene box
                     name = _SCENE_BOX;
+                    vtkScene.removeActor(axesBoxes[name]);
+                    delete axesBoxes[name];
                     boundsBox = vtkScene.sceneBoundingBox(0.02);
                 }
                 if (! axesBoxes[name]) {
@@ -372,6 +381,95 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 };
                 d.update = setGlobalProperties;
                 return d;
+            }
+
+            function buildVoxel(lowerLeft, wx, wy, wz, points, polys) {
+                const pi = points.length / 3;
+                points.push(...lowerLeft);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1], lowerLeft[2]]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1] + wy, lowerLeft[2]]);
+                points.push(...[lowerLeft[0], lowerLeft[1] + wy, lowerLeft[2]]);
+                points.push(...[lowerLeft[0], lowerLeft[1], lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1], lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1] + wy, lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0], lowerLeft[1] + wy, lowerLeft[2] + wz]);
+                for (const r of voxelPoly) {
+                    polys.push(4);
+                    polys.push(...r.map(v => v + pi));
+                }
+            }
+
+            function buildVoxels() {
+                function getMeshFilter() {
+                    const t = cloudmcService.findTally();
+                    for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
+                        const f = t[`filter${k}`];
+                        if (f && f._type === 'meshFilter') {
+                            return f;
+                        }
+                    }
+                    return null;
+                }
+
+                if (tallyBundle) {
+                    vtkScene.removeActor(tallyBundle.actor);
+                    picker.deletePickList(tallyBundle.actor);
+                    tallyBundle = null;
+                }
+                const mesh = getMeshFilter();
+                if (! mesh) {
+                    return;
+                }
+                const [nx, ny, nz] = mesh.dimension;
+                const [wx, wy, wz] = [
+                    (mesh.upper_right[0] - mesh.lower_left[0]) / mesh.dimension[0],
+                    (mesh.upper_right[1] - mesh.lower_left[1]) / mesh.dimension[1],
+                    (mesh.upper_right[2] - mesh.lower_left[2]) / mesh.dimension[2],
+                ];
+                const [sx, sy, sz] = mesh.upper_right.map(
+                    (x, i) => (1.0 - appState.models.voxels.voxelInsetPct)
+                        * Math.abs(x - mesh.lower_left[i]) / mesh.dimension[i]
+                );
+                const points = [];
+                const polys = [];
+                const fd = basePolyData.getFieldData().getArrayByName(model().aspect).getData();
+                srdbg(fd);
+                minField = Number.MAX_VALUE;
+                maxField = Number.MIN_VALUE;
+                for (let zi = 0; zi < nz; zi++) {
+                    for (let yi = 0; yi < ny; yi++) {
+                        for (let xi = 0; xi < nx; xi++) {
+                            const f = fd[zi * nx * ny + yi * nx + xi];
+                            if (! isInFieldThreshold(f)) {
+                                continue;
+                            }
+                            if (f < minField) {
+                                minField = f;
+                            }
+                            else if (f > maxField) {
+                                maxField = f;
+                            }
+                            const p = [
+                                xi * wx + mesh.lower_left[0],
+                                yi * wy + mesh.lower_left[1],
+                                zi * wz + mesh.lower_left[2],
+                            ];
+                            buildVoxel(p, sx, sy, sz, points, polys);
+                        }
+                    }
+                }
+                basePolyData.getPoints().setData(new window.Float32Array(points), 3);
+                basePolyData.getPolys().setData(new window.Uint32Array(polys));
+
+                tallyBundle = coordMapper.buildPolyData(
+                    basePolyData,
+                    {
+                        lighting: false,
+                    }
+                );
+                vtkScene.addActor(tallyBundle.actor);
+                picker.addPickList(tallyBundle.actor);
+                setTallyColors();
             }
 
             function getVolumeById(volId) {
@@ -414,13 +512,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     if (cid < 0) {
                         return;
                     }
+                    const vid = Math.floor(cid / 6)
+                    srdbg('CID', cid, 'V', vid);
                     const pd = actor.getMapper().getInputData();
                     if (! pd) {
                         return;
                     }
                     //TODO(mvk): get 1st cell with non-0 field - otherwise we cel
+                    srdbg('F', Array.from(pd.getFieldData().getArrayByName(model().aspect).getData())[vid]);
                     colorbarPtr.pointTo(
-                        Array.from(pd.getFieldData().getArrayByName(model().aspect).getData())[cid]
+                        Array.from(pd.getFieldData().getArrayByName(model().aspect).getData())[vid]
                     );
                     return;
                 }
@@ -455,39 +556,40 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 });
             }
 
+            function isInFieldThreshold(value) {
+                //TODO(pjm): add a min threshold value to openmcAnimation model
+                return value > 0;
+            }
+
             function setTallyColors() {
-                for (const n in tallyBundles) {
-                    setColorsFromFieldData(
-                        tallyBundles[n].mapper.getInputData(),
-                        n,
-                    );
+                const cellsPerVoxel = voxelPoly.length;
+                const s = SIREPO.PLOTTING.Utils.colorScale(
+                    minField,
+                    maxField,
+                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.voxels.colorMap],
+                );
+                colorbar.scale(s);
+                colorbarPtr = d3.select('.colorbar').call(colorbar);
+                const sc = [];
+                const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
+                for (const f of basePolyData.getFieldData().getArrayByName(model().aspect).getData()) {
+                    if (! isInFieldThreshold(f)) {
+                        continue;
+                    }
+                    const c = SIREPO.VTK.VTKUtils.colorToFloat(s(f)).map(v => Math.floor(255 * v));
+                    c.push(o);
+                    for (let j = 0; j < cellsPerVoxel; j++) {
+                        sc.push(...c);
+                    }
                 }
+                tallyBundle.setColorScalarsForCells(sc, 4);
+                basePolyData.modified();
                 vtkScene.render();
             }
 
-            function setColorsFromFieldData(polyData, name) {
-                const dataColors = [];
-                const d = Array.from(polyData.getFieldData().getArrayByName(name).getData());
-                colorScale = SIREPO.PLOTTING.Utils.colorScale(
-                    SIREPO.UTILS.largeMin(d),
-                    SIREPO.UTILS.largeMax(d),
-                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.openmcAnimation.colorMap]
-                );
-                colorbar.scale(colorScale);
-                colorbarPtr = d3.select('.colorbar').call(colorbar);
-                d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(colorScale(x)).map(x => Math.floor(255 * x)))
-                    .forEach((c, i) => {
-                        // when the field value is 0, don't draw the element at all
-                        dataColors.push(...c, d[i] === 0 ? 0 : Math.floor(255 * appState.models.openmcAnimation.opacity));
-                    });
-                polyData.getCellData().setScalars(
-                    vtk.Common.Core.vtkDataArray.newInstance({
-                        numberOfComponents: 4,
-                        values: dataColors,
-                        dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
-                    })
-                );
-                polyData.modified();
+            function loadTally(data) {
+                basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
+                buildVoxels();
             }
 
             $scope.supportsColorbar = () => ! isGeometryOnly;
@@ -518,7 +620,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         model().showEdges === '1'
                     );
                 }
-                setTallyColors();
                 vtkScene.render();
             }
 
@@ -555,6 +656,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     });
             }
 
+            $scope.onlyClientFieldsChanged = false;
+
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
                 vtkScene = null;
@@ -566,6 +669,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             $scope.load = json => {
                 if (vtkScene) {
+                    $rootScope.$broadcast('vtk.showLoader');
                     addTally(json.content, model().aspect);
                 }
                 else {
@@ -590,6 +694,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     margin: '0 auto',
                 };
             };
+
+            $scope.$on('fieldsChanged', function(e, modelFields) {
+                $scope.onlyClientFieldsChanged = modelFields && modelFields.every(x => clientOnlyFields.includes(x));
+            });
 
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
@@ -649,7 +757,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             });
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
-            appState.watchModelFields($scope, ['openmcAnimation.colorMap'], setTallyColors);
+
+            appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);

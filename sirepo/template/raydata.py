@@ -33,6 +33,17 @@ _OUTPUT_FILE = "out.ipynb"
 
 _BLUESKY_POLL_TIME_FILE = "bluesky-poll-time.txt"
 
+# TODO(rorour): replace with actual scans
+class ScanObject(PKDict):
+    def __init__(self, uid=""):
+        self.uid = uid
+        self.metadata = {
+            "field1": "val1",
+            "num_points": "1",
+            "start": {"time": "000", "uid": uid, "num_points": "2"},
+            "stop": {"time": "001"},
+        }
+
 
 def analysis_job_output_files(data):
     def _filename_and_image(path):
@@ -55,29 +66,7 @@ def analysis_job_output_files(data):
 
 
 def background_percent_complete(report, run_dir, is_running):
-    r = PKDict(percentComplete=0 if is_running else 100)
-    if report != "pollBlueskyForScansAnimation":
-        return r
-    d = sirepo.simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    try:
-        t = float(pkio.read_text(run_dir.join(_BLUESKY_POLL_TIME_FILE)).strip())
-    except Exception as e:
-        if not pkio.exception_is_not_found(e):
-            raise
-        t = d.models.pollBlueskyForScansAnimation.start
-
-    s = []
-    for k, v in catalog(d.models.scans).search({"time": {"$gte": t}}).items():
-        t = max(t, v.metadata["start"]["time"])
-        s.append(
-            _scan_info(
-                k,
-                d.models.scans,
-                metadata=v.metadata,
-            )
-        )
-    pkio.atomic_write(run_dir.join(_BLUESKY_POLL_TIME_FILE), t)
-    return r.pkupdate(**_scan_info_result(s).data)
+    return PKDict(percentComplete=0 if is_running else 100)
 
 
 def catalog(scans_data_or_catalog_name):
@@ -91,36 +80,49 @@ def catalog(scans_data_or_catalog_name):
     ]
 
 
-def stateless_compute_scan_fields(data):
-    return PKDict(columns=list(catalog(data)[-1].metadata["start"].keys()))
-
-
-def stateless_compute_scan_info(data):
-    return _scan_info_result([_scan_info(s, data) for s in data.scans])
+def stateless_compute_catalog_names(data):
+    return PKDict(
+        data=PKDict(
+            catalogs=[str(s) for s in databroker.catalog.keys()],
+        )
+    )
 
 
 def stateless_compute_scans(data):
-    assert data.searchStartTime and data.searchStopTime, pkdformat(
-        "must have both searchStartTime and searchStopTime data={}", data
-    )
-    s = []
-    for i, v in enumerate(
-        catalog(data)
-        .search(
-            databroker.queries.TimeRange(
-                since=data.searchStartTime,
-                until=data.searchStopTime,
-                timezone="utc",
-            )
+    # TODO(e-carlin): get scans from daemon
+    l = []
+    if data.scansStatus == "completed_scans":
+        assert data.searchStartTime and data.searchStopTime, pkdformat(
+            "must have both searchStartTime and searchStopTime data={}", data
         )
-        .items()
-    ):
+        l = [
+            ("uid1", ScanObject("uid1")),
+            ("uid2", ScanObject("uid2")),
+            ("uid3", ScanObject("uid3")),
+        ]
+    elif data.scansStatus == "queued_scans":
+        l = [
+            ("uid4", ScanObject("uid4")),
+            ("uid5", ScanObject("uid5")),
+            ("uid6", ScanObject("uid6")),
+        ]
+
+    s = []
+    for i, v in enumerate(l):
         if i > _MAX_NUM_SCANS:
             raise sirepo.util.UserAlert(
                 f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
             )
         s.append(_scan_info(v[0], data, metadata=v[1].metadata))
     return _scan_info_result(s)
+
+
+def stateless_compute_scan_fields(data):
+    return PKDict(columns=list(catalog(data)[-1].metadata["start"].keys()))
+
+
+def stateless_compute_scan_info(data):
+    return _scan_info_result([_scan_info(s, data) for s in data.scans])
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -137,12 +139,6 @@ def _dir_for_scan_uuid(scan_uuid):
 
 
 def _generate_parameters_file(data, run_dir):
-    if data.get("report") == "pollBlueskyForScansAnimation":
-        return template_common.render_jinja(
-            SIM_TYPE,
-            PKDict(poll_secs=data.models.pollBlueskyForScansAnimation.minutes * 60),
-            "poll_bluesky.py",
-        )
     s = _parse_scan_uuid(data)
     m = (
         run_dir.join(
@@ -185,7 +181,7 @@ def _scan_info(scan_uuid, scans_data, metadata=None):
     for c in _DEFAULT_COLUMNS:
         d[c] = locals()[f"_get_{c}"](m)
 
-    for c in scans_data.selectedColumns:
+    for c in scans_data.get("selectedColumns", []):
         d[c] = m["start"].get(c)
     return d
 
