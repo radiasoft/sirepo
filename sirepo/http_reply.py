@@ -63,7 +63,7 @@ def gen_exception(sreq, exc):
     return _gen_exception_error(sreq, exc)
 
 
-def gen_file_as_attachment(sapi, content_or_path, filename=None, content_type=None):
+def gen_file_as_attachment(qcall, content_or_path, filename=None, content_type=None):
     """Generate a file attachment response
 
     Args:
@@ -77,7 +77,7 @@ def gen_file_as_attachment(sapi, content_or_path, filename=None, content_type=No
 
     def f():
         if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
-            return sapi.reply_file(content_or_path)
+            return qcall.reply_file(content_or_path)
         if content_type == "application/json":
             return gen_response(pkjson.dump_pretty(content_or_path))
         return gen_response(content_or_path)

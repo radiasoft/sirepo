@@ -35,7 +35,7 @@ class API(sirepo.quest.API):
 
         Tracks oauth users in a database.
         """
-        oc, t = sirepo.oauth.check_authorized_callback(sapi, github_auth=True)
+        oc, t = sirepo.oauth.check_authorized_callback(qcall, github_auth=True)
         d = oc.get("https://api.github.com/user").json()
         sirepo.events.emit("github_authorized", PKDict(user_name=d["login"]))
         with util.THREAD_LOCK:

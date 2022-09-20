@@ -24,7 +24,7 @@ _timedelta = None
 _initialized = False
 
 
-def adjust_time(days, sapi=None):
+def adjust_time(days, qcall=None):
     """Shift the system time by days
 
     Args:
@@ -39,10 +39,10 @@ def adjust_time(days, sapi=None):
             _timedelta = datetime.timedelta(days=d)
     except Exception:
         pass
-    if sapi:
+    if qcall:
         if not _timedelta:
             days = 0
-        sapi.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
+        qcall.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
 
 
 class API(sirepo.quest.API):
@@ -54,7 +54,7 @@ class API(sirepo.quest.API):
             days (str): must be integer. If None or 0, no adjustment.
         """
 
-        adjust_time(days, sapi=self)
+        adjust_time(days, qcall=self)
         return self.reply_ok(
             {
                 "adjustedNow": utc_now().isoformat(),

@@ -157,14 +157,14 @@ class API(sirepo.quest.API):
         return self.reply_ok()
 
 
-def raise_control_for_user(sapi, uid, role):
+def raise_control_for_user(qcall, uid, role):
     s = sirepo.auth_db.UserRoleInvite.get_status(uid, role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)
     if s == sirepo.auth_role.ModerationStatus.DENY:
         sirepo.util.raise_forbidden(f"uid={uid} role={role} already denied")
     assert s is None, f"Unexpected status={s} for uid={uid} and role={role}"
-    sirepo.auth.require_email_user(sapi.sreq)
+    sirepo.auth.require_email_user(qcall.sreq)
     raise sirepo.util.SRException("moderationRequest", None)
 
 

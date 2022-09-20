@@ -65,17 +65,17 @@ _api_modules = []
 _api_funcs = PKDict()
 
 
-def assert_api_name_and_auth(sapi, name, allowed):
+def assert_api_name_and_auth(qcall, name, allowed):
     """Check if `name` is executable and in allowed
 
     Args:
-        sapi (sirepo.API.Base)
+        qcall (sirepo.quest.API)
         name (str): name of the api
         allowed (tuple): names that are allowed to be called
     Returns:
         str: api name
     """
-    _check_api_call(sapi.sreq, name)
+    _check_api_call(qcall.sreq, name)
     if name not in allowed:
         raise AssertionError(f"api={name} not in allowed={allowed}")
 
@@ -182,7 +182,7 @@ def init(app, simulation_db):
         simulation_db=simulation_db,
         uri_router=pkinspect.this_module(),
     )
-    sirepo.api.init(
+    sirepo.quest.init(
         http_reply=sirepo.http_reply,
         http_request=sirepo.http_request,
         uri_router=pkinspect.this_module(),
@@ -190,8 +190,8 @@ def init(app, simulation_db):
     sirepo.session.init()
 
 
-def maybe_sim_type_required_for_api(sapi):
-    a = sapi.sreq.get(_API_ATTR)
+def maybe_sim_type_required_for_api(qcall):
+    a = qcall.sreq.get(_API_ATTR)
     if not a:
         return True
     return sirepo.api_auth.maybe_sim_type_required_for_api(a.func)
@@ -350,7 +350,7 @@ def _dispatch(path):
 
 
     sreq =
-process_request is not here, but after we have a sapi
+process_request is not here, but after we have a qcall
 separate out the parsing of the route from call_api, which access sreq,
 which can include
         try:
@@ -370,7 +370,7 @@ every api has a spec
             for p in route.params:
                 if not parts:
                     if not p.is_optional:
-todo: instead sapi is not_found
+todo: instead qcall is not_found
                         raise sirepo.util.raise_not_found(
                             "{}: uri missing parameter ({})", path, p.name
                         )
@@ -381,7 +381,7 @@ todo: instead sapi is not_found
                     break
                 kwargs[p.name] = parts.pop(0)
             if parts:
-sapi is not found
+qcall is not found
                 raise sirepo.util.raise_not_found(
                     "{}: unknown parameters in uri ({})", parts, path
                 )
@@ -489,7 +489,7 @@ def _register_sim_oauth_modules(oauth_sim_types):
 
 @contextlib.contextmanager
 def _set_api_attr(sreq, route_or_name):
-this should be on sapi
+this should be on qcall
     a = sreq.get(_API_ATTR)
     try:
         sreq[_API_ATTR] = route_or_name

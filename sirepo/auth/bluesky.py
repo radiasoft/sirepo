@@ -50,7 +50,7 @@ class API(sirepo.quest.API):
             checked=True,
         )
         sirepo.auth.login(
-            sapi=self,
+            qcall=self,
             this_module,
             uid=simulation_db.uid_from_dir_name(path),
             # do not supply sim_type (see auth.login)

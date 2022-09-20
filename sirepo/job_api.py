@@ -142,7 +142,7 @@ class API(sirepo.quest.API):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
             sirepo.uri_router.assert_api_name_and_auth(
-                sapi,
+                qcall,
                 api,
                 ("runSimulation", "runStatus"),
             )

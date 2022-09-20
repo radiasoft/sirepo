@@ -16,14 +16,14 @@ def init(**imports):
     sirepo.util.setattr_imports(imports)
 
 
-def parse_json(sapi):
-    d = sapi.sreq.set_post()
+def parse_json(qcall):
+    d = qcall.sreq.set_post()
     if d:
         return d
-    if not sapi.sreq.content_type_eq("application/json"):
+    if not qcall.sreq.content_type_eq("application/json"):
         sirepo.util.raise_bad_request(
             "Content-Type={} must be application/json",
-            sapi.sreq.http_header("Content-Type"),
+            qcall.sreq.http_header("Content-Type"),
         )
     # Adapted from flask.wrappers.Request.get_json
     # We accept a request charset against the specification as
@@ -31,12 +31,12 @@ def parse_json(sapi):
     # fits our general approach of being nice in what we accept
     # and strict in what we send out.
     return simulation_db.json_load(
-        sapi.sreq.body_as_bytes(),
-        encoding=sapi.sreq.content_type_encoding(),
+        qcall.sreq.body_as_bytes(),
+        encoding=qcall.sreq.content_type_encoding(),
     )
 
 
-def parse_post(sapi, kwargs):
+def parse_post(qcall, kwargs):
     """Parse a post augmented by inline args
 
     Arguments are either `bool` or another `object`.
@@ -62,7 +62,7 @@ def parse_post(sapi, kwargs):
     res = PKDict()
     r = kwargs.pkdel("req_data")
     if r is None:
-        r = parse_json(sapi)
+        r = parse_json(qcall)
     if kwargs.pkdel("fixup_old_data"):
         r = simulation_db.fixup_old_data(r)[0]
     res.pkupdate(req_data=r)
@@ -72,8 +72,8 @@ def parse_post(sapi, kwargs):
         from sirepo import auth
 
         assert not isinstance(v, bool), "missing type in params/post={}".format(kwargs)
-        auth.check_sim_type_role(sapi, v)
-        sapi.sreq.set_sim_type(v)
+        auth.check_sim_type_role(qcall, v)
+        qcall.sreq.set_sim_type(v)
         res.sim_data = sirepo.sim_data.get_class(v)
         return v
 

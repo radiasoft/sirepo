@@ -131,16 +131,16 @@ class Base:
         t = sirepo.template.assert_sim_type(sim_type)
         if t not in sirepo.feature_config.auth_controlled_sim_types():
             return
-        if not uri_router.maybe_sim_type_required_for_api(sapi):
+        if not uri_router.maybe_sim_type_required_for_api(qcall):
             return
         u = logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
         if auth_db.UserRole.has_role(u, r) and not auth_db.UserRole.is_expired(u, r):
             return
         elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
-            oauth.raise_authorize_redirect(sapi, sirepo.auth_role.sim_type(r))
+            oauth.raise_authorize_redirect(qcall, sirepo.auth_role.sim_type(r))
         if r in sirepo.auth_role.for_moderated_sim_types():
-            auth_role_moderation.raise_control_for_user(sapi, u, r)
+            auth_role_moderation.raise_control_for_user(qcall, u, r)
         sirepo.util.raise_forbidden(f"uid={u} does not have access to sim_type={t}")
 
     def complete_registration(self, sreq, name=None):
@@ -231,7 +231,7 @@ class Base:
         return u
 
     def login(
-        sapi,
+        qcall,
         module,
         uid=None,
         model=None,
@@ -255,7 +255,7 @@ class Base:
         if model:
             uid = model.uid
             # if previously cookied as a guest, move the non-example simulations into uid below
-            m = sapi.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
+            m = qcall.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
             if m == METHOD_GUEST and module.AUTH_METHOD != METHOD_GUEST:
                 guest_uid = _get_user() if is_logged_in() else None
         if uid:
@@ -275,7 +275,7 @@ class Base:
             # no authentication for guest.
             # Or, this is just a new user, and we'll create one.
             uid = _get_user() if is_logged_in() else None
-            m = sapi.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
+            m = qcall.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
             if uid and module.AUTH_METHOD not in (m, METHOD_GUEST):
                 # switch this method to this uid (even for methods)
                 # except if the same method, then assuming logging in as different user.
@@ -295,7 +295,7 @@ class Base:
                 from sirepo import simulation_db
 
                 simulation_db.move_user_simulations(guest_uid, uid)
-            login_success_response(self, sim_type, sapi, want_redirect)
+            login_success_response(self, sim_type, qcall, want_redirect)
         assert not module.AUTH_METHOD_VISIBLE
 
     def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False):
@@ -312,25 +312,25 @@ class Base:
             module.AUTH_METHOD,
         )
 
-    def login_success_response(sapi, sim_type, want_redirect=False):
+    def login_success_response(qcall, sim_type, want_redirect=False):
         r = None
         if (
-            sapi.sreq.cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
-            and sapi.sreq.cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
+            qcall.sreq.cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
+            and qcall.sreq.cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
         ):
             complete_registration()
         if want_redirect:
             r = (
                 "completeRegistration"
                 if (
-                    sapi.sreq.cookie.get_value(_COOKIE_STATE)
+                    qcall.sreq.cookie.get_value(_COOKIE_STATE)
                     == _STATE_COMPLETE_REGISTRATION
                 )
                 else None
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
         raise sirepo.util.Response(
-            response=sapi.reply_ok(PKDict(authState=_auth_state())),
+            response=qcall.reply_ok(PKDict(authState=_auth_state())),
         )
 
     def need_complete_registration(model):
@@ -488,15 +488,15 @@ todo: process auth basic header, too. this should not cookie but route to auth_b
     def user_display_name(sreq, uid):
         return auth_db.UserRegistration.search_by(uid=uid).display_name
 
-    def user_if_logged_in(sapi, method):
+    def user_if_logged_in(qcall, method):
         """Verify user is logged in and method matches
 
         Args:
             method (str): method must be logged in as
         """
-        if not is_logged_in(sapi.sreq):
+        if not is_logged_in(qcall.sreq):
             return None
-        m = sapi.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
+        m = qcall.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
         if m != method:
             return None
         return _get_user()

@@ -73,7 +73,7 @@ class API(sirepo.quest.API):
                 u.expires = None
                 u.save()
                 auth.login(
-                    this_module, sim_type=req.type, sapi=self, model=u, display_name=n
+                    this_module, sim_type=req.type, qcall=self, model=u, display_name=n
                 )
                 raise AssertionError("auth.login returned unexpectedly")
             if not u:

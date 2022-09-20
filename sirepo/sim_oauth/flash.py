@@ -24,7 +24,7 @@ _SIM_TYPE = "flash"
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     def api_simOauthFlashAuthorized(self):
-        o, _ = sirepo.oauth.check_authorized_callback(sapi)
+        o, _ = sirepo.oauth.check_authorized_callback(qcall)
         i = PKDict(o.get(cfg.info_url).json())
         # TODO(robnagler) should this not raise forbidden?
         assert (

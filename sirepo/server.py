@@ -361,7 +361,7 @@ class API(sirepo.quest.API):
                     )
                 with simulation_db.tmp_dir() as d:
                     data = req.template.import_file(
-                        req, tmp_dir=d, reply_op=s, sapi=self
+                        req, tmp_dir=d, reply_op=s, qcall=self
                     )
                 if "error" in data:
                     return self.reply_json(data)
@@ -564,10 +564,10 @@ class API(sirepo.quest.API):
         v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
         u = contextlib.nullcontext
         if v.want_user:
-            sapi.sreq.cookie.set_sentinel()
-            auth.login(sapi, auth.guest, is_mock=True)
+            qcall.sreq.cookie.set_sentinel()
+            auth.login(qcall, auth.guest, is_mock=True)
         if v.want_cookie:
-            sapi.sreq.cookie.set_sentinel()
+            qcall.sreq.cookie.set_sentinel()
         v.op()
         return self.reply_ok()
 
