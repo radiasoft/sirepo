@@ -201,7 +201,7 @@ def _set_fields_by_layer_type(l, new_layer):
                 dimensionality=l.units,
                 activation=l.activation.__name__,
             ),
-            Dropout=lambda l: PKDict(rate=l.rate),
+            Dropout=lambda l: PKDict(dropoutRate=l.rate),
             # Flatten=lambda layer: "",
             # GaussianDropout=lambda layer: layer.dropoutRate,
             # GaussianNoise=lambda layer: layer.stddev,
@@ -259,14 +259,11 @@ def _get_layer_type(layer):
 
 
 def _set_children(nn):
-    from pykern import pkjson
     cur_node = nn.layers[-1]
     pkdp("\n\n\n STARTING WITH: {}", cur_node.name)
     nn = _levels_with_children(cur_node, nn)[2]
-    pkjson.dump_pretty(nn, filename="nn.json")
     pkdp("\n\n\n ================================== \n\n nn: {} \n\n =============================", nn)
     nn = _move_children_in_add(nn)
-    pkjson.dump_pretty(nn.layers, filename="conv.json")
     return nn
     # nn = _set_child_ops(nn)
 

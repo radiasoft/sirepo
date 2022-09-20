@@ -1,0 +1,314 @@
+[
+    {
+        "activation": "relu",
+        "children": [],
+        "dimensionality": 10,
+        "kernel": 3,
+        "layer": "Conv2D",
+        "padding": "same",
+        "strides": 1
+    },
+    {
+        "activation": "relu",
+        "children": [],
+        "dimensionality": 10,
+        "kernel": 3,
+        "layer": "Conv2D",
+        "padding": "same",
+        "strides": 1
+    },
+    {
+        "children": [
+            {
+                "layers": [
+                    {
+                        "children": [],
+                        "layer": "MaxPooling2D",
+                        "padding": "same",
+                        "size": 2,
+                        "strides": 1
+                    },
+                    {
+                        "children": [],
+                        "dropoutRate": 0.5,
+                        "layer": "Dropout"
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2D",
+                        "padding": "same",
+                        "strides": 1
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2D",
+                        "padding": "same",
+                        "strides": 1
+                    },
+                    {
+                        "children": [
+                            {
+                                "layers": [
+                                    {
+                                        "children": [],
+                                        "layer": "MaxPooling2D",
+                                        "padding": "same",
+                                        "size": 2,
+                                        "strides": 1
+                                    },
+                                    {
+                                        "children": [],
+                                        "dropoutRate": 0.5,
+                                        "layer": "Dropout"
+                                    },
+                                    {
+                                        "activation": "relu",
+                                        "children": [],
+                                        "dimensionality": 10,
+                                        "kernel": 3,
+                                        "layer": "Conv2D",
+                                        "padding": "same",
+                                        "strides": 1
+                                    },
+                                    {
+                                        "activation": "relu",
+                                        "children": [],
+                                        "dimensionality": 10,
+                                        "kernel": 3,
+                                        "layer": "Conv2D",
+                                        "padding": "same",
+                                        "strides": 1
+                                    },
+                                    {
+                                        "children": [
+                                            {
+                                                "layers": [
+                                                    {
+                                                        "children": [],
+                                                        "layer": "MaxPooling2D",
+                                                        "padding": "same",
+                                                        "size": 2,
+                                                        "strides": 1
+                                                    },
+                                                    {
+                                                        "children": [],
+                                                        "dropoutRate": 0.5,
+                                                        "layer": "Dropout"
+                                                    },
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "kernel": 3,
+                                                        "layer": "Conv2D",
+                                                        "padding": "same",
+                                                        "strides": 1
+                                                    },
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "kernel": 3,
+                                                        "layer": "Conv2D",
+                                                        "padding": "same",
+                                                        "strides": 1
+                                                    },
+                                                    {
+                                                        "children": [
+                                                            {
+                                                                "layers": [
+                                                                    {
+                                                                        "children": [],
+                                                                        "layer": "MaxPooling2D",
+                                                                        "padding": "same",
+                                                                        "size": 2,
+                                                                        "strides": 1
+                                                                    },
+                                                                    {
+                                                                        "children": [],
+                                                                        "dropoutRate": 0.5,
+                                                                        "layer": "Dropout"
+                                                                    },
+                                                                    {
+                                                                        "activation": "relu",
+                                                                        "children": [],
+                                                                        "dimensionality": 10,
+                                                                        "kernel": 3,
+                                                                        "layer": "Conv2D",
+                                                                        "padding": "same",
+                                                                        "strides": 1
+                                                                    },
+                                                                    {
+                                                                        "activation": "relu",
+                                                                        "children": [],
+                                                                        "dimensionality": 10,
+                                                                        "kernel": 3,
+                                                                        "layer": "Conv2D",
+                                                                        "padding": "same",
+                                                                        "strides": 1
+                                                                    },
+                                                                    {
+                                                                        "activation": "relu",
+                                                                        "children": [],
+                                                                        "dimensionality": 10,
+                                                                        "kernel": 3,
+                                                                        "layer": "Conv2DTranspose",
+                                                                        "padding": "same",
+                                                                        "strides": 1
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "layers": []
+                                                            }
+                                                        ],
+                                                        "layer": "Concatenate"
+                                                    },
+                                                    {
+                                                        "children": [],
+                                                        "dropoutRate": 0.5,
+                                                        "layer": "Dropout"
+                                                    },
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "kernel": 3,
+                                                        "layer": "Conv2D",
+                                                        "padding": "same",
+                                                        "strides": 1
+                                                    },
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "kernel": 3,
+                                                        "layer": "Conv2D",
+                                                        "padding": "same",
+                                                        "strides": 1
+                                                    },
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "kernel": 3,
+                                                        "layer": "Conv2DTranspose",
+                                                        "padding": "same",
+                                                        "strides": 1
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "layers": []
+                                            }
+                                        ],
+                                        "layer": "Concatenate"
+                                    },
+                                    {
+                                        "children": [],
+                                        "dropoutRate": 0.5,
+                                        "layer": "Dropout"
+                                    },
+                                    {
+                                        "activation": "relu",
+                                        "children": [],
+                                        "dimensionality": 10,
+                                        "kernel": 3,
+                                        "layer": "Conv2D",
+                                        "padding": "same",
+                                        "strides": 1
+                                    },
+                                    {
+                                        "activation": "relu",
+                                        "children": [],
+                                        "dimensionality": 10,
+                                        "kernel": 3,
+                                        "layer": "Conv2D",
+                                        "padding": "same",
+                                        "strides": 1
+                                    },
+                                    {
+                                        "activation": "relu",
+                                        "children": [],
+                                        "dimensionality": 10,
+                                        "kernel": 3,
+                                        "layer": "Conv2DTranspose",
+                                        "padding": "same",
+                                        "strides": 1
+                                    }
+                                ]
+                            },
+                            {
+                                "layers": []
+                            }
+                        ],
+                        "layer": "Concatenate"
+                    },
+                    {
+                        "children": [],
+                        "dropoutRate": 0.5,
+                        "layer": "Dropout"
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2D",
+                        "padding": "same",
+                        "strides": 1
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2D",
+                        "padding": "same",
+                        "strides": 1
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2DTranspose",
+                        "padding": "same",
+                        "strides": 1
+                    }
+                ]
+            },
+            {
+                "layers": []
+            }
+        ],
+        "layer": "Concatenate"
+    },
+    {
+        "children": [],
+        "dropoutRate": 0.5,
+        "layer": "Dropout"
+    },
+    {
+        "activation": "relu",
+        "children": [],
+        "dimensionality": 10,
+        "kernel": 3,
+        "layer": "Conv2D",
+        "padding": "same",
+        "strides": 1
+    },
+    {
+        "activation": "linear",
+        "children": [],
+        "dimensionality": 1,
+        "layer": "Dense",
+        "outbound": []
+    }
+]
