@@ -1,42 +1,89 @@
-import { Nav , Modal} from "react-bootstrap";
+import { Nav , Modal, Button} from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link } from "react-router-dom";
 import { NavbarContainerId } from "../component/simulation";
-import { ContextModelsWrapper } from "../context";
+import { ContextModelsWrapper, ContextRelativeFormController, ContextSimulationInfoPromise } from "../context";
 import { useInterpolatedString } from "../hook/string";
 import { useContext, useState } from "react";
 import { View } from "./layout";
 import usePortal from "react-useportal"; 
+import { useStore } from "react-redux";
+import { ViewPanelActionButtons } from "../component/panel";
 
-/*export function NavBarModalButton(props) {
-    let { config } = props;
-    let { modal } = config;
-
-    let models = useContext(ContextModelsWrapper);
-    let title = useInterpolatedString(models, config.title);
-
-    let [modalShown, updateModalShown] = useState(false);
-
-    let _cancel = () => {
-        updateModalShown(false);
-        cancel();
+export class NavBarModalButton extends View {
+    getChildLayouts = (config) => {
+        let { modal } = config;
+        return modal.items.map(layoutConfig => {
+            return {
+                layout: this.layoutsWrapper.getLayoutForConfig(layoutConfig),
+                config: layoutConfig
+            }
+        });
     }
 
-    modal.items.map(layoutConfig => {
-        let LayoutElement = elementForLayoutName(layoutConfig.layout).element;
-        // TODO unify form functionality
-    })
+    getFormDependencies = (config) => {
+        return this.getChildLayouts(config).map(child => child.layout.getFormDependencies(child.config)).flat();
+    }
 
-    return (
-        <Modal show={modalShown} onHide={() => _cancel()} size="lg">
-            <Modal.Header className="lead bg-info bg-opacity-25">
-                {title}
-            </Modal.Header>
-            <Modal.Body>
+    component = (props) => {
+        let { config } = props;
 
-            </Modal.Body>
-        </Modal>
-    )
-}*/
+        let models = useContext(ContextModelsWrapper);
+        let title = useInterpolatedString(models, config.title);
+
+        let [modalShown, updateModalShown] = useState(false);
+
+        let formController = useContext(ContextRelativeFormController);
+        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
+        let modelsWrapper = useContext(ContextModelsWrapper);
+        
+        let store = useStore();
+
+        let _cancel = () => {
+            updateModalShown(false);
+            formController.cancelChanges();
+        }
+
+        let _submit = () => {
+            formController.saveToModels();
+            simulationInfoPromise.then(simulationInfo => {
+                modelsWrapper.saveToServer(simulationInfo, store.getState());
+            })
+        }
+
+        let children = this.getChildLayouts(config).map((child, idx) => {
+            let LayoutElement = child.layout.component;
+            return <LayoutElement key={idx} config={child.config}></LayoutElement>
+        })
+
+        let isDirty = formController.isFormStateDirty();
+        let isValid = formController.isFormStateValid();
+        let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
+
+        let { Portal: NavbarPortal } = usePortal({
+            bindTo: document && document.getElementById(NavbarContainerId)
+        })
+
+        return (
+            <>
+                <NavbarPortal>
+                    <Button onClick={() => updateModalShown(true)} variant="secondary">
+                        {title}
+                    </Button>
+                </NavbarPortal>
+
+                <Modal show={modalShown} onHide={() => _cancel()} size="lg">
+                    <Modal.Header className="lead bg-info bg-opacity-25">
+                        {title}
+                    </Modal.Header>
+                    <Modal.Body>
+                        {children}
+                        {isDirty && actionButtons}
+                    </Modal.Body>
+                </Modal>
+            </>
+        )
+    }
+}
 
 export class NavTabsLayout extends View {
     getFormDependencies = (config) => {

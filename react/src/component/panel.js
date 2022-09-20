@@ -28,7 +28,7 @@ export function Panel(props) {
     );
 }
 
-function ViewPanelActionButtons(props) {
+export function ViewPanelActionButtons(props) {
     let { canSave, onSave, onCancel, ...otherProps } = props;
     return (
         <Col className="text-center sr-form-action-buttons" sm={12}>

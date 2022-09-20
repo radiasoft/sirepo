@@ -49,12 +49,15 @@ function SimulationInfoInitializer (props) {
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
             simulationListPromise.then(simulationList => {
+                // TODO: this is definitely wrong
                 let simulation = simulationList[0];
                 let { simulationId } = simulation;
                 // TODO: why 0
                 fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
                     let simulationInfo = await resp.json();
                     let { models } = simulationInfo;
+
+                    console.log("models", models);
 
                     for(let [modelName, model] of Object.entries(models)) {
                         modelsWrapper.updateModel(modelName, model);

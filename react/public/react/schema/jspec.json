@@ -901,15 +901,9 @@
                 "items": [
                     {
                         "name": "simulation",
-                        "layout": "panel",
-                        "basic": [
-                            {
-                                "name": "simulation",
-                                "layout": "fieldList",
-                                "fields": [
-                                    "simulation.name"
-                                ]
-                            }
+                        "layout": "fieldList",
+                        "fields": [
+                            "simulation.name"
                         ]
                     }
                 ]

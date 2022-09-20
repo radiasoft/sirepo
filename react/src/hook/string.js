@@ -9,7 +9,7 @@ export function useInterpolatedString(models, str) {
         }
     });
 
-    let modelNames = [...new Set(mappingsArr.map(mapping => mapping.modelName))];
+    let modelNames = [...new Set(mappingsArr.map(mapping => mapping.dependency.modelName))];
 
     let modelValues = Object.fromEntries(modelNames.map(modelName => {
         return [

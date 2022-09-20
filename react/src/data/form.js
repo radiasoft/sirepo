@@ -121,12 +121,16 @@ export class FormController {
     }
 
     saveToModels = () => {
+        // TODO: models include too much, need to switch to fields here
         Object.entries(this.hookedModels).forEach(([modelName, model]) => {
             let changesObj = mapProperties(model.value, (fieldName, fieldState) => {
                 let hookedField = this.getHookedField({
                     fieldName,
                     modelName
                 });
+                if(!hookedField) {
+                    debugger;
+                }
                 return hookedField.dependency.type.dbValue(fieldState.value)
             });
 

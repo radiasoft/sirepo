@@ -40,6 +40,9 @@ export class HookedDependencyGroup {
         this.hookedDependencies = this.dependencies.map(dependency => {
             let { modelName, fieldName } = dependency;
             let hookedModel = this.hookedModels[modelName];
+            if(!fieldName || !hookedModel || !hookedModel.schema) {
+                debugger;
+            }
             let fieldSchema = hookedModel.schema[fieldName];
             if(!fieldSchema) {
                 throw new Error(`missing field schema for field "${fieldName}" in model "${modelName}"`)

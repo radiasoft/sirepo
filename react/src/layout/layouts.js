@@ -5,7 +5,7 @@ import { PanelLayout } from "./panel";
 import { AutoRunReportLayout } from "./report";
 import { TabLayout } from "./tabs";
 import { LayoutWithSpacing } from "./spaced";
-import { NavTabsLayout } from "./navbar";
+import { NavBarModalButton, NavTabsLayout } from "./navbar";
 
 export class Layouts {
     constructor () { 
@@ -14,6 +14,7 @@ export class Layouts {
             fieldList: new (LayoutWithSpacing(FieldListLayout))(this),
             fieldTable: new (LayoutWithSpacing(FieldGridLayout))(this),
             panel: new (LayoutWithFormController(PanelLayout))(this),
+            navbarModalButton: new (LayoutWithFormController(NavBarModalButton))(this),
             autoRunReport: new AutoRunReportLayout(this),
             graph2d: new Graph2dFromApi(this),
             navTabs: new NavTabsLayout(this)
