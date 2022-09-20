@@ -81,7 +81,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         scope.prevFrameIndex = SIREPO.nonDataFileFrame;
         scope.isPlaying = false;
         var requestData = scope.requestData || function() {
-            if (! scope.hasFrames()) {
+            if (! scope.hasFrames() || scope.onlyClientFieldsChanged) {
+                scope.onlyClientFieldsChanged = false;
                 return;
             }
             var index = frameCache.getCurrentFrame(scope.modelName);

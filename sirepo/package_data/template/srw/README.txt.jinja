@@ -23,11 +23,11 @@ Please note:
 
 The final consolidated input and output data for use in ML is in the hdf5 file "results.h5" under the "datasets" folder.
 It has the following structure:
-    - "/params": the parameters in the format <element name>_<param name>, e.g.
-        "Aperture_horizontalSize"
-    - "/paramVals": array of size {{ totalSamples }} containing the parameter values for each run
-    - "/beamIntensities": array of size {{ totalSamples }} containing the propagated single-electron intensity
+    - "/metadata": array of size {{ totalSamples }} containing the parameter values for each run
+    - "/images": array of size {{ totalSamples }} containing the propagated single-electron intensity
         distribution vs horizontal and vertical position for each run
+The parameter names are stored in an attribute named "parameters" on the metadata dataset
+in the format <element name>_<param name>, e.g. "Aperture_horizontalSize".
 
 Intermediate output is also available under the ensemble/worker[n]/sim[m] directories:
 
