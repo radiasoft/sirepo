@@ -6,10 +6,9 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-import flask
 import pykern.pkinspect
 import re
-from urllib.parse import urlencode, quote
+import urllib.parse
 
 #: route parsing
 PARAM_RE = r"([\?\*]?)<{}>"
@@ -109,10 +108,10 @@ def unchecked_root_redirect(path):
 def _query(query):
     if not query:
         return ""
-    return "?" + urlencode(query)
+    return "?" + urllib.parse.urlencode(query)
 
 
 def _to_uri(element):
     if isinstance(element, bool):
         return str(int(element))
-    return quote(element, safe="()-_.!~*'")
+    return urllib.parse.quote(element, safe="()-_.!~*'")

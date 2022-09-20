@@ -23,7 +23,7 @@ def parse_json(sapi):
     if not sapi.sreq.content_type_eq("application/json"):
         sirepo.util.raise_bad_request(
             "Content-Type={} must be application/json",
-            sapi.sreq.unchecked_header("Content-Type"),
+            sapi.sreq.http_header("Content-Type"),
         )
     # Adapted from flask.wrappers.Request.get_json
     # We accept a request charset against the specification as

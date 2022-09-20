@@ -12,6 +12,8 @@ import sirepo.api_perm
 class Base(PKDict):
     """Holds request context for all API calls."""
 
+    def create_sreq(self, **kwargs):
+
     def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
 
@@ -147,7 +149,7 @@ class Base(PKDict):
         return PKDict(
             ip_addr=self.sreq.remote_addr,
             domain_name=_dns_reverse_lookup(self.sreq.remote_addr),
-            user_agent=self.sreq.unchecked_header("User-Agent"),
+            user_agent=self.sreq.http_header("User-Agent"),
         )
 
 

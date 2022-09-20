@@ -54,8 +54,8 @@ def begin(sreq):
         s.request_time = sirepo.srtime.utc_now()
         s.save()
 
-    i = sreq.unchecked_header(_USER_AGENT_ID_HEADER)
-    if not sreq.method_is_post():
+    i = sreq.http_header(_USER_AGENT_ID_HEADER)
+    if not sreq.http_method_is_post():
         yield
         return
     if not i:

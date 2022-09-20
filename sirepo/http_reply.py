@@ -319,7 +319,7 @@ def _gen_exception_reply_Error(sreq, args):
         # try to get the schema without the type
         t = None
         s = simulation_db.get_schema(sim_type=None)
-    if sreq.method_is_post():
+    if sreq.http_method_is_post():
         return gen_json(args.pkupdate({_STATE: _ERROR_STATE}))
     q = PKDict()
     for k, v in args.items():
@@ -368,7 +368,7 @@ def _gen_exception_reply_SRException(sreq, args):
     if (
         # must be first, to always delete reload_js
         not p.pkdel("reload_js")
-        and sreq.method_is_post()
+        and sreq.http_method_is_post()
         and r not in _RELOAD_JS_ROUTES
     ):
         pkdc("POST response={} route={} params={}", SR_EXCEPTION_STATE, r, p)

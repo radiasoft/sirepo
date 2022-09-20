@@ -6,7 +6,6 @@
 from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
-from sirepo import api_perm
 from sirepo import simulation_db
 from sirepo.template import template_common
 import inspect

@@ -7,7 +7,6 @@
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-from sirepo import api_perm
 import datetime
 import sirepo.api
 import sirepo.auth
@@ -23,7 +22,7 @@ _SIM_TYPE = "flash"
 
 
 class API(sirepo.api.Base):
-    @api_perm.require_user
+    @sirepo.api.Spec("require_user")
     def api_simOauthFlashAuthorized(self):
         o, _ = sirepo.oauth.check_authorized_callback(sapi)
         i = PKDict(o.get(cfg.info_url).json())

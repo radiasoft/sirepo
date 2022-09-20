@@ -8,14 +8,14 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
-from sirepo import api_perm
+import sirepo.api_perm
 import sirepo.auth
 import sirepo.util
 
 
 def assert_api_def(func):
     try:
-        assert isinstance(getattr(func, api_perm.ATTR), api_perm.APIPerm)
+        assert isinstance(getattr(func, sirepo.api_perm.ATTR), sirepo.api_perm.APIPerm)
     except Exception as e:
         raise AssertionError(
             "function needs api_perm decoration: func={} err={}".format(
@@ -26,8 +26,8 @@ def assert_api_def(func):
 
 
 def check_api_call(sreq, func):
-    expect = getattr(func, api_perm.ATTR)
-    a = api_perm.APIPerm
+    expect = getattr(func, sirepo.api_perm.ATTR)
+    a = sirepo.api_perm.APIPerm
     if expect in (
         a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER,
         a.REQUIRE_COOKIE_SENTINEL,
@@ -58,4 +58,4 @@ def check_api_call(sreq, func):
 
 
 def maybe_sim_type_required_for_api(func):
-    return getattr(func, api_perm.ATTR) not in api_perm.SIM_TYPELESS_PERMS
+    return getattr(func, sirepo.api_perm.ATTR) not in sirepo.api_perm.SIM_TYPELESS_PERMS

@@ -328,11 +328,13 @@ def _dispatch(path):
         route = _not_found_route
         qargs = None
 
-    qcall = route.cls(sroute=route, qargs=qargs)
-    import flask
-    qcall.sreq = sirepo.request.Base(
-        headers=flask.request.headers,
-        method=flask.request.method,
+    with sirepo.auth.process_request(sreq):
+                return call_api(sreq, _route_default, PKDict(path_info=None))
+    qcall = route.cls(route=route, kwargs=kwargs)
+    qcall.create_sreq(
+        absolute_uri=flask.request.url,
+        http_headers=flask.request.headers,
+        http_method=flask.request.method,
         remote_addr=flask.request.remote_addr,
         _internal_req=flask.request,
         _absolute_uri=flask.url_for("_dispatch_empty", _external=True),
@@ -351,13 +353,11 @@ def _dispatch(path):
 process_request is not here, but after we have a sapi
 separate out the parsing of the route from call_api, which access sreq,
 which can include
-    with sirepo.auth.process_request(sreq):
         try:
             if path is None:
 route is an object so taht can make the call with sreq
 path_info is put
 every api has a spec
-                return call_api(sreq, _route_default, PKDict(path_info=None))
             # werkzeug doesn't convert '+' to ' '
             parts = re.sub(r"\+", " ", path).split("/")
             try:

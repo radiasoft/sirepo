@@ -9,7 +9,6 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-from sirepo import api_perm
 from sirepo import simulation_db
 from sirepo import util
 import base64

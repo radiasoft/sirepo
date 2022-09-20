@@ -10,7 +10,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 import authlib.integrations.base_client
 import authlib.integrations.requests_client
-import flask
 import sirepo.events
 import sirepo.feature_config
 import sirepo.sim_oauth
@@ -31,7 +30,7 @@ def check_authorized_callback(sapi, github_auth=False):
     c = _client(t, github_auth)
     try:
         c.fetch_token(
-            authorization_response=flask.request.url,
+            authorization_response=sapi.sreq.absolute_uri,
             state=s,
             # SECURITY: This *must* be the grant_type otherwise authlib defaults to
             # client_credentials which just returns details about the oauth client. That response
@@ -41,7 +40,7 @@ def check_authorized_callback(sapi, github_auth=False):
 
         return c, t
     except Exception as e:
-        pkdlog("url={} exception={} stack={}", flask.request.url, e, pkdexc())
+        pkdlog("url={} exception={} stack={}", sapi.sreq.absolute_uri, e, pkdexc())
     sirepo.util.raise_forbidden(f"user denied access from sim_type={t}")
 
 

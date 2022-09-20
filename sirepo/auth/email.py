@@ -19,7 +19,6 @@ from sirepo import smtp
 from sirepo import srtime
 from sirepo import uri_router
 import datetime
-import flask
 import hashlib
 import pyisemail
 import sirepo.api
@@ -145,7 +144,7 @@ class API(sirepo.api.Base):
         return self.reply_ok()
 
     def _verify_confirm(self, sim_type, token, need_complete_registration):
-        m = flask.request.method
+        m = self.sreq.http_method
         if m == "GET":
             raise sirepo.util.Redirect(
                 sirepo.uri.local_route(

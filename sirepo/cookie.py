@@ -36,7 +36,7 @@ _SRCONTEXT_KEY = __name__
 @contextlib.contextmanager
 def process_header(sreq):
     assert "cookie" not in sreq, f"cookie already set on sreq={sreq}"
-    sreq.cookie = Base(sreq.unchecked_header("Cookie"))
+    sreq.cookie = Base(sreq.http_header("Cookie"))
 
 
 class Base:
