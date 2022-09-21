@@ -178,7 +178,7 @@ def _conv(l):
 
 
 def _set_fields_by_layer_type(l, new_layer):
-    # TODO (gurhar1133): needs more layer type support
+    # TODO (gurhar1133): needs more layer type support in the future
     if "input" not in l.name:
         return new_layer.pkmerge(
             PKDict(
@@ -206,9 +206,11 @@ def _set_fields_by_layer_type(l, new_layer):
 def _make_layers(model):
     neural_net = []
     for l in model._layers:
-        n = PKDict(obj=l, layer=_get_layer_type(l), name=l.name)
-        n = _set_fields_by_layer_type(l, n)
-        neural_net.append(n)
+        neural_net.append(
+            _set_fields_by_layer_type(
+                l, PKDict(obj=l, layer=_get_layer_type(l), name=l.name)
+            )
+        )
     return PKDict(layers=neural_net)
 
 
@@ -230,11 +232,15 @@ def _move_children_in_add(neural_net):
     for i, l in enumerate(neural_net):
         if not type(l) == list:
             l["children"] = []
-            if _is_merge_node(l) and type(neural_net[i - 1]) == list:
-                for c in neural_net[i - 1]:
-                    l["children"].append(_move_children_in_add(c))
+            _get_children_from_list(l, neural_net, i)
             n.layers.append(_clean_layer(l))
     return n
+
+
+def _get_children_from_list(node, neural_net, index):
+    if _is_merge_node(node) and type(neural_net[index - 1]) == list:
+        for c in neural_net[index - 1]:
+            node.children.append(_move_children_in_add(c))
 
 
 def _clean_layer(l):

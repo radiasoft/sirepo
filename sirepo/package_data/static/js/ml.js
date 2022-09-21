@@ -1961,7 +1961,6 @@ SIREPO.app.directive('trimButton', function(appState, mlService) {
 });
 
 SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $scope) {
-    // TODO (gurhar1133): below line leads to flicker. Find better place
     appState.models.mlModel.mlModule = 'neuralnet';
     panelState.showField('mlModel', 'modelFile', appState.models.mlModel.mlModule == 'modelFile');
     function displayFileInput() {
