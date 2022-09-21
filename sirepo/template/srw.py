@@ -381,9 +381,15 @@ def _get_recent(data_filename, backup_data_filename):
         )
 
 
+def _count_lines(text):
+    return len(pkio.read_text(text).splitlines())
+
+
+def _recent_has_more_lines(recent, old):
+    return _count_lines(recent) >= _count_lines(old)
+
+
 def _check_backup(animation_meta_data):
-    import os
-    from pykern import pkio
     # get most recent unless most recent has less lines
     # this would mean it is partially written
     b = animation_meta_data.filename + ".bkp"
@@ -391,9 +397,10 @@ def _check_backup(animation_meta_data):
         pkdp("\n\n\n no .bkp \n\n\n")
         return animation_meta_data.filename
     i = _get_recent(animation_meta_data.filename, b)
-    if len(pkio.read_text(i.recent).splitlines()) >= len(pkio.read_text(i.old).splitlines()):
+    if _recent_has_more_lines(i.recent, i.old):
         return i.recent
     return i.old
+
 
 def extract_report_data(sim_in):
     r = sim_in.report
