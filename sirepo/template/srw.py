@@ -369,6 +369,7 @@ def _extract_coherent_modes(model, out_info):
     )
     return out_file
 
+
 def _get_recent(data_filename, backup_data_filename):
     if os.path.getmtime(backup_data_filename) > os.path.getmtime(data_filename):
         return PKDict(
@@ -376,28 +377,25 @@ def _get_recent(data_filename, backup_data_filename):
             old=data_filename,
         )
     return PKDict(
-            recent=data_filename,
-            old=backup_data_filename,
-        )
+        recent=data_filename,
+        old=backup_data_filename,
+    )
 
 
 def _count_lines(text):
     return len(pkio.read_text(text).splitlines())
 
 
-def _recent_has_more_lines(recent, old):
+def _recent_has_sufficient_lines(recent, old):
     return _count_lines(recent) >= _count_lines(old)
 
 
 def _check_backup(animation_meta_data):
-    # get most recent unless most recent has less lines
-    # this would mean it is partially written
     b = animation_meta_data.filename + ".bkp"
     if not pkio.py_path(b).check():
-        pkdp("\n\n\n no .bkp \n\n\n")
         return animation_meta_data.filename
     i = _get_recent(animation_meta_data.filename, b)
-    if _recent_has_more_lines(i.recent, i.old):
+    if _recent_has_sufficient_lines(i.recent, i.old):
         return i.recent
     return i.old
 
@@ -415,10 +413,7 @@ def extract_report_data(sim_in):
     if r == _SIM_DATA.EXPORT_RSOPT:
         return out
     if out.get("check_backup"):
-        # TODO (gurhar1133): might want to change this check v.sbatchBackup == '1' or something?
-        # to see if v
         out.filename = _check_backup(out)
-        pkdp("\n\n\n out.filename for {} is -> {}", r, out.filename)
     # TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ("coherenceXAnimation", "coherenceYAnimation"):
         _fix_file_header(out.filename)
