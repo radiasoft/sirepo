@@ -1975,7 +1975,7 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
     $scope.watchFields = [
         ['mlModel.mlModule'],
         displayFileInput
-    ]
+    ];
 
     $scope.$on('mlModel.changed', () => {
         if (appState.models.mlModel.mlModule == 'modelFile') {
@@ -1991,9 +1991,9 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
                     method: 'load_keras_model',
                     file: appState.models.mlModel.modelFile
                 }
-            )
+            );
         }
-    })
+    });
 });
 
 SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {

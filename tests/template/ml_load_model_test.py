@@ -10,6 +10,7 @@ from pykern import pkjson, pkunit
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern.pkcollections import PKDict
 
+
 def test_load_model_to_ui_data():
     from pykern import pkjson
 
@@ -17,5 +18,6 @@ def test_load_model_to_ui_data():
         pkjson.dump_pretty(
             sirepo.template.ml._build_ui_nn(
                 keras.models.load_model(d.join("model.h5"))
-                ).layers,
-            filename="ui_model.json")
+            ).layers,
+            filename="ui_model.json",
+        )

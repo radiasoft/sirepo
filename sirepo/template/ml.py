@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from operator import ne
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -183,9 +182,7 @@ def _set_fields_by_layer_type(l, new_layer):
     if "input" not in l.name:
         return new_layer.pkmerge(
             PKDict(
-                Activation=lambda l :PKDict(
-                    activation=l.activation.__name__
-                ),
+                Activation=lambda l: PKDict(activation=l.activation.__name__),
                 Add=lambda l: PKDict(),
                 BatchNormalization=lambda l: PKDict(momentum=l.momentum),
                 Concatenate=lambda l: PKDict(),
@@ -216,14 +213,7 @@ def _make_layers(model):
 
 
 def _build_ui_nn(model):
-    return _set_children(
-        _set_outbound(
-            _set_inbound(
-                model,
-                _make_layers(model)
-            )
-        )
-    )
+    return _set_children(_set_outbound(_set_inbound(model, _make_layers(model))))
 
 
 def _get_layer_type(layer):
@@ -241,7 +231,7 @@ def _move_children_in_add(neural_net):
         if not type(l) == list:
             l["children"] = []
             if _is_merge_node(l) and type(neural_net[i - 1]) == list:
-                for c in neural_net[i -1]:
+                for c in neural_net[i - 1]:
                     l["children"].append(_move_children_in_add(c))
             n.layers.append(_clean_layer(l))
     return n
@@ -257,7 +247,9 @@ def _clean_layer(l):
 def _get_next_node(node, neural_net):
     if _is_merge_node(node):
         return node
-    assert len(node.inbound) == 1, f"get next should have one inbound node={node.name}, node.indbound={[n.name for n in node.inbound]}"
+    assert (
+        len(node.inbound) == 1
+    ), f"get next should have one inbound node={node.name}, node.indbound={[n.name for n in node.inbound]}"
     return _get_layer_by_name(neural_net, node.inbound[0].name)
 
 
@@ -292,8 +284,8 @@ def _close_completed_branch(level, cur_node, neural_net):
             merge_continue=False,
         )
     return PKDict(
-            cur_node=cur_node,
-            merge_continue=True,
+        cur_node=cur_node,
+        merge_continue=True,
     )
 
 
