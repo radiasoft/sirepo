@@ -84,7 +84,11 @@ uri_router = None
 cfg = None
 
 
-def process_request(qcall):
+def quest_init(qcall):
+    qcall.auth = Base(qcall=qcall)
+    qcall.auth.process_request()
+
+rjn: need to convert these
     with auth_db.session(qcall):
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
@@ -134,7 +138,7 @@ class API(sirepo.quest.API):
         return self.reply_redirect_for_app_root(req and req.type)
 
 
-class Base:
+class Base(PKDict):
     def check_sim_type_role(self, sim_type):
         from sirepo import oauth
         from sirepo import auth_role_moderation
