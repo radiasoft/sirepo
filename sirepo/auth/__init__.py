@@ -84,6 +84,17 @@ uri_router = None
 cfg = None
 
 
+def process_request(qcall):
+    with auth_db.session(qcall):
+        # TODO(robnagler): process auth basic header, too. this
+        # should not cookie but route to auth_basic.
+        sirepo.cookie.process_header(qcall)
+        with sirepo.session.begin(qcall):
+            # Logging happens after the return to the server so the log user must persist
+            # beyond the life of process_request
+            _set_log_user(qcall)
+            yield
+
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel", display_name="UserDisplayName")
     def api_authCompleteRegistration(self):
@@ -264,7 +275,7 @@ class Base:
             pkdlog("deprecated auth method={} uid={}".format(module.AUTH_METHOD, uid))
             if not uid:
                 # No user so clear cookie so this method is removed
-                reset_state()
+                reset_state(qcall)
             # We are logged in with a deprecated method, and now the user
             # needs to login with an allowed method.
             login_fail_redirect(sim_type, module, "deprecated", reload_js=not uid)
@@ -350,20 +361,6 @@ class Base:
             return True
         return not auth_db.UserRegistration.search_by(uid=model.uid).display_name
 
-    @contextlib.contextmanager
-    def process_request(sreq):
-
-rjn: auth_db session comes after cookie parsing?
-sirepo.session is a hook?
-        with auth_db.session():
-todo: process auth basic header, too. this should not cookie but route to auth_basic.
-            sirepo.cookie.process_header(sreq)
-            with sirepo.session.begin(sreq):
-                # Logging happens after the return to the server so the log user must persist
-                # beyond the life of process_request
-                _set_log_user(sreq)
-                yield
-
     def require_adm(sreq):
         u = require_user()
         if not auth_db.UserRole.has_role(u, sirepo.auth_role.ROLE_ADM):
@@ -436,7 +433,7 @@ todo: process auth basic header, too. this should not cookie but route to auth_b
         pkdc("SRException uid={} route={} params={} method={} error={}", u, r, p, m, e)
         raise util.SRException(r, p, *(("user not logged in: {}", e) if e else ()))
 
-    def reset_state(sreq):
+    def reset_state(self):
         sreq.cookie.unchecked_remove(_COOKIE_USER)
         sreq.cookie.unchecked_remove(_COOKIE_METHOD)
         sreq.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
@@ -727,11 +724,11 @@ def _auth_hook_from_header(values):
                 _COOKIE_STATE,
             )
         return values
-data cleaning and do not need auth old values
+    # data cleaning; do not need auth old values
     if values.get("sru") or values.get("uid"):
         pkdlog("unknown cookie values, clearing, not migrating: {}", values)
         return {}
-todo: this state can be set, too
+rjn todo: this state can be set, too
     # normal case: new visitor, and no user/state; set logged out
     # and return all values
     values[_COOKIE_STATE] = _STATE_LOGGED_OUT
@@ -761,7 +758,7 @@ def _init():
         global logged_in_user, user_dir_not_found
 
         def logged_in_user(*args, **kwargs):
-subclass the object
+rjN: subclass the object
             return cfg.logged_in_user
 
         def user_dir_not_found(user_dir, *args, **kwargs):

@@ -10,8 +10,17 @@ import pykern.quest
 import sirepo.api_perm
 import sirepo.uri
 
+
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
+
+def handle_api_destroy(): called on the API
+call commit?
+implemented by the objects added
+order can be controlled eg auth, auth_db, cookie,
+
+need a save request, too.
+deferring to subrequests?
 
     def absolute_uri(self, uri):
         """Convert to an absolute uri
@@ -24,11 +33,6 @@ class API(pykern.quest.API):
         assert uri[0] == "/"
         return self.sreq.server_uri + uri[1:]
 
-    def create_sreq(self, **kwargs):
-        import sirepo.request
-
-        self.sreq = sirepo.request(
-
     def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
 
@@ -40,6 +44,12 @@ class API(pykern.quest.API):
             flask.Response: result
         """
         return uri_router.call_api(self.sreq, name, kwargs=kwargs, data=data)
+
+    def create_sreq(self, **kwargs):
+        import sirepo.request
+
+        self.sreq = sirepo.request.Base(kwargs)
+        return self.sreq
 
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)
@@ -165,7 +175,7 @@ class Spec(pykern.quest.Spec):
         self.kwargs = PKDict(kwargs)
         super().__init__()
 
-    #TODO(robnagler) put this in super and just setattr perm.
+    # TODO(robnagler) put this in super and just setattr perm.
     def __call__(self, func):
         def _wrapper(*args, **kwargs):
             return self.func(*args, **kwargs)

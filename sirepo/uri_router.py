@@ -326,8 +326,6 @@ def _dispatch(path):
         route = _not_found_route
         qargs = None
 
-    with sirepo.auth.process_request(sreq):
-                return call_api(sreq, _route_default, PKDict(path_info=None))
     qcall = route.cls(route=route, kwargs=kwargs)
     qcall.create_sreq(
         http_headers=flask.request.headers,
@@ -336,57 +334,9 @@ def _dispatch(path):
         qcall_uri=flask.request.url,
         remote_addr=flask.request.remote_addr,
         server_uri=flask.url_for("_dispatch_empty", _external=True),
-    ),
-
-    import sirepo.auth
-
-    f = (
-        route_or_name
-        if isinstance(route_or_name, _Route)
-        else _api_to_route[route_or_name]
     )
-
-
-    sreq =
-process_request is not here, but after we have a qcall
-separate out the parsing of the route from call_api, which access sreq,
-which can include
-        try:
-            if path is None:
-route is an object so taht can make the call with sreq
-path_info is put
-every api has a spec
-            # werkzeug doesn't convert '+' to ' '
-            parts = re.sub(r"\+", " ", path).split("/")
-            try:
-                route = _uri_to_route[parts[0]]
-                parts.pop(0)
-            except KeyError:
-                # sim_types (applications)
-                route = _route_default
-            kwargs = PKDict()
-            for p in route.params:
-                if not parts:
-                    if not p.is_optional:
-todo: instead qcall is not_found
-                        raise sirepo.util.raise_not_found(
-                            "{}: uri missing parameter ({})", path, p.name
-                        )
-                    break
-                if p.is_path_info:
-                    kwargs[p.name] = "/".join(parts)
-                    parts = None
-                    break
-                kwargs[p.name] = parts.pop(0)
-            if parts:
-qcall is not found
-                raise sirepo.util.raise_not_found(
-                    "{}: unknown parameters in uri ({})", parts, path
-                )
-            return call_api(sreq, route, kwargs)
-        except Exception as e:
-            pkdlog("exception={} path={} stack={}", e, path, pkdexc())
-            raise
+    with sirepo.auth.process_request(qcall):
+        return call_api(qcall, _route_default, PKDict(path_info=None))
 
 
 def _dispatch_empty():

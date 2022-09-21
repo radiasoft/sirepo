@@ -119,20 +119,14 @@ def db_filename():
 
 
 def init():
-    def _create_tables(engine):
-        b = UserDbBase
-        k = set(b.metadata.tables.keys())
-        assert k.issubset(
-            set(b.TABLES)
-        ), f"sqlalchemy tables={k} not a subset of known tables={b.TABLES}"
-        b.metadata.create_all(engine)
-
     global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole, UserRoleInvite
 
     if _engine:
         return
+
     f = db_filename()
     _migrate_db_file(f)
+rjn: thread locking
     _engine = sqlalchemy.create_engine(
         "sqlite:///{}".format(f),
         # We do our own thread locking so no need to have pysqlite warn us when
@@ -417,7 +411,12 @@ def init():
                     s.moderator_uid = moderator_uid
                 s.save()
 
-    _create_tables(_engine)
+    b = UserDbBase
+    k = set(b.metadata.tables.keys())
+    assert k.issubset(
+        set(b.TABLES)
+    ), f"sqlalchemy tables={k} not a subset of known tables={b.TABLES}"
+    b.metadata.create_all(_engine)
 
 
 def init_model(callback):
