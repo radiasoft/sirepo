@@ -107,6 +107,14 @@
                     [0, 0], [24, 0], [24, 12], [18, 12], [18, 24], [6, 24], [6, 16], [6, 12], [0, 12]
                 ],
                 "stroke": "black"
+            },
+            "stl": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [24, 0], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
             }
         },
         "geomTypeLines": "lines",
@@ -180,6 +188,13 @@
                         "model": "geomGroup",
                         "title": "Group",
                         "type": "geomGroup"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "polygon",
+                        "model": "stl",
+                        "title": "STL",
+                        "type": "stl"
                     }
                 ],
                 "name": "Objects"
@@ -346,7 +361,8 @@
             ["extrudedPoints", "Extruded Points"],
             ["jay", "Extruded J-Bend"],
             ["racetrack", "RaceTrack"],
-            ["tee", "Extruded Tee"]
+            ["tee", "Extruded Tee"],
+            ["stl", "STL"]
         ],
         "PathType": [
             ["axis", "Axis"],
@@ -933,6 +949,10 @@
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchCores": ["Cores", "Integer", 1],
             "sbatchProject": ["Project", "OptionalString", ""]
+        },
+        "stl": {
+            "_super": ["_", "model", "geomObject"],
+            "type": ["_", "ObjectType", "stl"]
         },
         "fieldLineoutAnimation": {
             "fieldPath": ["_", "model.fieldPath", {}],
