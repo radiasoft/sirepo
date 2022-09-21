@@ -42,7 +42,7 @@ export class AutoRunReportLayout extends View {
                     report: report,
                     pollInterval: 500,
                     callback: (simulationData) => {
-                        console.log("polling report yielded new data");
+                        console.log("polling report yielded new data", simulationData);
                         // guard concurrency
                         if(simulationPollingVersionRef.current == pollingVersion) {
                             updateSimulationData(simulationData);

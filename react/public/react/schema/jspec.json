@@ -481,9 +481,23 @@
                             ]
                         },
                         {
-                            "name": "rateCalculationReport",
                             "layout": "panel",
-                            "title": "Rate Calculation Report"
+                            "title": "Rate Calculation Report",
+                            "basic": [
+                                {
+                                    "layout": "autoRunReport",
+                                    "report": "rateCalculationReport",
+                                    "dependencies": [
+                                        "ionBeam.*",
+                                        "intrabeamScatteringRate.*",
+                                        "electronCoolingRate.*",
+                                        "ring.*"
+                                    ],
+                                    "reportLayout": {
+                                        "layout": "TODO"
+                                    }
+                                }
+                            ]
                         },
                         {
                             "name": "ring",

@@ -141,7 +141,7 @@ export class NavTabsLayout extends View {
                         {
                             tabs.map(tab => (
                                 <Nav.Item key={tab.name}>
-                                    <Nav.Link eventKey={`${tab.name}`} as={Link} to={`${tab.name}`}>
+                                    <Nav.Link eventKey={`${tab.name}`} as={Link} href={`${tab.name}`} to={`${tab.name}`}>
                                         {useInterpolatedString(modelsWrapper, tab.title)}
                                     </Nav.Link>
                                 </Nav.Item>
