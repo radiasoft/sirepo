@@ -616,10 +616,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function showField(callData) {
+                function info(field, pos) {
+                    return {
+                        info: `
+                                ${SIREPO.UTILS.roundToPlaces(field, 3)} 
+                                ${scoreUnits()} at 
+                                (${pos.map(x => x.toLocaleString(undefined, {minimumFractionDigits: 3,}))})cm
+                            `,
+                    };
+                }
+
                 if (vtkScene.renderer !== callData.pokedRenderer) {
                     return;
                 }
-                srdbg(picker.getMapperPosition());
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
                 const cid = picker.getCellId();
@@ -627,10 +636,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     $scope.$broadcast('vtk.selected', null);
                     return;
                 }
-                //srdbg(cid, basePolyData.getCells(), basePolyData.getCells().get());
                 const f = fieldData[Math.floor(cid / 6)];
-                //$scope.$broadcast('vtk.selected', {info: `${f} ${scoreUnits()} (${pos.x}, ${pos.y}, ${pos.z})`});
-                $scope.$broadcast('vtk.selected', {info: `${f} ${scoreUnits()}`});
+                $scope.$broadcast(
+                    'vtk.selected',
+                    info(f, picker.getMapperPosition().map(x => SIREPO.UTILS.roundToPlaces(x, 4)))
+                );
                 colorbarPtr.pointTo(f);
             }
 
