@@ -1,10 +1,14 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
-import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModelsWrapper, ContextLayouts } from "../context";
+import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModelsWrapper, ContextLayouts, ContextReportEventManager } from "../context";
 import { useDependentValues } from "../hook/dependency";
 import { View } from "./layout";
-import { pollRunReport } from "../utility/compute";
+import { cancelReport, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
+import { useStore } from "react-redux";
+import { ProgressBar, Stack, Button } from "react-bootstrap";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import * as Icon from "@fortawesome/free-solid-svg-icons";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
@@ -76,4 +80,105 @@ export class ManualRunReportLayout extends View {
     }
 
 
+}
+
+export class SimulationStartLayout extends View {
+    getFormDependencies = (config) => {
+        return [];
+    }
+
+    component = (props) => {
+        let { config } = props;
+        let { reportName } = config;
+
+        let reportEventManager = useContext(ContextReportEventManager);
+        let appName = useContext(ContextAppName);
+        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
+        let modelsWrapper = useContext(ContextModelsWrapper);
+
+        let store = useStore();
+
+        let [lastSimulationData, updateLastSimulationData] = useState(undefined);
+        let [lastSimulationStartTime, updateLastSimulatonStartTime] = useState(undefined);
+
+        let simulationPollingVersionRef = useRef(uuidv4())
+
+        let startSimulation = () => {
+            updateLastSimulationData(undefined);
+            updateLastSimulatonStartTime(new Date());
+            let pollingVersion = uuidv4();
+            simulationPollingVersionRef.current = pollingVersion;
+
+            reportEventManager.onReportData(reportName, (simulationData) => {
+                if(simulationPollingVersionRef.current === pollingVersion) {
+                    updateLastSimulationData(simulationData);
+                }
+            })
+
+            simulationInfoPromise.then(({simulationId}) => {
+                reportEventManager.startReport({
+                    appName,
+                    models: modelsWrapper.getModels(store.getState()),
+                    simulationId,
+                    report: reportName
+                })
+            })   
+        }
+
+        let endSimulation = () => {
+            updateLastSimulationData(undefined);
+            updateLastSimulatonStartTime(undefined);
+            simulationPollingVersionRef.current = uuidv4();
+
+            simulationInfoPromise.then(({simulationId}) => {
+                cancelReport({
+                    appName,
+                    models: modelsWrapper.getModels(store.getState()),
+                    simulationId,
+                    report: reportName
+                })
+            })   
+        }
+
+        let endSimulationButton = <Button variant="primary" onClick={endSimulation}>End Simulation</Button>;
+        let startSimulationButton = <Button variant="primary" onClick={startSimulation}>Start Simulation</Button>
+
+        if(lastSimulationData) {
+            let { state } = lastSimulationData;
+
+            let getStateBasedElement = (state) => {
+                switch(state) {
+                    case 'pending':
+                        return (
+                            <Stack gap={2}>
+                                <span><FontAwesomeIcon fixedWidth icon={Icon.faHourglass}/>{` Pending...`}</span>
+                                {endSimulationButton}
+                            </Stack>
+                        )
+                    case 'running':
+                        return (
+                            <Stack gap={2}>
+                                <span>{`Running`}</span>
+                                <ProgressBar animated now={100}></ProgressBar>
+                                {endSimulationButton}
+                            </Stack>
+                        )
+                    case 'completed':
+                        let elapsedTimeSeconds = Math.ceil(((new Date()) - lastSimulationStartTime) / 1000)
+                        return (    
+                            <Stack gap={2}>
+                                <span>{'Simulation Completed'}</span>
+                                <span>{`Elapsed time: ${elapsedTimeSeconds} seconds`}</span>
+                                {startSimulationButton}
+                            </Stack>
+                        )
+                }
+            }
+
+            return (
+                <>{getStateBasedElement(state)}</>
+            )
+        }
+        return <>{startSimulationButton}</>
+    }
 }

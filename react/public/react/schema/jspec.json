@@ -662,8 +662,14 @@
                         },
                         {
                             "name": "simulationStatus",
-                            "layout": "TODO",
-                            "title": "Simulation Status"
+                            "layout": "panel",
+                            "title": "Simulation Status",
+                            "basic": [
+                                {
+                                    "layout": "startSimulation",
+                                    "reportName": "animation"
+                                }
+                            ]
                         },
                         {
                             "name": "beamEvolutionAnimation",

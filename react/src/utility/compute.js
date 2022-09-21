@@ -81,3 +81,19 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
 
     doFetch().then(doIteration);
 }
+
+export function cancelReport({ appName, models, simulationId, report }) {
+    return fetch('/run-cancel', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            models,
+            forceRun: false,
+            report,
+            simulationId,
+            simulationType: appName
+        })
+    })
+}

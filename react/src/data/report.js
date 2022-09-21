@@ -6,12 +6,10 @@ export class ReportEventManager {
         this.reportEventListeners = {};
     }
 
-    onReportData = (report) => {
-        return new Promise((resolve, reject) => {
-            let reportListeners = this.reportEventListeners[report] || [];
-            reportListeners.push((simulationData) => resolve(simulationData));
-            this.reportEventListeners[report] = reportListeners;
-        })
+    onReportData = (report, callback) => {
+        let reportListeners = this.reportEventListeners[report] || [];
+        reportListeners.push(callback);
+        this.reportEventListeners[report] = reportListeners;
     }
 
     startReport = ({
