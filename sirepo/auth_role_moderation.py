@@ -46,8 +46,10 @@ class API(sirepo.quest.API):
                     PKDict(
                         app_name=info.app_name,
                         display_name=info.display_name,
-                        link=self.uri_for_app_root(
-                            sirepo.auth_role.sim_type(info.role),
+                        link=self.absolute_uri(
+                            self.uri_for_app_root(
+                                sirepo.auth_role.sim_type(info.role),
+                            ),
                         ),
                     ),
                 ),
@@ -92,9 +94,10 @@ class API(sirepo.quest.API):
             res = sorted(sirepo.feature_config.cfg().sim_types - x)
             return res[0] if res else sorted(x)[0]
 
-rjn: absolute_uri should be a separate call, only needed in a few places. A pain to cascade
         raise sirepo.util.Redirect(
-            sirepo.uri.local_route(_type(), route_name="admRoles", absolute=True)
+            self.absolute_uri(
+                sirepo.uri.local_route(_type(), route_name="admRoles"),
+            ),
         )
 
     @sirepo.quest.Spec("require_adm")
@@ -143,7 +146,7 @@ rjn: absolute_uri should be a separate call, only needed in a few places. A pain
                     f"You've already submitted a moderation request.",
                 )
 
-        l = self.uri_for_api("admModerateRedirect")
+        l = self.absolute_uri(self.uri_for_api("admModerateRedirect"))
         _send_request_email(
             PKDict(
                 display_name=sirepo.auth.user_display_name(self.sreq, u),

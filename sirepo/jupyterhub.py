@@ -83,7 +83,6 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
                     _SIM_TYPE,
                     route_name=e.routeName,
                     params=e.params,
-                    absolute=False,
                 ),
             )
 

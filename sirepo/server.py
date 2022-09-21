@@ -257,7 +257,9 @@ class API(sirepo.quest.API):
             query=m.includeMode and PKDict(application_mode=application_mode),
         )
 
-    @sirepo.quest.Spec("require_user", filename="SimFileName", spec="ApplicationDataSpec")
+    @sirepo.quest.Spec(
+        "require_user", filename="SimFileName", spec="ApplicationDataSpec"
+    )
     def api_getApplicationData(self, filename=None):
         """Get some data from the template
 
@@ -469,9 +471,7 @@ class API(sirepo.quest.API):
             if pkconfig.channel_in("prod", "dev"):
                 u = [
                     self.uri_for_app_root(x)
-                    for x in sorted(
-                        sirepo.feature_config.cfg().sim_types, absolute=False
-                    )
+                    for x in sorted(sirepo.feature_config.cfg().sim_types)
                 ]
             else:
                 u = ["/"]

@@ -27,10 +27,10 @@ def check_authorized_callback(qcall, github_auth=False):
     s = qcall.sreq.cookie.unchecked_remove(_COOKIE_NONCE)
     t = qcall.sreq.cookie.unchecked_remove(_COOKIE_SIM_TYPE)
     assert t
-    c = _client(t, github_auth)
+    c = _client(qcall, t, github_auth)
     try:
         c.fetch_token(
-            authorization_response=qcall.sreq.absolute_uri,
+            authorization_response=qcall.sreq.qcall_uri,
             state=s,
             # SECURITY: This *must* be the grant_type otherwise authlib defaults to
             # client_credentials which just returns details about the oauth client. That response
@@ -40,14 +40,16 @@ def check_authorized_callback(qcall, github_auth=False):
 
         return c, t
     except Exception as e:
-        pkdlog("url={} exception={} stack={}", qcall.sreq.absolute_uri, e, pkdexc())
+        pkdlog("url={} exception={} stack={}", qcall.sreq.qcall_uri, e, pkdexc())
     sirepo.util.raise_forbidden(f"user denied access from sim_type={t}")
 
 
 def raise_authorize_redirect(qcall, sim_type, github_auth=False):
     qcall.sreq.cookie.set_value(_COOKIE_SIM_TYPE, sim_type)
     c = _cfg(sim_type, github_auth)
-    u, s = _client(sim_type, github_auth).create_authorization_url(c.authorize_url)
+    u, s = _client(qcall, sim_type, github_auth).create_authorization_url(
+        c.authorize_url
+    )
     qcall.sreq.cookie.set_value(_COOKIE_NONCE, s)
     raise sirepo.util.Redirect(u)
 
@@ -63,12 +65,13 @@ def _cfg(sim_type, github_auth):
     return sirepo.sim_oauth.import_module(sim_type).cfg
 
 
-def _client(sim_type, github_auth):
+def _client(qcall, sim_type, github_auth):
     """Makes it easier to mock, see github_srunit.py"""
     c = _cfg(sim_type, github_auth)
     return authlib.integrations.requests_client.OAuth2Session(
         c.key,
         c.secret,
-        redirect_uri=c.callback_uri or sirepo.uri_router.uri_for_api(c.callback_api),
+        redirect_uri=c.callback_uri
+        or qcall.absolute_uri(sirepo.uri_router.uri_for_api(c.callback_api)),
         **c,
     )

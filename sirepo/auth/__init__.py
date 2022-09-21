@@ -692,7 +692,7 @@ def user_dir_not_found(user_dir, uid):
             u.delete()
     reset_state()
     raise util.Redirect(
-        sirepo.uri.app_root(absolute=False),
+        sirepo.uri.app_root(),
         "simulation_db dir={} not found, deleted uid={}",
         user_dir,
         uid,

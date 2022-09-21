@@ -240,22 +240,21 @@ def register_api_module(module=None):
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
-def uri_for_api(api_name, params=None, absolute=True):
+def uri_for_api(api_name, params=None):
     """Generate uri for api method
 
     Args:
         api_name (str): full name of api
         params (PKDict): paramters to pass to uri
-        absolute (bool): if True, make the uri absolute [True]
     Returns:
-        str: formmatted absolute URI
+        str: formatted URI
     """
     import flask
 
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
-    s =  qcall.sreq._absolute_root_uri if absolute else "/"
+    s =  "/"
     res = (s + r.base_uri).rstrip("/")
     for p in r.params:
         if p.name in params:
@@ -331,12 +330,12 @@ def _dispatch(path):
                 return call_api(sreq, _route_default, PKDict(path_info=None))
     qcall = route.cls(route=route, kwargs=kwargs)
     qcall.create_sreq(
-        absolute_uri=flask.request.url,
         http_headers=flask.request.headers,
         http_method=flask.request.method,
+        internal_req=flask.request,
+        qcall_uri=flask.request.url,
         remote_addr=flask.request.remote_addr,
-        _internal_req=flask.request,
-        _absolute_root_uri=flask.url_for("_dispatch_empty", _external=True),
+        server_uri=flask.url_for("_dispatch_empty", _external=True),
     ),
 
     import sirepo.auth

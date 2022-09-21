@@ -13,6 +13,17 @@ import sirepo.uri
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
+    def absolute_uri(self, uri):
+        """Convert to an absolute uri
+
+        Args:
+            uri (str): must begin with "/"
+        Returns:
+            str: absolute uri
+        """
+        assert uri[0] == "/"
+        return self.sreq.server_uri + uri[1:]
+
     def create_sreq(self, **kwargs):
         import sirepo.request
 
@@ -99,32 +110,26 @@ class API(pykern.quest.API):
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
-    def uri_for_api(self, api_name, params=None, absolute=True):
+    def uri_for_api(self, api_name, params=None):
         """Generate uri for api method
 
         Args:
             api_name (str): full name of api
             params (PKDict): paramters to pass to uri
-            absolute (bool): if True, make the uri absolute [True]
         Returns:
-            str: formmatted absolute URI
+            str: formmatted URI
         """
-        return uri_router.uri_for_api(
-            api_name=api_name,
-            params=params,
-            absolute=absolute,
-        )
+        return uri_router.uri_for_api(api_name=api_name, params=params)
 
-    def uri_for_app_root(self, sim_type=None, absolute=True):
-        """Return absolute uri for sim_type
+    def uri_for_app_root(self, sim_type=None):
+        """Return uri for sim_type
 
         Args:
             sim_type (str): sim_type (must be defined)
-            absolute (bool): generate uri with host name
         Returns:
             str: uri
         """
-        return sirepo.uri.app_root(self, sim_type=sim_type, absolute=absolute)
+        return sirepo.uri.app_root(self, sim_type=sim_type)
 
     def user_agent_headers(self):
         def _dns_reverse_lookup(ip):
