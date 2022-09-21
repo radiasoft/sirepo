@@ -370,7 +370,6 @@ def _extract_coherent_modes(model, out_info):
     return out_file
 
 def _get_recent(data_filename, backup_data_filename):
-    pkdp("\n\n\n .dat time: {}, .bkp time: {}", os.path.getmtime(data_filename), os.path.getmtime(backup_data_filename))
     if os.path.getmtime(backup_data_filename) > os.path.getmtime(data_filename):
         return PKDict(
             recent=backup_data_filename,
@@ -389,10 +388,9 @@ def _check_backup(animation_meta_data):
     # this would mean it is partially written
     b = animation_meta_data.filename + ".bkp"
     if not pkio.py_path(b).check():
+        pkdp("\n\n\n no .bkp \n\n\n")
         return animation_meta_data.filename
     i = _get_recent(animation_meta_data.filename, b)
-    pkdp("\n\n\n i: {}", i)
-    pkdp("\n\n\n linecounts: {}, {}", len(pkio.read_text(i.recent).splitlines()), len(pkio.read_text(i.old).splitlines()))
     if len(pkio.read_text(i.recent).splitlines()) >= len(pkio.read_text(i.old).splitlines()):
         return i.recent
     return i.old
@@ -411,7 +409,7 @@ def extract_report_data(sim_in):
         return out
     if out.get("check_backup"):
         # TODO (gurhar1133): might want to change this check v.sbatchBackup == '1' or something?
-        # to see if v.
+        # to see if v
         out.filename = _check_backup(out)
         pkdp("\n\n\n out.filename for {} is -> {}", r, out.filename)
     # TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
@@ -619,7 +617,6 @@ def sim_frame(frame_args):
         # some reports may be written at the same time as the reader
         # if the file is invalid, wait a bit and try again
         for i in (1, 2, 3):
-            # TODO (gurhar1133): maybe test here
             try:
                 return extract_report_data(frame_args.sim_in)
             except Exception:
@@ -2326,7 +2323,7 @@ def _set_magnetic_measurement_parameters(run_dir, v):
 
 def _set_parameters(v, data, plot_reports, run_dir):
     # TODO (gurhar1133): undo this later
-    v.sbatchBackup = "1"
+    # v.sbatchBackup = "1"
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
