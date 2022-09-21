@@ -60,7 +60,7 @@ export class AutoRunReportLayout extends View {
 
         return (
             <>
-                {VisualComponent && <VisualComponent config={config} simulationData={simulationData}></VisualComponent>}
+                {VisualComponent && <VisualComponent config={reportLayout} simulationData={simulationData}></VisualComponent>}
             </>
         )
     }

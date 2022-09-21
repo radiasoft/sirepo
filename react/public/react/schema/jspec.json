@@ -494,7 +494,8 @@
                                         "ring.*"
                                     ],
                                     "reportLayout": {
-                                        "layout": "TODO"
+                                        "layout": "table",
+                                        "dataAttributeName": "rate"
                                     }
                                 }
                             ]
