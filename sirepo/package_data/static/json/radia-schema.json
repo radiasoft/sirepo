@@ -9,14 +9,14 @@
         "dataDownloads": {
             "_default": [
                 {
-                    "title": "Save as SDDS",
-                    "suffix": "sdds"
-                }
-            ],
-            "fieldLineoutReport": [
-                {
                     "title": "Save as CSV",
                     "suffix": "csv"
+                }
+            ],
+            "fieldLineoutAnimation": [
+                {
+                    "title": "Save as SDDS",
+                    "suffix": "sdds"
                 },
                 {
                     "title": "Save for SRW import",
@@ -25,8 +25,8 @@
             ],
             "kickMapReport": [
                 {
-                    "title": "Save as Text",
-                    "suffix": "txt"
+                    "title": "Save as SDDS",
+                    "suffix": "sdds"
                 }
             ]
         },
@@ -389,6 +389,7 @@
     },
     "frameIdFields": {
         "solverAnimation": [],
+        "fieldLineoutAnimation": [],
         "magnetViewer": []
     },
     "localRoutes": {
@@ -524,6 +525,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "2",
                         "heightDir": [
                             0,
@@ -545,6 +547,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "3",
                         "heightDir": [
                             0,
@@ -566,6 +569,7 @@
                             1,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "2",
                         "heightDir": [
                             0,
@@ -587,6 +591,7 @@
                             1,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "3",
                         "heightDir": [
                             0,
@@ -667,6 +672,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "heightDir": [
                             0,
                             0,
@@ -694,6 +700,14 @@
             "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 10.0, "", 0.0],
             "gap": ["Gap", "Float", 1.5, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleH"]
+        },
+        "electronTrajectoryReport": {
+            "energy": ["Electron Energy [GeV]", "Float", 1.0, "The sign of the energy determines the direction of the electron along the beam ({{ appState.models.simulation.beamAxis }}) axis"],
+            "initialPosition": ["Starting Position [mm]", "FloatStringArray", "0.0, 0.0, -10.0", "", "x, y, z"],
+            "initialAngles": ["Starting Angles [rad]", "FloatStringArray", "0.0, 0.0", "", "d{{ appState.models.simulation.widthAxis }}/d{{ appState.models.simulation.beamAxis }}, d{{ appState.models.simulation.heightAxis }}/d{{ appState.models.simulation.beamAxis }}"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "finalBeamPosition": ["Final {{ appState.models.simulation.beamAxis }} Position [mm]", "Float", 10.0],
+            "numPoints": ["Num Points", "Integer", 101, "", 2]
         },
         "ell": {
             "_super": ["_", "model", "stemmed"],
@@ -723,13 +737,6 @@
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
-        },
-        "fieldLineoutReport": {
-            "fieldPath": ["_", "model.fieldPath", {}],
-            "fieldPaths": ["Path", "FieldPaths", []],
-            "fieldType": ["Field", "FieldType", "B"],
-            "inProgressText": ["_", "String", "Calculating"],
-            "plotAxis": ["Plot Axis", "BeamAxis", "z"]
         },
         "fieldIntegralReport": {
             "lastCalculated": ["_", "Integer", -1]
@@ -921,6 +928,19 @@
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""]
+        },
+        "fieldLineoutAnimation": {
+            "fieldPath": ["_", "model.fieldPath", {}],
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "fieldType": ["Field", "FieldType", "B"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "tasksPerNode": ["Tasks per node", "Integer", 32],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
@@ -1050,7 +1070,10 @@
     },
     "strings": {
         "completionState": "",
-        "typeOfSimulation": "solve"
+        "typeOfSimulation": "solve",
+        "fieldLineoutAnimation": {
+            "typeOfSimulation": "Field Plot"
+        }
     },
     "view": {
         "axisPath": {
@@ -1166,18 +1189,20 @@
                 ]]
             ]
         },
+        "electronTrajectoryReport": {
+            "title": "Electron Trajectory",
+            "advanced": [
+                "energy",
+                "initialPosition",
+                "initialAngles",
+                "finalBeamPosition",
+                "numPoints"
+            ],
+            "basic": []
+        },
         "fieldIntegralReport": {
             "title": "Field Integrals (T · mm)",
             "advanced": [],
-            "basic": []
-        },
-        "fieldLineoutReport": {
-            "title": "Field on Path",
-            "advanced": [
-                "fieldPaths",
-                "fieldType",
-                "plotAxis"
-            ],
             "basic": []
         },
         "fieldMapPath": {
@@ -1461,6 +1486,15 @@
                 "method"
             ],
             "advanced": []
+        },
+        "fieldLineoutAnimation": {
+            "title": "Field on Path",
+            "basic": [],
+            "advanced": [
+                "fieldPaths",
+                "fieldType",
+                "plotAxis"
+            ]
         },
         "symmetryTransform": {
             "title": "Apply Symmetry",

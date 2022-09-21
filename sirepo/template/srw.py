@@ -460,12 +460,7 @@ def export_rsopt_config(data, filename):
         )
     readme = template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
 
-    with zipfile.ZipFile(
-        fz,
-        mode="w",
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
+    with sirepo.util.write_zip(fz) as z:
         for t in tf:
             z.writestr(tf[t].file, tf[t].content)
         z.writestr(v.readmeFileName, readme)
@@ -2087,7 +2082,10 @@ def _process_image(data, tmp_dir):
 
 def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != "0"]
+    names = []
     for e in x:
+        e.title = _safe_beamline_item_name(e.title, names)
+        names.append(e.title)
         for p in _RSOPT_PARAMS:
             if p in e:
                 e[p].offsets = sirepo.util.split_comma_delimited_string(
@@ -2226,6 +2224,7 @@ def _rsopt_jinja_context(data):
         outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
         randomSeed=model.randomSeed if model.randomSeed is not None else "",
         readmeFileName="README.txt",
+        rsOptCharacteristic=model.characteristic,
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROT,

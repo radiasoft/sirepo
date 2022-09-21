@@ -18,12 +18,12 @@ _DEPENDENT_CODES = [
 #: Codes on prod
 PROD_FOSS_CODES = frozenset(
     (
+        "activait",
         "controls",
         "elegant",
         "genesis",
         "jspec",
         "madx",
-        "ml",
         "opal",
         "radia",
         "shadow",
@@ -167,6 +167,11 @@ def _init():
                 None,
                 _data_dir,
                 "abspath of dir to store raydata analysis output",
+            ),
+            scan_monitor_url=(
+                "http://127.0.0.1:9001/scan-monitor",
+                str,
+                "url to reach scan monitor daemon",
             ),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),

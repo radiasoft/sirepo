@@ -227,37 +227,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         return res;
     }
 
-    function getInitialMonitorPositions() {
-        if (self.simState && self.simState.isProcessing()) {
-            // optimization is running
-            return;
-        }
-        if (! appState.applicationState().externalLattice) {
-            return;
-        }
-        if (controlsService.isDeviceServerReadOnly()) {
-            return;
-        }
-        controlsService.optimizationCost = 0;
-        // don't do a set for DeviceServer unless an element was updated
-        appState.models.initialMonitorPositionsReport.readOnly = controlsService.isDeviceServer()
-            && ! beamlineElementChanged ? '1' : '0';
-        appState.saveQuietly('initialMonitorPositionsReport');
-        beamlineElementChanged = false;
-        controlsService.runningMessage = 'Reading currents and monitors...';
-        panelState.clear('initialMonitorPositionsReport');
-        panelState.requestData(
-            'initialMonitorPositionsReport',
-            data => {
-                controlsService.runningMessage = '';
-                handleElementValues(data, true);
-            },
-            false,
-            err => {
-                controlsService.runningMessage = '';
-            });
-    }
-
     function handleElementValues(data) {
         if (! data.elementValues || data.elementValues.length == 0) {
             return;
@@ -338,11 +307,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             if ($scope.isRunningOptimizer) {
                 $scope.isRunningOptimizer = false;
                 controlsService.runningMessage = '';
-            }
-            else {
-                if (! data.elementValues || ! data.elementValues.length) {
-                    getInitialMonitorPositions();
-                }
+                appState.saveChanges('externalLattice');
             }
         }
         frameCache.setFrameCount(data.frameCount);
@@ -432,7 +397,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         const k = checkModelSet('instrumentAnimation')
               ? []
               : initInstruments();
-        k.push('optimizerSettings', 'externalLattice');
+        appState.models.controlSettings.simMode = 'optimizer';
+        k.push('optimizerSettings', 'externalLattice', 'controlSettings');
         appState.saveChanges(k, self.simState.runSimulation);
     };
 
@@ -448,6 +414,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     $scope.$on('modelChanged', (e, name) => {
         saveLattice(e, name);
         if (controlsService.isQuadOrKicker(name)) {
+            appState.models.controlSettings.simMode = 'singleUpdates';
+            appState.saveQuietly('controlSettings');
             beamlineElementChanged = true;
         }
     });
@@ -465,7 +433,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             }
         }
     });
-    $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
+    $scope.$on('initialMonitorPositionsReport.summaryData', (e, data) => {
+        beamlineElementChanged = false;
+        handleElementValues(data, true);
+    });
     $scope.$on('instrumentAnimationAll.changed', () => {
         if (! self.instrumentAnimations) {
             return;
@@ -851,6 +822,11 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
                 <div data-report-content="parameter" data-model-key="beamPositionAnimation"></div>
               </div>
 
+              <div style="position: relative; margin: 0 -15px; padding: 0" class="col-sm-4 col-xl-5" data-ng-if="hasInitialMonitorPositionsReport()">
+                <h4 style="position: absolute; top: -2%; left: 10%;">Beam Position at Monitors</h4>
+                <div data-report-content="parameter" data-model-key="initialMonitorPositionsReport"></div>
+              </div>
+
             </div>
             `,
         controller: function($scope) {
@@ -1083,8 +1059,14 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
             $scope.destroy = () => $('.sr-lattice-label').off();
 
             $scope.hasBeamPositionAnimation = () => {
-                return appState.applicationState().controlSettings.operationMode === 'DeviceServer'
+                const s = appState.applicationState().controlSettings;
+                return s.operationMode === 'DeviceServer'
+                    && s.simMode == 'optimizer'
                     && frameCache.getFrameCount('beamPositionAnimation');
+            };
+
+            $scope.hasInitialMonitorPositionsReport = () => {
+                return appState.applicationState().controlSettings.simMode == 'singleUpdates';
             };
 
             $scope.hasTwissReport = () => {
@@ -1092,7 +1074,8 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
                     frameCache.setFrameCount(0, 'instrumentAnimationTwiss');
                     return false;
                 }
-                return frameCache.getFrameCount('instrumentAnimationTwiss');
+                return appState.applicationState().controlSettings.simMode == 'optimizer'
+                    && frameCache.getFrameCount('instrumentAnimationTwiss');
             };
 
             $scope.showTwissEditor = () => panelState.showModalEditor('instrumentAnimationTwiss');
@@ -1346,7 +1329,8 @@ SIREPO.app.directive('deviceServerMonitor', function(appState, controlsService) 
         `,
         controller: function($scope) {
             $scope.startMonitor = () => {
-                $scope.simState.runSimulation();
+                appState.models.controlSettings.simMode = 'optimizer';
+                appState.saveChanges('controlSettings', $scope.simState.runSimulation);
             };
 
             $scope.stopMonitor = () => {

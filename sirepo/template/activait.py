@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ML execution template.
+"""Activait execution template.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -310,11 +310,25 @@ def stateless_compute_remote_data_bytes_loaded(data):
     return _remote_data_bytes_loaded(data.filename)
 
 
+def stateless_compute_get_archive_file_list(data):
+    return _archive_file_list(data.filename, data.data_type)
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
+
+
+def _archive_file_list(filename, data_type):
+    reader = sirepo.sim_data.activait.DataReader(_filepath(filename))
+
+    def _filter(item):
+        is_dir = getattr(item, reader.dir_check)()
+        return is_dir if data_type == "image" else not is_dir
+
+    return PKDict(datalist=reader.get_data_list(_filter))
 
 
 def _build_model_py(v):
@@ -496,12 +510,14 @@ def _close_completed_branch(level, cur_node, neural_net):
     )
 
 
-def _cols_with_non_unique_values(filename, has_header_row, header):
+def _cols_with_non_unique_values(data_reader, data_path, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(
-        r"\.npy$", str(filename)
-    ), f"numpy files are not supported path={filename}"
-    v = sirepo.numpy.ndarray_from_csv(_filepath(filename), has_header_row)
+        r"\.npy$", str(data_reader.path.basename)
+    ), f"numpy files are not supported path={data_reader.path.basename}"
+    v = sirepo.numpy.ndarray_from_ctx(
+        data_reader.data_context_manager(data_path), has_header_row
+    )
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
         if c:
@@ -513,16 +529,17 @@ def _compute_column_info(dataFile):
     f = dataFile.file
     if re.search(r"\.npy$", f):
         return _compute_numpy_info(f)
-    return _compute_csv_info(f)
+    return _compute_csv_info(f, dataFile.selectedData)
 
 
-def _compute_csv_info(filename):
+def _compute_csv_info(filename, data_path):
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,
     )
     row = None
-    with open(_filepath(filename)) as f:
+    a = sirepo.sim_data.activait.DataReader(_filepath(filename))
+    with a.data_context_manager(data_path) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -535,7 +552,8 @@ def _compute_csv_info(filename):
         row = ["column {}".format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
     res.colsWithNonUniqueValues = _cols_with_non_unique_values(
-        filename,
+        a,
+        data_path,
         res.hasHeaderRow,
         row,
     )
@@ -769,6 +787,7 @@ def _generate_parameters_file(data):
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
+    v.dataPath = dm.dataFile.selectedData
     v.pkupdate(
         inputDim=dm.columnInfo.inputOutput.count("input"),
         layerImplementationNames=_layer_implementation_list(data),
@@ -915,7 +934,9 @@ def _get_remote_data(url, headers_only):
                     f.write(c)
     except Exception as e:
         return PKDict(error=e)
-    return PKDict(filename=filename)
+    return PKDict(
+        filename=filename,
+    )
 
 
 # if this conversion is not done, the header gets returned as a newline-delimited string

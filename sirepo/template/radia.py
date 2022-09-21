@@ -10,6 +10,7 @@ Radia "instance" goes away and references no longer have any meaning.
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
@@ -18,6 +19,7 @@ from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
 import copy
+import csv
 import h5py
 import math
 import numpy
@@ -31,9 +33,21 @@ import uuid
 _AXES_UNIT = [1, 1, 1]
 
 _AXIS_ROTATIONS = PKDict(
-    x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
-    y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
-    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+    x=PKDict(
+        x=Rotation.identity(),
+        y=Rotation.from_matrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
+        z=Rotation.from_matrix([[0, 0, -1], [0, 1, 0], [1, 0, 0]]),
+    ),
+    y=PKDict(
+        x=Rotation.from_matrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
+        y=Rotation.identity(),
+        z=Rotation.from_matrix([[1, 0, 0], [0, 0, 1], [0, -1, 0]]),
+    ),
+    z=PKDict(
+        x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+        y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+        z=Rotation.identity(),
+    ),
 )
 
 _DIPOLE_NOTES = PKDict(
@@ -59,6 +73,8 @@ _MAGNET_NOTES = PKDict(
     undulator=_UNDULATOR_NOTES,
 )
 
+_MILLIS_TO_METERS = 0.001
+
 # Note that these column names and units are required by elegant
 _FIELD_MAP_COLS = ["x", "y", "z", "Bx", "By", "Bz"]
 _FIELD_MAP_UNITS = ["m", "m", "m", "T", "T", "T"]
@@ -76,11 +92,16 @@ _METHODS = [
     "get_kick_map",
     "save_field",
 ]
-_POST_SIM_REPORTS = ["fieldIntegralReport", "fieldLineoutReport", "kickMapReport"]
+_POST_SIM_REPORTS = [
+    "electronTrajectoryReport",
+    "fieldIntegralReport",
+    "kickMapReport",
+]
 _SIM_REPORTS = ["geometryReport", "reset", "solverAnimation"]
 _REPORTS = [
+    "electronTrajectoryReport",
     "fieldIntegralReport",
-    "fieldLineoutReport",
+    "fieldLineoutAnimation",
     "geometryReport",
     "kickMapReport",
     "reset",
@@ -145,7 +166,7 @@ def extract_report_data(run_dir, sim_in):
         )
         d = _get_geom_data(
             sim_in.models.simulation.simulationId,
-            _get_g_id(),
+            get_g_id(),
             sim_in.models.simulation.name,
             v_type,
             f_type,
@@ -164,21 +185,36 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result(
             _generate_field_integrals(
                 sim_in.models.simulation.simulationId,
-                _get_g_id(),
+                get_g_id(),
                 sim_in.models.fieldPaths.paths or [],
             ),
             run_dir=run_dir,
         )
-    if sim_in.report == "fieldLineoutReport":
+    if sim_in.report == "electronTrajectoryReport":
+        a = sirepo.util.split_comma_delimited_string(
+            sim_in.models.electronTrajectoryReport.initialAngles + ",0",
+            float,
+        )
+        angles = [0, 0, 0]
+        angles[radia_util.axes_index(sim_in.models.simulation.widthAxis)] = a[0]
+        angles[radia_util.axes_index(sim_in.models.simulation.heightAxis)] = a[1]
         template_common.write_sequential_result(
-            _field_lineout_plot(
+            _electron_trajectory_plot(
                 sim_in.models.simulation.simulationId,
-                sim_in.models.simulation.name,
-                sim_in.models.fieldLineoutReport.fieldType,
-                sim_in.models.fieldLineoutReport.fieldPath,
-                sim_in.models.fieldLineoutReport.plotAxis,
-            ),
-            run_dir=run_dir,
+                energy=sim_in.models.electronTrajectoryReport.energy,
+                pos=sirepo.util.split_comma_delimited_string(
+                    sim_in.models.electronTrajectoryReport.initialPosition, float
+                ),
+                angles=angles,
+                y_final=sim_in.models.electronTrajectoryReport.finalBeamPosition,
+                num_points=sim_in.models.electronTrajectoryReport.numPoints,
+                beam_axis=sim_in.models.simulation.beamAxis,
+                width_axis=sim_in.models.simulation.widthAxis,
+                height_axis=sim_in.models.simulation.heightAxis,
+                rotation=_rotate_axis(
+                    to_axis="y", from_axis=sim_in.models.simulation.beamAxis
+                ),
+            )
         )
     if sim_in.report == "extrudedPolyReport":
         template_common.write_sequential_result(
@@ -198,21 +234,28 @@ def get_data_file(run_dir, model, frame, options):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    beam_axis = _AXIS_ROTATIONS[sim.beamAxis]
+    beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
     rpt = data.models[model]
-    default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
-    sfx = options.suffix or default_sfx
+    sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
-    if model == "kickMapReport":
-        km_dict = _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
-        if sfx == "sdds":
-            _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
-        if sfx == "txt":
-            pkio.write_text(f, km_dict.txt)
+    if model == "electronTrajectoryReport":
+        if sfx == "csv":
+            return _save_trajectory_csv(
+                f,
+                beam_axis=sim.beamAxis,
+                output=simulation_db.read_json(
+                    run_dir.join(template_common.OUTPUT_BASE_NAME)
+                ),
+            )
         return f
-    if model == "fieldLineoutReport":
+    if model == "kickMapReport":
+        _save_kick_map_sdds(
+            name, f, _read_or_generate_kick_map(get_g_id(), data.models.kickMapReport)
+        )
+        return f
+    if model == "fieldLineoutAnimation":
         f_type = rpt.fieldType
-        fd = _generate_field_data(sim_id, _get_g_id(), name, f_type, [rpt.fieldPath])
+        fd = generate_field_data(sim_id, get_g_id(), name, f_type, [rpt.fieldPath])
         v = fd.data[0].vectors
         if sfx == "sdds":
             return _save_fm_sdds(name, v, beam_axis, f)
@@ -220,7 +263,11 @@ def get_data_file(run_dir, model, frame, options):
             return _save_field_csv(f_type, v, beam_axis, f)
         if sfx == "zip":
             return _save_field_srw(
-                f_type, data.models.hybridUndulator.gap, v, beam_axis, pkio.py_path(f)
+                f_type,
+                data.models[data.models.simulation.undulatorType].gap,
+                v,
+                beam_axis,
+                pkio.py_path(f),
             )
         return f
 
@@ -261,9 +308,18 @@ def post_execution_processing(
     return template_common.parse_mpi_log(run_dir)
 
 
-def stateful_compute_build_shape_points(data):
-    import csv
+def sim_frame_fieldLineoutAnimation(frame_args):
+    return _field_lineout_plot(
+        frame_args.sim_in.models.simulation.simulationId,
+        frame_args.sim_in.models.simulation.name,
+        frame_args.sim_in.models.fieldLineoutAnimation.fieldType,
+        frame_args.sim_in.models.fieldLineoutAnimation.fieldPath,
+        frame_args.sim_in.models.fieldLineoutAnimation.plotAxis,
+        field_data=pkjson.load_any(pkio.py_path("field_data.json")),
+    )
 
+
+def stateful_compute_build_shape_points(data):
     pts = []
     with open(
         _SIM_DATA.lib_file_abspath(
@@ -553,11 +609,43 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
+def _electron_trajectory_plot(sim_id, **kwargs):
+    d = PKDict(kwargs)
+    t = _generate_electron_trajectory(sim_id, get_g_id(), **kwargs)
+    pts = (0.001 * t[radia_util.axes_index(d.beam_axis)]).tolist()
+    plots = []
+    a = [d.width_axis, d.height_axis]
+    for i in range(2):
+        plots.append(
+            PKDict(
+                points=(0.001 * t[radia_util.axes_index(a[i])]).tolist(),
+                label=f"{a[i]}",
+                style="line",
+            )
+        )
+
+    return template_common.parameter_plot(
+        pts,
+        plots,
+        PKDict(),
+        PKDict(
+            title=f"{d.energy} GeV",
+            y_label="Position [m]",
+            x_label=f"{d.beam_axis} [m]",
+            summaryData=PKDict(),
+        ),
+    )
+
+
+def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
-        _generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path])
-        .data[0]
-        .vectors
+        field_data
+        if field_data
+        else (
+            generate_field_data(sim_id, get_g_id(), name, f_type, [f_path])
+            .data[0]
+            .vectors
+        )
     )
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
@@ -573,7 +661,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
             )
         )
     return template_common.parameter_plot(
-        pts[:, radia_util.AXES.index(plot_axis)].tolist(),
+        pts[:, radia_util.axes_index(plot_axis)].tolist(),
         plots,
         PKDict(),
         PKDict(
@@ -624,7 +712,14 @@ def _fit_poles_in_h_bend(**kwargs):
     return s, c
 
 
-def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
+def _generate_electron_trajectory(sim_id, g_id, **kwargs):
+    try:
+        return radia_util.get_electron_trajectory(g_id, **kwargs)
+    except RuntimeError as e:
+        _backend_alert(sim_id, g_id, e)
+
+
+def generate_field_data(sim_id, g_id, name, field_type, field_paths):
     assert (
         field_type in radia_util.FIELD_TYPES
     ), "field_type={}: invalid field type".format(field_type)
@@ -664,7 +759,7 @@ def _generate_data(sim_id, g_id, name, view_type, field_type, field_paths=None):
         if view_type == SCHEMA.constants.viewTypeObjects:
             return o
         elif view_type == SCHEMA.constants.viewTypeFields:
-            g = _generate_field_data(sim_id, g_id, name, field_type, field_paths)
+            g = generate_field_data(sim_id, g_id, name, field_type, field_paths)
             _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
@@ -697,6 +792,18 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     report = data.get("report", "")
     rpt_out = f"{_REPORT_RES_MAP.get(report, report)}"
     res, v = template_common.generate_parameters_file(data)
+    if report == "fieldLineoutAnimation":
+        v.sim_id = data.models.simulation.simulationId
+        v.name = data.models.simulation.name
+        v.f_type = data.models.fieldLineoutAnimation.fieldType
+        v.f_path = data.models.fieldLineoutAnimation.fieldPath
+        return template_common.render_jinja(
+            SIM_TYPE,
+            v,
+            f"{rpt_out}.py",
+            jinja_env=PKDict(loader=jinja2.PackageLoader("sirepo", "template")),
+        )
+
     if rpt_out in _POST_SIM_REPORTS:
         return res
 
@@ -891,7 +998,7 @@ def _get_ell_points(o, stemmed_info):
     )
 
 
-def _get_g_id():
+def get_g_id():
     return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
 
@@ -906,7 +1013,7 @@ def _get_geom_data(
 ):
     assert view_type in VIEW_TYPES, "view_type={}: invalid view type".format(view_type)
     if view_type == SCHEMA.constants.viewTypeFields:
-        res = _generate_field_data(sim_id, g_id, name, field_type, field_paths)
+        res = generate_field_data(sim_id, g_id, name, field_type, field_paths)
         res.data += _get_geom_data(
             sim_id,
             g_id,
@@ -987,7 +1094,7 @@ def _get_sdds(cols, units):
 def _kick_map_plot(model):
     from sirepo import srschema
 
-    g_id = _get_g_id()
+    g_id = get_g_id()
     component = model.component
     km = _generate_kick_map(g_id, model)
     if not km:
@@ -1027,6 +1134,11 @@ def _parse_input_file_arg_str(s):
 
 
 def _prep_new_sim(data, new_sim_data=None):
+    def _electron_initial_pos(axis, factor):
+        return sirepo.util.to_comma_delimited_string(
+            factor * radia_util.AXIS_VECTORS[axis]
+        )
+
     data.models.geometryReport.name = data.models.simulation.name
     if new_sim_data is None:
         return
@@ -1036,16 +1148,23 @@ def _prep_new_sim(data, new_sim_data=None):
     s = new_sim_data[f"{t}Type"]
     m = data.models[s]
     data.models.simulation.notes = _MAGNET_NOTES[t][s]
+    data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
+        new_sim_data.beamAxis,
+        -1.0,
+    )
+    data.models.fieldLineoutAnimation.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
     data.models.simulation.coordinateSystem = "beam"
     if s == "undulatorBasic":
         data.models.geometryReport.isSolvable = "0"
-    data.models.fieldPaths.paths.append(
-        _build_field_axis(
-            3 * (m.numPeriods + 0.5) * m.periodLength, new_sim_data.beamAxis
-        )
+    f = (m.numPeriods + 0.5) * m.periodLength
+    data.models.fieldPaths.paths.append(_build_field_axis(3 * f, new_sim_data.beamAxis))
+    data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
+        new_sim_data.beamAxis,
+        -f,
     )
+    data.models.electronTrajectoryReport.finalBeamPosition = f
     data.models.simulation.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
 
@@ -1120,7 +1239,7 @@ def _read_or_generate_kick_map(g_id, data):
     res = _read_kick_map()
     if res:
         return res
-    return _generate_kick_map(g_id, data.model)
+    return _generate_kick_map(g_id, data)
 
 
 def _read_solution():
@@ -1133,9 +1252,13 @@ def _read_solution():
     return PKDict(steps=s[3], time=s[0], maxM=s[1], maxH=s[2])
 
 
+def _rotate_axis(to_axis="z", from_axis="x"):
+    return _AXIS_ROTATIONS[to_axis][from_axis]
+
+
 # mm -> m, rotate so the beam axis is aligned with z
 def _rotate_fields(vectors, scipy_rotation, do_flatten):
-    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
+    pts = _MILLIS_TO_METERS * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
     mags = numpy.array(vectors.magnitudes)
     dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
     if do_flatten:
@@ -1164,8 +1287,6 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 # zip file - data plus index.  This will likely be used to generate files for a range
 # of gaps later
 def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
-    import zipfile
-
     # no whitespace in filenames
     base_name = re.sub(r"\s", "_", path.purebasename)
     data_path = path.dirpath().join(f"{base_name}_{gap}.dat")
@@ -1198,12 +1319,7 @@ def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
     files = [data_path, index_path]
 
     # zip file
-    with zipfile.ZipFile(
-        str(path),
-        mode="w",
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
+    with sirepo.util.write_zip(str(path)) as z:
         for f in files:
             z.write(str(f), f.basename)
 
@@ -1229,32 +1345,38 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     return path
 
 
-def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
+def _save_kick_map_sdds(name, path, km_data):
     s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
     s.setDescription(f"Kick Map for {name}", "x(m), y(m), h(T2m2), v(T2m2)")
-    col_data = []
-    x = []
-    y = []
-    h = []
-    v = []
-    # TODO: better way to do this...
-    for i in range(len(x_vals)):
-        for j in range(len(x_vals)):
-            x.append(0.001 * x_vals[j])
-    for i in range(len(y_vals)):
-        for j in range(len(y_vals)):
-            y.append(0.001 * y_vals[i])
-    for i in range(len(x_vals)):
-        for j in range(len(y_vals)):
-            h.append(h_vals[i][j])
-            v.append(v_vals[i][j])
-    col_data.append([x])
-    col_data.append([y])
-    col_data.append([h])
-    col_data.append([v])
+    col_data = [
+        [
+            numpy.tile(
+                _MILLIS_TO_METERS * numpy.array(km_data.x), len(km_data.x)
+            ).tolist()
+        ],
+        [
+            numpy.repeat(
+                _MILLIS_TO_METERS * numpy.array(km_data.y), len(km_data.y)
+            ).tolist()
+        ],
+        [numpy.array(km_data.h).flatten().tolist()],
+        [numpy.array(km_data.v).flatten().tolist()],
+    ]
     for i, n in enumerate(_KICK_MAP_COLS):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
+    return path
+
+
+def _save_trajectory_csv(path, **kwargs):
+    d = PKDict(kwargs)
+    data = d.output
+    with open(path, "w") as f:
+        out = csv.writer(f)
+        out.writerow([d.beam_axis] + [p.label for p in data.plots])
+        out.writerows(
+            numpy.array([data.x_points] + [p.points for p in data.plots]).T.tolist()
+        )
     return path
 
 

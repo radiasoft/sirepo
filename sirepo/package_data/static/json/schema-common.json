@@ -4,6 +4,10 @@
             "longName": "MyApp",
             "shortName": "MyApp"
         },
+        "activait": {
+            "longName": "Activait",
+            "shortName": "Activait"
+        },
         "controls": {
             "longName": "Controls",
             "shortName": "Controls"
@@ -39,10 +43,6 @@
         "madx": {
             "longName": "MAD-X",
             "shortName": "MAD-X"
-        },
-        "ml": {
-            "longName": "Activait",
-            "shortName": "Activait"
         },
         "opal": {
             "longName": "OPAL",
@@ -103,6 +103,7 @@
     },
     "rootRedirectUri": {
         "fete": "/warpvnd",
+        "ml": "/activait",
         "plans": "/en/plans.html",
         "warp": "/warppba"
     },

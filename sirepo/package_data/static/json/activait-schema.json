@@ -41,6 +41,16 @@
             ["output", "Output"],
             ["none", "None"]
         ],
+        "Interpolation": [
+            ["area", "Area"],
+            ["bicubic", "Bicubic"],
+            ["bilinear", "Bilinear"],
+            ["gaussian", "Gaussian"],
+            ["lanczos3", "Lanczos3"],
+            ["lanczos5", "Lanczos5"],
+            ["mitchellcubic", "Mitchell Cubic"],
+            ["nearest", "Nearest"]
+        ],
         "MLModule": [
             ["neuralnet", "Neural Network"],
             ["modelFile", "From Model Archive File"]
@@ -104,6 +114,10 @@
             ["adamax", "Adamax"],
             ["nadam", "Nesterov Adam"]
         ],
+        "Padding": [
+            ["same", "Pad with zeros (same)"],
+            ["valid", "No padding (valid)"]
+        ],
         "PartitionSection": [
             ["train", "Training"],
             ["test", "Testing"],
@@ -135,10 +149,10 @@
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
-                "ml.js"
+                "activait.js"
             ],
             "css": [
-                "ml.css"
+                "activait.css"
             ]
         }
     },
@@ -147,35 +161,35 @@
             "route": "/data/:simulationId",
             "config": {
                 "controller": "DataController as data",
-                "templateUrl": "/static/html/ml-data.html"
+                "templateUrl": "/static/html/activait-data.html"
             }
         },
         "analysis": {
             "route": "/analysis/:simulationId",
             "config": {
                 "controller": "AnalysisController as analysis",
-                "templateUrl": "/static/html/ml-analysis.html"
+                "templateUrl": "/static/html/activait-analysis.html"
             }
         },
         "partition": {
             "route": "/partition/:simulationId",
             "config": {
                 "controller": "PartitionController as partition",
-                "templateUrl": "/static/html/ml-partition.html"
+                "templateUrl": "/static/html/activait-partition.html"
             }
         },
         "regression": {
             "route": "/regression/:simulationId",
             "config": {
               "controller": "RegressionController as regression",
-                "templateUrl": "/static/html/ml-regression.html"
+                "templateUrl": "/static/html/activait-regression.html"
             }
         },
         "classification": {
             "route": "/classification/:simulationId",
             "config": {
               "controller": "ClassificationController as classification",
-              "templateUrl": "/static/html/ml-classification.html"
+              "templateUrl": "/static/html/activait-classification.html"
             }
         }
     },
@@ -278,10 +292,14 @@
             "dataOrigin": ["Data Origin", "DataOrigin", "file"],
             "dataFormat": ["Data Format", "DataFormat", "text"],
             "file": ["Data File", "InputFile"],
+            "dataList": ["Data", "DataList", []],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
+            "selectedData": ["_", "String", ""],
             "url": ["Data URL", "URL", ""]
         },
+        "dataFileCache": {},
+        "dataPathInfo": {},
         "dtClassifierClassificationMetricsAnimation": {},
         "dtClassifierConfusionMatrixAnimation": {
             "colorMap": ["Color Map", "ColorMap", "blues"]
@@ -373,7 +391,7 @@
             "layer": ["Layer", "NeuralNetLayer", "Conv2D"],
             "kernel" : ["Kernel Size", "Integer", 3],
             "strides": ["Strides", "Integer", 1],
-            "padding": ["Padding", "String", "same"]
+            "padding": ["Padding", "Padding", "valid"]
         },
         "conv2DTranspose": {
             "_super": ["-", "model", "conv2D"],
@@ -407,7 +425,7 @@
         "poolingLayer": {
             "size": ["Pool Size", "Integer", 2],
             "strides": ["Strides", "Integer", 1],
-            "padding": ["Padding", "String", "same"]
+            "padding": ["Padding", "Padding", "valid"]
         },
         "separableConv2D": {
             "_super": ["-", "model", "conv2D"],
@@ -416,7 +434,7 @@
         "upSampling2D": {
             "layer": ["layer", "NeuralNetLayer", "UpSampling2D"],
             "size": ["Size", "Integer", 2],
-            "interpolation": ["Interpolation", "String", "nearest"]
+            "interpolation": ["Interpolation", "Interpolation", "nearest"]
         },
         "zeroPadding2D": {
             "layer": ["layer", "NeuralNetLayer", "ZeroPadding2D"],
@@ -437,7 +455,8 @@
         },
         "partitionColumnReport": {},
         "partitionSelectionReport": {},
-        "simulationStatus": {}
+        "simulationStatus": {},
+        "urlCache": {}
     },
     "strings": {
         "completionState": ": {frameCount} epochs",
@@ -446,6 +465,19 @@
         "typeOfSimulation": "training"
     },
     "view": {
+        "activation": {
+            "columns": [
+                "activation"
+            ]
+        },
+        "add": {
+            "columns": []
+        },
+        "alphaDropout": {
+            "columns": [
+                "dropoutRate"
+            ]
+        },
         "analysisCluster": {
             "model": "analysisReport",
             "basic": [
@@ -507,10 +539,43 @@
             ],
             "advanced": []
         },
+        "averagePooling2D": {
+            "columns": [
+                "size",
+                "strides",
+                "padding"
+            ]
+        },
+        "batchNormalization": {
+            "columns": [
+                "momentum"
+            ]
+        },
         "columnChooser": {
             "title": "Columns",
             "basic": [],
             "advanced": []
+        },
+        "concatenate": {
+            "columns": []
+        },
+        "conv2D": {
+            "columns": [
+                "dimensionality",
+                "kernel",
+                "strides",
+                "padding",
+                "activation"
+            ]
+        },
+        "conv2DTranspose": {
+            "columns": [
+                "dimensionality",
+                "kernel",
+                "strides",
+                "padding",
+                "activation"
+            ]
         },
         "dataFile": {
             "title": "Data Source",
@@ -519,6 +584,7 @@
                 "dataOrigin",
                 "file",
                 "url",
+                "dataList",
                 "dataFormat",
                 "inputsScaler",
                 "outputsScaler"
@@ -534,6 +600,17 @@
             "basic": [],
             "advanced": [
                 "colorMap"
+            ]
+        },
+        "dense": {
+            "columns": [
+                "dimensionality",
+                "activation"
+            ]
+        },
+        "dropout": {
+            "columns": [
+                "dropoutRate"
             ]
         },
         "epochAnimation": {
@@ -556,6 +633,22 @@
         "fitAnimation": {
             "title": "Column",
             "advanced": []
+        },
+        "flatten": {
+            "columns": []
+        },
+        "gaussianDropout": {
+            "columns": [
+                "dropoutRate"
+            ]
+        },
+        "gaussianNoise": {
+            "columns": [
+                "stddev"
+            ]
+        },
+        "globalAveragePooling2D": {
+            "columns": []
         },
         "knnClassificationMetricsAnimation": {
             "title": "KNN Classification Metrics",
@@ -598,6 +691,13 @@
         "logisticRegressionErrorRateAnimation": {
             "title": "Logistic Regression Error Rate",
             "advanced": []
+        },
+        "maxPooling2D": {
+            "columns": [
+                "size",
+                "strides",
+                "padding"
+            ]
         },
         "mlModel": {
             "title": "Model",
@@ -642,6 +742,20 @@
             "title": "Partition Selection",
             "advanced": []
         },
+        "pathChooser": {
+            "title": "Data Paths",
+            "basic": [],
+            "advanced": []
+        },
+        "separableConv2D": {
+            "columns": [
+                "dimensionality",
+                "kernel",
+                "strides",
+                "padding",
+                "activation"
+            ]
+        },
         "simulationSettings": {
             "title": "Training Settings",
             "basic": [
@@ -660,6 +774,17 @@
         "simulationStatus": {
             "title": "Execution Status",
             "advanced": []
+        },
+        "upSampling2D": {
+            "columns": [
+                "size",
+                "interpolation"
+            ]
+        },
+        "zeroPadding2D": {
+            "columns": [
+                "padding"
+            ]
         }
     }
 }

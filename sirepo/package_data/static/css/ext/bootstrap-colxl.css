@@ -165,6 +165,13 @@
   .col-xl-offset-0 {
     margin-left: 0;
   }
+  tr.visible-xl {
+    display: table-row !important;
+  }
+  th.visible-xl,
+  td.visible-xl {
+    display: table-cell !important;
+  }
 }
 
 .visible-xxl {
@@ -332,5 +339,12 @@
   }
   .col-xxl-offset-0 {
     margin-left: 0;
+  }
+  tr.visible-xxl {
+    display: table-row !important;
+  }
+  th.visible-xxl,
+  td.visible-xxl {
+    display: table-cell !important;
   }
 }

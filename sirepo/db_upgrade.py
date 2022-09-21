@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
 import os
+import shutil
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.job
@@ -186,6 +187,11 @@ def _20220609_add_expiration_column_to_user_role_t():
     )
 
 
+def _20220901_migrate_ml_to_activait():
+    for u in sirepo.auth_db.all_uids():
+        _migrate_sim_type("ml", "activait", uid=u)
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"
@@ -197,6 +203,32 @@ def _backup_db_and_prevent_upgrade_on_error():
         pkdlog("original db={}", b)
         _prevent_db_upgrade_file().ensure()
         raise
+
+
+def _migrate_sim_type(old_sim_type, new_sim_type, uid=None):
+    if uid is None:
+        return
+    # can't use simulation_dir (or simulation_lib_dir) because the old sim doesn't exist
+    old_sim_dir = sirepo.simulation_db.user_path(uid).join(old_sim_type)
+    if not old_sim_dir.exists():
+        return
+    new_sim_dir = sirepo.simulation_db.simulation_dir(new_sim_type, uid=uid)
+    new_lib_dir = sirepo.simulation_db.simulation_lib_dir(new_sim_type, uid=uid)
+    with sirepo.util.THREAD_LOCK:
+        for p in pkio.sorted_glob(old_sim_dir.join("lib").join("*")):
+            shutil.copy2(p, new_lib_dir.join(p.basename))
+        for p in pkio.sorted_glob(
+            old_sim_dir.join("*", sirepo.simulation_db.SIMULATION_DATA_FILE)
+        ):
+            data = sirepo.simulation_db.read_json(p)
+            sim = data.models.simulation
+            if sim.get("isExample"):
+                continue
+            new_p = new_sim_dir.join(sirepo.simulation_db.sim_from_path(p)[0])
+            if new_p.exists():
+                continue
+            pkio.mkdir_parent(new_p)
+            shutil.copy2(p, new_p.join(sirepo.simulation_db.SIMULATION_DATA_FILE))
 
 
 def _prevent_db_upgrade_file():

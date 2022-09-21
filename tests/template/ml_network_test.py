@@ -5,7 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import sirepo.template.ml
+import sirepo.template.activait
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern.pkcollections import PKDict
@@ -17,4 +17,4 @@ def test_data_to_python():
 
     for d in pkunit.case_dirs():
         i = pkjson.load_any(d.join("net.json"))
-        pkio.write_text("net.py", sirepo.template.ml._build_model_py(i))
+        pkio.write_text("net.py", sirepo.template.activait._build_model_py(i))

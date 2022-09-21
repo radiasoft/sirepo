@@ -4,15 +4,17 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import glob
-from pykern import pkcompat
+from pykern import pkcompat, pkjson
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog, pkdformat
+from pykern.pkdebug import pkdp, pkdlog, pkdformat, pkdexc
 from sirepo.template import template_common
 import base64
 import databroker
 import databroker.queries
+import glob
+import requests
+import requests.exceptions
 import sirepo.feature_config
 import sirepo.sim_data
 import sirepo.simulation_db
@@ -32,6 +34,17 @@ _NON_DISPLAY_SCAN_FIELDS = "uid"
 _OUTPUT_FILE = "out.ipynb"
 
 _BLUESKY_POLL_TIME_FILE = "bluesky-poll-time.txt"
+
+# TODO(rorour): replace with actual scans
+class ScanObject(PKDict):
+    def __init__(self, uid=""):
+        self.uid = uid
+        self.metadata = {
+            "field1": "val1",
+            "num_points": "1",
+            "start": {"time": "000", "uid": uid, "num_points": "2"},
+            "stop": {"time": "001"},
+        }
 
 
 def analysis_job_output_files(data):
@@ -55,29 +68,7 @@ def analysis_job_output_files(data):
 
 
 def background_percent_complete(report, run_dir, is_running):
-    r = PKDict(percentComplete=0 if is_running else 100)
-    if report != "pollBlueskyForScansAnimation":
-        return r
-    d = sirepo.simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    try:
-        t = float(pkio.read_text(run_dir.join(_BLUESKY_POLL_TIME_FILE)).strip())
-    except Exception as e:
-        if not pkio.exception_is_not_found(e):
-            raise
-        t = d.models.pollBlueskyForScansAnimation.start
-
-    s = []
-    for k, v in catalog(d.models.scans).search({"time": {"$gte": t}}).items():
-        t = max(t, v.metadata["start"]["time"])
-        s.append(
-            _scan_info(
-                k,
-                d.models.scans,
-                metadata=v.metadata,
-            )
-        )
-    pkio.atomic_write(run_dir.join(_BLUESKY_POLL_TIME_FILE), t)
-    return r.pkupdate(**_scan_info_result(s).data)
+    return PKDict(percentComplete=0 if is_running else 100)
 
 
 def catalog(scans_data_or_catalog_name):
@@ -91,6 +82,39 @@ def catalog(scans_data_or_catalog_name):
     ]
 
 
+def stateless_compute_catalog_names(data):
+    return PKDict(
+        data=PKDict(
+            catalogs=[str(s) for s in databroker.catalog.keys()],
+        )
+    )
+
+
+def stateless_compute_scans(data):
+    # TODO(e-carlin): get scans from daemon
+    l = []
+    if data.scansStatus == "completed_scans":
+        assert data.searchStartTime and data.searchStopTime, pkdformat(
+            "must have both searchStartTime and searchStopTime data={}", data
+        )
+        l = [ScanObject("uid1"), ScanObject("uid2"), ScanObject("uid3")]
+    elif data.scansStatus == "queued_scans":
+        l = _request_scan_monitor(
+            PKDict(method="queued_analyses", catalog_name=data.catalogName)
+        ).scans
+    else:
+        raise AssertionError("unrecognized scanStatus={data.scanStatus}")
+
+    s = []
+    for i, v in enumerate(l):
+        if i > _MAX_NUM_SCANS:
+            raise sirepo.util.UserAlert(
+                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
+            )
+        s.append(_scan_info(v.uid, data))
+    return _scan_info_result(s)
+
+
 def stateless_compute_scan_fields(data):
     return PKDict(columns=list(catalog(data)[-1].metadata["start"].keys()))
 
@@ -99,35 +123,8 @@ def stateless_compute_scan_info(data):
     return _scan_info_result([_scan_info(s, data) for s in data.scans])
 
 
-def stateless_compute_scans(data):
-    assert data.searchStartTime and data.searchStopTime, pkdformat(
-        "must have both searchStartTime and searchStopTime data={}", data
-    )
-    s = []
-    for i, v in enumerate(
-        catalog(data)
-        .search(
-            databroker.queries.TimeRange(
-                since=data.searchStartTime,
-                until=data.searchStopTime,
-                timezone="utc",
-            )
-        )
-        .items()
-    ):
-        if i > _MAX_NUM_SCANS:
-            raise sirepo.util.UserAlert(
-                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
-            )
-        s.append(_scan_info(v[0], data, metadata=v[1].metadata))
-    return _scan_info_result(s)
-
-
 def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, run_dir),
-    )
+    raise NotImplementedError("Raydata does not run simulations")
 
 
 def _dir_for_scan_uuid(scan_uuid):
@@ -136,38 +133,24 @@ def _dir_for_scan_uuid(scan_uuid):
     )
 
 
-def _generate_parameters_file(data, run_dir):
-    if data.get("report") == "pollBlueskyForScansAnimation":
-        return template_common.render_jinja(
-            SIM_TYPE,
-            PKDict(poll_secs=data.models.pollBlueskyForScansAnimation.minutes * 60),
-            "poll_bluesky.py",
+def _request_scan_monitor(data):
+    try:
+        r = requests.post(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).scan_monitor_url,
+            json=data,
         )
-    s = _parse_scan_uuid(data)
-    m = (
-        run_dir.join(
-            _SIM_DATA.lib_file_name_with_model_field(
-                "inputFiles",
-                "mask",
-                data.models.inputFiles.mask,
-            )
+        r.raise_for_status()
+    except requests.exceptions.ConnectionError as e:
+        raise sirepo.util.UserAlert(
+            "Could not connect to scan monitor. Please contact an administrator.",
+            "could not connect to scan monitor error={} stack={}",
+            e,
+            pkdexc(),
         )
-        if data.models.inputFiles.mask
-        else ""
-    )
-    return template_common.render_jinja(
-        SIM_TYPE,
-        PKDict(
-            input_name=run_dir.join(_SIM_DATA.raydata_notebook_zip_filename(data)),
-            mask_path=m,
-            output_name=_OUTPUT_FILE,
-            scan_dir=_dir_for_scan_uuid(s),
-            scan_uuid=s,
-        ),
-    )
+    return pkjson.load_any(r.content)
 
 
-def _scan_info(scan_uuid, scans_data, metadata=None):
+def _scan_info(scan_uuid, scans_data):
     def _get_start(metadata):
         return metadata["start"]["time"]
 
@@ -177,15 +160,13 @@ def _scan_info(scan_uuid, scans_data, metadata=None):
     def _get_suid(metadata):
         return _suid(metadata["start"]["uid"])
 
-    m = metadata
-    if not m:
-        m = catalog(scans_data)[scan_uuid].metadata
+    m = catalog(scans_data)[scan_uuid].metadata
     # POSIT: uid is no displayed but all of the code expects uid field to exist
     d = PKDict(uid=scan_uuid)
     for c in _DEFAULT_COLUMNS:
         d[c] = locals()[f"_get_{c}"](m)
 
-    for c in scans_data.selectedColumns:
+    for c in scans_data.get("selectedColumns", []):
         d[c] = m["start"].get(c)
     return d
 

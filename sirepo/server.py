@@ -60,6 +60,9 @@ _ROBOTS_TXT = None
 #: Global app value (only here so instance not lost)
 _app = None
 
+#: See `_proxy_react`
+_PROXY_REACT_URIS = None
+
 
 class API(sirepo.api.Base):
     @sirepo.api.Spec("require_user", sid="SimId")
@@ -670,16 +673,11 @@ class API(sirepo.api.Base):
         )
 
     def _proxy_react(self, path):
-        if not cfg.react_server:
+        if not cfg.react_server or path not in _PROXY_REACT_URIS:
             return
-        if path is not None and path not in (
-            "manifest.json",
-            "myapp-schema.json",
-            "static/js/bundle.js",
-            "static/js/bundle.js.map",
-        ):
-            return
-        r = requests.get(cfg.react_server + (path or ""))
+        if path in cfg.react_sim_types:
+            path = ""
+        r = requests.get(cfg.react_server + path)
         # We want to throw an exception here, because it shouldn't happen
         r.raise_for_status()
         raise sirepo.util.Response(self.reply_as_proxy(r))
@@ -722,6 +720,17 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     _app.config["PROPAGATE_EXCEPTIONS"] = True
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
+    if cfg.react_server:
+        global _PROXY_REACT_URIS
+        p = [
+            "manifest.json",
+            "static/js/bundle.js",
+            "static/js/bundle.js.map",
+        ]
+        for x in cfg.react_sim_types:
+            p.append(x)
+            p.append(f"{x}-schema.json")
+        _PROXY_REACT_URIS = set(p)
     uri_router.init(_app, simulation_db)
     if is_server:
         sirepo.db_upgrade.do_all()
@@ -818,4 +827,5 @@ cfg = pkconfig.init(
     google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
     react_server=(None, _cfg_react_server, "Base URL of npm start server"),
+    react_sim_types=(("myapp",), set, "React apps"),
 )

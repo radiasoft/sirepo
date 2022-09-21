@@ -14,7 +14,7 @@ def _skip():
     try:
         requests.get(sirepo.crystal.X0H_SERVER, timeout=2)
         return False
-    except requests.exceptions.ConnectTimeout:
+    except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout):
         return True
     except Exception as e:
         raise AssertionError(

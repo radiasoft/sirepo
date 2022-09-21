@@ -27,9 +27,9 @@ def main():
         )
         param_vals.append(r["x"])
     with h5py.File("results.h5", "w") as f:
-        f.create_dataset("params", data=[{{ rsOptFuctionSignature(true) }}])
-        f.create_dataset("paramVals", data=param_vals)
-        f.create_dataset("beamIntensities", data=beams)
+        m = f.create_dataset("metadata", data=param_vals)
+        m.attrs.create("parameters",  [{{ rsOptFuctionSignature(true) }}])
+        f.create_dataset("images", data=beams)
 
 
 if __name__ == "__main__":
