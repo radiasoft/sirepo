@@ -461,6 +461,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 }
                 basePolyData.getPoints().setData(new window.Float32Array(points), 3);
                 basePolyData.getPolys().setData(new window.Uint32Array(polys));
+                basePolyData.buildCells();
 
                 tallyBundle = coordMapper.buildPolyData(
                     basePolyData,
@@ -618,7 +619,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 if (vtkScene.renderer !== callData.pokedRenderer) {
                     return;
                 }
-                //srdbg(picker.getPickPosition());
+                srdbg(picker.getMapperPosition());
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
                 const cid = picker.getCellId();
@@ -626,6 +627,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     $scope.$broadcast('vtk.selected', null);
                     return;
                 }
+                //srdbg(cid, basePolyData.getCells(), basePolyData.getCells().get());
                 const f = fieldData[Math.floor(cid / 6)];
                 //$scope.$broadcast('vtk.selected', {info: `${f} ${scoreUnits()} (${pos.x}, ${pos.y}, ${pos.z})`});
                 $scope.$broadcast('vtk.selected', {info: `${f} ${scoreUnits()}`});
