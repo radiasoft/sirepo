@@ -2324,8 +2324,6 @@ def _set_magnetic_measurement_parameters(run_dir, v):
 
 
 def _set_parameters(v, data, plot_reports, run_dir):
-    # TODO (gurhar1133): undo this later
-    # v.sbatchBackup = "1"
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
