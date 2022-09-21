@@ -12,6 +12,7 @@ export function FieldInput(props) {
         console.log("field.value.value", field.value.value);
         console.log("nextValue", nextValue);
         if (field.value.value !== nextValue) { // TODO fix field.value.value naming
+            console.log("field value mismatch, updating");
             field.updateValue(nextValue);
         }
     }
