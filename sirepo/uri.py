@@ -16,6 +16,8 @@ PARAM_RE = r"([\?\*]?)<{}>"
 #: optional parameter that consumes rest of parameters
 PATH_INFO_CHAR = "*"
 
+# TODO(robnagler): make class that gets returned
+
 
 def app_root(qcall, sim_type=None):
     """Generate uri for application root
