@@ -52,7 +52,8 @@
             ["nearest", "Nearest"]
         ],
         "MLModule": [
-            ["neuralnet", "Neural Network"]
+            ["neuralnet", "Neural Network"],
+            ["modelFile", "From Model Archive File"]
         ],
         "NeuralNetActivation": [
             ["exponential", "Exponential (base e)"],
@@ -348,7 +349,8 @@
         },
         "logisticRegressionErrorRateAnimation": {},
         "mlModel": {
-            "mlModule": ["Model Type", "MLModule", "neuralnet"]
+            "mlModule": ["Model Type", "MLModule", "neuralnet"],
+            "modelFile": ["Model File", "InputFile", "", "Provide an HDF5 file created by Keras model.save()"]
         },
         "neuralNet": {
             "optimizer": ["Optimizer", "NeuralNetOptimizer", "adam"],
@@ -700,7 +702,8 @@
         "mlModel": {
             "title": "Model",
             "basic": [
-                "mlModule"
+                "mlModule",
+                "modelFile"
             ],
             "advanced": []
         },
