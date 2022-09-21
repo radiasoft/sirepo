@@ -37,7 +37,7 @@ class API(sirepo.quest.API):
         """
         oc, t = sirepo.oauth.check_authorized_callback(qcall, github_auth=True)
         d = oc.get("https://api.github.com/user").json()
-        sirepo.events.emit("github_authorized", PKDict(user_name=d["login"]))
+        sirepo.events.emit(self, "github_authorized", PKDict(user_name=d["login"]))
         with util.THREAD_LOCK:
             u = AuthGithubUser.search_by(oauth_id=d["id"])
             if u:

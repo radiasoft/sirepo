@@ -4,10 +4,16 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcli
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
+import pyisemail
+import sirepo.auth
+import sirepo.auth_db
+import sirepo.auth_role
+import sirepo.server
+import sirepo.sim_api.jupyterhublogin
+import sirepo.template
 
 
 def create_user(email, display_name):
@@ -26,13 +32,6 @@ def create_user(email, display_name):
     Returns:
         user_name (str): The jupyterhub user_name of the user
     """
-    import pyisemail
-    import sirepo.auth
-    import sirepo.auth_db
-    import sirepo.auth_role
-    import sirepo.server
-    import sirepo.sim_api.jupyterhublogin
-    import sirepo.template
 
     def maybe_create_sirepo_user(module, email, display_name):
         u = module.unchecked_user_by_user_name(email)

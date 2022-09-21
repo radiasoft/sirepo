@@ -8,22 +8,18 @@ import sirepo.quest
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.events
-import sirepo.srcontext
 import sirepo.srtime
 import sirepo.util
 import sqlalchemy
 
 _RENEW_SESSION_TIMEOUT_SECS = 5 * 60
 
-_SRCONTEXT_KEY = __name__
-
 _Session = None
 
 _USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
 
 
-@contextlib.contextmanager
-def begin(sreq):
+def qcall_init(qcall):
     def _new_session():
         l = sirepo.auth.is_logged_in(sreq)
         t = sirepo.srtime.utc_now()
@@ -55,35 +51,25 @@ def begin(sreq):
         s.save()
 
     i = sreq.http_header(_USER_AGENT_ID_HEADER)
-    if not sreq.http_method_is_post():
-        yield
-        return
-    if not i:
-        i = _new_session()
-    else:
-        _update_session(i)
-    sirepo.srcontext.set(_SRCONTEXT_KEY, i)
-    yield
+    if sreq.http_method_is_post():
+        if not i:
+            i = _new_session()
+        else:
+            _update_session(i)
+    qcall.qcall_object("session", QCallObject(i))
+
+
+class QCallObject(sirepo.quest.QCallObject):
+    def __init__(self, session_id):
+        super().__init__(_id=session_id)
+
+    def quest_result_handler(self, qres):
+        if self._id:
+            qres.headers[_USER_AGENT_ID_HEADER] = self._id
 
 
 def init():
-    sirepo.events.register(PKDict(end_api_call=_event_end_api_call))
     sirepo.auth_db.init_model(_init_model)
-
-
-def _begin():
-    from sirepo import job_api
-
-    try:
-        job_api.begin_session()
-    except Exception as e:
-        pkdlog("error={} trying job_api.begin_session stack={}", e, pkdexc())
-
-
-def _event_end_api_call(kwargs):
-    i = sirepo.srcontext.get(_SRCONTEXT_KEY)
-    if i:
-        kwargs.resp.headers[_USER_AGENT_ID_HEADER] = i
 
 
 def _init_model(base):

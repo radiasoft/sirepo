@@ -134,7 +134,7 @@ rjn already has route
             # this is ok to call (even if s is None)
             sreq.set_sim_type(s)
         sreq.cookie.save_to_cookie(r)
-        sirepo.events.emit("end_api_call", PKDict(resp=r))
+        sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
             r.headers.add("Access-Control-Allow-Origin", "*")
         return r
@@ -165,7 +165,7 @@ def init(app, simulation_db):
     from sirepo import feature_config
 
     for n in _api_modules():
-        register_api_module(importlib.import_module("sirepo." + n))
+        register_api_module("sirepo." + n)
     _register_sim_api_modules()
     _register_sim_oauth_modules(feature_config.cfg().proprietary_oauth_sim_types)
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
@@ -197,7 +197,7 @@ def maybe_sim_type_required_for_api(qcall):
     return sirepo.api_auth.maybe_sim_type_required_for_api(a.func)
 
 
-def register_api_module(module=None):
+def register_api_module(module):
     """Add caller_module to the list of modules which implements apis.
 
     The module must have methods: api_XXX which do not collide with
@@ -205,7 +205,7 @@ def register_api_module(module=None):
     it is already registered.
 
     Args:
-        module (module): defaults to caller module
+        module (module or str): name of module or module
     """
 
     def _is_api_func(cls, name, obj):
@@ -218,13 +218,13 @@ def register_api_module(module=None):
     assert (
         not _route_default
     ), "_init_uris already called. All APIs must registered at init"
-    m = module or pkinspect.caller_module()
+    m = importlib.import_module(module) if isinstance(module, str) else module
     if m in _api_modules:
         return
     # prevent recursion
     _api_modules.append(m)
     if hasattr(m, "init_apis"):
-        m.init_apis()
+        m.init_apis(uri_router=pkinspect.this_module())
     if not hasattr(m, "API"):
         if pkinspect.module_functions("api_", module=m):
             raise AssertionError(f"module={m.__name__} has old interface")
@@ -428,7 +428,7 @@ def _register_sim_modules_from_package(package, valid_sim_types=None):
         ):
             pkdc(f"not adding apis for unknown sim_type={n}")
             continue
-        register_api_module(importlib.import_module(f"sirepo.{package}.{n}"))
+        register_api_module(f"sirepo.{package}.{n}")
 
 
 def _register_sim_oauth_modules(oauth_sim_types):
@@ -437,7 +437,7 @@ def _register_sim_oauth_modules(oauth_sim_types):
 
 @contextlib.contextmanager
 def _set_api_attr(sreq, route_or_name):
-this should be on qcall
+rjn: this should be on qcall
     a = sreq.get(_API_ATTR)
     try:
         sreq[_API_ATTR] = route_or_name

@@ -125,7 +125,7 @@ class API(sirepo.quest.API):
         return self.reply_redirect_for_app_root(req and req.type)
 
 
-class QCallObject():
+class QCallObject(sirepo.quest.QCallObject):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -224,21 +224,6 @@ class QCallObject():
     def guest_uids(self):
         """All of the uids corresponding to guest users."""
         return auth_db.UserRegistration.search_all_for_column("uid", display_name=None)
-
-    def init_apis(*args, **kwargs):
-        global uri_router
-        assert (
-            not cfg.logged_in_user
-        ), "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
-        uri_router = importlib.import_module("sirepo.uri_router")
-        for m in _METHOD_MODULES.values():
-            uri_router.register_api_module(m)
-        from sirepo import simulation_db
-
-        s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
-        assert sorted(s) == sorted(
-            _ALL_PAYMENT_PLANS
-        ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
 
     def is_logged_in(state=None):
         """Logged in is either needing to complete registration or done
@@ -732,6 +717,21 @@ class QCallObject():
         pkdlog("invalid auth method={}".format(module.AUTH_METHOD))
         login_fail_redirect(sim_type, module, "invalid-method", reload_js=True)
 
+
+def init_apis(*args, **kwargs):
+    global uri_router
+    assert (
+        not cfg.logged_in_user
+    ), "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
+    uri_router = kwargs['uri_router']
+    for m in _METHOD_MODULES.values():
+        uri_router.register_api_module(m)
+    from sirepo import simulation_db
+
+    s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
+    assert sorted(s) == sorted(
+        _ALL_PAYMENT_PLANS
+    ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
 
 def _init():
     global cfg
