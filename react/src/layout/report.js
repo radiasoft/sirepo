@@ -4,11 +4,13 @@ import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDepend
 import { useDependentValues } from "../hook/dependency";
 import { View } from "./layout";
 import { pollRunReport } from "../utility/compute";
+import { v4 as uuidv4 } from 'uuid';
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
-        // TODO
-        return [];
+        let { reportLayout } = config;
+        let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
+        return layoutElement.getFormDependencies();
     }
 
     component = (props) => {
@@ -18,7 +20,6 @@ export class AutoRunReportLayout extends View {
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
         let appName = useContext(ContextAppName);
         let modelsWrapper = useContext(ContextModelsWrapper);
-        let layouts = useContext(ContextLayouts);
 
         let formDependencies = useContext(ContextRelativeFormDependencies);
         let reportDependencies = dependencies.map(dependencyString => new Dependency(dependencyString));
@@ -27,11 +28,11 @@ export class AutoRunReportLayout extends View {
 
         let [simulationData, updateSimulationData] = useState(undefined);
 
-        let simulationPollingVersionRef = useRef()
+        let simulationPollingVersionRef = useRef(uuidv4())
 
         useEffect(() => {
             updateSimulationData(undefined);
-            let pollingVersion = {};
+            let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
             simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
                 console.log("starting to poll report");
@@ -54,14 +55,25 @@ export class AutoRunReportLayout extends View {
             })
         }, dependentValues)    
 
-        let layoutElement = layouts.getLayoutForConfig(reportLayout);
+        let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
 
         let VisualComponent = simulationData ? layoutElement.component : undefined;
 
+        // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {VisualComponent && <VisualComponent config={reportLayout} simulationData={simulationData}></VisualComponent>}
+                {VisualComponent && <VisualComponent key={simulationPollingVersionRef.current} config={reportLayout} simulationData={simulationData}></VisualComponent>}
             </>
         )
     }
+}
+
+export class ManualRunReportLayout extends View {
+    getFormDependencies = (config) => {
+        let { reportLayout } = config;
+        let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
+        return layoutElement.getFormDependencies();
+    }
+
+
 }

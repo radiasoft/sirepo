@@ -491,7 +491,10 @@
                                         "ionBeam.*",
                                         "intrabeamScatteringRate.*",
                                         "electronCoolingRate.*",
-                                        "ring.*"
+                                        "ring.*",
+                                        "simulationSettings.*",
+                                        "electronBeam.*",
+                                        "cooler.*"
                                     ],
                                     "reportLayout": {
                                         "layout": "table",

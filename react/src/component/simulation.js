@@ -17,7 +17,8 @@ import {
     ContextLayouts,
     ContextSchema,
     ContextModelsWrapper,
-    ContextSimulationInfoPromise
+    ContextSimulationInfoPromise,
+    ContextReportEventManager
 } from "../context";
 import {
     updateModel,
@@ -28,9 +29,10 @@ import { ModelsWrapper } from "../data/model";
 import { FormStateInitializer } from "../component/form";
 import { useResolvedPath } from "react-router-dom";
 import { RouteHelper } from "../hook/route";
+import { ReportEventManager } from "../data/report";
 
-function SimulationInfoInitializer (props) {
-    let simulationListPromise = useContext(ContextSimulationListPromise);
+function SimulationInfoInitializer(props) {
+    let { simulation } = props;
     
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
@@ -48,24 +50,20 @@ function SimulationInfoInitializer (props) {
 
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
-            simulationListPromise.then(simulationList => {
-                // TODO: this is definitely wrong
-                let simulation = simulationList[0];
-                let { simulationId } = simulation;
-                // TODO: why 0
-                fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
-                    let simulationInfo = await resp.json();
-                    let { models } = simulationInfo;
+            let { simulationId } = simulation;
+            // TODO: why 0
+            fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
+                let simulationInfo = await resp.json();
+                let { models } = simulationInfo;
 
-                    console.log("models", models);
+                console.log("models", models);
 
-                    for(let [modelName, model] of Object.entries(models)) {
-                        modelsWrapper.updateModel(modelName, model);
-                    }
+                for(let [modelName, model] of Object.entries(models)) {
+                    modelsWrapper.updateModel(modelName, model);
+                }
 
-                    resolve({...simulationInfo, simulationId});
-                    updateHasInit(true);
-                })
+                resolve({...simulationInfo, simulationId});
+                updateHasInit(true);
             })
         }))
     }, [])
@@ -77,6 +75,12 @@ function SimulationInfoInitializer (props) {
             </ContextSimulationInfoPromise.Provider>
         </ContextModelsWrapper.Provider>
     )
+}
+
+function ReportEventManagerInitializer(props) {
+    return <ContextReportEventManager.Provider value={new ReportEventManager()}>
+        {props.children}
+    </ContextReportEventManager.Provider>
 }
 
 export const NavbarContainerId = "nav-tabs-container";
@@ -120,6 +124,8 @@ export function SimulationOuter(props) {
 }
 
 export function SimulationRoot(props) {
+    let { simulation } = props;
+
     let layouts = useContext(ContextLayouts);
 
     let schema = useContext(ContextSchema);
@@ -137,15 +143,17 @@ export function SimulationRoot(props) {
     // TODO: use multiple rows
     return (
         <SimulationOuter>
-            <SimulationInfoInitializer>
-                <FormStateInitializer>
-                    <Container fluid className="mt-3">
-                        <Row>
-                            {viewComponents}
-                        </Row>
-                    </Container>
-                </FormStateInitializer>
-            </SimulationInfoInitializer>
+            <ReportEventManagerInitializer>
+                <SimulationInfoInitializer simulation={simulation}>
+                    <FormStateInitializer>
+                        <Container fluid className="mt-3">
+                            <Row>
+                                {viewComponents}
+                            </Row>
+                        </Container>
+                    </FormStateInitializer>
+                </SimulationInfoInitializer>
+            </ReportEventManagerInitializer>
         </SimulationOuter>
     )
 }

@@ -72,9 +72,7 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
         let respObj = await lastResp.json();
         let { nextRequest, state } = respObj;
 
-        if(state === 'running' || state === 'completed') {
-            callback(respObj);
-        }
+        callback(respObj);
         
         if (!state || state === 'pending' || state === 'running') {
             setTimeout(() => doPoll(nextRequest).then(doIteration), pollInterval);
