@@ -104,8 +104,6 @@ export class rsBoolean extends rsType {
             props.onChange(event);
         }
         let value = props.value == true || props.value == "true";
-
-        console.log("rendering checkbox with value, " + props.value + ", " + value);
         return <Form.Check {...props} onChange={onChange} checked={value}></Form.Check>
     }
 }
