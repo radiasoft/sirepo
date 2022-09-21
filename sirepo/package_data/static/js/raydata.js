@@ -218,8 +218,34 @@ SIREPO.app.directive('replayPanel', function() {
             modelName: '=',
         },
         template: `
-          <button type="submit" class="btn btn-primary" data-ng-click="">Start Replay</button>
+          <button type="submit" class="btn btn-primary" data-ng-click="startReplay()">Start Replay</button>
         `,
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
+            $scope.startReplay = () => {
+                if (! (appState.models.replay.sourceCatalogName && appState.models.replay.destinationCatalogName && appState.models.replay.numScans)) {
+                    return;
+                }
+                requestSender.sendStatelessCompute(
+                    appState,
+                    () => {},
+                    {
+                        method: 'replay_scans',
+                        sourceCatalogName: appState.models.replay.sourceCatalogName,
+                        destinationCatalogName: appState.models.replay.destinationCatalogName,
+                        numScans: appState.models.replay.numScans,
+                    },
+                    {
+                        modelName: $scope.modelName,
+                        onError: (data) => {
+                            errorService.alertText(data.error);
+                            panelState.setLoading($scope.modelName, false);
+                        },
+                        panelState: panelState,
+                    }
+                );
+
+            };
+        },
     };
 });
 

@@ -90,6 +90,10 @@ def stateless_compute_catalog_names(data):
     )
 
 
+def stateless_compute_replay_scans(data):
+    return PKDict(data=_request_scan_monitor(PKDict(method="begin_replay", data=data)))
+
+
 def stateless_compute_scans(data):
     # TODO(e-carlin): get scans from daemon
     l = []
