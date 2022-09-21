@@ -729,7 +729,7 @@ def uid_from_dir_name(dir_name):
     """
     r = re.compile(
         r"^{}/({})(?:$|/)".format(
-            re.escape(str(user_path())),
+            re.escape(str(user_path_root())),
             _ID_PARTIAL_RE_STR,
         ),
     )
@@ -756,7 +756,7 @@ def user_create():
     Returns:
         str: New user id
     """
-    return _random_id(user_path())["id"]
+    return _random_id(user_path_root())["id"]
 
 
 def user_path(uid=None, check=False):
@@ -766,15 +766,24 @@ def user_path(uid=None, check=False):
         uid (str): properly formated user name [None]
         check (bool): assert directory exists (only if uid) [False]
     Return:
-        py.path: root user's
+        py.path: root user's directory
     """
-    d = sirepo.srdb.root().join(USER_ROOT_DIR)
+    d = user_path_root()
     if not uid:
         return d
     d = d.join(uid)
     if check and not d.check():
         sirepo.auth.user_dir_not_found(d, uid)
     return d
+
+
+def user_path_root():
+    """Path for uid or root of all users
+
+    Return:
+        py.path: root of all users
+    """
+    return sirepo.srdb.root().join(USER_ROOT_DIR)
 
 
 def validate_sim_db_file_path(path, uid):

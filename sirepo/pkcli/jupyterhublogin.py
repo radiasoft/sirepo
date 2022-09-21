@@ -53,8 +53,8 @@ def create_user(email, display_name):
                 email,
             )
         # Completely new Sirepo user
-        u = sirepo.auth.create_new_user(
-            lambda u: sirepo.auth.user_registration(u, display_name=display_name),
+        u = qcall.auth.create_user(
+            lambda u: qcall.auth.user_registration(display_name=display_name),
             module,
         )
         module.AuthEmailUser(

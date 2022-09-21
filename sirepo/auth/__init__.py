@@ -93,7 +93,7 @@ class API(sirepo.quest.API):
         # for just this API.
         if not is_logged_in():
             raise util.SRException(LOGIN_ROUTE_NAME, None)
-        complete_registration(
+        self.auth.complete_registration(
             _parse_display_name(self.parse_json().get("displayName")),
         )
         return self.reply_ok()
@@ -132,7 +132,7 @@ class QCallObject():
         sirepo.auth_db.qcall_init(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
-        sirepo.cookie.process_header(qcall)
+        sirepo.cookie.qcall_init(qcall)
         self._set_log_user()
 
     def check_sim_type_role(self, sim_type):
@@ -142,26 +142,26 @@ class QCallObject():
         t = sirepo.template.assert_sim_type(sim_type)
         if t not in sirepo.feature_config.auth_controlled_sim_types():
             return
-        if not uri_router.maybe_sim_type_required_for_api(qcall):
+        if not uri_router.maybe_sim_type_required_for_api(self.qcall):
             return
-        u = logged_in_user()
+        u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
-        if auth_db.UserRole.has_role(u, r) and not auth_db.UserRole.is_expired(u, r):
+        if self.auth_db.UserRole.has_role(u, r) and not self.auth_db.UserRole.is_expired(u, r):
             return
         elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
-            oauth.raise_authorize_redirect(qcall, sirepo.auth_role.sim_type(r))
+            oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
         if r in sirepo.auth_role.for_moderated_sim_types():
-            auth_role_moderation.raise_control_for_user(qcall, u, r)
+            auth_role_moderation.raise_control_for_user(self.qcall, u, r)
         sirepo.util.raise_forbidden(f"uid={u} does not have access to sim_type={t}")
 
-    def complete_registration(self, sreq, name=None):
+    def complete_registration(self, name=None):
         """Update the database with the user's display_name and sets state to logged-in.
         Guests will have no name.
         """
-        u = _get_user(sareq)
+        u = self._get_user()
         with util.THREAD_LOCK:
-            r = user_registration(u)
-            if cookie.unchecked_get_value(_COOKIE_METHOD) == METHOD_GUEST:
+            r = self.user_registration(u)
+            if self.cookie.unchecked_get_value(_COOKIE_METHOD) == METHOD_GUEST:
                 assert (
                     name is None
                 ), "Cookie method is {} and name is {}. Expected name to be None".format(
@@ -169,7 +169,7 @@ class QCallObject():
                 )
             r.display_name = name
             r.save()
-        cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
+        self.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
     def cookie_cleaner(self, values):
@@ -204,19 +204,18 @@ class QCallObject():
         if values.get("sru") or values.get("uid"):
             pkdlog("unknown cookie values, clearing, not migrating: {}", values)
             return {}
-    rjn todo: this state can be set, too
         # normal case: new visitor, and no user/state; set logged out
         # and return all values
         values[_COOKIE_STATE] = _STATE_LOGGED_OUT
         return values
 
 
-    def create_new_user(self, uid_generated_callback, module):
+    def create_user(self, uid_generated_callback, module):
         from sirepo import simulation_db
 
         u = simulation_db.user_create()
         uid_generated_callback(u)
-        _create_roles_for_new_user(u, module.AUTH_METHOD)
+        self._create_roles_for_new_user(u, module.AUTH_METHOD)
         return u
 
     def get_module(self, name):
@@ -336,12 +335,12 @@ class QCallObject():
                 # This handles the case where logging in as guest, creates a user every time
                 _login_user(module, uid)
             else:
-                uid = create_new_user(lambda u: _login_user(module, u), module)
+                uid = self.create_user(lambda u: self._login_user(module, u), module)
             if model:
                 model.uid = uid
                 model.save()
         if display_name:
-            complete_registration(_parse_display_name(display_name))
+            self.complete_registration(_parse_display_name(display_name))
         if is_mock:
             return
         if sim_type:
@@ -372,7 +371,7 @@ class QCallObject():
             self.sreq.cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
             and self.sreq.cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
         ):
-            complete_registration()
+            self.complete_registration()
         if want_redirect:
             r = (
                 "completeRegistration"
@@ -463,7 +462,7 @@ class QCallObject():
         elif s == _STATE_COMPLETE_REGISTRATION:
             if m == METHOD_GUEST:
                 pkdc("guest completeRegistration={}", u)
-                complete_registration()
+                self.complete_registration()
                 return u
             r = "completeRegistration"
             e = "uid={} needs to complete registration".format(u)

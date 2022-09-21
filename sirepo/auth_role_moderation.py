@@ -125,7 +125,7 @@ class API(sirepo.quest.API):
         u = sirepo.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(req.type)
         with sirepo.util.THREAD_LOCK:
-            if sirepo.auth_db.UserRole.has_role(u, r):
+            if self.auth_db.UserRole.has_role(u, r):
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
             try:
                 sirepo.auth_db.UserRoleInvite(

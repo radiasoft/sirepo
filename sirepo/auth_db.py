@@ -126,13 +126,6 @@ def init():
 
     f = db_filename()
     _migrate_db_file(f)
-rjn: thread locking
-    _engine = sqlalchemy.create_engine(
-        "sqlite:///{}".format(f),
-        # We do our own thread locking so no need to have pysqlite warn us when
-        # we access a single connection across threads
-        connect_args={"check_same_thread": False},
-    )
 
     @sqlalchemy.ext.declarative.as_declarative()
     class UserDbBase(object):
@@ -375,7 +368,7 @@ rjn: thread locking
         def get_moderation_request_rows(cls):
             from sirepo import auth
 
-            t = auth.get_module("email").UserModel
+            t = qcall.auth.get_module("email").UserModel
             with sirepo.util.THREAD_LOCK:
                 q = (
                     cls._session()
@@ -416,6 +409,12 @@ rjn: thread locking
     assert k.issubset(
         set(b.TABLES)
     ), f"sqlalchemy tables={k} not a subset of known tables={b.TABLES}"
+    _engine = sqlalchemy.create_engine(
+        "sqlite:///{}".format(f),
+        # We do our own thread locking so no need to have pysqlite warn us when
+        # we access a single connection across threads
+        connect_args={"check_same_thread": False},
+    )
     b.metadata.create_all(_engine)
 
 
