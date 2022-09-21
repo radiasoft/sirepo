@@ -615,13 +615,21 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 vtkScene.render();
             }
 
-            function showField(callData) {
+            function showFieldInfo(callData) {
                 function info(field, pos) {
+                    const p = pos.map(
+                        x => SIREPO.UTILS.roundToPlaces(x, 4).toLocaleString(
+                            undefined,
+                            {
+                                minimumFractionDigits: 3,
+                            }
+                        )
+                    );
                     return {
                         info: `
                                 ${SIREPO.UTILS.roundToPlaces(field, 3)} 
                                 ${scoreUnits()} at 
-                                (${pos.map(x => x.toLocaleString(undefined, {minimumFractionDigits: 3,}))})cm
+                                (${p[0]}, ${p[1]}, ${p[2]})cm
                             `,
                     };
                 }
@@ -639,7 +647,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 const f = fieldData[Math.floor(cid / 6)];
                 $scope.$broadcast(
                     'vtk.selected',
-                    info(f, picker.getMapperPosition().map(x => SIREPO.UTILS.roundToPlaces(x, 4)))
+                    info(f, picker.getMapperPosition())
                 );
                 colorbarPtr.pointTo(f);
             }
@@ -743,7 +751,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 picker.setPickFromList(true);
                 vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 if (! isGeometryOnly) {
-                    vtkScene.renderWindow.getInteractor().onMouseMove(showField);
+                    vtkScene.renderWindow.getInteractor().onMouseMove(showFieldInfo);
                 }
 
                 const vols = [];
