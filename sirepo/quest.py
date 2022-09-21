@@ -66,6 +66,14 @@ deferring to subrequests?
     def parse_post(self, **kwargs):
         return http_request.parse_post(self, PKDict(kwargs))
 
+    def qcall_object(self, name, obj):
+        """Assign an object to qcall
+        """
+        assert name not in self
+        assert isinstance(obj, QCallObject)
+        self[name] = obj
+        return obj
+
     def reply(self, *args, **kwargs):
         return http_reply.gen_response(*args, **kwargs)
 
@@ -168,6 +176,9 @@ deferring to subrequests?
             user_agent=self.sreq.http_header("User-Agent"),
         )
 
+
+class QCallObject(PKDict):
+    pass
 
 class Spec(pykern.quest.Spec):
     def __init__(self, perm, **kwargs):

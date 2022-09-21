@@ -14,11 +14,8 @@ import contextlib
 import cryptography.fernet
 import itertools
 import re
-import sirepo.srcontext
+import sirepo.quest
 import sirepo.util
-
-#: sirepo.auth gets to override parsing
-auth_hook_from_header = None
 
 _MAX_AGE_SECONDS = 10 * 365 * 24 * 3600
 
@@ -30,21 +27,17 @@ _COOKIE_SENTINEL_VALUE = "z"
 
 _SERIALIZER_SEP = " "
 
-_SRCONTEXT_KEY = __name__
+
+def qcall_init(qcall):
+    qcall.qcall_object("cookie", QCallObject(qcall))
 
 
-@contextlib.contextmanager
-def process_header(sreq):
-    assert "cookie" not in sreq, f"cookie already set on sreq={sreq}"
-    sreq.cookie = Base(sreq.http_header("Cookie"))
-
-
-class Base:
-    def __init__(self, header):
+class QCallObject(sirepo.quest.QCallObject):
+    def __init__(self, qcall):
         super().__init__()
         self.__crypto = None
         self.__incoming_serialized = ""
-        self._from_cookie_header(header)
+        self._from_cookie_header(qcall)
 
     def get_value(key):
         return self.__values[key]
@@ -137,7 +130,8 @@ class Base:
             self._crypto().encrypt(pkcompat.to_bytes(text)),
         )
 
-    def _from_cookie_header(self, header):
+    def _from_cookie_header(self, qcall):
+        header = qcall.sreq.http_header("Cookie")
         self.__values = PKDict()
         if not header:
             return
@@ -150,7 +144,7 @@ class Base:
             )
             if match:
                 s = self._decrypt(match.group(1))
-                self.__values.update(auth_hook_from_header(self._deserialize(s)))
+                self.__values.update(qcall.auth.cookie_cleaner(self._deserialize(s)))
                 self.__incoming_serialized = s
                 return
         except Exception as e:

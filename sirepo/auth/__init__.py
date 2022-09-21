@@ -9,8 +9,6 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from sirepo import api_perm
-from sirepo import auth_db
 from sirepo import events
 from sirepo import http_reply
 from sirepo import job
@@ -19,14 +17,14 @@ import contextlib
 import datetime
 import importlib
 import pyisemail
-import sirepo.quest
+import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.cookie
 import sirepo.feature_config
+import sirepo.quest
 import sirepo.session
 import sirepo.template
 import sirepo.uri
-import werkzeug.exceptions
 
 
 #: what routeName to return in the event user is logged out in require_user
@@ -84,20 +82,9 @@ uri_router = None
 cfg = None
 
 
-def quest_init(qcall):
-    qcall.auth = Base(qcall=qcall)
-    qcall.auth.process_request()
+def qcall_init(qcall):
+    qcall.qcall_object("auth", Base(qcall=qcall))
 
-rjn: need to convert these
-    with auth_db.session(qcall):
-        # TODO(robnagler): process auth basic header, too. this
-        # should not cookie but route to auth_basic.
-        sirepo.cookie.process_header(qcall)
-        with sirepo.session.begin(qcall):
-            # Logging happens after the return to the server so the log user must persist
-            # beyond the life of process_request
-            _set_log_user(qcall)
-            yield
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel", display_name="UserDisplayName")
@@ -134,11 +121,20 @@ class API(sirepo.quest.API):
         if is_logged_in():
             events.emit("auth_logout", PKDict(uid=_get_user(self.sreq)))
             self.sreq.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
-            _set_log_user(self.sreq)
+            self._set_log_user()
         return self.reply_redirect_for_app_root(req and req.type)
 
 
-class Base(PKDict):
+class QCallObject():
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        sirepo.auth_db.qcall_init(qcall)
+        # TODO(robnagler): process auth basic header, too. this
+        # should not cookie but route to auth_basic.
+        sirepo.cookie.process_header(qcall)
+        self._set_log_user()
+
     def check_sim_type_role(self, sim_type):
         from sirepo import oauth
         from sirepo import auth_role_moderation
@@ -175,6 +171,46 @@ class Base(PKDict):
             r.save()
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
+
+    def cookie_cleaner(self, values):
+        """Migrate from old cookie values
+
+        Always sets _COOKIE_STATE, which is our sentinel.
+
+        Args:
+            values (dict): just parsed values
+        Returns:
+            dict: unmodified or migrated values
+        """
+        if values.get(_COOKIE_STATE):
+            # normal case: we've seen a cookie at least once
+            # check for cfg.methods changes
+            m = values.get(_COOKIE_METHOD)
+            if m and m not in valid_methods:
+                # invalid method (changed config), reset state
+                pkdlog(
+                    "possibly misconfigured server: invalid cookie_method={}, clearing values={}",
+                    m,
+                    values,
+                )
+                pkcollections.unchecked_del(
+                    values,
+                    _COOKIE_METHOD,
+                    _COOKIE_USER,
+                    _COOKIE_STATE,
+                )
+            return values
+        # data cleaning; do not need auth old values
+        if values.get("sru") or values.get("uid"):
+            pkdlog("unknown cookie values, clearing, not migrating: {}", values)
+            return {}
+    rjn todo: this state can be set, too
+        # normal case: new visitor, and no user/state; set logged out
+        # and return all values
+        values[_COOKIE_STATE] = _STATE_LOGGED_OUT
+        return values
+
+
     def create_new_user(self, uid_generated_callback, module):
         from sirepo import simulation_db
 
@@ -182,6 +218,9 @@ class Base(PKDict):
         uid_generated_callback(u)
         _create_roles_for_new_user(u, module.AUTH_METHOD)
         return u
+
+    def get_module(self, name):
+        return _METHOD_MODULES[name]
 
     def guest_uids(self):
         """All of the uids corresponding to guest users."""
@@ -246,7 +285,7 @@ class Base(PKDict):
         return u
 
     def login(
-        qcall,
+        self,
         module,
         uid=None,
         model=None,
@@ -270,7 +309,7 @@ class Base(PKDict):
         if model:
             uid = model.uid
             # if previously cookied as a guest, move the non-example simulations into uid below
-            m = qcall.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
+            m = self.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
             if m == METHOD_GUEST and module.AUTH_METHOD != METHOD_GUEST:
                 guest_uid = _get_user() if is_logged_in() else None
         if uid:
@@ -279,7 +318,7 @@ class Base(PKDict):
             pkdlog("deprecated auth method={} uid={}".format(module.AUTH_METHOD, uid))
             if not uid:
                 # No user so clear cookie so this method is removed
-                reset_state(qcall)
+                self.reset_state()
             # We are logged in with a deprecated method, and now the user
             # needs to login with an allowed method.
             login_fail_redirect(sim_type, module, "deprecated", reload_js=not uid)
@@ -290,7 +329,7 @@ class Base(PKDict):
             # no authentication for guest.
             # Or, this is just a new user, and we'll create one.
             uid = _get_user() if is_logged_in() else None
-            m = qcall.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
+            m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
             if uid and module.AUTH_METHOD not in (m, METHOD_GUEST):
                 # switch this method to this uid (even for methods)
                 # except if the same method, then assuming logging in as different user.
@@ -310,7 +349,7 @@ class Base(PKDict):
                 from sirepo import simulation_db
 
                 simulation_db.move_user_simulations(guest_uid, uid)
-            login_success_response(self, sim_type, qcall, want_redirect)
+            self.login_success_response(self, sim_type, want_redirect)
         assert not module.AUTH_METHOD_VISIBLE
 
     def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False):
@@ -327,25 +366,25 @@ class Base(PKDict):
             module.AUTH_METHOD,
         )
 
-    def login_success_response(qcall, sim_type, want_redirect=False):
+    def login_success_response(self, sim_type, want_redirect=False):
         r = None
         if (
-            qcall.sreq.cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
-            and qcall.sreq.cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
+            self.sreq.cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
+            and self.sreq.cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
         ):
             complete_registration()
         if want_redirect:
             r = (
                 "completeRegistration"
                 if (
-                    qcall.sreq.cookie.get_value(_COOKIE_STATE)
+                    self.sreq.cookie.get_value(_COOKIE_STATE)
                     == _STATE_COMPLETE_REGISTRATION
                 )
                 else None
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
         raise sirepo.util.Response(
-            response=qcall.reply_ok(PKDict(authState=_auth_state())),
+            response=self.reply_ok(PKDict(authState=_auth_state())),
         )
 
     def need_complete_registration(model):
@@ -441,7 +480,7 @@ class Base(PKDict):
         sreq.cookie.unchecked_remove(_COOKIE_USER)
         sreq.cookie.unchecked_remove(_COOKIE_METHOD)
         sreq.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
-        _set_log_user(sreq)
+        self._set_log_user()
 
     @contextlib.contextmanager
     def set_user_outside_of_http_request(sreq, uid):
@@ -485,6 +524,30 @@ class Base(PKDict):
             if u:
                 return u.uid
             return None
+
+    def user_dir_not_found(user_dir, uid):
+        """Called by simulation_db when user_dir is not found
+
+        Deletes any user records
+
+        Args:
+            uid (str): user that does not exist
+        """
+        with util.THREAD_LOCK:
+            for m in _METHOD_MODULES.values():
+                u = _method_user_model(m, uid)
+                if u:
+                    u.delete()
+            u = auth_db.UserRegistration.search_by(uid=uid)
+            if u:
+                u.delete()
+        reset_state()
+        raise util.Redirect(
+            sirepo.uri.app_root(),
+            "simulation_db dir={} not found, deleted uid={}",
+            user_dir,
+            uid,
+        )
 
     def user_display_name(sreq, uid):
         return auth_db.UserRegistration.search_by(uid=uid).display_name
@@ -606,7 +669,7 @@ class Base(PKDict):
             if not u.display_name:
                 s = _STATE_COMPLETE_REGISTRATION
         cookie.set_value(_COOKIE_STATE, s)
-        _set_log_user()
+        self._set_log_user()
 
     def _method_auth_state(values, uid):
         if values.method not in _METHOD_MODULES:
@@ -646,7 +709,7 @@ class Base(PKDict):
             data.paymentPlan = _PAYMENT_PLAN_BASIC
             data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM
 
-    def _set_log_user(sreq):
+    def _set_log_user(self):
         if not sirepo.util.in_flask_request():
             return
         a = sirepo.util.flask_app()
@@ -657,9 +720,9 @@ class Base(PKDict):
             # common log format to: '%s - - [%s] %s\n'. Could monkeypatch
             # but we only use the limited http server for development.
             return
-        u = _get_user(sreq)
+        u = _get_user(self.qcall.sreq)
         if u:
-            u = sreq.cookie.unchecked_get_value(_COOKIE_STATE) + "-" + u
+            u = self.qcall.sreq.cookie.unchecked_get_value(_COOKIE_STATE) + "-" + u
         else:
             u = "-"
         a.sirepo_uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
@@ -670,73 +733,6 @@ class Base(PKDict):
         pkdlog("invalid auth method={}".format(module.AUTH_METHOD))
         login_fail_redirect(sim_type, module, "invalid-method", reload_js=True)
 
-
-def get_module(name):
-    return _METHOD_MODULES[name]
-
-
-def user_dir_not_found(user_dir, uid):
-    """Called by simulation_db when user_dir is not found
-
-    Deletes any user records
-
-    Args:
-        uid (str): user that does not exist
-    """
-    with util.THREAD_LOCK:
-        for m in _METHOD_MODULES.values():
-            u = _method_user_model(m, uid)
-            if u:
-                u.delete()
-        u = auth_db.UserRegistration.search_by(uid=uid)
-        if u:
-            u.delete()
-    reset_state()
-    raise util.Redirect(
-        sirepo.uri.app_root(),
-        "simulation_db dir={} not found, deleted uid={}",
-        user_dir,
-        uid,
-    )
-
-
-def _auth_hook_from_header(values):
-    """Migrate from old cookie values
-
-    Always sets _COOKIE_STATE, which is our sentinel.
-
-    Args:
-        values (dict): just parsed values
-    Returns:
-        dict: unmodified or migrated values
-    """
-    if values.get(_COOKIE_STATE):
-        # normal case: we've seen a cookie at least once
-        # check for cfg.methods changes
-        m = values.get(_COOKIE_METHOD)
-        if m and m not in valid_methods:
-            # invalid method (changed config), reset state
-            pkdlog(
-                "possibly misconfigured server: invalid cookie_method={}, clearing values={}",
-                m,
-                values,
-            )
-            pkcollections.unchecked_del(
-                values,
-                _COOKIE_METHOD,
-                _COOKIE_USER,
-                _COOKIE_STATE,
-            )
-        return values
-    # data cleaning; do not need auth old values
-    if values.get("sru") or values.get("uid"):
-        pkdlog("unknown cookie values, clearing, not migrating: {}", values)
-        return {}
-rjn todo: this state can be set, too
-    # normal case: new visitor, and no user/state; set logged out
-    # and return all values
-    values[_COOKIE_STATE] = _STATE_LOGGED_OUT
-    return values
 
 def _init():
     global cfg
@@ -756,7 +752,6 @@ def _init():
                 visible_methods.append(n)
         visible_methods = tuple(sorted(visible_methods))
         non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
-        cookie.auth_hook_from_header = _auth_hook_from_header
 
     def _init_logged_in_user():
         global logged_in_user, user_dir_not_found

@@ -335,7 +335,7 @@ def _dispatch(path):
         remote_addr=flask.request.remote_addr,
         server_uri=flask.url_for("_dispatch_empty", _external=True),
     )
-    with sirepo.auth.process_request(qcall):
+    with sirepo.auth.qcall_init(qcall):
         return call_api(qcall, _route_default, PKDict(path_info=None))
 
 
