@@ -1399,12 +1399,12 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             parentLayer: '=',
         },
         template: `
-            <form name="form" class="form-horizontal" data-ng-if="! needRebuild">
+            <form name="form" class="form-horizontal">
               <div class="form-group form-group-sm">
               <button class="add-remove-child-btn" data-ng-if="removableChild()" data-ng-click="removeChild(childIndex)"> Remove this child </button>
                 <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b; position: relative;">
-                  <tr data-ng-repeat="layer in layerLevel track by $index" data-ng-init="layerIndex = $index">
-                    <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
+                  <tr data-ng-repeat="layer in layerLevel track by $index + layerId" data-ng-init="layerIndex = $index">
+                    <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index) + layerId">
                       <div data-ng-if="fieldInfo.field">
                         <b>{{ fieldInfo.label }} </b>
                         <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="layerName(layer)" data-model="layer"></div>
@@ -1415,7 +1415,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     </td>
                     <td colspan="100%">
                       <div data-ng-if="checkBranch(layer)">
-                        <div data-ng-repeat="l in layer.children track by $index" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
+                        <div data-ng-repeat="l in layer.children track by $index + layerId" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
                       </div>
                     </td>
                     <td colspan="100%">
@@ -1474,6 +1474,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
             $scope.layerLevel = getLayerLevel();
+            $scope.layerId = 0;
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             };
@@ -1661,20 +1662,23 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.layerLevel.push(n);
             }
 
+            $scope.rebuildLayers = () => {
+                if ($scope.$parent.rebuildLayers) {
+                    // parent layer must be rebuilt so the new neuralNet model is referenced
+                    $scope.$parent.rebuildLayers();
+                }
+                $scope.layerLevel = getLayerLevel();
+                // layerId is a unique value used by angular "track by"
+                $scope.layerId = Math.random();
+            };
+
             $scope.$on('cancelChanges', (e, name) => {
                 if (name == 'neuralNet') {
-                    $scope.layerLevel = getLayerLevel();
+                    $scope.rebuildLayers();
                 }
             });
 
-            $scope.$on('neuralNet.changed', () => {
-                $scope.needRebuild = true;
-                $scope.layerLevel = getLayerLevel();
-                panelState.waitForUI(() => {
-                    // calling this later will cause the form's ng-if to destroy the directive contents
-                    $scope.needRebuild = false;
-                });
-            });
+            $scope.$on('neuralNet.changed', $scope.rebuildLayers);
 
             buildLayerFields();
         },
