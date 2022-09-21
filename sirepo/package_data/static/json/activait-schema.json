@@ -350,7 +350,7 @@
         "logisticRegressionErrorRateAnimation": {},
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"],
-            "modelFile": ["Model File", "InputFile"]
+            "modelFile": ["Model File", "InputFile", "", "Provide an HDF5 file created by Keras model.save()"]
         },
         "neuralNet": {
             "optimizer": ["Optimizer", "NeuralNetOptimizer", "adam"],

@@ -1638,25 +1638,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.form.$setDirty();
             };
 
-            $scope.options = layerEnum => {
-                if (mlService.devMode) {
-                    return layerEnum;
-                }
-                const unSupportedLayers = [
-                    // 'Add',
-                    // 'Concatenate',
-                    'AveragePooling2D',
-                    // 'Conv2D',
-                    // 'Conv2DTranspose',
-                    'GlobalAveragePooling2D',
-                    // 'MaxPooling2D',
-                    'SeparableConv2D',
-                    'UpSampling2D',
-                    'ZeroPadding2D'
-                ];
-                return layerEnum.filter(x => !unSupportedLayers.includes(x[0]));
-            };
-
             $scope.outputColCount = function() {
                 if (! appState.isLoaded()) {
                     return '';
@@ -2043,9 +2024,8 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
                 appState,
                 (data) => {
                     appState.models.neuralNet.layers = data.layers.slice(0, -1);
-                    appState.saveChanges('neuralNet');
                     appState.models.mlModel.mlModule = 'neuralnet';
-                    appState.saveChanges('mlModel');
+                    appState.saveChanges(['mlModel', 'neuralNet']);
                 },
                 {
                     method: 'load_keras_model',
