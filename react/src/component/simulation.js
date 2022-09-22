@@ -30,6 +30,8 @@ import { FormStateInitializer } from "../component/form";
 import { useResolvedPath } from "react-router-dom";
 import { RouteHelper } from "../hook/route";
 import { ReportEventManager } from "../data/report";
+import { SrNavbar } from "./navbar";
+import { titleCaseString } from "../utility/string";
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;
@@ -83,8 +85,6 @@ function ReportEventManagerInitializer(props) {
     </ContextReportEventManager.Provider>
 }
 
-export const NavbarContainerId = "nav-tabs-container";
-
 export function SimulationOuter(props) {
     let appName = useContext(ContextAppName);
 
@@ -93,27 +93,15 @@ export function SimulationOuter(props) {
     let pathPrefix = useResolvedPath('');
     let currentRelativeRouter = new RouteHelper(pathPrefix);
 
-    let titleCaseAppName = appName.split(" ").map(word => {
-        return word.substring(0,1).toUpperCase() + (word.length > 1 ? word.substring(1) : "");
-    }).join(" ");
+    let titleCaseAppName = titleCaseString(appName);
+
+
 
     // TODO: navbar should route to home, when one is made
     return (
         <Container>
-            <Navbar>
-                <Container id={NavbarContainerId}>
-                    <Navbar.Brand href={simBrowerRelativeRouter.getCurrentPath()}>
-                        <img
-                        alt=""
-                        src="/react/img/sirepo.gif"
-                        width="30"
-                        height="30"
-                        className="d-inline-block align-top"
-                        />{' '}
-                        {titleCaseAppName}
-                    </Navbar.Brand>
-                </Container>
-            </Navbar>
+            <SrNavbar title={titleCaseAppName} titleHref={simBrowerRelativeRouter.getCurrentPath()}>
+            </SrNavbar>
             <ContextRelativeRouterHelper.Provider value={currentRelativeRouter}>
                 {props.children}
             </ContextRelativeRouterHelper.Provider>

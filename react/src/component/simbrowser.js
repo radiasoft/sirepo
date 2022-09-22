@@ -8,12 +8,15 @@ import {
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { ContextRelativeRouterHelper, ContextSimulationListPromise } from "../context";
+import { ContextAppName, ContextRelativeRouterHelper, ContextSimulationListPromise } from "../context";
 import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react-router-dom";
 import React from "react";
 import { SimulationRoot } from "./simulation";
 import { RouteHelper } from "../hook/route";
 import "./simbrowser.scss";
+import { SrNavbar, NavbarContainerId } from "./navbar";
+import { titleCaseString } from "../utility/string";
+import usePortal from "react-useportal";
 
 function buildSimulationsTree(simulations) {
     let root = {
@@ -202,11 +205,11 @@ function SimulationRouteHeader(props) {
         prevSegments.push(pathSegment);
         return (
             <React.Fragment key={routePath}>
-                <h3 className="sr-sim-route-header-separator sr-sim-route-header-text">/</h3>
+                <span className="sr-sim-route-header-separator sr-sim-route-header-text">/</span>
                 <Link to={routePath}>
-                    <h3 className="sr-sim-route-header-segment sr-sim-route-header-text">
+                    <span className="sr-sim-route-header-segment sr-sim-route-header-text">
                         {pathSegment}
-                    </h3>
+                    </span>
                 </Link>
             </React.Fragment>
         )
@@ -221,28 +224,34 @@ function SimulationRouteHeader(props) {
 
 function SimulationBrowser(props) {
     let { tree } = props; 
+
+    let appName = useContext(ContextAppName);
+    let routeHelper = useContext(ContextRelativeRouterHelper);
+
     return (
         <SimulationFolderRouter tree={tree}>
             {({routedTree, routedPath}) => {
                 return (
-                    <div className="sr-sim-browser-outer">
-                        <h3 className="sr-sim-browser-header">
-                            
-                        </h3>
-                        <Container className="sr-sim-browser">
-                            <Row>
+                    <>
+                        <SrNavbar title={`${titleCaseString(appName)} Simulations`} titleHref={routeHelper.getCurrentPath()}>
+                            <Col className="float-right">
                                 <SimulationRouteHeader path={routedPath}/>
-                            </Row>
-                            <Row sm={2}>         
-                                <Col sm={4}>
-                                    <SimulationTreeViewFolder isRoot={true} className="sr-sim-tree-view" tree={tree} path={routedPath}/>
-                                </Col>
-                                <Col sm={8}>
-                                    <SimulationIconView tree={routedTree} path={routedPath}/>
-                                </Col>         
-                            </Row>
-                        </Container>
-                    </div>
+                            </Col>
+                        </SrNavbar>
+                        <div className="sr-sim-browser-outer">
+                            <Container className="sr-sim-browser">
+                                <Row sm={2}>         
+                                    <Col sm={4}>
+                                        <SimulationTreeViewFolder isRoot={true} className="sr-sim-tree-view" tree={tree} path={routedPath}/>
+                                    </Col>
+                                    <Col sm={8}>
+                                        <SimulationIconView tree={routedTree} path={routedPath}/>
+                                    </Col>         
+                                </Row>
+                            </Container>
+                        </div>
+                    </>
+                    
                 )
             }}
         </SimulationFolderRouter>
@@ -296,5 +305,9 @@ export function SimulationBrowserRoot(props) {
         child = <>Loading...</>
     }
 
-    return child;
+    return (
+        <>
+            {child}
+        </>
+    );
 }

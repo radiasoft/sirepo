@@ -24,6 +24,7 @@ export function Table(props) {
         )
     }
 
+    // TODO using indices as ids here will cause future issues, need keys
     rowElements.push(
         <tbody>
             {
@@ -31,7 +32,7 @@ export function Table(props) {
                     return (
                         <tr className="sr-table-row sr-table-row-body">
                             { hasRowNames && <td className="sr-table-cell-header sr-table-cell">{rowNames[idx]}</td> }
-                            { row.map(colVal => <td className="sr-table-cell sr-table-cell-body">{`${colVal}`}</td>)}
+                            { row.map((colVal) => <td className="sr-table-cell sr-table-cell-body">{`${colVal}`}</td>)}
                         </tr>
                     )
                 }))

@@ -1,6 +1,6 @@
 import { Nav , Modal, Col} from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link } from "react-router-dom";
-import { NavbarContainerId } from "../component/simulation";
+import { NavbarContainerId } from "../component/navbar";
 import { ContextModelsWrapper, ContextRelativeFormController, ContextSimulationInfoPromise } from "../context";
 import { useInterpolatedString } from "../hook/string";
 import { useContext, useState } from "react";
