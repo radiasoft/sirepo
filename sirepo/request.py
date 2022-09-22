@@ -17,7 +17,16 @@ _POST_ATTR = "sirepo_http_request_post"
 
 _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
-def qcall_init(qcall, **kwargs):
+def qcall_flask(qcall, **kwargs):
+-    with sirepo.request(flask
+-    qcall.create_sreq(
+-        http_headers=flask.request.headers,
+-        http_method=flask.request.method,
+-        internal_req=flask.request,
+-        qcall_uri=flask.request.url,
+-        remote_addr=flask.request.remote_addr,
+-        server_uri=flask.url_for("_dispatch_empty", _external=True),
+-    )
 
 
 class Base(sirepo.quest.QCallObject):

@@ -98,8 +98,8 @@ def call_api(qcall, name, kwargs=None, data=None):
     if not kwargs:
         kwargs = PKDict()
     if data:
-        qcall.qcall_object(data)
-    qcall.qcall_object(uri_route=_api_to_route[name])
+        qcall.qcall_object("http_post_data", data)
+    qcall.qcall_object("uri_route", _api_to_route[name])
     return _call_api(qcall)
 
 
@@ -320,7 +320,7 @@ def _dispatch(path):
         path (str): what to route
 
     Returns:
-        Flask.response
+        response
     """
     error, route, kwargs = _path_to_route(path)
     if error:
@@ -329,18 +329,10 @@ def _dispatch(path):
         qargs = None
 
     qcall = route.cls()
-    uri_router=route, kwargs=kwargs
-    with sirepo.request(flask
-    qcall.create_sreq(
-        http_headers=flask.request.headers,
-        http_method=flask.request.method,
-        internal_req=flask.request,
-        qcall_uri=flask.request.url,
-        remote_addr=flask.request.remote_addr,
-        server_uri=flask.url_for("_dispatch_empty", _external=True),
-    )
+    qcall.qcall_object("uri_route", route)
+    with sirepo.request.qcall_flask(qcall, kwargs)
     with sirepo.auth.qcall_init(qcall):
-        return call_api(qcall, PKDict(path_info=None))
+        return _call_api(qcall, kwargs))
 
 
 def _dispatch_empty():
