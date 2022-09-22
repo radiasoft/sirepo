@@ -3,10 +3,7 @@ import os
 import re
 from pykern.pkcollections import PKDict
 import sirepo.mpi
-import sirepo.util
 from sirepo.template import radia_examples
-from sirepo.template import radia_util
-from sirepo.template import template_common
 
 VIEW_TYPE_OBJ = "objects"
 VIEW_TYPE_FIELD = "fields"
@@ -36,6 +33,9 @@ sirepo_objs = {{ objects }}
 {% include "radia_examples.py" %}
 {% endif %}
 
+# sirepo.util functions
+{{ sirepoUtilSplit }}
+
 {% if not isExample and not dmpImportFile  %}
 def _add_object(o, radia_objs, id_map):
     model = o.get("model")
@@ -43,61 +43,61 @@ def _add_object(o, radia_objs, id_map):
     sc = o.get("super_classes", [])
     mat = {{ matrix }}
     if _MODEL_OBJECT in sc:
-        ctr = sirepo.util.split_comma_delimited_string(o.center, float)
-        sz = sirepo.util.split_comma_delimited_string(o.size, float)
-        m = radia_util.multiply_vector_by_matrix(sirepo.util.split_comma_delimited_string(o.magnetization, float), mat)
-        segs = radia_util.multiply_vector_by_matrix(sirepo.util.split_comma_delimited_string(o.segments, int), mat)
+        ctr = {{ sirepoUtilPrefix }}split_comma_delimited_string(o["center"], float)
+        sz = {{ sirepoUtilPrefix }}split_comma_delimited_string(o["size"], float)
+        m = {{ radiaUtilPrefix }}multiply_vector_by_matrix({{ sirepoUtilPrefix }}split_comma_delimited_string(o["magnetization"], float), mat)
+        segs = {{ radiaUtilPrefix }}multiply_vector_by_matrix({{ sirepoUtilPrefix }}split_comma_delimited_string(o["segments"], int), mat)
     if t == _MODEL_CUBOID:
-        g_id = radia_util.build_cuboid(
+        g_id = {{ radiaUtilPrefix }}build_cuboid(
             center=ctr,
             size=sz,
-            material=o.material,
+            material=o["material"],
             magnetization=m,
-            rem_mag=o.remanentMag,
+            rem_mag=o["remanentMag"],
             segments=segs,
-            h_m_curve=o.h_m_curve
+            h_m_curve=o["h_m_curve"]
         )
     if t == _MODEL_CYLINDER:
-        g_id = radia_util.build_cylinder(
+        g_id = {{ radiaUtilPrefix }}build_cylinder(
             center=ctr,
-            extrusion_axis=o.extrusionAxis,
-            h_m_curve=o.h_m_curve,
-            material=o.material,
+            extrusion_axis=o["extrusionAxis"],
+            h_m_curve=o["h_m_curve"],
+            material=o["material"],
             magnetization=m,
-            num_sides=o.numSides,
-            radius=o.radius,
-            rem_mag=o.remanentMag,
+            num_sides=o["numSides"],
+            radius=o["radius"],
+            rem_mag=o["remanentMag"],
             segments=segs,
             size=sz,
         )
     if _MODEL_EXTRUDED_POLY in sc:
-        g_id = radia_util.extrude(
-            area=o.area,
+        g_id = {{ radiaUtilPrefix }}extrude(
+            area=o["area"],
             center=ctr,
             size=sz,
-            extrusion_axis=o.extrusionAxis,
-            points=o.points,
-            material=o.material,
+            extrusion_axis=o["extrusionAxis"],
+            points=o["points"],
+            material=o["material"],
             magnetization=m,
-            rem_mag=o.remanentMag,
+            rem_mag=o["remanentMag"],
             segments=segs,
-            t_level=o.triangulationLevel,
-            h_m_curve=o.h_m_curve
+            t_level=o["triangulationLevel"],
+            h_m_curve=o["h_m_curve"]
     )
     if t == _MODEL_RACETRACK:
-        g_id = radia_util.build_racetrack(
-            center=sirepo.util.split_comma_delimited_string(o.center, float),
-            axis=o.axis,
-            calc=o.fieldCalc,
-            radii=sirepo.util.split_comma_delimited_string(o.radii, float),
-            sides=sirepo.util.split_comma_delimited_string(o.sides, float),
-            height=o.height,
-            num_segs=o.numSegments,
-            curr_density=o.currentDensity,
+        g_id = {{ radiaUtilPrefix }}build_racetrack(
+            center={{ sirepoUtilPrefix }}split_comma_delimited_string(o["center"], float),
+            axis=o["axis"],
+            calc=o["fieldCalc"],
+            radii={{ sirepoUtilPrefix }}split_comma_delimited_string(o["radii"], float),
+            sides={{ sirepoUtilPrefix }}split_comma_delimited_string(o["sides"], float),
+            height=o["height"],
+            num_segs=o["numSegments"],
+            curr_density=o["currentDensity"],
         )
     if t in _OBJ_MODELS:
         for b in o.get("bevels", []):
-            g_id = radia_util.apply_bevel(
+            g_id = {{ radiaUtilPrefix }}apply_bevel(
                 g_id,
                 center=ctr,
                 lenDir=b["cutDir"],
@@ -105,24 +105,24 @@ def _add_object(o, radia_objs, id_map):
                 **b
             )
         for f in o.get("fillets", []):
-            g_id = radia_util.apply_fillet(
+            g_id = {{ radiaUtilPrefix }}apply_fillet(
                 g_id,
                 center=ctr,
                 size=sz,
-                material=o.material,
+                material=o["material"],
                 magnetization=m,
-                rem_mag=o.remanentMag,
+                rem_mag=o["remanentMag"],
                 segments=segs,
-                h_m_curve=o.h_m_curve,
+                h_m_curve=o["h_m_curve"],
                 **f
             )
-        radia_util.apply_color(
+        {{ radiaUtilPrefix }}apply_color(
             g_id,
-            [c / 255.0 for c in tuple(int(o.color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))]
+            [c / 255.0 for c in tuple(int(o["color"].lstrip("#")[i:i+2], 16) for i in (0, 2, 4))]
         )
     if model in _GROUP_MODELS:
         grp = []
-        for obj_id in o.members:
+        for obj_id in o["members"]:
             obj = [mobj for mobj in sirepo_objs if mobj["id"] == obj_id][0]
             m = PKDict(obj)
             if m.id not in id_map.values():
@@ -133,34 +133,38 @@ def _add_object(o, radia_objs, id_map):
                 grp.extend(
                     [list(id_map.keys())[list(id_map.values()).index(v)] for v in id_map.values() if v == m.id]
                 )
-        g_id = radia_util.build_container(grp)
-    for transform in o.transforms:
-        radia_util.apply_transform(g_id, PKDict(transform))
-    id_map[g_id] = o.id
+        g_id = {{ radiaUtilPrefix }}build_container(grp)
+    for transform in o["transforms"]:
+        {{ radiaUtilPrefix }}apply_transform(g_id, PKDict(transform))
+    id_map[g_id] = o["id"]
     # don't add objects if they are already in a group
-    if not o.groupId:
+    if not o["groupId"]:
         radia_objs.append(g_id)
     return g_id
 
 {% endif %}
 
-# ** BEGIN **
-id_map = {}
-{% if isExample %}
-g_id = EXAMPLES["{{ geomName }}"]()
+def _build_radia_geom():
+    id_map = {}
+    radia_objs = []
+{% if is_raw %}
+    g_id, id_map = radia_examples.EXAMPLES['{{ exampleName }}']()
 {% elif dmpImportFile %}
-with open("{{ dmpImportFile }}", "rb") as f:
-    b = f.read()
-    g_id = radia.UtiDmpPrs(b)
+    with open('{{ dmpImportFile }}', 'rb') as f:
+        b = f.read()
+        g_id = {{ radiaUtilPrefix }}load_bin(b)
 {% else %}
-{% for obj in objects %}
-if "{{ obj["id"] }}" not in id_map.values():
-    o_id = _add_object({{ obj }})
-    id_map[o_id] = "{{ obj["id"] }}"
-{% endfor %}
-g_id = radia.ObjCnt(radia_objs)
+    for obj in sirepo_objs:
+        if obj["id"] in id_map.values():
+            continue
+        o_id = _add_object(obj, radia_objs, id_map)
+        id_map[o_id] = obj["id"]
+    g_id = {{ radiaUtilPrefix }}build_container(radia_objs)
 {% endif %}
+    return g_id, id_map
 
+# ** BEGIN **
+g_id, id_map = _build_radia_geom()
 
 print(f"Solving {g_id}...")
 res = radia.Solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})

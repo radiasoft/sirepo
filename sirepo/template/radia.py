@@ -7,6 +7,8 @@ Radia "instance" goes away and references no longer have any meaning.
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+import inspect
+
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -829,6 +831,15 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
 
     v.doReset = False
     v.isParallel = is_parallel
+
+    # include methods from non-templatte packages
+    if for_export:
+        v.radiaUtilPrefix = ""
+        v.sirepoUtilPrefix = ""
+        v.sirepoUtilSplit = inspect.getsource(sirepo.util.split_comma_delimited_string)
+    else:
+        v.radiaUtilPrefix = "radia_util."
+        v.sirepoUtilPrefix = "sirepo.util."
 
     v.dmpOutputFile = _DMP_FILE
     if "dmpImportFile" in data.models.simulation:
