@@ -8,7 +8,7 @@ import sirepo.const
 #: Convenience constant
 _LOCALHOST = "127.0.0.1"
 #: Maximum time an individual test case (function) can run
-MAX_CASE_RUN_SECS = int(os.getenv("SIREPO_CONFTEST_MAX_CASE_RUN_SECS", 30))
+MAX_CASE_RUN_SECS = int(os.getenv("SIREPO_CONFTEST_MAX_CASE_RUN_SECS", 120))
 
 
 @pytest.fixture
@@ -240,38 +240,11 @@ def _config_sbatch_supervisor_env(env):
     )
 
 
-def _port(port, ip=_LOCALHOST):
-    import socket
-    from pykern.pkdebug import pkdlog
-
-    p = int(port)
-    pkdlog(f"TRY ip={ip} port={p}")
-    assert (
-        sirepo.const.PORT_MIN <= p <= sirepo.const.PORT_MAX
-    ), f"port={p} ip={ip} invalid"
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            s.bind(
-                (
-                    ip,
-                    p,
-                )
-            )
-            pkdlog(f"OK ip={ip} port={p}")
-            return str(p)
-        except Exception:
-            pkdlog(f"ip={ip} port={p} in use")
-            return _port(p + 1, ip=ip)
-        finally:
-            pkdlog(f"CLOSE ip={ip} port={p}")
-            s.close()
-
-
 def _job_supervisor_check(env):
     _ = _port(
-        int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT), ip=env.SIREPO_PKCLI_JOB_SUPERVISOR_IP
+        int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT),
+        [],
+        ip=env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
     )
 
 
@@ -292,6 +265,30 @@ def _fc(request, fc_module, new_user=False):
     else:
         fc_module.sr_login_as_guest(sim_type=c)
     return fc_module
+
+
+def _port(port, busy_ports, ip=_LOCALHOST):
+    import socket
+    from pykern.pkdebug import pkdlog
+
+    p = int(port)
+    while sirepo.const.PORT_MIN <= p <= sirepo.const.PORT_MAX:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                assert p not in busy_ports
+                s.bind(
+                    (
+                        ip,
+                        p,
+                    )
+                )
+                busy_ports.append(p)
+                return str(p)
+            except Exception:
+                pkdlog(f"ip={ip} port={p} in use")
+            p += 1
+    raise AssertionError(f"ip={ip} port={p} invalid address")
 
 
 def _sim_type(request):
@@ -326,7 +323,9 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     from pykern import pkunit
     from pykern import pkio
 
-    p = _port(sirepo.const.PORT_DEFAULTS.http + sirepo.const.PORT_DELTA_FOR_TEST)
+    ports = []
+    delta = sirepo.const.PORT_DELTA_FOR_TEST
+    p = _port(sirepo.const.PORT_DEFAULTS.http + delta, ports)
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME="1",
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
@@ -334,9 +333,9 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
     if uwsgi:
-        cfg.SIREPO_PKCLI_SERVICE_PORT = _port(p)
+        cfg.SIREPO_PKCLI_SERVICE_PORT = _port(p, ports)
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port(
-            sirepo.const.PORT_DEFAULTS.nginx_proxy + sirepo.const.PORT_DELTA_FOR_TEST
+            sirepo.const.PORT_DEFAULTS.nginx_proxy + delta, ports
         )
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
         cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
