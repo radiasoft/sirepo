@@ -1,20 +1,15 @@
-import { 
-    ContextRelativeFormState,
+import {
     ContextModelsWrapper,
     ContextSimulationInfoPromise,
-    ContextRelativeFormDependencies,
-    ContextRelativeHookedDependencyGroup,
     ContextRelativeFormController,
-    ContextSchema
 } from "../context";
 import { useContext } from "react";
 import { useInterpolatedString } from "../hook/string";
 import { View } from "./layout";
 import { useStore } from "react-redux";
-import { HookedDependencyGroup } from "../data/dependency";
-import { FormController } from "../data/form";
 import { EditorPanel } from "../component/panel";
 import "./panel.scss";
+import { Col } from "react-bootstrap";
 
 export class PanelLayout extends View {
     getChildLayoutByConfig = (layoutConfig) => {
@@ -77,8 +72,10 @@ export class PanelLayout extends View {
         }
 
         return (
-            <EditorPanel {...formProps}>
-            </EditorPanel>
+            <Col md={6} className="mb-3">
+                <EditorPanel {...formProps}>
+                </EditorPanel>
+            </Col>
         )
     }
 }

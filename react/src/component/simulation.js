@@ -134,9 +134,7 @@ export function SimulationRoot(props) {
         let layout = layouts.getLayoutForConfig(view);
         let Component = layout.component;
         return (
-            <Col md={6} className="mb-3" key={index}>
-                <Component config={view}></Component>
-            </Col>
+            <Component config={view} key={index}></Component>
         )
     });
 

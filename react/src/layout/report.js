@@ -1,9 +1,9 @@
 import { useContext, useState, useRef, useEffect } from "react";
-import { Dependency } from "../data/dependency";
-import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModelsWrapper, ContextLayouts, ContextReportEventManager } from "../context";
+import { Dependency, HookedDependencyGroup } from "../data/dependency";
+import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModelsWrapper, ContextLayouts, ContextReportEventManager, ContextSchema } from "../context";
 import { useDependentValues } from "../hook/dependency";
 import { View } from "./layout";
-import { cancelReport, pollRunReport } from "../utility/compute";
+import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from "react-redux";
 import { ProgressBar, Stack, Button } from "react-bootstrap";
@@ -72,6 +72,28 @@ export class AutoRunReportLayout extends View {
     }
 }
 
+function getFrameId({
+    frameIndex,
+    reportName,
+    simulationId,
+    appName,
+    computeJobHash,
+    computeJobSerial,
+    hookedDependendies
+}) {
+    let frameIdElements = [
+        frameIndex,
+        reportName,
+        simulationId,
+        appName,
+        computeJobHash,
+        computeJobSerial,
+        ...((hookedDependendies || []).map(v => v.value))
+    ]
+
+    return frameIdElements.join('*');
+}
+
 export class ManualRunReportLayout extends View {
     getFormDependencies = (config) => {
         let { reportLayout } = config;
@@ -79,7 +101,81 @@ export class ManualRunReportLayout extends View {
         return layoutElement.getFormDependencies();
     }
 
+    component = (props) => {
+        let { config } = props;
+        let { reportName, reportGroupName, reportLayout, frameIdFields } = config;
+        
+        let reportEventManager = useContext(ContextReportEventManager);
+        let schema = useContext(ContextSchema);
+        let modelsWrapper = useContext(ContextModelsWrapper);
+        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
+        let appName = useContext(ContextAppName);
 
+        let [reportData, updateReportData] = useState(undefined);
+
+        let reportEventsVersionRef = useRef(uuidv4())
+
+        let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
+
+        let frameIdDependencyGroup = new HookedDependencyGroup({ 
+            dependencies: frameIdDependencies,
+            modelsWrapper,
+            schemaModels: schema.models
+        })
+
+        let hookedFrameIdDependencies = frameIdDependencies.map(frameIdDependencyGroup.getHookedDependency);
+
+        useEffect(() => {
+            let reportEventsVersion = uuidv4();
+            reportEventsVersionRef.current = reportEventsVersion;
+            
+            reportEventManager.onReportData(reportGroupName, (simulationData) => {
+                if(reportEventsVersionRef.current !== reportEventsVersion) {
+                    return; // guard against concurrency with older versions
+                }
+
+                updateReportData(undefined);
+
+                let { state } = simulationData;
+                if(state == "completed") {
+                    simulationInfoPromise.then(({simulationId}) => {
+                        if(reportEventsVersionRef.current !== reportEventsVersion) {
+                            return; // guard against concurrency with older versions
+                        }
+
+                        let { frameCount, computeJobHash, computeJobSerial } = simulationData;
+                        let frameId = getFrameId({
+                            frameIndex: frameCount - 1, // pick last frame for now
+                            reportName,
+                            simulationId,
+                            computeJobHash,
+                            computeJobSerial,
+                            appName,
+                            hookedDependendies: hookedFrameIdDependencies
+                        })
+
+                        getSimulationFrame(frameId).then(simulationData => {
+                            if(reportEventsVersionRef.current !== reportEventsVersion) {
+                                return; // guard against concurrency with older versions
+                            }
+
+                            updateReportData(simulationData);
+                        });
+                    })
+                }
+            })
+        })
+
+        let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
+        let VisualComponent = reportData ? layoutElement.component : undefined;
+
+        // set the key as the key for the latest request sent to make a brand new report component for each new request data
+        return (
+            <>
+                {VisualComponent && <VisualComponent key={reportEventsVersionRef.current} config={reportLayout} simulationData={reportData}></VisualComponent>}
+            </>
+        )
+    }
 }
 
 export class SimulationStartLayout extends View {
@@ -89,7 +185,7 @@ export class SimulationStartLayout extends View {
 
     component = (props) => {
         let { config } = props;
-        let { reportName } = config;
+        let { reportGroupName } = config;
 
         let reportEventManager = useContext(ContextReportEventManager);
         let appName = useContext(ContextAppName);
@@ -109,7 +205,7 @@ export class SimulationStartLayout extends View {
             let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
 
-            reportEventManager.onReportData(reportName, (simulationData) => {
+            reportEventManager.onReportData(reportGroupName, (simulationData) => {
                 if(simulationPollingVersionRef.current === pollingVersion) {
                     updateLastSimulationData(simulationData);
                 }
@@ -120,7 +216,7 @@ export class SimulationStartLayout extends View {
                     appName,
                     models: modelsWrapper.getModels(store.getState()),
                     simulationId,
-                    report: reportName
+                    report: reportGroupName
                 })
             })   
         }
@@ -135,7 +231,7 @@ export class SimulationStartLayout extends View {
                     appName,
                     models: modelsWrapper.getModels(store.getState()),
                     simulationId,
-                    report: reportName
+                    report: reportGroupName
                 })
             })   
         }

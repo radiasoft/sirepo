@@ -97,3 +97,12 @@ export function cancelReport({ appName, models, simulationId, report }) {
         })
     })
 }
+
+export function getSimulationFrame(frameId) {
+    return new Promise((resolve, reject) => {
+        fetch(`/simulation-frame/${frameId}`).then(async (resp) => {
+            let respObj = await resp.json();
+            resolve(respObj);
+        })
+    })
+}

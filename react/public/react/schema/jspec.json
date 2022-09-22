@@ -667,7 +667,7 @@
                             "basic": [
                                 {
                                     "layout": "startSimulation",
-                                    "reportName": "animation"
+                                    "reportGroupName": "animation"
                                 }
                             ]
                         },
@@ -675,6 +675,27 @@
                             "name": "beamEvolutionAnimation",
                             "layout": "panel",
                             "title": "RMS Ion Beam Evolution",
+                            "basic": [
+                                {
+                                    "layout": "manualRunReport",
+                                    "reportGroupName": "animation",
+                                    "reportName": "beamEvolutionAnimation",
+                                    "frameIdFields": [
+                                        "beamEvolutionAnimation.y1",
+                                        "beamEvolutionAnimation.y2",
+                                        "beamEvolutionAnimation.y3",
+                                        "beamEvolutionAnimation.plotRangeType",
+                                        "beamEvolutionAnimation.horizontalSize",
+                                        "beamEvolutionAnimation.horizontalOffset",
+                                        "beamEvolutionAnimation.verticalSize",
+                                        "beamEvolutionAnimation.verticalOffset"
+                                    ],
+                                    "reportLayout": {
+                                        "layout": "graph2d"
+                                    }
+
+                                }
+                            ],
                             "advanced": [
                                 {
                                     "layout": "tabs",
@@ -732,6 +753,27 @@
                             "name": "coolingRatesAnimation",
                             "layout": "panel",
                             "title": "IBS & Cooling Rates",
+                            "basic": [
+                                {
+                                    "layout": "manualRunReport",
+                                    "reportGroupName": "animation",
+                                    "reportName": "coolingRatesAnimation",
+                                    "frameIdFields": [
+                                        "coolingRatesAnimation.y1",
+                                        "coolingRatesAnimation.y2",
+                                        "coolingRatesAnimation.y3",
+                                        "coolingRatesAnimation.plotRangeType",
+                                        "coolingRatesAnimation.horizontalSize",
+                                        "coolingRatesAnimation.horizontalOffset",
+                                        "coolingRatesAnimation.verticalSize",
+                                        "coolingRatesAnimation.verticalOffset"
+                                    ],
+                                    "reportLayout": {
+                                        "layout": "graph2d"
+                                    }
+
+                                }
+                            ],
                             "advanced": [
                                 {
                                     "layout": "tabs",
@@ -789,6 +831,27 @@
                             "name": "forceTableAnimation",
                             "layout": "panel",
                             "title": "Friction Force",
+                            "basic": [
+                                {
+                                    "layout": "manualRunReport",
+                                    "reportGroupName": "animation",
+                                    "reportName": "forceTableAnimation",
+                                    "frameIdFields": [
+                                        "forceTableAnimation.x",
+                                        "forceTableAnimation.y1",
+                                        "forceTableAnimation.forceScale",
+                                        "forceTableAnimation.plotRangeType",
+                                        "forceTableAnimation.horizontalSize",
+                                        "forceTableAnimation.horizontalOffset",
+                                        "forceTableAnimation.verticalSize",
+                                        "forceTableAnimation.verticalOffset"
+                                    ],
+                                    "reportLayout": {
+                                        "layout": "graph2d"
+                                    }
+
+                                }
+                            ],
                             "advanced": [
                                 {
                                     "layout": "tabs",

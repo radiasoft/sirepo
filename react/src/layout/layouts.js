@@ -2,7 +2,7 @@ import { FieldGridLayout, FieldListLayout, LayoutWithFormController } from "./fo
 import { Graph2dFromApi } from "./graph2d";
 import { MissingLayout } from "./missing";
 import { PanelLayout } from "./panel";
-import { AutoRunReportLayout, SimulationStartLayout } from "./report";
+import { AutoRunReportLayout, ManualRunReportLayout, SimulationStartLayout } from "./report";
 import { TabLayout } from "./tabs";
 import { LayoutWithSpacing } from "./spaced";
 import { NavBarModalButton, NavTabsLayout } from "./navbar";
@@ -17,6 +17,7 @@ export class Layouts {
             panel: new (LayoutWithFormController(PanelLayout))(this),
             navbarModalButton: new (LayoutWithFormController(NavBarModalButton))(this),
             autoRunReport: new AutoRunReportLayout(this),
+            manualRunReport: new ManualRunReportLayout(this),
             graph2d: new Graph2dFromApi(this),
             navTabs: new NavTabsLayout(this),
             table: new TableFromApi(this),
