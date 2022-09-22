@@ -30,25 +30,6 @@ _MAX_NUM_SCANS = 1000
 
 _NON_DISPLAY_SCAN_FIELDS = "uid"
 
-_OUTPUT_FILE = "out.ipynb"
-
-_BLUESKY_POLL_TIME_FILE = "bluesky-poll-time.txt"
-
-# TODO(rorour): replace with actual scans
-class ScanObject(PKDict):
-    def __init__(self, uid=""):
-        self.uid = uid
-        self.metadata = {
-            "field1": "val1",
-            "num_points": "1",
-            "start": {"time": "000", "uid": uid, "num_points": "2"},
-            "stop": {"time": "001"},
-        }
-
-
-def background_percent_complete(report, run_dir, is_running):
-    return PKDict(percentComplete=0 if is_running else 100)
-
 
 def catalog(scans_data_or_catalog_name):
     return databroker.catalog[
@@ -109,10 +90,6 @@ def stateless_compute_scan_info(data):
     return _scan_info_result([_scan_info(s, data) for s in data.scans])
 
 
-def write_parameters(data, run_dir, is_parallel):
-    raise NotImplementedError("Raydata does not run simulations")
-
-
 def _request_scan_monitor(data):
     try:
         r = requests.post(
@@ -155,10 +132,6 @@ def _scan_info_result(scans):
             else [],
         )
     )
-
-
-def _parse_scan_uuid(data):
-    return data.report
 
 
 def _suid(scan_uuid):
