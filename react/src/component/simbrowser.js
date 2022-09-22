@@ -32,7 +32,7 @@ function buildSimulationsTree(simulations) {
         let findChild = () => tree.children.find(c => c.name === folderName);
         if(!findChild()) {
             tree.children.push({ name: folderName, folder: fullFolderPath, children: [] });
-        } 
+        }
         return findChild();
     }
 
@@ -174,7 +174,7 @@ function SimulationFolderRouter(props) {
         path.push(simulationFolder);
         let matchedFolder = tree.children.find(c => c.children && c.name === simulationFolder);
 
-        if(!matchedFolder) { 
+        if(!matchedFolder) {
             return <>Folder {simulationFolder} not found!</> //TODO 404
         } else {
             tree = matchedFolder;
@@ -223,7 +223,7 @@ function SimulationRouteHeader(props) {
 }
 
 function SimulationBrowser(props) {
-    let { tree } = props; 
+    let { tree } = props;
 
     let appName = useContext(ContextAppName);
     let routeHelper = useContext(ContextRelativeRouterHelper);
@@ -239,19 +239,19 @@ function SimulationBrowser(props) {
                             </Col>
                         </SrNavbar>
                         <div className="sr-sim-browser-outer">
-                            <Container className="sr-sim-browser">
-                                <Row sm={2}>         
+                            <Container fluid className="sr-sim-browser">
+                                <Row sm={2}>
                                     <Col sm={4}>
                                         <SimulationTreeViewFolder isRoot={true} className="sr-sim-tree-view" tree={tree} path={routedPath}/>
                                     </Col>
                                     <Col sm={8}>
                                         <SimulationIconView tree={routedTree} path={routedPath}/>
-                                    </Col>         
+                                    </Col>
                                 </Row>
                             </Container>
                         </div>
                     </>
-                    
+
                 )
             }}
         </SimulationFolderRouter>
@@ -261,10 +261,10 @@ function SimulationBrowser(props) {
 function SimulationRootWrapper(props) {
     let { simulationList } = props;
     let { id } = useParams();
-    
+
 
     let simulation = simulationList.find(sim => sim.simulationId === id);
-     
+
     return <SimulationRoot simulation={simulation}/> // TODO: error/missing handling
 }
 

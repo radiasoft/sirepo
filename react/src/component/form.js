@@ -27,7 +27,7 @@ export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
     return (
         <Form.Group {...passedProps} size="sm" as={Row} className="sr-form-row justify-content-center">
-            <Form.Label column className="text-start">
+            <Form.Label column className="text-end">
                 {label}
                 {tooltip &&
                     <LabelTooltip text={tooltip} />
@@ -74,7 +74,7 @@ export function FormStateInitializer(props) {
         })
         updateHasInit(true);
     }, [])
-    
+
     return hasInit && (
         <ContextRelativeFormState.Provider value={formState}>
             {props.children}

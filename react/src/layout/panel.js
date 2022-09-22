@@ -57,7 +57,7 @@ export class PanelLayout extends View {
             simulationInfoPromise.then(simulationInfo => {
                 modelsWrapper.saveToServer(simulationInfo, store.getState());
             })
-            
+
         }
 
         let formProps = {
@@ -72,7 +72,7 @@ export class PanelLayout extends View {
         }
 
         return (
-            <Col md={6} className="mb-3">
+            <Col md={6} xl={4} className="mb-3">
                 <EditorPanel {...formProps}>
                 </EditorPanel>
             </Col>

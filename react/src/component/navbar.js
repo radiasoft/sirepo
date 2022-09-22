@@ -6,7 +6,7 @@ export function SrNavbar(props) {
     let { title, titleHref } = props;
     return (
         <Navbar>
-            <Container id={NavbarContainerId}>
+            <Container fluid id={NavbarContainerId}>
                 <Navbar.Brand href={titleHref}>
                     <img
                     alt=""

@@ -16,8 +16,8 @@ export class rsType {
         let InputComponent = this.inputComponent;
         return (
             <Col>
-                <InputComponent 
-                {...otherProps} 
+                <InputComponent
+                {...otherProps}
                 value={this.hasValue(value) ? value : ""}
                 isInvalid={!valid && touched}
                 onChange={onChange}/>
@@ -59,7 +59,7 @@ export class rsAbstrNumber extends rsType {
 
     inputComponent = (props) => {
         return (
-            <Form.Control className={this.align} type="number" {...props}></Form.Control>
+            <Form.Control className={this.align} type="text" {...props}></Form.Control>
         )
     }
 }
@@ -139,7 +139,7 @@ export class rsFile extends rsType {
             let fileListPromise = new Promise((resolve, reject) => {
                 simulationInfoPromise.then(({ simulationId, version }) => {
                     //TODO, how should this be generated
-                    let fileFieldName = dependency.modelName + "-" + dependency.fieldName; 
+                    let fileFieldName = dependency.modelName + "-" + dependency.fieldName;
                     fetch(`/file-list/${appName}/unused/${fileFieldName}?${version}`).then(response => {
                         if(response.status !== 200) {
                             reject();
@@ -224,7 +224,7 @@ export const partialTypes = {
         settings.allowedValues = (settings.allowedValues || []).map(allowedValue => {
             let [value, displayName] = allowedValue;
             return {
-                value, 
+                value,
                 displayName
             }
         })

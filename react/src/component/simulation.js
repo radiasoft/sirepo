@@ -1,4 +1,4 @@
-import { 
+import {
     Col,
     Row,
     Container,
@@ -31,11 +31,10 @@ import { useResolvedPath } from "react-router-dom";
 import { RouteHelper } from "../hook/route";
 import { ReportEventManager } from "../data/report";
 import { SrNavbar } from "./navbar";
-import { titleCaseString } from "../utility/string";
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;
-    
+
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
     let appName = useContext(ContextAppName);
@@ -93,20 +92,17 @@ export function SimulationOuter(props) {
     let pathPrefix = useResolvedPath('');
     let currentRelativeRouter = new RouteHelper(pathPrefix);
 
-    let titleCaseAppName = titleCaseString(appName);
-
-
 
     // TODO: navbar should route to home, when one is made
     return (
-        <Container>
-            <SrNavbar title={titleCaseAppName} titleHref={simBrowerRelativeRouter.getCurrentPath()}>
+        <Container fluid>
+            <SrNavbar title={appName.toUpperCase()} titleHref={simBrowerRelativeRouter.getCurrentPath()}>
             </SrNavbar>
             <ContextRelativeRouterHelper.Provider value={currentRelativeRouter}>
                 {props.children}
             </ContextRelativeRouterHelper.Provider>
         </Container>
-        
+
     )
 
 }
