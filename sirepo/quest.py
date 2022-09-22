@@ -11,9 +11,6 @@ import sirepo.api_perm
 import sirepo.uri
 
 
-rjn: def qcall_pkcli() and tornado and agent. at the outermost level
-
-
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
@@ -48,12 +45,6 @@ class API(pykern.quest.API):
             flask.Response: result
         """
         return uri_router.call_api(self.sreq, name, kwargs=kwargs, data=data)
-
-    def create_sreq(self, **kwargs):
-        import sirepo.request
-
-        self.sreq = sirepo.request.Base(kwargs)
-        return self.sreq
 
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)

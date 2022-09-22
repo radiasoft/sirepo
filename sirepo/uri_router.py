@@ -20,7 +20,6 @@ import sirepo.cookie
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
 import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
@@ -75,12 +74,12 @@ def assert_api_name_and_auth(qcall, name, allowed):
     Returns:
         str: api name
     """
-    _check_api_call(qcall.sreq, name)
+    _check_route(qcall, _api_to_route[name])
     if name not in allowed:
         raise AssertionError(f"api={name} not in allowed={allowed}")
 
 
-def call_api(sreq, route_or_name, kwargs=None, data=None):
+def call_api(qcall, name, kwargs=None, data=None):
     """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
 
     Call another API with permission checks.
@@ -95,49 +94,13 @@ def call_api(sreq, route_or_name, kwargs=None, data=None):
     Returns:
         Response: result
     """
-    import flask
-    import werkzeug.exceptions
-
-    p = None
-    s = None
-    with _set_api_attr(sreq, route_or_name):
-        try:
-            # must be first so exceptions have access to sim_type
-rjn parse_post or parse_params? we know what we need
-this can be part of the parsing. possibly get from the data if any
-            if kwargs:
-                # Any (GET) uri will have simulation_type in uri if it is application
-                # specific.
-                s = sreq.set_sim_type(kwargs.get("simulation_type"))
-            else:
-                kwargs = PKDict()
-rjn already has route
-
-            f = _check_api_call(sreq, route_or_name)
-            try:
-                if data is not None:
-                    p = sreq.set_post(data)
-                r = flask.make_response(
-                    getattr(f.cls(sreq=sreq), f.func_name)(**kwargs)
-                )
-            finally:
-                if data:
-                    sreq.set_post(p)
-        except Exception as e:
-            if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
-                pkdc("api={} exception={} stack={}", route_or_name, e, pkdexc())
-            else:
-                pkdlog("api={} exception={} stack={}", route_or_name, e, pkdexc())
-            r = sirepo.http_reply.gen_exception(sreq, e)
-        finally:
-            # http_request tries to keep a valid sim_type so
-            # this is ok to call (even if s is None)
-            sreq.set_sim_type(s)
-        sreq.cookie.save_to_cookie(r)
-        sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
-        if pkconfig.channel_in("dev"):
-            r.headers.add("Access-Control-Allow-Origin", "*")
-        return r
+    # must be first so exceptions have access to sim_type
+    if not kwargs:
+        kwargs = PKDict()
+    if data:
+        qcall.qcall_object(data)
+    qcall.qcall_object(uri_route=_api_to_route[name])
+    return _call_api(qcall)
 
 
 def init(app, simulation_db):
@@ -249,8 +212,6 @@ def uri_for_api(api_name, params=None):
     Returns:
         str: formatted URI
     """
-    import flask
-
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
@@ -268,7 +229,7 @@ def uri_for_api(api_name, params=None):
     return res or "/"
 
 
-class _Route(PKDict):
+class _Route(sirepo.quest.QCallObject):
     """Holds all route information for an API.
 
     Keys:
@@ -296,19 +257,60 @@ class _URIParams(PKDict):
     pass
 
 
-def _check_api_call(sreq, route_or_name):
-    """Check if API is callable by current user (proper credentials)
+def _call_api(qcall):
+    """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
+
+    Call another API with permission checks.
+
+    Note: also calls `save_to_cookie`.
 
     Args:
-        route_or_name (function or str): API to check
+        sreq (sirepo.request.Base): request object
+        route_or_name (object): api function or name (without `api_` prefix)
+        kwargs (dict): to be passed to API [None]
+        data (dict): will be returned `sreq.parse_json`
+    Returns:
+        Response: result
     """
-    f = (
-        route_or_name
-        if isinstance(route_or_name, _Route)
-        else _api_to_route[route_or_name]
-    )
-    sirepo.api_auth.check_api_call(sreq, f.func)
-    return f
+    import werkzeug.exceptions
+
+    def _response(res):
+        if isinstance(res, dict):
+            return sirepo.http_reply.gen_json(res)
+        if res is None or isinstance(res, (str, tuple)):
+            raise AssertionError("invalid return from qcall={}", qcall)
+        return sirepo.http_reply.gen_response(res)
+
+    p = None
+    s = None
+    try:
+        # must be first so exceptions have access to sim_type
+        if kwargs:
+            # Any (GET) uri will have simulation_type in uri if it is application
+            # specific.
+            s = qcall.set_sim_type(kwargs.get("simulation_type"))
+        _check_route(qcall, qcall.uri_route)
+        r = _response(getattr(qcall, f.func_name)(**kwargs))
+    except Exception as e:
+        if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+            pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
+        else:
+            pkdlog("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
+        r = sirepo.http_reply.gen_exception(sreq, e)
+    qcall.cookie.save_to_cookie(r)
+    sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
+    if pkconfig.channel_in("dev"):
+        r.headers.add("Access-Control-Allow-Origin", "*")
+    return r
+
+
+def _check_route(qcall, route):
+    """Check if the route is authorized
+
+    Args:
+        route (_Route): API to check
+    """
+    sirepo.api_auth.check_api_call(qcall, route.func)
 
 
 def _dispatch(path):
@@ -326,7 +328,9 @@ def _dispatch(path):
         route = _not_found_route
         qargs = None
 
-    qcall = route.cls(route=route, kwargs=kwargs)
+    qcall = route.cls()
+    uri_router=route, kwargs=kwargs
+    with sirepo.request(flask
     qcall.create_sreq(
         http_headers=flask.request.headers,
         http_method=flask.request.method,
@@ -336,7 +340,7 @@ def _dispatch(path):
         server_uri=flask.url_for("_dispatch_empty", _external=True),
     )
     with sirepo.auth.qcall_init(qcall):
-        return call_api(qcall, _route_default, PKDict(path_info=None))
+        return call_api(qcall, PKDict(path_info=None))
 
 
 def _dispatch_empty():

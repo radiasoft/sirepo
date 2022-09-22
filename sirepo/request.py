@@ -8,6 +8,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import email.utils
 import pykern.pkcompat
+import sirepo.quest
 import sirepo.util
 import user_agents
 
@@ -16,8 +17,10 @@ _POST_ATTR = "sirepo_http_request_post"
 
 _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
+def qcall_init(qcall, **kwargs):
 
-class Base(PKDict):
+
+class Base(sirepo.quest.QCallObject):
     """Holds context for incoming requests"""
 
     def body_as_bytes(self):

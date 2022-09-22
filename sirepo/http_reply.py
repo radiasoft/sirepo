@@ -176,7 +176,7 @@ def gen_redirect_for_local_route(
     application_mode/appMode.
 
     Args:
-        sreq (sirepo.request.Base): request object
+        sreq (request): request object
         sim_type (str): how to find the schema [sreq.sim_type]
         route (str): name in localRoutes [None: use default route]
         params (dict): parameters for route (including :Name)
@@ -194,7 +194,11 @@ def gen_response(*args, **kwargs):
     if "content_type" in kwargs:
         kwargs["mimetype"] = kwargs["content_type"]
         del kwargs["content_type"]
-    return sirepo.util.flask_app().response_class(*args, **kwargs)
+    c = sirepo.util.flask_app().response_class
+    if args and isinstance(args[0], c):
+        assert len(args) == 1 and not kwargs
+        return args[0]
+    return c(*args, **kwargs)
 
 
 def gen_tornado_exception(exc):

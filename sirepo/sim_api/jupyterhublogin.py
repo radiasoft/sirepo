@@ -72,7 +72,7 @@ class API(sirepo.quest.API):
         return self.reply_ok()
 
 
-def create_user(github_handle=None, check_dir=False):
+def create_user(qcall, github_handle=None, check_dir=False):
     """Create a Jupyter user and possibly migrate their data from old jupyter.
 
     Terminology:
