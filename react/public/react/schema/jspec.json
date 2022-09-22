@@ -401,6 +401,24 @@
     },
     "view": [
         {
+            "name": "simulationRenameNavButton",
+            "layout": "navbarModalButton",
+            "title": "$(simulation.name)",
+            "icon": "faPencil",
+            "modal": {
+                "title": "Simulation",
+                "items": [
+                    {
+                        "name": "simulation",
+                        "layout": "fieldList",
+                        "fields": [
+                            "simulation.name"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
             "name": "navtabs",
             "layout": "navTabs",
             "tabs": [
@@ -977,24 +995,6 @@
                     ]
                 }
             ]
-        },
-        {
-            "name": "simulationRenameNavButton",
-            "layout": "navbarModalButton",
-            "title": "$(simulation.name)",
-            "icon": "",
-            "modal": {
-                "title": "Simulation",
-                "items": [
-                    {
-                        "name": "simulation",
-                        "layout": "fieldList",
-                        "fields": [
-                            "simulation.name"
-                        ]
-                    }
-                ]
-            }
         },
         {
             "name": "twissReport",

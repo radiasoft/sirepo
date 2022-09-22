@@ -1,4 +1,4 @@
-import { Nav , Modal, Button} from "react-bootstrap";
+import { Nav , Modal, Col} from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link } from "react-router-dom";
 import { NavbarContainerId } from "../component/simulation";
 import { ContextModelsWrapper, ContextRelativeFormController, ContextSimulationInfoPromise } from "../context";
@@ -8,6 +8,8 @@ import { View } from "./layout";
 import usePortal from "react-useportal"; 
 import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/panel";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import * as Icon from "@fortawesome/free-solid-svg-icons";
 
 export class NavBarModalButton extends View {
     getChildLayouts = (config) => {
@@ -59,16 +61,30 @@ export class NavBarModalButton extends View {
         let isValid = formController.isFormStateValid();
         let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
 
-        let { Portal: NavbarPortal } = usePortal({
+        let { Portal: NavbarPortal, portalRef } = usePortal({
             bindTo: document && document.getElementById(NavbarContainerId)
         })
 
+        if(portalRef && portalRef.current) {
+            portalRef.current.classList.add("float-left");
+            portalRef.current.classList.add("col");
+        }
+
+        let { icon } = config;
+        let iconElement = undefined;
+        if(icon && icon != "") {
+            iconElement = <FontAwesomeIcon fixedWidth icon={Icon[icon]}></FontAwesomeIcon>;
+        }
+
+        // TODO fix button cursor on hover
         return (
             <>
                 <NavbarPortal>
-                    <Button onClick={() => updateModalShown(true)} variant="secondary">
-                        {title}
-                    </Button>
+                    <Col>
+                        <div onClick={() => updateModalShown(true)} variant="secondary">
+                            <span>{title}<a className="ms-2">{iconElement}</a></span>
+                        </div>
+                    </Col>
                 </NavbarPortal>
 
                 <Modal show={modalShown} onHide={() => _cancel()} size="lg">
@@ -109,7 +125,7 @@ export class NavTabsLayout extends View {
 
         let modelsWrapper = useContext(ContextModelsWrapper);
 
-        let { Portal: NavbarPortal } = usePortal({
+        let { Portal: NavbarPortal, portalRef } = usePortal({
             bindTo: document && document.getElementById(NavbarContainerId)
         })
 
