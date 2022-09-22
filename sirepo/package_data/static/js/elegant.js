@@ -1473,7 +1473,7 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
               </div>
             </div>
         `,
-        controller: function(appState, requestSender, $scope) {
+        controller: function(appState, elegantService, requestSender, $scope) {
 
             function setIFrameHTML(html) {
                 $('#sr-text-iframe').contents().find('html').html(html);
@@ -1492,18 +1492,15 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
             }
 
             $scope.viewLog = function(model, filename) {
-                if (! appState.isLoaded()) {
-                    return '';
-                }
-                
                 requestSender.sendAnalysisJob(
                     appState,
                     (data) => {
+                        srdbg(elegantService)
                         setIFrameHTML(data.html);
                     },
                     {
                         method: 'log_to_html',
-                        computeModel: appState.models.simulationStatus.animation.computeModel,
+                        computeModel: elegantService.computeModel(),
                         simulationId: appState.models.simulation.simulationId
                     });
                 $('#sr-iframe-text-view').modal('show');

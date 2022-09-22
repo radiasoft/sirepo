@@ -24,13 +24,13 @@ import math
 import os
 import os.path
 import py.path
+import pygments
+import pygments.formatters
+import pygments.lexers
 import re
 import sirepo.lib
 import sirepo.sim_data
 import stat
-import pygments
-import pygments.formatters
-import pygments.lexers
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
