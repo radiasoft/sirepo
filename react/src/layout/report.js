@@ -139,10 +139,6 @@ export class ManualRunReportLayout extends View {
                 let { state } = simulationData;
                 if(state == "completed") {
                     simulationInfoPromise.then(({simulationId}) => {
-                        if(reportEventsVersionRef.current !== reportEventsVersion) {
-                            return; // guard against concurrency with older versions
-                        }
-
                         let { frameCount, computeJobHash, computeJobSerial } = simulationData;
                         let frameId = getFrameId({
                             frameIndex: frameCount - 1, // pick last frame for now
@@ -155,10 +151,6 @@ export class ManualRunReportLayout extends View {
                         })
 
                         getSimulationFrame(frameId).then(simulationData => {
-                            if(reportEventsVersionRef.current !== reportEventsVersion) {
-                                return; // guard against concurrency with older versions
-                            }
-
                             updateReportData(simulationData);
                         });
                     })
@@ -264,7 +256,7 @@ export class SimulationStartLayout extends View {
                         return (    
                             <Stack gap={2}>
                                 <span>{'Simulation Completed'}</span>
-                                <span>{`Elapsed time: ${elapsedTimeSeconds} seconds`}</span>
+                                <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
                                 {startSimulationButton}
                             </Stack>
                         )
