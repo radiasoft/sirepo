@@ -832,7 +832,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.doReset = False
     v.isParallel = is_parallel
 
-    # include methods from non-templatte packages
+    # include methods from non-template packages
     if for_export:
         v.radiaUtilPrefix = ""
         v.sirepoUtilPrefix = ""

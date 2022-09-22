@@ -23,7 +23,6 @@ _OBJ_MODELS = [_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT] 
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
 {% if not isExample and not dmpImportFile %}
-radia_objs = []
 sirepo_objs = {{ objects }}
 
 {% include "radia_util.py" %}
@@ -124,14 +123,13 @@ def _add_object(o, radia_objs, id_map):
         grp = []
         for obj_id in o["members"]:
             obj = [mobj for mobj in sirepo_objs if mobj["id"] == obj_id][0]
-            m = PKDict(obj)
-            if m.id not in id_map.values():
+            if obj["id"] not in id_map.values():
                 # have not added this object yet
-                m_id = _add_object(m, radia_objs, id_map)
+                m_id = _add_object(obj, radia_objs, id_map)
                 grp.append(m_id)
             else:
                 grp.extend(
-                    [list(id_map.keys())[list(id_map.values()).index(v)] for v in id_map.values() if v == m.id]
+                    [list(id_map.keys())[list(id_map.values()).index(v)] for v in id_map.values() if v == obj["id"]]
                 )
         g_id = {{ radiaUtilPrefix }}build_container(grp)
     for transform in o["transforms"]:
