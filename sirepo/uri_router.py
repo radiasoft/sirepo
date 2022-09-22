@@ -98,7 +98,7 @@ def call_api(qcall, name, kwargs=None, data=None):
     if not kwargs:
         kwargs = PKDict()
     if data:
-        qcall.qcall_object("http_post_data", data)
+        qcall.http_post_data = data
     qcall.qcall_object("uri_route", _api_to_route[name])
     return _call_api(qcall)
 

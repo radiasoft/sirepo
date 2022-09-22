@@ -17,7 +17,7 @@ def init(**imports):
 
 
 def parse_json(qcall):
-    d = qcall.sreq.set_post()
+    d = qcall.get_post_data()
     if d:
         return d
     if not qcall.sreq.content_type_eq("application/json"):

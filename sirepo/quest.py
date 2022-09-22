@@ -11,6 +11,9 @@ import sirepo.api_perm
 import sirepo.uri
 
 
+_POST_DATA_ATTR = "http_post_data"
+
+
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
@@ -48,6 +51,12 @@ class API(pykern.quest.API):
 
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)
+
+    def post_data_get(self):
+        self.get(fff_POST_DATA_ATTR, QCallObject(data=data))
+
+    def post_data_set(self, data):
+        self.qcall_object(_POST_DATA_ATTR, QCallObject(data=data))
 
     def parse_json(self):
         return http_request.parse_json(sapi)
