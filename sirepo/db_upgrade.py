@@ -137,7 +137,7 @@ def _20210211_upgrade_runner_to_job_db():
         ) else int(p.mtime())
 
     db_dir = sirepo.srdb.supervisor_dir()
-    if not sirepo.simulation_db.user_path().exists():
+    if not sirepo.simulation_db.user_path_root().exists():
         pkio.mkdir_parent(db_dir)
         return
     if db_dir.exists():
@@ -146,7 +146,7 @@ def _20210211_upgrade_runner_to_job_db():
     c = 0
     pkio.mkdir_parent(db_dir)
     for f in pkio.walk_tree(
-        sirepo.simulation_db.user_path(),
+        sirepo.simulation_db.user_path_root(),
         "^(?!.*src/).*/{}$".format(sirepo.job.RUNNER_STATUS_FILE),
     ):
         try:

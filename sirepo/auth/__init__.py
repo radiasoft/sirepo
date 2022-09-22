@@ -83,7 +83,13 @@ cfg = None
 
 
 def qcall_init(qcall):
-    qcall.qcall_object("auth", Base(qcall=qcall))
+    o = Base(qcall=qcall)
+    qcall.qcall_object("auth", o)
+
+    # TODO(robnagler): hack for the time being
+    from sirepo import simulation_db
+
+    simulation_db.auth_hack_logged_in_user = o._get_user() if o.is_logged_in() else None
 
 
 class API(sirepo.quest.API):
@@ -126,10 +132,8 @@ class API(sirepo.quest.API):
 
 
 class QCallObject(sirepo.quest.QCallObject):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        sirepo.auth_db.qcall_init(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
         sirepo.cookie.qcall_init(qcall)
@@ -146,7 +150,9 @@ class QCallObject(sirepo.quest.QCallObject):
             return
         u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
-        if self.auth_db.UserRole.has_role(u, r) and not self.auth_db.UserRole.is_expired(u, r):
+        if sirepo.auth_db.UserRole.has_role(
+            u, r
+        ) and not sirepo.auth_db.UserRole.is_expired(u, r):
             return
         elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
@@ -170,7 +176,6 @@ class QCallObject(sirepo.quest.QCallObject):
             r.display_name = name
             r.save()
         self.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
-
 
     def cookie_cleaner(self, values):
         """Migrate from old cookie values
@@ -209,7 +214,6 @@ class QCallObject(sirepo.quest.QCallObject):
         values[_COOKIE_STATE] = _STATE_LOGGED_OUT
         return values
 
-
     def create_user(self, uid_generated_callback, module):
         from sirepo import simulation_db
 
@@ -223,9 +227,11 @@ class QCallObject(sirepo.quest.QCallObject):
 
     def guest_uids(self):
         """All of the uids corresponding to guest users."""
-        return auth_db.UserRegistration.search_all_for_column("uid", display_name=None)
+        return sirepo.auth_db.UserRegistration.search_all_for_column(
+            "uid", display_name=None
+        )
 
-    def is_logged_in(state=None):
+    def is_logged_in(self, state=None):
         """Logged in is either needing to complete registration or done
 
         Args:
@@ -233,16 +239,16 @@ class QCallObject(sirepo.quest.QCallObject):
         Returns:
             bool: is in one of the logged in states
         """
-        s = state or cookie.unchecked_get_value(_COOKIE_STATE)
+        s = state or self.qcall.cookie.unchecked_get_value(_COOKIE_STATE)
         return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
 
-    def is_premium_user():
-        return auth_db.UserRole.has_role(
-            logged_in_user(),
+    def is_premium_user(self):
+        return sirepo.auth_db.UserRole.has_role(
+            self.logged_in_user(),
             sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         )
 
-    def logged_in_user(check_path=True):
+    def logged_in_user(self, check_path=True):
         """Get the logged in user
 
         Args:
@@ -250,8 +256,10 @@ class QCallObject(sirepo.quest.QCallObject):
         Returns:
             str: uid of authenticated user
         """
-        u = _get_user()
-        if not is_logged_in():
+        if cfg.logged_in_user:
+            return cfg.logged_in_user
+        u = self._get_user()
+        if not self.is_logged_in():
             raise util.SRException(
                 LOGIN_ROUTE_NAME,
                 None,
@@ -259,8 +267,8 @@ class QCallObject(sirepo.quest.QCallObject):
                 u,
             )
         assert u, "no user in cookie: state={} method={}".format(
-            cookie.unchecked_get_value(_COOKIE_STATE),
-            cookie.unchecked_get_value(_COOKIE_METHOD),
+            self.qcall.cookie.unchecked_get_value(_COOKIE_STATE),
+            self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD),
         )
         if check_path:
             from sirepo import simulation_db
@@ -293,7 +301,7 @@ class QCallObject(sirepo.quest.QCallObject):
         if model:
             uid = model.uid
             # if previously cookied as a guest, move the non-example simulations into uid below
-            m = self.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
+            m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
             if m == METHOD_GUEST and module.AUTH_METHOD != METHOD_GUEST:
                 guest_uid = _get_user() if is_logged_in() else None
         if uid:
@@ -353,15 +361,15 @@ class QCallObject(sirepo.quest.QCallObject):
     def login_success_response(self, sim_type, want_redirect=False):
         r = None
         if (
-            self.sreq.cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
-            and self.sreq.cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
+            self.qcall.cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
+            and self.qcall.cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
         ):
             self.complete_registration()
         if want_redirect:
             r = (
                 "completeRegistration"
                 if (
-                    self.sreq.cookie.get_value(_COOKIE_STATE)
+                    self.qcall.cookie.get_value(_COOKIE_STATE)
                     == _STATE_COMPLETE_REGISTRATION
                 )
                 else None
@@ -386,40 +394,40 @@ class QCallObject(sirepo.quest.QCallObject):
         """
         if not model.uid:
             return True
-        return not auth_db.UserRegistration.search_by(uid=model.uid).display_name
+        return not sirepo.auth_db.UserRegistration.search_by(uid=model.uid).display_name
 
-    def require_adm(sreq):
-        u = require_user()
-        if not auth_db.UserRole.has_role(u, sirepo.auth_role.ROLE_ADM):
+    def require_adm(self):
+        u = self.require_user()
+        if not sirepo.auth_db.UserRole.has_role(u, sirepo.auth_role.ROLE_ADM):
             sirepo.util.raise_forbidden(f"uid={u} role=ROLE_ADM not found")
 
-    def require_auth_basic(sreq):
+    def require_auth_basic(self):
         m = _METHOD_MODULES["basic"]
-        _validate_method(m)
-        uid = m.require_user(sreq)
+        self._validate_method(m)
+        uid = m.require_user(self.qcall)
         if not uid:
             raise sirepo.util.WWWAuthenticate()
-        srer.cookie.set_sentinel()
-        login(m, uid=uid)
+        self.qcall.cookie.set_sentinel()
+        self.login(m, uid=uid)
 
-    def require_email_user(sreq):
-        i = require_user(sreq)
-        u = user_name(i)
+    def require_email_user(self):
+        i = self.require_user()
+        u = self.user_name(i)
         if not pyisemail.is_email(u):
             util.raise_forbidden(f"uid={i} username={u} is not an email")
 
-    def require_user(sreq):
+    def require_user(self):
         """Asserts whether user is logged in
 
         Returns:
             str: user id
         """
         e = None
-        m = sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
+        m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
         p = None
         r = LOGIN_ROUTE_NAME
-        s = sreq.cookie.unchecked_get_value(_COOKIE_STATE)
-        u = _get_user()
+        s = self.qcall.cookie.unchecked_get_value(_COOKIE_STATE)
+        u = self._get_user()
         if s is None:
             pass
         elif s == _STATE_LOGGED_IN:
@@ -434,7 +442,7 @@ class QCallObject(sirepo.quest.QCallObject):
                 e = "deprecated"
             else:
                 e = "invalid"
-                reset_state()
+                self.reset_state()
                 p = PKDict(reload_js=True)
             e = "auth_method={} is {}, forcing login: uid=".format(m, e, u)
         elif s == _STATE_LOGGED_OUT:
@@ -452,7 +460,7 @@ class QCallObject(sirepo.quest.QCallObject):
             r = "completeRegistration"
             e = "uid={} needs to complete registration".format(u)
         else:
-            sreq.cookie.reset_state(
+            self.qcall.cookie.reset_state(
                 "uid={} state={} invalid, cannot continue".format(s, u)
             )
             p = PKDict(reload_js=True)
@@ -461,13 +469,12 @@ class QCallObject(sirepo.quest.QCallObject):
         raise util.SRException(r, p, *(("user not logged in: {}", e) if e else ()))
 
     def reset_state(self):
-        sreq.cookie.unchecked_remove(_COOKIE_USER)
-        sreq.cookie.unchecked_remove(_COOKIE_METHOD)
-        sreq.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
+        self.qcall.cookie.unchecked_remove(_COOKIE_USER)
+        self.qcall.cookie.unchecked_remove(_COOKIE_METHOD)
+        self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
 
-    @contextlib.contextmanager
-    def set_user_outside_of_http_request(sreq, uid):
+    def set_user_outside_of_http_request(self, uid):
         """A user set explicitly outside of flask request cycle
 
         This will try to guess the auth method the user used to authenticate.
@@ -492,10 +499,10 @@ class QCallObject(sirepo.quest.QCallObject):
         assert (
             not util.in_flask_request()
         ), "Only call from outside a flask request context"
-        assert auth_db.UserRegistration.search_by(
+        assert sirepo.auth_db.UserRegistration.search_by(
             uid=uid
         ), f"no registered user with uid={uid}"
-        with sreq.cookie.set_cookie_outside_of_flask_request():
+        with self.qcall.cookie.set_cookie_outside_of_flask_request():
             _login_user(
                 _auth_module(),
                 uid,
@@ -504,7 +511,7 @@ class QCallObject(sirepo.quest.QCallObject):
 
     def unchecked_get_user(uid):
         with util.THREAD_LOCK:
-            u = auth_db.UserRegistration.search_by(uid=uid)
+            u = sirepo.auth_db.UserRegistration.search_by(uid=uid)
             if u:
                 return u.uid
             return None
@@ -522,7 +529,7 @@ class QCallObject(sirepo.quest.QCallObject):
                 u = _method_user_model(m, uid)
                 if u:
                     u.delete()
-            u = auth_db.UserRegistration.search_by(uid=uid)
+            u = sirepo.auth_db.UserRegistration.search_by(uid=uid)
             if u:
                 u.delete()
         reset_state()
@@ -534,7 +541,7 @@ class QCallObject(sirepo.quest.QCallObject):
         )
 
     def user_display_name(sreq, uid):
-        return auth_db.UserRegistration.search_by(uid=uid).display_name
+        return sirepo.auth_db.UserRegistration.search_by(uid=uid).display_name
 
     def user_if_logged_in(qcall, method):
         """Verify user is logged in and method matches
@@ -570,9 +577,9 @@ class QCallObject(sirepo.quest.QCallObject):
         Returns:
             auth.UserRegistration: record (potentially blank)
         """
-        res = auth_db.UserRegistration.search_by(uid=uid)
+        res = sirepo.auth_db.UserRegistration.search_by(uid=uid)
         if not res:
-            res = auth_db.UserRegistration(
+            res = sirepo.auth_db.UserRegistration(
                 created=datetime.datetime.utcnow(),
                 display_name=display_name,
                 uid=uid,
@@ -614,10 +621,10 @@ class QCallObject(sirepo.quest.QCallObject):
                 v.needCompleteRegistration = False
                 v.visibleMethods = non_guest_methods
             else:
-                r = auth_db.UserRegistration.search_by(uid=u)
+                r = sirepo.auth_db.UserRegistration.search_by(uid=u)
                 if r:
                     v.displayName = r.display_name
-            v.roles = auth_db.UserRole.get_roles(u)
+            v.roles = sirepo.auth_db.UserRole.get_roles(u)
             _plan(v)
             _method_auth_state(v, u)
         if pkconfig.channel_in_internal_test():
@@ -629,7 +636,7 @@ class QCallObject(sirepo.quest.QCallObject):
     def _create_roles_for_new_user(uid, method):
         r = sirepo.auth_role.for_new_user(method == METHOD_GUEST)
         if r:
-            auth_db.UserRole.add_roles(uid, r)
+            sirepo.auth_db.UserRole.add_roles(uid, r)
 
     def _get_user():
         return cookie.unchecked_get_value(_COOKIE_USER)
@@ -720,10 +727,8 @@ class QCallObject(sirepo.quest.QCallObject):
 
 def init_apis(*args, **kwargs):
     global uri_router
-    assert (
-        not cfg.logged_in_user
-    ), "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
-    uri_router = kwargs['uri_router']
+    assert not cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
+    uri_router = kwargs["uri_router"]
     for m in _METHOD_MODULES.values():
         uri_router.register_api_module(m)
     from sirepo import simulation_db
@@ -733,6 +738,7 @@ def init_apis(*args, **kwargs):
         _ALL_PAYMENT_PLANS
     ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
 
+
 def _init():
     global cfg
 
@@ -740,7 +746,7 @@ def _init():
         global visible_methods, valid_methods, non_guest_methods
         from sirepo import cookie
 
-        auth_db.init()
+        sirepo.auth_db.init()
         p = pkinspect.this_module().__name__
         visible_methods = []
         valid_methods = cfg.methods.union(cfg.deprecated_methods)
@@ -752,20 +758,6 @@ def _init():
         visible_methods = tuple(sorted(visible_methods))
         non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
 
-    def _init_logged_in_user():
-        global logged_in_user, user_dir_not_found
-
-        def logged_in_user(*args, **kwargs):
-rjN: subclass the object
-            return cfg.logged_in_user
-
-        def user_dir_not_found(user_dir, *args, **kwargs):
-            # can't raise in a lambda so do something like this
-            raise AssertionError("user_dir={} not found".format(user_dir))
-
-        cfg.deprecated_methods = set()
-        cfg.methods = set((METHOD_GUEST,))
-
     if cfg:
         return
     cfg = pkconfig.init(
@@ -774,7 +766,8 @@ rjN: subclass the object
         logged_in_user=(None, str, "Only for sirepo.job_supervisor"),
     )
     if cfg.logged_in_user:
-        _init_logged_in_user()
+        cfg.deprecated_methods = frozenset()
+        cfg.methods = frozenset((METHOD_GUEST,))
     else:
         _init_full()
 

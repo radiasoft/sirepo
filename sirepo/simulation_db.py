@@ -26,7 +26,6 @@ import os
 import os.path
 import random
 import re
-import sirepo.auth
 import sirepo.const
 import sirepo.resource
 import sirepo.srdb
@@ -89,10 +88,21 @@ cfg = None
 _dev_version = None
 
 
+#: TODO(robnagler) need to remove once stable with some of the code
+auth_hack_logged_in_user = None
+
+
 class CopyRedirect(Exception):
     def __init__(self, resp):
-        super(CopyRedirect, self).__init__()
+        super().__init__()
         self.sr_response = resp
+
+
+class UserDirNotFound(Exception):
+    def __init__(self, user_dir, uid):
+        super().__init__()
+        self.user_dir = user_dir
+        self.uid = uid
 
 
 def app_version():
@@ -336,10 +346,7 @@ def logged_in_user_path():
     Returns:
         py.path: user is valid and so is directory
     """
-    return user_path(
-        sirepo.auth.logged_in_user(check_path=False),
-        check=True,
-    )
+    return user_path(auth_hack_logged_in_user, check=True)
 
 
 def move_user_simulations(from_uid, to_uid):
@@ -759,21 +766,18 @@ def user_create():
     return _random_id(user_path_root())["id"]
 
 
-def user_path(uid=None, check=False):
+def user_path(uid, check=False):
     """Path for uid or root of all users
 
     Args:
-        uid (str): properly formated user name [None]
-        check (bool): assert directory exists (only if uid) [False]
+        uid (str): user id
+        check (bool): assert directory exists
     Return:
         py.path: root user's directory
     """
-    d = user_path_root()
-    if not uid:
-        return d
-    d = d.join(uid)
+    d = user_path_root().join(uid)
     if check and not d.check():
-        sirepo.auth.user_dir_not_found(d, uid)
+        raise UserDirNotFound(d, uid)
     return d
 
 

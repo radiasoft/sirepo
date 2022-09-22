@@ -7,8 +7,6 @@
 from pykern import pkio, pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import auth
-from sirepo import auth_db
 from sirepo import feature_config
 from sirepo import sim_data
 from sirepo import simulation_db
@@ -22,6 +20,8 @@ import json
 import os.path
 import re
 import shutil
+import sirepo.auth
+import sirepo.auth_db
 
 
 _MILLISECONDS_PER_MONTH = 30 * 24 * 60 * 60 * 1000
@@ -39,8 +39,6 @@ def audit_proprietary_lib_files(*uid):
     import sirepo.server
 
     sirepo.server.init()
-    import sirepo.auth_db
-    import sirepo.auth
 
     with sirepo.auth_db.session_and_lock():
         for u in uid or sirepo.auth_db.all_uids():
@@ -82,10 +80,10 @@ def delete_user(uid):
     import sirepo.template
 
     sirepo.server.init()
-    with auth_db.session_and_lock():
-        if auth.unchecked_get_user(uid) is None:
+    with sirepo.auth_db.session_and_lock():
+        if sirepo.auth.unchecked_get_user(uid) is None:
             return
-        with auth.set_user_outside_of_http_request(uid):
+        with sirepo.auth.set_user_outside_of_http_request(uid):
             if sirepo.template.is_sim_type("jupyterhublogin"):
                 from sirepo.sim_api import jupyterhublogin
 
@@ -197,15 +195,12 @@ def _is_src_dir(d):
 
 
 def _iterate_sims_by_users(all_sim_types):
-    import sirepo.auth_db
-    import sirepo.server
-
     sirepo.server.init()
-    for d in pkio.sorted_glob(simulation_db.user_path().join("*")):
+    for d in pkio.sorted_glob(simulation_db.user_path_root().join("*")):
         if _is_src_dir(d):
             continue
         uid = simulation_db.uid_from_dir_name(d)
-        with sirepo.auth_db.session_and_lock(), auth.set_user_outside_of_http_request(
+        with sirepo.auth_db.session_and_lock(), sirepo.auth.set_user_outside_of_http_request(
             uid
         ):
             s = _get_named_example_sims(all_sim_types)
