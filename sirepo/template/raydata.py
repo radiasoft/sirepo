@@ -55,8 +55,6 @@ def stateless_compute_catalog_names(data):
 
 
 def stateless_compute_scans(data):
-    # TODO(e-carlin): get scans from daemon
-    l = []
     if data.analysisStatus == "executed":
         assert data.searchStartTime and data.searchStopTime, pkdformat(
             "must have both searchStartTime and searchStopTime data={}", data
