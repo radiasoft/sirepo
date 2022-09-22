@@ -41,7 +41,6 @@ _CANVAS_MAX_SIZE = 65535
 
 _OUTPUT_FOR_MODEL = PKDict(
     coherenceXAnimation=PKDict(
-        check_backup=True,
         title="",
         filename="res_int_pr_me_dcx.dat",
         dimensions=3,
@@ -49,7 +48,6 @@ _OUTPUT_FOR_MODEL = PKDict(
         units=["m", "m", ""],
     ),
     coherenceYAnimation=PKDict(
-        check_backup=True,
         title="",
         filename="res_int_pr_me_dcy.dat",
         dimensions=3,
@@ -96,7 +94,6 @@ _OUTPUT_FOR_MODEL = PKDict(
         units=["m", "m", "m"],
     ),
     multiElectronAnimation=PKDict(
-        check_backup=True,
         title="E={photonEnergy} eV",
         filename="res_int_pr_me.dat",
         dimensions=3,
@@ -370,36 +367,6 @@ def _extract_coherent_modes(model, out_info):
     return out_file
 
 
-def _get_recent(data_filename, backup_data_filename):
-    if os.path.getmtime(backup_data_filename) > os.path.getmtime(data_filename):
-        return PKDict(
-            recent=backup_data_filename,
-            old=data_filename,
-        )
-    return PKDict(
-        recent=data_filename,
-        old=backup_data_filename,
-    )
-
-
-def _count_lines(text):
-    return len(pkio.read_text(text).splitlines())
-
-
-def _recent_has_sufficient_lines(recent, old):
-    return _count_lines(recent) >= _count_lines(old)
-
-
-def _check_backup(animation_meta_data):
-    b = animation_meta_data.filename + ".bkp"
-    if not pkio.py_path(b).check():
-        return animation_meta_data.filename
-    i = _get_recent(animation_meta_data.filename, b)
-    if _recent_has_sufficient_lines(i.recent, i.old):
-        return i.recent
-    return i.old
-
-
 def extract_report_data(sim_in):
     r = sim_in.report
     out = copy.deepcopy(_OUTPUT_FOR_MODEL[re.sub(r"\d+$", "", r)])
@@ -412,8 +379,8 @@ def extract_report_data(sim_in):
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
     if r == _SIM_DATA.EXPORT_RSOPT:
         return out
-    if out.get("check_backup"):
-        out.filename = _check_backup(out)
+    if r in ("coherenceXAnimation", "coherenceYAnimation", "multiElectronAnimation"):
+        out.filename = _best_data_file(out.filename)
     # TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ("coherenceXAnimation", "coherenceYAnimation"):
         _fix_file_header(out.filename)
@@ -1127,6 +1094,21 @@ def _beamline_animation_percent_complete(run_dir, res):
     res.frameCount = count
     res.percentComplete = 100 * count / len(res.outputInfo)
     return res
+
+
+def _best_data_file(primary):
+    def _lines(path):
+        return len(pykern.pkio.open_text(path).readlines())
+
+    p = pykern.pkio.py_path(primary)
+    s = p.new(ext="dat.bkp")
+    if not s.check():
+        return p.basename
+    if s.mtime() > p.mtime():
+        p, s = s, p
+    if _lines(s) >= _lines(p):
+        p, s = s, p
+    return p.basename
 
 
 def _compute_material_characteristics(model, photon_energy, prefix=""):
