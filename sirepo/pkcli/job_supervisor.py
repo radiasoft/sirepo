@@ -209,7 +209,7 @@ async def _incoming(content, handler):
                 handler.sr_class,
                 c,
             )
-        return await handler.sr_class(handler=handler, content=c).receive()
+        return await handler.sr_class(handler=handler, content=c, qcall=qcall).receive()
     except Exception as e:
         pkdlog("exception={} handler={} content={}", e, handler, content)
         pkdlog(pkdexc())

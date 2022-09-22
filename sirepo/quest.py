@@ -11,16 +11,20 @@ import sirepo.api_perm
 import sirepo.uri
 
 
+rjn: def qcall_pkcli() and tornado and agent. at the outermost level
+
+
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
-def handle_api_destroy(): called on the API
-call commit?
-implemented by the objects added
-order can be controlled eg auth, auth_db, cookie,
+    # #TODO
+    #     def handle_api_destroy(): called on the API
+    #     call commit?
+    #     implemented by the objects added
+    #     order can be controlled eg auth, auth_db, cookie,
 
-need a save request, too.
-deferring to subrequests?
+    #     need a save request, too.
+    #     deferring to subrequests?
 
     def absolute_uri(self, uri):
         """Convert to an absolute uri
@@ -67,8 +71,7 @@ deferring to subrequests?
         return http_request.parse_post(self, PKDict(kwargs))
 
     def qcall_object(self, name, obj):
-        """Assign an object to qcall
-        """
+        """Assign an object to qcall"""
         assert name not in self
         assert isinstance(obj, QCallObject)
         self[name] = obj
@@ -179,6 +182,7 @@ deferring to subrequests?
 
 class QCallObject(PKDict):
     pass
+
 
 class Spec(pykern.quest.Spec):
     def __init__(self, perm, **kwargs):

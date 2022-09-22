@@ -519,6 +519,8 @@ class _ComputeJob(_Supervisor):
         f = None
         try:
             _too_old = sirepo.srtime.utc_now_as_int() - cfg.purge_non_premium_after_secs
+
+rjn: todo need to set the session
             with sirepo.auth_db.session():
                 for u, v in _get_uids_and_files():
                     with sirepo.auth.set_user_outside_of_http_request(u):
