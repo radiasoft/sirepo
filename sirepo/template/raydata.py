@@ -5,13 +5,10 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkjson
-from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdformat, pkdexc
-from sirepo.template import template_common
 import databroker
 import databroker.queries
-import glob
 import requests
 import requests.exceptions
 import sirepo.feature_config
@@ -59,10 +56,17 @@ def stateless_compute_scans(data):
         assert data.searchStartTime and data.searchStopTime, pkdformat(
             "must have both searchStartTime and searchStopTime data={}", data
         )
-        # TODO(e-carlin): use stop and start time
-        l = _request_scan_monitor(
+        l = []
+        c = catalog(data)
+        for s in _request_scan_monitor(
             PKDict(method="executed_analyses", catalog_name=data.catalogName)
-        ).scans
+        ).scans:
+            m = c[s.uid].metadata
+            if (
+                m["start"]["time"] >= data.searchStartTime
+                and m["stop"]["time"] <= data.searchStopTime
+            ):
+                l.append(s)
     elif data.analysisStatus == "queued":
         l = _request_scan_monitor(
             PKDict(method="queued_analyses", catalog_name=data.catalogName)
