@@ -8,7 +8,7 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="DateTimePicker" data-ng-class="fieldClass">
           <div data-date-time-picker="" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="CompletedScansTable" class="col-sm-12">
+        <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="executed"></div>
         </div>
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
@@ -55,7 +55,7 @@ SIREPO.app.controller('AnalysisQueueController', function() {
     return self;
 });
 
-SIREPO.app.controller('AnalysisCompletedController', function() {
+SIREPO.app.controller('AnalysisExecutedController', function() {
     const self = this;
     return self;
 });
@@ -89,7 +89,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-ng-if="nav.isLoaded()" data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-completed')}"><a href data-ng-click="nav.openSection('analysisCompleted')"><span class="glyphicon glyphicon-picture"></span> Completed</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-executed')}"><a href data-ng-click="nav.openSection('analysisExecuted')"><span class="glyphicon glyphicon-picture"></span> Executed</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-queue')}"><a href data-ng-click="nav.openSection('analysisQueue')"><span class="glyphicon glyphicon-picture"></span> Queued</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('replay')}"><a href data-ng-click="nav.openSection('replay')"><span class="glyphicon glyphicon-picture"></span> Replay</a></li>
                 </div>

@@ -1,7 +1,7 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "analysisCompleted"
+            "localRoute": "analysisExecuted"
         }
     },
     "dynamicFiles": {
@@ -19,11 +19,11 @@
         "animation": []
     },
     "localRoutes": {
-        "analysisCompleted": {
-            "route": "/analysis-completed/:simulationId",
+        "analysisExecuted": {
+            "route": "/analysis-executed/:simulationId",
             "config": {
-                "controller": "AnalysisCompletedController as analysisCompleted",
-                "templateUrl": "/static/html/raydata-analysis-completed.html"
+                "controller": "AnalysisExecutedController as analysisExecuted",
+                "templateUrl": "/static/html/raydata-analysis-executed.html"
           }
         },
         "analysisQueue": {
@@ -45,10 +45,10 @@
         "catalog": {
             "catalogName": ["Catalog Name", "CatalogName", ""]
         },
-        "completedScans": {
+        "executedScans": {
             "searchStartTime":["Start", "DateTimePicker", null],
             "searchStopTime":["Stop", "DateTimePicker", null],
-            "scans": ["", "CompletedScansTable", ""]
+            "scans": ["", "ExecutedScansTable", ""]
         },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
@@ -80,8 +80,8 @@
             ],
             "advanced": []
         },
-        "completedScans": {
-            "title": "Completed Scans",
+        "executedScans": {
+            "title": "Executed Scans",
             "basic": [
                 "catalog.catalogName",
                 "searchStartTime",
