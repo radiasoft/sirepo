@@ -2453,7 +2453,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             model: '@simulationStatusPanel',
             title: '@',
         },
-        template: `******
+        template: `
            <div data-ng-if="(simState.getFrameCount() > 0) || errorMessage()" class="well well-lg">
               <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW run log file</a>
               <br>
@@ -2652,15 +2652,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 // The available jobRunModes can change. Default to parallel if
                 // the current jobRunMode doesn't exist
                 var j = appState.models[$scope.simState.model];
-                srdbg("j=", j);
                 if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
                     j.jobRunMode = 'parallel';
                 }
-                srdbg("after -> j=", j);
                 frameCache.setFrameCount(0, $scope.model);
-                appState.saveChanges($scope.simState.model);
+                appState.saveQuietly($scope.simState.model);
                 if ($scope.model == 'multiElectronAnimation') {
-
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);
                 }
                 $scope.simState.saveAndRunSimulation('simulation');
