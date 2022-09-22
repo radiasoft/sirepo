@@ -28,6 +28,7 @@ import sdds
 import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
+import trimesh
 import uuid
 
 _AXES_UNIT = [1, 1, 1]
@@ -1711,6 +1712,42 @@ def _validate_objects(objects):
                     )
                 )
 
+
+def validate_file(file_type, path):
+    pkdp("Called validate_file()")
+    err = None
+    trimesh.util.attatch_to_log()
+    mesh = trimesh.load()
+    '''
+    err = None
+    if file_type == "bunchFile-sourceFile":
+        _sdds_init()
+        err = "expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns"
+        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
+            beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
+            if beam_type in ("elegant", "spiffe"):
+                sdds.sddsdata.ReadPage(_SDDS_INDEX)
+                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)) > 0:
+                    err = None
+                else:
+                    err = "sdds file contains no rows"
+        sdds.sddsdata.Terminate(_SDDS_INDEX)
+    return err
+    '''
+
+
+def _sdds_init():
+    global _SDDS_INDEX, _SDDS_DOUBLE_TYPES, _SDDS_STRING_TYPE, sdds_util, sdds
+    if _SDDS_INDEX is not None:
+        return
+    from sirepo.template import sdds_util
+    import sdds
+
+    _SDDS_INDEX = 0
+    _s = sdds.SDDS(_SDDS_INDEX)
+    _x = getattr(_s, "SDDS_LONGDOUBLE", None)
+    _SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
+    _SDDS_STRING_TYPE = _s.SDDS_STRING
 
 _H5_PATH_ID_MAP = _geom_h5_path("idMap")
 _H5_PATH_KICK_MAP = _geom_h5_path("kickMap")

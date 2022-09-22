@@ -952,7 +952,8 @@
         },
         "stl": {
             "_super": ["_", "model", "geomObject"],
-            "type": ["_", "ObjectType", "stl"]
+            "type": ["_", "ObjectType", "stl"],
+            "file": ["STL File", "InputFile", ""]
         },
         "fieldLineoutAnimation": {
             "fieldPath": ["_", "model.fieldPath", {}],
@@ -1396,7 +1397,8 @@
                     "stemmed.stemWidth",
                     "stemmed.stemPosition",
                     "jay.hookHeight",
-                    "jay.hookWidth"
+                    "jay.hookWidth",
+                    "stl.file"
                 ]],
                 ["Point Editor", [
                     "extrudedPoints.pointsFile",
