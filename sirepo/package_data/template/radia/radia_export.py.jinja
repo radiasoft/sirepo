@@ -168,28 +168,27 @@ print(f"Solving {g_id}...")
 res = radia.Solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
 print(f"done: {res[3]} steps ({1000 * res[0]}ms); max |M| {res[1]} A/m; max |H| {res[2]} A/m")
 
-{% if viewType == VIEW_TYPE_FIELD %}
 
-{% if fieldType == FIELD_TYPE_MAG_M %}
-f = radia.ObjM(g_id)
-{% elif fieldType in POINT_FIELD_TYPES %}
-f = radia.Fld(g_id, "{{ fieldType }}", {{ fieldPoints }})
-{% else %}
-f = None
+print(f"M field: {get_magnetization(g_id)}")
+
+{% if fieldPoints %}
+field_points = {{ fieldPoints }}
+{% for fieldType in POINT_FIELD_TYPES %}
+print(f"{{ fieldType }} field: {get_field(g_id, '{{ fieldType }}', field_points)}")
+{% endfor %}
 {% endif %}
-print(f"{{ fieldType }} field: {f}")
+
 
 {% for fp in fieldPaths %}
 {% if fp["type"] == "line" %}
 p1 = [{{ fp["begin"] }}]
 p2 = [{{ fp["end"] }}]
 {% for i_type in INTEGRABLE_FIELD_TYPES %}
-print(f"Integral of {{ i_type }} from {p1} to {p2}: {radia.FldInt(g_id, "inf", "{{ i_type }}", p1, p2)}")
+print(f"Integral of {{ i_type }} from {p1} to {p2}: {radia.FldInt(g_id, 'inf', '{{ i_type }}', p1, p2)}")
 {% endfor %}
 {% endif %}
 {% endfor %}
 
-{% endif %}
 
 print("Dumping to {{ dmpOutputFile }}")
 with open("{{ dmpOutputFile }}", "wb") as f:

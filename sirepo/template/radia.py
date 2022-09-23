@@ -904,7 +904,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         raise ValueError("Invalid view {} ({})".format(v_type, VIEW_TYPES))
     v.viewType = v_type
     v.dataFile = _GEOM_FILE if for_export else f"{rpt_out}.h5"
-    if v_type == SCHEMA.constants.viewTypeFields:
+    if v_type == SCHEMA.constants.viewTypeFields or for_export:
         f_type = disp.fieldType
         if f_type not in radia_util.FIELD_TYPES:
             raise ValueError(
