@@ -23,9 +23,10 @@ def qcall_flask(qcall, **kwargs):
 -        http_headers=flask.request.headers,
 -        http_method=flask.request.method,
 -        internal_req=flask.request,
--        qcall_uri=flask.request.url,
+-        http_request_uri=flask.request.url,
 -        remote_addr=flask.request.remote_addr,
--        server_uri=flask.url_for("_dispatch_empty", _external=True),
+-        http_server_uri=flask.url_for("_dispatch_empty", _external=True),
+         http_authorization=flask.request.authorization,
 -    )
 
 

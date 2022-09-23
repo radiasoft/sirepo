@@ -35,7 +35,7 @@ class API(pykern.quest.API):
             str: absolute uri
         """
         assert uri[0] == "/"
-        return self.sreq.server_uri + uri[1:]
+        return self.sreq.http_server_uri + uri[1:]
 
     def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.

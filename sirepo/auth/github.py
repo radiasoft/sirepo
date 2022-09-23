@@ -10,12 +10,10 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import auth
-from sirepo import auth_db
-from sirepo import util
-import sirepo.quest
+import sirepo.auth_db
 import sirepo.events
 import sirepo.oauth
+import sirepo.quest
 import sqlalchemy
 
 
@@ -38,7 +36,7 @@ class API(sirepo.quest.API):
         oc, t = sirepo.oauth.check_authorized_callback(qcall, github_auth=True)
         d = oc.get("https://api.github.com/user").json()
         sirepo.events.emit(self, "github_authorized", PKDict(user_name=d["login"]))
-        with util.THREAD_LOCK:
+        with sirepo.util.THREAD_LOCK:
             u = AuthGithubUser.search_by(oauth_id=d["id"])
             if u:
                 # always update user_name
@@ -118,7 +116,7 @@ def _init():
     cfg.callback_api = "authGithubAuthorized"
 
     AUTH_METHOD_VISIBLE = cfg.method_visible
-    auth_db.init_model(_init_model)
+    sirepo.auth_db.init_model(_init_model)
 
 
 _init()

@@ -14,9 +14,6 @@ from sirepo import util
 import base64
 import hashlib
 import sirepo.quest
-import sirepo.auth
-import sirepo.http_reply
-import sirepo.http_request
 import time
 
 
@@ -49,8 +46,7 @@ class API(sirepo.quest.API):
             req.id,
             checked=True,
         )
-        sirepo.auth.login(
-            qcall=self,
+        self.auth.login(
             this_module,
             uid=simulation_db.uid_from_dir_name(path),
             # do not supply sim_type (see auth.login)
@@ -68,20 +64,20 @@ class API(sirepo.quest.API):
         return self.api_authBlueskyLogin()
 
 
-def auth_hash(req, verify=False):
+def auth_hash(http_post, verify=False):
     now = int(time.time())
-    if not "authNonce" in req:
+    if not "authNonce" in http_post:
         if verify:
             util.raise_unauthorized("authNonce: missing field in request")
-        req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
+        http_post.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
     h = hashlib.sha256()
     h.update(
         pkcompat.to_bytes(
             _AUTH_HASH_SEPARATOR.join(
                 [
-                    req.authNonce,
-                    req.simulationType,
-                    req.simulationId,
+                    http_post.authNonce,
+                    http_post.simulationType,
+                    http_post.simulationId,
                     cfg.secret,
                 ]
             )
@@ -91,23 +87,23 @@ def auth_hash(req, verify=False):
         base64.urlsafe_b64encode(h.digest()),
     )
     if not verify:
-        req.authHash = res
+        http_post.authHash = res
         return
-    if res != req.authHash:
+    if res != http_post.authHash:
         util.raise_unauthorized(
             "{}: hash mismatch expected={} nonce={}",
-            req.authHash,
+            http_post.authHash,
             res,
-            req.authNonce,
+            http_post.authNonce,
         )
-    t = req.authNonce.split(_AUTH_NONCE_SEPARATOR)[0]
+    t = http_post.authNonce.split(_AUTH_NONCE_SEPARATOR)[0]
     try:
         t = int(t)
     except ValueError as e:
         util.raise_unauthorized(
             "{}: auth_nonce prefix not an int: nonce={}",
             t,
-            req.authNonce,
+            http_post.authNonce,
         )
     delta = now - t
     if abs(delta) > _AUTH_NONCE_REPLAY_SECS:
@@ -116,7 +112,7 @@ def auth_hash(req, verify=False):
             t,
             _AUTH_NONCE_REPLAY_SECS,
             now,
-            req.authNonce,
+            http_post.authNonce,
         )
 
 
