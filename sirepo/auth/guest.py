@@ -8,14 +8,14 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import auth
-from sirepo import srtime
 import datetime
+import sirepo.auth
 import sirepo.quest
+import sirepo.srtime
 import sirepo.util
 
 
-AUTH_METHOD = auth.METHOD_GUEST
+AUTH_METHOD = sirepo.auth.METHOD_GUEST
 
 #: User can see it
 AUTH_METHOD_VISIBLE = True
@@ -35,13 +35,13 @@ class API(sirepo.quest.API):
         """You have to be an anonymous or logged in user at this point"""
         req = self.parse_params(type=simulation_type)
         # if already logged in as guest, just redirect
-        if auth.user_if_logged_in(self.sreq, AUTH_METHOD):
-            auth.login_success_response(self, req.type)
-        auth.login(this_module, sim_type=req.type, qcall=self)
+        if self.auth.user_if_logged_in(AUTH_METHOD):
+            self.auth.login_success_response(req.type)
+        self.auth.login(this_module, sim_type=req.type, qcall=self)
         raise AssertionError("auth.login returned unexpectedly")
 
 
-def is_login_expired(sreq, res=None):
+def is_login_expired(qcall, res=None):
     """If expiry is configured, check timestamp
 
     Args:
@@ -52,18 +52,18 @@ def is_login_expired(sreq, res=None):
     """
     if not cfg.expiry_days:
         return False
-    n = srtime.utc_now_as_int()
-    t = int(sreq.cookie.unchecked_get_value(_COOKIE_EXPIRY_TIMESTAMP, 0))
+    n = sirepo.srtime.utc_now_as_int()
+    t = int(qcall.cookie.unchecked_get_value(_COOKIE_EXPIRY_TIMESTAMP, 0))
     if n <= t:
         # cached timestamp less than expiry
         return False
     # db expiry at most one day from now so we can change expiry_days
     # and (in any event) ensure expiry is checked once a day. This
     # would also allow us to extend the expired period in the db.
-    u = auth.logged_in_user()
-    r = auth.user_registration(u)
+    u = qcall.auth.logged_in_user()
+    r = qcall.auth.user_registration(u)
     t = r.created + cfg.expiry_days
-    n = srtime.utc_now()
+    n = sireop.srtime.utc_now()
     if n > t:
         if res is not None:
             res.update(uid=u, expiry=t, now=n)
@@ -73,18 +73,18 @@ def is_login_expired(sreq, res=None):
     if t2 < t:
         t = t2
     t -= datetime.datetime.utcfromtimestamp(0)
-    sreq.cookie.set_value(_COOKIE_EXPIRY_TIMESTAMP, int(t.total_seconds()))
+    qcall.cookie.set_value(_COOKIE_EXPIRY_TIMESTAMP, int(t.total_seconds()))
     return False
 
 
-def validate_login(sreq):
+def validate_login(qcall):
     """If expiry is configured, check timestamp
 
     Returns:
         object: if valid, None, otherwise flask.Response.
     """
     msg = PKDict()
-    if is_login_expired(sreq, msg):
+    if is_login_expired(qcall, msg):
         raise sirepo.util.SRException(
             "loginFail",
             PKDict({":method": "guest", ":reason": "guest-expired"}),

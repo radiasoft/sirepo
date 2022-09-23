@@ -83,7 +83,7 @@ cfg = None
 
 
 def qcall_init(qcall):
-    o = Base(qcall=qcall)
+    o = QCallObject(qcall=qcall)
     qcall.qcall_object("auth", o)
 
     # TODO(robnagler): hack for the time being
@@ -125,8 +125,8 @@ class API(sirepo.quest.API):
             except AssertionError:
                 pass
         if is_logged_in():
-            events.emit("auth_logout", PKDict(uid=_get_user(self.sreq)))
-            self.sreq.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
+            events.emit("auth_logout", PKDict(uid=self.auth._get_user()))
+            self.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
             self._set_log_user()
         return self.reply_redirect_for_app_root(req and req.type)
 
@@ -436,7 +436,7 @@ class QCallObject(sirepo.quest.QCallObject):
                 f = getattr(_METHOD_MODULES[m], "validate_login", None)
                 if f:
                     pkdc("validate_login method={}", m)
-                    f(sreq)
+                    f(self)
                 return u
             if m in cfg.deprecated_methods:
                 e = "deprecated"
@@ -509,14 +509,14 @@ class QCallObject(sirepo.quest.QCallObject):
             )
             yield
 
-    def unchecked_get_user(uid):
+    def unchecked_get_user(self, uid):
         with util.THREAD_LOCK:
             u = sirepo.auth_db.UserRegistration.search_by(uid=uid)
             if u:
                 return u.uid
             return None
 
-    def user_dir_not_found(user_dir, uid):
+    def user_dir_not_found(self, user_dir, uid):
         """Called by simulation_db when user_dir is not found
 
         Deletes any user records
@@ -540,18 +540,18 @@ class QCallObject(sirepo.quest.QCallObject):
             uid,
         )
 
-    def user_display_name(sreq, uid):
+    def user_display_name(self, uid):
         return sirepo.auth_db.UserRegistration.search_by(uid=uid).display_name
 
-    def user_if_logged_in(qcall, method):
+    def user_if_logged_in(self, method):
         """Verify user is logged in and method matches
 
         Args:
             method (str): method must be logged in as
         """
-        if not is_logged_in(qcall.sreq):
+        if not self.is_logged_in():
             return None
-        m = qcall.sreq.cookie.unchecked_get_value(_COOKIE_METHOD)
+        m = qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
         if m != method:
             return None
         return _get_user()
@@ -587,7 +587,7 @@ class QCallObject(sirepo.quest.QCallObject):
             res.save()
         return res
 
-    def _auth_state(sreq):
+    def _auth_state(self):
         def get_slack_uri():
             return sirepo.feature_config.cfg().slack_uri + (_get_user() or "")
 
@@ -599,7 +599,7 @@ class QCallObject(sirepo.quest.QCallObject):
             displayName=None,
             guestIsOnlyMethod=not non_guest_methods,
             isGuestUser=False,
-            isLoggedIn=is_logged_in(sreq, s),
+            isLoggedIn=self.is_logged_in(s),
             isLoginExpired=False,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
             method=cookie.unchecked_get_value(_COOKIE_METHOD),
@@ -711,9 +711,9 @@ class QCallObject(sirepo.quest.QCallObject):
             # common log format to: '%s - - [%s] %s\n'. Could monkeypatch
             # but we only use the limited http server for development.
             return
-        u = _get_user(self.qcall.sreq)
+        u = self._get_user()
         if u:
-            u = self.qcall.sreq.cookie.unchecked_get_value(_COOKIE_STATE) + "-" + u
+            u = self.qcall.cookie.unchecked_get_value(_COOKIE_STATE) + "-" + u
         else:
             u = "-"
         a.sirepo_uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)

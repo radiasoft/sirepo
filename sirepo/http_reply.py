@@ -48,7 +48,7 @@ _SUBPROCESS_ERROR_RE = re.compile(
 _RELOAD_JS_ROUTES = None
 
 
-def gen_exception(sreq, exc):
+def gen_exception(qcall, exc):
     """Generate from an Exception
 
     Args:
@@ -57,10 +57,10 @@ def gen_exception(sreq, exc):
     # If an exception occurs here, we'll fall through
     # to the server, which will have code to handle this case.
     if isinstance(exc, sirepo.util.Reply):
-        return _gen_exception_reply(sreq, exc)
+        return _gen_exception_reply(qcall, exc)
     if isinstance(exc, werkzeug.exceptions.HTTPException):
-        return _gen_exception_werkzeug(sreq, exc)
-    return _gen_exception_error(sreq, exc)
+        return _gen_exception_werkzeug(qcall, exc)
+    return _gen_exception_error(qcall, exc)
 
 
 def gen_file_as_attachment(qcall, content_or_path, filename=None, content_type=None):
@@ -163,7 +163,7 @@ def gen_redirect_for_anchor(uri, **kwargs):
 
 
 def gen_redirect_for_local_route(
-    sreq,
+    qcall,
     sim_type=None,
     route=None,
     params=None,
@@ -176,8 +176,8 @@ def gen_redirect_for_local_route(
     application_mode/appMode.
 
     Args:
-        sreq (request): request object
-        sim_type (str): how to find the schema [sreq.sim_type]
+        qcall (request): request object
+        sim_type (str): how to find the schema [qcall.sim_type]
         route (str): name in localRoutes [None: use default route]
         params (dict): parameters for route (including :Name)
 
@@ -185,7 +185,7 @@ def gen_redirect_for_local_route(
         Response: reply object
     """
     return gen_redirect_for_anchor(
-        sirepo.uri.local_route(sreq.sim_type(sim_type), route, params, query),
+        sirepo.uri.local_route(qcall.sim_type_uget(sim_type), route, params, query),
         **kwargs,
     )
 
@@ -287,9 +287,9 @@ def _as_attachment(resp, content_type, filename):
     return resp
 
 
-def _gen_exception_error(sreq, exc):
+def _gen_exception_error(qcall, exc):
     pkdlog("unsupported exception={} msg={}", type(exc), exc)
-    if sreq.is_spider():
+    if qcall.is_spider():
         return gen_response(
             """<!doctype html><html>
 <head><title>500 Internal Server Error</title></head>
@@ -299,10 +299,10 @@ def _gen_exception_error(sreq, exc):
             content_type=MIME_TYPE.html,
             status=500,
         )
-    return gen_redirect_for_local_route(sreq, None, route="error")
+    return gen_redirect_for_local_route(qcall, None, route="error")
 
 
-def _gen_exception_reply(sreq, exc):
+def _gen_exception_reply(qcall, exc):
     f = getattr(
         pykern.pkinspect.this_module(),
         "_gen_exception_reply_" + exc.__class__.__name__,
@@ -310,20 +310,20 @@ def _gen_exception_reply(sreq, exc):
     )
     pkdc("exception={} sr_args={}", exc, exc.sr_args)
     if not f:
-        return _gen_exception_error(sreq, exc)
-    return f(sreq, exc.sr_args)
+        return _gen_exception_error(qcall, exc)
+    return f(qcall, exc.sr_args)
 
 
-def _gen_exception_reply_Error(sreq, args):
+def _gen_exception_reply_Error(qcall, args):
     try:
-        t = sreq.sim_type(args.pkdel("sim_type"))
+        t = qcall.sim_type_uget(args.pkdel("sim_type"))
         s = simulation_db.get_schema(sim_type=t)
     except Exception:
         # sim_type is bad so don't cascade errors, just
         # try to get the schema without the type
         t = None
         s = simulation_db.get_schema(sim_type=None)
-    if sreq.http_method_is_post():
+    if qcall.http_method_is_post():
         return gen_json(args.pkupdate({_STATE: _ERROR_STATE}))
     q = PKDict()
     for k, v in args.items():
@@ -334,14 +334,14 @@ def _gen_exception_reply_Error(sreq, args):
             pkdlog('error in "error" query {}={} exception={}', k, v, e)
             continue
         q[k] = v
-    return gen_redirect_for_local_route(sreq, t, route="error", query=q)
+    return gen_redirect_for_local_route(qcall, t, route="error", query=q)
 
 
-def _gen_exception_reply_Redirect(sreq, args):
+def _gen_exception_reply_Redirect(qcall, args):
     return gen_redirect(args.uri)
 
 
-def _gen_exception_reply_Response(sreq, args):
+def _gen_exception_reply_Response(qcall, args):
     r = args.response
     assert isinstance(
         r, sirepo.util.flask_app().response_class
@@ -349,11 +349,11 @@ def _gen_exception_reply_Response(sreq, args):
     return r
 
 
-def _gen_exception_reply_SRException(sreq, args):
+def _gen_exception_reply_SRException(qcall, args):
     r = args.routeName
     p = args.params or PKDict()
     try:
-        t = sreq.sim_type(p.pkdel("sim_type"))
+        t = qcall.sim_type_uget(p.pkdel("sim_type"))
         s = simulation_db.get_schema(sim_type=t)
     except Exception as e:
         pkdc("exception={} stack={}", e, pkdexc())
@@ -372,7 +372,7 @@ def _gen_exception_reply_SRException(sreq, args):
     if (
         # must be first, to always delete reload_js
         not p.pkdel("reload_js")
-        and sreq.http_method_is_post()
+        and qcall.http_method_is_post()
         and r not in _RELOAD_JS_ROUTES
     ):
         pkdc("POST response={} route={} params={}", SR_EXCEPTION_STATE, r, p)
@@ -386,7 +386,7 @@ def _gen_exception_reply_SRException(sreq, args):
         )
     pkdc("redirect to route={} params={}  type={}", r, p, t)
     return gen_redirect_for_local_route(
-        sreq,
+        qcall,
         t,
         route=r,
         params=p,
@@ -394,20 +394,20 @@ def _gen_exception_reply_SRException(sreq, args):
     )
 
 
-def _gen_exception_reply_UserAlert(sreq, args):
+def _gen_exception_reply_UserAlert(qcall, args):
     return gen_json(
         PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: args.error}),
     )
 
 
-def _gen_exception_reply_WWWAuthenticate(sreq, args):
+def _gen_exception_reply_WWWAuthenticate(qcall, args):
     return gen_response(
         status=401,
         headers={"WWW-Authenticate": 'Basic realm="*"'},
     )
 
 
-def _gen_exception_werkzeug(sreq, exc):
+def _gen_exception_werkzeug(qcall, exc):
     # TODO(robnagler) convert exceptions to our own
     raise exc
 

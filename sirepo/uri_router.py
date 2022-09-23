@@ -88,12 +88,12 @@ def call_api(qcall, name, kwargs=None, data=None):
         qcall (quest.API): request object
         route_or_name (object): api function or name (without `api_` prefix)
         kwargs (dict): to be passed to API [None]
-        data (dict): will be returned `sreq.parse_json`
+        data (dict): will be returned `qcall.parse_json`
     Returns:
         Response: result
     """
     if data:
-        qcall.post_data_set(data)
+        qcall.http_data_set(data)
     qcall.qcall_object("uri_route", _api_to_route[name])
     return _call_api(qcall, kwargs=kwargs)
 
@@ -257,7 +257,7 @@ def _call_api(qcall, kwargs):
     Note: also calls `save_to_cookie`.
 
     Args:
-        sreq (sirepo.request.Base): request object
+        qcall (API): qcall
         route_or_name (object): api function or name (without `api_` prefix)
         kwargs (dict): to be passed to API [None]
     Returns:
@@ -289,7 +289,7 @@ def _call_api(qcall, kwargs):
             pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
         else:
             pkdlog("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
-        r = sirepo.http_reply.gen_exception(sreq, e)
+        r = sirepo.http_reply.gen_exception(qcall, e)
     qcall.cookie.save_to_cookie(r)
     sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
     if pkconfig.channel_in("dev"):

@@ -5,7 +5,6 @@ from pykern.pkcollections import PKDict
 import contextlib
 import datetime
 import sirepo.quest
-import sirepo.auth
 import sirepo.auth_db
 import sirepo.events
 import sirepo.srtime
@@ -21,13 +20,13 @@ _USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
 
 def qcall_init(qcall):
     def _new_session():
-        l = sirepo.auth.is_logged_in(sreq)
+        l = qcall.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
         i = sirepo.util.random_base62()
         _Session(
             user_agent_id=i,
             login_state=l,
-            uid=sirepo.auth.logged_in_user(sreq, check_path=False) if l else None,
+            uid=qcall.auth.logged_in_user(check_path=False) if l else None,
             start_time=t,
             request_time=t,
         ).save()
@@ -38,7 +37,7 @@ def qcall_init(qcall):
     def _update_session(user_agent_id):
         s = _Session.search_by(user_agent_id=user_agent_id)
         assert s, f"No session for user_agent_id={user_agent_id}"
-        l = sirepo.auth.is_logged_in(sreq)
+        l = qcall.auth.is_logged_in()
         t = s.request_time
         if (
             sirepo.srtime.utc_now() - t
@@ -50,8 +49,8 @@ def qcall_init(qcall):
         s.request_time = sirepo.srtime.utc_now()
         s.save()
 
-    i = sreq.http_header(_USER_AGENT_ID_HEADER)
-    if sreq.http_method_is_post():
+    i = qcall.http_header(_USER_AGENT_ID_HEADER)
+    if qcall.http_method_is_post():
         if not i:
             i = _new_session()
         else:
