@@ -17,6 +17,8 @@ _Session = None
 
 _USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
 
+_ID_ATTR = "session_id"
+
 
 def qcall_init(qcall):
     def _new_session():
@@ -55,20 +57,16 @@ def qcall_init(qcall):
             i = _new_session()
         else:
             _update_session(i)
-    qcall.qcall_object("session", QCallObject(i))
-
-
-class QCallObject(sirepo.quest.QCallObject):
-    def __init__(self, session_id):
-        super().__init__(_id=session_id)
-
-    def quest_result_handler(self, qres):
-        if self._id:
-            qres.headers[_USER_AGENT_ID_HEADER] = self._id
+    qcall.bucket_set(_ID_ATTR, i)
 
 
 def init():
     sirepo.auth_db.init_model(_init_model)
+    sirepo.events.register(PKDict(end_api_call=_end_api_call))
+
+
+def _end_api_call(qcall, kwargs):
+    kwargs.resp.headers[_USER_AGENT_ID_HEADER] = qcall.bucket_uget(_ID_ATTR)
 
 
 def _init_model(base):

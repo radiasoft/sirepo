@@ -23,7 +23,7 @@ class API(pykern.quest.API):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.qcall_object("_bucket", _Bucket())
+        self.attr_set("_bucket", _Bucket())
 
     # #TODO
     #     def handle_api_destroy(): called on the API
@@ -44,6 +44,12 @@ class API(pykern.quest.API):
         """
         assert uri[0] == "/"
         return self.sreq.http_server_uri + uri[1:]
+
+    def attr_set(self, name, obj, override_ok=False):
+        """Assign an object to qcall"""
+        assert isinstance(obj, Attr)
+        assert override_ok or name not in self
+        self[name] = obj
 
     def bucket_set(self, name, value):
         assert name not in self._bucket
@@ -80,12 +86,11 @@ class API(pykern.quest.API):
 
     def parent_set(self, qcall):
         assert isinstance(qcall, API)
-        assert _PARENT_ATTR not in self._bucket
-        self._bucket[_PARENT_ATTR] = qcall
+        # must be right after
+        assert not self._bucket
         for k, v in self.items():
-            sreq
-            no cookie
-
+            self[k] = v
+        self._bucket[_PARENT_ATTR] = qcall
 
     def parse_json(self):
         return http_request.parse_json(self)
@@ -98,13 +103,6 @@ class API(pykern.quest.API):
 
     def parse_post(self, **kwargs):
         return http_request.parse_post(self, PKDict(kwargs))
-
-    def qcall_object(self, name, obj):
-        """Assign an object to qcall"""
-        assert name not in self
-        assert isinstance(obj, QCallObject)
-        self[name] = obj
-        return obj
 
     def reply(self, *args, **kwargs):
         return http_reply.gen_response(*args, **kwargs)
@@ -231,7 +229,7 @@ class API(pykern.quest.API):
         )
 
 
-class QCallObject(PKDict):
+class Attr(PKDict):
     pass
 
 
@@ -255,7 +253,7 @@ class Spec(pykern.quest.Spec):
         return _wrapper
 
 
-class _Bucket(QCallObject):
+class _Bucket(Attr):
     pass
 
 

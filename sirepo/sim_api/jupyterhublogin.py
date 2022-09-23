@@ -196,14 +196,14 @@ def _event_end_api_call(qcall, kwargs):
     u = qcall.bucket_uget(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR)
     if not u:
         return
-    for c in (
+    for c, v in (
         ("jupyterhub-hub-login", "hub"),
         (f"jupyterhub-user-{u}", f"user/{u}"),
     ):
         kwargs.resp.delete_cookie(
-            c[0],
+            c,
             # Trailing slash is required in paths
-            path=f"/{cfg.uri_root}/{c[1]}/",
+            path=f"/{cfg.uri_root}/{v}/",
         )
 
 

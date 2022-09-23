@@ -30,10 +30,10 @@ def qcall_init(qcall):
         internal_req=flask.request,
         remote_addr=flask.request.remote_addr,
     )
-    qcall.qcall_object("sreq", sreq)
+    qcall.attr_set("sreq", sreq)
 
 
-class Base(sirepo.quest.QCallObject):
+class Base(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
     def body_as_bytes(self):

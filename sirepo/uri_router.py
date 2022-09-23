@@ -219,7 +219,7 @@ def uri_for_api(api_name, params=None):
     return res or "/"
 
 
-class _Route(sirepo.quest.QCallObject):
+class _Route(sirepo.quest.Attr):
     """Holds all route information for an API.
 
     Keys:
@@ -258,11 +258,12 @@ def _call_api(parent, route, kwargs, data=None):
         return sirepo.http_reply.gen_response(res)
 
     qcall = route.cls()
-    if parent:
-        qcall.parent_set(parent)
-    qcall.qcall_object("uri_route", route)
     try:
-        sirepo.request.qcall_init(qcall)
+        if parent:
+            qcall.parent_set(parent)
+        qcall.attr_set("uri_route", route, override_ok=True)
+        if not parent:
+            sirepo.request.qcall_init(qcall)
         if data:
             qcall.http_data_set(data)
         p = None

@@ -83,8 +83,8 @@ cfg = None
 
 
 def qcall_init(qcall):
-    o = QCallObject(qcall=qcall)
-    qcall.qcall_object("auth", o)
+    o = _State(qcall=qcall)
+    qcall.attr_set("auth", o)
 
     # TODO(robnagler): hack for the time being
     from sirepo import simulation_db
@@ -131,7 +131,7 @@ class API(sirepo.quest.API):
         return self.reply_redirect_for_app_root(req and req.type)
 
 
-class QCallObject(sirepo.quest.QCallObject):
+class _State(sirepo.quest.Attr):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # TODO(robnagler): process auth basic header, too. this
