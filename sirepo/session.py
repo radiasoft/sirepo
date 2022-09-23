@@ -49,8 +49,8 @@ def qcall_init(qcall):
         s.request_time = sirepo.srtime.utc_now()
         s.save()
 
-    i = qcall.http_header(_USER_AGENT_ID_HEADER)
-    if qcall.http_method_is_post():
+    i = qcall.sreq.header_uget(_USER_AGENT_ID_HEADER)
+    if qcall.sreq.method_is_post():
         if not i:
             i = _new_session()
         else:

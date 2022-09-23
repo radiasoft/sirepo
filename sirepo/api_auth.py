@@ -25,7 +25,7 @@ def assert_api_def(func):
         )
 
 
-def check_api_call(sreq, func):
+def check_api_call(qcall, func):
     expect = getattr(func, sirepo.api_perm.ATTR)
     a = sirepo.api_perm.APIPerm
     if expect in (
@@ -34,25 +34,25 @@ def check_api_call(sreq, func):
         a.REQUIRE_USER,
         a.REQUIRE_ADM,
     ):
-        if not sreq.cookie.has_sentinel():
+        if not qcall.cookie.has_sentinel():
             raise sirepo.util.SRException("missingCookies", None)
         if expect == a.REQUIRE_USER:
-            sirepo.auth.require_user(sreq)
+            qcall.auth.require_user()
         elif expect == a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER:
-            sirepo.auth.require_email_user(sreq)
+            qcall.auth.require_email_user()
         elif expect == a.REQUIRE_ADM:
-            sirepo.auth.require_adm(sreq)
+            qcall.auth.require_adm()
     elif expect == a.ALLOW_VISITOR:
         pass
     elif expect == a.INTERNAL_TEST:
         if not pkconfig.channel_in_internal_test():
             sirepo.util.raise_forbidden("Only available in internal test")
     elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
-        sreq.cookie.set_sentinel()
+        qcall.cookie.set_sentinel()
         if expect == a.ALLOW_COOKIELESS_REQUIRE_USER:
-            sirepo.auth.require_user(sreq)
+            qcall.auth.require_user()
     elif expect == a.REQUIRE_AUTH_BASIC:
-        sirepo.auth.require_auth_basic(sreq)
+        qcall.auth.require_auth_basic()
     else:
         raise AssertionError("unhandled api_perm={}".format(expect))
 

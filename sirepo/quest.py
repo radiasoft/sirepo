@@ -60,11 +60,8 @@ class API(pykern.quest.API):
         x = self.get[HTTP_DATA_ATTR]
         return x.data if x else None
 
-    def http_is_spider(self):
-        return self.sreq.is_spider()
-
     def parse_json(self):
-        return http_request.parse_json(sapi)
+        return http_request.parse_json(self)
 
     def parse_params(self, **kwargs):
         return http_request.parse_post(
@@ -181,7 +178,7 @@ class API(pykern.quest.API):
         return PKDict(
             ip_addr=self.sreq.remote_addr,
             domain_name=_dns_reverse_lookup(self.sreq.remote_addr),
-            user_agent=self.sreq.http_header("User-Agent"),
+            user_agent=self.http_header_uget("User-Agent"),
         )
 
 

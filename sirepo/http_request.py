@@ -17,13 +17,13 @@ def init(**imports):
 
 
 def parse_json(qcall):
-    d = qcall.get_post_data()
+    d = qcall.http_data_uget()
     if d:
         return d
     if not qcall.sreq.content_type_eq("application/json"):
         sirepo.util.raise_bad_request(
             "Content-Type={} must be application/json",
-            qcall.sreq.http_header("Content-Type"),
+            qcall.sreq.header_uget("Content-Type"),
         )
     # Adapted from flask.wrappers.Request.get_json
     # We accept a request charset against the specification as

@@ -289,7 +289,7 @@ def _as_attachment(resp, content_type, filename):
 
 def _gen_exception_error(qcall, exc):
     pkdlog("unsupported exception={} msg={}", type(exc), exc)
-    if qcall.is_spider():
+    if qcall.sreq.is_spider():
         return gen_response(
             """<!doctype html><html>
 <head><title>500 Internal Server Error</title></head>
@@ -323,7 +323,7 @@ def _gen_exception_reply_Error(qcall, args):
         # try to get the schema without the type
         t = None
         s = simulation_db.get_schema(sim_type=None)
-    if qcall.http_method_is_post():
+    if qcall.sreq.method_is_post():
         return gen_json(args.pkupdate({_STATE: _ERROR_STATE}))
     q = PKDict()
     for k, v in args.items():
@@ -372,7 +372,7 @@ def _gen_exception_reply_SRException(qcall, args):
     if (
         # must be first, to always delete reload_js
         not p.pkdel("reload_js")
-        and qcall.http_method_is_post()
+        and qcall.sreq.method_is_post()
         and r not in _RELOAD_JS_ROUTES
     ):
         pkdc("POST response={} route={} params={}", SR_EXCEPTION_STATE, r, p)

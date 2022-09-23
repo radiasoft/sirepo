@@ -39,7 +39,7 @@ class API(sirepo.quest.API):
     def api_admModerate(self):
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
-                recipient=sirepo.auth.user_name(info.uid),
+                recipient=self.auth.user_name(info.uid),
                 subject=_STATUS_TO_SUBJECT[info.status].format(info.app_name),
                 body=pkjinja.render_resource(
                     f"auth_role_moderation/{info.status}_email",
@@ -62,7 +62,7 @@ class API(sirepo.quest.API):
                 info.uid,
                 info.role,
                 info.status,
-                moderator_uid=sirepo.auth.logged_in_user(),
+                moderator_uid=self.auth.logged_in_user(),
             )
 
         req = self.parse_post(type=False)
@@ -77,7 +77,7 @@ class API(sirepo.quest.API):
             app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
                 sirepo.auth_role.sim_type(i.role)
             ].longName,
-            display_name=sirepo.auth.user_display_name(self.sreq, i.uid),
+            display_name=self.auth.user_display_name(i.uid),
             role=i.role,
             status=req.req_data.status,
             uid=i.uid,
@@ -122,7 +122,7 @@ class API(sirepo.quest.API):
             )
 
         req = self.parse_post()
-        u = sirepo.auth.logged_in_user()
+        u = self.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(req.type)
         with sirepo.util.THREAD_LOCK:
             if self.auth_db.UserRole.has_role(u, r):
@@ -149,8 +149,8 @@ class API(sirepo.quest.API):
         l = self.absolute_uri(self.uri_for_api("admModerateRedirect"))
         _send_request_email(
             PKDict(
-                display_name=sirepo.auth.user_display_name(self.sreq, u),
-                email_addr=sirepo.auth.user_name(),
+                display_name=self.auth.user_display_name(u),
+                email_addr=self.auth.user_name(),
                 link=l,
                 reason=req.req_data.reason,
                 role=sirepo.auth_role.for_sim_type(req.type),
@@ -168,7 +168,7 @@ def raise_control_for_user(qcall, uid, role):
     if s == sirepo.auth_role.ModerationStatus.DENY:
         sirepo.util.raise_forbidden(f"uid={uid} role={role} already denied")
     assert s is None, f"Unexpected status={s} for uid={uid} and role={role}"
-    sirepo.auth.require_email_user(qcall.sreq)
+    qcall.auth.require_email_user()
     raise sirepo.util.SRException("moderationRequest", None)
 
 

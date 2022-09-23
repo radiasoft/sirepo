@@ -42,11 +42,8 @@ class Base(sirepo.quest.QCallObject):
     def content_type_eq(self, value):
         return self.__content_type()._key.lower() == value.lower()
 
-    def http_header(self, key):
+    def header_uget(self, key):
         return self.http_headers.get(key)
-
-    def http_method_is_post(self):
-        return self.http_method == "POST"
 
     def is_spider(self):
         a = self.http_header("User-Agent")
@@ -58,6 +55,9 @@ class Base(sirepo.quest.QCallObject):
             # The package robot_detection does see it, but we don't want to introduce another dependency.
             return True
         return user_agents.parse(a).is_bot
+
+    def method_is_post(self):
+        return self.http_method == "POST"
 
     def set_post(self, data=None):
         """Interface for uri_router"""
