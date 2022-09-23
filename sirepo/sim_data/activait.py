@@ -29,8 +29,24 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in dm:
             if "fileColumnReport" in m:
                 cls.update_model_defaults(dm[m], "fileColumnReport")
+        cls._cleanup_neural_net(dm)
         dm.analysisReport.pksetdefault(history=[])
         dm.hiddenReport.pksetdefault(subreports=[])
+
+    @classmethod
+    def _cleanup_neural_net(cls, dm):
+        for l in dm.neuralNet.layers:
+            for (old, new) in cls._layer_fields(l):
+                cls._update(l, old, new)
+
+    @classmethod
+    def _layer_fields(cls, layer):
+        f = []
+        n = layer.layer.lower()
+        for field in layer:
+            if n in field:
+                f.append((field, field.replace(n, "").lower()))
+        return f
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
@@ -68,6 +84,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         if name:
             return [cls.lib_file_name_with_model_field("dataFile", "file", name)]
         return []
+
+    @classmethod
+    def _update(cls, layer, old, new):
+        if old in layer:
+            layer[new] = layer[old]
+            layer.pop(old)
 
 
 class DataReader(PKDict):
