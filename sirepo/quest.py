@@ -52,12 +52,6 @@ class API(pykern.quest.API):
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)
 
-    def post_data_get(self):
-        self.get(fff_POST_DATA_ATTR, QCallObject(data=data))
-
-    def post_data_set(self, data):
-        self.qcall_object(_POST_DATA_ATTR, QCallObject(data=data))
-
     def parse_json(self):
         return http_request.parse_json(sapi)
 
@@ -69,6 +63,14 @@ class API(pykern.quest.API):
 
     def parse_post(self, **kwargs):
         return http_request.parse_post(self, PKDict(kwargs))
+
+    def post_data_set(self, data):
+        self.qcall_object(_POST_DATA_ATTR, QCallObject(data=data))
+
+    def post_data_uget(self):
+        """Unchecked get for http_request.parse_post"""
+        x = self.get[POST_DATA_ATTR]
+        return x.data if x else None
 
     def qcall_object(self, name, obj):
         """Assign an object to qcall"""

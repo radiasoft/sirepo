@@ -28,8 +28,6 @@ import sirepo.util
 #: route for sirepo.srunit
 srunit_uri = None
 
-_API_ATTR = "sirepo_uri_router_api"
-
 #: prefix for api functions
 _FUNC_PREFIX = "api_"
 
@@ -87,20 +85,17 @@ def call_api(qcall, name, kwargs=None, data=None):
     Note: also calls `save_to_cookie`.
 
     Args:
-        sreq (sirepo.request.Base): request object
+        qcall (quest.API): request object
         route_or_name (object): api function or name (without `api_` prefix)
         kwargs (dict): to be passed to API [None]
         data (dict): will be returned `sreq.parse_json`
     Returns:
         Response: result
     """
-    # must be first so exceptions have access to sim_type
-    if not kwargs:
-        kwargs = PKDict()
     if data:
-        qcall.http_post_data = data
+        qcall.post_data_set(data)
     qcall.qcall_object("uri_route", _api_to_route[name])
-    return _call_api(qcall)
+    return _call_api(qcall, kwargs=kwargs)
 
 
 def init(app, simulation_db):
@@ -154,10 +149,7 @@ def init(app, simulation_db):
 
 
 def maybe_sim_type_required_for_api(qcall):
-    a = qcall.sreq.get(_API_ATTR)
-    if not a:
-        return True
-    return sirepo.api_auth.maybe_sim_type_required_for_api(a.func)
+    return sirepo.api_auth.maybe_sim_type_required_for_api(qcall.uri_route.func)
 
 
 def register_api_module(module):
@@ -257,7 +249,7 @@ class _URIParams(PKDict):
     pass
 
 
-def _call_api(qcall):
+def _call_api(qcall, kwargs):
     """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
 
     Call another API with permission checks.
@@ -268,7 +260,6 @@ def _call_api(qcall):
         sreq (sirepo.request.Base): request object
         route_or_name (object): api function or name (without `api_` prefix)
         kwargs (dict): to be passed to API [None]
-        data (dict): will be returned `sreq.parse_json`
     Returns:
         Response: result
     """
@@ -288,9 +279,11 @@ def _call_api(qcall):
         if kwargs:
             # Any (GET) uri will have simulation_type in uri if it is application
             # specific.
-            s = qcall.set_sim_type(kwargs.get("simulation_type"))
+            s = qcall.sim_type_set(kwargs.get("simulation_type"))
+        elif kwargs is None:
+            kwargs = PKDict()
         _check_route(qcall, qcall.uri_route)
-        r = _response(getattr(qcall, f.func_name)(**kwargs))
+        r = _response(getattr(qcall, qcall.uri_route.func_name)(**kwargs))
     except Exception as e:
         if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
             pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
@@ -326,13 +319,12 @@ def _dispatch(path):
     if error:
         pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
         route = _not_found_route
-        qargs = None
 
     qcall = route.cls()
     qcall.qcall_object("uri_route", route)
     with sirepo.request.qcall_flask(qcall, kwargs)
     with sirepo.auth.qcall_init(qcall):
-        return _call_api(qcall, kwargs))
+        return _call_api(qcall, kwargs=kwargs)
 
 
 def _dispatch_empty():
@@ -429,17 +421,6 @@ def _register_sim_modules_from_package(package, valid_sim_types=None):
 
 def _register_sim_oauth_modules(oauth_sim_types):
     _register_sim_modules_from_package("sim_oauth", oauth_sim_types)
-
-
-@contextlib.contextmanager
-def _set_api_attr(sreq, route_or_name):
-rjn: this should be on qcall
-    a = sreq.get(_API_ATTR)
-    try:
-        sreq[_API_ATTR] = route_or_name
-        yield
-    finally:
-        sreq[_API_ATTR] = a
 
 
 def _split_uri(uri):
