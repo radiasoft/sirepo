@@ -188,14 +188,12 @@ def init_apis(*args, **kwargs):
     )
 
 
-def _event_auth_logout(kwargs):
-    sirepo.srcontext.set(
-        _JUPYTERHUB_LOGOUT_USER_NAME_ATTR, _unchecked_hub_user(kwargs.uid)
-    )
+def _event_auth_logout(qcall, kwargs):
+    qcall.bucket_set(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR, _unchecked_hub_user(kwargs.uid))
 
 
-def _event_end_api_call(kwargs):
-    u = sirepo.srcontext.get(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR)
+def _event_end_api_call(qcall, kwargs):
+    u = qcall.bucket_uget(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR)
     if not u:
         return
     for c in (

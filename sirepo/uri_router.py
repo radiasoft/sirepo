@@ -20,6 +20,7 @@ import sirepo.cookie
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
@@ -92,10 +93,7 @@ def call_api(qcall, name, kwargs=None, data=None):
     Returns:
         Response: result
     """
-    if data:
-        qcall.http_data_set(data)
-    qcall.qcall_object("uri_route", _api_to_route[name])
-    return _call_api(qcall, kwargs=kwargs)
+    return _call_api(qcall, _api_to_route[name], kwargs=kwargs, data=data)
 
 
 def init(app, simulation_db):
@@ -249,20 +247,7 @@ class _URIParams(PKDict):
     pass
 
 
-def _call_api(qcall, kwargs):
-    """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
-
-    Call another API with permission checks.
-
-    Note: also calls `save_to_cookie`.
-
-    Args:
-        qcall (API): qcall
-        route_or_name (object): api function or name (without `api_` prefix)
-        kwargs (dict): to be passed to API [None]
-    Returns:
-        Response: result
-    """
+def _call_api(parent, route, kwargs, data=None):
     import werkzeug.exceptions
 
     def _response(res):
@@ -272,29 +257,39 @@ def _call_api(qcall, kwargs):
             raise AssertionError("invalid return from qcall={}", qcall)
         return sirepo.http_reply.gen_response(res)
 
-    p = None
-    s = None
+    qcall = route.cls()
+    if parent:
+        qcall.parent_set(parent)
+    qcall.qcall_object("uri_route", route)
     try:
-        # must be first so exceptions have access to sim_type
-        if kwargs:
-            # Any (GET) uri will have simulation_type in uri if it is application
-            # specific.
-            s = qcall.sim_type_set(kwargs.get("simulation_type"))
-        elif kwargs is None:
-            kwargs = PKDict()
-        _check_route(qcall, qcall.uri_route)
-        r = _response(getattr(qcall, qcall.uri_route.func_name)(**kwargs))
-    except Exception as e:
-        if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
-            pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
-        else:
-            pkdlog("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
-        r = sirepo.http_reply.gen_exception(qcall, e)
-    qcall.cookie.save_to_cookie(r)
-    sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
-    if pkconfig.channel_in("dev"):
-        r.headers.add("Access-Control-Allow-Origin", "*")
-    return r
+        sirepo.request.qcall_init(qcall)
+        if data:
+            qcall.http_data_set(data)
+        p = None
+        s = None
+        try:
+            # must be first so exceptions have access to sim_type
+            if kwargs:
+                # Any (GET) uri will have simulation_type in uri if it is application
+                # specific.
+                s = qcall.sim_type_set(kwargs.get("simulation_type"))
+            elif kwargs is None:
+                kwargs = PKDict()
+            _check_route(qcall, qcall.uri_route)
+            r = _response(getattr(qcall, qcall.uri_route.func_name)(**kwargs))
+        except Exception as e:
+            if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+                pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
+            else:
+                pkdlog("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
+            r = sirepo.http_reply.gen_exception(qcall, e)
+        qcall.cookie.save_to_cookie(r)
+        sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
+        if pkconfig.channel_in("dev"):
+            r.headers.add("Access-Control-Allow-Origin", "*")
+        return r
+    finally:
+        qcall.destroy()
 
 
 def _check_route(qcall, route):
@@ -320,11 +315,7 @@ def _dispatch(path):
         pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
         route = _not_found_route
 
-    qcall = route.cls()
-    qcall.qcall_object("uri_route", route)
-    with sirepo.request.qcall_flask(qcall, kwargs)
-    with sirepo.auth.qcall_init(qcall):
-        return _call_api(qcall, kwargs=kwargs)
+    return _call_api(None, route, kwargs=kwargs)
 
 
 def _dispatch_empty():

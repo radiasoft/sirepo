@@ -726,6 +726,7 @@ class QCallObject(sirepo.quest.QCallObject):
 
 
 def init_apis(*args, **kwargs):
+    _init()
     global uri_router
     assert not cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
     uri_router = kwargs["uri_router"]
@@ -770,6 +771,3 @@ def _init():
         cfg.methods = frozenset((METHOD_GUEST,))
     else:
         _init_full()
-
-
-_init()

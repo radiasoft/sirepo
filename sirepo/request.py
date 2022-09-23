@@ -17,17 +17,20 @@ _POST_ATTR = "sirepo_http_request_post"
 
 _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
-def qcall_flask(qcall, **kwargs):
--    with sirepo.request(flask
--    qcall.create_sreq(
--        http_headers=flask.request.headers,
--        http_method=flask.request.method,
--        internal_req=flask.request,
--        http_request_uri=flask.request.url,
--        remote_addr=flask.request.remote_addr,
--        http_server_uri=flask.url_for("_dispatch_empty", _external=True),
-         http_authorization=flask.request.authorization,
--    )
+
+def qcall_init(qcall):
+    import flask
+
+    sreq = Base(
+        http_authorization=flask.request.authorization,
+        http_headers=flask.request.headers,
+        http_method=flask.request.method,
+        http_request_uri=flask.request.url,
+        http_server_uri=flask.url_for("_dispatch_empty", _external=True),
+        internal_req=flask.request,
+        remote_addr=flask.request.remote_addr,
+    )
+    qcall.qcall_object("sreq", sreq)
 
 
 class Base(sirepo.quest.QCallObject):
@@ -66,28 +69,6 @@ class Base(sirepo.quest.QCallObject):
         if data is not None:
             self[_POST_ATTR] = data
         return res
-
-    def set_sim_type(self, sim_type):
-        """Interface for uri_router"""
-        if not sirepo.util.is_sim_type(sim_type):
-            # Don't change sim_type unless we have a valid one
-            return None
-        res = self.get(_SIM_TYPE_ATTR)
-        # Don't change once set
-        self.setdefault(_SIM_TYPE_ATTR, sim_type)
-        return res
-
-    def sim_type(self, value=None):
-        """Return value or request's sim_type
-
-        Args:
-            value (str): will be validated if not None
-        Returns:
-            str: sim_type or possibly None
-        """
-        if value:
-            return sirepo.util.assert_sim_type(value)
-        return self.get(_SIM_TYPE_ATTR)
 
     def __content_type(self):
         if "_content_type" not in self:

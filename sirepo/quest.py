@@ -13,9 +13,17 @@ import sirepo.uri
 
 _HTTP_DATA_ATTR = "http_data"
 
+_PARENT_ATTR = "parent"
+
+_SIM_TYPE_ATTR = "sim_type"
+
 
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.qcall_object("_bucket", _Bucket())
 
     # #TODO
     #     def handle_api_destroy(): called on the API
@@ -37,6 +45,13 @@ class API(pykern.quest.API):
         assert uri[0] == "/"
         return self.sreq.http_server_uri + uri[1:]
 
+    def bucket_set(self, name, value):
+        assert name not in self._bucket
+        self._bucket[name] = value
+
+    def bucket_uget(self, name):
+        return self._bucket.get(name)
+
     def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
 
@@ -52,13 +67,25 @@ class API(pykern.quest.API):
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)
 
+    def http_data_uget(self):
+        """Unchecked get for http_request.parse_post"""
+        return self.bucket_uget(HTTP_DATA_ATTR)
+
     def http_data_set(self, data):
-        self.qcall_object(_HTTP_DATA_ATTR, QCallObject(data=data))
+        self.bucket_set(_HTTP_DATA_ATTR, data)
 
     def http_data_uget(self):
         """Unchecked get for http_request.parse_post"""
-        x = self.get[HTTP_DATA_ATTR]
-        return x.data if x else None
+        return self.bucket_uget(HTTP_DATA_ATTR)
+
+    def parent_set(self, qcall):
+        assert isinstance(qcall, API)
+        assert _PARENT_ATTR not in self._bucket
+        self._bucket[_PARENT_ATTR] = qcall
+        for k, v in self.items():
+            sreq
+            no cookie
+
 
     def parse_json(self):
         return http_request.parse_json(self)
@@ -133,6 +160,28 @@ class API(pykern.quest.API):
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
+    def sim_type_set(self, sim_type):
+        """Set sim_type if there, else don't set"""
+        if not sirepo.util.is_sim_type(sim_type):
+            # Don't change sim_type unless we have a valid one
+            return
+        # Don't change once set
+        if _SIM_TYPE_ATTR in self:
+            return
+        self._bucket[_SIM_TYPE_ATTR] = sim_type
+
+    def sim_type_uget(self, value=None):
+        """Return value or reuqest's sim_type
+
+        Args:
+            value (str): will be validated if not None
+        Returns:
+            str: sim_type or possibly None
+        """
+        if value:
+            return sirepo.util.assert_sim_type(value)
+        t = self._bucket.get(_SIM_TYPE_ATTR)
+
     def uri_for_api(self, api_name, params=None):
         """Generate uri for api method
 
@@ -204,6 +253,10 @@ class Spec(pykern.quest.Spec):
             getattr(sirepo.api_perm.APIPerm, self.perm.upper()),
         )
         return _wrapper
+
+
+class _Bucket(QCallObject):
+    pass
 
 
 def init(**imports):
