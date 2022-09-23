@@ -284,7 +284,6 @@ def _call_api(parent, route, kwargs, data=None):
             else:
                 pkdlog("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
             r = sirepo.http_reply.gen_exception(qcall, e)
-        qcall.cookie.save_to_cookie(r)
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
             r.headers.add("Access-Control-Allow-Origin", "*")
@@ -347,7 +346,7 @@ def _init_uris(app, simulation_db, sim_types):
         _api_to_route[k] = r
         if r.base_uri == _ROUTE_URI_DEFAULT:
             _route_default = r
-        elif if r.base_uri == _ROUTE_URI_NOT_FOUND:
+        elif r.base_uri == _ROUTE_URI_NOT_FOUND:
             _not_found_route = r
         elif "srunit" in v:
             srunit_uri = v

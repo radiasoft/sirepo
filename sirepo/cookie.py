@@ -14,6 +14,7 @@ import contextlib
 import cryptography.fernet
 import itertools
 import re
+import sirepo.events
 import sirepo.quest
 import sirepo.util
 
@@ -173,12 +174,20 @@ def _cfg_http_name(value):
     return value
 
 
-cfg = pkconfig.init(
-    http_name=("sirepo_" + pkconfig.cfg.channel, _cfg_http_name, "Set-Cookie name"),
-    private_key=(None, str, "urlsafe base64 encrypted 32-byte key"),
-    is_secure=(
-        not pkconfig.channel_in("dev"),
-        pkconfig.parse_bool,
-        "Add secure attriute to Set-Cookie",
-    ),
-)
+def _end_api_call(qcall, kwargs):
+    qcall.cookie.save_to_cookie(kwargs.resp)
+
+
+def init():
+    global cfg
+
+    cfg = pkconfig.init(
+        http_name=("sirepo_" + pkconfig.cfg.channel, _cfg_http_name, "Set-Cookie name"),
+        private_key=(None, str, "urlsafe base64 encrypted 32-byte key"),
+        is_secure=(
+            not pkconfig.channel_in("dev"),
+            pkconfig.parse_bool,
+            "Add secure attriute to Set-Cookie",
+        ),
+    )
+    sirepo.events.register(PKDict(end_api_call=_end_api_call))

@@ -136,8 +136,10 @@ class _State(sirepo.quest.Attr):
         super().__init__(**kwargs)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
-        sirepo.cookie.qcall_init(qcall)
-        self._set_log_user()
+        if not cfg.logged_in_user:
+            sirepo.cookie.qcall_init(qcall)
+            # TODO(robnagler) auth_db
+            self._set_log_user()
 
     def check_sim_type_role(self, sim_type):
         from sirepo import oauth
@@ -726,7 +728,8 @@ class _State(sirepo.quest.Attr):
 
 
 def init_apis(*args, **kwargs):
-    _init()
+    _cfg_init()
+
     global uri_router
     assert not cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
     uri_router = kwargs["uri_router"]
@@ -740,13 +743,13 @@ def init_apis(*args, **kwargs):
     ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
 
 
-def _init():
+def _cfg_init():
     global cfg
 
     def _init_full():
         global visible_methods, valid_methods, non_guest_methods
-        from sirepo import cookie
 
+        sirepo.cookie.init()
         sirepo.auth_db.init()
         p = pkinspect.this_module().__name__
         visible_methods = []
