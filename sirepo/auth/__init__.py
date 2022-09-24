@@ -22,6 +22,7 @@ import sirepo.auth_role
 import sirepo.cookie
 import sirepo.feature_config
 import sirepo.quest
+import sirepo.request
 import sirepo.session
 import sirepo.template
 import sirepo.uri
@@ -88,11 +89,12 @@ def quest_init(qcall):
     # should not cookie but route to auth_basic.
     if not cfg.logged_in_user:
         sirepo.cookie.quest_init(qcall)
-        # TODO(robnagler) auth_db
-        self._set_log_user()
     o = _State(qcall=qcall)
     qcall.attr_set("auth", o)
-    if sirepo.util.in_flask_request
+    if not cfg.logged_in_user:
+        # TODO(robnagler) auth_db
+        o._set_log_user()
+    sirepo.request.quest_init(qcall)
 
 
 class API(sirepo.quest.API):
@@ -672,19 +674,19 @@ class _State(sirepo.quest.Attr):
             return
         values.userName = u.user_name
         if hasattr(m, "avatar_uri"):
-            values.avatarUrl = m.avatar_uri(self, u, _AVATAR_SIZE)
+            values.avatarUrl = m.avatar_uri(self.qcall, u, _AVATAR_SIZE)
 
-    def _method_user_model(module, uid):
+    def _method_user_model(self, module, uid):
         if not hasattr(module, "UserModel"):
             return None
         return module.UserModel.search_by(uid=uid)
 
-    def _parse_display_name(value):
+    def _parse_display_name(self, value):
         res = value.strip()
         assert res, "invalid post data: displayName={}".format(value)
         return res
 
-    def _plan(data):
+    def _plan(self, data):
         r = data.roles
         if sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE in r:
             data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
@@ -696,7 +698,7 @@ class _State(sirepo.quest.Attr):
             data.paymentPlan = _PAYMENT_PLAN_BASIC
             data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM
 
-    def _set_log_user(self):
+    def _set_log_user(self, self):
         if not sirepo.util.in_flask_request():
             return
         a = sirepo.util.flask_app()
@@ -714,11 +716,11 @@ class _State(sirepo.quest.Attr):
             u = "-"
         a.sirepo_uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
 
-    def _validate_method(module, sim_type=None):
+    def _validate_method(self, module, sim_type=None):
         if module.AUTH_METHOD in valid_methods:
             return None
         pkdlog("invalid auth method={}".format(module.AUTH_METHOD))
-        login_fail_redirect(sim_type, module, "invalid-method", reload_js=True)
+        self.login_fail_redirect(sim_type, module, "invalid-method", reload_js=True)
 
 
 def init_apis(*args, **kwargs):
@@ -771,5 +773,8 @@ def _cfg_init():
         cfg.methods = frozenset((METHOD_GUEST,))
     else:
         # TODO: this does not work without changes to simulation_db
-        simulation_db.hook_auth_user = hack_logged_in_user
+        simulation_db.hook_auth_user = _hack_logged_in_user
         _init_full()
+
+
+def _hack_logged_in_user():

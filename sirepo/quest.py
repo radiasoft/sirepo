@@ -9,6 +9,7 @@ import dns.reversename
 import pykern.quest
 import sirepo.api_perm
 import sirepo.uri
+import sirepo.util
 
 
 _HTTP_DATA_ATTR = "http_data"
@@ -17,6 +18,19 @@ _PARENT_ATTR = "parent"
 
 _SIM_TYPE_ATTR = "sim_type"
 
+_hack_current = None
+
+
+def hack_current():
+    if sirepo.util.in_flask_request():
+        import flask
+
+        return flask.g["sirepo.quest"]
+    else:
+        global _hack_current:
+
+        return _hack_current
+
 
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
@@ -24,6 +38,12 @@ class API(pykern.quest.API):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attr_set("_bucket", _Bucket())
+        if sirepo.util.in_flask_request():
+            import flask
+
+            flask.g["sirepo.quest"] = self
+        else:
+            _hack_current = self
 
     # #TODO
     #     def handle_api_destroy(): called on the API
@@ -72,7 +92,12 @@ class API(pykern.quest.API):
 
     def destroy(self):
         # TODO what to do here?
-        pass
+        if sirepo.util.in_flask_request():
+            import flask
+
+            flask.g["sirepo.quest"] = self.bucket_uget(_PARENT_ATTR)
+        else:
+            _hack_current = self.bucket_uget(_PARENT_ATTR)
 
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)

@@ -261,6 +261,7 @@ def _call_api(parent, route, kwargs, data=None):
     try:
         if parent:
             qcall.parent_set(parent)
+        # POSIT: sirepo.quest does not copy this attr in parent_set
         qcall.attr_set("uri_route", route)
         if not parent:
             sirepo.auth.quest_init(qcall)
