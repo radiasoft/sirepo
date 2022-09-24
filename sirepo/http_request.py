@@ -72,7 +72,7 @@ def parse_post(qcall, kwargs):
         from sirepo import auth
 
         assert not isinstance(v, bool), "missing type in params/post={}".format(kwargs)
-        qcall.auth.check_sim_type_role(qcall, v)
+        qcall.auth.check_sim_type_role(v)
         qcall.sim_type_set(v)
         res.sim_data = sirepo.sim_data.get_class(v)
         return v

@@ -40,13 +40,13 @@ class _State(sirepo.quest.Attr):
         self.__incoming_serialized = ""
         self._from_cookie_header(qcall)
 
-    def get_value(key):
+    def get_value(self, key):
         return self.__values[key]
 
-    def has_key(key):
+    def has_key(self, key):
         return key in self.__values
 
-    def has_sentinel():
+    def has_sentinel(self):
         return _COOKIE_SENTINEL in self.__values
 
     def reset_state(self, error):

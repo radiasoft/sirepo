@@ -92,7 +92,6 @@ class API(pykern.quest.API):
         return uri_router.call_api(self, name, kwargs=kwargs, data=data)
 
     def destroy(self):
-        # TODO what to do here?
         if sirepo.util.in_flask_request():
             import flask
 
@@ -100,6 +99,12 @@ class API(pykern.quest.API):
             flask.g.sirepo_quest = self.bucket_uget(_PARENT_ATTR)
         else:
             _hack_current = self.bucket_uget(_PARENT_ATTR)
+        for v in reversed(self.values()):
+            if hasattr(v, "destroy"):
+                try:
+                    v.destroy()
+                except Exception:
+                    pkdlog("destroy failed attr={} stack={}", v, pkdexc())
 
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)

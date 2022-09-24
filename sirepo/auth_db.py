@@ -246,7 +246,7 @@ def init():
 
         @classmethod
         def _session(cls):
-            return sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
+            return sirepo.quest.hack_current().auth_db._orm_session
 
         @classmethod
         def _unchecked_model_from_tablename(cls, tablename):
@@ -424,18 +424,19 @@ def init_model(callback):
         UserDbBase.metadata.create_all(_engine)
 
 
+def quest_init(qcall):
+    init()
+    qcall.attr_set("auth_db", _Session())
+
+
 @contextlib.contextmanager
 def session():
-    init()
-    with sirepo.srcontext.create():
-        try:
-            sirepo.srcontext.set(
-                _SRCONTEXT_SESSION_KEY,
-                sqlalchemy.orm.Session(bind=_engine),
-            )
-            yield
-        finally:
-            sirepo.srcontext.pop(_SRCONTEXT_SESSION_KEY).rollback()
+    qcall = sirepo.quest.API()
+    try:
+        quest_init(qcall)
+        yield
+    finally:
+        qcall.destroy()
 
 
 @contextlib.contextmanager
@@ -444,6 +445,15 @@ def session_and_lock():
     # git.radiasoft.org/sirepo/issues/3516
     with session():
         yield
+
+
+class _Session(sirepo.quest.Attr):
+    def __init__(self):
+        super().__init__()
+        self._orm_session = sqlalchemy.orm.Session(bind=_engine)
+
+    def destroy(self):
+        self._orm_session.rollback()
 
 
 def _migrate_db_file(fn):

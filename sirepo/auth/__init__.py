@@ -85,14 +85,13 @@ cfg = None
 
 
 def quest_init(qcall):
+    o = _State(qcall=qcall)
+    qcall.attr_set("auth", o)
     sirepo.request.quest_init(qcall)
     if not cfg.logged_in_user:
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
         sirepo.cookie.quest_init(qcall)
-    o = _State(qcall=qcall)
-    qcall.attr_set("auth", o)
-    if not cfg.logged_in_user:
         # TODO(robnagler) auth_db
         o._set_log_user()
 
@@ -114,7 +113,7 @@ class API(sirepo.quest.API):
         return self.reply_static_jinja(
             "auth-state",
             "js",
-            PKDict(auth_state=_auth_state()),
+            PKDict(auth_state=self.auth._auth_state()),
         )
 
     @sirepo.quest.Spec("allow_visitor")
@@ -294,16 +293,16 @@ class _State(sirepo.quest.Attr):
             model (auth_db.UserDbBase): user to login (overrides uid)
             sim_type (str): app to redirect to
         """
-        _validate_method(module, sim_type=sim_type)
+        self._validate_method(module, sim_type=sim_type)
         guest_uid = None
         if model:
             uid = model.uid
             # if previously cookied as a guest, move the non-example simulations into uid below
             m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
             if m == METHOD_GUEST and module.AUTH_METHOD != METHOD_GUEST:
-                guest_uid = _get_user() if is_logged_in() else None
+                guest_uid = self._get_user() if self.is_logged_in() else None
         if uid:
-            _login_user(module, uid)
+            self._login_user(module, uid)
         if module.AUTH_METHOD in cfg.deprecated_methods:
             pkdlog("deprecated auth method={} uid={}".format(module.AUTH_METHOD, uid))
             if not uid:
@@ -311,20 +310,20 @@ class _State(sirepo.quest.Attr):
                 self.reset_state()
             # We are logged in with a deprecated method, and now the user
             # needs to login with an allowed method.
-            login_fail_redirect(sim_type, module, "deprecated", reload_js=not uid)
+            self.login_fail_redirect(sim_type, module, "deprecated", reload_js=not uid)
         if not uid:
             # No user in the cookie and method didn't provide one so
             # the user might be switching methods (e.g. github to email or guest to email).
             # Not allowed to go to guest from other methods, because there's
             # no authentication for guest.
             # Or, this is just a new user, and we'll create one.
-            uid = _get_user() if is_logged_in() else None
+            uid = self._get_user() if self.is_logged_in() else None
             m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
             if uid and module.AUTH_METHOD not in (m, METHOD_GUEST):
                 # switch this method to this uid (even for methods)
                 # except if the same method, then assuming logging in as different user.
                 # This handles the case where logging in as guest, creates a user every time
-                _login_user(module, uid)
+                self._login_user(module, uid)
             else:
                 uid = self.create_user(lambda u: self._login_user(module, u), module)
             if model:
@@ -374,7 +373,7 @@ class _State(sirepo.quest.Attr):
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
         raise sirepo.util.Response(
-            response=self.reply_ok(PKDict(authState=_auth_state())),
+            response=self.reply_ok(PKDict(authState=self._auth_state())),
         )
 
     def need_complete_registration(model):
@@ -589,11 +588,11 @@ class _State(sirepo.quest.Attr):
 
     def _auth_state(self):
         def _get_slack_uri():
-            return sirepo.feature_config.cfg().slack_uri + (_get_user() or "")
+            return sirepo.feature_config.cfg().slack_uri + (self._get_user() or "")
 
         from sirepo import simulation_db
 
-        s = cookie.unchecked_get_value(_COOKIE_STATE)
+        s = self.qcall.cookie.unchecked_get_value(_COOKIE_STATE)
         v = pkcollections.Dict(
             avatarUrl=None,
             displayName=None,
@@ -602,7 +601,7 @@ class _State(sirepo.quest.Attr):
             isLoggedIn=self.is_logged_in(s),
             isLoginExpired=False,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
-            method=cookie.unchecked_get_value(_COOKIE_METHOD),
+            method=self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD),
             needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
             roles=[],
             slackUri=_get_slack_uri(),
@@ -611,7 +610,7 @@ class _State(sirepo.quest.Attr):
         )
         if "sbatch" in v.jobRunModeMap:
             v.sbatchQueueMaxes = job.NERSC_QUEUE_MAX
-        u = cookie.unchecked_get_value(_COOKIE_USER)
+        u = self.qcall.cookie.unchecked_get_value(_COOKIE_USER)
         if v.isLoggedIn:
             if v.method == METHOD_GUEST:
                 # currently only method to expire login
@@ -627,8 +626,8 @@ class _State(sirepo.quest.Attr):
                 if r:
                     v.displayName = r.display_name
             v.roles = sirepo.auth_db.UserRole.get_roles(u)
-            _plan(v)
-            _method_auth_state(v, u)
+            self._plan(v)
+            self._method_auth_state(v, u)
         if pkconfig.channel_in_internal_test():
             # useful for testing/debugging
             v.uid = u
@@ -641,7 +640,7 @@ class _State(sirepo.quest.Attr):
             sirepo.auth_db.UserRole.add_roles(uid, r)
 
     def _get_user(self):
-        return self.cookie.unchecked_get_value(_COOKIE_USER)
+        return self.qcall.cookie.unchecked_get_value(_COOKIE_USER)
 
     def _login_user(self, module, uid):
         """Set up the cookie for logged in state
@@ -654,14 +653,14 @@ class _State(sirepo.quest.Attr):
             uid (str): which uid
 
         """
-        self.cookie.set_value(_COOKIE_USER, uid)
-        self.cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
+        self.qcall.cookie.set_value(_COOKIE_USER, uid)
+        self.qcall.cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
         s = _STATE_LOGGED_IN
         if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
             u = self.user_registration(uid)
             if not u.display_name:
                 s = _STATE_COMPLETE_REGISTRATION
-        self.cookie.set_value(_COOKIE_STATE, s)
+        self.qcall.cookie.set_value(_COOKIE_STATE, s)
         self._set_log_user()
 
     def _method_auth_state(self, values, uid):

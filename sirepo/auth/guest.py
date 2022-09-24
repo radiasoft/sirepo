@@ -37,7 +37,7 @@ class API(sirepo.quest.API):
         # if already logged in as guest, just redirect
         if self.auth.user_if_logged_in(AUTH_METHOD):
             self.auth.login_success_response(req.type)
-        self.auth.login(this_module, sim_type=req.type, qcall=self)
+        self.auth.login(this_module, sim_type=req.type)
         raise AssertionError("auth.login returned unexpectedly")
 
 
