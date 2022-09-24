@@ -45,10 +45,10 @@ class API(pykern.quest.API):
         assert uri[0] == "/"
         return self.sreq.http_server_uri + uri[1:]
 
-    def attr_set(self, name, obj, override_ok=False):
+    def attr_set(self, name, obj):
         """Assign an object to qcall"""
         assert isinstance(obj, Attr)
-        assert override_ok or name not in self
+        assert name not in self
         self[name] = obj
 
     def bucket_set(self, name, value):
@@ -70,6 +70,10 @@ class API(pykern.quest.API):
         """
         return uri_router.call_api(self.sreq, name, kwargs=kwargs, data=data)
 
+    def destroy(self):
+        # TODO what to do here?
+        pass
+
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)
 
@@ -86,10 +90,13 @@ class API(pykern.quest.API):
 
     def parent_set(self, qcall):
         assert isinstance(qcall, API)
-        # must be right after
+        # must be right after initialization
         assert not self._bucket
-        for k, v in self.items():
-            self[k] = v
+        assert len(self.keys()) == 1
+        for k, v in qcall.items():
+            if k not in ("uri_route", "_bucket"):
+                assert k not in self
+                self[k] = v
         self._bucket[_PARENT_ATTR] = qcall
 
     def parse_json(self):

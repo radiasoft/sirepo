@@ -71,11 +71,11 @@ def _parse_args(uid_or_email, roles):
     with sirepo.auth_db.session_and_lock():
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_email:
-            u = sirepo.auth.get_module(
+            u = qcall.get_module(
                 "email",
-            ).unchecked_user_by_user_name(uid_or_email)
+            ).unchecked_user_by_user_name(qcall, uid_or_email)
         else:
-            u = sirepo.auth.unchecked_get_user(uid_or_email)
+            u = qcall.auth.unchecked_get_user(uid_or_email)
         if not u:
             pykern.pkcli.command_error("uid_or_email={} not found", uid_or_email)
         if roles:

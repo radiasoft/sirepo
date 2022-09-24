@@ -172,7 +172,7 @@ def init():
         purge_non_premium_after_secs=(
             0,
             pkconfig.parse_seconds,
-            "how long to wait before purging non-premium users simulations",
+            "expiration period for purging non-premium users simulations",
         ),
         purge_non_premium_task_secs=(
             None,
@@ -519,8 +519,6 @@ class _ComputeJob(_Supervisor):
         f = None
         try:
             _too_old = sirepo.srtime.utc_now_as_int() - cfg.purge_non_premium_after_secs
-
-rjn: todo need to set the session
             with sirepo.auth_db.session():
                 for u, v in _get_uids_and_files():
                     with sirepo.auth.set_user_outside_of_http_request(u):

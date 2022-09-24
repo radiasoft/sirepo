@@ -207,7 +207,7 @@ def _event_end_api_call(qcall, kwargs):
         )
 
 
-def _event_github_authorized(kwargs):
+def _event_github_authorized(qcall, kwargs):
     create_user(github_handle=kwargs.user_name.lower())
     # User may not have been a user originally so need to create their dir.
     # If it exists (they were a user) it is a no-op.

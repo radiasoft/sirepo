@@ -14,13 +14,14 @@ import inspect
 import os
 import pkgutil
 import re
-import sirepo.quest
 import sirepo.api_auth
+import sirepo.auth
 import sirepo.cookie
 import sirepo.events
+import sirepo.feature_config
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
+import sirepo.quest
 import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
@@ -125,7 +126,6 @@ def init(app, simulation_db):
     _register_sim_api_modules()
     _register_sim_oauth_modules(feature_config.cfg().proprietary_oauth_sim_types)
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
-
     sirepo.http_request.init(
         simulation_db=simulation_db,
     )
@@ -205,7 +205,7 @@ def uri_for_api(api_name, params=None):
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
-    s =  "/"
+    s = "/"
     res = (s + r.base_uri).rstrip("/")
     for p in r.params:
         if p.name in params:
@@ -261,9 +261,9 @@ def _call_api(parent, route, kwargs, data=None):
     try:
         if parent:
             qcall.parent_set(parent)
-        qcall.attr_set("uri_route", route, override_ok=True)
+        qcall.attr_set("uri_route", route)
         if not parent:
-            sirepo.request.qcall_init(qcall)
+            sirepo.auth.quest_init(qcall)
         if data:
             qcall.http_data_set(data)
         p = None
@@ -282,7 +282,9 @@ def _call_api(parent, route, kwargs, data=None):
             if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
                 pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
             else:
-                pkdlog("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
+                pkdlog(
+                    "api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc()
+                )
             r = sirepo.http_reply.gen_exception(qcall, e)
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
@@ -351,7 +353,9 @@ def _init_uris(app, simulation_db, sim_types):
         elif "srunit" in v:
             srunit_uri = v
     assert _route_default, f"missing constant route: default /{_ROUTE_URI_DEFAULT}"
-    assert _not_found_route, f"missing constant route: not found /{_ROUTE_URI_NOT_FOUND}"
+    assert (
+        _not_found_route
+    ), f"missing constant route: not found /{_ROUTE_URI_NOT_FOUND}"
     _validate_root_redirect_uris(_uri_to_route, simulation_db)
     app.add_url_rule("/<path:path>", "_dispatch", _dispatch, methods=("GET", "POST"))
     app.add_url_rule("/", "_dispatch_empty", _dispatch_empty, methods=("GET", "POST"))
@@ -360,7 +364,7 @@ def _init_uris(app, simulation_db, sim_types):
 def _path_to_route(path):
     if path is None:
         return (None, _route_default, PKDict(path_info=None))
-    parts = re.sub(r"\+", " ", path).split("/")nn
+    parts = re.sub(r"\+", " ", path).split("/")
     route = None
     kwargs = None
     try:

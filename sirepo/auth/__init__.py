@@ -25,6 +25,7 @@ import sirepo.quest
 import sirepo.session
 import sirepo.template
 import sirepo.uri
+import sirepo.util
 
 
 #: what routeName to return in the event user is logged out in require_user
@@ -82,14 +83,16 @@ uri_router = None
 cfg = None
 
 
-def qcall_init(qcall):
+def quest_init(qcall):
+    # TODO(robnagler): process auth basic header, too. this
+    # should not cookie but route to auth_basic.
+    if not cfg.logged_in_user:
+        sirepo.cookie.quest_init(qcall)
+        # TODO(robnagler) auth_db
+        self._set_log_user()
     o = _State(qcall=qcall)
     qcall.attr_set("auth", o)
-
-    # TODO(robnagler): hack for the time being
-    from sirepo import simulation_db
-
-    simulation_db.auth_hack_logged_in_user = o._get_user() if o.is_logged_in() else None
+    if sirepo.util.in_flask_request
 
 
 class API(sirepo.quest.API):
@@ -98,7 +101,7 @@ class API(sirepo.quest.API):
         # Needs to be explicit, because we would need a special permission
         # for just this API.
         if not is_logged_in():
-            raise util.SRException(LOGIN_ROUTE_NAME, None)
+            raise sirepo.util.SRException(LOGIN_ROUTE_NAME, None)
         self.auth.complete_registration(
             _parse_display_name(self.parse_json().get("displayName")),
         )
@@ -132,15 +135,6 @@ class API(sirepo.quest.API):
 
 
 class _State(sirepo.quest.Attr):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # TODO(robnagler): process auth basic header, too. this
-        # should not cookie but route to auth_basic.
-        if not cfg.logged_in_user:
-            sirepo.cookie.qcall_init(qcall)
-            # TODO(robnagler) auth_db
-            self._set_log_user()
-
     def check_sim_type_role(self, sim_type):
         from sirepo import oauth
         from sirepo import auth_role_moderation
@@ -167,7 +161,7 @@ class _State(sirepo.quest.Attr):
         Guests will have no name.
         """
         u = self._get_user()
-        with util.THREAD_LOCK:
+        with sirepo.util.THREAD_LOCK:
             r = self.user_registration(u)
             if self.cookie.unchecked_get_value(_COOKIE_METHOD) == METHOD_GUEST:
                 assert (
@@ -262,7 +256,7 @@ class _State(sirepo.quest.Attr):
             return cfg.logged_in_user
         u = self._get_user()
         if not self.is_logged_in():
-            raise util.SRException(
+            raise sirepo.util.SRException(
                 LOGIN_ROUTE_NAME,
                 None,
                 "user not logged in uid={}",
@@ -347,7 +341,7 @@ class _State(sirepo.quest.Attr):
         assert not module.AUTH_METHOD_VISIBLE
 
     def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False):
-        raise util.SRException(
+        raise sirepo.util.SRException(
             "loginFail",
             PKDict(
                 method=module.AUTH_METHOD,
@@ -416,7 +410,7 @@ class _State(sirepo.quest.Attr):
         i = self.require_user()
         u = self.user_name(i)
         if not pyisemail.is_email(u):
-            util.raise_forbidden(f"uid={i} username={u} is not an email")
+            sirepo.util.raise_forbidden(f"uid={i} username={u} is not an email")
 
     def require_user(self):
         """Asserts whether user is logged in
@@ -468,7 +462,7 @@ class _State(sirepo.quest.Attr):
             p = PKDict(reload_js=True)
             e = "invalid cookie state={} uid={}".format(s, u)
         pkdc("SRException uid={} route={} params={} method={} error={}", u, r, p, m, e)
-        raise util.SRException(r, p, *(("user not logged in: {}", e) if e else ()))
+        raise sirepo.util.SRException(r, p, *(("user not logged in: {}", e) if e else ()))
 
     def reset_state(self):
         self.qcall.cookie.unchecked_remove(_COOKIE_USER)
@@ -499,7 +493,7 @@ class _State(sirepo.quest.Attr):
             )
 
         assert (
-            not util.in_flask_request()
+            not sirepo.util.in_flask_request()
         ), "Only call from outside a flask request context"
         assert sirepo.auth_db.UserRegistration.search_by(
             uid=uid
@@ -512,7 +506,7 @@ class _State(sirepo.quest.Attr):
             yield
 
     def unchecked_get_user(self, uid):
-        with util.THREAD_LOCK:
+        with sirepo.util.THREAD_LOCK:
             u = sirepo.auth_db.UserRegistration.search_by(uid=uid)
             if u:
                 return u.uid
@@ -526,7 +520,7 @@ class _State(sirepo.quest.Attr):
         Args:
             uid (str): user that does not exist
         """
-        with util.THREAD_LOCK:
+        with sirepo.util.THREAD_LOCK:
             for m in _METHOD_MODULES.values():
                 u = _method_user_model(m, uid)
                 if u:
@@ -534,8 +528,8 @@ class _State(sirepo.quest.Attr):
             u = sirepo.auth_db.UserRegistration.search_by(uid=uid)
             if u:
                 u.delete()
-        reset_state()
-        raise util.Redirect(
+        self.reset_state()
+        raise sirepo.util.Redirect(
             sirepo.uri.app_root(),
             "simulation_db dir={} not found, deleted uid={}",
             user_dir,
@@ -556,21 +550,21 @@ class _State(sirepo.quest.Attr):
         m = qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
         if m != method:
             return None
-        return _get_user()
+        return self._get_user()
 
-    def user_name(uid=None):
+    def user_name(self, uid=None):
         if not uid:
-            uid = logged_in_user()
-        m = cookie.unchecked_get_value(_COOKIE_METHOD)
+            uid = self.logged_in_user()
+        m = self.cookie.unchecked_get_value(_COOKIE_METHOD)
         u = getattr(_METHOD_MODULES[m], "UserModel", None)
         if u:
-            with util.THREAD_LOCK:
+            with sirepo.util.THREAD_LOCK:
                 return u.search_by(uid=uid).user_name
         elif m == METHOD_GUEST:
             return "guest-" + uid
         raise AssertionError(f"user_name not found for uid={uid} with method={m}")
 
-    def user_registration(uid, display_name=None):
+    def user_registration(self, uid, display_name=None):
         """Get UserRegistration record or create one
 
         Args:
@@ -590,7 +584,7 @@ class _State(sirepo.quest.Attr):
         return res
 
     def _auth_state(self):
-        def get_slack_uri():
+        def _get_slack_uri():
             return sirepo.feature_config.cfg().slack_uri + (_get_user() or "")
 
         from sirepo import simulation_db
@@ -607,7 +601,7 @@ class _State(sirepo.quest.Attr):
             method=cookie.unchecked_get_value(_COOKIE_METHOD),
             needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
             roles=[],
-            slackUri=get_slack_uri(),
+            slackUri=_get_slack_uri(),
             userName=None,
             visibleMethods=visible_methods,
         )
@@ -619,7 +613,7 @@ class _State(sirepo.quest.Attr):
                 # currently only method to expire login
                 v.displayName = _GUEST_USER_DISPLAY_NAME
                 v.isGuestUser = True
-                v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
+                v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired(self.qcall)
                 v.needCompleteRegistration = False
                 v.visibleMethods = non_guest_methods
             else:
@@ -635,15 +629,15 @@ class _State(sirepo.quest.Attr):
         pkdc("state={}", v)
         return v
 
-    def _create_roles_for_new_user(uid, method):
+    def _create_roles_for_new_user(self, uid, method):
         r = sirepo.auth_role.for_new_user(method == METHOD_GUEST)
         if r:
             sirepo.auth_db.UserRole.add_roles(uid, r)
 
-    def _get_user():
-        return cookie.unchecked_get_value(_COOKIE_USER)
+    def _get_user(self):
+        return self.cookie.unchecked_get_value(_COOKIE_USER)
 
-    def _login_user(module, uid):
+    def _login_user(self, module, uid):
         """Set up the cookie for logged in state
 
         If a deprecated or non-visible method, just login. Otherwise, check the db
@@ -654,17 +648,17 @@ class _State(sirepo.quest.Attr):
             uid (str): which uid
 
         """
-        cookie.set_value(_COOKIE_USER, uid)
-        cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
+        self.cookie.set_value(_COOKIE_USER, uid)
+        self.cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
         s = _STATE_LOGGED_IN
         if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
-            u = user_registration(uid)
+            u = self.user_registration(uid)
             if not u.display_name:
                 s = _STATE_COMPLETE_REGISTRATION
-        cookie.set_value(_COOKIE_STATE, s)
+        self.cookie.set_value(_COOKIE_STATE, s)
         self._set_log_user()
 
-    def _method_auth_state(values, uid):
+    def _method_auth_state(self, values, uid):
         if values.method not in _METHOD_MODULES:
             pkdlog(
                 'auth state method: "{}" not present in supported methods: {}',
@@ -673,12 +667,12 @@ class _State(sirepo.quest.Attr):
             )
             return
         m = _METHOD_MODULES[values.method]
-        u = _method_user_model(m, uid)
+        u = self._method_user_model(m, uid)
         if not u:
             return
         values.userName = u.user_name
         if hasattr(m, "avatar_uri"):
-            values.avatarUrl = m.avatar_uri(u, _AVATAR_SIZE)
+            values.avatarUrl = m.avatar_uri(self, u, _AVATAR_SIZE)
 
     def _method_user_model(module, uid):
         if not hasattr(module, "UserModel"):
@@ -764,6 +758,9 @@ def _cfg_init():
 
     if cfg:
         return
+
+    from sirepo import simulation_db
+
     cfg = pkconfig.init(
         methods=((METHOD_GUEST,), set, "for logging in"),
         deprecated_methods=(set(), set, "for migrating to methods"),
@@ -773,4 +770,6 @@ def _cfg_init():
         cfg.deprecated_methods = frozenset()
         cfg.methods = frozenset((METHOD_GUEST,))
     else:
+        # TODO: this does not work without changes to simulation_db
+        simulation_db.hook_auth_user = hack_logged_in_user
         _init_full()

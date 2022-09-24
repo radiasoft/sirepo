@@ -173,14 +173,14 @@ class API(sirepo.quest.API):
         return d.get("displayName")
 
 
-def avatar_uri(model, size):
+def avatar_uri(qcall, model, size):
     return "https://www.gravatar.com/avatar/{}?d=mp&s={}".format(
         hashlib.md5(pkcompat.to_bytes(model.user_name)).hexdigest(),
         size,
     )
 
 
-def unchecked_user_by_user_name(user_name):
+def unchecked_user_by_user_name(qcall, user_name):
     with sirepo.util.THREAD_LOCK:
         u = AuthEmailUser.search_by(user_name=user_name)
         if u:

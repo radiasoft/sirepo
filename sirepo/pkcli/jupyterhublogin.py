@@ -34,7 +34,7 @@ def create_user(email, display_name):
     """
 
     def maybe_create_sirepo_user(module, email, display_name):
-        u = module.unchecked_user_by_user_name(email)
+        u = module.unchecked_user_by_user_name(qcall, email)
         if u:
             # Fully registered email user
             assert sirepo.auth_db.UserRegistration.search_by(

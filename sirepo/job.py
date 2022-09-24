@@ -207,6 +207,7 @@ def agent_env(env=None, uid=None):
             SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
         )
     )
+    env.SIREPO_SIMULATION_DB_LOGGED_IN_USER = env.SIREPO_AUTH_LOGGED_IN_USER
     for k in env.keys():
         assert not pykern.pkdebug.SECRETS_RE.search(
             k

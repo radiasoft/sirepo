@@ -67,7 +67,7 @@ class API(sirepo.quest.API):
         return self.api_authGithubAuthorized()
 
 
-def avatar_uri(model, size):
+def avatar_uri(qcall, model, size):
     return "https://avatars.githubusercontent.com/{}?size={}".format(
         model.user_name,
         size,

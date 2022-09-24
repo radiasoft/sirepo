@@ -87,9 +87,8 @@ cfg = None
 #: version for development
 _dev_version = None
 
-
-#: TODO(robnagler) need to remove once stable with some of the code
-auth_hack_logged_in_user = None
+#: overridden by sirepo.auth
+hook_auth_user = lambda: cfg.logged_in_user
 
 
 class CopyRedirect(Exception):
@@ -346,7 +345,7 @@ def logged_in_user_path():
     Returns:
         py.path: user is valid and so is directory
     """
-    return user_path(auth_hack_logged_in_user, check=True)
+    return user_path(hook_auth_user(), check=True)
 
 
 def move_user_simulations(from_uid, to_uid):
@@ -900,6 +899,7 @@ def _init():
         nfs_sleep=(0.5, float, "Seconds sleep per hack_nfs_write_status poll"),
         sbatch_display=(None, str, "how to display sbatch cluster to user"),
         tmp_dir=(None, pkio.py_path, "Used by utilities (not regular config)"),
+        logged_in_user=(None, str, "Used in agents"),
     )
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(

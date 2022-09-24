@@ -29,7 +29,7 @@ _COOKIE_SENTINEL_VALUE = "z"
 _SERIALIZER_SEP = " "
 
 
-def qcall_init(qcall):
+def quest_init(qcall):
     qcall.attr_set("cookie", _State(qcall))
 
 
