@@ -774,6 +774,7 @@ def user_path(uid, check=False):
     Return:
         py.path: root user's directory
     """
+    assert uid
     d = user_path_root().join(uid)
     if check and not d.check():
         raise UserDirNotFound(d, uid)

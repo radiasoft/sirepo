@@ -21,7 +21,7 @@ _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 def quest_init(qcall):
     import flask
 
-    sreq = Base(
+    sreq = _Request(
         http_authorization=flask.request.authorization,
         http_headers=flask.request.headers,
         http_method=flask.request.method,
@@ -33,11 +33,11 @@ def quest_init(qcall):
     qcall.attr_set("sreq", sreq)
 
 
-class Base(sirepo.quest.Attr):
+class _Request(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
     def body_as_bytes(self):
-        return self._internal_req.get_data(cache=False)
+        return self.internal_req.get_data(cache=False)
 
     def content_type_encoding(self):
         return self.__content_type().get("charset")

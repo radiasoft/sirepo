@@ -85,9 +85,11 @@ cfg = None
 
 
 def quest_init(qcall):
-    o = _State(qcall=qcall)
+    o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
+    sirepo.auth_db.quest_init(qcall)
     sirepo.request.quest_init(qcall)
+    pkdp(cfg.logged_in_user)
     if not cfg.logged_in_user:
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
@@ -130,12 +132,12 @@ class API(sirepo.quest.API):
                 pass
         if is_logged_in():
             events.emit("auth_logout", PKDict(uid=self.auth._get_user()))
-            self.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
+            self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
             self._set_log_user()
         return self.reply_redirect_for_app_root(req and req.type)
 
 
-class _State(sirepo.quest.Attr):
+class _Auth(sirepo.quest.Attr):
     def check_sim_type_role(self, sim_type):
         from sirepo import oauth
         from sirepo import auth_role_moderation
@@ -164,7 +166,7 @@ class _State(sirepo.quest.Attr):
         u = self._get_user()
         with sirepo.util.THREAD_LOCK:
             r = self.user_registration(u)
-            if self.cookie.unchecked_get_value(_COOKIE_METHOD) == METHOD_GUEST:
+            if self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD) == METHOD_GUEST:
                 assert (
                     name is None
                 ), "Cookie method is {} and name is {}. Expected name to be None".format(
@@ -172,7 +174,7 @@ class _State(sirepo.quest.Attr):
                 )
             r.display_name = name
             r.save()
-        self.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
+        self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
     def cookie_cleaner(self, values):
         """Migrate from old cookie values
@@ -338,7 +340,7 @@ class _State(sirepo.quest.Attr):
                 from sirepo import simulation_db
 
                 simulation_db.move_user_simulations(guest_uid, uid)
-            self.login_success_response(self, sim_type, want_redirect)
+            self.login_success_response(sim_type, want_redirect)
         assert not module.AUTH_METHOD_VISIBLE
 
     def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False):
@@ -373,7 +375,7 @@ class _State(sirepo.quest.Attr):
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
         raise sirepo.util.Response(
-            response=self.reply_ok(PKDict(authState=self._auth_state())),
+            response=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
         )
 
     def need_complete_registration(model):
@@ -558,7 +560,7 @@ class _State(sirepo.quest.Attr):
     def user_name(self, uid=None):
         if not uid:
             uid = self.logged_in_user()
-        m = self.cookie.unchecked_get_value(_COOKIE_METHOD)
+        m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
         u = getattr(_METHOD_MODULES[m], "UserModel", None)
         if u:
             with sirepo.util.THREAD_LOCK:
@@ -764,8 +766,6 @@ def _cfg_init():
     if cfg:
         return
 
-    from sirepo import simulation_db
-
     cfg = pkconfig.init(
         methods=((METHOD_GUEST,), set, "for logging in"),
         deprecated_methods=(set(), set, "for migrating to methods"),
@@ -775,10 +775,12 @@ def _cfg_init():
         cfg.deprecated_methods = frozenset()
         cfg.methods = frozenset((METHOD_GUEST,))
     else:
+        from sirepo import simulation_db
+
         # TODO: this does not work without changes to simulation_db
         simulation_db.hook_auth_user = _hack_logged_in_user
         _init_full()
 
 
 def _hack_logged_in_user():
-    sirepo.quest.hack_current().auth.logged_in_user()
+    return sirepo.quest.hack_current().auth.logged_in_user()

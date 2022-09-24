@@ -30,10 +30,10 @@ _SERIALIZER_SEP = " "
 
 
 def quest_init(qcall):
-    qcall.attr_set("cookie", _State(qcall))
+    qcall.attr_set("cookie", _Cookie(qcall))
 
 
-class _State(sirepo.quest.Attr):
+class _Cookie(sirepo.quest.Attr):
     def __init__(self, qcall):
         super().__init__()
         self.__crypto = None

@@ -14,16 +14,14 @@ import sqlalchemy.sql.expression
 
 # limit imports here
 import sirepo.auth_role
-import sirepo.srcontext
 import sirepo.srdb
 import sirepo.srtime
 import sirepo.util
+import sirepo.quest
 
 
 #: sqlite file located in sirepo_db_dir
 _SQLITE3_BASENAME = "auth.db"
-
-_SRCONTEXT_SESSION_KEY = "auth_db_session"
 
 #: SQLAlchemy database engine
 _engine = None
@@ -426,7 +424,7 @@ def init_model(callback):
 
 def quest_init(qcall):
     init()
-    qcall.attr_set("auth_db", _Session())
+    qcall.attr_set("auth_db", _AuthDb())
 
 
 @contextlib.contextmanager
@@ -447,7 +445,7 @@ def session_and_lock():
         yield
 
 
-class _Session(sirepo.quest.Attr):
+class _AuthDb(sirepo.quest.Attr):
     def __init__(self):
         super().__init__()
         self._orm_session = sqlalchemy.orm.Session(bind=_engine)

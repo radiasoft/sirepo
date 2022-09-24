@@ -40,10 +40,13 @@ class API(pykern.quest.API):
         super().__init__(*args, **kwargs)
         self.attr_set("_bucket", _Bucket())
         if sirepo.util.in_flask_request():
+            pkdp("in flask")
             import flask
 
             flask.g.sirepo_quest = self
         else:
+            global _hack_current
+
             _hack_current = self
 
     # #TODO
@@ -98,27 +101,26 @@ class API(pykern.quest.API):
             flask.g.pop("sirepo_quest")
             flask.g.sirepo_quest = self.bucket_uget(_PARENT_ATTR)
         else:
+            global _hack_current
+
             _hack_current = self.bucket_uget(_PARENT_ATTR)
-        for v in reversed(self.values()):
+        for k, v in reversed(list(self.items())):
             if hasattr(v, "destroy"):
                 try:
                     v.destroy()
                 except Exception:
                     pkdlog("destroy failed attr={} stack={}", v, pkdexc())
+            self.pkdel(k)
 
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)
-
-    def http_data_uget(self):
-        """Unchecked get for http_request.parse_post"""
-        return self.bucket_uget(HTTP_DATA_ATTR)
 
     def http_data_set(self, data):
         self.bucket_set(_HTTP_DATA_ATTR, data)
 
     def http_data_uget(self):
         """Unchecked get for http_request.parse_post"""
-        return self.bucket_uget(HTTP_DATA_ATTR)
+        return self.bucket_uget(_HTTP_DATA_ATTR)
 
     def parent_set(self, qcall):
         pkdp(qcall)
