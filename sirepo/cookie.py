@@ -95,7 +95,7 @@ class _State(sirepo.quest.Attr):
         return self.__values.pkdel(key)
 
     def _crypto(self):
-        if not self._crypto_alg:
+        if "_crypto_alg" not in self:
             if cfg.private_key is None:
                 assert pkconfig.channel_in(
                     "dev"
@@ -132,7 +132,7 @@ class _State(sirepo.quest.Attr):
         )
 
     def _from_cookie_header(self, qcall):
-        header = qcall.sreq.http_header("Cookie")
+        header = qcall.sreq.header_uget("Cookie")
         self.__values = PKDict()
         if not header:
             return

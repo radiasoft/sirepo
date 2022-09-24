@@ -85,16 +85,16 @@ cfg = None
 
 
 def quest_init(qcall):
-    # TODO(robnagler): process auth basic header, too. this
-    # should not cookie but route to auth_basic.
+    sirepo.request.quest_init(qcall)
     if not cfg.logged_in_user:
+        # TODO(robnagler): process auth basic header, too. this
+        # should not cookie but route to auth_basic.
         sirepo.cookie.quest_init(qcall)
     o = _State(qcall=qcall)
     qcall.attr_set("auth", o)
     if not cfg.logged_in_user:
         # TODO(robnagler) auth_db
         o._set_log_user()
-    sirepo.request.quest_init(qcall)
 
 
 class API(sirepo.quest.API):
@@ -464,7 +464,9 @@ class _State(sirepo.quest.Attr):
             p = PKDict(reload_js=True)
             e = "invalid cookie state={} uid={}".format(s, u)
         pkdc("SRException uid={} route={} params={} method={} error={}", u, r, p, m, e)
-        raise sirepo.util.SRException(r, p, *(("user not logged in: {}", e) if e else ()))
+        raise sirepo.util.SRException(
+            r, p, *(("user not logged in: {}", e) if e else ())
+        )
 
     def reset_state(self):
         self.qcall.cookie.unchecked_remove(_COOKIE_USER)
@@ -615,7 +617,9 @@ class _State(sirepo.quest.Attr):
                 # currently only method to expire login
                 v.displayName = _GUEST_USER_DISPLAY_NAME
                 v.isGuestUser = True
-                v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired(self.qcall)
+                v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired(
+                    self.qcall
+                )
                 v.needCompleteRegistration = False
                 v.visibleMethods = non_guest_methods
             else:
@@ -698,7 +702,7 @@ class _State(sirepo.quest.Attr):
             data.paymentPlan = _PAYMENT_PLAN_BASIC
             data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM
 
-    def _set_log_user(self, self):
+    def _set_log_user(self):
         if not sirepo.util.in_flask_request():
             return
         a = sirepo.util.flask_app()
@@ -778,3 +782,4 @@ def _cfg_init():
 
 
 def _hack_logged_in_user():
+    sirepo.quest.hack_current().auth.logged_in_user()

@@ -4,6 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import dns.resolver
 import dns.reversename
 import pykern.quest
@@ -25,9 +26,9 @@ def hack_current():
     if sirepo.util.in_flask_request():
         import flask
 
-        return flask.g["sirepo.quest"]
+        return flask.g.get("sirepo_quest", None)
     else:
-        global _hack_current:
+        global _hack_current
 
         return _hack_current
 
@@ -41,7 +42,7 @@ class API(pykern.quest.API):
         if sirepo.util.in_flask_request():
             import flask
 
-            flask.g["sirepo.quest"] = self
+            flask.g.sirepo_quest = self
         else:
             _hack_current = self
 
@@ -88,14 +89,15 @@ class API(pykern.quest.API):
         Returns:
             flask.Response: result
         """
-        return uri_router.call_api(self.sreq, name, kwargs=kwargs, data=data)
+        return uri_router.call_api(self, name, kwargs=kwargs, data=data)
 
     def destroy(self):
         # TODO what to do here?
         if sirepo.util.in_flask_request():
             import flask
 
-            flask.g["sirepo.quest"] = self.bucket_uget(_PARENT_ATTR)
+            flask.g.pop("sirepo_quest")
+            flask.g.sirepo_quest = self.bucket_uget(_PARENT_ATTR)
         else:
             _hack_current = self.bucket_uget(_PARENT_ATTR)
 
@@ -114,6 +116,8 @@ class API(pykern.quest.API):
         return self.bucket_uget(HTTP_DATA_ATTR)
 
     def parent_set(self, qcall):
+        pkdp(qcall)
+        pkdp(type(qcall))
         assert isinstance(qcall, API)
         # must be right after initialization
         assert not self._bucket

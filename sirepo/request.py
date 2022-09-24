@@ -49,7 +49,7 @@ class Base(sirepo.quest.Attr):
         return self.http_headers.get(key)
 
     def is_spider(self):
-        a = self.http_header("User-Agent")
+        a = self.header_uget("User-Agent")
         if not a:
             # assume it's a spider if there's no header
             return True
@@ -73,7 +73,7 @@ class Base(sirepo.quest.Attr):
     def __content_type(self):
         if "_content_type" not in self:
             self._content_type = self._parse_header(
-                self.http_header("Content-Type") or ""
+                self.header_uget("Content-Type") or ""
             )
         return self._content_type
 
