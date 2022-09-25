@@ -5,10 +5,12 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+import contextlib
 import dns.resolver
 import dns.reversename
-import pykern.quest
 import sirepo.api_perm
+import sirepo.flask
+import sirepo.modules
 import sirepo.uri
 import sirepo.util
 
@@ -23,14 +25,23 @@ _hack_current = None
 
 
 def hack_current():
-    if sirepo.util.in_flask_request():
-        import flask
-
-        return flask.g.get("sirepo_quest", None)
+    if sirepo.flask.in_request():
+        return sirepo.flask.g().get("sirepo_quest", None)
     else:
         global _hack_current
 
         return _hack_current
+
+
+@contextlib.contextmanager
+def start():
+    auth = sirepo.modules.import_and_init("sirepo.auth")
+    qcall = API()
+    try:
+        auth.quest_init(qcall)
+        yield qcall
+    finally:
+        qcall.destroy()
 
 
 class API(pykern.quest.API):
@@ -39,11 +50,8 @@ class API(pykern.quest.API):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attr_set("_bucket", _Bucket())
-        if sirepo.util.in_flask_request():
-            pkdp("in flask")
-            import flask
-
-            flask.g.sirepo_quest = self
+        if sirepo.flask.in_request():
+            sirepo.flask.g().sirepo_quest = self
         else:
             global _hack_current
 
@@ -95,11 +103,9 @@ class API(pykern.quest.API):
         return uri_router.call_api(self, name, kwargs=kwargs, data=data)
 
     def destroy(self):
-        if sirepo.util.in_flask_request():
-            import flask
-
-            flask.g.pop("sirepo_quest")
-            flask.g.sirepo_quest = self.bucket_uget(_PARENT_ATTR)
+        if sirepo.flask.in_request():
+            sirepo.flask.g().pop("sirepo_quest")
+            sirepo.flask.g().sirepo_quest = self.bucket_uget(_PARENT_ATTR)
         else:
             global _hack_current
 
@@ -163,9 +169,9 @@ class API(pykern.quest.API):
         )
 
     def reply_file(self, path, content_type=None):
-        import flask
-
-        return flask.send_file(str(path), mimetype=content_type, conditional=True)
+        return sirepo.flask.send_file(
+            str(path), mimetype=content_type, conditional=True
+        )
 
     def reply_html(self, path):
         return http_reply.render_html(path)

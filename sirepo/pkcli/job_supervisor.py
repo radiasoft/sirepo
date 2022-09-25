@@ -18,6 +18,7 @@ import sirepo.feature_config
 import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
+import sirepo.modules
 import sirepo.react_proxy
 import sirepo.sim_db_file
 import sirepo.srdb

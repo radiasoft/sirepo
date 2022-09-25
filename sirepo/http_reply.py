@@ -194,7 +194,7 @@ def gen_response(*args, **kwargs):
     if "content_type" in kwargs:
         kwargs["mimetype"] = kwargs["content_type"]
         del kwargs["content_type"]
-    c = sirepo.util.flask_app().response_class
+    c = sirepo.flask.app().response_class
     if args and isinstance(args[0], c):
         assert len(args) == 1 and not kwargs
         return args[0]
@@ -348,7 +348,7 @@ def _gen_exception_reply_Redirect(qcall, args):
 def _gen_exception_reply_Response(qcall, args):
     r = args.response
     assert isinstance(
-        r, sirepo.util.flask_app().response_class
+        r, sirepo.flask.app().response_class
     ), "invalid class={} response={}".format(type(r), r)
     return r
 

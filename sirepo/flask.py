@@ -9,11 +9,15 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 
 _log_not_flask = _log_not_request = 0
 
-_in_app = None
+_app = None
 
 
 def app():
     return _app
+
+
+def g():
+    return flask.g
 
 
 def in_request():
@@ -37,6 +41,10 @@ def in_request():
                 pkdlog("flask.request is False")
         return False
     return True
+
+
+def send_file(*args, **kwargs):
+    return flask.send_file(*args, **kwargs)
 
 
 def set_log_user(user_op):

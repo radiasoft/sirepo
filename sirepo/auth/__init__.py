@@ -98,12 +98,6 @@ def quest_init(qcall):
         sirepo.session.quest_init(qcall)
 
 
-def quest_start(uid=None):
-    if not _cfg:
-        sirepo.modules.import_and_init("sirepo.auth")
-    finish this
-    assert 0
-
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel", display_name="UserDisplayName")
     def api_authCompleteRegistration(self):
@@ -154,8 +148,6 @@ def init_module():
     def _init_full():
         global visible_methods, valid_methods, non_guest_methods
 
-        sirepo.cookie.init()
-        sirepo.auth_db.init()
         p = pkinspect.this_module().__name__
         visible_methods = []
         valid_methods = _cfg.methods.union(_cfg.deprecated_methods)
@@ -348,7 +340,7 @@ class _Auth(sirepo.quest.Attr):
 
     def login(
         self,
-        module,
+        method=None,
         uid=None,
         model=None,
         sim_type=None,
@@ -361,11 +353,14 @@ class _Auth(sirepo.quest.Attr):
         Raises an exception if successful, except in the case of methods
 
         Args:
-            module (module): method module
+            method (module): method module
             uid (str): user to login
             model (auth_db.UserDbBase): user to login (overrides uid)
             sim_type (str): app to redirect to
         """
+        if module is None:
+            assert is_mock, "only used by api_srUnit"
+            module = _METHOD_MODULES[METHOD_GUEST]
         self._validate_method(module, sim_type=sim_type)
         guest_uid = None
         if model:

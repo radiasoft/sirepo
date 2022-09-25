@@ -11,9 +11,9 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
 import os
 import shutil
-import sirepo.auth
 import sirepo.auth_db
 import sirepo.job
+import sirepo.quest
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
@@ -30,7 +30,7 @@ def do_all():
         not _prevent_db_upgrade_file().exists()
     ), f"prevent_db_upgrade_file={_prevent_db_upgrade_file()} found"
 
-    with sirepo.auth.quest_start() as qcall:
+    with sirepo.quest.start() as qcall:
         a = sirepo.auth_db.DbUpgrade.search_all_for_column("name")
         f = pkinspect.module_functions("_2")
         for n in sorted(set(f.keys()) - set(a)):

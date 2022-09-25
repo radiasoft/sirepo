@@ -20,8 +20,8 @@ import json
 import os.path
 import re
 import shutil
-import sirepo.auth
 import sirepo.auth_db
+import sirepo.quest
 
 
 _MILLISECONDS_PER_MONTH = 30 * 24 * 60 * 60 * 1000
@@ -36,14 +36,14 @@ def audit_proprietary_lib_files(*uid):
     Args:
         *uid: UID(s) of the user(s) to audit. If None, all users will be audited.
     """
-    with sirepo.auth.quest_start() as qcall:
+    with sirepo.quest.start() as qcall:
         for u in uid or sirepo.auth_db.all_uids():
             sirepo.auth_db.audit_proprietary_lib_files(u)
 
 
 def create_examples():
     """Adds missing app examples to all users"""
-    with sirepo.auth.quest_start() as qcall:
+    with sirepo.quest.start() as qcall:
         examples = _get_examples_by_type(qcall)
         for t, s in _iterate_sims_by_users(qcall, examples.keys()):
             for e in examples[t]:
@@ -52,7 +52,7 @@ def create_examples():
 
 
 def reset_examples():
-    with sirepo.auth.quest_start() as qcall:
+    with sirepo.quest.start() as qcall:
         e = _get_examples_by_type(qcall)
         for t, s in _iterate_sims_by_users(qcall, e.keys()):
             o = _build_ops(list(s[t].values()), t, e)
@@ -76,7 +76,7 @@ def delete_user(uid):
     """
     import sirepo.template
 
-    with sirepo.auth.quest_start() as qcall:
+    with sirepo.quest.start() as qcall:
         if qcall.auth.unchecked_get_user(uid) is None:
             return
         qcall.auth.logged_in_user_set(uid)

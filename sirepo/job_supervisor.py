@@ -18,10 +18,10 @@ import copy
 import inspect
 import pykern.pkio
 import re
-import sirepo.auth
 import sirepo.auth_db
 import sirepo.const
 import sirepo.http_reply
+import sirepo.quest
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
@@ -131,12 +131,13 @@ class SlotQueue(sirepo.tornado.Queue):
         return SlotProxy(_op=op, _q=self)
 
 
-def init_module():
+def init_module(**imports):
     global _cfg, _DB_DIR, _NEXT_REQUEST_SECONDS
 
     if _cfg:
         return
-    sirepo.modules.init_for_this_module()
+    # import sirepo.job_driver
+    sirepo.util.setattr_imports(imports)
     _cfg = pkconfig.init(
         job_cache_secs=(300, int, "when to re-read job state from disk"),
         max_secs=dict(
@@ -333,7 +334,7 @@ class _Supervisor(PKDict):
                 return m - db.computeJobQueued
 
             r = []
-            with sirepo.auth.quest_start():
+            with sirepo.quest.start() as qcall:
                 for i in filter(_filter_jobs, _ComputeJob.instances.values()):
                     d = PKDict(
                         simulationType=i.db.simulationType,
@@ -514,7 +515,7 @@ class _ComputeJob(_Supervisor):
         f = None
         try:
             _too_old = sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
-            with sirepo.auth.quest_start() as qcall:
+            with sirepo.quest.start() as qcall:
                 for u, v in _get_uids_and_files():
                     qcall.set_user_outside_of_http_request(u):
                         for f in v:

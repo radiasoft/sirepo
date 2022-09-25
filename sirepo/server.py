@@ -15,6 +15,7 @@ import re
 import sirepo.quest
 import sirepo.db_upgrade
 import sirepo.feature_config
+import sirepo.flask
 import sirepo.resource
 import sirepo.sim_data
 import sirepo.srschema
@@ -558,16 +559,12 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("allow_visitor")
     def api_srUnit(self):
-        import contextlib
-        from sirepo import auth
-
-        v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
-        u = contextlib.nullcontext
+        v = getattr(sirepo.flask.app(), SRUNIT_TEST_IN_REQUEST)
         if v.want_user:
-            qcall.sreq.cookie.set_sentinel()
-            auth.login(qcall, auth.guest, is_mock=True)
+            self.cookie.set_sentinel()
+            self.auth.login(is_mock=True)
         if v.want_cookie:
-            qcall.sreq.cookie.set_sentinel()
+            self.cookie.set_sentinel()
         v.op()
         return self.reply_ok()
 

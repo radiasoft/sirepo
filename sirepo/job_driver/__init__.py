@@ -128,7 +128,8 @@ class DriverBase(PKDict):
         import sirepo.auth
 
         m = op.msg
-        with sirepo.auth.quest_start(uid=m.uid):
+        with sirepo.quest.start() as qcall:
+            qcall.auth.logged_in_user_set(m.uid)
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
             op.lib_dir_symlink.mksymlinkto(d, absolute=True)
@@ -373,11 +374,13 @@ class DriverBase(PKDict):
         pass
 
 
-def init_module(job_supervisor_module):
-    global _cfg, _CLASSES, _DEFAULT_CLASS, job_supervisor
+def init_module(**imports):
+    global _cfg, _CLASSES, _DEFAULT_CLASS
+
     if _cfg:
         return _cfg
-    job_supervisor = job_supervisor_module
+    # import sirepo.job_supervisor
+    sirepo.util.setattr_imports(imports)
     _cfg = pkconfig.init(
         modules=((_DEFAULT_MODULE,), set, "available job driver modules"),
         idle_check_secs=(

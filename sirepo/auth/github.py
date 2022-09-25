@@ -19,6 +19,8 @@ import sqlalchemy
 
 AUTH_METHOD = "github"
 
+this_module = pkinspect.this_module()
+
 #: Used by auth_db
 AuthGithubUser = None
 
@@ -44,12 +46,7 @@ class API(sirepo.quest.API):
             else:
                 u = AuthGithubUser(oauth_id=d["id"], user_name=d["login"])
             u.save()
-            auth.login(
-                pkinspect.this_module(),
-                model=u,
-                sim_type=t,
-                want_redirect=True,
-            )
+            self.auth.login(this_module, model=u, sim_type=t, want_redirect=True)
             raise AssertionError("auth.login returned unexpectedly")
 
     @sirepo.quest.Spec("require_cookie_sentinel")

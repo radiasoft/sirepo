@@ -5,23 +5,18 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import api_perm
-from sirepo import auth
-from sirepo import auth_db
-from sirepo import http_reply
-from sirepo import http_request
-from sirepo import smtp
-from sirepo import srtime
-from sirepo import uri_router
 import datetime
 import hashlib
 import pyisemail
+import pykern.pkcompat
+import sirepo.auth_db
 import sirepo.quest
+import sirepo.smtp
+import sirepo.srtime
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -61,18 +56,18 @@ class API(sirepo.quest.API):
         req = self.parse_params(type=simulation_type)
         with sirepo.util.THREAD_LOCK:
             u = AuthEmailUser.search_by(token=token)
-            if u and u.expires >= srtime.utc_now():
+            if u and u.expires >= sirepo.srtime.utc_now():
                 n = self._verify_confirm(
                     req.type,
                     token,
-                    auth.need_complete_registration(u),
+                    self.auth.need_complete_registration(u),
                 )
                 AuthEmailUser.delete_changed_email(u)
                 u.user_name = u.unverified_email
                 u.token = None
                 u.expires = None
                 u.save()
-                auth.login(this_module, sim_type=req.type, model=u, display_name=n)
+                self.auth.login(this_module, sim_type=req.type, model=u, display_name=n)
                 raise AssertionError("auth.login returned unexpectedly")
             if not u:
                 pkdlog("login with invalid token={}", token)
@@ -83,14 +78,14 @@ class API(sirepo.quest.API):
                     u.unverified_email,
                 )
             # if user is already logged in via email, then continue to the app
-            if auth.user_if_logged_in(self.sreq, AUTH_METHOD):
+            if self.auth.user_if_logged_in(self.sreq, AUTH_METHOD):
                 pkdlog(
                     "user already logged in. ignoring invalid token: {}, user: {}",
                     token,
-                    auth.logged_in_user(self.sreq),
+                    self.auth.logged_in_user(self.sreq),
                 )
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
-            auth.login_fail_redirect(req.type, this_module, "email-token")
+            self.auth.login_fail_redirect(req.type, this_module, "email-token")
 
     @sirepo.quest.Spec("require_cookie_sentinel", email="Email")
     def api_authEmailLogin(self):
@@ -109,7 +104,7 @@ class API(sirepo.quest.API):
         return self._send_login_email(
             u,
             self.absolute_uri(
-                uri_router.uri_for_api(
+                self..uri_for_api(
                     "authEmailAuthorized",
                     dict(simulation_type=req.type, token=u.token),
                 ),
@@ -125,7 +120,7 @@ class API(sirepo.quest.API):
         login_text = (
             "sign in to" if user.user_name else "confirm your email and finish creating"
         )
-        r = smtp.send(
+        r = sirepo.smtp.send(
             recipient=user.unverified_email,
             subject="Sign in to Sirepo",
             body="""
@@ -173,7 +168,7 @@ class API(sirepo.quest.API):
 
 def avatar_uri(qcall, model, size):
     return "https://www.gravatar.com/avatar/{}?d=mp&s={}".format(
-        hashlib.md5(pkcompat.to_bytes(model.user_name)).hexdigest(),
+        hashlib.md5(pykern.pkcompat.to_bytes(model.user_name)).hexdigest(),
         size,
     )
 
@@ -209,7 +204,7 @@ def _init_model(base):
         expires = sqlalchemy.Column(sqlalchemy.DateTime())
 
         def create_token(self):
-            self.expires = srtime.utc_now() + _EXPIRES_DELTA
+            self.expires = sirepo.srtime.utc_now() + _EXPIRES_DELTA
             self.token = sirepo.util.create_token(self.unverified_email)
 
         @classmethod
@@ -224,4 +219,4 @@ def _init_model(base):
     UserModel = AuthEmailUser
 
 
-auth_db.init_model(_init_model)
+sirepo.auth_db.init_model(_init_model)
