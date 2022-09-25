@@ -96,6 +96,7 @@ def quest_init(qcall):
         sirepo.cookie.quest_init(qcall)
         # TODO(robnagler) auth_db
         o._set_log_user()
+        sirepo.session.quest_init(qcall)
 
 
 class API(sirepo.quest.API):
@@ -135,6 +136,65 @@ class API(sirepo.quest.API):
             self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
             self._set_log_user()
         return self.reply_redirect_for_app_root(req and req.type)
+
+
+def hack_logged_in_user():
+    # avoids case of no quest (sirepo.agent)
+    return cfg.logged_in_user or sirepo.quest.hack_current().auth.logged_in_user()
+
+
+def init():
+    global cfg
+
+    def _init_full():
+        global visible_methods, valid_methods, non_guest_methods
+
+        sirepo.cookie.init()
+        sirepo.auth_db.init()
+        p = pkinspect.this_module().__name__
+        visible_methods = []
+        valid_methods = cfg.methods.union(cfg.deprecated_methods)
+        for n in valid_methods:
+            m = importlib.import_module(pkinspect.module_name_join((p, n)))
+            _METHOD_MODULES[n] = m
+            if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
+                visible_methods.append(n)
+        visible_methods = tuple(sorted(visible_methods))
+        non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
+
+    if cfg:
+        return
+
+    cfg = pkconfig.init(
+        methods=((METHOD_GUEST,), set, "for logging in"),
+        deprecated_methods=(set(), set, "for migrating to methods"),
+        logged_in_user=(None, str, "Only for sirepo.job_supervisor"),
+    )
+    if cfg.logged_in_user or not init_full:
+        cfg.deprecated_methods = frozenset()
+        cfg.methods = frozenset((METHOD_GUEST,))
+    else:
+        from sirepo import simulation_db
+
+        # TODO: this does not work without changes to simulation_db
+        simulation_db.hook_auth_user = hack_logged_in_user
+        _init_full()
+
+
+def init_apis(*args, **kwargs):
+    init("init_apis")
+
+    global uri_router
+    assert not cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
+    uri_router = kwargs["uri_router"]
+    for m in _METHOD_MODULES.values():
+        uri_router.register_api_module(m)
+    from sirepo import simulation_db
+
+    s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
+    assert sorted(s) == sorted(
+        _ALL_PAYMENT_PLANS
+    ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
 
 
 class _Auth(sirepo.quest.Attr):
@@ -726,61 +786,3 @@ class _Auth(sirepo.quest.Attr):
             return None
         pkdlog("invalid auth method={}".format(module.AUTH_METHOD))
         self.login_fail_redirect(sim_type, module, "invalid-method", reload_js=True)
-
-
-def init_apis(*args, **kwargs):
-    _cfg_init()
-
-    global uri_router
-    assert not cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
-    uri_router = kwargs["uri_router"]
-    for m in _METHOD_MODULES.values():
-        uri_router.register_api_module(m)
-    from sirepo import simulation_db
-
-    s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
-    assert sorted(s) == sorted(
-        _ALL_PAYMENT_PLANS
-    ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
-
-
-def _cfg_init():
-    global cfg
-
-    def _init_full():
-        global visible_methods, valid_methods, non_guest_methods
-
-        sirepo.cookie.init()
-        sirepo.auth_db.init()
-        p = pkinspect.this_module().__name__
-        visible_methods = []
-        valid_methods = cfg.methods.union(cfg.deprecated_methods)
-        for n in valid_methods:
-            m = importlib.import_module(pkinspect.module_name_join((p, n)))
-            _METHOD_MODULES[n] = m
-            if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
-                visible_methods.append(n)
-        visible_methods = tuple(sorted(visible_methods))
-        non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
-
-    if cfg:
-        return
-
-    cfg = pkconfig.init(
-        methods=((METHOD_GUEST,), set, "for logging in"),
-        deprecated_methods=(set(), set, "for migrating to methods"),
-        logged_in_user=(None, str, "Only for sirepo.job_supervisor"),
-    )
-    if cfg.logged_in_user:
-        cfg.deprecated_methods = frozenset()
-        cfg.methods = frozenset((METHOD_GUEST,))
-    else:
-        from sirepo import simulation_db
-
-        # TODO: this does not work without changes to simulation_db
-        simulation_db.hook_auth_user = _hack_logged_in_user
-        _init_full()
-
-
-def _hack_logged_in_user():
-    return sirepo.quest.hack_current().auth.logged_in_user()

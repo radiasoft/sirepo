@@ -189,7 +189,7 @@ def init():
             job.SEQUENTIAL: 1,
         }
     )
-    sirepo.auth_db.init()
+    sirepo.auth.init()
     tornado.ioloop.IOLoop.current().add_callback(
         _ComputeJob.purge_free_simulations,
     )
@@ -470,6 +470,7 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     async def purge_free_simulations(cls):
+        # TODO add-qcall
         def _get_uids_and_files():
             r = []
             u = None
@@ -1111,6 +1112,7 @@ class _Op(PKDict):
     async def run_timeout(self):
         """Can be any op that's timed"""
         pkdlog("{} max_run_secs={}", self, self.max_run_secs)
+        # TODO add-qcall and pass to op, can't be Op() or Supervisor()
         await self._supervisor.op_run_timeout(self)
 
     def send(self):

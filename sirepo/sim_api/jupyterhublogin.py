@@ -8,20 +8,18 @@ from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
-import sirepo.quest
 import sirepo.api_perm
-import sirepo.auth
 import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.oauth
+import sirepo.quest
 import sirepo.srdb
-import sirepo.uri_router
 import sirepo.uri
+import sirepo.uri_router
 import sirepo.util
 import sqlalchemy
-import werkzeug.exceptions
 
 cfg = None
 
@@ -40,6 +38,7 @@ class API(sirepo.quest.API):
     def api_checkAuthJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
+            self,
             have_simulation_db=False,
         )
         if not u:
@@ -62,7 +61,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     def api_redirectJupyterHub(self):
         self.parse_params(type=_SIM_TYPE)
-        u = _unchecked_jupyterhub_user_name()
+        u = _unchecked_jupyterhub_user_name(self)
         if u:
             return self.reply_redirect("jupyterHub")
         if not cfg.rs_jupyter_migrate:
@@ -113,7 +112,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
             # Get the local part of the email. Or in the case of another auth
             # method (ex github) it won't have an '@' so it will just be their
             # user name, handle, etc.
-            (github_handle or sirepo.auth.user_name()).split("@")[0],
+            (github_handle or qcall.auth.user_name()).split("@")[0],
         ).lower()
 
     def __user_name():
@@ -135,25 +134,25 @@ def create_user(qcall, github_handle=None, check_dir=False):
         return n
 
     with sirepo.util.THREAD_LOCK:
-        n = _unchecked_jupyterhub_user_name()
+        n = _unchecked_jupyterhub_user_name(self)
         if n:
             return n
         u = __user_name()
         if check_dir and _user_dir(u).exists():
             raise AssertionError(f"existing user dir with same name={u}")
         JupyterhubUser(
-            uid=sirepo.auth.logged_in_user(),
+            uid=qcall.auth.logged_in_user(),
             user_name=u,
         ).save()
         pkio.mkdir_parent(_user_dir())
         return u
 
 
-def delete_user_dir(uid):
-    n = _unchecked_jupyterhub_user_name(have_simulation_db=False)
+def delete_user_dir(qcall, uid):
+    n = _unchecked_jupyterhub_user_name(qcall, have_simulation_db=False)
     if not n:
         return
-    pkio.unchecked_remove(_user_dir(user_name=n))
+    pkio.unchecked_remove(_user_dir(qcall, user_name=n))
 
 
 def init_apis(*args, **kwargs):
@@ -208,7 +207,7 @@ def _event_end_api_call(qcall, kwargs):
 
 
 def _event_github_authorized(qcall, kwargs):
-    create_user(github_handle=kwargs.user_name.lower())
+    create_user(qcall, github_handle=kwargs.user_name.lower())
     # User may not have been a user originally so need to create their dir.
     # If it exists (they were a user) it is a no-op.
     pkio.mkdir_parent(_user_dir())
@@ -236,9 +235,7 @@ def _unchecked_hub_user(uid):
 
 
 def _unchecked_jupyterhub_user_name(have_simulation_db=True):
-    return _unchecked_hub_user(
-        sirepo.auth.logged_in_user(check_path=have_simulation_db)
-    )
+    return _unchecked_hub_user(self.auth.logged_in_user(check_path=have_simulation_db))
 
 
 def _user_dir(user_name=None):

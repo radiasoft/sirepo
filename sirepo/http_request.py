@@ -13,6 +13,8 @@ import sirepo.util
 
 
 def init(**imports):
+    # import simulation_db
+
     sirepo.util.setattr_imports(imports)
 
 

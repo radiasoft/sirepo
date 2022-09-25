@@ -303,4 +303,5 @@ class _Bucket(Attr):
 def init(**imports):
     import sirepo.util
 
+    # import http_reply, http_request, uri_router, simulation_db
     sirepo.util.setattr_imports(imports)

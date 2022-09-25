@@ -68,10 +68,10 @@ def list_roles(*args):
 @contextlib.contextmanager
 def _parse_args(uid_or_email, roles):
     sirepo.server.init()
-    with sirepo.auth_db.session_and_lock():
+    with sirepo.auth_db.session() as qcall:
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_email:
-            u = qcall.get_module(
+            u = qcall.auth.get_module(
                 "email",
             ).unchecked_user_by_user_name(qcall, uid_or_email)
         else:

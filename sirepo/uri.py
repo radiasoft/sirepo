@@ -41,6 +41,7 @@ def default_local_route_name(schema):
 def init(**imports):
     import sirepo.util
 
+    # import simulation_db, uri_route
     sirepo.util.setattr_imports(imports)
 
 

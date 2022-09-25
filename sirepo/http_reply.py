@@ -226,6 +226,7 @@ def headers_for_no_cache(resp):
 def init(**imports):
     global MIME_TYPE, _RELOAD_JS_ROUTES
 
+    # import simulation_db
     sirepo.util.setattr_imports(imports)
     MIME_TYPE = PKDict(
         html="text/html",

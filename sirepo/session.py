@@ -20,7 +20,7 @@ _USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
 _ID_ATTR = "session_id"
 
 
-def qcall_init(qcall):
+def quest_init(qcall):
     def _new_session():
         l = qcall.auth.is_logged_in()
         t = sirepo.srtime.utc_now()

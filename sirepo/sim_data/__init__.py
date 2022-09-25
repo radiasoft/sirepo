@@ -281,13 +281,13 @@ class SimDataBase(object):
         p = cls._lib_file_abspath(basename, data=data)
         if p:
             return p
-        import sirepo.auth
+        from sirepo import auth
 
         raise sirepo.util.UserAlert(
             'Simulation library file "{}" does not exist'.format(basename),
             "basename={} not in lib or resource directories uid={}",
             basename,
-            sirepo.auth.logged_in_user(),
+            sirepo.auth.hack_logged_in_user(),
         )
 
     @classmethod
@@ -450,24 +450,21 @@ class SimDataBase(object):
                     res[f] = sirepo.util.random_base62(length=16)
         return res
 
-    # TODO(e-carlin): Supplying uid is a temprorary workaround until
-    # issue/2129 is resolved
     @classmethod
-    def parse_jid(cls, data, uid=None):
+    def parse_jid(cls, data, uid):
         """A Job is a tuple of user, sid, and compute_model.
 
         A jid is words and dashes.
 
         Args:
             data (dict): extract sid and compute_model
+            uid (str): user id
         Returns:
             str: unique name (treat opaquely)
         """
-        import sirepo.auth
-
         return _JOB_ID_SEP.join(
             (
-                uid or sirepo.auth.logged_in_user(),
+                uid,
                 cls.parse_sid(data),
                 cls.compute_model(data),
             )

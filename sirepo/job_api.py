@@ -124,7 +124,7 @@ class API(sirepo.quest.API):
     def api_ownJobs(self):
         return self.request(
             _request_content=self.parse_post().pkupdate(
-                uid=sirepo.auth.logged_in_user(),
+                uid=self.auth.logged_in_user(),
             ),
         )
 
@@ -274,7 +274,7 @@ class API(sirepo.quest.API):
             simulationType=lambda: d.simulationType,
         ).pkupdate(
             reqId=sirepo.job.unique_key(),
-            uid=sirepo.auth.logged_in_user(),
+            uid=self.auth.logged_in_user(),
         ).pkupdate(
             computeJid=s.parse_jid(d, uid=b.uid),
             userDir=str(sirepo.simulation_db.user_path(b.uid)),
@@ -322,23 +322,6 @@ class API(sirepo.quest.API):
             assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
             c[f] = m[f]
         return request_content
-
-
-def begin_session():
-    try:
-        u = sirepo.auth.logged_in_user()
-        # begin_session is called before we are inside of an API so need to create one manually
-        API().request(
-            api_name="api_beginSession",
-            _request_content=PKDict(
-                uid=u,
-                userDir=str(sirepo.simulation_db.user_path(u)),
-            ),
-        )
-    except sirepo.util.Reply:
-        # If we get any Sirepo generated errors (ex. user dir not found) then just ignore and don't
-        # try to start session (ex. agent would be started in user dir which may not exist).
-        pass
 
 
 def init_apis(*args, **kwargs):

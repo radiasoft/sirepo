@@ -133,8 +133,6 @@ def init(app, simulation_db):
         simulation_db=simulation_db,
     )
     sirepo.uri.init(
-        http_reply=sirepo.http_reply,
-        http_request=sirepo.http_request,
         simulation_db=simulation_db,
         uri_router=pkinspect.this_module(),
     )

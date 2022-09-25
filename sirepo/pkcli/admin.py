@@ -80,7 +80,7 @@ def delete_user(uid):
     import sirepo.template
 
     sirepo.server.init()
-    with sirepo.auth_db.session_and_lock():
+    with sirepo.auth_db.session(uid=uid):
         if sirepo.auth.unchecked_get_user(uid) is None:
             return
         with sirepo.auth.set_user_outside_of_http_request(uid):
@@ -200,9 +200,7 @@ def _iterate_sims_by_users(all_sim_types):
         if _is_src_dir(d):
             continue
         uid = simulation_db.uid_from_dir_name(d)
-        with sirepo.auth_db.session_and_lock(), sirepo.auth.set_user_outside_of_http_request(
-            uid
-        ):
+        with sirepo.auth_db.session(uid=uid):
             s = _get_named_example_sims(all_sim_types)
             for t in s.keys():
                 yield (t, s)
