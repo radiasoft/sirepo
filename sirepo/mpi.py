@@ -104,13 +104,12 @@ def _mpiexec_cmd():
         "--bind-to",
         "none",
         "-n",
-        str(cfg.cores),
+        str(_cfg.cores),
     ]
 
 
 _cfg = pkconfig.init(
     cores=(1, int, "cores to use per run"),
     in_slurm=(False, bool, "True if being run by slurm"),
-    slaves=(1, int, "DEPRECATED: set $SIREPO_MPI_CORES"),
+    slaves=pkconfig.ReplacedBy("sirepo.mpi.cores"),
 )
-_cfg.cores = max(cfg.cores, cfg.slaves)
