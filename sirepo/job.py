@@ -75,7 +75,7 @@ DEFAULT_IP = "127.0.0.1"
 #: port supervisor is listening on
 DEFAULT_PORT = 8001
 
-#: cfg declaration for supervisor_uri for drivers and
+#: _cfg declaration for supervisor_uri for drivers and
 DEFAULT_SUPERVISOR_URI_DECL = (
     "http://{}:{}".format(DEFAULT_IP, DEFAULT_PORT),
     str,
@@ -134,7 +134,7 @@ UNIQUE_KEY_CHARS_RE = r"\w+"
 UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
 
 
-cfg = None
+_cfg = None
 
 
 def agent_cmd_stdin_env(cmd, env, cwd=".", source_bashrc=""):
@@ -200,10 +200,10 @@ def agent_env(env=None, uid=None):
             PYTHONSTARTUP="",
             PYTHONUNBUFFERED="1",
             SIREPO_AUTH_LOGGED_IN_USER=lambda: uid or sirepo.auth.hack_logged_in_user(),
-            SIREPO_JOB_VERIFY_TLS=cfg.verify_tls,
-            SIREPO_JOB_MAX_MESSAGE_BYTES=cfg.max_message_bytes,
-            SIREPO_JOB_PING_INTERVAL_SECS=cfg.ping_interval_secs,
-            SIREPO_JOB_PING_TIMEOUT_SECS=cfg.ping_timeout_secs,
+            SIREPO_JOB_VERIFY_TLS=_cfg.verify_tls,
+            SIREPO_JOB_MAX_MESSAGE_BYTES=_cfg.max_message_bytes,
+            SIREPO_JOB_PING_INTERVAL_SECS=_cfg.ping_interval_secs,
+            SIREPO_JOB_PING_TIMEOUT_SECS=_cfg.ping_timeout_secs,
             SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
         )
     )
@@ -218,13 +218,16 @@ def agent_env(env=None, uid=None):
     return "\n".join(("export {}='{}'".format(k, v) for k, v in env.items()))
 
 
-def init():
-    global cfg
+def cfg():
+    return _cfg or init_module()
 
-    if cfg:
-        return
 
-    cfg = pkconfig.init(
+def init_module():
+    global _cfg
+
+    if _cfg:
+        return _cfg
+    _cfg = pkconfig.init(
         max_message_bytes=(
             int(2e8),
             pkconfig.parse_bytes,
@@ -256,11 +259,12 @@ def init():
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
     DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
+    return _cfg
 
 
 def init_by_server(app):
     """Initialize module"""
-    init()
+    init_module()
 
     from sirepo import job_api
     from sirepo import uri_router

@@ -224,14 +224,14 @@ class API(sirepo.quest.API):
         )
         c.pkupdate(
             api=get_api_name(),
-            serverSecret=sirepo.job.cfg.server_secret,
+            serverSecret=sirepo.job.cfg().server_secret,
         )
         pkdlog("api={} runDir={}", c.api, c.get("runDir"))
         r = requests.post(
             u,
             data=pkjson.dump_bytes(c),
             headers=PKDict({"Content-type": "application/json"}),
-            verify=sirepo.job.cfg.verify_tls,
+            verify=sirepo.job.cfg().verify_tls,
         )
         r.raise_for_status()
         return pkjson.load_any(r.content)

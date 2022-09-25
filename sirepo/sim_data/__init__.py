@@ -22,7 +22,7 @@ import sirepo.template
 import sirepo.util
 import uuid
 
-cfg = None
+_cfg = None
 
 #: default compute_model
 _ANIMATION_NAME = "animation"
@@ -602,7 +602,7 @@ class SimDataBase(object):
     @classmethod
     def _assert_server_side(cls):
         assert (
-            not cfg.lib_file_uri
+            not _cfg.lib_file_uri
         ), f"method={pkinspect.caller()} may only be called on server"
 
     @classmethod
@@ -644,7 +644,7 @@ class SimDataBase(object):
     def _delete_sim_db_file(cls, uri):
         _request(
             "DELETE",
-            cfg.supervisor_sim_db_file_uri + uri,
+            _cfg.supervisor_sim_db_file_uri + uri,
         ).raise_for_status()
 
     @classmethod
@@ -662,16 +662,16 @@ class SimDataBase(object):
     def _lib_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
 
-        if cfg.lib_file_uri:
+        if _cfg.lib_file_uri:
             # In agent
-            if basename in cfg.lib_file_list:
+            if basename in _cfg.lib_file_list:
                 # User generated lib file
                 p = pkio.py_path(basename)
-                r = _request("GET", cfg.lib_file_uri + basename)
+                r = _request("GET", _cfg.lib_file_uri + basename)
                 r.raise_for_status()
                 p.write_binary(r.content)
                 return p
-        elif not cfg.lib_file_resource_only:
+        elif not _cfg.lib_file_resource_only:
             # Command line utility or server
             f = sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
             if f.check(file=True):
@@ -776,7 +776,7 @@ class SimDataBase(object):
     def _put_sim_db_file(cls, file_path, uri):
         _request(
             "PUT",
-            cfg.supervisor_sim_db_file_uri + uri,
+            _cfg.supervisor_sim_db_file_uri + uri,
             data=pkio.read_binary(file_path),
         ).raise_for_status()
 
@@ -787,7 +787,7 @@ class SimDataBase(object):
     @classmethod
     def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
         p = run_dir.join(uri.split("/")[-1])
-        r = _request("GET", cfg.supervisor_sim_db_file_uri + uri)
+        r = _request("GET", _cfg.supervisor_sim_db_file_uri + uri)
         r.raise_for_status()
         p.write_binary(r.content)
         if is_exe:
@@ -835,11 +835,12 @@ def split_jid(jid):
     )
 
 
-def _init():
-    global cfg
+def init_module():
+    global _cfg
 
-    sirepo.job.init()
-    cfg = pkconfig.init(
+    if _cfg:
+        return
+    _cfg = pkconfig.init(
         lib_file_resource_only=(False, bool, "used by utility programs"),
         lib_file_list=(
             None,
@@ -870,17 +871,14 @@ def _request(method, uri, data=None):
         method,
         uri,
         data=data,
-        verify=sirepo.job.cfg.verify_tls,
+        verify=sirepo.job.cfg().verify_tls,
         headers=PKDict(
             {
                 sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX
-                + cfg.supervisor_sim_db_file_token,
+                + _cfg.supervisor_sim_db_file_token,
             }
         ),
     )
     if method == "GET" and r.status_code == 404:
         raise SimDbFileNotFound(f"uri={uri} not found")
     return r
-
-
-_init()

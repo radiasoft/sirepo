@@ -40,11 +40,9 @@ def default_command():
         ip=(sirepo.job.DEFAULT_IP, str, "ip to listen on"),
         port=(sirepo.job.DEFAULT_PORT, int, "what port to listen on"),
     )
-    sirepo.srtime.init()
-    sirepo.job_supervisor.init()
+    sirepo.job_supervisor.init_module()
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
     pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
-    sirepo.util.init(in_flask=False)
     app = tornado.web.Application(
         sirepo.react_proxy.routes()
         + [
@@ -60,9 +58,9 @@ def default_command():
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
         # tornado expects a trailing slash
         static_url_prefix=sirepo.job.LIB_FILE_URI + "/",
-        websocket_max_message_size=sirepo.job.cfg.max_message_bytes,
-        websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
-        websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
+        websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
+        websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
+        websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
     )
     if cfg.debug:
         for f in sirepo.util.files_to_watch_for_reload("json", "py"):
@@ -71,7 +69,7 @@ def default_command():
     server = tornado.httpserver.HTTPServer(
         app,
         xheaders=True,
-        max_buffer_size=sirepo.job.cfg.max_message_bytes,
+        max_buffer_size=sirepo.job.cfg().max_message_bytes,
     )
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)

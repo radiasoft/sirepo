@@ -66,11 +66,11 @@ class _Cookie(sirepo.quest.Attr):
         if s == self.__incoming_serialized:
             return
         resp.set_cookie(
-            cfg.http_name,
+            _cfg.http_name,
             self._encrypt(s),
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
-            secure=cfg.is_secure,
+            secure=_cfg.is_secure,
             # TODO(pjm): enabling this causes self-extracting simulations to break
             # samesite='Strict',
         )
@@ -96,19 +96,19 @@ class _Cookie(sirepo.quest.Attr):
 
     def _crypto(self):
         if "_crypto_alg" not in self:
-            if cfg.private_key is None:
+            if _cfg.private_key is None:
                 assert pkconfig.channel_in(
                     "dev"
                 ), "must configure private_key in non-dev channel={}".format(
                     pkconfig.cfg.channel
                 )
-                cfg.private_key = base64.urlsafe_b64encode(
+                _cfg.private_key = base64.urlsafe_b64encode(
                     b"01234567890123456789012345678912"
                 )
             assert (
-                len(base64.urlsafe_b64decode(cfg.private_key)) == 32
+                len(base64.urlsafe_b64decode(_cfg.private_key)) == 32
             ), "private_key must be 32 characters and encoded with urlsafe_b64encode"
-            self._crypto_alg = cryptography.fernet.Fernet(cfg.private_key)
+            self._crypto_alg = cryptography.fernet.Fernet(_cfg.private_key)
         return self._crypto_alg
 
     def _decrypt(self, value):
@@ -140,7 +140,7 @@ class _Cookie(sirepo.quest.Attr):
         err = None
         try:
             match = re.search(
-                r"\b{}=([^;]+)".format(cfg.http_name),
+                r"\b{}=([^;]+)".format(_cfg.http_name),
                 header,
             )
             if match:
@@ -178,11 +178,17 @@ def _end_api_call(qcall, kwargs):
     qcall.cookie.save_to_cookie(kwargs.resp)
 
 
-def init():
-    global cfg
+def init_module():
+    global _cfg
 
-    cfg = pkconfig.init(
-        http_name=("sirepo_" + pkconfig.cfg.channel, _cfg_http_name, "Set-Cookie name"),
+    if _cfg:
+        return
+    _cfg = pkconfig.init(
+        http_name=(
+            "sirepo_" + pkconfig.cfg.channel,
+            __cfg_http_name,
+            "Set-Cookie name",
+        ),
         private_key=(None, str, "urlsafe base64 encrypted 32-byte key"),
         is_secure=(
             not pkconfig.channel_in("dev"),

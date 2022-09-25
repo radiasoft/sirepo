@@ -41,7 +41,7 @@ AUTH_HEADER = "Authorization"
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = "Bearer"
 
-#: Lock for operations across Sirepo (flask)
+#: Lock for operations across Sirepo (server)
 THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
@@ -51,8 +51,6 @@ TOKEN_SIZE = 16
 # for reasoning on why define both
 _INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)", re.IGNORECASE)
 _VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
-
-_log_not_flask = _log_not_request = 0
 
 
 class Reply(Exception):
@@ -239,12 +237,6 @@ def find_obj(arr, key, value):
     return None
 
 
-def flask_app():
-    import flask
-
-    return flask.current_app or None
-
-
 def import_submodule(submodule, type_or_data):
     """Import fully qualified module that contains submodule for sim type
 
@@ -279,37 +271,6 @@ def import_submodule(submodule, type_or_data):
     raise AssertionError(
         f"cannot find submodule={submodule} for sim_type={t} in package_path={r}"
     )
-
-
-def init(in_flask):
-    """Override some functions unless we are in flask"""
-
-    if not in_flask:
-        global in_flask_request, flask_app
-        in_flask_request = lambda: False
-        flask_app = lambda: None
-
-
-def in_flask_request():
-    # These are globals but possibly accessed from a threaded context. That is
-    # desired so we limit logging between all threads.
-    # The number 10 below doesn't need to be exact. Just something greater than
-    # "a few" so we see logging once the app is initialized and serving requests.
-    global _log_not_flask, _log_not_request
-    f = sys.modules.get("flask")
-    if not f:
-        if _log_not_flask < 10:
-            _log_not_flask += 1
-            pkdlog("flask is not imported")
-        return False
-    if not f.request:
-        if _log_not_request < 10:
-            _log_not_request += 1
-            if is_server:
-                # This will help debug https://github.com/radiasoft/sirepo/issues/3727
-                pkdlog("flask.request is False")
-        return False
-    return True
 
 
 def is_python_identifier(name):

@@ -32,7 +32,7 @@ _DEFAULT_CLASS = None
 
 _DEFAULT_MODULE = "local"
 
-cfg = None
+_cfg = None
 
 _CPU_SLOT_OPS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
 
@@ -365,7 +365,7 @@ class DriverBase(PKDict):
 
         if not self._idle_timer:
             self._idle_timer = tornado.ioloop.IOLoop.current().call_later(
-                cfg.idle_check_secs,
+                _cfg.idle_check_secs,
                 _kill_if_idle,
             )
 
@@ -373,11 +373,12 @@ class DriverBase(PKDict):
         pass
 
 
-def init(job_supervisor_module):
-    global cfg, _CLASSES, _DEFAULT_CLASS, job_supervisor
-    assert not cfg
+def init_module(job_supervisor_module):
+    global _cfg, _CLASSES, _DEFAULT_CLASS, job_supervisor
+    if _cfg:
+        return _cfg
     job_supervisor = job_supervisor_module
-    cfg = pkconfig.init(
+    _cfg = pkconfig.init(
         modules=((_DEFAULT_MODULE,), set, "available job driver modules"),
         idle_check_secs=(
             1800,
@@ -387,11 +388,12 @@ def init(job_supervisor_module):
     )
     _CLASSES = PKDict()
     p = pkinspect.this_module().__name__
-    for n in cfg.modules:
+    for n in _cfg.modules:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.CLASS.init_class(job_supervisor)
     _DEFAULT_CLASS = _CLASSES.get("docker") or _CLASSES.get(_DEFAULT_MODULE)
     pkdlog("modules={}", sorted(_CLASSES.keys()))
+    return _cfg
 
 
 async def terminate():

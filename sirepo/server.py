@@ -486,7 +486,7 @@ class API(sirepo.quest.API):
 
         self._proxy_react(path_info)
         if path_info is None:
-            return self.reply_redirect(cfg.home_page_uri)
+            return self.reply_redirect(_cfg.home_page_uri)
         if template.is_sim_type(path_info):
             return self._render_root_page("index", PKDict(app_name=path_info))
         u = sirepo.uri.unchecked_root_redirect(path_info)
@@ -684,11 +684,11 @@ class API(sirepo.quest.API):
     def _proxy_react(self, path):
         import requests
 
-        if not cfg.react_server or path not in _PROXY_REACT_URIS:
+        if not _cfg.react_server or path not in _PROXY_REACT_URIS:
             return
-        if path in cfg.react_sim_types:
+        if path in _cfg.react_sim_types:
             path = ""
-        r = requests.get(cfg.react_server + path)
+        r = requests.get(_cfg.react_server + path)
         # We want to throw an exception here, because it shouldn't happen
         r.raise_for_status()
         raise sirepo.util.Response(self.reply_as_proxy(r))
@@ -712,16 +712,16 @@ class API(sirepo.quest.API):
         return self.headers_for_no_cache(self.reply_json(data))
 
 
-def init(uwsgi=None, use_reloader=False, is_server=False):
+def init_module(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     global _app
 
     if _app:
         return
     global _google_tag_manager
-    if cfg.google_tag_manager_id:
+    if _cfg.google_tag_manager_id:
         _google_tag_manager = f"""<script>
-    (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
+    (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
     </script>"""
     #: Flask app instance, must be bound globally
     _app = flask.Flask(
@@ -731,14 +731,14 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     _app.config["PROPAGATE_EXCEPTIONS"] = True
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
-    if cfg.react_server:
+    if _cfg.react_server:
         global _PROXY_REACT_URIS
         p = [
             "manifest.json",
             "static/js/bundle.js",
             "static/js/bundle.js.map",
         ]
-        for x in cfg.react_sim_types:
+        for x in _cfg.react_sim_types:
             p.append(x)
             p.append(f"{x}-schema.json")
         _PROXY_REACT_URIS = set(p)
@@ -823,12 +823,12 @@ def _simulations_using_file(req, ignore_sim_id=None):
 
 
 def _source_cache_key():
-    if cfg.enable_source_cache_key:
+    if _cfg.enable_source_cache_key:
         return "?{}".format(simulation_db.app_version())
     return ""
 
 
-cfg = pkconfig.init(
+_cfg = pkconfig.init(
     db_dir=pkconfig.ReplacedBy("sirepo.srdb.root"),
     enable_source_cache_key=(
         True,

@@ -9,7 +9,6 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
-from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
@@ -21,6 +20,7 @@ import os
 import pickle
 import pykern.pkjson
 import re
+import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.uri_router
@@ -2135,10 +2135,9 @@ def _resize_report(report, ar2d, x_range, y_range):
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
-    job.init()
     # roughly 20x size increase for json
-    if ar2d.size * _JSON_MESSAGE_EXPANSION > job.cfg.max_message_bytes:
-        max_width = int(math.sqrt(job.cfg.max_message_bytes / _JSON_MESSAGE_EXPANSION))
+    if ar2d.size * _JSON_MESSAGE_EXPANSION > sirepo.job.cfg().max_message_bytes:
+        max_width = int(math.sqrt(sirepo.job.cfg().max_message_bytes / _JSON_MESSAGE_EXPANSION))
         if max_width < width_pixels:
             pkdc(
                 "auto scaling dimensions to fit message size. size: {}, max_width: {}",

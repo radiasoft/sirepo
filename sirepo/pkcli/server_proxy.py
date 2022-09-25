@@ -16,13 +16,13 @@ import tornado.ioloop
 import tornado.web
 
 
-cfg = None
+_cfg = None
 
 
 def default_command():
-    global cfg
+    global _cfg
 
-    cfg = pykern.pkconfig.init(
+    _cfg = pykern.pkconfig.init(
         debug=(pykern.pkconfig.channel_in("dev"), bool, "run supervisor in debug mode"),
         ip=(sirepo.job.DEFAULT_IP, str, "ip to listen on"),
         port=(sirepo.job.DEFAULT_PORT + 1, int, "what port to listen on"),
@@ -33,23 +33,23 @@ def default_command():
             ("/react-ws", _WebSocket),
         ],
         debug=cfg.debug,
-        websocket_max_message_size=sirepo.job.cfg.max_message_bytes,
-        websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
-        websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
+        websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
+        websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
+        websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
     )
-    if cfg.debug:
+    if _cfg.debug:
         for f in sirepo.util.files_to_watch_for_reload("json", "py"):
             tornado.autoreload.watch(f)
 
     s = tornado.httpserver.HTTPServer(
         app,
         xheaders=True,
-        max_buffer_size=sirepo.job.cfg.max_message_bytes,
+        max_buffer_size=sirepo.job.cfg().max_message_bytes,
     )
-    s.listen(cfg.port, cfg.ip)
+    s.listen(_cfg.port, _cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
-    pkdlog("ip={} port={}", cfg.ip, cfg.port)
+    pkdlog("ip={} port={}", _cfg.ip, _cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
     # messages go to a session which tracks what the browser window is doing

@@ -776,22 +776,13 @@ class _Auth(sirepo.quest.Attr):
             data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM
 
     def _set_log_user(self):
-        if not sirepo.util.in_flask_request():
-            return
-        a = sirepo.util.flask_app()
-        if not a or not a.sirepo_uwsgi:
-            # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
-            # the limited http server for development only. This uses
-            # werkzeug.serving.WSGIRequestHandler.log which hardwires the
-            # common log format to: '%s - - [%s] %s\n'. Could monkeypatch
-            # but we only use the limited http server for development.
-            return
-        u = self._get_user()
-        if u:
-            u = self.qcall.cookie.unchecked_get_value(_COOKIE_STATE) + "-" + u
-        else:
-            u = "-"
-        a.sirepo_uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
+        def _user():
+            u = self._get_user()
+            if not u:
+                return "="
+            return self.qcall.cookie.unchecked_get_value(_COOKIE_STATE) + "-" + u
+
+        sirepo.flask.set_log_user(_user)
 
     def _validate_method(self, module, sim_type=None):
         if module.AUTH_METHOD in valid_methods:
