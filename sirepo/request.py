@@ -18,7 +18,7 @@ _POST_ATTR = "sirepo_http_request_post"
 _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
 
-def quest_init(qcall):
+def init_quest(qcall):
     import flask
 
     sreq = _Request(

@@ -31,7 +31,7 @@ def init_module():
     sirepo.events.register(PKDict(end_api_call=_end_api_call))
 
 
-def quest_init(qcall):
+def init_quest(qcall):
     def _new_session():
         l = qcall.auth.is_logged_in()
         t = sirepo.srtime.utc_now()

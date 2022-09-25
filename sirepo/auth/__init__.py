@@ -82,23 +82,23 @@ non_guest_methods = None
 _cfg = None
 
 
-def quest_init(qcall):
-    o = _Auth(qcall=qcall)
-    qcall.attr_set("auth", o)
-    sirepo.auth_db.quest_init(qcall)
-    if not _cfg.logged_in_user and sirepo.flask.in_request():
-        sirepo.request.quest_init(qcall)
-        # TODO(robnagler): process auth basic header, too. this
-        # should not cookie but route to auth_basic.
-        sirepo.cookie.quest_init(qcall)
-        # TODO(robnagler) auth_db
-        o._set_log_user()
-        sirepo.session.quest_init(qcall)
-
-
 def hack_logged_in_user():
     # avoids case of no quest (sirepo.agent)
     return _cfg.logged_in_user or sirepo.quest.hack_current().auth.logged_in_user()
+
+
+def init_quest(qcall):
+    o = _Auth(qcall=qcall)
+    qcall.attr_set("auth", o)
+    sirepo.auth_db.init_quest(qcall)
+    if not _cfg.logged_in_user and sirepo.flask.in_request():
+        sirepo.request.init_quest(qcall)
+        # TODO(robnagler): process auth basic header, too. this
+        # should not cookie but route to auth_basic.
+        sirepo.cookie.init_quest(qcall)
+        # TODO(robnagler) auth_db
+        o._set_log_user()
+        sirepo.session.init_quest(qcall)
 
 
 def init_module(**imports):

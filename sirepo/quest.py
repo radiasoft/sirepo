@@ -39,7 +39,7 @@ def start():
     auth = sirepo.modules.import_and_init("sirepo.auth")
     qcall = API()
     try:
-        auth.quest_init(qcall)
+        auth.init_quest(qcall)
         yield qcall
     finally:
         qcall.destroy()

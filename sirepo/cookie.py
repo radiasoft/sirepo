@@ -31,7 +31,7 @@ _SERIALIZER_SEP = " "
 _cfg = None
 
 
-def quest_init(qcall):
+def init_quest(qcall):
     qcall.attr_set("cookie", _Cookie(qcall))
 
 

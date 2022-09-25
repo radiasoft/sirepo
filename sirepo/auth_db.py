@@ -422,7 +422,7 @@ def init_module():
     b.metadata.create_all(_engine)
 
 
-def quest_init(qcall):
+def init_quest(qcall):
     qcall.attr_set("auth_db", _AuthDb())
 
 
@@ -430,7 +430,7 @@ def quest_init(qcall):
 def session():
     qcall = sirepo.quest.API()
     try:
-        quest_init(qcall)
+        init_quest(qcall)
         yield
     finally:
         qcall.destroy()
