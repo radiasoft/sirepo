@@ -249,7 +249,7 @@ class API(pykern.quest.API):
         Returns:
             str: uri
         """
-        return sirepo.uri.app_root(self, sim_type=sim_type)
+        return sirepo.uri.app_root(sim_type=sim_type)
 
     def user_agent_headers(self):
         def _dns_reverse_lookup(ip):

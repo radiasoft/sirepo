@@ -20,6 +20,7 @@ import pyisemail
 import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.cookie
+import sirepo.events
 import sirepo.feature_config
 import sirepo.quest
 import sirepo.request
@@ -78,9 +79,6 @@ visible_methods = None
 #: visible_methods excluding guest
 non_guest_methods = None
 
-#: avoid circular import issues by importing in init_apis
-uri_router = None
-
 _cfg = None
 
 
@@ -88,7 +86,7 @@ def quest_init(qcall):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
     sirepo.auth_db.quest_init(qcall)
-    if not _cfg.logged_in_user:
+    if not _cfg.logged_in_user and sirepo.flask.in_request():
         sirepo.request.quest_init(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
@@ -98,56 +96,18 @@ def quest_init(qcall):
         sirepo.session.quest_init(qcall)
 
 
-class API(sirepo.quest.API):
-    @sirepo.quest.Spec("require_cookie_sentinel", display_name="UserDisplayName")
-    def api_authCompleteRegistration(self):
-        # Needs to be explicit, because we would need a special permission
-        # for just this API.
-        if not is_logged_in():
-            raise sirepo.util.SRException(LOGIN_ROUTE_NAME, None)
-        self.auth.complete_registration(
-            _parse_display_name(self.parse_json().get("displayName")),
-        )
-        return self.reply_ok()
-
-    @sirepo.quest.Spec("allow_visitor")
-    def api_authState(self):
-        return self.reply_static_jinja(
-            "auth-state",
-            "js",
-            PKDict(auth_state=self.auth._auth_state()),
-        )
-
-    @sirepo.quest.Spec("allow_visitor")
-    def api_authLogout(self, simulation_type=None):
-        """Set the current user as logged out.
-
-        Redirects to root simulation page.
-        """
-        req = None
-        if simulation_type:
-            try:
-                req = self.parse_params(type=simulation_type)
-            except AssertionError:
-                pass
-        if is_logged_in():
-            events.emit("auth_logout", PKDict(uid=self.auth._get_user()))
-            self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
-            self._set_log_user()
-        return self.reply_redirect_for_app_root(req and req.type)
-
-
 def hack_logged_in_user():
     # avoids case of no quest (sirepo.agent)
     return _cfg.logged_in_user or sirepo.quest.hack_current().auth.logged_in_user()
 
 
-def init_module():
+def init_module(**imports):
     global _cfg
 
     def _init_full():
         global visible_methods, valid_methods, non_guest_methods
 
+        simulation_db.hook_auth_user = hack_logged_in_user
         p = pkinspect.this_module().__name__
         visible_methods = []
         valid_methods = _cfg.methods.union(_cfg.deprecated_methods)
@@ -158,38 +118,29 @@ def init_module():
                 visible_methods.append(n)
         visible_methods = tuple(sorted(visible_methods))
         non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
+        s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
+        assert sorted(s) == sorted(
+            _ALL_PAYMENT_PLANS
+        ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
 
     if _cfg:
         return
-
+    # import simulation_db
+    sirepo.util.setattr_imports(imports)
     _cfg = pkconfig.init(
         methods=((METHOD_GUEST,), set, "for logging in"),
         deprecated_methods=(set(), set, "for migrating to methods"),
         logged_in_user=(None, str, "Only for sirepo.job_supervisor"),
     )
-    if _cfg.logged_in_user or not init_full:
+    if _cfg.logged_in_user:
         _cfg.deprecated_methods = frozenset()
         _cfg.methods = frozenset((METHOD_GUEST,))
     else:
-        from sirepo import simulation_db
-
-        # TODO: this does not work without changes to simulation_db
-        simulation_db.hook_auth_user = hack_logged_in_user
         _init_full()
 
 
-def init_apis(*args, **kwargs):
-    global uri_router
-    assert not _cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
-    uri_router = kwargs["uri_router"]
-    for m in _METHOD_MODULES.values():
-        uri_router.register_api_module(m)
-    from sirepo import simulation_db
-
-    s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
-    assert sorted(s) == sorted(
-        _ALL_PAYMENT_PLANS
-    ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
+def only_for_api_method_modules():
+    return list(_METHOD_MODULES.values())
 
 
 class _Auth(sirepo.quest.Attr):
@@ -198,8 +149,7 @@ class _Auth(sirepo.quest.Attr):
         self._logged_in_user = _cfg.logged_in_user
 
     def check_sim_type_role(self, sim_type):
-        from sirepo import oauth
-        from sirepo import auth_role_moderation
+        from sirepo import auth_role_moderation, oauth, uri_router
 
         t = sirepo.template.assert_sim_type(sim_type)
         if t not in sirepo.feature_config.auth_controlled_sim_types():
@@ -273,8 +223,6 @@ class _Auth(sirepo.quest.Attr):
         return values
 
     def create_user(self, uid_generated_callback, module):
-        from sirepo import simulation_db
-
         u = simulation_db.user_create()
         uid_generated_callback(u)
         self._create_roles_for_new_user(u, module.AUTH_METHOD)
@@ -329,8 +277,6 @@ class _Auth(sirepo.quest.Attr):
             self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD),
         )
         if check_path:
-            from sirepo import simulation_db
-
             simulation_db.user_path(u, check=True)
         return u
 
@@ -398,13 +344,11 @@ class _Auth(sirepo.quest.Attr):
                 model.uid = uid
                 model.save()
         if display_name:
-            self.complete_registration(_parse_display_name(display_name))
+            self.complete_registration(self._parse_display_name(display_name))
         if is_mock:
             return
         if sim_type:
             if guest_uid and guest_uid != uid:
-                from sirepo import simulation_db
-
                 simulation_db.move_user_simulations(guest_uid, uid)
             self.login_success_response(sim_type, want_redirect)
         assert not module.AUTH_METHOD_VISIBLE
@@ -460,6 +404,14 @@ class _Auth(sirepo.quest.Attr):
         if not model.uid:
             return True
         return not sirepo.auth_db.UserRegistration.search_by(uid=model.uid).display_name
+
+    def only_for_api_auth_state(self):
+        return self._auth_state()
+
+    def only_for_api_logout(self):
+        sirepo.events.emit("auth_logout", PKDict(uid=self._get_user()))
+        self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
+        self._set_log_user()
 
     def require_adm(self):
         u = self.require_user()
@@ -566,7 +518,7 @@ class _Auth(sirepo.quest.Attr):
                 u.delete()
         self.reset_state()
         raise sirepo.util.Redirect(
-            sirepo.uri.app_root(),
+            self.qcall.uri_for_app_root(),
             "simulation_db dir={} not found, deleted uid={}",
             user_dir,
             uid,
@@ -622,8 +574,6 @@ class _Auth(sirepo.quest.Attr):
     def _auth_state(self):
         def _get_slack_uri():
             return sirepo.feature_config.cfg().slack_uri + (self._get_user() or "")
-
-        from sirepo import simulation_db
 
         s = self.qcall.cookie.unchecked_get_value(_COOKIE_STATE)
         v = pkcollections.Dict(

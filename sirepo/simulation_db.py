@@ -295,6 +295,11 @@ def generate_json(data, pretty=False):
     return util.json_dump(data, pretty=pretty)
 
 
+def init_module():
+    # see _init()
+    pass
+
+
 def iterate_simulation_datafiles(simulation_type, op, search=None, uid=None):
     res = []
     sim_dir = simulation_dir(simulation_type, uid=uid)

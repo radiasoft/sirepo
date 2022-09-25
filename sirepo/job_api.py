@@ -45,6 +45,16 @@ class API(sirepo.quest.API):
     def api_analysisJob(self):
         return self.request()
 
+    @sirepo.quest.Spec("require_user")
+    def api_beginSession(self):
+        u = self.auth.logged_in_user()
+        return self.request(
+            _request_content=PKDict(
+                uid=u,
+                userDir=str(sirepo.simulation_db.user_path(u)),
+            ),
+        )
+
     @sirepo.quest.Spec(
         "require_user",
         sid="SimId",
@@ -142,7 +152,7 @@ class API(sirepo.quest.API):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
             sirepo.uri_router.assert_api_name_and_auth(
-                qcall,
+                self,
                 api,
                 ("runSimulation", "runStatus"),
             )

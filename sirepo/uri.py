@@ -19,7 +19,7 @@ PATH_INFO_CHAR = "*"
 # TODO(robnagler): make class that gets returned
 
 
-def app_root(qcall, sim_type=None):
+def app_root(sim_type=None):
     """Generate uri for application root
 
     Args:
@@ -28,7 +28,6 @@ def app_root(qcall, sim_type=None):
         str: formatted URI
     """
     return uri_router.uri_for_api(
-        qcall,
         "root",
         params=PKDict(path_info=sim_type) if sim_type else None,
     )

@@ -23,8 +23,8 @@ import py
 import pyisemail
 import re
 import signal
+import sirepo.modules
 import sirepo.pkcli.setup_dev
-import sirepo.server
 import sirepo.sim_api.jupyterhublogin
 import sirepo.srdb
 import sirepo.template
@@ -44,7 +44,10 @@ def flask():
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.channel_in("dev")
-        app = sirepo.server.init(use_reloader=_cfg().use_reloader, is_server=True)
+        app = sirepo.modules.import_and_init("sirepo.server").init_app(
+            use_reloader=_cfg().use_reloader,
+            is_server=True,
+        )
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = "development"
 

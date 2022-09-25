@@ -15,10 +15,18 @@ is_server = False
 
 flask = None
 
+_app = None
+
 
 def app():
     _assert_flask()
-    return flask.app
+    return _app
+
+
+def app_set(app):
+    global _app
+    assert _app is None
+    _app = app
 
 
 def g():
@@ -46,7 +54,7 @@ def send_file(*args, **kwargs):
 def set_log_user(user_op):
     if not in_request():
         return
-    a = flask.app
+    a = app()
     if not a or not a.sirepo_uwsgi:
         # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
         # the limited http server for development only. This uses

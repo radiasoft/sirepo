@@ -26,7 +26,6 @@ import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
 
-
 #: route for sirepo.srunit
 srunit_uri = None
 
@@ -34,7 +33,7 @@ srunit_uri = None
 _FUNC_PREFIX = "api_"
 
 #: modules that must be initialized
-_REQUIRED_MODULES = ("auth", "job_api", "server", "srtime")
+_REQUIRED_MODULES = ("auth_api", "job_api", "server", "srtime")
 
 #: uri for default dispatches
 _ROUTE_URI_DEFAULT = ""
@@ -119,22 +118,21 @@ def init_module(**imports):
     def _api_modules():
         m = (
             *_REQUIRED_MODULES,
-            *sorted(feature_config.cfg().api_modules),
+            *sorted(sirepo.feature_config.cfg().api_modules),
         )
-        if feature_config.cfg().moderated_sim_types:
+        if sirepo.feature_config.cfg().moderated_sim_types:
             return m + ("auth_role_moderation",)
         return m
 
     if _uri_to_route:
         return
-
-    from sirepo import feature_config
-
+    # import simulation_db
+    sirepo.util.setattr_imports(imports)
     for n in _api_modules():
         register_api_module("sirepo." + n)
     _register_sim_api_modules()
-    _register_sim_oauth_modules(feature_config.cfg().proprietary_oauth_sim_types)
-    _init_uris(app, simulation_db, feature_config.cfg().sim_types)
+    _register_sim_oauth_modules(sirepo.feature_config.cfg().proprietary_oauth_sim_types)
+    _init_uris(simulation_db, sirepo.feature_config.cfg().sim_types)
 
 
 def maybe_sim_type_required_for_api(qcall):
@@ -317,7 +315,7 @@ def _dispatch_empty():
     return _dispatch(None)
 
 
-def _init_uris(app, simulation_db, sim_types):
+def _init_uris(simulation_db, sim_types):
     global _route_default, srunit_uri, _api_to_route, _uri_to_route
 
     assert not _route_default, "_init_uris called twice"
@@ -458,10 +456,8 @@ def _split_uri(uri):
 
 
 def _validate_root_redirect_uris(uri_to_route, simulation_db):
-    from sirepo import feature_config
-
     u = set(uri_to_route.keys())
-    t = feature_config.cfg().sim_types
+    t = sirepo.feature_config.cfg().sim_types
     r = set(simulation_db.SCHEMA_COMMON.rootRedirectUri.keys())
     i = u & r | u & t | r & t
     assert not i, f"rootRedirectUri, sim_types, and routes have overlapping uris={i}"

@@ -28,6 +28,8 @@ _COOKIE_SENTINEL_VALUE = "z"
 
 _SERIALIZER_SEP = " "
 
+_cfg = None
+
 
 def quest_init(qcall):
     qcall.attr_set("cookie", _Cookie(qcall))
@@ -186,7 +188,7 @@ def init_module():
     _cfg = pkconfig.init(
         http_name=(
             "sirepo_" + pkconfig.cfg.channel,
-            __cfg_http_name,
+            _cfg_http_name,
             "Set-Cookie name",
         ),
         private_key=(None, str, "urlsafe base64 encrypted 32-byte key"),

@@ -709,12 +709,13 @@ class API(sirepo.quest.API):
 
 
 def init_apis(*args, **kwargs):
-    for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
-        _app.register_error_handler(int(e), _handle_error)
+    pass
 
 
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
+    import flask
+
     global _app
 
     if _app:
@@ -727,6 +728,8 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     _app.config["PROPAGATE_EXCEPTIONS"] = True
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
+    for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
+        _app.register_error_handler(int(e), _handle_error)
     if _cfg.react_server:
         global _PROXY_REACT_URIS
         p = [
@@ -739,20 +742,22 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
             p.append(f"{x}-schema.json")
         _PROXY_REACT_URIS = set(p)
     sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
+    sirepo.flask.app_set(_app)
     if is_server:
+        global _google_tag_manager
+
+        if _cfg.google_tag_manager_id:
+            _google_tag_manager = f"""<script>
+        (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
+        </script>"""
         sirepo.db_upgrade.do_all()
         # Avoid unnecessary logging
         sirepo.flask.is_server = True
     return _app
 
 
-def init_module():
-    global _google_tag_manager
-
-    if _cfg.google_tag_manager_id:
-        _google_tag_manager = f"""<script>
-    (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
-    </script>"""
+def init_module(**imports):
+    pass
 
 
 def _cfg_react_server(value):
