@@ -21,6 +21,7 @@ import pygments.lexers
 import re
 import rsflash.plotting.extracts
 import sirepo.const
+import sirepo.mpi
 import sirepo.sim_data
 import zipfile
 
@@ -521,8 +522,6 @@ def _generate_par_file(data):
 
 
 def _generate_parameters_file(data, run_dir):
-    from sirepo import mpi
-
     if data.get("report") == "initZipReport":
         return template_common.render_jinja(
             SIM_TYPE,
@@ -548,7 +547,7 @@ def _generate_parameters_file(data, run_dir):
             is_setup_animation=data.get("report") == "setupAnimation",
             par=res,
             par_filename=_SIM_DATA.FLASH_PAR_FILE,
-            mpi_cores=mpi.cfg.cores,
+            mpi_cores=sirepo.mpi.cfg().cores,
         ),
     )
 

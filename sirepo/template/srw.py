@@ -828,8 +828,6 @@ def run_epilogue():
             for p in pkio.sorted_glob("*_mi.h5"):
                 p.remove()
 
-    import sirepo.mpi
-
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
 
@@ -2137,7 +2135,9 @@ def _resize_report(report, ar2d, x_range, y_range):
         width_pixels = _CANVAS_MAX_SIZE
     # roughly 20x size increase for json
     if ar2d.size * _JSON_MESSAGE_EXPANSION > sirepo.job.cfg().max_message_bytes:
-        max_width = int(math.sqrt(sirepo.job.cfg().max_message_bytes / _JSON_MESSAGE_EXPANSION))
+        max_width = int(
+            math.sqrt(sirepo.job.cfg().max_message_bytes / _JSON_MESSAGE_EXPANSION)
+        )
         if max_width < width_pixels:
             pkdc(
                 "auto scaling dimensions to fit message size. size: {}, max_width: {}",
@@ -2311,7 +2311,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or "", v)
     if _SIM_DATA.srw_is_background_report(report) and "beamlineAnimation" not in report:
-        if sirepo.mpi.cfg.in_slurm:
+        if sirepo.mpi.cfg().in_slurm:
             v.sbatchBackup = "1"
         if report == "multiElectronAnimation":
             if dm.multiElectronAnimation.calcCoherence == "1":

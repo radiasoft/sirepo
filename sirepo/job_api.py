@@ -306,12 +306,12 @@ class API(sirepo.quest.API):
         return self._validate_and_add_sbatch_fields(request_content, m)
 
     def _supervisor_uri(self, path):
-        return cfg.supervisor_uri + path
+        return _cfg.supervisor_uri + path
 
     def _validate_and_add_sbatch_fields(self, request_content, compute_model):
         m = compute_model
         c = request_content
-        d = simulation_db.cfg.get("sbatch_display")
+        d = simulation_db.cfg().get("sbatch_display")
         if d and "nersc" in d.lower():
             assert (
                 m.sbatchQueue in sirepo.job.NERSC_QUEUES
@@ -331,6 +331,6 @@ def init_apis(*args, **kwargs):
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
 
 
-cfg = pykern.pkconfig.init(
+_cfg = pykern.pkconfig.init(
     supervisor_uri=sirepo.job.DEFAULT_SUPERVISOR_URI_DECL,
 )

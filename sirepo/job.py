@@ -262,16 +262,6 @@ def init_module():
     return _cfg
 
 
-def init_by_server(app):
-    """Initialize module"""
-    init_module()
-
-    from sirepo import job_api
-    from sirepo import uri_router
-
-    uri_router.register_api_module(job_api)
-
-
 def supervisor_file_uri(supervisor_uri, *args):
     # trailing slash necessary
     return "{}{}/".format(supervisor_uri, "/".join(args))

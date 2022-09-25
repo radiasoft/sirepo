@@ -8,6 +8,7 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
 import dns.resolver
 import dns.reversename
+import pykern.quest
 import sirepo.api_perm
 import sirepo.flask
 import sirepo.modules

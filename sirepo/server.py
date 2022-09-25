@@ -709,11 +709,8 @@ class API(sirepo.quest.API):
 
 
 def init_apis(*args, **kwargs):
-    from sirepo import job
-
     for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
         _app.register_error_handler(int(e), _handle_error)
-    job.init_by_server(_app)
 
 
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
@@ -741,7 +738,7 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
             p.append(x)
             p.append(f"{x}-schema.json")
         _PROXY_REACT_URIS = set(p)
-    sirepo.modules.import_and_init("sirepo.uri_router").init_by_server(_app)
+    sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
     if is_server:
         sirepo.db_upgrade.do_all()
         # Avoid unnecessary logging

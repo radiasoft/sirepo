@@ -27,6 +27,7 @@ import os.path
 import random
 import re
 import sirepo.const
+import sirepo.mpi
 import sirepo.resource
 import sirepo.srdb
 import sirepo.template
@@ -82,13 +83,13 @@ _TMP_DIR = "tmp"
 _serial_prev = 0
 
 #: configuration
-cfg = None
+_cfg = None
 
 #: version for development
 _dev_version = None
 
 #: overridden by sirepo.auth
-hook_auth_user = lambda: cfg.logged_in_user
+hook_auth_user = lambda: _cfg.logged_in_user
 
 
 class CopyRedirect(Exception):
@@ -118,6 +119,10 @@ def app_version():
 def assert_sid(sid):
     assert _ID_RE.search(sid), "invalid sid={}".format(sid)
     return sid
+
+
+def cfg():
+    return _cfg
 
 
 def default_data(sim_type):
@@ -711,7 +716,7 @@ def tmp_dir(chdir=False, uid=None):
     d = None
     try:
         p = user_path(uid, check=True) if uid else logged_in_user_path()
-        d = cfg.tmp_dir or _random_id(p.join(_TMP_DIR), uid=uid)["path"]
+        d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR), uid=uid)["path"]
         pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
         if chdir:
@@ -892,10 +897,9 @@ def _find_user_simulation_copy(simulation_type, sid, uid=None):
 
 
 def _init():
-    from sirepo import mpi
+    global _cfg, JOB_RUN_MODE_MAP
 
-    global cfg, JOB_RUN_MODE_MAP
-    cfg = pkconfig.init(
+    _cfg = pkconfig.init(
         nfs_tries=(10, int, "How many times to poll in hack_nfs_write_status"),
         nfs_sleep=(0.5, float, "Seconds sleep per hack_nfs_write_status poll"),
         sbatch_display=(None, str, "how to display sbatch cluster to user"),
@@ -905,10 +909,10 @@ def _init():
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
         sequential="Serial",
-        parallel="{} cores (SMP)".format(mpi.cfg.cores),
+        parallel="{} cores (SMP)".format(sirepo.mpi.cfg().cores),
     )
-    if cfg.sbatch_display:
-        JOB_RUN_MODE_MAP.sbatch = cfg.sbatch_display
+    if _cfg.sbatch_display:
+        JOB_RUN_MODE_MAP.sbatch = _cfg.sbatch_display
 
 
 def _init_schemas():

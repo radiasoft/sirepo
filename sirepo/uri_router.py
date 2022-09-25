@@ -33,8 +33,8 @@ srunit_uri = None
 #: prefix for api functions
 _FUNC_PREFIX = "api_"
 
-#: modules that must be initialized. server must be first
-_REQUIRED_MODULES = ("server", "auth", "srtime")
+#: modules that must be initialized
+_REQUIRED_MODULES = ("auth", "job_api", "server", "srtime")
 
 #: uri for default dispatches
 _ROUTE_URI_DEFAULT = ""
@@ -62,6 +62,8 @@ _api_modules = []
 
 #: functions which implement APIs
 _api_funcs = PKDict()
+
+_init_for_flask = None
 
 
 def assert_api_name_and_auth(qcall, name, allowed):
@@ -97,8 +99,13 @@ def call_api(qcall, name, kwargs=None, data=None):
     return _call_api(qcall, _api_to_route[name], kwargs=kwargs, data=data)
 
 
-def init_by_server(app)
+def init_for_flask(app):
     """and adds a single flask route (`_dispatch`) to dispatch based on the map."""
+    global _init_for_flask
+
+    if _init_for_flask:
+        return
+    _init_for_flask = True
     app.add_url_rule("/<path:path>", "_dispatch", _dispatch, methods=("GET", "POST"))
     app.add_url_rule("/", "_dispatch_empty", _dispatch_empty, methods=("GET", "POST"))
 
@@ -108,6 +115,7 @@ def init_module(**imports):
 
     Initializes `_uri_to_route`
     """
+
     def _api_modules():
         m = (
             *_REQUIRED_MODULES,
@@ -127,7 +135,6 @@ def init_module(**imports):
     _register_sim_api_modules()
     _register_sim_oauth_modules(feature_config.cfg().proprietary_oauth_sim_types)
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
-
 
 
 def maybe_sim_type_required_for_api(qcall):
