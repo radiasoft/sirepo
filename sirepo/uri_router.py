@@ -97,16 +97,17 @@ def call_api(qcall, name, kwargs=None, data=None):
     return _call_api(qcall, _api_to_route[name], kwargs=kwargs, data=data)
 
 
-def init_module(app, simulation_db):
+def init_by_server(app)
+    """and adds a single flask route (`_dispatch`) to dispatch based on the map."""
+    app.add_url_rule("/<path:path>", "_dispatch", _dispatch, methods=("GET", "POST"))
+    app.add_url_rule("/", "_dispatch_empty", _dispatch_empty, methods=("GET", "POST"))
+
+
+def init_module(**imports):
     """Convert route map to dispatchable callables
 
-    Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
-    dispatch based on the map.
-
-    Args:
-        app (Flask): flask app
+    Initializes `_uri_to_route`
     """
-
     def _api_modules():
         m = (
             *_REQUIRED_MODULES,
@@ -126,6 +127,7 @@ def init_module(app, simulation_db):
     _register_sim_api_modules()
     _register_sim_oauth_modules(feature_config.cfg().proprietary_oauth_sim_types)
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
+
 
 
 def maybe_sim_type_required_for_api(qcall):
@@ -340,8 +342,6 @@ def _init_uris(app, simulation_db, sim_types):
         _not_found_route
     ), f"missing constant route: not found /{_ROUTE_URI_NOT_FOUND}"
     _validate_root_redirect_uris(_uri_to_route, simulation_db)
-    app.add_url_rule("/<path:path>", "_dispatch", _dispatch, methods=("GET", "POST"))
-    app.add_url_rule("/", "_dispatch_empty", _dispatch_empty, methods=("GET", "POST"))
 
 
 def _path_to_route(path):

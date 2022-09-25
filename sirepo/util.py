@@ -29,9 +29,6 @@ import zipfile
 
 cfg = None
 
-#: This should be treated as read only and used sparingly. See discussion in sirepo.server.init
-is_server = False
-
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 

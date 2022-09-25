@@ -10,7 +10,6 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
-import flask
 import re
 import sirepo.quest
 import sirepo.db_upgrade
@@ -20,7 +19,6 @@ import sirepo.resource
 import sirepo.sim_data
 import sirepo.srschema
 import sirepo.uri
-import sirepo.uri_router
 import sirepo.util
 import urllib
 import urllib.parse
@@ -155,7 +153,8 @@ class API(sirepo.quest.API):
                 "ip={}: error parsing javascript exception={} input={}",
                 ip,
                 e,
-                flask.request.data and flask.request.data.decode("unicode-escape"),
+                self.sreq.internal_req.data
+                and self.sreq.internal_req.data.decode("unicode-escape"),
             )
         return self.reply_ok()
 
@@ -296,7 +295,7 @@ class API(sirepo.quest.API):
         from sirepo import importer
 
         # special request parsing here
-        data = importer.do_form(flask.request.form, self)
+        data = importer.do_form(self.sreq.internal_req.request.form, self)
         m = simulation_db.get_schema(data.simulationType).appModes.default
         return self.reply_redirect_for_local_route(
             data.simulationType,
@@ -325,22 +324,22 @@ class API(sirepo.quest.API):
         f = None
 
         try:
-            f = flask.request.files.get("file")
+            f = self.sreq.internal_req.files.get("file")
             if not f:
                 raise sirepo.util.Error(
                     "must supply a file",
                     "no file in request={}",
-                    flask.request.data,
+                    self.sreq.internal_req.data,
                 )
             req = self.parse_params(
                 filename=f.filename,
-                folder=flask.request.form.get("folder"),
-                id=flask.request.form.get("simulationId"),
+                folder=self.sreq.internal_req.form.get("folder"),
+                id=self.sreq.internal_req.form.get("simulationId"),
                 template=True,
                 type=simulation_type,
             )
             req.file_stream = f.stream
-            req.import_file_arguments = flask.request.form.get("arguments", "")
+            req.import_file_arguments = self.sreq.internal_req.form.get("arguments", "")
 
             def s(data):
                 data.models.simulation.folder = req.folder
@@ -548,7 +547,7 @@ class API(sirepo.quest.API):
         return self.reply_json(
             simulation_db.get_schema(
                 self.parse_params(
-                    type=flask.request.form["simulationType"],
+                    type=self.sreq.internal_req.form["simulationType"],
                 ).type,
             ),
         )
@@ -635,7 +634,7 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     def api_uploadFile(self, simulation_type, simulation_id, file_type):
-        f = flask.request.files["file"]
+        f = self.sreq.internal_req.files["file"]
         req = self.parse_params(
             file_type=file_type,
             filename=f.filename,
@@ -654,7 +653,7 @@ class API(sirepo.quest.API):
             if (
                 not e
                 and req.sim_data.lib_file_exists(req.filename)
-                and not flask.request.form.get("confirm")
+                and not self.sreq.internal_req.form.get("confirm")
             ):
                 in_use = _simulations_using_file(req, ignore_sim_id=req.id)
                 if in_use:
@@ -723,11 +722,6 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
 
     if _app:
         return
-    global _google_tag_manager
-    if _cfg.google_tag_manager_id:
-        _google_tag_manager = f"""<script>
-    (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
-    </script>"""
     #: Flask app instance, must be bound globally
     _app = flask.Flask(
         __name__,
@@ -747,12 +741,21 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
             p.append(x)
             p.append(f"{x}-schema.json")
         _PROXY_REACT_URIS = set(p)
-    sirepo.uri_router.init(_app, simulation_db)
+    sirepo.modules.import_and_init("sirepo.uri_router").init_by_server(_app)
     if is_server:
         sirepo.db_upgrade.do_all()
-        # Currently used for a special case in sirepo.util.in_flask_request. Do not use widely, because we should avoid server vs pkcli dependencies.
-        sirepo.util.is_server = True
+        # Avoid unnecessary logging
+        sirepo.flask.is_server = True
     return _app
+
+
+def init_module():
+    global _google_tag_manager
+
+    if _cfg.google_tag_manager_id:
+        _google_tag_manager = f"""<script>
+    (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
+    </script>"""
 
 
 def _cfg_react_server(value):

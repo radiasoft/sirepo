@@ -514,12 +514,14 @@ class _ComputeJob(_Supervisor):
         u = None
         f = None
         try:
-            _too_old = sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
+            _too_old = (
+                sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
+            )
             with sirepo.quest.start() as qcall:
                 for u, v in _get_uids_and_files():
-                    qcall.set_user_outside_of_http_request(u):
-                        for f in v:
-                            _purge_sim(jid=f.purebasename)
+                    qcall.auth.logged_in_user_set(u)
+                    for f in v:
+                        _purge_sim(jid=f.purebasename)
                     await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())

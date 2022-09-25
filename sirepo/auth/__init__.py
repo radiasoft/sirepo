@@ -541,41 +541,6 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
 
-    def set_user_outside_of_http_request(self, uid):
-        """A user set explicitly outside of flask request cycle
-
-        This will try to guess the auth method the user used to authenticate.
-        """
-
-        def _auth_module():
-            for m in _cfg.methods:
-                a = _METHOD_MODULES[m]
-                if _method_user_model(a, uid):
-                    return a
-            # Only try methods without UserModel after methods with have been
-            # exhausted. This ensures that if there is a method with a UserModel
-            # we use it so calls like `user_name` work.
-            for m in _cfg.methods:
-                a = _METHOD_MODULES[m]
-                if not hasattr(a, "UserModel"):
-                    return a
-            raise AssertionError(
-                f"no module found for uid={uid} in cfg.methods={_cfg.methods}",
-            )
-
-        assert (
-            not sirepo.util.in_flask_request()
-        ), "Only call from outside a flask request context"
-        assert sirepo.auth_db.UserRegistration.search_by(
-            uid=uid
-        ), f"no registered user with uid={uid}"
-        with self.qcall.cookie.set_cookie_outside_of_flask_request():
-            _login_user(
-                _auth_module(),
-                uid,
-            )
-            yield
-
     def unchecked_get_user(self, uid):
         with sirepo.util.THREAD_LOCK:
             u = sirepo.auth_db.UserRegistration.search_by(uid=uid)

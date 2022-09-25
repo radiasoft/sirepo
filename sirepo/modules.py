@@ -6,77 +6,44 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import pykern.pkinspect
+import importlib
 
 
 def import_and_init(name):
-    n = pykern.pkinspect.caller_module().__name__
-    if n == "sirepo.job_supervisor":
-        pass
-    elif n == "sirepo.server":
-        pass
-    elif n = "sirepo.auth":
-        pass
-    elif n = "sirepo.uri":
-        # just needs itself
-        pass
-    else:
-        raise AssertionError(f"unsupported module={n}")
+    values = PKDict(want_flask=False)
 
+    def _i(name, kw):
+        m = importlib.import_module(name)
+        m.init_module(**{k: values[k] for k in kw})
+        values[name.split(".")[-1]] = m
+        return m
 
-    sirepo.auth_db.init_module()
-
-
-
-    sirepo.srtime.init_module()
-
-    sirepo.flask
-
-    # auth needs init these first, no imports
-    sirepo.cookie.init()
-    sirepo.auth_db.init()
-
-
-    # these can be first
-    sirepo.http_request (
-        simulation_db
-    )
-    sirepo.http_reply.init(
-        simulation_db
-    )
-    sirepo.uri.init(
-        simulation_db=m.simulation_db,
-        uri_router=m
-    )
-    # quest
-    sirepo.quest.init(
-        http_reply
-        http_request
-        uri_router
-    )
-
-    sirepo.uri_router.init_module(app, simulation_db)
-
-    # after auth_db
-    sirepo.session.init()
-
-
-    # job_supervisor doesn't need job_driver in its init so do first
-    sirepo.job_supervisor.init_module(job_driver)
-    sirepo.job_driver.init_module(sirepo.job_supervisor)
-
-
-./uri_router.py:def init_module(app, simulation_db):
-./job_driver/__init__.py:def init_module(job_supervisor_module):
-./srtime.py:def init_module():
-./auth_db.py:def init_module():
-./session.py:def init_module():
-./job_supervisor.py:def init_module():
-./job.py:def init_module():
-./http_request.py:def init_module(**imports):
-./uri.py:def init_module(**imports):
-./http_reply.py:def init_module(**imports):
-./cookie.py:def init_module():
-./flask.py:def init_module(_in_app=True):
-./auth/__init__.py:def init_module():
-./quest.py:def init_module(**imports):
+    _i("sirepo.srtime", [])
+    _i("sirepo.flask", ["want_flask"])
+    _i("sirepo.job", [])
+    m = _i("sirepo.uri_router", ["simulation_db"])
+    if "sirepo.uri_router" == name:
+        # Used by server so rest everything should already be initialized
+        return m
+    m = _i("sirepo.uri", ["simulation_db", "uri_router"])
+    if "sirepo.uri" == name:
+        return m
+    _i("sirepo.auth_db", [])
+    _i("sirepo.session", [])
+    _i("sirepo.cookie", [])
+    _i("sirepo.http_request", ["simulation_db"])
+    _i("sirepo.http_reply", ["simulation_db"])
+    _i("sirepo.uri", ["simulation_db", "uri_router"])
+    _i("sirepo.quest", ["http_reply", "http_request", "uri_router"])
+    m = _i("sirepo.auth", [])
+    if "sirepo.auth" == name:
+        return m
+    if "sirepo.server" == name:
+        return _i("sirepo.job_supervisor", ["job_driver"])
+    if "sirepo.job_supervisor" == name:
+        # job_supervisor doesn't need job_driver in its init so hack this
+        values.job_driver = importlib.import_module("sirepo.job_driver")
+        _i("sirepo.job_supervisor", ["job_driver"])
+        _i("sirepo.job_driver", ["job_supervisor"])
+        return
+    raise AssertionError(f"unsupported module={name}")
