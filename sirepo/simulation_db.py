@@ -824,6 +824,9 @@ def validate_serial(req_data):
         req_data (dict): request with serial and possibly models
     """
     if req_data.get("version") != SCHEMA_COMMON.version:
+        pkdlog(
+            "req_data={} != server={}", req_data.get("version"), SCHEMA_COMMON.version
+        )
         raise util.SRException("serverUpgraded", None)
     with util.THREAD_LOCK:
         sim_type = sirepo.template.assert_sim_type(req_data.simulationType)

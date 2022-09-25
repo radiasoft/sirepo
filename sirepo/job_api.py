@@ -173,7 +173,7 @@ class API(sirepo.quest.API):
     def api_runSimulation(self):
         r = self._request_content(PKDict(fixup_old_data=True))
         if r.isParallel:
-            r.isPremiumUser = sirepo.auth.is_premium_user()
+            r.isPremiumUser = self.auth.is_premium_user()
         return self.request(_request_content=r)
 
     @sirepo.quest.Spec("require_user")

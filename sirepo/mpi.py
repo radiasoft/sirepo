@@ -32,7 +32,7 @@ def cfg():
 
 def get_cmd():
     c = ["python", "parameters.py"]
-    return c if cfg.in_slurm else _mpiexec_cmd() + c
+    return c if _cfg.in_slurm else _mpiexec_cmd() + c
 
 
 def restrict_op_to_first_rank(op):
