@@ -13,7 +13,6 @@ import pykern.pkcli
 import sirepo.auth
 import sirepo.auth_role
 import sirepo.auth_db
-import sirepo.server
 
 
 def add(uid_or_email, *roles):
@@ -67,7 +66,6 @@ def list_roles(*args):
 # doesn't work for other auth methods (ex GitHub)
 @contextlib.contextmanager
 def _parse_args(uid_or_email, roles):
-    sirepo.server.init()
     with sirepo.auth.quest_start() as qcall:
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_email:

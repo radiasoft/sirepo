@@ -35,9 +35,9 @@ _DB_DIR = "db"
 
 @contextlib.contextmanager
 def auth_db_session():
-    import sirepo.auth_db
+    from sirepo import auth
 
-    with sirepo.auth_db.session():
+    with auth.quest_start():
         yield
 
 
