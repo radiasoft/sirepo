@@ -835,37 +835,6 @@ def split_jid(jid):
     )
 
 
-def init_module():
-    global _cfg
-
-    if _cfg:
-        return
-    _cfg = pkconfig.init(
-        lib_file_resource_only=(False, bool, "used by utility programs"),
-        lib_file_list=(
-            None,
-            lambda v: pkio.read_text(v).split("\n"),
-            "directory listing of remote lib",
-        ),
-        lib_file_uri=(None, str, "where to get files from when remote"),
-        local_share_dir=(
-            "/home/vagrant/.local/share",
-            pkio.py_path,
-            "dir for installed user files",
-        ),
-        supervisor_sim_db_file_uri=(
-            None,
-            str,
-            "where to get/put simulation db files from/to supervisor",
-        ),
-        supervisor_sim_db_file_token=(
-            None,
-            str,
-            "token for supervisor simulation file access",
-        ),
-    )
-
-
 def _request(method, uri, data=None):
     r = requests.request(
         method,
@@ -882,3 +851,24 @@ def _request(method, uri, data=None):
     if method == "GET" and r.status_code == 404:
         raise SimDbFileNotFound(f"uri={uri} not found")
     return r
+
+
+_cfg = pkconfig.init(
+    lib_file_resource_only=(False, bool, "used by utility programs"),
+    lib_file_list=(
+        None,
+        lambda v: pkio.open_text(v).splitlines(),
+        "directory listing of remote lib",
+    ),
+    lib_file_uri=(None, str, "where to get files from when remote"),
+    supervisor_sim_db_file_uri=(
+        None,
+        str,
+        "where to get/put simulation db files from/to supervisor",
+    ),
+    supervisor_sim_db_file_token=(
+        None,
+        str,
+        "token for supervisor simulation file access",
+    ),
+)

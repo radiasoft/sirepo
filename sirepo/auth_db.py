@@ -116,7 +116,13 @@ def db_filename():
     return sirepo.srdb.root().join(_SQLITE3_BASENAME)
 
 
-def init():
+def init_model(callback):
+    with sirepo.util.THREAD_LOCK:
+        callback(UserDbBase)
+        UserDbBase.metadata.create_all(_engine)
+
+
+def init_module():
     global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole, UserRoleInvite
 
     if _engine:
@@ -416,14 +422,7 @@ def init():
     b.metadata.create_all(_engine)
 
 
-def init_model(callback):
-    with sirepo.util.THREAD_LOCK:
-        callback(UserDbBase)
-        UserDbBase.metadata.create_all(_engine)
-
-
 def quest_init(qcall):
-    init()
     qcall.attr_set("auth_db", _AuthDb())
 
 

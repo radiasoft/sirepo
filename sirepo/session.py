@@ -19,6 +19,8 @@ _USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
 
 _ID_ATTR = "session_id"
 
+_initialized = None
+
 
 def quest_init(qcall):
     def _new_session():
@@ -60,7 +62,11 @@ def quest_init(qcall):
     qcall.bucket_set(_ID_ATTR, i)
 
 
-def init():
+def init_module():
+    global _initialized
+    if _initialized:
+        return
+    _initialized = True
     sirepo.auth_db.init_model(_init_model)
     sirepo.events.register(PKDict(end_api_call=_end_api_call))
 

@@ -97,7 +97,7 @@ def call_api(qcall, name, kwargs=None, data=None):
     return _call_api(qcall, _api_to_route[name], kwargs=kwargs, data=data)
 
 
-def init(app, simulation_db):
+def init_module(app, simulation_db):
     """Convert route map to dispatchable callables
 
     Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
@@ -126,22 +126,6 @@ def init(app, simulation_db):
     _register_sim_api_modules()
     _register_sim_oauth_modules(feature_config.cfg().proprietary_oauth_sim_types)
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
-    sirepo.http_request.init(
-        simulation_db=simulation_db,
-    )
-    sirepo.http_reply.init(
-        simulation_db=simulation_db,
-    )
-    sirepo.uri.init(
-        simulation_db=simulation_db,
-        uri_router=pkinspect.this_module(),
-    )
-    sirepo.quest.init(
-        http_reply=sirepo.http_reply,
-        http_request=sirepo.http_request,
-        uri_router=pkinspect.this_module(),
-    )
-    sirepo.session.init()
 
 
 def maybe_sim_type_required_for_api(qcall):

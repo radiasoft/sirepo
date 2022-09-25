@@ -223,8 +223,11 @@ def headers_for_no_cache(resp):
     return resp
 
 
-def init(**imports):
+def init_module(**imports):
     global MIME_TYPE, _RELOAD_JS_ROUTES
+
+    if MIME_TYPE:
+        return
 
     # import simulation_db
     sirepo.util.setattr_imports(imports)

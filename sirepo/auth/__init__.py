@@ -81,14 +81,14 @@ non_guest_methods = None
 #: avoid circular import issues by importing in init_apis
 uri_router = None
 
-cfg = None
+_cfg = None
 
 
 def quest_init(qcall):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
     sirepo.auth_db.quest_init(qcall)
-    if not cfg.logged_in_user:
+    if not _cfg.logged_in_user:
         sirepo.request.quest_init(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
@@ -99,9 +99,10 @@ def quest_init(qcall):
 
 
 def quest_start(uid=None):
-    server init
-    starts sirepo.quest.API only
-
+    if not _cfg:
+        sirepo.modules.import_and_init("sirepo.auth")
+    finish this
+    assert 0
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel", display_name="UserDisplayName")
@@ -144,11 +145,11 @@ class API(sirepo.quest.API):
 
 def hack_logged_in_user():
     # avoids case of no quest (sirepo.agent)
-    return cfg.logged_in_user or sirepo.quest.hack_current().auth.logged_in_user()
+    return _cfg.logged_in_user or sirepo.quest.hack_current().auth.logged_in_user()
 
 
-def init():
-    global cfg
+def init_module():
+    global _cfg
 
     def _init_full():
         global visible_methods, valid_methods, non_guest_methods
@@ -157,26 +158,26 @@ def init():
         sirepo.auth_db.init()
         p = pkinspect.this_module().__name__
         visible_methods = []
-        valid_methods = cfg.methods.union(cfg.deprecated_methods)
+        valid_methods = _cfg.methods.union(_cfg.deprecated_methods)
         for n in valid_methods:
             m = importlib.import_module(pkinspect.module_name_join((p, n)))
             _METHOD_MODULES[n] = m
-            if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
+            if m.AUTH_METHOD_VISIBLE and n in _cfg.methods:
                 visible_methods.append(n)
         visible_methods = tuple(sorted(visible_methods))
         non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
 
-    if cfg:
+    if _cfg:
         return
 
-    cfg = pkconfig.init(
+    _cfg = pkconfig.init(
         methods=((METHOD_GUEST,), set, "for logging in"),
         deprecated_methods=(set(), set, "for migrating to methods"),
         logged_in_user=(None, str, "Only for sirepo.job_supervisor"),
     )
-    if cfg.logged_in_user or not init_full:
-        cfg.deprecated_methods = frozenset()
-        cfg.methods = frozenset((METHOD_GUEST,))
+    if _cfg.logged_in_user or not init_full:
+        _cfg.deprecated_methods = frozenset()
+        _cfg.methods = frozenset((METHOD_GUEST,))
     else:
         from sirepo import simulation_db
 
@@ -186,10 +187,8 @@ def init():
 
 
 def init_apis(*args, **kwargs):
-    init("init_apis")
-
     global uri_router
-    assert not cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
+    assert not _cfg.logged_in_user, "Do not set $SIREPO_AUTH_LOGGED_IN_USER in server"
     uri_router = kwargs["uri_router"]
     for m in _METHOD_MODULES.values():
         uri_router.register_api_module(m)
@@ -204,7 +203,7 @@ def init_apis(*args, **kwargs):
 class _Auth(sirepo.quest.Attr):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._logged_in_user = cfg.logged_in_user
+        self._logged_in_user = _cfg.logged_in_user
 
     def check_sim_type_role(self, sim_type):
         from sirepo import oauth
@@ -256,7 +255,7 @@ class _Auth(sirepo.quest.Attr):
         """
         if values.get(_COOKIE_STATE):
             # normal case: we've seen a cookie at least once
-            # check for cfg.methods changes
+            # check for _cfg.methods changes
             m = values.get(_COOKIE_METHOD)
             if m and m not in valid_methods:
                 # invalid method (changed config), reset state
@@ -377,7 +376,7 @@ class _Auth(sirepo.quest.Attr):
                 guest_uid = self._get_user() if self.is_logged_in() else None
         if uid:
             self._login_user(module, uid)
-        if module.AUTH_METHOD in cfg.deprecated_methods:
+        if module.AUTH_METHOD in _cfg.deprecated_methods:
             pkdlog("deprecated auth method={} uid={}".format(module.AUTH_METHOD, uid))
             if not uid:
                 # No user so clear cookie so this method is removed
@@ -502,14 +501,14 @@ class _Auth(sirepo.quest.Attr):
         if s is None:
             pass
         elif s == _STATE_LOGGED_IN:
-            if m in cfg.methods:
+            if m in _cfg.methods:
 
                 f = getattr(_METHOD_MODULES[m], "validate_login", None)
                 if f:
                     pkdc("validate_login method={}", m)
                     f(self)
                 return u
-            if m in cfg.deprecated_methods:
+            if m in _cfg.deprecated_methods:
                 e = "deprecated"
             else:
                 e = "invalid"
@@ -518,7 +517,7 @@ class _Auth(sirepo.quest.Attr):
             e = "auth_method={} is {}, forcing login: uid=".format(m, e, u)
         elif s == _STATE_LOGGED_OUT:
             e = "logged out uid={}".format(u)
-            if m in cfg.deprecated_methods:
+            if m in _cfg.deprecated_methods:
                 # Force login to this specific method so we can migrate to valid method
                 r = "loginWith"
                 p = PKDict({":method": m})
@@ -554,19 +553,19 @@ class _Auth(sirepo.quest.Attr):
         """
 
         def _auth_module():
-            for m in cfg.methods:
+            for m in _cfg.methods:
                 a = _METHOD_MODULES[m]
                 if _method_user_model(a, uid):
                     return a
             # Only try methods without UserModel after methods with have been
             # exhausted. This ensures that if there is a method with a UserModel
             # we use it so calls like `user_name` work.
-            for m in cfg.methods:
+            for m in _cfg.methods:
                 a = _METHOD_MODULES[m]
                 if not hasattr(a, "UserModel"):
                     return a
             raise AssertionError(
-                f"no module found for uid={uid} in cfg.methods={cfg.methods}",
+                f"no module found for uid={uid} in cfg.methods={_cfg.methods}",
             )
 
         assert (
@@ -730,7 +729,7 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.cookie.set_value(_COOKIE_USER, uid)
         self.qcall.cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
         s = _STATE_LOGGED_IN
-        if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
+        if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in _cfg.methods:
             u = self.user_registration(uid)
             if not u.display_name:
                 s = _STATE_COMPLETE_REGISTRATION

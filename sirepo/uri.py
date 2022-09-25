@@ -38,7 +38,7 @@ def default_local_route_name(schema):
     return schema.appDefaults.route
 
 
-def init(**imports):
+def init_module(**imports):
     import sirepo.util
 
     # import simulation_db, uri_route

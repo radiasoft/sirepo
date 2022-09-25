@@ -63,7 +63,11 @@ class API(sirepo.quest.API):
         )
 
 
-def init():
+def init_apis(*args, **kwargs):
+    init_module()
+
+
+def init_module():
     global _initialized, utc_now_as_int
     if _initialized:
         return
@@ -73,10 +77,6 @@ def init():
         utc_now_as_float = time.time
         utc_now = datetime.datetime.utcnow
     utc_now_as_int = lambda: int(utc_now_as_float())
-
-
-def init_apis(*args, **kwargs):
-    init()
 
 
 def to_timestamp(dt):

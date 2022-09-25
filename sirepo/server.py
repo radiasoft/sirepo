@@ -712,7 +712,15 @@ class API(sirepo.quest.API):
         return self.headers_for_no_cache(self.reply_json(data))
 
 
-def init_module(uwsgi=None, use_reloader=False, is_server=False):
+def init_apis(*args, **kwargs):
+    from sirepo import job
+
+    for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
+        _app.register_error_handler(int(e), _handle_error)
+    job.init_by_server(_app)
+
+
+def init_app(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     global _app
 
@@ -748,14 +756,6 @@ def init_module(uwsgi=None, use_reloader=False, is_server=False):
         # Currently used for a special case in sirepo.util.in_flask_request. Do not use widely, because we should avoid server vs pkcli dependencies.
         sirepo.util.is_server = True
     return _app
-
-
-def init_apis(*args, **kwargs):
-    from sirepo import job
-
-    for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
-        _app.register_error_handler(int(e), _handle_error)
-    job.init_by_server(_app)
 
 
 def _cfg_react_server(value):

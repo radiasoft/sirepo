@@ -40,7 +40,7 @@ def default_command():
         ip=(sirepo.job.DEFAULT_IP, str, "ip to listen on"),
         port=(sirepo.job.DEFAULT_PORT, int, "what port to listen on"),
     )
-    sirepo.job_supervisor.init_module()
+    sirepo.modules.import_and_init("sirepo.job_supervisor")
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
     pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     app = tornado.web.Application(

@@ -18,7 +18,7 @@ MYAPP = "myapp"
 #: import sirepo.server
 server = None
 
-#: app result from server.init
+#: app result from server.init_app
 app = None
 
 #: Matches javascript-redirect.html
@@ -78,13 +78,12 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=Fals
 
         with contextlib.nullcontext() if no_chdir_work else pkunit.save_chdir_work():
             from pykern import pkio
+            from sirepo import modules
 
             setup_srdb_root(cfg=cfg)
             pkconfig.reset_state_for_testing(cfg)
-            from sirepo import server as s
-
-            server = s
-            app = server.init(is_server=True)
+            server = modules.import_and_init("sirepo.server")
+            app = server.init_app(is_server=True)
             app.config["TESTING"] = True
             app.test_client_class = _TestClient
             setattr(app, a, app.test_client(job_run_mode=job_run_mode))
@@ -173,9 +172,11 @@ def test_in_request(
 
 class UwsgiClient(PKDict):
     def __init__(self, env, *args, **kwargs):
-        import sirepo.pkcli.service
+        from sirepo.pkcli import service
+        from sirepo import modules
 
-        c = sirepo.pkcli.service._cfg()
+        modules.import_and_init("sirepo.uri")
+        c = service._cfg()
         for k in ("nginx_proxy_port", "ip"):
             self[f"_{k}"] = env.get(f"SIREPO_PKCLI_SERVICE_{k.upper()}") or c[k]
 
@@ -195,10 +196,6 @@ class UwsgiClient(PKDict):
         return pkjson.load_any(r.text)
 
     def _server_route(self, route_or_uri):
-        from sirepo import simulation_db
-        import sirepo.uri
-
-        sirepo.uri.init(simulation_db=simulation_db)
         return sirepo.uri.server_route(route_or_uri, None, None)
 
 

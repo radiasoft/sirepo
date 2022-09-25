@@ -132,15 +132,11 @@ class SlotQueue(sirepo.tornado.Queue):
 
 
 def init_module():
-    global _cfg, _DB_DIR, _NEXT_REQUEST_SECONDS, job_driver
+    global _cfg, _DB_DIR, _NEXT_REQUEST_SECONDS
 
     if _cfg:
         return
-    sirepo.util.init_module(in_flask=False)
-    sirepo.srtime.init_module()
-    from sirepo import job_driver
-
-    job_driver.init_module(pkinspect.this_module())
+    sirepo.modules.init_for_this_module()
     _cfg = pkconfig.init(
         job_cache_secs=(300, int, "when to re-read job state from disk"),
         max_secs=dict(
@@ -196,8 +192,6 @@ def init_module():
 
 
 async def terminate():
-    from sirepo import job_driver
-
     await job_driver.terminate()
 
 
