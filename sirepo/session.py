@@ -49,7 +49,9 @@ def quest_init(qcall):
 
     def _update_session(user_agent_id):
         s = _Session.search_by(user_agent_id=user_agent_id)
-        assert s, f"No session for user_agent_id={user_agent_id}"
+        if not s:
+            pkdlog("Restarting session for user_agent_id={}", user_agent_id)
+            return _new_session()
         l = qcall.auth.is_logged_in()
         t = s.request_time
         if (
@@ -61,6 +63,7 @@ def quest_init(qcall):
         s.login_state = l
         s.request_time = sirepo.srtime.utc_now()
         s.save()
+        return i
 
     def _begin():
         try:
@@ -70,10 +73,7 @@ def quest_init(qcall):
 
     i = qcall.sreq.header_uget(_USER_AGENT_ID_HEADER)
     if qcall.sreq.method_is_post():
-        if not i:
-            i = _new_session()
-        else:
-            _update_session(i)
+        i = _update_session(i) if i else _new_session()
     qcall.bucket_set(_ID_ATTR, i)
 
 

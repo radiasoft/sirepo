@@ -203,7 +203,8 @@ class _Dispatcher(PKDict):
                             s,
                         )
                         raise tornado.iostream.StreamClosedError()
-                    s = await self._op(r)
+                    with sirepo.quest.start():
+                        s = await self._op(r)
             except Exception as e:
                 pkdlog("error={} stack={}", e, pkdexc())
                 # TODO(e-carlin): exponential backoff?

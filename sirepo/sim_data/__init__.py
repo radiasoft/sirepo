@@ -857,7 +857,7 @@ _cfg = pkconfig.init(
     lib_file_resource_only=(False, bool, "used by utility programs"),
     lib_file_list=(
         None,
-        lambda v: pkio.open_text(v).splitlines(),
+        lambda v: pkio.read_text(v).splitlines(),
         "directory listing of remote lib",
     ),
     lib_file_uri=(None, str, "where to get files from when remote"),
