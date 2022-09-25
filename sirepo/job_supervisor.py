@@ -189,7 +189,6 @@ def init():
             job.SEQUENTIAL: 1,
         }
     )
-    sirepo.auth.init()
     tornado.ioloop.IOLoop.current().add_callback(
         _ComputeJob.purge_free_simulations,
     )
@@ -339,7 +338,7 @@ class _Supervisor(PKDict):
                 return m - db.computeJobQueued
 
             r = []
-            with sirepo.auth_db.session():
+            with sirepo.auth.quest_start():
                 for i in filter(_filter_jobs, _ComputeJob.instances.values()):
                     d = PKDict(
                         simulationType=i.db.simulationType,
@@ -520,9 +519,9 @@ class _ComputeJob(_Supervisor):
         f = None
         try:
             _too_old = sirepo.srtime.utc_now_as_int() - cfg.purge_non_premium_after_secs
-            with sirepo.auth_db.session():
+            with sirepo.auth.quest_start() as qcall:
                 for u, v in _get_uids_and_files():
-                    with sirepo.auth.set_user_outside_of_http_request(u):
+                    qcall.set_user_outside_of_http_request(u):
                         for f in v:
                             _purge_sim(jid=f.purebasename)
                     await tornado.gen.sleep(0)

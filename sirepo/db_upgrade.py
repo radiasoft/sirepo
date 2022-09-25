@@ -30,20 +30,20 @@ def do_all():
         not _prevent_db_upgrade_file().exists()
     ), f"prevent_db_upgrade_file={_prevent_db_upgrade_file()} found"
 
-    with sirepo.auth_db.session():
+    with sirepo.auth.quest_start() as qcall:
         a = sirepo.auth_db.DbUpgrade.search_all_for_column("name")
         f = pkinspect.module_functions("_2")
         for n in sorted(set(f.keys()) - set(a)):
             with _backup_db_and_prevent_upgrade_on_error():
                 pkdlog("running upgrade {}", n)
-                f[n]()
+                f[n](qcall=qcall)
                 sirepo.auth_db.DbUpgrade(
                     name=n,
                     created=sirepo.srtime.utc_now(),
                 ).save()
 
 
-def _20210211_add_flash_proprietary_lib_files(force=False):
+def _20210211_add_flash_proprietary_lib_files(qcall, force=False):
     """Add proprietary lib files to existing FLASH users' lib dir"""
 
     if not sirepo.template.is_sim_type("flash"):
@@ -62,7 +62,7 @@ def _20210211_add_flash_proprietary_lib_files(force=False):
         )
 
 
-def _20210211_upgrade_runner_to_job_db():
+def _20210211_upgrade_runner_to_job_db(qcall):
     """Create the job supervisor db state files"""
 
     def _add_compute_status(run_dir, data):
@@ -95,7 +95,7 @@ def _20210211_upgrade_runner_to_job_db():
                 return
             raise
         u = sirepo.simulation_db.uid_from_dir_name(run_dir)
-        sirepo.auth.cfg.logged_in_user = u
+        qcall.auth.logged_in_user_set(u)
         c = sirepo.sim_data.get_class(i.simulationType)
         d = PKDict(
             computeJid=c.parse_jid(i, u),
@@ -164,11 +164,11 @@ def _20210211_upgrade_runner_to_job_db():
             pkdlog(s, **k)
 
 
-def _20210218_add_flash_proprietary_lib_files_force():
+def _20210218_add_flash_proprietary_lib_files_force(qcall):
     _20210211_add_flash_proprietary_lib_files(force=True)
 
 
-def _20210301_migrate_role_jupyterhub():
+def _20210301_migrate_role_jupyterhub(qcall):
     r = sirepo.auth_role.for_sim_type("jupyterhublogin")
     if (
         not sirepo.template.is_sim_type("jupyterhublogin")
@@ -179,7 +179,7 @@ def _20210301_migrate_role_jupyterhub():
         sirepo.auth_db.UserRole.add_roles(u, r)
 
 
-def _20220609_add_expiration_column_to_user_role_t():
+def _20220609_add_expiration_column_to_user_role_t(qcall):
     sirepo.auth_db.UserDbBase.add_column_if_not_exists(
         sirepo.auth_db.UserRole,
         "expiration",
@@ -187,9 +187,9 @@ def _20220609_add_expiration_column_to_user_role_t():
     )
 
 
-def _20220901_migrate_ml_to_activait():
+def _20220901_migrate_ml_to_activait(qcall):
     for u in sirepo.auth_db.all_uids():
-        _migrate_sim_type("ml", "activait", uid=u)
+        _migrate_sim_type("ml", "activait", u, qcall)
 
 
 @contextlib.contextmanager
@@ -205,30 +205,28 @@ def _backup_db_and_prevent_upgrade_on_error():
         raise
 
 
-def _migrate_sim_type(old_sim_type, new_sim_type, uid=None):
-    if uid is None:
-        return
+def _migrate_sim_type(old_sim_type, new_sim_type, qcall, uid):
+    assert uid
     # can't use simulation_dir (or simulation_lib_dir) because the old sim doesn't exist
     old_sim_dir = sirepo.simulation_db.user_path(uid).join(old_sim_type)
     if not old_sim_dir.exists():
         return
     new_sim_dir = sirepo.simulation_db.simulation_dir(new_sim_type, uid=uid)
     new_lib_dir = sirepo.simulation_db.simulation_lib_dir(new_sim_type, uid=uid)
-    with sirepo.util.THREAD_LOCK:
-        for p in pkio.sorted_glob(old_sim_dir.join("lib").join("*")):
-            shutil.copy2(p, new_lib_dir.join(p.basename))
-        for p in pkio.sorted_glob(
-            old_sim_dir.join("*", sirepo.simulation_db.SIMULATION_DATA_FILE)
-        ):
-            data = sirepo.simulation_db.read_json(p)
-            sim = data.models.simulation
-            if sim.get("isExample"):
-                continue
-            new_p = new_sim_dir.join(sirepo.simulation_db.sim_from_path(p)[0])
-            if new_p.exists():
-                continue
-            pkio.mkdir_parent(new_p)
-            shutil.copy2(p, new_p.join(sirepo.simulation_db.SIMULATION_DATA_FILE))
+    for p in pkio.sorted_glob(old_sim_dir.join("lib").join("*")):
+        shutil.copy2(p, new_lib_dir.join(p.basename))
+    for p in pkio.sorted_glob(
+        old_sim_dir.join("*", sirepo.simulation_db.SIMULATION_DATA_FILE)
+    ):
+        data = sirepo.simulation_db.read_json(p)
+        sim = data.models.simulation
+        if sim.get("isExample"):
+            continue
+        new_p = new_sim_dir.join(sirepo.simulation_db.sim_from_path(p)[0])
+        if new_p.exists():
+            continue
+        pkio.mkdir_parent(new_p)
+        shutil.copy2(p, new_p.join(sirepo.simulation_db.SIMULATION_DATA_FILE))
 
 
 def _prevent_db_upgrade_file():

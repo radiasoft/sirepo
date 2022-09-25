@@ -125,10 +125,10 @@ class DriverBase(PKDict):
         )
 
     def make_lib_dir_symlink(self, op):
-        import sirepo.auth_db
+        import sirepo.auth
 
         m = op.msg
-        with sirepo.auth_db.session(uid=m.uid):
+        with sirepo.auth.quest_start(uid=m.uid):
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
             op.lib_dir_symlink.mksymlinkto(d, absolute=True)

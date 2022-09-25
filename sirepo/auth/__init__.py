@@ -88,15 +88,18 @@ def quest_init(qcall):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
     sirepo.auth_db.quest_init(qcall)
-    sirepo.request.quest_init(qcall)
-    pkdp(cfg.logged_in_user)
     if not cfg.logged_in_user:
+        sirepo.request.quest_init(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
         sirepo.cookie.quest_init(qcall)
         # TODO(robnagler) auth_db
         o._set_log_user()
         sirepo.session.quest_init(qcall)
+
+
+def quest_start():
+    starts sirepo.quest.API only
 
 
 class API(sirepo.quest.API):
@@ -198,6 +201,10 @@ def init_apis(*args, **kwargs):
 
 
 class _Auth(sirepo.quest.Attr):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._logged_in_user = cfg.logged_in_user
+
     def check_sim_type_role(self, sim_type):
         from sirepo import oauth
         from sirepo import auth_role_moderation
@@ -315,8 +322,8 @@ class _Auth(sirepo.quest.Attr):
         Returns:
             str: uid of authenticated user
         """
-        if cfg.logged_in_user:
-            return cfg.logged_in_user
+        if self._logged_in_user:
+            return self._logged_in_user
         u = self._get_user()
         if not self.is_logged_in():
             raise sirepo.util.SRException(
@@ -334,6 +341,10 @@ class _Auth(sirepo.quest.Attr):
 
             simulation_db.user_path(u, check=True)
         return u
+
+    def logged_in_user_set(self, uid):
+        """Ephemeral login"""
+        self._logged_in_user = uid
 
     def login(
         self,
