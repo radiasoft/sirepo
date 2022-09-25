@@ -16,36 +16,42 @@ from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import contextlib
+import importlib
 import os
 import psutil
 import py
+import pyisemail
 import re
 import signal
+import sirepo.pkcli.setup_dev
+import sirepo.server
+import sirepo.sim_api.jupyterhublogin
+import sirepo.srdb
+import sirepo.template
+import sirepo.util
+import socket
 import socket
 import subprocess
 import time
+import werkzeug.serving
+
 
 __cfg = None
 
 
 def flask():
-    from sirepo import server
-    from sirepo import util
-    import sirepo.pkcli.setup_dev
-
     with pkio.save_chdir(_run_dir()) as r:
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.channel_in("dev")
-        app = server.init(use_reloader=_cfg().use_reloader, is_server=True)
+        app = sirepo.server.init(use_reloader=_cfg().use_reloader, is_server=True)
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = "development"
-        import werkzeug.serving
 
         werkzeug.serving.click = None
         app.run(
             exclude_patterns=[str(r.join("*"))],
-            extra_files=util.files_to_watch_for_reload("json"),
+            extra_files=sirepo.util.files_to_watch_for_reload("json"),
             host=_cfg().ip,
             port=_cfg().port,
             threaded=True,
@@ -147,10 +153,6 @@ def http():
 
 
 def jupyterhub():
-    import importlib
-    import sirepo.template
-    import socket
-
     assert pkconfig.channel_in("dev")
     sirepo.template.assert_sim_type("jupyterhublogin")
     # POSIT: versions same in container-beamsim-jupyter/build.sh
@@ -169,10 +171,6 @@ def jupyterhub():
                 m,
                 v,
             )
-    import sirepo.sim_api.jupyterhublogin
-    import sirepo.server
-
-    sirepo.server.init()
     with pkio.save_chdir(_run_dir().join("jupyterhub").ensure(dir=True)) as d:
         pksubprocess.check_call_with_signals(
             (
@@ -190,7 +188,7 @@ def jupyterhub():
             PKDict(_cfg()).pkupdate(
                 # POSIT: Running with nginx and uwsgi
                 sirepo_uri=f"http://{socket.getfqdn()}:{_cfg().nginx_proxy_port}",
-                **sirepo.sim_api.jupyterhublogin.cfg,
+                **sirepo.sim_api.jupyterhublogin.cfg(),
             ),
             output=f,
         )
@@ -210,12 +208,8 @@ def nginx_proxy():
         f = run_dir.join("default.conf")
         c = PKDict(_cfg()).pkupdate(run_dir=str(d))
         if sirepo.template.is_sim_type("jupyterhublogin"):
-            import sirepo.sim_api.jupyterhublogin
-            import sirepo.server
-
-            sirepo.server.init()
             c.pkupdate(
-                jupyterhub_root=sirepo.sim_api.jupyterhublogin.cfg.uri_root,
+                jupyterhub_root=sirepo.sim_api.jupyterhublogin.cfg().uri_root,
             )
         pkjinja.render_resource("nginx_proxy.conf", c, output=f)
         cmd = [
@@ -276,8 +270,6 @@ def _cfg_emails(value):
     Returns:
         list: validated emails
     """
-    import pyisemail
-
     try:
         if not isinstance(value, (list, tuple)):
             value = re.split(r"[,;:\s]+", value)
@@ -316,9 +308,6 @@ def _cfg_react_port(value):
 
 
 def _run_dir():
-    from sirepo import server
-    import sirepo.srdb
-
     if not isinstance(_cfg().run_dir, type(py.path.local())):
         _cfg().run_dir = (
             pkio.mkdir_parent(_cfg().run_dir) if _cfg().run_dir else sirepo.srdb.root()

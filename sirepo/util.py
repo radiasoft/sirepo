@@ -281,6 +281,15 @@ def import_submodule(submodule, type_or_data):
     )
 
 
+def init(in_flask):
+    """Override some functions unless we are in flask"""
+
+    if not in_flask:
+        global in_flask_request, flask_app
+        in_flask_request = lambda: False
+        flask_app = lambda: None
+
+
 def in_flask_request():
     # These are globals but possibly accessed from a threaded context. That is
     # desired so we limit logging between all threads.

@@ -99,6 +99,7 @@ def quest_init(qcall):
 
 
 def quest_start(uid=None):
+    server init
     starts sirepo.quest.API only
 
 

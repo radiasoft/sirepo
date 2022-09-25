@@ -11,7 +11,6 @@ import pyisemail
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.auth_role
-import sirepo.server
 import sirepo.sim_api.jupyterhublogin
 import sirepo.template
 
@@ -65,16 +64,16 @@ def create_user(email, display_name):
 
     if not pyisemail.is_email(email):
         pkcli.command_error("invalid email={}", email)
-    sirepo.server.init()
     sirepo.template.assert_sim_type("jupyterhublogin")
     with sirepo.auth.quest_start() as qcall:
         u = maybe_create_sirepo_user(
+            qcall,
             qcall.auth.get_module("email"),
             email,
             display_name,
         )
-        with qcall.auth.set_user_outside_of_http_request(u):
-            n = sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)
+        qcall.auth.logged_in_user_set(u)
+        n = sirepo.sim_api.jupyterhublogin.create_user(qcall, check_dir=True)
         sirepo.auth_db.UserRole.add_roles(
             u, sirepo.auth_role.for_sim_type("jupyterhublogin")
         )

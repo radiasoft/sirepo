@@ -187,7 +187,6 @@ def _is_src_dir(d):
 
 
 def _iterate_sims_by_users(qcall, all_sim_types):
-    sirepo.server.init()
     for d in pkio.sorted_glob(simulation_db.user_path_root().join("*")):
         if _is_src_dir(d):
             continue

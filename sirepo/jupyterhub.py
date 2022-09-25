@@ -11,7 +11,7 @@ import jupyterhub.auth
 import pykern.pkresource
 import re
 import requests
-import sirepo.server
+import sirepo.simulation_db
 import tornado.web
 import traitlets
 
@@ -31,10 +31,6 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
     refresh_pre_spawn = True
 
     sirepo_uri = traitlets.Unicode(config=True, help="uri to reach sirepo")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        sirepo.server.init()
 
     async def authenticate(self, handler, data):
         # returning None means the user is forbidden (403)
@@ -70,7 +66,8 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
             m = re.search(
                 r'window.location = "(.*)"', pkcompat.from_bytes(response.content)
             )
-            m and _handle_unauthenticated(m.group(1))
+            if m:
+                _handle_unauthenticated(m.group(1))
 
         def _maybe_srexception(response):
             if "srException" not in response:
@@ -99,7 +96,7 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
         _maybe_html(r)
         res = PKDict(r.json())
         _maybe_srexception(res)
-        assert "username" in res, f"unexpected response={res}"
+        assert "username" in res, f"expected username in response={res}"
         return res
 
     def _redirect(self, handler, uri):

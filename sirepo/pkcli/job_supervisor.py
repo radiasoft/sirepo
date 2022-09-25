@@ -44,7 +44,7 @@ def default_command():
     sirepo.job_supervisor.init()
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
     pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
-    sirepo.util.in_flask_request = lambda: False
+    sirepo.util.init(in_flask=False)
     app = tornado.web.Application(
         sirepo.react_proxy.routes()
         + [

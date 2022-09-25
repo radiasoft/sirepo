@@ -21,7 +21,7 @@ import sirepo.uri_router
 import sirepo.util
 import sqlalchemy
 
-cfg = None
+_cfg = None
 
 #: Used by auth_db. Sirepo record of each jupyterhub user.
 JupyterhubUser = None
@@ -50,7 +50,7 @@ class API(sirepo.quest.API):
     )
     def api_migrateJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
-        if not cfg.rs_jupyter_migrate:
+        if not _cfg.rs_jupyter_migrate:
             sirepo.util.raise_forbidden("migrate not enabled")
         d = self.parse_json()
         if not d.doMigration:
@@ -64,11 +64,15 @@ class API(sirepo.quest.API):
         u = _unchecked_jupyterhub_user_name(self)
         if u:
             return self.reply_redirect("jupyterHub")
-        if not cfg.rs_jupyter_migrate:
+        if not _cfg.rs_jupyter_migrate:
             if not u:
                 create_user()
             return self.reply_redirect("jupyterHub")
         return self.reply_ok()
+
+
+def cfg():
+    return _init()
 
 
 def create_user(qcall, github_handle=None, check_dir=False):
@@ -119,7 +123,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
         if github_handle:
             if (
                 JupyterhubUser.search_by(user_name=github_handle)
-                or not _user_dir(user_name=github_handle).exists()
+                or not _user_dir(qcall, user_name=github_handle).exists()
             ):
                 raise sirepo.util.SRException(
                     "jupyterNameConflict",
@@ -138,13 +142,13 @@ def create_user(qcall, github_handle=None, check_dir=False):
         if n:
             return n
         u = __user_name()
-        if check_dir and _user_dir(u).exists():
+        if check_dir and _user_dir(qcall, u).exists():
             raise AssertionError(f"existing user dir with same name={u}")
         JupyterhubUser(
             uid=qcall.auth.logged_in_user(),
             user_name=u,
         ).save()
-        pkio.mkdir_parent(_user_dir())
+        pkio.mkdir_parent(_user_dir(qcall))
         return u
 
 
@@ -156,24 +160,9 @@ def delete_user_dir(qcall, uid):
 
 
 def init_apis(*args, **kwargs):
-    global cfg
-
-    cfg = pkconfig.init(
-        user_db_root_d=(
-            pkio.py_path(sirepo.srdb.root()).join("jupyterhub", "user"),
-            pkio.py_path,
-            "Jupyterhub user db",
-        ),
-        rs_jupyter_migrate=(
-            False,
-            bool,
-            "give user option to migrate data from jupyter.radiasoft.org",
-        ),
-        uri_root=("jupyter", str, "the root uri of jupyterhub"),
-    )
-    pkio.mkdir_parent(cfg.user_db_root_d)
+    _init()
     sirepo.auth_db.init_model(_init_model)
-    if cfg.rs_jupyter_migrate:
+    if _cfg.rs_jupyter_migrate:
         sirepo.events.register(
             PKDict(
                 github_authorized=_event_github_authorized,
@@ -187,8 +176,32 @@ def init_apis(*args, **kwargs):
     )
 
 
+def _init():
+    global _cfg
+
+    if _cfg:
+        return _cfg
+    _cfg = pkconfig.init(
+        user_db_root_d=(
+            pkio.py_path(sirepo.srdb.root()).join("jupyterhub", "user"),
+            pkio.py_path,
+            "Jupyterhub user db",
+        ),
+        rs_jupyter_migrate=(
+            False,
+            bool,
+            "give user option to migrate data from jupyter.radiasoft.org",
+        ),
+        uri_root=("jupyter", str, "the root uri of jupyterhub"),
+    )
+    pkio.mkdir_parent(_cfg.user_db_root_d)
+    return _cfg
+
+
 def _event_auth_logout(qcall, kwargs):
-    qcall.bucket_set(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR, _unchecked_hub_user(kwargs.uid))
+    qcall.bucket_set(
+        _JUPYTERHUB_LOGOUT_USER_NAME_ATTR, _unchecked_hub_user(qcall, kwargs.uid)
+    )
 
 
 def _event_end_api_call(qcall, kwargs):
@@ -202,7 +215,7 @@ def _event_end_api_call(qcall, kwargs):
         kwargs.resp.delete_cookie(
             c,
             # Trailing slash is required in paths
-            path=f"/{cfg.uri_root}/{v}/",
+            path=f"/{_cfg.uri_root}/{v}/",
         )
 
 
@@ -210,7 +223,7 @@ def _event_github_authorized(qcall, kwargs):
     create_user(qcall, github_handle=kwargs.user_name.lower())
     # User may not have been a user originally so need to create their dir.
     # If it exists (they were a user) it is a no-op.
-    pkio.mkdir_parent(_user_dir())
+    pkio.mkdir_parent(_user_dir(qcall))
     raise sirepo.util.Redirect("jupyter")
 
 
@@ -227,19 +240,21 @@ def _init_model(base):
         )
 
 
-def _unchecked_hub_user(uid):
+def _unchecked_hub_user(qcall, uid):
     u = JupyterhubUser.search_by(uid=uid)
     if u:
         return u.user_name
     return None
 
 
-def _unchecked_jupyterhub_user_name(have_simulation_db=True):
-    return _unchecked_hub_user(self.auth.logged_in_user(check_path=have_simulation_db))
+def _unchecked_jupyterhub_user_name(qcall, have_simulation_db=True):
+    return _unchecked_hub_user(
+        qcall, qcall.auth.logged_in_user(check_path=have_simulation_db)
+    )
 
 
-def _user_dir(user_name=None):
+def _user_dir(qcall, user_name=None):
     if not user_name:
-        user_name = _unchecked_jupyterhub_user_name()
+        user_name = _unchecked_jupyterhub_user_name(qcall)
         assert user_name, "must have user to get dir"
-    return cfg.user_db_root_d.join(user_name)
+    return _cfg.user_db_root_d.join(user_name)
