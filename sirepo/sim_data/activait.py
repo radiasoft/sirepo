@@ -15,6 +15,17 @@ import tarfile
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+
+    _OLD_NEURAL_NET_FIELDS = [
+        "activationActivation",
+        "alphaDropoutRate",
+        "denseActivation",
+        "denseDimensionality",
+        "dropoutRate",
+        "gaussianDropoutRate",
+        "gaussianNoiseStddev",
+    ]
+
     @classmethod
     def fixup_old_data(cls, data):
         if data.simulationType == "ml":
@@ -29,24 +40,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in dm:
             if "fileColumnReport" in m:
                 cls.update_model_defaults(dm[m], "fileColumnReport")
-        cls._cleanup_neural_net(dm)
+        cls._fixup_neural_net(dm)
         dm.analysisReport.pksetdefault(history=[])
         dm.hiddenReport.pksetdefault(subreports=[])
-
-    @classmethod
-    def _cleanup_neural_net(cls, dm):
-        for l in dm.neuralNet.layers:
-            for (old, new) in cls._layer_fields(l):
-                cls._update(l, old, new)
-
-    @classmethod
-    def _layer_fields(cls, layer):
-        f = []
-        n = layer.layer.lower()
-        for field in layer:
-            if n in field:
-                f.append((field, field.replace(n, "").lower()))
-        return f
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
@@ -77,6 +73,24 @@ class SimData(sirepo.sim_data.SimDataBase):
         if "partitionColumnReport" in r:
             res.append("partition")
         return res
+
+    @classmethod
+    def _fixup_neural_net(cls, dm):
+        for l in dm.neuralNet.layers:
+            for (old, new) in cls._layer_fields(l):
+                cls._update(l, old, new)
+            for f in cls._OLD_NEURAL_NET_FIELDS:
+                if f in l:
+                    del l[f]
+
+    @classmethod
+    def _layer_fields(cls, layer):
+        f = []
+        n = layer.layer.lower()
+        for field in layer:
+            if n in field.lower():
+                f.append((field, field.lower().replace(n, "")))
+        return f
 
     @classmethod
     def _lib_file_basenames(cls, data):
