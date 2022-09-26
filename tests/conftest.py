@@ -288,7 +288,7 @@ def _port(port, busy_ports, ip=_LOCALHOST):
             except Exception:
                 pkdlog(f"ip={ip} port={p} in use")
             p += 1
-    raise AssertionError(f"ip={ip} port={p} invalid address")
+    raise AssertionError(f"ip={ip} port={p} unable to allocate port")
 
 
 def _sim_type(request):
