@@ -197,7 +197,7 @@ class API(pykern.quest.API):
         **kwargs,
     ):
         return http_reply.gen_redirect_for_local_route(
-            self.sreq,
+            self,
             sim_type=sim_type,
             route=route,
             params=params,

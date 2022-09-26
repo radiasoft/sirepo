@@ -788,7 +788,11 @@ def _handle_error(error):
         error_file = DEFAULT_ERROR_FILE
     return (
         # SECURITY: We control the path of the file so using send_file is ok.
-        self.reply_file(sirepo.resource.static("html", error_file)),
+        sirepo.flask.send_file(
+            str(sirepo.resource.static("html", error_file)),
+            mimetype="text/html",
+            conditional=True,
+        ),
         status_code,
     )
 

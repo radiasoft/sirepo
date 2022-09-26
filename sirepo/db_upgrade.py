@@ -165,7 +165,7 @@ def _20210211_upgrade_runner_to_job_db(qcall):
 
 
 def _20210218_add_flash_proprietary_lib_files_force(qcall):
-    _20210211_add_flash_proprietary_lib_files(force=True)
+    _20210211_add_flash_proprietary_lib_files(qcall, force=True)
 
 
 def _20210301_migrate_role_jupyterhub(qcall):

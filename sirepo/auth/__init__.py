@@ -299,32 +299,32 @@ class _Auth(sirepo.quest.Attr):
         Raises an exception if successful, except in the case of methods
 
         Args:
-            method (module): method module
+            module (module): method module
             uid (str): user to login
             model (auth_db.UserDbBase): user to login (overrides uid)
             sim_type (str): app to redirect to
         """
-        if module is None:
+        if method is None:
             assert is_mock, "only used by api_srUnit"
-            module = _METHOD_MODULES[METHOD_GUEST]
-        self._validate_method(module, sim_type=sim_type)
+            method = _METHOD_MODULES[METHOD_GUEST]
+        self._validate_method(method, sim_type=sim_type)
         guest_uid = None
         if model:
             uid = model.uid
             # if previously cookied as a guest, move the non-example simulations into uid below
             m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
-            if m == METHOD_GUEST and module.AUTH_METHOD != METHOD_GUEST:
+            if m == METHOD_GUEST and method.AUTH_METHOD != METHOD_GUEST:
                 guest_uid = self._get_user() if self.is_logged_in() else None
         if uid:
-            self._login_user(module, uid)
-        if module.AUTH_METHOD in _cfg.deprecated_methods:
-            pkdlog("deprecated auth method={} uid={}".format(module.AUTH_METHOD, uid))
+            self._login_user(method, uid)
+        if method.AUTH_METHOD in _cfg.deprecated_methods:
+            pkdlog("deprecated auth method={} uid={}".format(method.AUTH_METHOD, uid))
             if not uid:
                 # No user so clear cookie so this method is removed
                 self.reset_state()
             # We are logged in with a deprecated method, and now the user
             # needs to login with an allowed method.
-            self.login_fail_redirect(sim_type, module, "deprecated", reload_js=not uid)
+            self.login_fail_redirect(sim_type, method, "deprecated", reload_js=not uid)
         if not uid:
             # No user in the cookie and method didn't provide one so
             # the user might be switching methods (e.g. github to email or guest to email).
@@ -333,13 +333,13 @@ class _Auth(sirepo.quest.Attr):
             # Or, this is just a new user, and we'll create one.
             uid = self._get_user() if self.is_logged_in() else None
             m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
-            if uid and module.AUTH_METHOD not in (m, METHOD_GUEST):
+            if uid and method.AUTH_METHOD not in (m, METHOD_GUEST):
                 # switch this method to this uid (even for methods)
                 # except if the same method, then assuming logging in as different user.
                 # This handles the case where logging in as guest, creates a user every time
-                self._login_user(module, uid)
+                self._login_user(method, uid)
             else:
-                uid = self.create_user(lambda u: self._login_user(module, u), module)
+                uid = self.create_user(lambda u: self._login_user(method, u), method)
             if model:
                 model.uid = uid
                 model.save()
@@ -351,7 +351,7 @@ class _Auth(sirepo.quest.Attr):
             if guest_uid and guest_uid != uid:
                 simulation_db.move_user_simulations(guest_uid, uid)
             self.login_success_response(sim_type, want_redirect)
-        assert not module.AUTH_METHOD_VISIBLE
+        assert not method.AUTH_METHOD_VISIBLE
 
     def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False):
         raise sirepo.util.SRException(
