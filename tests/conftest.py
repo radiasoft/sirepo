@@ -241,7 +241,7 @@ def _config_sbatch_supervisor_env(env):
 
 
 def _job_supervisor_check(env):
-    _ = _port(
+    _port(
         int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT),
         [],
         ip=env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
