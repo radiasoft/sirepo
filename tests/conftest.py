@@ -3,7 +3,6 @@ import os
 import pytest
 import requests
 import subprocess
-import sirepo.const
 
 #: Convenience constant
 _LOCALHOST = "127.0.0.1"
@@ -270,9 +269,10 @@ def _fc(request, fc_module, new_user=False):
 def _port(port, busy_ports, ip=_LOCALHOST):
     import socket
     from pykern.pkdebug import pkdlog
+    from sirepo import const
 
     p = int(port)
-    while sirepo.const.PORT_MIN <= p <= sirepo.const.PORT_MAX:
+    while const.PORT_MIN <= p <= const.PORT_MAX:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
@@ -308,7 +308,7 @@ def _slurm_not_installed():
 def _subprocess_setup(request, cfg=None, uwsgi=False):
     """setup the supervisor"""
     import os
-    import sirepo.const
+    from sirepo import const
     from pykern.pkcollections import PKDict
 
     sbatch_module = "sbatch" in request.module.__name__
@@ -319,8 +319,8 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     from pykern import pkio
 
     ports = []
-    delta = sirepo.const.PORT_DELTA_FOR_TEST
-    p = _port(sirepo.const.PORT_DEFAULTS.http + delta, ports)
+    delta = const.PORT_DELTA_FOR_TEST
+    p = _port(const.PORT_DEFAULTS.http + delta, ports)
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME="1",
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
@@ -330,7 +330,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     if uwsgi:
         cfg.SIREPO_PKCLI_SERVICE_PORT = _port(p, ports)
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port(
-            sirepo.const.PORT_DEFAULTS.nginx_proxy + delta, ports
+            const.PORT_DEFAULTS.nginx_proxy + delta, ports
         )
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
         cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
