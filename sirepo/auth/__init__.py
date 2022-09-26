@@ -353,7 +353,7 @@ class _Auth(sirepo.quest.Attr):
             return
         if sim_type:
             if guest_uid and guest_uid != uid:
-                simulation_db.move_user_simulations(guest_uid, uid)
+                simulation_db.migrate_guest_to_persistent_user(guest_uid, uid)
             self.login_success_response(sim_type, want_redirect)
         assert not method.AUTH_METHOD_VISIBLE
 

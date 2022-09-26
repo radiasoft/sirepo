@@ -358,26 +358,26 @@ def logged_in_user_path():
     return user_path(hook_auth_user(), check=True)
 
 
-def move_user_simulations(from_uid, to_uid):
-    """Moves all non-example simulations `from_uid` into `to_uid`.
+def migrate_guest_to_persistent_user(guest_uid, to_uid):
+    """Moves all non-example simulations `guest_uid` into `to_uid`.
 
-    Only moves non-example simulations. Doesn't delete the from_uid.
+    Only moves non-example simulations. Doesn't delete the guest_uid.
 
     Args:
-        from_uid (str): source user
+        guest_uid (str): source user
         to_uid (str): dest user
 
     """
     with util.THREAD_LOCK:
         for path in glob.glob(
-            str(user_path(from_uid).join("*", "*", SIMULATION_DATA_FILE)),
+            str(user_path(guest_uid).join("*", "*", SIMULATION_DATA_FILE)),
         ):
             data = read_json(path)
             sim = data["models"]["simulation"]
             if "isExample" in sim and sim["isExample"]:
                 continue
             dir_path = os.path.dirname(path)
-            new_dir_path = dir_path.replace(from_uid, to_uid)
+            new_dir_path = dir_path.replace(guest_uid, to_uid)
             pkdlog("{} -> {}", dir_path, new_dir_path)
             pkio.mkdir_parent(new_dir_path)
             os.rename(dir_path, new_dir_path)
