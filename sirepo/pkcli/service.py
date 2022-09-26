@@ -325,7 +325,7 @@ def _cfg_ip(value):
 def _cfg_port(value):
     if not value:
         return None
-    return _cfg_int(sirepo.const.PORT_DEFAULTS.react, sirepo.const.PORT_MAX)(value)
+    return _cfg_int(sirepo.const.PORT_MIN, sirepo.const.PORT_MAX)(value)
 
 
 def _run_dir():
