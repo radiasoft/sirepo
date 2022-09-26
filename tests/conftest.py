@@ -277,12 +277,7 @@ def _port(port, busy_ports, ip=_LOCALHOST):
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 assert p not in busy_ports
-                s.bind(
-                    (
-                        ip,
-                        p,
-                    )
-                )
+                s.bind((ip, p))
                 busy_ports.append(p)
                 return str(p)
             except Exception:
