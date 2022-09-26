@@ -31,9 +31,9 @@ class SirepoUtils {
         return SirepoUtils.formatFloat(SirepoUtils.orderOfMagnitude(val, binary).mantissa, decimals);
     }
 
-    static indexArray(size) {
+    static indexArray(size, offset=0) {
         const res = [];
-        for (let i = 0; i < size; res.push(i++)) {}
+        for (let i = 0; i < size; res.push(offset + i++)) {}
         return res;
     }
 

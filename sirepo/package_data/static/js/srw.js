@@ -2656,8 +2656,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     j.jobRunMode = 'parallel';
                 }
                 frameCache.setFrameCount(0, $scope.model);
+                appState.saveQuietly($scope.simState.model);
                 if ($scope.model == 'multiElectronAnimation') {
-                    appState.saveChanges($scope.simState.model);
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);
                 }
                 $scope.simState.saveAndRunSimulation('simulation');
