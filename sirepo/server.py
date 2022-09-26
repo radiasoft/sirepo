@@ -564,7 +564,7 @@ class API(sirepo.quest.API):
             self.auth.login(is_mock=True)
         if v.want_cookie:
             self.cookie.set_sentinel()
-        v.op()
+        v.op(self)
         return self.reply_ok()
 
     @sirepo.quest.Spec("allow_visitor", path_info="FilePath")

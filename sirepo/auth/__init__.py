@@ -306,7 +306,9 @@ class _Auth(sirepo.quest.Attr):
         """
         if method is None:
             assert is_mock, "only used by api_srUnit"
-            method = _METHOD_MODULES[METHOD_GUEST]
+            method = METHOD_GUEST
+        if isinstance(method, str):
+            method = _METHOD_MODULES[method]
         self._validate_method(method, sim_type=sim_type)
         guest_uid = None
         if model:
@@ -324,7 +326,9 @@ class _Auth(sirepo.quest.Attr):
                 self.reset_state()
             # We are logged in with a deprecated method, and now the user
             # needs to login with an allowed method.
-            self.login_fail_redirect(sim_type, method, "deprecated", reload_js=not uid)
+            self.login_fail_redirect(
+                sim_type=sim_type, module=method, reason="deprecated", reload_js=not uid
+            )
         if not uid:
             # No user in the cookie and method didn't provide one so
             # the user might be switching methods (e.g. github to email or guest to email).
@@ -353,7 +357,9 @@ class _Auth(sirepo.quest.Attr):
             self.login_success_response(sim_type, want_redirect)
         assert not method.AUTH_METHOD_VISIBLE
 
-    def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False):
+    def login_fail_redirect(
+        self, sim_type=None, module=None, reason=None, reload_js=False
+    ):
         raise sirepo.util.SRException(
             "loginFail",
             PKDict(
@@ -535,7 +541,7 @@ class _Auth(sirepo.quest.Attr):
         """
         if not self.is_logged_in():
             return None
-        m = qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
+        m = self.qcall.cookie.unchecked_get_value(_COOKIE_METHOD)
         if m != method:
             return None
         return self._get_user()

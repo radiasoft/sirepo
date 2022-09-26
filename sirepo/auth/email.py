@@ -104,7 +104,7 @@ class API(sirepo.quest.API):
         return self._send_login_email(
             u,
             self.absolute_uri(
-                self..uri_for_api(
+                self.uri_for_api(
                     "authEmailAuthorized",
                     dict(simulation_type=req.type, token=u.token),
                 ),

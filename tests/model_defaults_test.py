@@ -10,16 +10,15 @@ from sirepo import srunit
 
 
 @srunit.wrap_in_request()
-def test_srw_model_defaults():
+def test_srw_model_defaults(qcall):
     from pykern import pkunit
     from pykern import pkconfig
     from pykern.pkcollections import PKDict
     from sirepo.template import template_common
-    from sirepo import simulation_db
-    import sirepo.sim_data
+    from sirepo import simulation_db, sim_data
 
-    sirepo.sim_data.get_class("srw").resource_path("predefined.json")
-    s = sirepo.sim_data.get_class("srw")
+    s = sim_data.get_class("srw")
+    s.resource_path("predefined.json")
     res = s.model_defaults("trajectoryReport")
     assert res == PKDict(
         notes="",

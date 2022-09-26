@@ -138,11 +138,12 @@ def test_in_request(
     try:
         from pykern import pkunit
         from pykern import pkcollections
+        from sirepo import flask
 
         if before_request:
             before_request(fc)
         setattr(
-            server._app,
+            flask.app(),
             server.SRUNIT_TEST_IN_REQUEST,
             PKDict(op=op, want_cookie=want_cookie, want_user=want_user),
         )
@@ -222,7 +223,10 @@ def wrap_in_request(*args, **kwargs):
 
     def _decorator(func):
         def _wrapper(*ignore_args, **ignore_kwargs):
-            return test_in_request(lambda: func(), **kwargs)
+            return test_in_request(
+                lambda qcall: func(qcall),
+                **kwargs,
+            )
 
         return _wrapper
 

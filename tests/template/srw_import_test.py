@@ -10,7 +10,7 @@ from sirepo import srunit
 
 
 @srunit.wrap_in_request(want_cookie=True, want_user=True)
-def test_srw_1():
+def test_srw_1(qcall):
     _t(
         {
             "amx": ("amx", None),
@@ -29,7 +29,7 @@ def test_srw_1():
 
 
 @srunit.wrap_in_request(want_cookie=True, want_user=True)
-def test_srw_2():
+def test_srw_2(qcall):
     _t(
         {
             "nsls-ii-esm-beamline": ("nsls-ii-esm-beamline", None),
