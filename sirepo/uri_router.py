@@ -316,7 +316,7 @@ def _dispatch_empty():
 
 
 def _init_uris(simulation_db, sim_types):
-    global _route_default, srunit_uri, _api_to_route, _uri_to_route
+    global _route_default, _not_found_route, srunit_uri, _api_to_route, _uri_to_route
 
     assert not _route_default, "_init_uris called twice"
     _uri_to_route = PKDict()

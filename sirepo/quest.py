@@ -130,8 +130,6 @@ class API(pykern.quest.API):
         return self.bucket_uget(_HTTP_DATA_ATTR)
 
     def parent_set(self, qcall):
-        pkdp(qcall)
-        pkdp(type(qcall))
         assert isinstance(qcall, API)
         # must be right after initialization
         assert not self._bucket

@@ -345,7 +345,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         )
 
     for i in u:
-        subprocess.run(["kill -9 $(lsof -t -i :" + i + ")"], shell=True)
+        subprocess.run(["kill -9 $(lsof -t -i :" + i + ") >& /dev/null"], shell=True)
 
     if sbatch_module:
         # must be performed after fc initialized so work_dir is configured
