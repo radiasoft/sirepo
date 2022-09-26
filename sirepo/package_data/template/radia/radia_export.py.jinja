@@ -22,20 +22,21 @@ _GROUP_MODELS = [_MODEL_GROUP]
 _OBJ_MODELS = [_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT] + _EXTRUDED_MODELS
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
-{% if not isExample and not dmpImportFile %}
+{% if not is_raw and not dmpImportFile %}
 sirepo_objs = {{ objects }}
-
-{% include "radia_util.py" %}
-{% endif %}
-
-{% if isExample %}
-{% include "radia_examples.py" %}
-{% endif %}
 
 # sirepo.util functions
 {{ sirepoUtilSplit }}
 
-{% if not isExample and not dmpImportFile  %}
+{% endif %}
+
+{% if is_raw %}
+{% include "radia_examples.py" %}
+{% endif %}
+
+{% include "radia_util.py" %}
+
+{% if not is_raw and not dmpImportFile  %}
 def _add_object(o, radia_objs, id_map):
     model = o.get("model")
     t = o.get("type")
@@ -168,6 +169,9 @@ print(f"Solving {g_id}...")
 res = radia.Solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
 print(f"done: {res[3]} steps ({1000 * res[0]}ms); max |M| {res[1]} A/m; max |H| {res[2]} A/m")
 
+print("Dumping to {{ dmpOutputFile }}")
+with open("{{ dmpOutputFile }}", "wb") as f:
+    f.write(dump_bin(g_id))
 
 print(f"M field: {get_magnetization(g_id)}")
 
@@ -178,18 +182,13 @@ print(f"{{ fieldType }} field: {get_field(g_id, '{{ fieldType }}', field_points)
 {% endfor %}
 {% endif %}
 
-
 {% for fp in fieldPaths %}
 {% if fp["type"] == "line" %}
 p1 = [{{ fp["begin"] }}]
 p2 = [{{ fp["end"] }}]
 {% for i_type in INTEGRABLE_FIELD_TYPES %}
-print(f"Integral of {{ i_type }} from {p1} to {p2}: {radia.FldInt(g_id, 'inf', '{{ i_type }}', p1, p2)}")
+print(f"Integral of {{ i_type }} from {p1} to {p2}: {field_integral(g_id, '{{ i_type }}', p1, p2)}")
 {% endfor %}
 {% endif %}
 {% endfor %}
 
-
-print("Dumping to {{ dmpOutputFile }}")
-with open("{{ dmpOutputFile }}", "wb") as f:
-    f.write(radia.UtiDmp(g_id, "bin"))
