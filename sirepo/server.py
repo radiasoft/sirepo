@@ -700,7 +700,10 @@ class API(sirepo.quest.API):
         return self.reply_static_jinja(page, "html", values, cache_ok=True)
 
     def _save_new_and_reply(self, req, data):
-        return self._simulation_data_reply(req, simulation_db.save_new_simulation(data))
+        return self._simulation_data_reply(
+            req,
+            simulation_db.save_new_simulation(data, uid=self.auth.logged_in_user()),
+        )
 
     def _simulation_data_reply(self, req, data):
         if hasattr(req.template, "prepare_for_client"):

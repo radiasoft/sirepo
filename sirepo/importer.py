@@ -31,7 +31,7 @@ def do_form(form, qcall):
     data = read_zip(base64.decodebytes(pkcompat.to_bytes(form["zip"])), qcall)
     data.models.simulation.folder = "/Import"
     data.models.simulation.isExample = False
-    return simulation_db.save_new_simulation(data)
+    return simulation_db.save_new_simulation(data, uid=qcall.auth.logged_in_user())
 
 
 def read_json(text, qcall, sim_type=None):

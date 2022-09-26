@@ -62,9 +62,7 @@ def _create_html(zip_path, data, qcall):
     # Use same tmp directory
     fp = zip_path.new(ext=".html")
     values = pkcollections.Dict(data=data)
-    values.uri = qcall.absolute_uri(
-        qcall.uri_for_api("importArchive", absolute_import=False),
-    )
+    values.uri = qcall.absolute_uri(qcall.uri_for_api("importArchive"))
     values.server = qcall.sreq.http_server_uri
     sc = simulation_db.SCHEMA_COMMON
     values.appLongName = sc.appInfo[data.simulationType].longName

@@ -144,9 +144,9 @@ def default_data(sim_type):
     )
 
 
-def delete_simulation(simulation_type, sid):
+def delete_simulation(simulation_type, sid, uid=None):
     """Deletes the simulation's directory."""
-    pkio.unchecked_remove(simulation_dir(simulation_type, sid))
+    pkio.unchecked_remove(simulation_dir(simulation_type, sid, uid=uid))
 
 
 def delete_user(uid):
@@ -681,7 +681,7 @@ def simulation_lib_dir(simulation_type, uid=None):
     return simulation_dir(simulation_type, uid=uid).join(_LIB_DIR)
 
 
-def simulation_run_dir(req_or_data, remove_dir=False):
+def simulation_run_dir(req_or_data, remove_dir=False, uid=None):
     """Where to run the simulation
 
     Args:
@@ -698,6 +698,7 @@ def simulation_run_dir(req_or_data, remove_dir=False):
     d = simulation_dir(
         t,
         s.parse_sid(req_or_data),
+        uid=uid,
     ).join(s.compute_model(req_or_data))
     if remove_dir:
         pkio.unchecked_remove(d)
