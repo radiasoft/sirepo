@@ -1712,13 +1712,13 @@ def _validate_objects(objects):
                     )
                 )
 
-
+'''
 def validate_file(file_type, path):
     pkdp("Called validate_file()")
     err = None
     trimesh.util.attatch_to_log()
-    mesh = trimesh.load()
-    '''
+    #mesh = trimesh.load()
+    
     err = None
     if file_type == "bunchFile-sourceFile":
         _sdds_init()
@@ -1734,21 +1734,3 @@ def validate_file(file_type, path):
         sdds.sddsdata.Terminate(_SDDS_INDEX)
     return err
     '''
-
-
-def _sdds_init():
-    global _SDDS_INDEX, _SDDS_DOUBLE_TYPES, _SDDS_STRING_TYPE, sdds_util, sdds
-    if _SDDS_INDEX is not None:
-        return
-    from sirepo.template import sdds_util
-    import sdds
-
-    _SDDS_INDEX = 0
-    _s = sdds.SDDS(_SDDS_INDEX)
-    _x = getattr(_s, "SDDS_LONGDOUBLE", None)
-    _SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
-    _SDDS_STRING_TYPE = _s.SDDS_STRING
-
-_H5_PATH_ID_MAP = _geom_h5_path("idMap")
-_H5_PATH_KICK_MAP = _geom_h5_path("kickMap")
-_H5_PATH_SOLUTION = _geom_h5_path("solution")
