@@ -1734,3 +1734,7 @@ def validate_file(file_type, path):
         sdds.sddsdata.Terminate(_SDDS_INDEX)
     return err
     '''
+
+_H5_PATH_ID_MAP = _geom_h5_path("idMap")
+_H5_PATH_KICK_MAP = _geom_h5_path("kickMap")
+_H5_PATH_SOLUTION = _geom_h5_path("solution")
