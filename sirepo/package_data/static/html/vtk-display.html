@@ -13,7 +13,7 @@
         <div class="sr-plot-legend plot-visibility">
             <div class="row">
                 <div class="col-sm-12">
-                    <div style="padding-top: 5px; padding-bottom: 8px"><span>{{ modeText[vtkScene.interactionMode] }}</span><span data-ng-show="enableSelection" class="pull-right">{{ selection.info }}</span></div>
+                    <div style="padding-top: 5px; padding-bottom: 8px"><span>{{ modeText[vtkScene.interactionMode] }}</span><span data-text-with-math="selection.info || ''" data-is-dynamic="true" data-ng-show="enableSelection" class="pull-right"></span></div>
                     <div data-ng-show="enableSelection" data-toggle="tooltip" title="Select" class="btn btn-default" data-ng-class="{'btn-primary': vtkScene.interactionMode == VTKUtils.interactionMode().INTERACTION_MODE_SELECT}" style="margin: 2px;" data-ng-click="setInteractionMode(VTKUtils.interactionMode().INTERACTION_MODE_SELECT)">&#x2B09;</div>
                     <div data-ng-show="enableSelection" data-toggle="tooltip" title="Manipulate" class="btn btn-default" data-ng-class="{'btn-primary': vtkScene.interactionMode == VTKUtils.interactionMode().INTERACTION_MODE_MOVE}" style="margin: 2px;" data-ng-click="setInteractionMode(VTKUtils.interactionMode().INTERACTION_MODE_MOVE)"><span class="glyphicon glyphicon-hand-up"></span></div>
                     <div data-ng-repeat="dim in GeometryUtils.BASIS()" data-toggle="tooltip" title="View along {{ dim }} axis" class="btn btn-default" data-ng-class="{'btn-primary': vtkScene.viewSide == '{{dim}}'}" style="margin: 2px;" data-ng-click="showSide(dim)">{{ dim }}{{ vtkScene.directionIcon() }}</div>
