@@ -446,7 +446,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             callback,
             {
                 method: 'model_list',
-                arg: {
+                args: {
                     methodSignature: 'model_list ' + modelName + (sig || ''),
                     model_name: modelName,
                 }
