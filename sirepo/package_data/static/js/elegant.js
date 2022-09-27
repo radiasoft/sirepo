@@ -1444,7 +1444,6 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
     };
 });
 
-
 SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
     return {
         restrict: 'A',
@@ -1475,28 +1474,11 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
 
-            function setIFrameHTML(html) {
-                $('#sr-text-iframe').contents().find('html').html(html);
-            }
-
-            function getDownloadURL(model, index) {
-                if (! appState.isLoaded() || ! model) {
-                    return '';
-                }
-                return requestSender.formatUrl('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': model,
-                    '<frame>': index,
-                });
-            }
-
             $scope.viewLog = function(model, filename) {
                 requestSender.sendAnalysisJob(
                     appState,
                     (data) => {
-                        srdbg(elegantService)
-                        setIFrameHTML(data.html);
+                        $('#sr-text-iframe').attr("srcdoc", data.html);
                     },
                     {
                         method: 'log_to_html',
@@ -1507,7 +1489,16 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
             };
 
             $scope.downloadLog = function() {
-                return getDownloadURL(appState.models.simulationStatus.animation.computeModel, -1);
+                var m = appState.models.simulationStatus.animation.computeModel;
+                if (! m) {
+                    return '';
+                }
+                return requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': m,
+                    '<frame>': -1,
+                });
             };
         },
     };
