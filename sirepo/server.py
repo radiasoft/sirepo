@@ -673,16 +673,13 @@ class API(sirepo.api.Base):
         )
 
     def _proxy_react(self, path):
-        if (
-            path is None
-            or not cfg.react_server
-            or (path not in _PROXY_REACT_URIS and not str.startswith(path, "react"))
-        ):
+        if path in cfg.react_sim_types:
+            p = "index.html"
+        elif path.startswith("react") or "/main." in path or "manifest.json" in path:
+            p = path
+        else
             return
-        r = requests.get(cfg.react_server + path)
-        # We want to throw an exception here, because it shouldn't happen
-        r.raise_for_status()
-        raise sirepo.util.Response(self.reply_as_proxy(r))
+        raise sirepo.util.Resource(self.call_api("staticFile", kwargs=PKDict(path_info=f"react/{p}")))
 
     def _render_root_page(self, page, values):
         values.update(
@@ -726,6 +723,7 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
         global _PROXY_REACT_URIS
         p = [
             "manifest.json",
+            "asset-manifest.json",
             "static/js/bundle.js",
             "static/js/bundle.js.map",
         ]
