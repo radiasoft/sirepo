@@ -673,13 +673,21 @@ class API(sirepo.api.Base):
         )
 
     def _proxy_react(self, path):
+        if not path or not cfg.react_server:
+            return
         if path in cfg.react_sim_types:
             p = "index.html"
         elif path.startswith("react") or "/main." in path or "manifest.json" in path:
             p = path
-        else
+        else:
             return
-        raise sirepo.util.Resource(self.call_api("staticFile", kwargs=PKDict(path_info=f"react/{p}")))
+        # call call api due to recursion of proxy_react
+        raise sirepo.util.Response(
+            flask.send_file(
+                sirepo.resource.static(sirepo.util.safe_path(f"react/{p}")),
+                conditional=True,
+            ),
+        )
 
     def _render_root_page(self, page, values):
         values.update(
