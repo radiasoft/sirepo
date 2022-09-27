@@ -162,7 +162,7 @@ def _build_radia_geom():
 {% endif %}
     return g_id, id_map
 
-# ** BEGIN **
+# ** Begin **
 g_id, id_map = _build_radia_geom()
 
 print(f"Solving {g_id}...")
@@ -173,12 +173,14 @@ print("Dumping to {{ dmpOutputFile }}")
 with open("{{ dmpOutputFile }}", "wb") as f:
     f.write(dump_bin(g_id))
 
-print(f"M field: {get_magnetization(g_id)}")
+# ** Field Calculations **
+print("Calculating Fields")
+m = get_magnetization(g_id)
 
 {% if fieldPoints %}
 field_points = {{ fieldPoints }}
 {% for fieldType in POINT_FIELD_TYPES %}
-print(f"{{ fieldType }} field: {get_field(g_id, '{{ fieldType }}', field_points)}")
+{{ fieldType.lower() }} = get_field(g_id, "{{ fieldType }}", field_points)
 {% endfor %}
 {% endif %}
 
@@ -186,8 +188,8 @@ print(f"{{ fieldType }} field: {get_field(g_id, '{{ fieldType }}', field_points)
 {% if fp["type"] == "line" %}
 p1 = [{{ fp["begin"] }}]
 p2 = [{{ fp["end"] }}]
-{% for i_type in INTEGRABLE_FIELD_TYPES %}
-print(f"Integral of {{ i_type }} from {p1} to {p2}: {field_integral(g_id, '{{ i_type }}', p1, p2)}")
+{% for fieldType in INTEGRABLE_FIELD_TYPES %}
+{{ fieldType.lower() }} = field_integral(g_id, "{{ fieldType }}", p1, p2)
 {% endfor %}
 {% endif %}
 {% endfor %}
