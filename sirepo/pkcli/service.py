@@ -120,6 +120,7 @@ def http():
                 ("job_supervisor",),
                 extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
             )
+            e = PKDict()
             if _cfg().react_port:
                 # Avoid race condition on creating auth db
                 time.sleep(0.3)
@@ -129,13 +130,9 @@ def http():
                     prefix=(),
                     extra_environ=PKDict(PORT=str(_cfg().react_port)),
                 )
+                e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
             time.sleep(0.3)
-            _start(
-                ("service", "flask"),
-                extra_environ=PKDict(
-                    SIREPO_SERVER_REACT_SERVER=f"http://127.0.0.1:{_cfg().react_port}/",
-                ),
-            )
+            _start(("service", "flask"), extra_environ=e)
             p, _ = os.wait()
     except ChildProcessError:
         pass

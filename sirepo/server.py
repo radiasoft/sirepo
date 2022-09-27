@@ -61,7 +61,13 @@ _ROBOTS_TXT = None
 _app = None
 
 #: See `_proxy_react`
-_PROXY_REACT_URIS = None
+_PROXY_REACT_URI_SET = None
+
+#: See `_proxy_react`
+_PROXY_REACT_URI_RE = None
+
+#: See `_proxy_react`
+_REACT_SERVER_BUILD = "build"
 
 
 class API(sirepo.api.Base):
@@ -673,22 +679,31 @@ class API(sirepo.api.Base):
         )
 
     def _proxy_react(self, path):
-        if not path or not cfg.react_server:
-            return
-        if path.startswith("react") or "/main." in path or "manifest.json" in path:
+        def _build():
             if re.search(r"^react/\w+$", path):
                 p = "index.html"
+            elif path in cfg.react_sim_types:
+                raise sirepo.util.Redirect(f"/react/{path}")
             else:
                 p = path
-        else:
+            # call call api due to recursion of proxy_react
+            raise sirepo.util.Response(
+                flask.send_file(
+                    sirepo.resource.static(sirepo.util.safe_path(f"react/{p}")),
+                    conditional=True,
+                ),
+            )
+
+        def _dev():
+            r = requests.get(cfg.react_server + path)
+            # We want to throw an exception here, because it shouldn't happen
+            r.raise_for_status()
+            raise sirepo.util.Response(self.reply_as_proxy(r))
+
+        if not path or not cfg.react_server:
             return
-        # call call api due to recursion of proxy_react
-        raise sirepo.util.Response(
-            flask.send_file(
-                sirepo.resource.static(sirepo.util.safe_path(f"react/{p}")),
-                conditional=True,
-            ),
-        )
+        if path in _PROXY_REACT_URI_SET or _PROXY_REACT_URI_RE.search(path):
+            _build() if cfg.react_server == _REACT_SERVER_BUILD else _dev()
 
     def _render_root_page(self, page, values):
         values.update(
@@ -728,18 +743,7 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     _app.config["PROPAGATE_EXCEPTIONS"] = True
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
-    if cfg.react_server:
-        global _PROXY_REACT_URIS
-        p = [
-            "manifest.json",
-            "asset-manifest.json",
-            "static/js/bundle.js",
-            "static/js/bundle.js.map",
-        ]
-        for x in cfg.react_sim_types:
-            p.append(x)
-            p.append(f"{x}-schema.json")
-        _PROXY_REACT_URIS = set(p)
+    _init_proxy_react()
     uri_router.init(_app, simulation_db)
     if is_server:
         sirepo.db_upgrade.do_all()
@@ -761,6 +765,8 @@ def _cfg_react_server(value):
         return None
     if not pkconfig.channel_in("dev"):
         pkconfig.raise_error("invalid channel={}; must be dev", pkconfig.cfg.channel)
+    if value == _REACT_SERVER_BUILD:
+        return value
     u = urllib.parse.urlparse(value)
     if (
         u.scheme
@@ -787,6 +793,26 @@ def _handle_error(error):
         flask.send_file(str(sirepo.resource.static("html", error_file))),
         status_code,
     )
+
+
+def _init_proxy_react():
+    if not cfg.react_server:
+        return
+    global _PROXY_REACT_URI_RE, _PROXY_REACT_URI_SET
+    p = [
+        "asset-manifest.json",
+        "manifest.json",
+        "static/js/bundle.js",
+        "static/js/bundle.js.map",
+    ]
+    for x in cfg.react_sim_types:
+        p.append(x)
+        p.append(f"{x}-schema.json")
+    _PROXY_REACT_URI_SET = set(p)
+    r = "^react/"
+    if cfg.react_server == _REACT_SERVER_BUILD:
+        r += r"|^static/(css|js)/main\."
+    _PROXY_REACT_URI_RE = re.compile(r)
 
 
 def _lib_file_write_path(req):
@@ -836,5 +862,5 @@ cfg = pkconfig.init(
     google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
     react_server=(None, _cfg_react_server, "Base URL of npm start server"),
-    react_sim_types=(("myapp",), set, "React apps"),
+    react_sim_types=(("myapp", "jspec"), set, "React apps"),
 )
