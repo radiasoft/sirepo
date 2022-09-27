@@ -181,6 +181,7 @@ def _init():
             "Link to Sirepo Slack workspace; uid will be appended",
         ),
         srw=dict(
+            app_url=("/srw", str, "URL for SRW link"),
             mask_in_toolbar=b("Show the mask element in toolbar"),
             show_video_links=(False, bool, "Display instruction video links"),
             show_open_shadow=(

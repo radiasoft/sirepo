@@ -1595,13 +1595,17 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
               ${rightNav}
             </div>
             <div data-ng-if="srwService.isApplicationMode(\'default\')">
-              <div data-app-header-brand=""></div>
+              <div data-app-header-brand="" data-app-url="{{ ::appURL() }}"></div>
               <div class="navbar-left" data-app-header-left="nav"></div>
               ${rightNav}
             </div>
         `,
         controller: function($scope) {
             $scope.srwService = srwService;
+
+            $scope.appURL = function() {
+                return SIREPO.APP_SCHEMA.feature_config.app_url;
+            };
 
             $scope.openShadowConfirm = function() {
                 $('#sr-conv-dialog').modal('show');
