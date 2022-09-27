@@ -446,8 +446,10 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             callback,
             {
                 method: 'model_list',
-                methodSignature: 'model_list ' + modelName + (sig || ''),
-                model_name: modelName,
+                models: {
+                    methodSignature: 'model_list ' + modelName + (sig || ''),
+                    model_name: modelName,
+                }
             }
         );
     };

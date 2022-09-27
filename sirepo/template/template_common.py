@@ -645,6 +645,7 @@ def sim_frame_dispatch(frame_args):
 
 
 def stateful_compute_dispatch(data):
+    pkdp("\n\n\n data in template_common: {}", data)
     t = sirepo.template.import_module(data.simulationType)
     m = _validate_method(t, data)
     if re.search(r"(?:^rpn|_rpn)_", m):

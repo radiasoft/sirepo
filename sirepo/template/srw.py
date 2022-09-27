@@ -851,7 +851,7 @@ def stateful_compute_delete_user_models(data):
 
 def stateful_compute_model_list(data):
     res = []
-    model_name = data["model_name"]
+    model_name = data.models["model_name"]
     if model_name == "electronBeam":
         res.extend(get_predefined_beams())
     res.extend(_load_user_model_list(model_name))
