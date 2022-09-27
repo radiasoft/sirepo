@@ -1443,3 +1443,63 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
         },
     };
 });
+
+SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <a href data-ng-click="viewLog()">View Log</a>
+            <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <span class="lead modal-title text-info">Log</span>
+                    <div class="sr-panel-options pull-right">
+                      <a data-ng-href="{{ downloadLog() }}" target="_blank">
+                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download"></span>
+                      </a>
+                      <button type="button" class="close" data-dismiss="modal" style="margin-left: 10px">
+                        <span>&times;</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="modal-body" style="padding: 0">
+                    <iframe id="sr-text-iframe"
+                      style="border: 0; width: 100%; height: 80vh" src=""></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function(appState, elegantService, requestSender, $scope) {
+
+            $scope.viewLog = function(model, filename) {
+                requestSender.sendAnalysisJob(
+                    appState,
+                    (data) => {
+                        $('#sr-text-iframe').attr("srcdoc", data.html);
+                    },
+                    {
+                        method: 'log_to_html',
+                        computeModel: elegantService.computeModel(),
+                        simulationId: appState.models.simulation.simulationId
+                    });
+                $('#sr-iframe-text-view').modal('show');
+            };
+
+            $scope.downloadLog = function() {
+                var m = appState.models.simulationStatus.animation.computeModel;
+                if (! m) {
+                    return '';
+                }
+                return requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': m,
+                    '<frame>': -1,
+                });
+            };
+        },
+    };
+});
