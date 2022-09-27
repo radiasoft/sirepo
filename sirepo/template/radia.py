@@ -834,12 +834,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
 
     # include methods from non-template packages
     if for_export:
-        v.radiaUtilPrefix = ""
-        v.sirepoUtilPrefix = ""
         v.sirepoUtilSplit = inspect.getsource(sirepo.util.split_comma_delimited_string)
-    else:
-        v.radiaUtilPrefix = "radia_util."
-        v.sirepoUtilPrefix = "sirepo.util."
 
     v.dmpOutputFile = _DMP_FILE
     if "dmpImportFile" in data.models.simulation:
