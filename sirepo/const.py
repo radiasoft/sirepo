@@ -10,9 +10,6 @@ JSON_SUFFIX = ".json"
 
 MPI_LOG = "mpi_run.log"
 
-# POSIT: test ports do not collide with production ports when offset by this delta
-PORT_DELTA_FOR_TEST = 100
-
 PORT_MAX = 32767
 PORT_MIN = 1025
 
@@ -24,3 +21,6 @@ PORT_DEFAULTS = PKDict(
     supervisor=8001,
     uwsgi=8000,
 )
+
+TEST_PORT_START = 10000
+TEST_PORT_END = 11000

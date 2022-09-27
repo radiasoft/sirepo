@@ -210,6 +210,13 @@ def _auth_client_module(request, uwsgi=False):
         yield c
 
 
+def _check_port(ip, port):
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((ip, int(port)))
+
+
 def _config_sbatch_supervisor_env(env):
     from pykern.pkcollections import PKDict
     import os
@@ -240,10 +247,8 @@ def _config_sbatch_supervisor_env(env):
 
 
 def _job_supervisor_check(env):
-    _port(
-        int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT),
-        [],
-        ip=env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
+    _check_port(
+        env.SIREPO_PKCLI_JOB_SUPERVISOR_IP, env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT
     )
 
 
@@ -266,24 +271,20 @@ def _fc(request, fc_module, new_user=False):
     return fc_module
 
 
-def _port(port, busy_ports, ip=_LOCALHOST):
-    import socket
-    from pykern.pkdebug import pkdlog
+def _port(ip=_LOCALHOST):
+    import random
     from sirepo import const
 
-    p = int(port)
-    while const.PORT_MIN <= p <= const.PORT_MAX:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            try:
-                assert p not in busy_ports
-                s.bind((ip, p))
-                busy_ports.append(p)
-                return str(p)
-            except Exception:
-                pkdlog(f"ip={ip} port={p} in use")
-            p += 1
-    raise AssertionError(f"ip={ip} port={p} unable to allocate port")
+    r = range(const.TEST_PORT_START, const.TEST_PORT_END)
+    port = random.choice(r)
+    for _ in r:
+        try:
+            _check_port(ip, port)
+            return str(port)
+        except Exception:
+            pass
+        port = r[(r.index(port) + 1) % len(r)]
+    raise AssertionError(f"ip={ip} unable to allocate port")
 
 
 def _sim_type(request):
@@ -308,7 +309,6 @@ def _slurm_not_installed():
 def _subprocess_setup(request, cfg=None, uwsgi=False):
     """setup the supervisor"""
     import os
-    from sirepo import const
     from pykern.pkcollections import PKDict
 
     sbatch_module = "sbatch" in request.module.__name__
@@ -318,23 +318,18 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     from pykern import pkunit
     from pykern import pkio
 
-    ports = []
-    delta = const.PORT_DELTA_FOR_TEST
-    p = _port(const.PORT_DEFAULTS.http + delta, ports)
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME="1",
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
-        SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
+        SIREPO_PKCLI_JOB_SUPERVISOR_PORT=_PORT,
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
     if uwsgi:
-        cfg.SIREPO_PKCLI_SERVICE_PORT = _port(p, ports)
-        cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port(
-            const.PORT_DEFAULTS.nginx_proxy + delta, ports
-        )
+        cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
+        cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port()
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
         cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
-            _LOCALHOST, p
+            _LOCALHOST, _PORT
         )
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY="testing@123")
@@ -406,3 +401,6 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
         for x in p:
             x.terminate()
             x.wait()
+
+
+_PORT = _port()
