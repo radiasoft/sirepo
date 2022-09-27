@@ -675,10 +675,11 @@ class API(sirepo.api.Base):
     def _proxy_react(self, path):
         if not path or not cfg.react_server:
             return
-        if path in cfg.react_sim_types:
-            p = "index.html"
-        elif path.startswith("react") or "/main." in path or "manifest.json" in path:
-            p = path
+        if path.startswith("react") or "/main." in path or "manifest.json" in path:
+            if re.search(r"^react/\w+$", path):
+                p = "index.html"
+            else:
+                p = path
         else:
             return
         # call call api due to recursion of proxy_react
