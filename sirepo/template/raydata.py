@@ -88,11 +88,6 @@ def stateless_compute_scan_fields(data):
     return PKDict(columns=list(catalog(data.args)[-1].metadata["start"].keys()))
 
 
-def stateless_compute_scan_info(data):
-    # TODO (gurhar1133): not sure about data.scans
-    return _scan_info_result([_scan_info(s, data.args) for s in data.scans])
-
-
 def _request_scan_monitor(data):
     try:
         r = requests.post(
