@@ -273,15 +273,12 @@ def _port():
     import random
     from sirepo import const
 
-    r = range(const.TEST_PORT_START, const.TEST_PORT_END)
-    port = random.choice(r)
-    for _ in r:
+    for p in random.sample(const.TEST_PORT_RANGE, 100):
         try:
-            _check_port(port)
-            return str(port)
+            _check_port(p)
+            return str(p)
         except Exception:
             pass
-        port = r[(r.index(port) + 1) % len(r)]
     raise AssertionError(f"ip={_LOCALHOST} unable to allocate port")
 
 
