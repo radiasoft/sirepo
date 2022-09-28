@@ -320,6 +320,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         PYKERN_PKDEBUG_WANT_PID_TIME="1",
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
         SIREPO_PKCLI_JOB_SUPERVISOR_PORT=_PORT,
+        SIREPO_PKCLI_SERVICE_IP=_LOCALHOST,
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
     if uwsgi:
