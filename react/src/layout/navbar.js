@@ -1,7 +1,7 @@
-import { Nav , Modal, Col} from "react-bootstrap";
-import { Routes, Route, Navigate, useRoutes, Outlet, Link } from "react-router-dom";
+import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
+import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarContainerId } from "../component/navbar";
-import { ContextModelsWrapper, ContextRelativeFormController, ContextSimulationInfoPromise } from "../context";
+import { ContextModelsWrapper, ContextRelativeFormController, ContextRelativeRouterHelper, ContextSimulationInfoPromise } from "../context";
 import { useInterpolatedString } from "../hook/string";
 import { useContext, useState } from "react";
 import { View } from "./layout";
@@ -10,6 +10,7 @@ import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/panel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
+import { RouteHelper } from "../hook/route";
 
 export class NavBarModalButton extends View {
     getChildLayouts = (config) => {
@@ -107,67 +108,96 @@ export class NavTabsLayout extends View {
         return [];
     }
 
-    tabComponent = (props) => {
-        let { tab } = props;
+    TabsContent = (props) => {
+        let { tab, ...otherProps } = props;
 
         let children = tab.items.map((layoutConfig, idx) => {
             let layout = this.layoutsWrapper.getLayoutForConfig(layoutConfig);
             let LayoutComponent = layout.component;
-            return <LayoutComponent key={idx} config={layoutConfig}/>
+            return <LayoutComponent key={idx} config={layoutConfig} {...otherProps}/>
         })
 
-        return <>{children}</>;
+        return (
+            <Container fluid className="mt-3">
+                <Row>
+                    {children}
+                </Row>
+            </Container>
+        );
+    }
+
+    TabsSwitcher = (props) => {
+        let { config } = props;
+        let { tabs } = config;
+
+        let { tabName: selectedTabName } = useParams();
+
+        let modelsWrapper = useContext(ContextModelsWrapper);
+        let routerHelper = useContext(ContextRelativeRouterHelper);
+
+        let { Portal: NavbarPortal, portalRef } = usePortal({
+            bindTo: document && document.getElementById(NavbarContainerId)
+        })
+
+        return (
+            <>
+                <NavbarPortal>
+                    <Nav variant="tabs" defaultActiveKey={selectedTabName}>
+                        {
+                            tabs.map(tab => {
+                                let route = routerHelper.getRelativePath(tab.name);
+                                return (
+                                    <Nav.Item key={tab.name}>
+                                        <Nav.Link eventKey={`${tab.name}`} as={Link} href={`${tab.name}`} to={`${route}`}>
+                                            {useInterpolatedString(modelsWrapper, tab.title)}
+                                        </Nav.Link>
+                                    </Nav.Item>
+                                )
+                            })
+                        }
+                    </Nav>
+                </NavbarPortal>
+                {
+                    tabs.map(tab => (
+                        <div key={tab.name} style={tab.name !== selectedTabName ? { display: 'none' } : undefined}>
+                            <this.TabsContent key={tab.name} tab={tab}/>
+                        </div>
+                    ))
+                }              
+            </>
+        )
     }
 
     component = (props) => {
         let { config } = props;
         let { tabs } = config;
 
-        let modelsWrapper = useContext(ContextModelsWrapper);
-
-        let { Portal: NavbarPortal, portalRef } = usePortal({
-            bindTo: document && document.getElementById(NavbarContainerId)
-        })
-
+        
         if(tabs.length == 0) {
             throw new Error("navtabs component contained no tabs");
         }
 
         let firstTabName = tabs[0].name;
 
+        let location = useResolvedPath('');
+
+        let routeHelper = new RouteHelper(location);
+
         let routedElement = useRoutes([
             {
                 path: '/',
                 element: <Navigate to={`${firstTabName}`}></Navigate>
             },
-            ...tabs.map(tab => {
-                let TabComponent = this.tabComponent;
-
-                return {
-                    path: `${tab.name}`,
-                    element: <TabComponent key={tab.name} tab={tab}></TabComponent>
-                }
-            })
+            {
+                path: '/:tabName/*',
+                element: <this.TabsSwitcher config={config}/>
+            }
         ])
 
         return (
-            <>
-                <NavbarPortal>
-                    <Nav variant="tabs" >
-                        {
-                            tabs.map(tab => (
-                                <Nav.Item key={tab.name}>
-                                    <Nav.Link eventKey={`${tab.name}`} as={Link} href={`${tab.name}`} to={`${tab.name}`}>
-                                        {useInterpolatedString(modelsWrapper, tab.title)}
-                                    </Nav.Link>
-                                </Nav.Item>
-                            ))
-                        }
-                    </Nav>
-                </NavbarPortal>
-
+            <ContextRelativeRouterHelper.Provider value={routeHelper}>
                 {routedElement}
-            </>
+            </ContextRelativeRouterHelper.Provider> 
         )
     }
 }

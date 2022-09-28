@@ -128,11 +128,7 @@ export function SimulationRoot(props) {
             <ReportEventManagerInitializer>
                 <SimulationInfoInitializer simulation={simulation}>
                     <FormStateInitializer>
-                        <Container fluid className="mt-3">
-                            <Row>
-                                {viewComponents}
-                            </Row>
-                        </Container>
+                        {viewComponents}
                     </FormStateInitializer>
                 </SimulationInfoInitializer>
             </ReportEventManagerInitializer>
