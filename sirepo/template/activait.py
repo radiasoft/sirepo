@@ -161,7 +161,7 @@ def stateless_compute_load_keras_model(data):
     import keras.models
 
     l = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.file)
+        _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.args.file)
     )
     return _build_ui_nn(keras.models.load_model(l))
 
@@ -303,15 +303,15 @@ def stateful_compute_compute_column_info(data):
 
 
 def stateless_compute_get_remote_data(data):
-    return _get_remote_data(data.url, data.headers_only)
+    return _get_remote_data(data.args.url, data.args.headers_only)
 
 
 def stateless_compute_remote_data_bytes_loaded(data):
-    return _remote_data_bytes_loaded(data.filename)
+    return _remote_data_bytes_loaded(data.args.filename)
 
 
 def stateless_compute_get_archive_file_list(data):
-    return _archive_file_list(data.filename, data.data_type)
+    return _archive_file_list(data.args.filename, data.args.data_type)
 
 
 def write_parameters(data, run_dir, is_parallel):

@@ -2029,7 +2029,9 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
                 },
                 {
                     method: 'load_keras_model',
-                    file: appState.models.mlModel.modelFile
+                    args: {
+                        file: appState.models.mlModel.modelFile
+                    }
                 }
             );
         }
@@ -2211,7 +2213,9 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 method: 'remote_data_bytes_loaded',
-                filename: dataFile.file,
+                args: {
+                    filename: dataFile.file,
+                }
             }
         );
     }
@@ -2249,8 +2253,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 method: 'get_archive_file_list',
-                filename: dataFile.file,
-                data_type: dataFile.dataFormat,
+                args: {
+                    filename: dataFile.file,
+                    data_type: dataFile.dataFormat,
+                }
             },
         );
     }
@@ -2274,8 +2280,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 method: 'get_remote_data',
-                url: appState.models[modelName].url,
-                headers_only: headersOnly
+                args: {
+                    url: appState.models[modelName].url,
+                    headers_only: headersOnly
+                }
             },
             {
                 onError: data => {
