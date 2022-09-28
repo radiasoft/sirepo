@@ -90,14 +90,14 @@ def _run_beam_statistics(cfg_dir, data):
     d = pkjson.load_any(py.path.local(cfg_dir).join(template.BEAM_STATS_FILE))
     x = d.s
     plots = []
-
+    labels = dict((e[0], e[1]) for e in _SCHEMA.enum.BeamStatisticsParameter)
     for y in ("y1", "y2", "y3"):
         if report[y] == "none":
             continue
-        label = report[y]
-        if label in ("sigmax", "sigmaz"):
+        label = labels[report[y]]
+        if report[y] in ("sigmax", "sigmaz"):
             label += " [m]"
-        elif label in ("sigdix", "sigdiz", "angxz", "angxpzp"):
+        elif report[y] in ("sigdix", "sigdiz", "angxz", "angxpzp"):
             label += " [rad]"
         plots.append(
             PKDict(
