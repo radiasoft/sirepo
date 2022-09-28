@@ -57,8 +57,8 @@
             "scans": ["", "QueuedScansTable", ""]
         },
         "replay": {
-            "sourceCatalog": ["Source Catalog", "CatalogName", ""],
-            "destinationCatalog": ["Destination Catalog", "CatalogName", ""],
+            "sourceCatalogName": ["Source Catalog", "CatalogName", ""],
+            "destinationCatalogName": ["Destination Catalog", "CatalogName", ""],
             "numScans": ["Number of Scans", "Integer", null]
         },
         "simulationStatus": {
@@ -100,8 +100,8 @@
         "replay": {
             "title": "Replay",
             "basic": [
-              "sourceCatalog",
-              "destinationCatalog",
+              "sourceCatalogName",
+              "destinationCatalogName",
               "numScans"
             ],
             "advanced": []

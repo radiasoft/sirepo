@@ -51,6 +51,10 @@ def stateless_compute_catalog_names(data):
     )
 
 
+def stateless_compute_begin_replay(data):
+    return PKDict(data=_request_scan_monitor(PKDict(method="begin_replay", data=data)))
+
+
 def stateless_compute_scans(data):
     if data.analysisStatus == "executed":
         assert data.searchStartTime and data.searchStopTime, pkdformat(
