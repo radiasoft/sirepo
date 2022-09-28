@@ -326,9 +326,11 @@ SIREPO.app.directive('scansTable', function() {
                         // TODO(e-carlin): view json.run_log
                     },
                     {
-                        catalogName: appState.models.catalog.catalogName,
                         method: 'analysis_output',
-                        uid: $scope.selectedScan.uid
+                        args: {
+                            catalogName: appState.models.catalog.catalogName,
+                            uid: $scope.selectedScan.uid
+                        }
                     },
                     errorOptions
                 );
@@ -346,12 +348,14 @@ SIREPO.app.directive('scansTable', function() {
                                 $scope.scans = json.data.scans.slice();
                             },
                             {
-                                catalogName: appState.models.catalog.catalogName,
                                 method: 'scans',
-                                analysisStatus: $scope.analysisStatus,
-                                searchStartTime: m.searchStartTime,
-                                searchStopTime: m.searchStopTime,
-                                selectedColumns: appState.models.metadataColumns.selected,
+                                args: {
+                                    analysisStatus: $scope.analysisStatus,
+                                    catalogName: appState.models.catalog.catalogName,
+                                    searchStartTime: m.searchStartTime,
+                                    searchStopTime: m.searchStopTime,
+                                    selectedColumns: appState.models.metadataColumns.selected,
+                                }
                             },
                             errorOptions
                         );
@@ -455,8 +459,10 @@ SIREPO.app.directive('scansTable', function() {
                     $scope.setAvailableColumns();
                 },
                 {
-                    catalogName: appState.models.catalog.catalogName,
                     method: 'scan_fields',
+                    args: {
+                        catalogName: appState.models.catalog.catalogName,
+                    }
                 },
                 errorOptions
             );

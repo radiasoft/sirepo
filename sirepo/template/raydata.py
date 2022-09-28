@@ -40,7 +40,7 @@ def catalog(scans_data_or_catalog_name):
 
 
 def stateless_compute_analysis_output(data):
-    return _request_scan_monitor(PKDict(method="analysis_output", uid=data.uid))
+    return _request_scan_monitor(PKDict(method="analysis_output", uid=data.args.uid))
 
 
 def stateless_compute_catalog_names(data):
@@ -52,24 +52,24 @@ def stateless_compute_catalog_names(data):
 
 
 def stateless_compute_scans(data):
-    if data.analysisStatus == "executed":
-        assert data.searchStartTime and data.searchStopTime, pkdformat(
-            "must have both searchStartTime and searchStopTime data={}", data
+    if data.args.analysisStatus == "executed":
+        assert data.args.searchStartTime and data.args.searchStopTime, pkdformat(
+            "must have both searchStartTime and searchStopTime data={}", data.args
         )
         l = []
-        c = catalog(data)
+        c = catalog(data.args)
         for s in _request_scan_monitor(
-            PKDict(method="executed_analyses", catalog_name=data.catalogName)
+            PKDict(method="executed_analyses", catalog_name=data.args.catalogName)
         ).scans:
             m = c[s.uid].metadata
             if (
-                m["start"]["time"] >= data.searchStartTime
-                and m["stop"]["time"] <= data.searchStopTime
+                m["start"]["time"] >= data.args.searchStartTime
+                and m["stop"]["time"] <= data.args.searchStopTime
             ):
                 l.append(s)
-    elif data.analysisStatus == "queued":
+    elif data.args.analysisStatus == "queued":
         l = _request_scan_monitor(
-            PKDict(method="queued_analyses", catalog_name=data.catalogName)
+            PKDict(method="queued_analyses", catalog_name=data.args.catalogName)
         ).scans
     else:
         raise AssertionError("unrecognized scanStatus={data.scanStatus}")
@@ -80,16 +80,17 @@ def stateless_compute_scans(data):
             raise sirepo.util.UserAlert(
                 f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query.",
             )
-        s.append(_scan_info(v.uid, data, status=v.status))
+        s.append(_scan_info(v.uid, data.args, status=v.status))
     return _scan_info_result(s)
 
 
 def stateless_compute_scan_fields(data):
-    return PKDict(columns=list(catalog(data)[-1].metadata["start"].keys()))
+    return PKDict(columns=list(catalog(data.args)[-1].metadata["start"].keys()))
 
 
 def stateless_compute_scan_info(data):
-    return _scan_info_result([_scan_info(s, data) for s in data.scans])
+    # TODO (gurhar1133): not sure about data.scans
+    return _scan_info_result([_scan_info(s, data.args) for s in data.scans])
 
 
 def _request_scan_monitor(data):
