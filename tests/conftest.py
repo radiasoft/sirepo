@@ -210,11 +210,11 @@ def _auth_client_module(request, uwsgi=False):
         yield c
 
 
-def _check_port(ip, port):
+def _check_port(port):
     import socket
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((ip, int(port)))
+        s.bind((_LOCALHOST, int(port)))
 
 
 def _config_sbatch_supervisor_env(env):
@@ -247,9 +247,7 @@ def _config_sbatch_supervisor_env(env):
 
 
 def _job_supervisor_check(env):
-    _check_port(
-        env.SIREPO_PKCLI_JOB_SUPERVISOR_IP, env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT
-    )
+    _check_port(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT)
 
 
 def _fc(request, fc_module, new_user=False):
@@ -271,7 +269,7 @@ def _fc(request, fc_module, new_user=False):
     return fc_module
 
 
-def _port(ip=_LOCALHOST):
+def _port():
     import random
     from sirepo import const
 
@@ -279,12 +277,12 @@ def _port(ip=_LOCALHOST):
     port = random.choice(r)
     for _ in r:
         try:
-            _check_port(ip, port)
+            _check_port(port)
             return str(port)
         except Exception:
             pass
         port = r[(r.index(port) + 1) % len(r)]
-    raise AssertionError(f"ip={ip} unable to allocate port")
+    raise AssertionError(f"ip={_LOCALHOST} unable to allocate port")
 
 
 def _sim_type(request):
