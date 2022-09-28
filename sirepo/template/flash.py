@@ -360,7 +360,9 @@ def stateless_compute_delete_archive_file(data):
 
 
 def stateless_compute_format_text_file(data):
-    if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get("flashSchema"):
+    if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get(
+        "flashSchema"
+    ):
         text = _generate_par_file(PKDict(models=data.args.models))
     else:
         with zipfile.ZipFile(
@@ -390,7 +392,9 @@ def stateless_compute_format_text_file(data):
 
 
 def stateless_compute_get_archive_file(data):
-    if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get("flashSchema"):
+    if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get(
+        "flashSchema"
+    ):
         r = pkcompat.to_bytes(_generate_par_file(PKDict(models=data.args.models)))
     else:
         with zipfile.ZipFile(
@@ -444,7 +448,10 @@ def stateless_compute_replace_file_in_zip(data):
     ) as z:
         z.write(lib_file, data.args.filename)
     res = PKDict()
-    if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and "flashSchema" in data.args.models:
+    if (
+        data.args.filename == _SIM_DATA.FLASH_PAR_FILE
+        and "flashSchema" in data.args.models
+    ):
         res.parValues = flash_parser.ParameterParser().parse(
             data.args,
             pkio.read_text(lib_file),

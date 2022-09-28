@@ -846,7 +846,9 @@ def stateful_compute_create_shadow_simulation(data):
 
 
 def stateful_compute_delete_user_models(data):
-    return _delete_user_models(data.args["electron_beam"], data.args["tabulated_undulator"])
+    return _delete_user_models(
+        data.args["electron_beam"], data.args["tabulated_undulator"]
+    )
 
 
 def stateful_compute_model_list(data):

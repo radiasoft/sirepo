@@ -220,9 +220,9 @@ def stateless_compute_current_to_kick(data):
 
 def stateless_compute_kick_to_current(data):
     return PKDict(
-        current=AmpConverter(data.args.command_beam, data.args.amp_table).kick_to_current(
-            data.args.kick
-        ),
+        current=AmpConverter(
+            data.args.command_beam, data.args.amp_table
+        ).kick_to_current(data.args.kick),
     )
 
 
