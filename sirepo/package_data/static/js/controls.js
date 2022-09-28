@@ -201,7 +201,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             },
             {
                 method: 'get_external_lattice',
-                simulationId: appState.models.dataFile.madxSirepo
+                args: {
+                    simulationId: appState.models.dataFile.madxSirepo
+                }
             }
         );
     }

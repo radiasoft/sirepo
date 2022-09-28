@@ -299,7 +299,7 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
 
 
 def stateful_compute_compute_column_info(data):
-    return _compute_column_info(data.dataFile)
+    return _compute_column_info(data.args.dataFile)
 
 
 def stateless_compute_get_remote_data(data):

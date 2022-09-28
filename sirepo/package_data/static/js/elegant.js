@@ -212,7 +212,9 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             },
             {
                 method: 'get_beam_input_type',
-                input_file: 'bunchFile-sourceFile.' + cmd.input,
+                args: {
+                    input_file: 'bunchFile-sourceFile.' + cmd.input,
+                }
             }
         );
     }

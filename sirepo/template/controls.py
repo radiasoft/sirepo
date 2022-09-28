@@ -186,7 +186,7 @@ def stateful_compute_get_madx_sim_list(data):
 def stateful_compute_get_external_lattice(data):
     madx = sirepo.simulation_db.read_json(
         _SIM_DATA.controls_madx_dir().join(
-            data.simulationId,
+            data.args.simulationId,
             sirepo.simulation_db.SIMULATION_DATA_FILE,
         ),
     )

@@ -2109,7 +2109,9 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 method: 'compute_column_info',
-                dataFile: dataFile,
+                args: {
+                    dataFile: dataFile,
+                }
             }
         );
     }

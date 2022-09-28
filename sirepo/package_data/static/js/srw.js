@@ -1401,7 +1401,9 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
             },
             {
                 method: 'compute_undulator_length',
-                tabulated_undulator: appState.models.tabulatedUndulator,
+                args: {
+                    tabulated_undulator: appState.models.tabulatedUndulator,
+                }
             }
         );
     }
@@ -2062,9 +2064,11 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
                     appState,
                     $scope.loadModelList,
                     {
-                        electron_beam: $scope.isElectronBeam() ? item : null,
                         method: 'delete_user_models',
-                        tabulated_undulator: $scope.isTabulatedUndulator() ? item : null,
+                        args: {
+                            electron_beam: $scope.isElectronBeam() ? item : null,
+                            tabulated_undulator: $scope.isTabulatedUndulator() ? item : null,
+                        }
                     }
                 );
             };
