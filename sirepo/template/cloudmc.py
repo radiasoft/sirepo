@@ -129,7 +129,7 @@ def stateless_compute_validate_material_name(data):
             method(data.args.name)
         elif data.args.component == "add_nuclide":
             method(data.args.name, 1)
-            if not re.search(r"^[^\d]+\d+$", data.name):
+            if not re.search(r"^[^\d]+\d+$", data.args.name):
                 raise ValueError("invalid nuclide name")
         elif data.args.component == "add_s_alpha_beta":
             method(data.args.name)

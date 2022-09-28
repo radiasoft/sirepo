@@ -360,7 +360,7 @@ def stateless_compute_delete_archive_file(data):
 
 
 def stateless_compute_format_text_file(data):
-    if data.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get("flashSchema"):
+    if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get("flashSchema"):
         text = _generate_par_file(PKDict(models=data.args.models))
     else:
         with zipfile.ZipFile(
