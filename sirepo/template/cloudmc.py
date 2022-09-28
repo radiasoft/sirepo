@@ -123,22 +123,22 @@ def stateless_compute_validate_material_name(data):
 
     res = PKDict()
     m = openmc.Material(name="test")
-    method = getattr(m, data.component)
+    method = getattr(m, data.args.component)
     try:
-        if data.component == "add_macroscopic":
-            method(data.name)
-        elif data.component == "add_nuclide":
-            method(data.name, 1)
+        if data.args.component == "add_macroscopic":
+            method(data.args.name)
+        elif data.args.component == "add_nuclide":
+            method(data.args.name, 1)
             if not re.search(r"^[^\d]+\d+$", data.name):
                 raise ValueError("invalid nuclide name")
-        elif data.component == "add_s_alpha_beta":
-            method(data.name)
-        elif data.component == "add_elements_from_formula":
-            method(data.name)
-        elif data.component == "add_element":
-            method(data.name, 1)
+        elif data.args.component == "add_s_alpha_beta":
+            method(data.args.name)
+        elif data.args.component == "add_elements_from_formula":
+            method(data.args.name)
+        elif data.args.component == "add_element":
+            method(data.args.name, 1)
         else:
-            raise AssertionError(f"unknown material component: {data.component}")
+            raise AssertionError(f"unknown material component: {data.args.component}")
     except ValueError as e:
         res.error = "invalid material name"
     return res

@@ -97,10 +97,12 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             },
             {
                 method: 'current_to_kick',
-                command_beam: appState.models.command_beam,
-                //TODO(pjm): not sure why null values get sent but undefined values do not
-                amp_table: self.getAmpTables()[model.ampTable] || null,
-                current: model[self.currentField(kickField)],
+                args: {
+                    command_beam: appState.models.command_beam,
+                    //TODO(pjm): not sure why null values get sent but undefined values do not
+                    amp_table: self.getAmpTables()[model.ampTable] || null,
+                    current: model[self.currentField(kickField)],
+                }
             });
     };
 
@@ -142,9 +144,11 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             },
             {
                 method: 'kick_to_current',
-                command_beam: appState.models.command_beam,
-                amp_table: self.getAmpTables()[model.ampTable] || null,
-                kick: model[self.kickField(currentField)],
+                args: {
+                    command_beam: appState.models.command_beam,
+                    amp_table: self.getAmpTables()[model.ampTable] || null,
+                    kick: model[self.kickField(currentField)],
+                }
             });
     };
 

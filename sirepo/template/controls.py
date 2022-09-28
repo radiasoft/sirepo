@@ -212,16 +212,16 @@ def stateful_compute_get_external_lattice(data):
 
 def stateless_compute_current_to_kick(data):
     return PKDict(
-        kick=AmpConverter(data.command_beam, data.amp_table).current_to_kick(
-            data.current
+        kick=AmpConverter(data.args.command_beam, data.args.amp_table).current_to_kick(
+            data.args.current
         ),
     )
 
 
 def stateless_compute_kick_to_current(data):
     return PKDict(
-        current=AmpConverter(data.command_beam, data.amp_table).kick_to_current(
-            data.kick
+        current=AmpConverter(data.args.command_beam, data.args.amp_table).kick_to_current(
+            data.args.kick
         ),
     )
 
