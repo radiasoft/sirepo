@@ -322,10 +322,11 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _archive_file_list(filename, data_type):
-    reader = sirepo.sim_data.activait.DataReaderFactory.build_reader(_filepath(filename))
+    reader = sirepo.sim_data.activait.DataReaderFactory.build_reader(
+        _filepath(filename)
+    )
 
     def _filter(item):
-        #is_dir = getattr(item, reader.dir_check)()
         is_dir = reader.is_dir(item)
         return is_dir if data_type == "image" else not is_dir
 
@@ -534,6 +535,7 @@ def _compute_column_info(dataFile):
 
 
 def _compute_csv_info(filename, data_path):
+    pkdp("CSV DATA PATH {}", data_path)
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,

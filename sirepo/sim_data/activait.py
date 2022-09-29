@@ -8,7 +8,6 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import contextlib
-import h5py
 import io
 import sirepo.sim_data
 import zipfile
@@ -108,7 +107,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 
 class DataReader(PKDict):
-
     def __init__(self, file_path):
         super().__init__()
         self.file_ctx = open
@@ -141,21 +139,30 @@ class ArchiveDataReader(DataReader):
 
 
 class HDF5DataReader(ArchiveDataReader):
+    import h5py
+    h5py = staticmethod(h5py)
+
     def __init__(self, file_path):
         super().__init__(file_path)
-        self.file_ctx = h5py.File
+        self.file_ctx = HDF5DataReader.h5py.File
 
     def is_dir(self, item):
-        return isinstance(item, h5py.Group)
+        return isinstance(item, HDF5DataReader.h5py.Dataset)
 
     @contextlib.contextmanager
     def data_context_manager(self, data_path):
+        pkdp("H5 DATA PATH {}", data_path)
         with super().data_context_manager(data_path) as f:
             yield f[data_path]
 
+    def get_data_list(self, item_filter):
+        keys = []
+        with self.file_context_manager() as f:
+            f.visit(lambda x: keys.append(x) if self.is_dir(f[x]) else None)
+            return keys
+
 
 class TarDataReader(ArchiveDataReader):
-
     def __init__(self, file_path):
         super().__init__(file_path)
         self.file_ctx = tarfile.open
@@ -167,11 +174,7 @@ class TarDataReader(ArchiveDataReader):
 
     def get_data_list(self, item_filter):
         with self.file_context_manager() as f:
-            return [
-                x.name
-                for x in f.getmembers()
-                if item_filter(x)
-            ]
+            return [x.name for x in f.getmembers() if item_filter(x)]
 
     def is_dir(self, item):
         return item.isdir()
@@ -189,24 +192,19 @@ class ZipDataReader(ArchiveDataReader):
 
     def get_data_list(self, item_filter):
         with self.file_context_manager() as f:
-            return [
-                x.filename
-                for x in f.infolist()
-                if item_filter(x)
-            ]
+            return [x.filename for x in f.infolist() if item_filter(x)]
 
     def is_dir(self, item):
         return item.is_dir()
 
 
-
-class DataReaderFactory():
+class DataReaderFactory:
     _SUPPORTED_ARCHIVES = PKDict(
         {
             ".h5": HDF5DataReader,
             ".tar": TarDataReader,
             ".tar.gz": TarDataReader,
-            ".zip": ZipDataReader
+            ".zip": ZipDataReader,
         }
     )
 
@@ -227,4 +225,3 @@ class DataReaderFactory():
         return cls._SUPPORTED_ARCHIVES.get(
             cls.get_archive_extension(file_path), DataReader
         )(file_path)
-

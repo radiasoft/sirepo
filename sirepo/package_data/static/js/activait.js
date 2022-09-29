@@ -2099,6 +2099,9 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         }
         dataFile.oldFile = dataFile.file;
         appState.saveQuietly('dataFile');
+        if (! isTextData(dataFile)) {
+            return;
+        }
         requestSender.sendStatefulCompute(
             appState,
             function(data) {
@@ -2156,7 +2159,11 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         if (! filename) {
             return false;
         }
-        return [".tar.gz", ".zip"].some(x => filename.endsWith(x));
+        return [".h5", ".tar.gz", ".zip"].some(x => filename.endsWith(x));
+    }
+
+    function isTextData(dataFile) {
+        return dataFile.dataFormat === 'text';
     }
 
     function processAppMode() {
@@ -2174,7 +2181,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         const o = dataFile.dataOrigin;
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
-        panelState.showField(modelName, 'dataList', isArchiveFile(dataFile.file) && dataFile.dataFormat === 'text');
+        panelState.showField(modelName, 'dataList', isArchiveFile(dataFile.file) && isTextData(dataFile));
         validateURL();
     }
 
