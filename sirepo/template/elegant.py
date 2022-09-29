@@ -833,9 +833,9 @@ def sim_frame(frame_args):
 
 
 def stateful_compute_get_beam_input_type(data):
-    if data.input_file:
+    if data.args.input_file:
         data.input_type = _sdds_beam_type_from_file(
-            _SIM_DATA.lib_file_abspath(data.input_file),
+            _SIM_DATA.lib_file_abspath(data.args.input_file),
         )
     return data
 

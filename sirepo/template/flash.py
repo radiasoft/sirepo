@@ -350,32 +350,34 @@ def stateless_compute_delete_archive_file(data):
             "-d",
             str(
                 _SIM_DATA.lib_file_abspath(
-                    _SIM_DATA.flash_app_lib_basename(data.simulationId),
+                    _SIM_DATA.flash_app_lib_basename(data.args.simulationId),
                 )
             ),
-            data.filename,
+            data.args.filename,
         ]
     )
     return PKDict()
 
 
 def stateless_compute_format_text_file(data):
-    if data.filename == _SIM_DATA.FLASH_PAR_FILE and data.models.get("flashSchema"):
-        text = _generate_par_file(PKDict(models=data.models))
+    if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get(
+        "flashSchema"
+    ):
+        text = _generate_par_file(PKDict(models=data.args.models))
     else:
         with zipfile.ZipFile(
             _SIM_DATA.lib_file_abspath(
-                _SIM_DATA.flash_app_lib_basename(data.simulationId),
+                _SIM_DATA.flash_app_lib_basename(data.args.simulationId),
             )
         ) as f:
-            text = f.read(data.filename)
+            text = f.read(data.args.filename)
     t = "text"
-    if re.search(r"\.par$", data.filename, re.IGNORECASE):
+    if re.search(r"\.par$", data.args.filename, re.IGNORECASE):
         # works pretty well for par files
         t = "bash"
-    elif re.search(r"\.f90", data.filename, re.IGNORECASE):
+    elif re.search(r"\.f90", data.args.filename, re.IGNORECASE):
         t = "fortran"
-    elif data.filename.lower() == "makefile":
+    elif data.args.filename.lower() == "makefile":
         t = "makefile"
     return PKDict(
         html=pygments.highlight(
@@ -390,15 +392,17 @@ def stateless_compute_format_text_file(data):
 
 
 def stateless_compute_get_archive_file(data):
-    if data.filename == _SIM_DATA.FLASH_PAR_FILE and data.models.get("flashSchema"):
-        r = pkcompat.to_bytes(_generate_par_file(PKDict(models=data.models)))
+    if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get(
+        "flashSchema"
+    ):
+        r = pkcompat.to_bytes(_generate_par_file(PKDict(models=data.args.models)))
     else:
         with zipfile.ZipFile(
             _SIM_DATA.lib_file_abspath(
-                _SIM_DATA.flash_app_lib_basename(data.simulationId),
+                _SIM_DATA.flash_app_lib_basename(data.args.simulationId),
             )
         ) as f:
-            r = f.read(data.filename)
+            r = f.read(data.args.filename)
     return PKDict(
         encoded=pkcompat.from_bytes(base64.b64encode(r)),
     )
@@ -406,65 +410,68 @@ def stateless_compute_get_archive_file(data):
 
 def stateless_compute_update_lib_file(data):
     p = _SIM_DATA.lib_file_write_path(
-        _SIM_DATA.flash_app_lib_basename(data.simulationId),
+        _SIM_DATA.flash_app_lib_basename(data.args.simulationId),
     )
-    if data.get("archiveLibId"):
+    if data.args.get("archiveLibId"):
         _SIM_DATA.lib_file_abspath(
-            _SIM_DATA.flash_app_lib_basename(data.archiveLibId),
+            _SIM_DATA.flash_app_lib_basename(data.args.archiveLibId),
         ).copy(p)
     else:
-        simulation_db.simulation_dir(SIM_TYPE, data.simulationId,).join(
+        simulation_db.simulation_dir(SIM_TYPE, data.args.simulationId,).join(
             _SIM_DATA.flash_app_archive_basename()
         ).rename(p)
     return PKDict(
-        archiveLibId=data.simulationId,
+        archiveLibId=data.args.simulationId,
     )
 
 
 def stateless_compute_replace_file_in_zip(data):
     found = False
-    for f in data.archiveFiles:
-        if f.name == data.filename:
+    for f in data.args.archiveFiles:
+        if f.name == data.args.filename:
             found = True
     if found:
         stateless_compute_delete_archive_file(data)
     lib_file = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(
-            data.filename,
+            data.args.filename,
             "problemFile",
         ),
     )
     with zipfile.ZipFile(
         str(
             _SIM_DATA.lib_file_abspath(
-                _SIM_DATA.flash_app_lib_basename(data.simulationId),
+                _SIM_DATA.flash_app_lib_basename(data.args.simulationId),
             )
         ),
         "a",
     ) as z:
-        z.write(lib_file, data.filename)
+        z.write(lib_file, data.args.filename)
     res = PKDict()
-    if data.filename == _SIM_DATA.FLASH_PAR_FILE and "flashSchema" in data.models:
+    if (
+        data.args.filename == _SIM_DATA.FLASH_PAR_FILE
+        and "flashSchema" in data.args.models
+    ):
         res.parValues = flash_parser.ParameterParser().parse(
-            data,
+            data.args,
             pkio.read_text(lib_file),
         )
     lib_file.remove()
     if not found:
-        data.archiveFiles.append(
+        data.args.archiveFiles.append(
             PKDict(
-                name=data.filename,
+                name=data.args.filename,
             )
         )
-        data.archiveFiles = sort_problem_files(data.archiveFiles)
-    res.archiveFiles = data.archiveFiles
+        data.args.archiveFiles = sort_problem_files(data.args.archiveFiles)
+    res.archiveFiles = data.args.archiveFiles
     return res
 
 
 def stateless_compute_setup_command(data):
     return PKDict(
         setupCommand=" ".join(
-            _SIM_DATA.flash_setup_command(data.setupArguments),
+            _SIM_DATA.flash_setup_command(data.args.setupArguments),
         )
     )
 

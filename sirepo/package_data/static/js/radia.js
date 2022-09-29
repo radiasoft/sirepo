@@ -3963,8 +3963,10 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             appState,
             setPoints,
             {
-                points_file: $scope.modelData.pointsFile,
                 method: 'build_shape_points',
+                args: {
+                    points_file: $scope.modelData.pointsFile,
+                }
             }
         );
     }

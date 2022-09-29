@@ -82,8 +82,12 @@ SIREPO.app.factory('shadowService', function(appState, beamlineService, panelSta
     };
 
     self.sendStatelessCompute = function(method, appState, callback, args) {
-        args.method = method;
-        requestSender.sendStatelessCompute(appState, callback, args);
+        requestSender.sendStatelessCompute(appState, callback,
+            {
+                method: method,
+                args: args,
+            }
+        );
     };
 
     self.initAutoTuneView = function(scope, watchFields, callback) {

@@ -484,7 +484,7 @@ def run_epics_command(server_address, cmd):
 def stateful_compute_column_info(data):
     data = PKDict(
         models=PKDict(
-            analysisData=data["analysisData"],
+            analysisData=data.args["analysisData"],
         ),
     )
     return PKDict(
