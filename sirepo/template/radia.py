@@ -7,6 +7,8 @@ Radia "instance" goes away and references no longer have any meaning.
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
+from ast import AsyncFunctionDef
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -28,6 +30,7 @@ import sdds
 import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
+# TODO: test that trimesh is installed, causes server error if not
 import trimesh
 import uuid
 
@@ -1712,28 +1715,20 @@ def _validate_objects(objects):
                     )
                 )
 
-'''
+
 def validate_file(file_type, path):
-    pkdp("Called validate_file()")
     err = None
-    trimesh.util.attatch_to_log()
-    #mesh = trimesh.load()
-    
-    err = None
-    if file_type == "bunchFile-sourceFile":
-        _sdds_init()
-        err = "expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns"
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
-            beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
-            if beam_type in ("elegant", "spiffe"):
-                sdds.sddsdata.ReadPage(_SDDS_INDEX)
-                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)) > 0:
-                    err = None
-                else:
-                    err = "sdds file contains no rows"
-        sdds.sddsdata.Terminate(_SDDS_INDEX)
+    #TODO: Fix is stl file check, all incoming files have file_type 'stl-file' and checking by extension isn't great
+    if str(path).endswith('.stl') == True:
+        trimesh.util.attach_to_log()
+        f = open(path)
+        mesh = trimesh.load(f, file_type='stl', force='mesh', process=True)
+        if trimesh.convex.is_convex(mesh) == False:
+            err = "Model is not Convex"
+    else:
+        err = "Not an STL File"
     return err
-    '''
+
 
 _H5_PATH_ID_MAP = _geom_h5_path("idMap")
 _H5_PATH_KICK_MAP = _geom_h5_path("kickMap")
