@@ -106,11 +106,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             layer.pop(old)
 
 
-class DataReader(PKDict):
+class DataReader():
     def __init__(self, file_path):
         super().__init__()
         self.file_ctx = open
-        self.pkupdate(path=pkio.py_path(file_path))
+        self.path = pkio.py_path(file_path)
 
     def is_archive(self):
         return False
@@ -124,6 +124,10 @@ class DataReader(PKDict):
 
     def get_data_list(self, item_filter):
         return None
+
+    def read(self, data_path, reader=None):
+        with self.data_context_manager(data_path) as f:
+            f.read()
 
 
 class ArchiveDataReader(DataReader):
@@ -151,7 +155,6 @@ class HDF5DataReader(ArchiveDataReader):
 
     @contextlib.contextmanager
     def data_context_manager(self, data_path):
-        pkdp("H5 DATA PATH {}", data_path)
         with super().data_context_manager(data_path) as f:
             yield f[data_path]
 

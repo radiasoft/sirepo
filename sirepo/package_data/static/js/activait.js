@@ -2222,6 +2222,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function getArchiveDataList() {
+        srdbg('GET ARCH FILE LIST');
         function setDataList(l) {
             appState.models[modelName].dataList = l;
             appState.models.dataFileCache[dataFile.file].dataList = l;
@@ -2239,7 +2240,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         }
 
         const f = appState.models.dataFileCache[dataFile.file];
-        if (f) {
+        if (hasCachedDataList(f)) {
             setDataList(f.dataList);
             return;
         }
@@ -2258,12 +2259,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 data_type: dataFile.dataFormat,
             },
         );
-    }
-
-    function updateSelectedData(dataFile) {
-        if (dataFile.dataList && ! dataFile.dataList.includes(dataFile.selectedData)) {
-            dataFile.selectedData = dataFile.dataList[0];
-        }
     }
 
     function getRemoteData(headersOnly, callback) {
@@ -2288,6 +2283,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 }
             }
         );
+    }
+
+    function hasCachedDataList(cache) {
+        return cache && cache.dataList && cache.dataList.length;
     }
 
     function updateData() {
@@ -2336,6 +2335,12 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         }
         else {
             dataFileChanged();
+        }
+    }
+
+    function updateSelectedData(dataFile) {
+        if (dataFile.dataList && ! dataFile.dataList.includes(dataFile.selectedData)) {
+            dataFile.selectedData = dataFile.dataList[0];
         }
     }
 

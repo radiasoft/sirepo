@@ -535,7 +535,6 @@ def _compute_column_info(dataFile):
 
 
 def _compute_csv_info(filename, data_path):
-    pkdp("CSV DATA PATH {}", data_path)
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,

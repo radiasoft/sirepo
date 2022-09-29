@@ -67,7 +67,11 @@ def scale_columns(values, column_types, col_type, scaler):
 
 def scale_file(data_reader, data_path, column_types, inputs_scaler, outputs_scaler):
     {% if dataFile_appMode == 'classification' or dataFile_appMode == 'regression' %}
+    {% if dataFile_dataFormat == 'text' %}
     v = read_data_and_encode_output_column(data_reader, data_path, column_types)
+    {% else %}
+    v = read_data(data_reader, data_path)
+    {% endif %}
     {% else %}
     v = read_data(data_reader, data_path)
     {% endif %}
