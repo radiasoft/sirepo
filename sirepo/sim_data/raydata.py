@@ -12,7 +12,7 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
-        pass
+        cls._init_models(data.models)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

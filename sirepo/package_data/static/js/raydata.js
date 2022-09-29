@@ -197,6 +197,29 @@ SIREPO.app.directive('dateTimePicker', function() {
     };
 });
 
+SIREPO.app.directive('dotsAnimation', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            text: '@',
+        },
+        template: `
+          {{ text }}{{ dots }}
+        `,
+        controller: function($interval, $scope) {
+            $scope.dots = '';
+
+            $interval(() => {
+                if ($scope.dots.length < 3) {
+                    $scope.dots += '.';
+                } else {
+                    $scope.dots = '.';
+                }
+            }, 1000);
+        }
+    };
+});
+
 SIREPO.app.directive('pngImage', function(plotting) {
     return {
         restrict: 'A',
@@ -218,8 +241,50 @@ SIREPO.app.directive('replayPanel', function() {
             modelName: '=',
         },
         template: `
-          <button type="submit" class="btn btn-primary" data-ng-click="">Start Replay</button>
+          <div class="text-center">
+            <button type="submit" class="btn btn-primary" style="margin-top: 10px" data-ng-click="startReplay()" data-ng-disabled="disableReplayButton()">Start Replay</button>
+            <div ng-if="replaying">
+              <div data-dots-animation="" data-text="Replaying scans"></div>
+            </div>
+          </div>
         `,
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
+            $scope.replaying = false;
+
+            $scope.disableReplayButton = () => {
+                if (! (appState.models.replay.sourceCatalogName && appState.models.replay.destinationCatalogName && appState.models.replay.numScans)) {
+                    return true;
+                } else {
+                    return $scope.replaying;
+                }
+            };
+
+            $scope.startReplay = () => {
+                $scope.replaying = true;
+                requestSender.sendStatelessCompute(
+                    appState,
+                    () => {
+                        $scope.replaying = false;
+                    },
+                    {
+                        method: 'begin_replay',
+                        sourceCatalogName: appState.models.replay.sourceCatalogName,
+                        destinationCatalogName: appState.models.replay.destinationCatalogName,
+                        numScans: appState.models.replay.numScans,
+                    },
+                    {
+                        modelName: $scope.modelName,
+                        onError: (data) => {
+                            errorService.alertText(data.error);
+                            panelState.setLoading($scope.modelName, false);
+                            $scope.replaying = false;
+                        },
+                        panelState: panelState,
+                    }
+                );
+
+            };
+        },
     };
 });
 
