@@ -33,16 +33,15 @@ def test_madx_calculate_bunch_parameters(fc):
 
 
 def _do(fc, api, method, data):
-    # TODO (gurhar1133): hacky fix below works but
-    # commented out does not.
-    data.method = method
-    data.args = data.copy()
-    return fc.sr_post(api, data)
-    # return fc.sr_post(api, PKDict(
-    #     method=method,
-    #     args=data
-    #     )
-    # )
+    return fc.sr_post(
+        api,
+        PKDict(
+            method=method,
+            args=data,
+            simulationId=data.simulationId,
+            simulationType=data.simulationType,
+        ),
+    )
 
 
 def _do_stateful_compute(fc, method, data):
