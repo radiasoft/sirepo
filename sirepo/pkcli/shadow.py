@@ -111,7 +111,7 @@ def _run_beam_statistics(cfg_dir, data):
         title="",
         x_range=[min(x), max(x)],
         y_label="",
-        x_label="s [m]",
+        x_label="Longitudinal Position [m]",
         x_points=x,
         plots=plots,
         y_range=template_common.compute_plot_color_and_range(plots),
