@@ -517,8 +517,8 @@ def _cols_with_non_unique_values(data_reader, data_path, has_header_row, header)
     assert not re.search(
         r"\.npy$", str(data_reader.path.basename)
     ), f"numpy files are not supported path={data_reader.path.basename}"
-    v = sirepo.numpy.ndarray_from_ctx(
-        data_reader.data_context_manager(data_path), has_header_row
+    v = sirepo.numpy.ndarray_from_generator(
+        data_reader.csv_generator(data_path), has_header_row
     )
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):

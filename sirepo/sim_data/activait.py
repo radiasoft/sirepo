@@ -108,7 +108,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 class DataReader():
     def __init__(self, file_path):
-        super().__init__()
         self.file_ctx = open
         self.path = pkio.py_path(file_path)
 
@@ -125,9 +124,16 @@ class DataReader():
     def get_data_list(self, item_filter):
         return None
 
-    def read(self, data_path, reader=None):
+    def read(self, data_path):
         with self.data_context_manager(data_path) as f:
             f.read()
+
+    def csv_generator(self, data_path):
+        import csv
+        import re
+        with self.data_context_manager(data_path) as f:
+            for r in csv.reader(f):
+                yield ",".join(map(lambda x: re.sub(r'["\n\r,]', "", x), r))
 
 
 class ArchiveDataReader(DataReader):

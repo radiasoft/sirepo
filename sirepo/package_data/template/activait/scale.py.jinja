@@ -11,8 +11,8 @@ from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 {% endif %}
 
 def read_data(data_reader, data_path, **kwargs):
-    return sirepo.numpy.ndarray_from_ctx(
-        data_reader.data_context_manager(data_path),
+    return sirepo.numpy.ndarray_from_generator(
+        data_reader.csv_generator(data_path),
         {{ 1 if columnInfo_hasHeaderRow else 0 }},
         **kwargs,
     )

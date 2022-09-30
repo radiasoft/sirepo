@@ -2222,7 +2222,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function getArchiveDataList() {
-        srdbg('GET ARCH FILE LIST');
         function setDataList(l) {
             appState.models[modelName].dataList = l;
             appState.models.dataFileCache[dataFile.file].dataList = l;
