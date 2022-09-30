@@ -9,7 +9,6 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
-from sirepo import simulation_db
 from sirepo.template import code_variable
 import math
 import os
@@ -243,18 +242,13 @@ class ParticleEnergy:
 
 
 def analysis_job_dispatch(data):
+    from sirepo import simulation_db
+
     t = sirepo.template.import_module(data.simulationType)
-    d = simulation_db.simulation_run_dir(
-        PKDict(
-            simulationType=data.simulationType,
-            simulationId=data.simulationId,
-            report=data.computeModel,
-        )
-    )
     return getattr(
         t,
         f"analysis_job_{_validate_method(t, data)}",
-    )(data, d)
+    )(data, simulation_db.simulation_run_dir(data))
 
 
 def compute_field_range(args, compute_range):
