@@ -506,24 +506,25 @@ class _Auth(sirepo.quest.Attr):
                 return u.uid
             return None
 
-    def user_dir_not_found(self, exc):
+    def user_dir_not_found(self, user_dir, uid):
         """Called by http_reply when user_dir is not found
 
         Deletes any user records and resets auth state.
 
         Args:
-            exc (utilUserDirNotFound): exception with sr_args
+            user_dir (str): directory not found
+            uid (str): user
         """
         with sirepo.util.THREAD_LOCK:
             for m in _METHOD_MODULES.values():
-                u = _method_user_model(m, exc.sr_args.uid)
+                u = self._method_user_model(m, uid)
                 if u:
                     u.delete()
-            u = sirepo.auth_db.UserRegistration.search_by(uid=exc.sr_args.uid)
+            u = sirepo.auth_db.UserRegistration.search_by(uid=uid)
             if u:
                 u.delete()
         self.reset_state()
-        pkdlog("{}", exc)
+        pkdlog("user_dir={} uid={}", user_dir, uid)
         return self.qcall.reply_redirect_for_app_root()
 
     def user_display_name(self, uid):

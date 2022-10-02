@@ -516,16 +516,13 @@ class API(sirepo.quest.API):
         Might be non-session simulation copy (see `simulation_db.CopyRedirect`).
         We have to allow a non-user to get data.
         """
+
         def _not_found(req):
             if not find_global_simulation(req.type, req.id):
                 util.raise_not_found(
                     "stype={} sid={} global simulation not found", req.type, req.id
                 )
-            return self.headers_for_no_cache(
-                self.reply_json(
-                    ),
-                ),
-            )
+            return self.headers_for_no_cache(self.reply_json(_redirect(req)))
 
         def _redirect(req):
             return PKDict(

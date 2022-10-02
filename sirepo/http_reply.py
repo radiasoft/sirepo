@@ -369,6 +369,19 @@ def _gen_exception_reply_Response(qcall, args):
     return r
 
 
+def _gen_exception_reply_SPathNotFound(qcall, args):
+    pkdlog("uncaught SPathNotFound {}", args)
+    return gen_response(
+        """<!doctype html><html>
+<head><title>404 Not Found</title></head>
+<body><h1>Not Found</h1></body>
+</html>
+""",
+        content_type=MIME_TYPE.html,
+        status=404,
+    )
+
+
 def _gen_exception_reply_SRException(qcall, args):
     r = args.routeName
     p = args.params or PKDict()
@@ -415,7 +428,7 @@ def _gen_exception_reply_SRException(qcall, args):
 
 
 def _gen_exception_reply_UserDirNotFound(qcall, args):
-    return qcall.auth.user_dir_not_found(exc)
+    return qcall.auth.user_dir_not_found(**args)
 
 
 def _gen_exception_reply_UserAlert(qcall, args):

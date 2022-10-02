@@ -50,7 +50,7 @@ _INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)", re.IGNORECASE)
 _VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
 
 
-class Reply(Reply):
+class Reply(Exception):
     """Raised to end the request.
 
     Args:
@@ -90,7 +90,7 @@ class Error(Reply):
             values = PKDict(error=values)
         else:
             assert values.get("error"), 'values={} must contain "error"'.format(values)
-        super(Error, self).__init__(values, *args, **kwargs)
+        super().__init__(values, *args, **kwargs)
 
 
 class Redirect(Reply):
@@ -102,7 +102,7 @@ class Redirect(Reply):
     """
 
     def __init__(self, uri, *args, **kwargs):
-        super(Redirect, self).__init__(PKDict(uri=uri), *args, **kwargs)
+        super().__init__(PKDict(uri=uri), *args, **kwargs)
 
 
 class Response(Reply):
@@ -114,10 +114,10 @@ class Response(Reply):
     """
 
     def __init__(self, response, *args, **kwargs):
-        super(Response, self).__init__(PKDict(response=response), *args, **kwargs)
+        super().__init__(PKDict(response=response), *args, **kwargs)
 
 
-class SPathNotFound(NotFound):
+class SPathNotFound(Reply):
     """Raised by simulation_db
 
     Args:
@@ -147,7 +147,7 @@ class SRException(Reply):
     """
 
     def __init__(self, route_name, params, *args, **kwargs):
-        super(SRException, self).__init__(
+        super().__init__(
             PKDict(routeName=route_name, params=params),
             *args,
             **kwargs,
@@ -175,7 +175,7 @@ class UserDirNotFound(Reply):
     """
 
     def __init__(self, user_dir, uid, *args, **kwargs):
-        super(UserAlert, self).__init__(
+        super().__init__(
             PKDict(user_dir=user_dir, uid=uid),
             *args,
             **kwargs,
