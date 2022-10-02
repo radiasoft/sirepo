@@ -306,6 +306,22 @@ def _gen_exception_error(qcall, exc):
     return gen_redirect_for_local_route(qcall, None, route="error")
 
 
+def _gen_exception_base(qcall, exc):
+    return _gen_exception_reply(qcall, exc)
+
+
+def _gen_exception_reply(qcall, exc):
+    f = getattr(
+        pykern.pkinspect.this_module(),
+        "_gen_exception_reply_" + exc.__class__.__name__,
+        None,
+    )
+    pkdc("exception={} sr_args={}", exc, exc.sr_args)
+    if not f:
+        return _gen_exception_error(qcall, exc)
+    return f(qcall, exc.sr_args)
+
+
 def _gen_exception_reply(qcall, exc):
     f = getattr(
         pykern.pkinspect.this_module(),
@@ -396,6 +412,10 @@ def _gen_exception_reply_SRException(qcall, args):
         params=p,
         sr_exception=pkjson.dump_pretty(args, pretty=False),
     )
+
+
+def _gen_exception_reply_UserDirNotFound(qcall, args):
+    return qcall.auth.user_dir_not_found(exc)
 
 
 def _gen_exception_reply_UserAlert(qcall, args):

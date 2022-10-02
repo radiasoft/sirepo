@@ -516,16 +516,39 @@ class API(sirepo.quest.API):
         Might be non-session simulation copy (see `simulation_db.CopyRedirect`).
         We have to allow a non-user to get data.
         """
+        def _not_found(req):
+            if not find_global_simulation(req.type, req.id):
+                util.raise_not_found(
+                    "stype={} sid={} global simulation not found", req.type, req.id
+                )
+            return self.headers_for_no_cache(
+                self.reply_json(
+                    ),
+                ),
+            )
+
+        def _redirect(req):
+            return PKDict(
+                # only parsed by sirepo.js appstate.loadModesl
+                notFoundCopyRedirect=PKDict(
+                    section=section or "",
+                    simulationId=req.id,
+                    userCopySimulationId=simulation_db.find_user_simulation_copy(
+                        sim_type=req.type,
+                        sid=req.id,
+                        uid=self.auth.logged_in_user(),
+                    ),
+                ),
+            )
+
         # TODO(pjm): pretty is an unused argument
         # TODO(robnagler) need real type transforms for inputs
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         try:
             d = simulation_db.read_simulation_json(req.type, sid=req.id)
             return self._simulation_data_reply(req, d)
-        except simulation_db.CopyRedirect as e:
-            if e.sr_response["redirect"] and section:
-                e.sr_response["redirect"]["section"] = section
-            return self.headers_for_no_cache(self.reply_json(e.sr_response))
+        except sirepo.util.SPathNotFound:
+            return _not_found(req)
 
     @sirepo.quest.Spec("require_user", search="SearchSpec")
     def api_listSimulations(self):

@@ -50,7 +50,7 @@ _INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)", re.IGNORECASE)
 _VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
 
 
-class Reply(Exception):
+class Reply(Reply):
     """Raised to end the request.
 
     Args:
@@ -59,11 +59,11 @@ class Reply(Exception):
     """
 
     def __init__(self, sr_args, *args, **kwargs):
-        super(Reply, self).__init__()
+        super().__init__()
+        self.sr_args = sr_args
         if args or kwargs:
             kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
             pkdlog(*args, **kwargs)
-        self.sr_args = sr_args
 
     def __repr__(self):
         a = self.sr_args
@@ -117,6 +117,23 @@ class Response(Reply):
         super(Response, self).__init__(PKDict(response=response), *args, **kwargs)
 
 
+class SPathNotFound(NotFound):
+    """Raised by simulation_db
+
+    Args:
+        sim_type (str): simulation type
+        uid (str): user
+        sid (str): simulation id
+    """
+
+    def __init__(self, sim_type, uid, sid, *args, **kwargs):
+        super(UserAlert, self).__init__(
+            PKDict(sim_type=sim_type, uid=uid, sid=sid),
+            *args,
+            **kwargs,
+        )
+
+
 class SRException(Reply):
     """Raised to communicate a local redirect and log info
 
@@ -131,7 +148,9 @@ class SRException(Reply):
 
     def __init__(self, route_name, params, *args, **kwargs):
         super(SRException, self).__init__(
-            PKDict(routeName=route_name, params=params), *args, **kwargs
+            PKDict(routeName=route_name, params=params),
+            *args,
+            **kwargs,
         )
 
 
@@ -145,6 +164,22 @@ class UserAlert(Reply):
 
     def __init__(self, display_text, *args, **kwargs):
         super(UserAlert, self).__init__(PKDict(error=display_text), *args, **kwargs)
+
+
+class UserDirNotFound(Reply):
+    """Raised by simulation_db
+
+    Args:
+        user_dir (py.path): directory not found
+        uid (str): user
+    """
+
+    def __init__(self, user_dir, uid, *args, **kwargs):
+        super(UserAlert, self).__init__(
+            PKDict(user_dir=user_dir, uid=uid),
+            *args,
+            **kwargs,
+        )
 
 
 class WWWAuthenticate(Reply):

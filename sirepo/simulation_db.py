@@ -92,19 +92,6 @@ _dev_version = None
 hook_auth_user = lambda: _cfg.logged_in_user
 
 
-class CopyRedirect(Exception):
-    def __init__(self, resp):
-        super().__init__()
-        self.sr_response = resp
-
-
-class UserDirNotFound(Exception):
-    def __init__(self, user_dir, uid):
-        super().__init__()
-        self.user_dir = user_dir
-        self.uid = uid
-
-
 def app_version():
     """Force the version to be dynamic if running in dev channel
 
@@ -166,6 +153,19 @@ def examples(app):
         open_json_file(app, path=f, fixup=False)
         for f in sim_data.get_class(app).example_paths()
     ]
+
+
+def find_user_simulation_copy(simulation_type, sid, uid):
+    """ONLY USED BY api_simulationData"""
+    rows = iterate_simulation_datafiles(
+        simulation_type,
+        process_simulation_list,
+        PKDict({"simulation.outOfSessionSimulationId": sid}),
+        uid=uid,
+    )
+    if len(rows):
+        return rows[0]["simulationId"]
+    return None
 
 
 def find_global_simulation(sim_type, sid, checked=False):
@@ -395,48 +395,25 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None, save=Fal
         save (bool): save_simulation_json if data changed [False]
     Returns:
         dict: data
-
-    Raises:
-        CopyRedirect: if the simulation is in another user's
     """
-    if not path:
-        path = sim_data_file(sim_type, sid, uid=uid)
-    if not path.exists():
-        global_sid = None
-        if sid:
-            # TODO(robnagler) workflow should be in server.py,
-            # because only valid in one case, not e.g. for opening examples
-            # which are not found.
-            user_copy_sid = _find_user_simulation_copy(sim_type, sid, uid=uid)
-            if find_global_simulation(sim_type, sid):
-                global_sid = sid
-        if global_sid:
-            raise CopyRedirect(
-                PKDict(
-                    redirect=PKDict(
-                        simulationId=global_sid,
-                        userCopySimulationId=user_copy_sid,
-                    ),
-                )
-            )
-        util.raise_not_found(
-            "{}/{}: global simulation not found",
-            sim_type,
-            sid,
-        )
+    p = path or sim_data_file(sim_type, sid, uid=uid)
+    if not p.exists():
+        if path:
+            util.raise_not_found("path={} not found", path)
+        raise util.SPathNotFound(sim_type=sim_type, sid=sid, uid=uid)
     data = None
     try:
-        with path.open() as f:
+        with p.open() as f:
             data = json_load(f)
         # ensure the simulationId matches the path
         if sid:
-            data.models.simulation.simulationId = _sim_from_path(path)[0]
+            data.models.simulation.simulationId = _sim_from_path(p)[0]
     except Exception as e:
-        pkdlog("{}: error: {}", path, pkdexc())
+        pkdlog("{}: error: {}", p, pkdexc())
         raise
     if not fixup:
         return data
-    d, c = fixup_old_data(data, path=path)
+    d, c = fixup_old_data(data, path=p)
     if c and save:
         return save_simulation_json(d, fixup=False, do_validate=False, uid=uid)
     return d
@@ -788,7 +765,7 @@ def user_path(uid, check=False):
     assert uid
     d = user_path_root().join(uid)
     if check and not d.check():
-        raise UserDirNotFound(d, uid)
+        raise util.UserDirNotFound(user_dir=d, uid=uid)
     return d
 
 
@@ -891,18 +868,6 @@ def _files_in_schema(schema):
                     sirepo.resource.static_url(file_type, path, f),
                 )
     return paths
-
-
-def _find_user_simulation_copy(simulation_type, sid, uid=None):
-    rows = iterate_simulation_datafiles(
-        simulation_type,
-        process_simulation_list,
-        PKDict({"simulation.outOfSessionSimulationId": sid}),
-        uid=uid,
-    )
-    if len(rows):
-        return rows[0]["simulationId"]
-    return None
 
 
 def _init():

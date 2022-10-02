@@ -186,7 +186,7 @@ class API(pykern.quest.API):
     def reply_redirect(self, uri):
         return http_reply.gen_redirect(uri)
 
-    def reply_redirect_for_app_root(self, sim_type):
+    def reply_redirect_for_app_root(self, sim_type=None):
         return self.reply_redirect(self.uri_for_app_root(sim_type))
 
     def reply_redirect_for_local_route(
@@ -250,7 +250,7 @@ class API(pykern.quest.API):
         Returns:
             str: uri
         """
-        return sirepo.uri.app_root(sim_type=sim_type)
+        return sirepo.uri.app_root(sim_type=self.sim_type_uget(sim_type))
 
     def user_agent_headers(self):
         def _dns_reverse_lookup(ip):
