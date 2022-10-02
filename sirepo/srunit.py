@@ -197,7 +197,9 @@ class UwsgiClient(PKDict):
         return pkjson.load_any(r.text)
 
     def _server_route(self, route_or_uri):
-        return sirepo.uri.server_route(route_or_uri, None, None)
+        from sirepo import uri
+
+        return uri.server_route(route_or_uri, None, None)
 
 
 def wrap_in_request(*args, **kwargs):
@@ -268,9 +270,9 @@ class _TestClient(flask.testing.FlaskClient):
                     a.get("frameCount"),
                 )
             pkdlog("frameReport={} count={}", r, c)
-            import sirepo.sim_data
+            from sirepo import sim_data
 
-            s = sirepo.sim_data.get_class(self.sr_sim_type)
+            s = sim_data.get_class(self.sr_sim_type)
             for i in c:
                 pkdlog("frameIndex={} frameCount={}", i, run.get("frameCount"))
                 f = self.sr_get_json(
@@ -292,13 +294,13 @@ class _TestClient(flask.testing.FlaskClient):
             dict: parsed auth_state
         """
         from pykern import pkunit
-        import pykern.pkcollections
+        from pykern import pkcollections
 
         m = re.search(
             r"(\{.*\})",
             pkcompat.from_bytes(self.sr_get("authState").data),
         )
-        s = pykern.pkcollections.json_load_any(m.group(1))
+        s = pkcollections.json_load_any(m.group(1))
         for k, v in kwargs.items():
             pkunit.pkeq(
                 v,
@@ -624,10 +626,8 @@ class _TestClient(flask.testing.FlaskClient):
             object: parsed JSON result
         """
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
-        import pykern.pkjson
-        import sirepo.http_reply
-        import sirepo.uri
-        import sirepo.util
+        from pykern import pkjson
+        from sirepo import uri, util, http_reply
 
         redirects = kwargs.setdefault("__redirects", 0) + 1
         assert redirects <= 5
@@ -636,7 +636,7 @@ class _TestClient(flask.testing.FlaskClient):
         u = None
         r = None
         try:
-            u = sirepo.uri.server_route(route_or_uri, params, query)
+            u = uri.server_route(route_or_uri, params, query)
             pkdc("uri={}", u)
             r = op(u)
             pkdc(
@@ -649,7 +649,7 @@ class _TestClient(flask.testing.FlaskClient):
                 m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(r.data))
                 if m:
                     if m.group(1).endswith("#/error"):
-                        raise sirepo.util.Error(
+                        raise util.Error(
                             PKDict(error="server error uri={}".format(m.group(1))),
                         )
                     if kwargs.get("redirect", True):
@@ -678,12 +678,9 @@ class _TestClient(flask.testing.FlaskClient):
             if raw_response:
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
-            d = pykern.pkjson.load_any(r.data)
-            if (
-                isinstance(d, dict)
-                and d.get("state") == sirepo.http_reply.SR_EXCEPTION_STATE
-            ):
-                raise sirepo.util.SRException(
+            d = pkjson.load_any(r.data)
+            if isinstance(d, dict) and d.get("state") == http_reply.SR_EXCEPTION_STATE:
+                raise util.SRException(
                     d.srException.routeName,
                     d.srException.params,
                 )

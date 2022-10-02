@@ -699,7 +699,7 @@ def tmp_dir(chdir=False, uid=None):
     d = None
     try:
         p = user_path(uid, check=True) if uid else logged_in_user_path()
-        d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR), uid=uid)["path"]
+        d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR))["path"]
         pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
         if chdir:

@@ -63,9 +63,6 @@ _STATE_COMPLETE_REGISTRATION = "cr"
 #: name to module object
 _METHOD_MODULES = pkcollections.Dict()
 
-#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
-_UWSGI_LOG_KEY_USER = "sirepo_user"
-
 # TODO(robnagler) probably from the schema
 #: For formatting the size parameter to an avatar_uri
 _AVATAR_SIZE = 40

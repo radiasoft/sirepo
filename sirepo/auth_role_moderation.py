@@ -104,7 +104,7 @@ class API(sirepo.quest.API):
     def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
-                rows=sirepo.auth_db.UserRoleInvite.get_moderation_request_rows(),
+                rows=sirepo.auth_db.UserRoleInvite.get_moderation_request_rows(self),
             ),
         )
 
@@ -125,7 +125,7 @@ class API(sirepo.quest.API):
         u = self.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(req.type)
         with sirepo.util.THREAD_LOCK:
-            if self.auth_db.UserRole.has_role(u, r):
+            if sirepo.auth_db.UserRole.has_role(u, r):
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
             try:
                 sirepo.auth_db.UserRoleInvite(

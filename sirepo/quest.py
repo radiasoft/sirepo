@@ -119,6 +119,9 @@ class API(pykern.quest.API):
                     pkdlog("destroy failed attr={} stack={}", v, pkdexc())
             self.pkdel(k)
 
+    def headers_for_cache(self, resp, path=None):
+        return http_reply.headers_for_cache(resp, path)
+
     def headers_for_no_cache(self, resp):
         return http_reply.headers_for_no_cache(resp)
 
@@ -276,7 +279,7 @@ class API(pykern.quest.API):
         return PKDict(
             ip_addr=self.sreq.remote_addr,
             domain_name=_dns_reverse_lookup(self.sreq.remote_addr),
-            user_agent=self.http_header_uget("User-Agent"),
+            user_agent=self.sreq.header_uget("User-Agent"),
         )
 
 

@@ -9,6 +9,9 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 
 _log_not_request = 0
 
+#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
+_UWSGI_LOG_KEY_USER = "sirepo_user"
+
 _initialized = None
 
 is_server = False

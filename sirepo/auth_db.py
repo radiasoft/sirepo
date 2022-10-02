@@ -369,7 +369,7 @@ def init_module():
         )
 
         @classmethod
-        def get_moderation_request_rows(cls):
+        def get_moderation_request_rows(cls, qcall):
             from sirepo import auth
 
             t = qcall.auth.get_module("email").UserModel
