@@ -186,6 +186,9 @@ class API(pykern.quest.API):
     def reply_redirect(self, uri):
         return http_reply.gen_redirect(uri)
 
+    def reply_redirect_for_app_root(self, sim_type):
+        return self.reply_redirect(self.uri_for_app_root(sim_type))
+
     def reply_redirect_for_local_route(
         self,
         sim_type=None,

@@ -415,7 +415,7 @@ class _Auth(sirepo.quest.Attr):
         return self._auth_state()
 
     def only_for_api_logout(self):
-        sirepo.events.emit("auth_logout", PKDict(uid=self._get_user()))
+        sirepo.events.emit(self, "auth_logout", PKDict(uid=self._get_user()))
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
 
