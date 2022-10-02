@@ -19,10 +19,8 @@ def routes():
 
 class _Request(tornado.web.RequestHandler):
     async def get(self, *args, **kwargs):
-        #TODO(robnagler): Possibly only needs to be a login request.
-        with sirepo.auth.process_request(
-            sirepo.request.Base(headers=flask.request.headers, method=flask.request.method),
-        ):
+        # TODO(robnagler): Possibly only needs to be a login request.
+        pass
 
     def on_connection_close(self):
         pass

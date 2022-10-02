@@ -394,7 +394,7 @@ class _Auth(sirepo.quest.Attr):
             response=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
         )
 
-    def need_complete_registration(model):
+    def need_complete_registration(self, model):
         """Does unauthenticated user need to complete registration?
 
         If the current method is deprecated, then we will end up asking
@@ -459,7 +459,7 @@ class _Auth(sirepo.quest.Attr):
                 f = getattr(_METHOD_MODULES[m], "validate_login", None)
                 if f:
                     pkdc("validate_login method={}", m)
-                    f(self)
+                    f(self.qcall)
                 return u
             if m in _cfg.deprecated_methods:
                 e = "deprecated"

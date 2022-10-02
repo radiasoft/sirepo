@@ -17,12 +17,12 @@ import tempfile
 def fixup_package_data_json():
     def _is_valid(path):
         return any(
-            x for x in sirepo.feature_config.cfg().sim_types
+            x
+            for x in sirepo.feature_config.cfg().sim_types
             if pykern.pkio.py_path().bestrelpath(f).startswith(x + "/")
         )
 
     i = 0
-    p =
     for f in pykern.pkio.sorted_glob("*/examples/*.json") + pykern.pkio.sorted_glob(
         "*/default-data.json"
     ):

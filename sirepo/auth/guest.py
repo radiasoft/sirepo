@@ -63,7 +63,7 @@ def is_login_expired(qcall, res=None):
     u = qcall.auth.logged_in_user()
     r = qcall.auth.user_registration(u)
     t = r.created + cfg.expiry_days
-    n = sireop.srtime.utc_now()
+    n = sirepo.srtime.utc_now()
     if n > t:
         if res is not None:
             res.update(uid=u, expiry=t, now=n)

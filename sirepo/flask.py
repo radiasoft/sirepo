@@ -38,6 +38,8 @@ def in_request():
     if not flask:
         return False
     if not flask.request:
+        global _log_not_request
+
         if is_server and _log_not_request < 10:
             _log_not_request += 1
             # This will help debug https://github.com/radiasoft/sirepo/issues/3727

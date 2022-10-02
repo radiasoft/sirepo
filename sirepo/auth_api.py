@@ -42,7 +42,7 @@ class API(sirepo.quest.API):
                 req = self.parse_params(type=simulation_type)
             except AssertionError:
                 pass
-        if is_logged_in():
+        if self.auth.is_logged_in():
             self.auth.only_for_api_logout()
         return self.reply_redirect_for_app_root(req and req.type)
 
