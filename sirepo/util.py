@@ -171,26 +171,6 @@ def assert_sim_type(sim_type):
     return sim_type
 
 
-def convert_exception(exception, display_text="unexpected error"):
-    """Convert exception so can be raised
-
-    Args:
-        exception (Exception): Reply or other exception
-        display_text (str): what to send back to the client
-    Returns:
-        Exception: to raise
-    """
-    if isinstance(exception, Reply):
-        return exception
-    return UserAlert(
-        display_text,
-        "exception={} str={} stack={}",
-        type(exception),
-        exception,
-        pkdexc(),
-    )
-
-
 def create_token(value):
     if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
         v = base64.b32encode(

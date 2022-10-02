@@ -612,8 +612,15 @@ def sim_frame(frame_id, op, qcall):
     try:
         x = op(f)
     except Exception as e:
-        pkdlog("error generating report frame_id={} stack={}", frame_id, pkdexc())
-        raise sirepo.util.convert_exception(e, display_text="Report not generated")
+        if isinstance(e, sirepo.util.Reply):
+            return e
+        raise sirepo.util.UserAlert(
+            "Report not generated",
+            "exception={} str={} stack={}",
+            type(e),
+            e,
+            pkdexc(),
+        )
     r = qcall.reply_json(x)
     if "error" not in x and s.want_browser_frame_cache(s.frameReport):
         r.headers["Cache-Control"] = "private, max-age=31536000"

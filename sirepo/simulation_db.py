@@ -168,8 +168,8 @@ def examples(app):
     ]
 
 
-def find_global_simulation(sim_type, sid, checked=False, uid=None):
-    paths = pkio.sorted_glob(user_path(uid=uid).join("*", sim_type, sid))
+def find_global_simulation(sim_type, sid, checked=False):
+    paths = pkio.sorted_glob(user_path_root().join("*", sim_type, sid))
     if len(paths) == 1:
         return str(paths[0])
     if len(paths) == 0:
@@ -408,7 +408,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None, save=Fal
             # because only valid in one case, not e.g. for opening examples
             # which are not found.
             user_copy_sid = _find_user_simulation_copy(sim_type, sid, uid=uid)
-            if find_global_simulation(sim_type, sid, uid=uid):
+            if find_global_simulation(sim_type, sid):
                 global_sid = sid
         if global_sid:
             raise CopyRedirect(
@@ -543,7 +543,7 @@ def save_new_example(data, uid=None):
 
 def save_new_simulation(data, do_validate=True, uid=None):
     d = simulation_dir(data.simulationType, uid=uid)
-    sid = _random_id(d, data.simulationType, uid=uid).id
+    sid = _random_id(d, data.simulationType).id
     data.models.simulation.simulationId = sid
     return save_simulation_json(
         data,
@@ -1040,12 +1040,11 @@ def _unnest_subclasses(schema, item, key, subclass_keys):
     _unnest_subclasses(schema, item, sub_key, subclass_keys)
 
 
-def _random_id(parent_dir, simulation_type=None, uid=None):
+def _random_id(parent_dir, simulation_type=None):
     """Create a random id in parent_dir
 
     Args:
         parent_dir (py.path): where id should be unique
-        uid (str): user id
     Returns:
         dict: id (str) and path (py.path)
     """
@@ -1055,7 +1054,7 @@ def _random_id(parent_dir, simulation_type=None, uid=None):
     for _ in range(5):
         i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
         if simulation_type:
-            if find_global_simulation(simulation_type, i, uid=uid):
+            if find_global_simulation(simulation_type, i):
                 continue
         d = parent_dir.join(i)
         try:
