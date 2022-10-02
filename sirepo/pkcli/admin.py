@@ -87,7 +87,7 @@ def delete_user(uid):
         simulation_db.delete_user(uid)
         # This needs to be done last so we have access to the records in
         # previous steps.
-        auth_db.UserDbBase.delete_user(uid)
+        sirepo.auth_db.UserDbBase.delete_user(uid)
 
 
 def move_user_sims(uid):

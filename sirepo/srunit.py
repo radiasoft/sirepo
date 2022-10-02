@@ -37,8 +37,8 @@ _DB_DIR = "db"
 def auth_db_session():
     from sirepo import quest
 
-    with quest.start():
-        yield
+    with quest.start() as qcall:
+        yield qcall
 
 
 def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=False):
