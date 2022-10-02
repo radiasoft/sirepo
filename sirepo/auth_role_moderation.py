@@ -172,7 +172,7 @@ def raise_control_for_user(qcall, uid, role):
     raise sirepo.util.SRException("moderationRequest", None)
 
 
-def init_apis():
+def init_apis(*args, **kwargs):
     global _cfg, _STATUS_TO_SUBJECT
 
     _cfg = pkconfig.init(
