@@ -627,8 +627,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     );
                     return {
                         info: `
-                                ${SIREPO.UTILS.roundToPlaces(field, 3)} 
-                                ${scoreUnits()} at 
+                                ${SIREPO.UTILS.roundToPlaces(field, 3)}
+                                ${scoreUnits()} at
                                 (${p[0]}, ${p[1]}, ${p[2]})cm
                             `,
                     };
@@ -1136,8 +1136,10 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
                     },
                     {
                         method: 'validate_material_name',
-                        name: value,
-                        component: scope.model.component,
+                        args: {
+                            name: value,
+                            component: scope.model.component,
+                        }
                     }
                 );
 

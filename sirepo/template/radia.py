@@ -324,7 +324,7 @@ def stateful_compute_build_shape_points(data):
     with open(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
-                "extrudedPoints", "pointsFile", data.points_file
+                "extrudedPoints", "pointsFile", data.args.points_file
             )
         ),
         "rt",

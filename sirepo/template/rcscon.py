@@ -139,7 +139,7 @@ def sim_frame(frame_args):
 
 
 def stateful_compute_compute_column_count(data):
-    return _compute_file_column_count(data.files)
+    return _compute_file_column_count(data.args.files)
 
 
 def write_parameters(data, run_dir, is_parallel):

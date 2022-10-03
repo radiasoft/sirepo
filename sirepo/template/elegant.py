@@ -833,9 +833,9 @@ def sim_frame(frame_args):
 
 
 def stateful_compute_get_beam_input_type(data):
-    if data.input_file:
+    if data.args.input_file:
         data.input_type = _sdds_beam_type_from_file(
-            _SIM_DATA.lib_file_abspath(data.input_file),
+            _SIM_DATA.lib_file_abspath(data.args.input_file),
         )
     return data
 
@@ -1458,18 +1458,10 @@ def _sdds_init():
     _SDDS_STRING_TYPE = _s.SDDS_STRING
 
 
-def analysis_job_log_to_html(data):
-    r = simulation_db.simulation_run_dir(
-        PKDict(
-            simulationType=data.simulationType,
-            simulationId=data.simulationId,
-            report=data.computeModel,
-        )
-    )
-
+def analysis_job_log_to_html(data, run_dir, **kwargs):
     return PKDict(
         html=pygments.highlight(
-            pkio.read_text(r.join(ELEGANT_LOG_FILE)),
+            pkio.read_text(run_dir.join(ELEGANT_LOG_FILE)),
             pygments.lexers.get_lexer_by_name("text"),
             pygments.formatters.HtmlFormatter(
                 noclasses=False,
