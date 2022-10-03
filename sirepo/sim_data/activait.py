@@ -107,9 +107,10 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 
 class DataReader():
-    def __init__(self, file_path):
+    def __init__(self, file_path, data_path=None):
         self.file_ctx = open
         self.path = pkio.py_path(file_path)
+        self.data_path = data_path
 
     def is_archive(self):
         return False
@@ -118,27 +119,27 @@ class DataReader():
         return False
 
     @contextlib.contextmanager
-    def data_context_manager(self, data_path):
+    def data_context_manager(self):
         yield self.file_ctx(self.path, mode="r")
 
     def get_data_list(self, item_filter):
         return None
 
-    def read(self, data_path):
-        with self.data_context_manager(data_path) as f:
+    def read(self):
+        with self.data_context_manager() as f:
             f.read()
 
-    def csv_generator(self, data_path):
+    def csv_generator(self):
         import csv
         import re
-        with self.data_context_manager(data_path) as f:
+        with self.data_context_manager() as f:
             for r in csv.reader(f):
                 yield ",".join(map(lambda x: re.sub(r'["\n\r,]', "", x), r))
 
 
 class ArchiveDataReader(DataReader):
-    def __init__(self, file_path):
-        super().__init__(file_path)
+    def __init__(self, file_path, data_path):
+        super().__init__(file_path, data_path=data_path)
 
     @contextlib.contextmanager
     def file_context_manager(self):
@@ -152,34 +153,34 @@ class HDF5DataReader(ArchiveDataReader):
     import h5py
     h5py = staticmethod(h5py)
 
-    def __init__(self, file_path):
-        super().__init__(file_path)
+    def __init__(self, file_path, data_path):
+        super().__init__(file_path, data_path=data_path)
         self.file_ctx = HDF5DataReader.h5py.File
 
     def is_dir(self, item):
         return isinstance(item, HDF5DataReader.h5py.Dataset)
 
     @contextlib.contextmanager
-    def data_context_manager(self, data_path):
-        with super().data_context_manager(data_path) as f:
-            yield f[data_path]
+    def data_context_manager(self):
+        with self.data_context_manager() as f:
+            yield f[self.data_path]
 
     def get_data_list(self, item_filter):
         keys = []
-        with self.file_context_manager() as f:
+        with self.file_ctx as f:
             f.visit(lambda x: keys.append(x) if self.is_dir(f[x]) else None)
             return keys
 
 
 class TarDataReader(ArchiveDataReader):
-    def __init__(self, file_path):
-        super().__init__(file_path)
+    def __init__(self, file_path, data_path):
+        super().__init__(file_path, data_path=data_path)
         self.file_ctx = tarfile.open
 
     @contextlib.contextmanager
-    def data_context_manager(self, data_path):
+    def data_context_manager(self):
         with self.file_context_manager() as f:
-            yield io.TextIOWrapper(f.extractfile(data_path))
+            yield io.TextIOWrapper(f.extractfile(self.data_path))
 
     def get_data_list(self, item_filter):
         with self.file_context_manager() as f:
@@ -190,14 +191,14 @@ class TarDataReader(ArchiveDataReader):
 
 
 class ZipDataReader(ArchiveDataReader):
-    def __init__(self, file_path):
-        super().__init__(file_path)
+    def __init__(self, file_path, data_path):
+        super().__init__(file_path, data_path=data_path)
         self.file_ctx = zipfile.ZipFile
 
     @contextlib.contextmanager
-    def data_context_manager(self, data_path):
+    def data_context_manager(self):
         with self.file_context_manager() as f:
-            yield io.TextIOWrapper(f.open(data_path))
+            yield io.TextIOWrapper(f.open(self.data_path))
 
     def get_data_list(self, item_filter):
         with self.file_context_manager() as f:
@@ -230,7 +231,7 @@ class DataReaderFactory:
         return x[0] if x else None
 
     @classmethod
-    def build_reader(cls, file_path):
+    def build_reader(cls, file_path, data_path=None):
         return cls._SUPPORTED_ARCHIVES.get(
             cls.get_archive_extension(file_path), DataReader
-        )(file_path)
+        )(file_path, data_path)
