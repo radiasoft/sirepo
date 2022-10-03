@@ -790,7 +790,9 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     # TODO (Gurhar1133): hardcode below to set to cifar
     # dir with images
-    v.dataFile = _filename(dm.dataFile.file)
+    v.dataFile = _SIM_DATA.lib_file_abspath("CIFAR-4.h5")
+    pkdp("\n\n\n v.dataFile={}", v.dataFile)
+    # v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
     v.pkupdate(
         inputDim=dm.columnInfo.inputOutput.count("input"),
@@ -802,8 +804,12 @@ def _generate_parameters_file(data):
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
     # TODO (Gurhar1133): if check to do something like:
-    # template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
-    res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
+    if v.dataFile ==  _SIM_DATA.lib_file_abspath("CIFAR-4.h5"):
+        res += template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
+        v.inputDim = '32, 32, 3'
+        v.outputDim = '4'
+    else:
+        res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
     if "fileColumnReport" in report or report == "partitionSelectionReport":
         return res
     if _is_sim_report(report):
@@ -813,7 +819,8 @@ def _generate_parameters_file(data):
         or v.partition_section1 == "train_and_test"
         or v.partition_section2 == "train_and_test"
     )
-    res += template_common.render_jinja(SIM_TYPE, v, "partition.py")
+    if v.dataFile != _SIM_DATA.lib_file_abspath("CIFAR-4.h5"):
+        res += template_common.render_jinja(SIM_TYPE, v, "partition.py")
     if "partitionColumnReport" in report:
         res += template_common.render_jinja(SIM_TYPE, v, "save-partition.py")
         return res

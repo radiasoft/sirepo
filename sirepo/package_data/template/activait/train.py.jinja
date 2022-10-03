@@ -1,4 +1,22 @@
+{% if dataFile == '/home/vagrant/src/radiasoft/sirepo/run/user/xpzmzTRv/activait/ZPpVI3Hz/animation/CIFAR-4.h5' %}
 
+import keras.losses
+
+model.compile(
+    optimizer='adam',
+    #loss='sparse_categorical_crossentropy',
+    #loss='mean_squared_error',
+    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    metrics=['accuracy'],
+)
+
+history = model.fit(
+    trainx, trainy, epochs=10,
+    validation_data=(valx, valy))
+
+print(history)
+
+{% else %}
 from keras.callbacks import CSVLogger
 
 model.compile(loss='{{ neuralNet_losses }}', optimizer='{{ neuralNet_optimizer }}')
@@ -14,3 +32,5 @@ model.fit(
 )
 np.save('{{ testFile }}', test[:, out_idx])
 np.save('{{ predictFile }}', model.predict(x=test[:, in_idx]))
+
+{% endif %}

@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+import numpy as np
+import os
+import sirepo.numpy
+# import sirepo.sim_data.ml
+import h5py
+
+
+from sklearn.model_selection import train_test_split
+infile = '{{ dataFile }}'
+with h5py.File(infile, 'r') as f:
+    # idx = 4
+    # img = PIL.Image.fromarray(f['images'][idx])
+    # print('it is a {}: {}'.format(
+    #     f['metadata/image_types'][idx],
+    #     labels[f['metadata/image_types'][idx]],
+    # ))
+    # img.save('test2.png')
+    x_values = f['images']
+    y_values = f['metadata/image_types']
+    print(x_values.shape, y_values.shape)
+
+    # train, tv = train_test_split(x_values, test_size=0.75, random_state=42, shuffle=False)
+    # test, validate = train_test_split(tv, test_size=0.5, random_state=42, shuffle=False)
+
+    trainx, tvx, trainy, tvy = train_test_split(x_values, y_values, test_size=0.25, random_state=42, shuffle=False)
+    trainx, tvx = trainx / 255.0, tvx / 255.0
+    testx, valx, testy, valy = train_test_split(tvx, tvy, test_size=0.5, random_state=42, shuffle=False)
