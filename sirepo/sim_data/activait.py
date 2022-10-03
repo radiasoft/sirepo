@@ -233,7 +233,7 @@ class DataReaderFactory:
         return x[0] if x else None
 
     @classmethod
-    def build_reader(cls, file_path, data_path=None):
+    def build(cls, file_path, data_path=None):
         return cls._SUPPORTED_ARCHIVES.get(
             cls.get_archive_extension(file_path), DataReader
         )(file_path, data_path)

@@ -322,7 +322,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _archive_file_list(filename, data_type):
-    reader = sirepo.sim_data.activait.DataReaderFactory.build_reader(
+    reader = sirepo.sim_data.activait.DataReaderFactory.build(
         _filepath(filename)
     )
 
@@ -538,7 +538,7 @@ def _compute_csv_info(filename, data_path):
         rowCount=0,
     )
     row = None
-    a = sirepo.sim_data.activait.DataReaderFactory.build_reader(
+    a = sirepo.sim_data.activait.DataReaderFactory.build(
         _filepath(filename), data_path
     )
     with a.data_context_manager() as f:
