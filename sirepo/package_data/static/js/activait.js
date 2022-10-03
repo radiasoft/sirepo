@@ -1430,6 +1430,9 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     self.reports = [];
 
     function loadReports() {
+        if (appState.applicationState().dataFile.dataFormat !== 'text') {
+            return;
+        }
         appState.models.columnInfo.inputOutput.forEach(function(type, idx) {
             if (type == 'none') {
                 return;
@@ -1445,6 +1448,9 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
 
     $scope.showPartitionSelection = function() {
         if (appState.isLoaded()) {
+            if (appState.applicationState().dataFile.dataFormat !== 'text') {
+                return false;
+            }
             if (appState.applicationState().dataFile.appMode == 'regression') {
                 return appState.applicationState().partition.method == 'selection';
             }
@@ -2361,6 +2367,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     $scope.whenSelected = () => {
         processAppMode();
+        dataFileChanged();
         updateEditor();
     };
 

@@ -162,12 +162,12 @@ class HDF5DataReader(ArchiveDataReader):
 
     @contextlib.contextmanager
     def data_context_manager(self):
-        with self.data_context_manager() as f:
+        with self.file_context_manager() as f:
             yield f[self.data_path]
 
     def get_data_list(self, item_filter):
         keys = []
-        with self.file_ctx as f:
+        with self.file_context_manager() as f:
             f.visit(lambda x: keys.append(x) if self.is_dir(f[x]) else None)
             return keys
 
