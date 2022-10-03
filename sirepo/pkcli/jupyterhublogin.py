@@ -52,7 +52,7 @@ def create_user(email, display_name):
             )
         # Completely new Sirepo user
         u = qcall.auth.create_user(
-            lambda u: qcall.auth.user_registration(display_name=display_name),
+            lambda u: qcall.auth.user_registration(uid=u, display_name=display_name),
             module,
         )
         module.AuthEmailUser(
@@ -66,14 +66,18 @@ def create_user(email, display_name):
         pkcli.command_error("invalid email={}", email)
     sirepo.template.assert_sim_type("jupyterhublogin")
     with sirepo.quest.start() as qcall:
+        m = "email"
         u = maybe_create_sirepo_user(
             qcall,
-            qcall.auth.get_module("email"),
+            qcall.auth.get_module(m),
             email,
             display_name,
         )
-        qcall.auth.logged_in_user_set(u)
-        n = sirepo.sim_api.jupyterhublogin.create_user(qcall, check_dir=True)
+        qcall.auth.logged_in_user_set(u, method=m)
+        n = sirepo.sim_api.jupyterhublogin.create_user(
+            qcall,
+            check_dir=True,
+        )
         sirepo.auth_db.UserRole.add_roles(
             u, sirepo.auth_role.for_sim_type("jupyterhublogin")
         )

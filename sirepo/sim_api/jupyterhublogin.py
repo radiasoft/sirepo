@@ -138,7 +138,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
         return n
 
     with sirepo.util.THREAD_LOCK:
-        n = _unchecked_jupyterhub_user_name(self)
+        n = _unchecked_jupyterhub_user_name(qcall)
         if n:
             return n
         u = __user_name()
