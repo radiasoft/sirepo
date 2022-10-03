@@ -801,6 +801,8 @@ def _generate_parameters_file(data):
     v.columnTypes = (
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
+    # TODO (Gurhar1133): if check to do something like:
+    # template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
     res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
     if "fileColumnReport" in report or report == "partitionSelectionReport":
         return res
