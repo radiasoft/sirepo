@@ -788,6 +788,8 @@ def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
+    # TODO (Gurhar1133): hardcode below to set to cifar
+    # dir with images
     v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
     v.pkupdate(
