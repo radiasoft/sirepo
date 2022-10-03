@@ -371,6 +371,8 @@ def _build_model_py(v):
     """
 
     def _pooling_args(layer):
+        if not layer.strides.isnumeric() and layer.strides != "None":
+            raise AssertionError(f"strides for {layer.layer} must be numeric or None")
         return f'''pool_size=({layer.size}, {layer.size}),
     strides={layer.strides},
     padding="{layer.padding}"'''
