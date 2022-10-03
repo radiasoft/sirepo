@@ -106,7 +106,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             layer.pop(old)
 
 
-class DataReader():
+class DataReader:
     def __init__(self, file_path, data_path=None):
         self.file_ctx = open
         self.path = pkio.py_path(file_path)
@@ -132,6 +132,7 @@ class DataReader():
     def csv_generator(self):
         import csv
         import re
+
         with self.data_context_manager() as f:
             for r in csv.reader(f):
                 yield ",".join(map(lambda x: re.sub(r'["\n\r,]', "", x), r))
@@ -151,6 +152,7 @@ class ArchiveDataReader(DataReader):
 
 class HDF5DataReader(ArchiveDataReader):
     import h5py
+
     h5py = staticmethod(h5py)
 
     def __init__(self, file_path, data_path):
