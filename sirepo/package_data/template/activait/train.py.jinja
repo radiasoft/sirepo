@@ -1,6 +1,7 @@
 {% if dataFile == '/home/vagrant/src/radiasoft/sirepo/run/user/xpzmzTRv/activait/ZPpVI3Hz/animation/CIFAR-4.h5' %}
 
 import keras.losses
+from keras.callbacks import CSVLogger
 
 model.compile(
     optimizer='adam',
@@ -11,10 +12,16 @@ model.compile(
 )
 
 history = model.fit(
-    trainx, trainy, epochs=10,
-    validation_data=(valx, valy))
+    trainx, trainy, epochs={{ neuralNet_epochs }},
+    validation_data=(valx, valy),
+    callbacks=[CSVLogger('{{ fitCSVFile }}')],
+)
 
 print(history.history.keys())
+np.save('{{ testFile }}', trainy)
+np.save('{{ predictFile }}', model.predict(x=trainx))
+
+print("DONE")
 
 {% else %}
 from keras.callbacks import CSVLogger

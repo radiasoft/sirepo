@@ -388,6 +388,7 @@
         },
         "conv2D": {
             "_super": ["-", "model", "neuralNetLayer"],
+            "dimensionality": ["Dimensionality", "Integer", 32],
             "layer": ["Layer", "NeuralNetLayer", "Conv2D"],
             "kernel" : ["Kernel Size", "Integer", 3],
             "strides": ["Strides", "OptionalInteger", 1],

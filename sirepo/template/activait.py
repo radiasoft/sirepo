@@ -791,7 +791,6 @@ def _generate_parameters_file(data):
     # TODO (Gurhar1133): hardcode below to set to cifar
     # dir with images
     v.dataFile = _SIM_DATA.lib_file_abspath("CIFAR-4.h5")
-    # pkdp("\n\n\n v.dataFile={}", v.dataFile)
     # v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
     v.pkupdate(
