@@ -1,6 +1,7 @@
 {% if dataFile == '/home/vagrant/src/radiasoft/sirepo/run/user/xpzmzTRv/activait/ZPpVI3Hz/animation/CIFAR-4.h5' %}
 
 import keras.losses
+import matplotlib.pyplot as plt
 from keras.callbacks import CSVLogger
 
 model.compile(
@@ -12,22 +13,30 @@ model.compile(
 )
 
 history = model.fit(
-    trainx, trainy, epochs={{ neuralNet_epochs }},
+    x=trainx, y=trainy, epochs={{ neuralNet_epochs }},
     validation_data=(valx, valy),
     callbacks=[CSVLogger('{{ fitCSVFile }}')],
 )
 
 print(history.history.keys())
-np.save('{{ testFile }}', trainy)
-np.save('{{ predictFile }}', model.predict(x=trainx))
+np.save('{{ testFile }}', testy)
+np.save('{{ predictFile }}', model.predict(x=testx))
 
-print("DONE")
+plt.figure(figsize=[6,4])
+plt.plot(history.history['loss'], 'black', linewidth=2.0)
+plt.plot(history.history['val_loss'], 'green', linewidth=2.0)
+plt.legend(['Training Loss', 'Validation Loss'], fontsize=14)
+plt.xlabel('Epochs', fontsize=10)
+plt.ylabel('Loss', fontsize=10)
+plt.title('Loss Curves', fontsize=12)
+plt.savefig('loss_plot')
 
 {% else %}
 from keras.callbacks import CSVLogger
+import matplotlib.pyplot as plt
 
 model.compile(loss='{{ neuralNet_losses }}', optimizer='{{ neuralNet_optimizer }}')
-model.fit(
+history = model.fit(
     x=train[:, in_idx],
     y=train[:, out_idx],
     validation_data=(validate[:, in_idx], validate[:, out_idx]),
@@ -39,5 +48,13 @@ model.fit(
 )
 np.save('{{ testFile }}', test[:, out_idx])
 np.save('{{ predictFile }}', model.predict(x=test[:, in_idx]))
+plt.figure(figsize=[6,4])
+plt.plot(history.history['loss'], 'black', linewidth=2.0)
+plt.plot(history.history['val_loss'], 'green', linewidth=2.0)
+plt.legend(['Training Loss', 'Validation Loss'], fontsize=14)
+plt.xlabel('Epochs', fontsize=10)
+plt.ylabel('Loss', fontsize=10)
+plt.title('Loss Curves', fontsize=12)
+plt.savefig('loss_plot')
 
 {% endif %}

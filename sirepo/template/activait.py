@@ -205,21 +205,27 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
 
 def sim_frame_epochAnimation(frame_args):
     # TODO(pjm): improve heading text
+    # TODO (gurhar1133): headers are different
+    # for some trainings/models. need to know why
+    import pandas as pd
+
     header = ["epoch", "loss", "val_loss"]
     path = str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile))
-
+    d = pd.read_csv(path)
     v = sirepo.numpy.ndarray_from_csv(path, True)
     if len(v.shape) == 1:
         v.shape = (v.shape[0], 1)
+    l = [
+            PKDict(
+                points=list(d[i]),
+                label=i,
+            )
+            for i in ('loss', 'val_loss')
+        ]
+    pkdp("\n\n\n l={}", l)
     return _report_info(
         v[:, 0],
-        [
-            PKDict(
-                points=v[:, i].tolist(),
-                label=header[i],
-            )
-            for i in (1, 2)
-        ],
+        l,
     ).pkupdate(
         PKDict(
             x_label=header[0],
