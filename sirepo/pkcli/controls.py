@@ -19,12 +19,13 @@ def run(cfg_dir):
     template_common.exec_parameters()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     res = template.extract_beam_position_report(data, pkio.py_path(cfg_dir))
-    res.summaryData = PKDict(
-        elementValues=template.read_summary_line(
-            cfg_dir,
-            simulation_db.get_schema(template.SIM_TYPE).constants.maxBPMPoints,
-        )[0],
-    )
+    if not template.is_viewing_log_file(data):
+        res.summaryData = PKDict(
+            elementValues=template.read_summary_line(
+                cfg_dir,
+                simulation_db.get_schema(template.SIM_TYPE).constants.maxBPMPoints,
+            )[0],
+        )
     template_common.write_sequential_result(res, run_dir=cfg_dir)
 
 
