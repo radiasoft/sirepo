@@ -19,7 +19,7 @@ def auth_fc(auth_fc_module):
     return auth_fc_module
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def auth_fc_module(request):
     with _auth_client_module(request) as c:
         yield c
@@ -313,10 +313,11 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     from pykern import pkunit
     from pykern import pkio
 
+    p = _port()
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME="1",
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
-        SIREPO_PKCLI_JOB_SUPERVISOR_PORT=_PORT,
+        SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
         SIREPO_PKCLI_SERVICE_IP=_LOCALHOST,
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
@@ -325,7 +326,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port()
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
         cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
-            _LOCALHOST, _PORT
+            _LOCALHOST, p
         )
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY="testing@123")
@@ -398,5 +399,3 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
             x.terminate()
             x.wait()
 
-
-_PORT = _port()
