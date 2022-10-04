@@ -7,6 +7,8 @@ Radia "instance" goes away and references no longer have any meaning.
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+import inspect
+
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -324,7 +326,7 @@ def stateful_compute_build_shape_points(data):
     with open(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
-                "extrudedPoints", "pointsFile", data.points_file
+                "extrudedPoints", "pointsFile", data.args.points_file
             )
         ),
         "rt",
@@ -830,6 +832,10 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.doReset = False
     v.isParallel = is_parallel
 
+    # include methods from non-template packages
+    if for_export:
+        v.sirepoUtilSplit = inspect.getsource(sirepo.util.split_comma_delimited_string)
+
     v.dmpOutputFile = _DMP_FILE
     if "dmpImportFile" in data.models.simulation:
         v.dmpImportFile = (
@@ -893,7 +899,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         raise ValueError("Invalid view {} ({})".format(v_type, VIEW_TYPES))
     v.viewType = v_type
     v.dataFile = _GEOM_FILE if for_export else f"{rpt_out}.h5"
-    if v_type == SCHEMA.constants.viewTypeFields:
+    if v_type == SCHEMA.constants.viewTypeFields or for_export:
         f_type = disp.fieldType
         if f_type not in radia_util.FIELD_TYPES:
             raise ValueError(

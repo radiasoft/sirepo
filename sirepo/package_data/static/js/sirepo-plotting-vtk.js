@@ -913,9 +913,9 @@ class ViewPortObject {
      * @param {[Point]} coords - 3d points
      * @returns {[Point]} - 2d points
      */
-   viewPortPoints(coords) {
+    viewPortPoints(coords) {
         return coords.map(x => this.viewPortPoint(x));
-   }
+    }
 
     /**
      * Translates corners from vtk world to viewport

@@ -543,9 +543,11 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
             },
             {
                 method: 'calculate_bunch_parameters',
-                bunch: appState.clone(appState.models.bunch),
-                command_beam: appState.clone(appState.models.command_beam),
-                variables: appState.clone(appState.models.rpnVariables),
+                args: {
+                    bunch: appState.clone(appState.models.bunch),
+                    command_beam: appState.clone(appState.models.command_beam),
+                    variables: appState.clone(appState.models.rpnVariables),
+                }
             }
         );
     }

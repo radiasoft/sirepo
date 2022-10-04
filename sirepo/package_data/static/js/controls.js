@@ -96,11 +96,13 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             },
             {
                 method: 'current_to_kick',
-                command_beam: appState.models.command_beam,
-                //TODO(pjm): not sure why null values get sent but undefined values do not
-                amp_table: self.getAmpTables()[model.ampTable] || null,
-                current: model[self.currentField(kickField)],
-                default_factor: appState.models.controlSettings.defaultFactor,
+                args: {
+                    command_beam: appState.models.command_beam,
+                    //TODO(pjm): not sure why null values get sent but undefined values do not
+                    amp_table: self.getAmpTables()[model.ampTable] || null,
+                    current: model[self.currentField(kickField)],
+                    default_factor: appState.models.controlSettings.defaultFactor,
+                },
             });
     };
 
@@ -142,10 +144,12 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             },
             {
                 method: 'kick_to_current',
-                command_beam: appState.models.command_beam,
-                amp_table: self.getAmpTables()[model.ampTable] || null,
-                kick: model[self.kickField(currentField)],
-                default_factor: appState.models.controlSettings.defaultFactor,
+                args: {
+                    command_beam: appState.models.command_beam,
+                    amp_table: self.getAmpTables()[model.ampTable] || null,
+                    kick: model[self.kickField(currentField)],
+                    default_factor: appState.models.controlSettings.defaultFactor,
+                },
             });
     };
 
@@ -202,7 +206,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             },
             {
                 method: 'get_external_lattice',
-                simulationId: appState.models.dataFile.madxSirepo
+                args: {
+                    simulationId: appState.models.dataFile.madxSirepo
+                }
             }
         );
     }

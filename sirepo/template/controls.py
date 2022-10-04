@@ -214,7 +214,7 @@ def stateful_compute_get_madx_sim_list(data):
 def stateful_compute_get_external_lattice(data):
     madx = sirepo.simulation_db.read_json(
         _SIM_DATA.controls_madx_dir().join(
-            data.simulationId,
+            data.args.simulationId,
             sirepo.simulation_db.SIMULATION_DATA_FILE,
         ),
     )
@@ -254,16 +254,16 @@ def stateful_compute_get_log_file_values_at_index(data):
 def stateless_compute_current_to_kick(data):
     return PKDict(
         kick=AmpConverter(
-            data.command_beam, data.amp_table, data.default_factor
-        ).current_to_kick(data.current),
+            data.args.command_beam, data.args.amp_table, data.args.default_factor
+        ).current_to_kick(data.args.current),
     )
 
 
 def stateless_compute_kick_to_current(data):
     return PKDict(
         current=AmpConverter(
-            data.command_beam, data.amp_table, data.default_factor
-        ).kick_to_current(data.kick),
+            data.args.command_beam, data.args.amp_table, data.args.default_factor
+        ).kick_to_current(data.args.kick),
     )
 
 
