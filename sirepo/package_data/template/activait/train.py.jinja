@@ -14,7 +14,7 @@ history = model.fit(
     trainx, trainy, epochs=10,
     validation_data=(valx, valy))
 
-print(history)
+print(history.history.keys())
 
 {% else %}
 from keras.callbacks import CSVLogger
