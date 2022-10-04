@@ -1430,6 +1430,9 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     self.reports = [];
 
     function loadReports() {
+        if (appState.applicationState().dataFile.dataFormat !== 'text') {
+            return;
+        }
         appState.models.columnInfo.inputOutput.forEach(function(type, idx) {
             if (type == 'none') {
                 return;
@@ -1445,6 +1448,9 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
 
     $scope.showPartitionSelection = function() {
         if (appState.isLoaded()) {
+            if (appState.applicationState().dataFile.dataFormat !== 'text') {
+                return false;
+            }
             if (appState.applicationState().dataFile.appMode == 'regression') {
                 return appState.applicationState().partition.method == 'selection';
             }
@@ -2101,6 +2107,9 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         }
         dataFile.oldFile = dataFile.file;
         appState.saveQuietly('dataFile');
+        if (! isTextData(dataFile)) {
+            return;
+        }
         requestSender.sendStatefulCompute(
             appState,
             function(data) {
@@ -2160,7 +2169,11 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         if (! filename) {
             return false;
         }
-        return [".tar.gz", ".zip"].some(x => filename.endsWith(x));
+        return [".h5", ".tar.gz", ".zip"].some(x => filename.endsWith(x));
+    }
+
+    function isTextData(dataFile) {
+        return dataFile.dataFormat === 'text';
     }
 
     function processAppMode() {
@@ -2178,7 +2191,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         const o = dataFile.dataOrigin;
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
-        panelState.showField(modelName, 'dataList', isArchiveFile(dataFile.file) && dataFile.dataFormat === 'text');
+        panelState.showField(modelName, 'dataList', isArchiveFile(dataFile.file) && isTextData(dataFile));
         validateURL();
     }
 
@@ -2238,7 +2251,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         }
 
         const f = appState.models.dataFileCache[dataFile.file];
-        if (f) {
+        if (hasCachedDataList(f)) {
             setDataList(f.dataList);
             return;
         }
@@ -2259,12 +2272,6 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 }
             },
         );
-    }
-
-    function updateSelectedData(dataFile) {
-        if (dataFile.dataList && ! dataFile.dataList.includes(dataFile.selectedData)) {
-            dataFile.selectedData = dataFile.dataList[0];
-        }
     }
 
     function getRemoteData(headersOnly, callback) {
@@ -2291,6 +2298,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 }
             }
         );
+    }
+
+    function hasCachedDataList(cache) {
+        return cache && cache.dataList && cache.dataList.length;
     }
 
     function updateData() {
@@ -2342,6 +2353,12 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         }
     }
 
+    function updateSelectedData(dataFile) {
+        if (dataFile.dataList && ! dataFile.dataList.includes(dataFile.selectedData)) {
+            dataFile.selectedData = dataFile.dataList[0];
+        }
+    }
+
     $scope.watchFields = [
         [`${modelName}.appMode`], processAppMode,
         [`${modelName}.dataOrigin`, `${modelName}.file`, `${modelName}.dataFormat`], updateEditor,
@@ -2350,6 +2367,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     $scope.whenSelected = () => {
         processAppMode();
+        dataFileChanged();
         updateEditor();
     };
 
