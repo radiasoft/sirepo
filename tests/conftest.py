@@ -398,4 +398,3 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
         for x in p:
             x.terminate()
             x.wait()
-
