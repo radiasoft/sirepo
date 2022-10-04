@@ -1,0 +1,143 @@
+[
+    {
+        "activation": "relu",
+        "children": [],
+        "dimensionality": 10,
+        "kernel": 3,
+        "layer": "Conv2D",
+        "padding": "same",
+        "strides": 1
+    },
+    {
+        "children": [],
+        "layer": "BatchNormalization",
+        "momentum": 0.99
+    },
+    {
+        "activation": "relu",
+        "children": [],
+        "layer": "Activation"
+    },
+    {
+        "children": [
+            {
+                "layers": [
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "layer": "Activation"
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2D",
+                        "padding": "same",
+                        "strides": 1
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "layer": "Activation"
+                    },
+                    {
+                        "children": [],
+                        "layer": "BatchNormalization",
+                        "momentum": 0.99
+                    },
+                    {
+                        "children": [],
+                        "layer": "MaxPooling2D",
+                        "padding": "same",
+                        "size": 2,
+                        "strides": 1
+                    }
+                ]
+            },
+            {
+                "layers": [
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2D",
+                        "padding": "same",
+                        "strides": 1
+                    }
+                ]
+            }
+        ],
+        "layer": "Add"
+    },
+    {
+        "children": [
+            {
+                "layers": [
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "layer": "Activation"
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2D",
+                        "padding": "same",
+                        "strides": 1
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "layer": "Activation"
+                    },
+                    {
+                        "children": [],
+                        "layer": "BatchNormalization",
+                        "momentum": 0.99
+                    },
+                    {
+                        "children": [],
+                        "layer": "MaxPooling2D",
+                        "padding": "same",
+                        "size": 2,
+                        "strides": 1
+                    }
+                ]
+            },
+            {
+                "layers": [
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "kernel": 3,
+                        "layer": "Conv2D",
+                        "padding": "same",
+                        "strides": 1
+                    }
+                ]
+            }
+        ],
+        "layer": "Add"
+    },
+    {
+        "activation": "relu",
+        "children": [],
+        "dimensionality": 10,
+        "kernel": 3,
+        "layer": "Conv2D",
+        "padding": "same",
+        "strides": 1
+    },
+    {
+        "activation": "linear",
+        "children": [],
+        "dimensionality": 1,
+        "layer": "Dense",
+        "outbound": []
+    }
+]

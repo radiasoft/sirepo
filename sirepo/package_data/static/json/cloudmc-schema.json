@@ -6,7 +6,18 @@
     },
     "constants": {
         "maxFilters": 5,
-        "volumeProperties": ["color", "opacity"]
+        "volumeProperties": ["color", "opacity"],
+        "scoreUnits": {
+            "damage-energy": "eV",
+            "decay-rate": "$s^{-1}$",
+            "fission-q-prompt": "eV",
+            "fission-q-recoverable": "eV",
+            "flux": "cm",
+            "heating": "eV",
+            "heating-local": "eV",
+            "inverse-velocity": "cm/s",
+            "kappa-fission": "eV"
+        }
     },
     "enum": {
         "BinSpace": [
@@ -331,13 +342,14 @@
             "nuclide": ["Nuclide", "OptionalString"]
         },
         "openmcAnimation": {
+            "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "colorMap": ["Color Map", "ColorMap", "jet"],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "tally": ["Tally", "TallyList"],
             "score": ["Score", "ScoreList"],
-            "aspect": ["Aspect", "TallyAspect", "mean"]
+            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.0, "", 0.0, 1.0]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]
@@ -433,6 +445,10 @@
             "_type": ["", "ProbabilityDistribution"]
         },
         "volumes": {},
+        "voxels": {
+            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.10, "", 0.0, 1.0]
+        },
         "watt": {
             "_super": [ "_", "model", "univariate"],
             "a": ["a", "Float", 0.988e6, "The Watt fission energy spectrum is characterized by two parameters $a$ and $b$ and has density function $p(E) dE = c e^{-E/a} \\sinh \\sqrt{b \\, E} dE$"],
@@ -580,7 +596,8 @@
                 "tally",
                 "score",
                 "aspect",
-                "colorMap",
+                "voxels.voxelInsetPct",
+                "voxels.colorMap",
                 "opacity",
                 "bgColor",
                 "showEdges"

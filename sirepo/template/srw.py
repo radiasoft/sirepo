@@ -379,6 +379,8 @@ def extract_report_data(sim_in):
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
     if r == _SIM_DATA.EXPORT_RSOPT:
         return out
+    if r in ("coherenceXAnimation", "coherenceYAnimation", "multiElectronAnimation"):
+        out.filename = _best_data_file(out.filename)
     # TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ("coherenceXAnimation", "coherenceYAnimation"):
         _fix_file_header(out.filename)
@@ -834,7 +836,7 @@ def run_epilogue():
 
 
 def stateful_compute_compute_undulator_length(data):
-    return compute_undulator_length(data["tabulated_undulator"])
+    return compute_undulator_length(data.args["tabulated_undulator"])
 
 
 def stateful_compute_create_shadow_simulation(data):
@@ -844,12 +846,14 @@ def stateful_compute_create_shadow_simulation(data):
 
 
 def stateful_compute_delete_user_models(data):
-    return _delete_user_models(data["electron_beam"], data["tabulated_undulator"])
+    return _delete_user_models(
+        data.args["electron_beam"], data.args["tabulated_undulator"]
+    )
 
 
 def stateful_compute_model_list(data):
     res = []
-    model_name = data["model_name"]
+    model_name = data.args["model_name"]
     if model_name == "electronBeam":
         res.extend(get_predefined_beams())
     res.extend(_load_user_model_list(model_name))
@@ -1092,6 +1096,21 @@ def _beamline_animation_percent_complete(run_dir, res):
     res.frameCount = count
     res.percentComplete = 100 * count / len(res.outputInfo)
     return res
+
+
+def _best_data_file(primary):
+    def _lines(path):
+        return len(pykern.pkio.open_text(path).readlines())
+
+    p = pykern.pkio.py_path(primary)
+    s = p.new(ext="dat.bkp")
+    if not s.check():
+        return p.basename
+    if s.mtime() > p.mtime():
+        p, s = s, p
+    if _lines(s) >= _lines(p):
+        p, s = s, p
+    return p.basename
 
 
 def _compute_material_characteristics(model, photon_energy, prefix=""):
@@ -2224,6 +2243,7 @@ def _rsopt_jinja_context(data):
         outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
         randomSeed=model.randomSeed if model.randomSeed is not None else "",
         readmeFileName="README.txt",
+        rsOptCharacteristic=model.characteristic,
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROT,

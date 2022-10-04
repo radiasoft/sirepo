@@ -649,6 +649,7 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "exportRsOpt": {
+            "characteristic": ["Characteristic to Extract", "Characteristic", "1"],
             "elements": ["Beamline Elements", "RSOptElements", []],
             "numCores": ["Number of Cores", "Integer", 4],
             "numSamples": ["Samples per Parameter", "Integer", 100, "", 1],
@@ -1766,7 +1767,8 @@
                 "scanType",
                 "numSamples",
                 "totalSamples",
-                "randomSeed"
+                "randomSeed",
+                "characteristic"
             ]
         },
         "multipole": {

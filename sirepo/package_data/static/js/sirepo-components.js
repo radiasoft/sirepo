@@ -1825,10 +1825,12 @@ SIREPO.app.directive('textWithMath', function(appState, mathRendering, utilities
     return {
         restrict: 'A',
         scope: {
+            'isDynamic': '<',
             'textWithMath': '<',
         },
         template: `
-            <span data-ng-bind-html="::getHTML()"></span>
+            <span data-ng-if="! isDynamic" data-ng-bind-html="::getHTML()"></span>
+            <span data-ng-if="isDynamic" data-ng-bind-html="getHTML()"></span>
         `,
         controller: function($scope) {
             $scope.appState = appState;

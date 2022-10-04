@@ -123,22 +123,22 @@ def stateless_compute_validate_material_name(data):
 
     res = PKDict()
     m = openmc.Material(name="test")
-    method = getattr(m, data.component)
+    method = getattr(m, data.args.component)
     try:
-        if data.component == "add_macroscopic":
-            method(data.name)
-        elif data.component == "add_nuclide":
-            method(data.name, 1)
-            if not re.search(r"^[^\d]+\d+$", data.name):
+        if data.args.component == "add_macroscopic":
+            method(data.args.name)
+        elif data.args.component == "add_nuclide":
+            method(data.args.name, 1)
+            if not re.search(r"^[^\d]+\d+$", data.args.name):
                 raise ValueError("invalid nuclide name")
-        elif data.component == "add_s_alpha_beta":
-            method(data.name)
-        elif data.component == "add_elements_from_formula":
-            method(data.name)
-        elif data.component == "add_element":
-            method(data.name, 1)
+        elif data.args.component == "add_s_alpha_beta":
+            method(data.args.name)
+        elif data.args.component == "add_elements_from_formula":
+            method(data.args.name)
+        elif data.args.component == "add_element":
+            method(data.args.name, 1)
         else:
-            raise AssertionError(f"unknown material component: {data.component}")
+            raise AssertionError(f"unknown material component: {data.args.component}")
     except ValueError as e:
         res.error = "invalid material name"
     return res
@@ -419,18 +419,8 @@ def _grid_to_poly(path):
         return l
 
     with pkio.open_text(path) as f:
-        in_points = False
-        points_done = False
+        state = "header"
         lines = []
-        poly_lines = []
-        nx = 0
-        ny = 0
-        nz = 0
-        num_cells = 0
-        # cube
-        points_per_poly = 4
-        polys_per_cell = 1
-        num_polys = 0
         for line in f:
             # force version 4.1
             if line.startswith("# vtk DataFile Version"):
@@ -441,33 +431,14 @@ def _grid_to_poly(path):
                 lines.append("DATASET POLYDATA\n")
                 continue
             if line.startswith("DIMENSIONS"):
-                l = line.strip().split()
-                # if the number of points in a dimension is n, the number of cells is n - 1
-                nx, ny, nz = (int(l[1]) - 1), (int(l[2]) - 1), (int(l[3]) - 1)
-                num_cells = nx * ny * nz
-                num_polys = polys_per_cell * num_cells
-                # DIMENSIONS is not a legal keyword in a polydata file
                 continue
-            lines.append(line)
-            if not in_points:
-                if "POINTS" not in line:
-                    continue
-                in_points = True
-                poly_lines.append("\n")
-                poly_lines.append(
-                    f"POLYGONS {num_polys} {num_polys * (points_per_poly + 1)}\n"
-                )
-                poly_lines.extend(_poly_lines(nx, ny, nz))
-                poly_lines.append("\n")
-                continue
-            if not points_done:
-                try:
-                    [float(x) for x in line.strip().split()]
-                except ValueError:
-                    points_done = True
-                    # we've already added the non-point line
-                    lines[-1:-1] = poly_lines
-                    continue
+            if "POINTS" in line:
+                state = "points"
+                lines.append("POINTS 0 double\nPOLYGONS 0 0\n")
+            if "CELL_DATA" in line:
+                state = "cells"
+            if state != "points":
+                lines.append(line)
     return "".join(lines)
 
 

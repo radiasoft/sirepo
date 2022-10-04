@@ -15,6 +15,17 @@ import tarfile
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+
+    _OLD_NEURAL_NET_FIELDS = [
+        "activationActivation",
+        "alphaDropoutRate",
+        "denseActivation",
+        "denseDimensionality",
+        "dropoutRate",
+        "gaussianDropoutRate",
+        "gaussianNoiseStddev",
+    ]
+
     @classmethod
     def fixup_old_data(cls, data):
         if data.simulationType == "ml":
@@ -29,6 +40,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in dm:
             if "fileColumnReport" in m:
                 cls.update_model_defaults(dm[m], "fileColumnReport")
+        cls._fixup_neural_net(dm)
         dm.analysisReport.pksetdefault(history=[])
         dm.hiddenReport.pksetdefault(subreports=[])
 
@@ -63,11 +75,35 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
+    def _fixup_neural_net(cls, dm):
+        for l in dm.neuralNet.layers:
+            for (old, new) in cls._layer_fields(l):
+                cls._update(l, old, new)
+            for f in cls._OLD_NEURAL_NET_FIELDS:
+                if f in l:
+                    del l[f]
+
+    @classmethod
+    def _layer_fields(cls, layer):
+        f = []
+        n = layer.layer.lower()
+        for field in layer:
+            if n in field.lower():
+                f.append((field, field.lower().replace(n, "")))
+        return f
+
+    @classmethod
     def _lib_file_basenames(cls, data):
         name = data.models.dataFile.get("file")
         if name:
             return [cls.lib_file_name_with_model_field("dataFile", "file", name)]
         return []
+
+    @classmethod
+    def _update(cls, layer, old, new):
+        if old in layer:
+            layer[new] = layer[old]
+            layer.pop(old)
 
 
 class DataReader(PKDict):

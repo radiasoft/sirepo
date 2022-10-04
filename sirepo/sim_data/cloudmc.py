@@ -30,6 +30,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "reflectivePlanes",
                 "settings",
                 "volumes",
+                "voxels",
             ),
         )
 
