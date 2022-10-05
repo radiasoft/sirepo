@@ -15,9 +15,11 @@ from sirepo.template import template_common
 from urllib import parse
 from urllib import request
 import csv
+import h5py
 import numpy as np
 import os
 import re
+import pandas
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
@@ -205,30 +207,19 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
 
 def sim_frame_epochAnimation(frame_args):
     # TODO(pjm): improve heading text
-    # TODO (gurhar1133): headers are different
-    # for some trainings/models. need to know why
-    import pandas as pd
-
-    header = ["epoch", "loss", "val_loss"]
-    path = str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile))
-    d = pd.read_csv(path)
-    v = sirepo.numpy.ndarray_from_csv(path, True)
-    if len(v.shape) == 1:
-        v.shape = (v.shape[0], 1)
-    l = [
-            PKDict(
-                points=list(d[i]),
-                label=i,
-            )
-            for i in ('loss', 'val_loss')
-        ]
-    pkdp("\n\n\n l={}", l)
+    d = pandas.read_csv(str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile)))
     return _report_info(
-        v[:, 0],
-        l,
+        list(d.index),
+        [
+            PKDict(
+                points=list(d[l]),
+                label=l,
+            )
+            for l in ('loss', 'val_loss')
+        ],
     ).pkupdate(
         PKDict(
-            x_label=header[0],
+            x_label="epoch",
         )
     )
 
@@ -790,6 +781,21 @@ def _fit_animation(frame_args):
     )
 
 
+def _image_input_dim(data_file):
+    with h5py.File(data_file, 'r') as f:
+        d = ",".join([str(x) for x in f['images'].shape[1:]])
+    return d
+
+
+def _image_output_dim(data_file):
+    with h5py.File(data_file, 'r') as f:
+        s = f["metadata/labels"].shape
+        if len(s) > 1:
+            # POSIT (gurhar1133): assumes output wont be tuples
+            raise AssertionError(f"shape of labels={s}, should not be multi-dimensional outputs")
+    return s[0]
+
+
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
@@ -811,8 +817,9 @@ def _generate_parameters_file(data):
     # TODO (Gurhar1133): if check to do something like:
     if v.dataFile ==  _SIM_DATA.lib_file_abspath("CIFAR-4.h5"):
         res += template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
-        v.inputDim = '32, 32, 3'
-        v.outputDim = '4'
+        v.inputDim = _image_input_dim(v.dataFile)
+        v.outputDim = _image_output_dim(v.dataFile)
+        pkdp("\n\n\n v.outputDim={}", v.outputDim)
     else:
         res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
     if "fileColumnReport" in report or report == "partitionSelectionReport":
