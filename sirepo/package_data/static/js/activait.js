@@ -458,12 +458,9 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
         self.reports = null;
-        srdbg("data:", data);
         if ('percentComplete' in data && ! data.error) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
-                srdbg(appState.models);
                 self.reports = addFitReports();
-                srdbg(self.reports);
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);

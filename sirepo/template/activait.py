@@ -779,6 +779,7 @@ def _fit_animation(frame_args):
 
 
 def _is_image_data(data_file, v):
+    # TODO (gurhar1133): input data_file could be more than .h5?
     if data_file.split(".")[-1] != "h5":
         return False
     with h5py.File(data_file, 'r') as f:
