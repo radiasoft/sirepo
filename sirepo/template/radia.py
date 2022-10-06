@@ -789,7 +789,6 @@ def _generate_kick_map(g_id, model):
 def _generate_obj_data(g_id, name):
     return radia_util.geom_to_data(g_id, name=name)
 
-
 def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None):
     import jinja2
 
@@ -1624,6 +1623,8 @@ def _update_geom_obj(o, **kwargs):
         magnetization=[0.0, 0.0, 0.0],
         segments=[1, 1, 1],
         size=[1.0, 1.0, 1.0],
+        stlVertices = [],
+        stlFaces = [],
     )
     for k in d:
         v = kwargs.get(k)
@@ -1645,6 +1646,19 @@ def _update_geom_obj(o, **kwargs):
         )
     if "points" in o:
         o.area = _poly_area(o.points)
+    if o.type == "stl":
+        path = str(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_type(o.file, "stl-file")
+            )
+        )
+        mesh = _create_stl_trimesh(path)
+        for v in list(mesh.vertices):
+            d.stlVertices.append(list(v))
+        for f in list(mesh.faces):
+            d.stlFaces.append(list(f))
+        o.stlVertices = d.stlVertices
+        o.stlFaces = d.stlFaces
     return o
 
 
@@ -1696,6 +1710,13 @@ def _update_kickmap(km, und, beam_axis):
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
+    
+def _create_stl_trimesh(filePath):
+    trimesh.util.attach_to_log()
+    f=open(filePath)
+    mesh = trimesh.load(f, file_type='stl', force='mesh', process=True)
+    f.close()
+    return mesh
 
 
 def _validate_objects(objects):
@@ -1720,9 +1741,7 @@ def validate_file(file_type, path):
     err = None
     #TODO: Fix is stl file check, all incoming files have file_type 'stl-file' and checking by extension isn't great
     if str(path).endswith('.stl') == True:
-        trimesh.util.attach_to_log()
-        f = open(path)
-        mesh = trimesh.load(f, file_type='stl', force='mesh', process=True)
+        mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
             err = "Model is not Convex"
     else:

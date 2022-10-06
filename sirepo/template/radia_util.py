@@ -8,6 +8,7 @@ import numpy
 import radia
 import sirepo.util
 import sys
+import trimesh
 
 
 from numpy import linalg
@@ -50,10 +51,10 @@ FIELD_UNITS = PKDict(
     }
 )
 
-
 _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
 
+#_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 class MPI:
     def __init__(self):
@@ -296,10 +297,23 @@ def build_container(g_ids):
 
 
 def build_cuboid(**kwargs):
+    pkdp("Cuboid: {}", kwargs)
     d = PKDict(kwargs)
     g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
     _apply_segments(g_id, d.segments)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
+    return g_id
+
+
+def build_stl(**kwargs):
+    pkdp("STL: {}", kwargs)
+    d = PKDict(kwargs)
+    
+    #g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
+    g_id = radia.ObjPolyhdr(d.vertices, d.faces, d.magnetization)
+    #_apply_segments(g_id, d.segments)
+    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
+    
     return g_id
 
 
