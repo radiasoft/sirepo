@@ -1,11 +1,5 @@
 #!/usr/bin/env python
-import numpy as np
-import os
-import sirepo.numpy
-# import sirepo.sim_data.ml
 import h5py
-
-
 from sklearn.model_selection import train_test_split
 
 with h5py.File('{{ dataFile }}', 'r') as f:

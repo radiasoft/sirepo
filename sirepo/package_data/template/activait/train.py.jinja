@@ -1,8 +1,7 @@
-{% if image_data %}
-
-import keras.losses
-import matplotlib.pyplot as plt
+import numpy as np
 from keras.callbacks import CSVLogger
+{% if image_data %}
+import keras.losses
 
 model.compile(
     optimizer='adam',
@@ -16,15 +15,10 @@ history = model.fit(
     callbacks=[CSVLogger('{{ fitCSVFile }}')],
 )
 
-np.save('{{ testFile }}', testy)
-np.save('{{ predictFile }}', model.predict(x=testx))
-
 {% else %}
-from keras.callbacks import CSVLogger
-import matplotlib.pyplot as plt
 
 model.compile(loss='{{ neuralNet_losses }}', optimizer='{{ neuralNet_optimizer }}')
-history = model.fit(
+model.fit(
     x=train[:, in_idx],
     y=train[:, out_idx],
     validation_data=(validate[:, in_idx], validate[:, out_idx]),
@@ -34,15 +28,10 @@ history = model.fit(
     verbose=False,
     callbacks=[CSVLogger('{{ fitCSVFile }}')],
 )
-np.save('{{ testFile }}', test[:, out_idx])
-np.save('{{ predictFile }}', model.predict(x=test[:, in_idx]))
-plt.figure(figsize=[6,4])
-plt.plot(history.history['loss'], 'black', linewidth=2.0)
-plt.plot(history.history['val_loss'], 'green', linewidth=2.0)
-plt.legend(['Training Loss', 'Validation Loss'], fontsize=14)
-plt.xlabel('Epochs', fontsize=10)
-plt.ylabel('Loss', fontsize=10)
-plt.title('Loss Curves', fontsize=12)
-plt.savefig('loss_plot')
+testy = test[:, out_idx]
+testx = test[:, in_idx]
 
 {% endif %}
+
+np.save('{{ testFile }}', testy)
+np.save('{{ predictFile }}', model.predict(x=testx))
