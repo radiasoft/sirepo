@@ -300,6 +300,7 @@ def _run_simulation(correctors):
                 gamma=1958.908474421938,
             ),
             amp_table_for_corrector[idx],
+            default_factor=100,
         )
         values[f'sr_opt{idx}'] = ac.current_to_kick(correctors[idx])
     with open('in.madx', 'w') as f:

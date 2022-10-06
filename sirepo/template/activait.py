@@ -319,10 +319,10 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _archive_file_list(filename, data_type):
-    reader = sirepo.sim_data.activait.DataReader(_filepath(filename))
+    reader = sirepo.sim_data.activait.DataReaderFactory.build(_filepath(filename))
 
     def _filter(item):
-        is_dir = getattr(item, reader.dir_check)()
+        is_dir = reader.is_dir(item)
         return is_dir if data_type == "image" else not is_dir
 
     return PKDict(datalist=reader.get_data_list(_filter))
@@ -509,14 +509,12 @@ def _close_completed_branch(level, cur_node, neural_net):
     )
 
 
-def _cols_with_non_unique_values(data_reader, data_path, has_header_row, header):
+def _cols_with_non_unique_values(data_reader, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(
         r"\.npy$", str(data_reader.path.basename)
     ), f"numpy files are not supported path={data_reader.path.basename}"
-    v = sirepo.numpy.ndarray_from_ctx(
-        data_reader.data_context_manager(data_path), has_header_row
-    )
+    v = sirepo.numpy.ndarray_from_generator(data_reader.csv_generator(), has_header_row)
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
         if c:
@@ -537,8 +535,8 @@ def _compute_csv_info(filename, data_path):
         rowCount=0,
     )
     row = None
-    a = sirepo.sim_data.activait.DataReader(_filepath(filename))
-    with a.data_context_manager(data_path) as f:
+    a = sirepo.sim_data.activait.DataReaderFactory.build(_filepath(filename), data_path)
+    with a.data_context_manager() as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -552,7 +550,6 @@ def _compute_csv_info(filename, data_path):
         res.hasHeaderRow = False
     res.colsWithNonUniqueValues = _cols_with_non_unique_values(
         a,
-        data_path,
         res.hasHeaderRow,
         row,
     )
