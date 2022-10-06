@@ -5,6 +5,7 @@ import keras.losses
 
 model.compile(
     optimizer='adam',
+    # TODO (gurhar1133): loss function needs to be un-hardcoded
     loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=['accuracy'],
 )

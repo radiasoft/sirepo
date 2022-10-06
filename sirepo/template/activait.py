@@ -368,8 +368,6 @@ def _build_model_py(v):
     """
 
     def _pooling_args(layer):
-        # if not layer.strides.isnumeric() and layer.strides != "None":
-        #     raise AssertionError(f"strides for {layer.layer} must be numeric or None")
         return f'''pool_size=({layer.size}, {layer.size}),
     strides={layer.strides},
     padding="{layer.padding}"'''
@@ -383,7 +381,7 @@ def _build_model_py(v):
         Concatenate=lambda layer: _branch(layer, "Concatenate"),
         Conv2D=lambda layer: _conv_args(layer),
         Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
-        Dropout=lambda layer: layer.dropoutRate,
+        Dropout=lambda layer: layer.rate,
         Flatten=lambda layer: "",
         GaussianDropout=lambda layer: layer.dropoutRate,
         GaussianNoise=lambda layer: layer.stddev,
@@ -779,8 +777,8 @@ def _fit_animation(frame_args):
 
 
 def _is_image_data(data_file, v):
-    # TODO (gurhar1133): input data_file could be more than .h5?
-    if data_file.split(".")[-1] != "h5":
+    # POSIT (gurhar1133): assumes only .h5 input data_files
+    if not re.compile(r".h5$").search(data_file):
         return False
     with h5py.File(data_file, 'r') as f:
         if "images" not in f.keys():
