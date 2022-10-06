@@ -778,29 +778,26 @@ def _fit_animation(frame_args):
     )
 
 
-def _image_input_dim(data_file):
+def _is_image_data(data_file, v):
+    if data_file.split(".")[-1] != "h5":
+        return False
     with h5py.File(data_file, 'r') as f:
-        d = ",".join([str(x) for x in f['images'].shape[1:]])
-    return d
-
-
-def _image_output_dim(data_file):
-    with h5py.File(data_file, 'r') as f:
+        if "images" not in f.keys():
+            return False
         s = f["metadata/labels"].shape
         if len(s) > 1:
             # POSIT (gurhar1133): assumes output wont be tuples
             raise AssertionError(f"shape of labels={s}, should not be multi-dimensional outputs")
-    return s[0]
+        v.outputDim = s[0]
+        v.inputDim = ",".join([str(x) for x in f['images'].shape[1:]])
+    return True
 
 
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
-    # TODO (Gurhar1133): hardcode below to set to cifar
-    # dir with images
-    v.dataFile = _SIM_DATA.lib_file_abspath("CIFAR-4.h5")
-    # v.dataFile = _filename(dm.dataFile.file)
+    v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
     v.pkupdate(
         inputDim=dm.columnInfo.inputOutput.count("input"),
@@ -811,12 +808,9 @@ def _generate_parameters_file(data):
     v.columnTypes = (
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
-    # TODO (Gurhar1133): if check to do something like:
-    if v.dataFile ==  _SIM_DATA.lib_file_abspath("CIFAR-4.h5"):
+    v.image_data = _is_image_data(v.dataFile, v)
+    if v.image_data:
         res += template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
-        v.inputDim = _image_input_dim(v.dataFile)
-        v.outputDim = _image_output_dim(v.dataFile)
-        pkdp("\n\n\n v.outputDim={}", v.outputDim)
     else:
         res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
     if "fileColumnReport" in report or report == "partitionSelectionReport":
@@ -828,7 +822,7 @@ def _generate_parameters_file(data):
         or v.partition_section1 == "train_and_test"
         or v.partition_section2 == "train_and_test"
     )
-    if v.dataFile != _SIM_DATA.lib_file_abspath("CIFAR-4.h5"):
+    if not v.image_data:
         res += template_common.render_jinja(SIM_TYPE, v, "partition.py")
     if "partitionColumnReport" in report:
         res += template_common.render_jinja(SIM_TYPE, v, "save-partition.py")

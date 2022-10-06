@@ -1,4 +1,4 @@
-{% if dataFile == '/home/vagrant/src/radiasoft/sirepo/run/user/xpzmzTRv/activait/ZPpVI3Hz/animation/CIFAR-4.h5' %}
+{% if image_data %}
 
 import keras.losses
 import matplotlib.pyplot as plt
@@ -6,8 +6,6 @@ from keras.callbacks import CSVLogger
 
 model.compile(
     optimizer='adam',
-    #loss='sparse_categorical_crossentropy',
-    #loss='mean_squared_error',
     loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=['accuracy'],
 )
@@ -18,18 +16,8 @@ history = model.fit(
     callbacks=[CSVLogger('{{ fitCSVFile }}')],
 )
 
-print(history.history.keys())
 np.save('{{ testFile }}', testy)
 np.save('{{ predictFile }}', model.predict(x=testx))
-
-plt.figure(figsize=[6,4])
-plt.plot(history.history['loss'], 'black', linewidth=2.0)
-plt.plot(history.history['val_loss'], 'green', linewidth=2.0)
-plt.legend(['Training Loss', 'Validation Loss'], fontsize=14)
-plt.xlabel('Epochs', fontsize=10)
-plt.ylabel('Loss', fontsize=10)
-plt.title('Loss Curves', fontsize=12)
-plt.savefig('loss_plot')
 
 {% else %}
 from keras.callbacks import CSVLogger
