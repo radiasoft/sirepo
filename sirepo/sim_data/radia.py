@@ -93,8 +93,60 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
+        sirepo.util
+
+        def _model_or_super_with_field(model_name, model, field):
+            if field in model:
+                return model
+            for s in sch.model[model_name].get("_super", []).reversed():
+                if field in s:
+                    return s
+
+        def _fixup_boolean_fields(model, schema_model):
+            for f in [
+                f for f in schema_model if f in model and schema_model[f][1] == "Boolean" and not model[f]
+            ]:
+                model[f] = "0"
+
+        def _fixup_float_string_fields(model_name, model, schema_model):
+            for f in schema_model:
+                if f not in model:
+                    continue
+                sf = schema_model[f][1]
+                if sf == "FloatArray" and isinstance(model[f], str):
+                    pkdp("FIXUP STRF {}.{} {}", model_name, f, model[f])
+                    model[f] = sirepo.util.split_comma_delimited_string(model[f], float)
+                    continue
+                if sf.startswith("model."):
+                    pkdp("FIXUP MDL {} {}", model_name, sf)
+                    sub_model = sf.split(".")[-1]
+                    _fixup_float_string_fields(sub_model, model[f], sch.model[sub_model])
+
+        def _fixup_geom_objects(geom_report):
+            for o in geom_report.objects:
+                if o.get("points") is not None and not o.get("triangulationLevel"):
+                    o.triangulationLevel = 0.5
+                if not o.get("bevels"):
+                    o.bevels = []
+                for b in o.bevels:
+                    if not b.get("cutRemoval"):
+                        b["cutRemoval"] = "1"
+                if not o.get("fillets"):
+                    o.fillets = []
+                if not o.get("segments"):
+                    o.segments = o.get("division", "1, 1, 1")
+                if o.get("type") and sch.model.get(o.type):
+                    _fixup_float_string_fields(o.type, o, sch.model[o.type])
+                _fixup_transforms(o.get("transforms", []))
+
+        def _fixup_transforms(xforms):
+            for t in xforms:
+                _fixup_float_string_fields(t.model, t, sch.model[t.model])
+                _fixup_transforms(t.get("transforms", []))
+
 
         dm = data.models
+        sch = cls.schema()
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
         if dm.get("geometry"):
             dm.geometryReport = dm.geometry.copy()
@@ -109,25 +161,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
-        for o in dm.geometryReport.objects:
-            if o.get("points") is not None and not o.get("triangulationLevel"):
-                o.triangulationLevel = 0.5
-            if not o.get("bevels"):
-                o.bevels = []
-            for b in o.bevels:
-                if not b.get("cutRemoval"):
-                    b["cutRemoval"] = "1"
-            if not o.get("fillets"):
-                o.fillets = []
-            if not o.get("segments"):
-                o.segments = o.get("division", "1, 1, 1")
-        sch = cls.schema()
+        _fixup_geom_objects(dm.geometryReport)
         for m in [m for m in dm if m in sch.model]:
             s_m = sch.model[m]
-            for f in [
-                f for f in s_m if f in dm[m] and s_m[f][1] == "Boolean" and not dm[m][f]
-            ]:
-                dm[m][f] = "0"
+            _fixup_float_string_fields(m, dm, s_m)
+            _fixup_boolean_fields(dm, s_m)
         cls._organize_example(data)
 
     @classmethod

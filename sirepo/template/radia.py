@@ -193,10 +193,8 @@ def extract_report_data(run_dir, sim_in):
             run_dir=run_dir,
         )
     if sim_in.report == "electronTrajectoryReport":
-        a = sirepo.util.split_comma_delimited_string(
-            sim_in.models.electronTrajectoryReport.initialAngles + ",0",
-            float,
-        )
+        a = sim_in.models.electronTrajectoryReport.initialAngles
+        a.append(0)
         angles = [0, 0, 0]
         angles[radia_util.axes_index(sim_in.models.simulation.widthAxis)] = a[0]
         angles[radia_util.axes_index(sim_in.models.simulation.heightAxis)] = a[1]
@@ -204,9 +202,7 @@ def extract_report_data(run_dir, sim_in):
             _electron_trajectory_plot(
                 sim_in.models.simulation.simulationId,
                 energy=sim_in.models.electronTrajectoryReport.energy,
-                pos=sirepo.util.split_comma_delimited_string(
-                    sim_in.models.electronTrajectoryReport.initialPosition, float
-                ),
+                pos=sim_in.models.electronTrajectoryReport.initialPosition,
                 angles=angles,
                 y_final=sim_in.models.electronTrajectoryReport.finalBeamPosition,
                 num_points=sim_in.models.electronTrajectoryReport.numPoints,
@@ -422,8 +418,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = sirepo.util.split_comma_delimited_string(f_path.begin, float)
-    p2 = sirepo.util.split_comma_delimited_string(f_path.end, float)
+    p1 = f_path.begin
+    p2 = f_path.end
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -557,7 +553,7 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
             _update_geom_obj(
                 o,
                 size=radia_util.multiply_vector_by_matrix(
-                    sirepo.util.split_comma_delimited_string(o.size, float),
+                    o.size,
                     kwargs["matrix"],
                 ),
             )
@@ -746,8 +742,8 @@ def _generate_field_integrals(sim_id, g_id, f_paths):
         res = PKDict()
         for p in l_paths:
             res[p.name] = PKDict()
-            p1 = sirepo.util.split_comma_delimited_string(p.begin, float)
-            p2 = sirepo.util.split_comma_delimited_string(p.end, float)
+            p1 = p.begin
+            p2 = p.end
             for i_type in radia_util.INTEGRABLE_FIELD_TYPES:
                 res[p.name][i_type] = radia_util.field_integral(g_id, i_type, p1, p2)
         return res
@@ -771,11 +767,11 @@ def _generate_data(sim_id, g_id, name, view_type, field_type, field_paths=None):
 def _generate_kick_map(g_id, model):
     km = radia_util.kick_map(
         g_id,
-        sirepo.util.split_comma_delimited_string(model.begin, float),
-        sirepo.util.split_comma_delimited_string(model.direction, float),
+        model.begin,
+        model.direction,
         int(model.numPeriods),
         float(model.periodLength),
-        sirepo.util.split_comma_delimited_string(model.transverseDirection, float),
+        model.transverseDirection,
         float(model.transverseRange1),
         int(model.numTransPoints1),
         float(model.transverseRange2),
@@ -1404,7 +1400,7 @@ def _update_extruded(o):
 
 def _update_dipoleBasic(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    sz = sirepo.util.split_comma_delimited_string(assembly.pole.size, float)
+    sz = assembly.pole.size
     return _update_geom_obj(
         assembly.pole,
         size=sz,
@@ -1415,9 +1411,7 @@ def _update_dipoleBasic(model, assembly, **kwargs):
 
 def _update_dipoleC(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    mag_sz = numpy.array(
-        sirepo.util.split_comma_delimited_string(assembly.magnet.size, float)
-    )
+    mag_sz = numpy.array(assembly.magnet.size)
     pole_sz, pole_ctr = _fit_poles_in_c_bend(
         arm_height=model.magnet.armHeight,
         gap=model.gap,
@@ -1445,10 +1439,7 @@ def _update_dipoleC(model, assembly, **kwargs):
 def _update_dipoleH(model, assembly, **kwargs):
     d = PKDict(kwargs)
     # magnetSize is for the entire magnet - split it here so we can apply symmetries
-    mag_sz = (
-        numpy.array(sirepo.util.split_comma_delimited_string(model.magnetSize, float))
-        / 2
-    )
+    mag_sz = numpy.array(model.magnetSize) / 2
     pole_sz, pole_ctr = _fit_poles_in_h_bend(
         arm_height=model.magnet.armHeight,
         gap=model.gap,
@@ -1490,7 +1481,7 @@ def _update_geom_from_undulator(geom_objs, model, **kwargs):
 def _update_undulatorBasic(model, assembly, **kwargs):
     d = PKDict(kwargs)
 
-    sz = numpy.array(sirepo.util.split_comma_delimited_string(model.magnet.size, float))
+    sz = numpy.array(model.magnet.size)
 
     sz = sz / 2 * d.width_dir + sz * d.height_dir + sz * d.length_dir
     _update_geom_obj(
@@ -1526,8 +1517,8 @@ def _update_undulatorBasic(model, assembly, **kwargs):
 def _update_undulatorHybrid(model, assembly, **kwargs):
     d = PKDict(kwargs)
 
-    pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
-    mag_x = sirepo.util.split_comma_delimited_string(model.magnetCrossSection, float)
+    pole_x = model.poleCrossSection
+    mag_x = model.magnetCrossSection
 
     gap_half_height = model.gap / 2 * d.height_dir
     gap_offset = model.gapOffset * d.height_dir
@@ -1577,7 +1568,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     for t in model.terminations:
         o = t.object
         m = assembly.groupedObjects.get("terminationGroup", [])
-        sz = numpy.array(sirepo.util.split_comma_delimited_string(o.size, float))
+        sz = numpy.array(o.size)
         _update_geom_obj(
             _find_by_id(m, o.id),
             center=pos
@@ -1656,8 +1647,8 @@ def _update_racetrack(o, **kwargs):
 
 def _get_stemmed_info(o):
     w, h = radia_util.AXIS_VECTORS[o.widthAxis], radia_util.AXIS_VECTORS[o.heightAxis]
-    c = sirepo.util.split_comma_delimited_string(o.center, float)
-    s = sirepo.util.split_comma_delimited_string(o.size, float)
+    c = o.center
+    s = o.size
 
     plane_ctr = [numpy.sum(w * c), numpy.sum(h * c)]
     plane_size = [numpy.sum(w * s), numpy.sum(h * s)]
@@ -1706,10 +1697,7 @@ def _validate_objects(objects):
     for o in objects:
         if "material" in o and o.material in SCHEMA.constants.anisotropicMaterials:
             if (
-                numpy.linalg.norm(
-                    sirepo.util.split_comma_delimited_string(o.magnetization, float)
-                )
-                == 0
+                numpy.linalg.norm(o.magnetization) == 0
             ):
                 raise ValueError(
                     "name={}, : material={}: anisotropic material requires non-0 magnetization".format(

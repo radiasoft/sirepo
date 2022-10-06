@@ -2620,6 +2620,28 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
+SIREPO.app.directive('floatArray', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            info: '=',
+        },
+        template: `
+            <div data-ng-repeat="v in model[field] track by $index"
+              style="display: inline-block; width: 7em; margin-right: 5px;" >
+              <input class="form-control" data-string-to-number="Float"
+                data-ng-model="model[field][$index]"
+                style="text-align: right" required />
+            </div>
+        `,
+        controller: $scope => {
+            srdbg("FLT ARR", $scope);
+        },
+    };
+});
+
 SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, stringsService, $compile, $timeout) {
 
     return {

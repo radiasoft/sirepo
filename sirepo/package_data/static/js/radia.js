@@ -26,8 +26,8 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="FilletTable" class="col-sm-12">
           <div data-fillet-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
         </div>
-        <div data-ng-switch-when="FloatStringArray" class="col-sm-7">
-            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>
+        <div data-ng-switch-when="FloatArray" class="col-sm-7">
+            <div data-float-array="" data-model="model" data-field="model[field]" data-info="info""></div>
         </div>
         <div data-ng-switch-when="Group" class="col-sm-12">
             <div data-group-editor="" data-field="model[field]" data-model="model"></div>
