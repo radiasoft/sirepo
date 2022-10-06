@@ -1,6 +1,6 @@
 let fs = require("fs")
 
-export function convertModels(fileName) {
+function convertModels(fileName) {
     let fileString = fs.readFileSync(fileName, { encoding: "utf-8" });
     let fileJson = JSON.parse(fileString);
 
@@ -12,9 +12,19 @@ export function convertModels(fileName) {
         let newModel = {};
         for(let [fieldName, field] of Object.entries(model)) {
             let [name, typeString, defaultValue, description, min, max] = field;
-            
+            newModel[fieldName] = {
+                name,
+                type: typeString,
+                defaultValue,
+                description,
+                min,
+                max
+            }
         }
         newModels[modelName] = newModel;
     }
+
+    fs.writeFileSync('new-' + fileName, JSON.stringify({ model: newModels }));
 }
 
+//convertModels("myapp.json");

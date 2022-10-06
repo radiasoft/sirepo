@@ -22,12 +22,36 @@
     },
     "model": {
         "dog": {
-            "breed": ["Breed", "String"],
-            "gender": ["Gender", "Gender", "male"],
-            "height": ["Height [cm]", "Float", 50.0, "Distance from front paws to withers"],
-            "weight": ["Weight [lbs]", "Float", 60.5],
-            "disposition": ["Disposition", "DogDisposition", "friendly"],
-            "favoriteTreat": ["Favorite Treat", "OptionalString", ""]
+            "breed": {
+                "displayName": "Breed",
+                "type": "String"
+            },
+            "gender": {
+                "displayName": "Gender",
+                "type": "Gender",
+                "defaultValue": "male"
+            },
+            "height": {
+                "displayName": "Height [cm]",
+                "type": "Float",
+                "defaultValue": 50,
+                "description": "Distance from front paws to withers"
+            },
+            "weight": {
+                "displayName": "Weight [lbs]",
+                "type": "Float",
+                "defaultValue": 60.5
+            },
+            "disposition": {
+                "displayName": "Disposition",
+                "type": "DogDisposition",
+                "defaultValue": "friendly"
+            },
+            "favoriteTreat": {
+                "displayName": "Favorite Treat",
+                "type": "OptionalString",
+                "defaultValue": ""
+            }
         }
     },
     "view": [

@@ -23,14 +23,46 @@ export function compileSchemaFromJson(schemaObj) {
 
     // TODO merge this from file
     let simulationModel = {
-        documentationUrl: ["Documentation URL", "OptionalString", ""],
-        folder: ["Folder", "String", ""],
-        isExample: ["Is Example", "Boolean", true],
-        lastModified: ["Time Last Modified", "Integer", 0], // TODO: include this?
-        name: ["Name", "String", ""],
-        notes: ["Notes", "OptionalString", ""],
-        simulationId: ["Simulation ID", "String", ""], // TODO: include this?
-        simulationSerial: ["Simulation Serial", "String", ""] // TODO: include this?
+        documentationUrl: {
+            displayName: "Documentation URL", 
+            type: "OptionalString", 
+            defaultValue: ""
+        },
+        folder: {
+            displayName: "Folder", 
+            type: "String", 
+            defaultValue: ""
+        },
+        isExample: {
+            displayName: "Is Example", 
+            type: "Boolean", 
+            defaultValue: true
+        },
+        lastModified: {
+            displayName: "Time Last Modified", 
+            type: "Integer", 
+            defaultValue: 0
+        }, // TODO: include this?
+        name: {
+            displayName: "Name", 
+            type: "String", 
+            defaultValue: ""
+        },
+        notes: {
+            displayName: "Notes", 
+            type: "OptionalString", 
+            defaultValue: ""
+        },
+        simulationId: {
+            displayName: "Simulation ID", 
+            type: "String", 
+            defaultValue: ""
+        }, // TODO: include this?
+        simulationSerial: {
+            displayName: "Simulation Serial", 
+            type: "String", 
+            defaultValue: ""
+        } // TODO: include this?
     }
 
     if(schemaObj.model) {
@@ -41,7 +73,7 @@ export function compileSchemaFromJson(schemaObj) {
             simulation: simulationModel
         }, (modelName, modelObj) => {
             return mapProperties(modelObj, (fieldName, field) => {
-                let [displayName, typeName, defaultValue, description] = field;
+                let { displayName, type: typeName, defaultValue, description } = field;
                 let type = types[typeName];
                 if(!type) {
                     missingTypeNames.push(typeName);

@@ -266,137 +266,628 @@
     },
     "model": {
         "beamEvolutionAnimation": {
-            "y1": ["Y1 Value", "BeamColumn", "emitx"],
-            "y2": ["Y2 Value", "BeamOptionalColumn", "emity"],
-            "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
-            "plotRangeType": ["Range", "PlotRangeType", "none"],
-            "horizontalSize": ["Horizontal Size", "Float", 0],
-            "verticalSize": ["Vertical Size", "Float", 0],
-            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
-            "verticalOffset": ["Vertical Offset", "Float", 0.0],
-            "notes": ["Notes", "Text", ""]
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamColumn",
+                "defaultValue": "emitx"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamOptionalColumn",
+                "defaultValue": "emity"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamOptionalColumn",
+                "defaultValue": "none"
+            },
+            "plotRangeType": {
+                "displayName": "Range",
+                "type": "PlotRangeType",
+                "defaultValue": "none"
+            },
+            "horizontalSize": {
+                "displayName": "Horizontal Size",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "verticalSize": {
+                "displayName": "Vertical Size",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "horizontalOffset": {
+                "displayName": "Horizontal Offset",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "verticalOffset": {
+                "displayName": "Vertical Offset",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "notes": {
+                "displayName": "Notes",
+                "type": "Text",
+                "defaultValue": ""
+            }
         },
         "cooler": {
-            "length": ["Length (lab frame) [m]", "Float", 3.4, "", 1e-99],
-            "section_number": ["Number of Coolers", "Integer", 1],
-            "magnetic_field": ["Magnetic Field [T]", "Float", 0.039],
-            "bet_x": ["Horizontal Beta [m]", "Float", 10.0, "Beta function", 1e-99],
-            "bet_y": ["Vertical Beta [m]", "Float", 10.0, "Beta function", 1e-99],
-            "disp_x": ["Horizontal Dispersion [m]", "Float", 0.0],
-            "disp_y": ["Vertical Dispersion [m]", "Float", 0.0],
-            "alpha_x": ["Horizontal Alpha", "Float", 0.0],
-            "alpha_y": ["Vertical Alpha", "Float", 0.0],
-            "disp_dx": ["Horizontal Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion"],
-            "disp_dy": ["Vertical Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion"]
+            "length": {
+                "displayName": "Length (lab frame) [m]",
+                "type": "Float",
+                "defaultValue": 3.4,
+                "description": "",
+                "min": 1e-99
+            },
+            "section_number": {
+                "displayName": "Number of Coolers",
+                "type": "Integer",
+                "defaultValue": 1
+            },
+            "magnetic_field": {
+                "displayName": "Magnetic Field [T]",
+                "type": "Float",
+                "defaultValue": 0.039
+            },
+            "bet_x": {
+                "displayName": "Horizontal Beta [m]",
+                "type": "Float",
+                "defaultValue": 10,
+                "description": "Beta function",
+                "min": 1e-99
+            },
+            "bet_y": {
+                "displayName": "Vertical Beta [m]",
+                "type": "Float",
+                "defaultValue": 10,
+                "description": "Beta function",
+                "min": 1e-99
+            },
+            "disp_x": {
+                "displayName": "Horizontal Dispersion [m]",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "disp_y": {
+                "displayName": "Vertical Dispersion [m]",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "alpha_x": {
+                "displayName": "Horizontal Alpha",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "alpha_y": {
+                "displayName": "Vertical Alpha",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "disp_dx": {
+                "displayName": "Horizontal Dispersion Derivative",
+                "type": "Float",
+                "defaultValue": 0,
+                "description": "Derivative of the dispersion"
+            },
+            "disp_dy": {
+                "displayName": "Vertical Dispersion Derivative",
+                "type": "Float",
+                "defaultValue": 0,
+                "description": "Derivative of the dispersion"
+            }
         },
         "coolingRatesAnimation": {
-            "y1": ["Y1 Value", "CoolingRatesColumn", "rx"],
-            "y2": ["Y2 Value", "CoolingRatesOptionalColumn", "ry"],
-            "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"],
-            "plotRangeType": ["Range", "PlotRangeType", "none"],
-            "horizontalSize": ["Horizontal Size", "Float", 0],
-            "verticalSize": ["Vertical Size", "Float", 0],
-            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
-            "verticalOffset": ["Vertical Offset", "Float", 0.0],
-            "notes": ["Notes", "Text", ""]
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "CoolingRatesColumn",
+                "defaultValue": "rx"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "CoolingRatesOptionalColumn",
+                "defaultValue": "ry"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "CoolingRatesOptionalColumn",
+                "defaultValue": "rs"
+            },
+            "plotRangeType": {
+                "displayName": "Range",
+                "type": "PlotRangeType",
+                "defaultValue": "none"
+            },
+            "horizontalSize": {
+                "displayName": "Horizontal Size",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "verticalSize": {
+                "displayName": "Vertical Size",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "horizontalOffset": {
+                "displayName": "Horizontal Offset",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "verticalOffset": {
+                "displayName": "Vertical Offset",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "notes": {
+                "displayName": "Notes",
+                "type": "Text",
+                "defaultValue": ""
+            }
         },
         "electronBeam": {
-            "gamma": ["Gamma", "Float", null, "Lorentz factor gamma for the cooling electron beam."],
-            "tmp_tr": ["Transverse Temperature [eV]", "Float", 0.1, "", 0],
-            "tmp_l": ["Longitudinal Temperature [eV]", "Float", 0.01, "", 0],
-            "shape": ["Shape", "ElectronBeamShape", "dc_uniform", "Shape of the electron beam."],
-            "radius": ["Radius [m]", "Float", 0.004, "", 1e-99],
-            "current": ["Current [A]", "Float", 2, "", 0],
-            "sigma_x": ["Horizontal RMS Size", "Float", 1.5e-2, "", 1e-99],
-            "sigma_y": ["Vertical RMS Size", "Float", 1.5e-2, "", 1e-99],
-            "sigma_z": ["RMS Bunch Length", "Float", 2e-2, "", 1e-99],
-            "length": ["Length [m]", "Float", 0.2, "", 1e-99],
-            "e_number": ["Number of Electrons", "Float", 1e8, "", 1],
-            "beam_type": ["Beam Type", "BeamType", "bunched"],
-            "rh": ["Horizontal Semi-Axis Length [m]", "Float", 0.004, "", 1e-99],
-            "rv": ["Vertical Semi-Axis Length [m]", "Float", 0.004, "", 1e-99]
+            "gamma": {
+                "displayName": "Gamma",
+                "type": "Float",
+                "defaultValue": null,
+                "description": "Lorentz factor gamma for the cooling electron beam."
+            },
+            "tmp_tr": {
+                "displayName": "Transverse Temperature [eV]",
+                "type": "Float",
+                "defaultValue": 0.1,
+                "description": "",
+                "min": 0
+            },
+            "tmp_l": {
+                "displayName": "Longitudinal Temperature [eV]",
+                "type": "Float",
+                "defaultValue": 0.01,
+                "description": "",
+                "min": 0
+            },
+            "shape": {
+                "displayName": "Shape",
+                "type": "ElectronBeamShape",
+                "defaultValue": "dc_uniform",
+                "description": "Shape of the electron beam."
+            },
+            "radius": {
+                "displayName": "Radius [m]",
+                "type": "Float",
+                "defaultValue": 0.004,
+                "description": "",
+                "min": 1e-99
+            },
+            "current": {
+                "displayName": "Current [A]",
+                "type": "Float",
+                "defaultValue": 2,
+                "description": "",
+                "min": 0
+            },
+            "sigma_x": {
+                "displayName": "Horizontal RMS Size",
+                "type": "Float",
+                "defaultValue": 0.015,
+                "description": "",
+                "min": 1e-99
+            },
+            "sigma_y": {
+                "displayName": "Vertical RMS Size",
+                "type": "Float",
+                "defaultValue": 0.015,
+                "description": "",
+                "min": 1e-99
+            },
+            "sigma_z": {
+                "displayName": "RMS Bunch Length",
+                "type": "Float",
+                "defaultValue": 0.02,
+                "description": "",
+                "min": 1e-99
+            },
+            "length": {
+                "displayName": "Length [m]",
+                "type": "Float",
+                "defaultValue": 0.2,
+                "description": "",
+                "min": 1e-99
+            },
+            "e_number": {
+                "displayName": "Number of Electrons",
+                "type": "Float",
+                "defaultValue": 100000000,
+                "description": "",
+                "min": 1
+            },
+            "beam_type": {
+                "displayName": "Beam Type",
+                "type": "BeamType",
+                "defaultValue": "bunched"
+            },
+            "rh": {
+                "displayName": "Horizontal Semi-Axis Length [m]",
+                "type": "Float",
+                "defaultValue": 0.004,
+                "description": "",
+                "min": 1e-99
+            },
+            "rv": {
+                "displayName": "Vertical Semi-Axis Length [m]",
+                "type": "Float",
+                "defaultValue": 0.004,
+                "description": "",
+                "min": 1e-99
+            }
         },
         "electronCoolingRate": {
-            "sample_number": ["Number of Sample Ions", "Float", 1e5, "", 1],
-            "force_formula": ["Force Formula", "ForceFormula", "parkhomchuk"]
+            "sample_number": {
+                "displayName": "Number of Sample Ions",
+                "type": "Float",
+                "defaultValue": 100000,
+                "description": "",
+                "min": 1
+            },
+            "force_formula": {
+                "displayName": "Force Formula",
+                "type": "ForceFormula",
+                "defaultValue": "parkhomchuk"
+            }
         },
         "forceTableAnimation": {
-            "plot": ["Plot Type", "ForceTablePlot", "transverse"],
-            "x": ["X Value", "ForceTableColumn", "Vtrans"],
-            "y1": ["Y1 Value", "ForceTableColumn", "fx"],
-            "forceScale": ["Force Scale", "ForceScaleFactor", "negative"],
-            "plotRangeType": ["Range", "PlotRangeType", "none"],
-            "horizontalSize": ["Horizontal Size", "Float", 0],
-            "verticalSize": ["Vertical Size", "Float", 0],
-            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
-            "verticalOffset": ["Vertical Offset", "Float", 0.0],
-            "notes": ["Notes", "Text", ""]
+            "plot": {
+                "displayName": "Plot Type",
+                "type": "ForceTablePlot",
+                "defaultValue": "transverse"
+            },
+            "x": {
+                "displayName": "X Value",
+                "type": "ForceTableColumn",
+                "defaultValue": "Vtrans"
+            },
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "ForceTableColumn",
+                "defaultValue": "fx"
+            },
+            "forceScale": {
+                "displayName": "Force Scale",
+                "type": "ForceScaleFactor",
+                "defaultValue": "negative"
+            },
+            "plotRangeType": {
+                "displayName": "Range",
+                "type": "PlotRangeType",
+                "defaultValue": "none"
+            },
+            "horizontalSize": {
+                "displayName": "Horizontal Size",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "verticalSize": {
+                "displayName": "Vertical Size",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "horizontalOffset": {
+                "displayName": "Horizontal Offset",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "verticalOffset": {
+                "displayName": "Vertical Offset",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "notes": {
+                "displayName": "Notes",
+                "type": "Text",
+                "defaultValue": ""
+            }
         },
         "intrabeamScatteringRate": {
-            "ibs_model": ["Model", "IBSModel", "martini"],
-            "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration.", 1],
-            "nv": ["Vertical Grid Size", "Integer", 100, "Set the grid number in vertical direction for the 3D integration.", 1],
-            "longitudinalMethod": ["Longitudinal Method", "IBSLongitudinalMethod", "nz"],
-            "nz": ["Longitudinal Grid Size", "Integer", 40, "Set the grid number in longitudinal direction for the 3D integration.", 1],
-            "log_c": ["Coulomb Logarithm", "Float", 20.6, "", 1e-99],
-            "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1.", 0, 1]
+            "ibs_model": {
+                "displayName": "Model",
+                "type": "IBSModel",
+                "defaultValue": "martini"
+            },
+            "nu": {
+                "displayName": "Horizontal Grid Size",
+                "type": "Integer",
+                "defaultValue": 100,
+                "description": "Set the grid number in horizontal direction for the 3D integration.",
+                "min": 1
+            },
+            "nv": {
+                "displayName": "Vertical Grid Size",
+                "type": "Integer",
+                "defaultValue": 100,
+                "description": "Set the grid number in vertical direction for the 3D integration.",
+                "min": 1
+            },
+            "longitudinalMethod": {
+                "displayName": "Longitudinal Method",
+                "type": "IBSLongitudinalMethod",
+                "defaultValue": "nz"
+            },
+            "nz": {
+                "displayName": "Longitudinal Grid Size",
+                "type": "Integer",
+                "defaultValue": 40,
+                "description": "Set the grid number in longitudinal direction for the 3D integration.",
+                "min": 1
+            },
+            "log_c": {
+                "displayName": "Coulomb Logarithm",
+                "type": "Float",
+                "defaultValue": 20.6,
+                "description": "",
+                "min": 1e-99
+            },
+            "coupling": {
+                "displayName": "Transverse Coupling Rate",
+                "type": "Float",
+                "defaultValue": null,
+                "description": "Transverse coupling rate, ranging from 0 to 1.",
+                "min": 0,
+                "max": 1
+            }
         },
         "ionBeam": {
-            "particle": ["Particle", "BeamParticle", "PROTON", "Name of particle to be used"],
-            "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion.", 1e-99],
-            "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion.", 1e-99],
-            "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion.", 1e-99],
-            "norm_emit_x": ["RMS Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6, "", 1e-99],
-            "norm_emit_y": ["RMS Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6, "", 1e-99],
-            "momentum_spread": ["RMS Momentum Spread", "Float", 0.0006, "Momentum spread of the ion beam.", 0],
-            "particle_number": ["Number of Ions", "Float", 6.58e11, "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam.", 1],
-            "rms_bunch_length": ["RMS Bunch Length [m]", "Float", 7.0, "RMS bunch length for the bunched ion beam.", 1e-99],
-            "beam_type": ["Beam Type", "BeamType", "bunched"]
+            "particle": {
+                "displayName": "Particle",
+                "type": "BeamParticle",
+                "defaultValue": "PROTON",
+                "description": "Name of particle to be used"
+            },
+            "charge_number": {
+                "displayName": "Ion Charges",
+                "type": "Integer",
+                "defaultValue": 1,
+                "description": "Number of the charges of the ion.",
+                "min": 1e-99
+            },
+            "mass": {
+                "displayName": "Mass [MeV/c²]",
+                "type": "Float",
+                "defaultValue": 938.272,
+                "description": "Mass of the ion.",
+                "min": 1e-99
+            },
+            "kinetic_energy": {
+                "displayName": "Kinetic Energy [MeV]",
+                "type": "Float",
+                "defaultValue": 8000,
+                "description": "Kinetic energy of the ion.",
+                "min": 1e-99
+            },
+            "norm_emit_x": {
+                "displayName": "RMS Normalized Horizontal Emittance [m*rad]",
+                "type": "Float",
+                "defaultValue": 0.0000022,
+                "description": "",
+                "min": 1e-99
+            },
+            "norm_emit_y": {
+                "displayName": "RMS Normalized Vertical Emittance [m*rad]",
+                "type": "Float",
+                "defaultValue": 0.0000022,
+                "description": "",
+                "min": 1e-99
+            },
+            "momentum_spread": {
+                "displayName": "RMS Momentum Spread",
+                "type": "Float",
+                "defaultValue": 0.0006,
+                "description": "Momentum spread of the ion beam.",
+                "min": 0
+            },
+            "particle_number": {
+                "displayName": "Number of Ions",
+                "type": "Float",
+                "defaultValue": 658000000000,
+                "description": "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam.",
+                "min": 1
+            },
+            "rms_bunch_length": {
+                "displayName": "RMS Bunch Length [m]",
+                "type": "Float",
+                "defaultValue": 7,
+                "description": "RMS bunch length for the bunched ion beam.",
+                "min": 1e-99
+            },
+            "beam_type": {
+                "displayName": "Beam Type",
+                "type": "BeamType",
+                "defaultValue": "bunched"
+            }
         },
         "particleAnimation": {
-            "x": ["X Value", "ParticleColumn"],
-            "y": ["Y Value", "ParticleColumn"],
-            "histogramBins": ["Histogram Bins", "Integer"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
-            "plotRangeType": ["Range", "PlotRangeType", "fit"],
-            "horizontalSize": ["Horizontal Size", "Float", 0],
-            "verticalSize": ["Vertical Size", "Float", 0],
-            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
-            "verticalOffset": ["Vertical Offset", "Float", 0.0],
-            "colorRangeType": ["Range", "ColorRangeType", "none"],
-            "colorMin": ["Minimum Histogram Value", "Float", 0],
-            "colorMax": ["Maximum Histogram Value", "Float", 10]
+            "x": {
+                "displayName": "X Value",
+                "type": "ParticleColumn"
+            },
+            "y": {
+                "displayName": "Y Value",
+                "type": "ParticleColumn"
+            },
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            },
+            "framesPerSecond": {
+                "displayName": "Frames per Second",
+                "type": "FramesPerSecond",
+                "defaultValue": "5"
+            },
+            "plotRangeType": {
+                "displayName": "Range",
+                "type": "PlotRangeType",
+                "defaultValue": "fit"
+            },
+            "horizontalSize": {
+                "displayName": "Horizontal Size",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "verticalSize": {
+                "displayName": "Vertical Size",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "horizontalOffset": {
+                "displayName": "Horizontal Offset",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "verticalOffset": {
+                "displayName": "Vertical Offset",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "colorRangeType": {
+                "displayName": "Range",
+                "type": "ColorRangeType",
+                "defaultValue": "none"
+            },
+            "colorMin": {
+                "displayName": "Minimum Histogram Value",
+                "type": "Float",
+                "defaultValue": 0
+            },
+            "colorMax": {
+                "displayName": "Maximum Histogram Value",
+                "type": "Float",
+                "defaultValue": 10
+            }
         },
-        "rateCalculationReport": {
-        },
+        "rateCalculationReport": {},
         "ring": {
-            "latticeSource": ["Lattice Source", "LatticeSource", "madx", ""],
-            "lattice": ["Ring Lattice File", "TwissFile", null, "This file should be in the MAD-X output format (*.tfs)."],
-            "elegantTwiss": ["Elegant twiss_output", "TwissFile", null, "This file should be the SDDS output from the twiss_output command."],
-            "elegantSirepo": ["Elegant Simulation", "ElegantSimList", null]
+            "latticeSource": {
+                "displayName": "Lattice Source",
+                "type": "LatticeSource",
+                "defaultValue": "madx",
+                "description": ""
+            },
+            "lattice": {
+                "displayName": "Ring Lattice File",
+                "type": "TwissFile",
+                "defaultValue": null,
+                "description": "This file should be in the MAD-X output format (*.tfs)."
+            },
+            "elegantTwiss": {
+                "displayName": "Elegant twiss_output",
+                "type": "TwissFile",
+                "defaultValue": null,
+                "description": "This file should be the SDDS output from the twiss_output command."
+            },
+            "elegantSirepo": {
+                "displayName": "Elegant Simulation",
+                "type": "ElegantSimList",
+                "defaultValue": null
+            }
         },
         "simulationSettings": {
-            "time": ["Total Simulation Time [s]", "Float", 60, "", 1e-99],
-            "step_number": ["Total Number of Steps", "Integer", 60, "The time interval of each step is time/step_number.", 1],
-            "time_step": ["Time Step [s]", "Float", 1, "Number of steps per second", 1e-99],
-            "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
-            "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
-            "model": ["Model", "SimulationModel", "particle"],
-            "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero.", -1],
-            "ref_bet_x": ["Horizontal Beta Reference Point", "Float", 10, "TWISS parameters for the reference point. Only needed when the Particle model is selected and the electron cooling effect is not included in the simulation.", 1e-99],
-            "ref_bet_y": ["Vertical Beta Reference Point", "Float", 10, "", 1e-99],
-            "ref_alf_x": ["Horizontal Alpha Reference Point", "Float"],
-            "ref_alf_y": ["Vertical Alpha Reference Point", "Float"],
-            "ref_disp_x": ["Horizontal Dispersion Reference Point", "Float"],
-            "ref_disp_y": ["Vertical Dispersion Reference Point", "Float"],
-            "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float"],
-            "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float"]
+            "time": {
+                "displayName": "Total Simulation Time [s]",
+                "type": "Float",
+                "defaultValue": 60,
+                "description": "",
+                "min": 1e-99
+            },
+            "step_number": {
+                "displayName": "Total Number of Steps",
+                "type": "Integer",
+                "defaultValue": 60,
+                "description": "The time interval of each step is time/step_number.",
+                "min": 1
+            },
+            "time_step": {
+                "displayName": "Time Step [s]",
+                "type": "Float",
+                "defaultValue": 1,
+                "description": "Number of steps per second",
+                "min": 1e-99
+            },
+            "ibs": {
+                "displayName": "Simulate the IBS Effect",
+                "type": "Boolean",
+                "defaultValue": "1"
+            },
+            "e_cool": {
+                "displayName": "Simulate Electron Cooling Effect",
+                "type": "Boolean",
+                "defaultValue": "1"
+            },
+            "model": {
+                "displayName": "Model",
+                "type": "SimulationModel",
+                "defaultValue": "particle"
+            },
+            "save_particle_interval": {
+                "displayName": "Save Particle Interval",
+                "type": "Integer",
+                "defaultValue": -1,
+                "description": "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero.",
+                "min": -1
+            },
+            "ref_bet_x": {
+                "displayName": "Horizontal Beta Reference Point",
+                "type": "Float",
+                "defaultValue": 10,
+                "description": "TWISS parameters for the reference point. Only needed when the Particle model is selected and the electron cooling effect is not included in the simulation.",
+                "min": 1e-99
+            },
+            "ref_bet_y": {
+                "displayName": "Vertical Beta Reference Point",
+                "type": "Float",
+                "defaultValue": 10,
+                "description": "",
+                "min": 1e-99
+            },
+            "ref_alf_x": {
+                "displayName": "Horizontal Alpha Reference Point",
+                "type": "Float"
+            },
+            "ref_alf_y": {
+                "displayName": "Vertical Alpha Reference Point",
+                "type": "Float"
+            },
+            "ref_disp_x": {
+                "displayName": "Horizontal Dispersion Reference Point",
+                "type": "Float"
+            },
+            "ref_disp_y": {
+                "displayName": "Vertical Dispersion Reference Point",
+                "type": "Float"
+            },
+            "ref_disp_dx": {
+                "displayName": "Horizontal Dispersion Derivative Reference Point",
+                "type": "Float"
+            },
+            "ref_disp_dy": {
+                "displayName": "Vertical Dispersion Derivative Reference Point",
+                "type": "Float"
+            }
         },
         "simulationStatus": {},
         "twissReport": {
-            "y1": ["Y1 Value", "TwissParameter", "betx"],
-            "y2": ["Y2 Value", "TwissParameter", "bety"],
-            "y3": ["Y3 Value", "TwissParameter", "dx"]
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "TwissParameter",
+                "defaultValue": "betx"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "TwissParameter",
+                "defaultValue": "bety"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "TwissParameter",
+                "defaultValue": "dx"
+            }
         }
     },
     "view": [
