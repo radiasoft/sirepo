@@ -1,7 +1,14 @@
 import { Dependency } from "../data/dependency";
 
-export function useInterpolatedString(models, str) {
-    let matches = [...str.matchAll(/\$\(([^\%]+)\)/g)];
+const defaultValueSelector = (models, modelName, fieldName) => models[modelName][fieldName];
+
+export function useInterpolatedString(models, str, valueSelector) {
+    // need to convert values to strings
+    return interpolateString(models, str, v => `${v}`, valueSelector);
+}
+
+function interpolateString(models, str, conversionFn, valueSelector) {
+    let matches = [...str.matchAll(/\$\(([^\%]+?)\)/g)];
     let mappingsArr = matches.map(([originalString, mappedGroup]) => {
         return {
             original: originalString,
@@ -24,11 +31,17 @@ export function useInterpolatedString(models, str) {
         let { modelName, fieldName } = mapping.dependency; 
         return {
             ...mapping,
-            value: modelValues[modelName][fieldName]
+            value: (valueSelector || defaultValueSelector)(modelValues, modelName, fieldName)
         }
     }).forEach(({ original, value }) => {
-        interpolatedStr = interpolatedStr.replace(original, `${value}`);
+        interpolatedStr = interpolatedStr.replace(original, `${conversionFn(value)}`);
     })
 
     return interpolatedStr;
+}
+
+export function useEvaluatedInterpString(models, str, valueSelector) {
+    // need to JSON stringify values, strings must be quoted and arrays must be recursively stringified
+    let interpStr = interpolateString(models, str, v => JSON.stringify(v), valueSelector);
+    return eval(interpStr);
 }

@@ -47,16 +47,14 @@ export class HookedDependencyGroup {
             if(!fieldSchema) {
                 throw new Error(`missing field schema for field "${fieldName}" in model "${modelName}"`)
             }
-            let { type, displayName, description, defaultValue } = fieldSchema;
+            // TODO needs abstraction
+            //let { type, displayName, description, defaultValue, min, max, shown } = fieldSchema;
             return {
                 modelName,
                 fieldName,
                 model: hookedModel,
-                displayName,
-                type,
-                description,
-                defaultValue,
-                value: hookedModel.value[fieldName]
+                value: hookedModel.value[fieldName],
+                ...fieldSchema
             }
         })
     }

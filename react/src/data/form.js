@@ -1,5 +1,6 @@
 import { mapProperties } from "../utility/object";
 import { useDispatch, useSelector } from "react-redux";
+import { useEvaluatedInterpString } from "../hook/string";
 
 export let formStateFromModel = (model, modelSchema) => mapProperties(modelSchema, (fieldName, { type }) => {
     const valid = type.validate(model[fieldName])
@@ -88,6 +89,21 @@ export class FormController {
 
             let currentValue = model.value[fieldName];
 
+            let evalInterpStrFn = useEvaluatedInterpString;
+            let active = true;
+
+            if(hookedDependency.shown) {
+                active = evalInterpStrFn(formState, hookedDependency.shown, (models, modelName, fieldName) => models[modelName][fieldName].value);
+                if(typeof(active) !== 'boolean'){
+                    throw new Error(`'shown' function did not evaluate to a boolean "${hookedDependency.shown}" -> ${active}`)
+                }
+            }
+
+            currentValue = {
+                ...currentValue,
+                active
+            }
+
             let formStateField = model.forField(fieldName);
 
             return {
@@ -97,18 +113,13 @@ export class FormController {
                 value: currentValue,
                 dependency: hookedDependency,
                 updateValue: (v) => {
-                    //console.log("updating value: ", v, " in ", modelName, fieldName);
                     formStateField.updateField({
                         value: v,
                         valid: hookedDependency.type.validate(v),
                         touched: true,
                         active: currentValue.active
                     });
-                },
-                updateActive: (a) => formStateField.updateField({
-                    ...currentValue,
-                    active: a
-                })
+                }
             }
         })
     }
@@ -152,11 +163,11 @@ export class FormController {
     }
 
     isFormStateDirty = () => {
-        let d = Object.values(this.hookedFields).map(({ value: { active, touched } }) => active && touched).includes(true);
-        return d;
+        //let d = Object.values(this.hookedFields).map(({ value: { active, touched } }) => active && touched).includes(true);
+        return Object.values(this.hookedFields).map(({ value: { touched } }) => !!touched).includes(true);
     }
     isFormStateValid = () => {
-        let v = !Object.values(this.hookedFields).map(({ value: { active, valid } }) => !active || valid).includes(false); // TODO: check completeness (missing defined variables?)
-        return v;
+        //let v = !Object.values(this.hookedFields).map(({ value: { active, valid } }) => !active || valid).includes(false); // TODO: check completeness (missing defined variables?)
+        return !Object.values(this.hookedFields).map(({ value: { valid } }) => !!valid).includes(false);;
     }
 }

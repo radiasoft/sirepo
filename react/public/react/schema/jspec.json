@@ -456,14 +456,16 @@
                 "type": "Float",
                 "defaultValue": 0.004,
                 "description": "",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(electronBeam.shape) == 'dc_uniform' || $(electronBeam.shape) == 'bunched_uniform'"
             },
             "current": {
                 "displayName": "Current [A]",
                 "type": "Float",
                 "defaultValue": 2,
                 "description": "",
-                "min": 0
+                "min": 0,
+                "shown": "$(electronBeam.shape) == 'dc_uniform' || $(electronBeam.shape) == 'bunched_uniform' || $(electronBeam.shape) == 'bunched_uniform_elliptic'"
             },
             "sigma_x": {
                 "displayName": "Horizontal RMS Size",

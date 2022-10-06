@@ -130,9 +130,10 @@ export class FieldListLayout extends View {
         let fields = config.fields;
 
         return <Container>
-            {fields.map((field, idx) => (
-                <LabeledFieldInput key={idx} field={formController.getHookedField(new Dependency(field))}></LabeledFieldInput>
-            ))} 
+            {fields.map((field, idx) => {
+                let hookedField = formController.getHookedField(new Dependency(field))
+                if(hookedField.value.active) return <LabeledFieldInput key={idx} field={hookedField}></LabeledFieldInput>
+            })} 
         </Container>
     }
 }

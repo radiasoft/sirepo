@@ -73,7 +73,7 @@ export function compileSchemaFromJson(schemaObj) {
             simulation: simulationModel
         }, (modelName, modelObj) => {
             return mapProperties(modelObj, (fieldName, field) => {
-                let { displayName, type: typeName, defaultValue, description } = field;
+                let { displayName, type: typeName, defaultValue, description, shown, min, max } = field;
                 let type = types[typeName];
                 if(!type) {
                     missingTypeNames.push(typeName);
@@ -81,8 +81,11 @@ export function compileSchemaFromJson(schemaObj) {
                 return {
                     displayName,
                     type,
+                    shown,
                     defaultValue,
-                    description
+                    description,
+                    min,
+                    max
                 }
             })
         })
