@@ -215,7 +215,7 @@ def sim_frame_epochAnimation(frame_args):
                 points=list(d[l]),
                 label=l,
             )
-            for l in ('loss', 'val_loss')
+            for l in ("loss", "val_loss")
         ],
     ).pkupdate(
         PKDict(
@@ -372,18 +372,25 @@ def _build_model_py(v):
     strides={layer.strides},
     padding="{layer.padding}"'''
 
+    def _dropout_args(layer):
+        if layer.get("rate"):
+            return layer.rate
+        else:
+            return layer.dropoutRate
+
+
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
         Add=lambda layer: _branch(layer, "Add"),
-        AlphaDropout=lambda layer: layer.dropoutRate,
+        AlphaDropout=lambda layer: _dropout_args(layer),
         AveragePooling2D=lambda layer: _pooling_args(layer),
         BatchNormalization=lambda layer: f"momentum={layer.momentum}",
         Concatenate=lambda layer: _branch(layer, "Concatenate"),
         Conv2D=lambda layer: _conv_args(layer),
         Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
-        Dropout=lambda layer: layer.rate,
+        Dropout=lambda layer: _dropout_args(layer),
         Flatten=lambda layer: "",
-        GaussianDropout=lambda layer: layer.dropoutRate,
+        GaussianDropout=lambda layer: _dropout_args(layer),
         GaussianNoise=lambda layer: layer.stddev,
         GlobalAveragePooling2D=lambda layer: "",
         MaxPooling2D=lambda layer: _pooling_args(layer),
@@ -395,6 +402,7 @@ def _build_model_py(v):
 
     def _layer(layer):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
+        pkdp("\n\n\n layer={}", layer)
         return args_map[layer.layer](layer)
 
     def _branch_or_continue(layers, layer, layer_args):
@@ -780,15 +788,17 @@ def _is_image_data(data_file, v):
     # POSIT (gurhar1133): assumes only .h5 input data_files
     if not re.compile(r".h5$").search(data_file):
         return False
-    with h5py.File(data_file, 'r') as f:
+    with h5py.File(data_file, "r") as f:
         if "images" not in f.keys():
             return False
         s = f["metadata/labels"].shape
         if len(s) > 1:
             # POSIT (gurhar1133): assumes output wont be tuples
-            raise AssertionError(f"shape of labels={s}, should not be multi-dimensional outputs")
+            raise AssertionError(
+                f"shape of labels={s}, should not be multi-dimensional outputs"
+            )
         v.outputDim = s[0]
-        v.inputDim = ",".join([str(x) for x in f['images'].shape[1:]])
+        v.inputDim = ",".join([str(x) for x in f["images"].shape[1:]])
     return True
 
 
