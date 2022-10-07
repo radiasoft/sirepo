@@ -1,5 +1,6 @@
 import { Zoom } from '@visx/zoom';
 import { Axis, ClipPath, Scale, Shape } from '@visx/visx';
+import { LegendOrdinal } from "@visx/legend";
 
 /**
  *
@@ -83,6 +84,11 @@ export function Graph2d(props) {
 
                 });
 
+                let legendScale = Scale.scaleOrdinal({
+                    domain: plots.map(plot => plot.label),
+                    range: plots.map(plot => plot.color)
+                })
+
                 let toPath = (plot, index) => {
                     return (
                         <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color}>
@@ -95,38 +101,41 @@ export function Graph2d(props) {
                 const cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
 
                 return (
-                    <svg
-                        height={height}
-                        width={width}
-                        ref={zoom.containerRef}
-                        style={{'userSelect': 'none'}}
-                        viewBox={`${0} ${0} ${intWidth} ${intHeight}`}
-                    >
-                        <ClipPath.RectClipPath id={"graph-clip"} width={graphWidth} height={graphHeight}/>
-                        <g transform={`translate(${graphX} ${graphY})`} width={graphWidth} height={graphHeight}>
-                            <Axis.AxisBottom
-                                stroke={"#888"}
-                                tickStroke={"#888"}
-                                scale={xScaleZoom}
-                                top={graphHeight}
-                            />
-                            <Axis.AxisLeft
-                                stroke={"#888"}
-                                tickStroke={"#888"}
-                                scale={yScale}
-                            />
-                            <g clipPath="url(#graph-clip)">
-                                <g transform={zoom.toString()} >
-                                    {paths}
+                    <>
+                        <svg
+                            height={height}
+                            width={width}
+                            ref={zoom.containerRef}
+                            style={{'userSelect': 'none'}}
+                            viewBox={`${0} ${0} ${intWidth} ${intHeight}`}
+                        >
+                            <ClipPath.RectClipPath id={"graph-clip"} width={graphWidth} height={graphHeight}/>
+                            <g transform={`translate(${graphX} ${graphY})`} width={graphWidth} height={graphHeight}>
+                                <Axis.AxisBottom
+                                    stroke={"#888"}
+                                    tickStroke={"#888"}
+                                    scale={xScaleZoom}
+                                    top={graphHeight}
+                                />
+                                <Axis.AxisLeft
+                                    stroke={"#888"}
+                                    tickStroke={"#888"}
+                                    scale={yScale}
+                                />
+                                <g clipPath="url(#graph-clip)">
+                                    <g transform={zoom.toString()} >
+                                        {paths}
+                                    </g>
                                 </g>
+                                <rect
+                                    width={graphWidth}
+                                    height={graphHeight}
+                                    style={{'fill': 'none', 'cursor': cursor, 'pointerEvents': 'all'}}
+                                ></rect>
                             </g>
-                            <rect
-                                width={graphWidth}
-                                height={graphHeight}
-                                style={{'fill': 'none', 'cursor': cursor, 'pointerEvents': 'all'}}
-                            ></rect>
-                        </g>
-                    </svg>
+                        </svg>
+                        <LegendOrdinal scale={legendScale} direction="row"/>
+                    </>
                 )
             }}
         </Zoom>
