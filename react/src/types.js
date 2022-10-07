@@ -1,8 +1,11 @@
 //import { React }
-import { useContext, useEffect, useState } from "react";
-import { Col, Form } from "react-bootstrap";
+import { useContext, useEffect, useRef, useState } from "react";
+import { Row, Button, Col, Form, Container } from "react-bootstrap";
 import { ContextAppName, ContextSimulationInfoPromise } from "./context";
 import { pollStatefulCompute } from "./utility/compute";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import * as Icon from "@fortawesome/free-solid-svg-icons";
+import "./types.scss"
 
 export class rsType {
     constructor({ isRequired }) {
@@ -130,6 +133,8 @@ export class rsFile extends rsType {
         let stateFn = useState;
         let effectFn = useEffect;
 
+        let [dummyState, updateDummyState] = stateFn({})
+
         let appName = contextFn(ContextAppName);
         let simulationInfoPromise = contextFn(ContextSimulationInfoPromise);
 
@@ -156,18 +161,69 @@ export class rsFile extends rsType {
             })
 
             fileListPromise.then(updateFileNameList);
-        }, [])
+        }, [dummyState])
 
         // TODO: loading indicator
         // TODO: file upload
+
+        let fileInputRef = useRef();
+        let formSelectRef = useRef();
 
         let options = (fileNameList || []).map(fileName => (
             <option key={fileName} value={fileName}>{fileName}</option>
         ))
 
-        return <Form.Select {...otherProps}>
-            {options}
-        </Form.Select>
+        let uploadFile = (event) => {
+            let file = event.target.files[0];
+            let formData = new FormData();
+            formData.append("file", file);
+            simulationInfoPromise.then(({ simulationId, version }) => {
+                //TODO, how should this be generated
+                let fileFieldName = dependency.modelName + "-" + dependency.fieldName;
+                fetch(`/upload-file/${appName}/${simulationId}/${fileFieldName}`, {
+                    method: 'POST',
+                    body: formData
+                }).then(resp => updateDummyState({}))
+            })
+        }
+
+        let downloadFile = () => {
+            // TODO: do this better
+            let selectedFileName = formSelectRef.current.selectedOptions[0].innerText;
+            let fileFieldName = dependency.modelName + "-" + dependency.fieldName;
+            fetch(`/download-file/${appName}/unused/${fileFieldName}.${selectedFileName}`)
+            .then(res => res.blob())
+            .then(res => {
+                const aElement = document.createElement('a');
+                aElement.setAttribute('download', selectedFileName);
+                const href = URL.createObjectURL(res);
+                aElement.href = href;
+                aElement.setAttribute('target', '_blank');
+                aElement.click();
+                URL.revokeObjectURL(href);
+            });
+        }
+
+        return (
+            <div className="sr-form-file-upload-row">
+                <Form.Select ref={formSelectRef} {...otherProps}>
+                    {options}
+                </Form.Select>
+                <Button onClick={downloadFile}>
+                    <FontAwesomeIcon icon={Icon.faDownload} fixedWidth/>
+                </Button>
+                <Button onClick={() => {}}>
+                    <FontAwesomeIcon icon={Icon.faEye} fixedWidth/>
+                </Button>
+                <input type="file" ref={fileInputRef} style={{display: 'none'}} onChange={uploadFile}></input>
+                <Button onClick={() => {
+                    return fileInputRef.current?.click()
+                }}>
+                    <FontAwesomeIcon icon={Icon.faPlus} fixedWidth/>
+                </Button>
+            </div>
+            
+        )
     }
 }
 
