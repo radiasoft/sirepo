@@ -22,7 +22,7 @@ export function Graph2d(props) {
     const intHeight = Number.parseInt(intWidth * 9 / 16);
 
     let xAxisSize = 30;
-    let yAxisSize = 30;
+    let yAxisSize = 50;
 
     let margin = 10;
 
@@ -72,14 +72,15 @@ export function Graph2d(props) {
                     domain: [yRange.min, yRange.max],
                     range: [graphHeight, 0],
                     round: true,
-                    nice: true,
+                    nice: true
                 });
 
                 let xScaleZoom = Scale.scaleLinear({
                     domain: [xScale.invert((xScale(xRange.min) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),
                              xScale.invert((xScale(xRange.max) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),],
                     range: [0, graphWidth],
-                    round: true
+                    round: true,
+
                 });
 
                 let toPath = (plot, index) => {
