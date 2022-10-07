@@ -15,19 +15,22 @@ import { PanelController } from "../data/panel";
 export function Panel(props) {
     let { title, buttons, panelBodyShown, ...otherProps } = props;
 
-    let panelButtonsId = uuidv4();
+    let [panelButtonsId] = useState(() => uuidv4());
 
     let [shown, updateShown] = useState(true);
 
     let panelController = new PanelController({
         buttonPortalId: panelButtonsId,
         // upward communication is poor practice, this should be avoided or done another way
-        onChangeShown: (shown) => updateShown(shown)
+        onChangeShown: (shown) => {
+            console.log("shown", shown);
+            updateShown(shown)
+        }
     })
 
     return (
         <ContextPanelController.Provider value={panelController}>
-            {shown && <Card>
+            <Card style={{ display: shown ? undefined: 'none' }}>
                 <Card.Header className="lead bg-info bg-opacity-25">
                     {title}
                     <div className="float-end">
@@ -40,7 +43,7 @@ export function Panel(props) {
                         {props.children}
                     </Card.Body>
                 }
-            </Card>}
+            </Card>
         </ContextPanelController.Provider>
     );
 }

@@ -1,6 +1,6 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency, HookedDependencyGroup } from "../data/dependency";
-import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModelsWrapper, ContextLayouts, ContextReportEventManager, ContextSchema } from "../context";
+import { ContextPanelController, ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModelsWrapper, ContextLayouts, ContextReportEventManager, ContextSchema } from "../context";
 import { useDependentValues } from "../hook/dependency";
 import { View } from "./layout";
 import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
@@ -160,6 +160,12 @@ export class ManualRunReportLayout extends View {
         })
 
         let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
+        let panelController = useContext(ContextPanelController);
+
+        useEffect(() => {
+            panelController.setShown(!!reportData);
+        }, [!!reportData])
+
         let VisualComponent = reportData ? layoutElement.component : undefined;
 
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
