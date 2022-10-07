@@ -6,6 +6,7 @@ import { pollStatefulCompute } from "./utility/compute";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./types.scss"
+import { downloadAs } from "./utility/download";
 
 export class rsType {
     constructor({ isRequired }) {
@@ -194,13 +195,7 @@ export class rsFile extends rsType {
             fetch(`/download-file/${appName}/unused/${fileFieldName}.${selectedFileName}`)
             .then(res => res.blob())
             .then(res => {
-                const aElement = document.createElement('a');
-                aElement.setAttribute('download', selectedFileName);
-                const href = URL.createObjectURL(res);
-                aElement.href = href;
-                aElement.setAttribute('target', '_blank');
-                aElement.click();
-                URL.revokeObjectURL(href);
+                downloadAs(res, selectedFileName);
             });
         }
 

@@ -1,7 +1,9 @@
 {
   "name": "sirepo",
   "description": "Accelerator code gui",
-  "dependencies": {},
+  "dependencies": {
+    "html2canvas": "^1.4.1"
+  },
   "devDependencies": {
     "jasmine-core": "latest",
     "jshint": "latest",

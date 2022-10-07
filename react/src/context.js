@@ -9,6 +9,7 @@ export const ContextRelativeFormState = React.createContext();
 export const ContextSimulationListPromise = React.createContext();
 export const ContextSimulationInfoPromise = React.createContext();
 export const ContextReportEventManager = React.createContext();
+export const ContextPanelController = React.createContext();
 
 export const ContextAppName = React.createContext();
 export const ContextLayouts = React.createContext();

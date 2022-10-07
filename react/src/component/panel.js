@@ -8,23 +8,40 @@ import { useState, Fragment } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { EditorForm } from "./form";
+import { v4 as uuidv4 } from 'uuid';
+import { ContextPanelController } from "../context";
+import { PanelController } from "../data/panel";
 
 export function Panel(props) {
     let { title, buttons, panelBodyShown, ...otherProps } = props;
+
+    let panelButtonsId = uuidv4();
+
+    let [shown, updateShown] = useState(true);
+
+    let panelController = new PanelController({
+        buttonPortalId: panelButtonsId,
+        // upward communication is poor practice, this should be avoided or done another way
+        onChangeShown: (shown) => updateShown(shown)
+    })
+
     return (
-        <Card>
-            <Card.Header className="lead bg-info bg-opacity-25">
-                {title}
-                <div className="float-end">
-                    {buttons}
-                </div>
-            </Card.Header>
-            {panelBodyShown &&
-                <Card.Body>
-                    {props.children}
-                </Card.Body>
-            }
-        </Card>
+        <ContextPanelController.Provider value={panelController}>
+            {shown && <Card>
+                <Card.Header className="lead bg-info bg-opacity-25">
+                    {title}
+                    <div className="float-end">
+                        <div id={panelButtonsId} className="d-inline"></div>
+                        {buttons}
+                    </div>
+                </Card.Header>
+                {panelBodyShown &&
+                    <Card.Body>
+                        {props.children}
+                    </Card.Body>
+                }
+            </Card>}
+        </ContextPanelController.Provider>
     );
 }
 
