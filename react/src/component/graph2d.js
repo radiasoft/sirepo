@@ -134,7 +134,7 @@ export function Graph2d(props) {
                                 ></rect>
                             </g>
                         </svg>
-                        <LegendOrdinal scale={legendScale} direction="row"/>
+                        <LegendOrdinal scale={legendScale} direction="column"/>
                     </>
                 )
             }}
