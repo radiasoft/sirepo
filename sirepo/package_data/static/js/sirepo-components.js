@@ -2620,24 +2620,27 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('floatArray', function() {
+SIREPO.app.directive('floatArray', function(utilities) {
     return {
         restrict: 'A',
         scope: {
-            model: '=',
             field: '=',
+            fieldName: '=',
             info: '=',
+            model: '=',
         },
         template: `
-            <div data-ng-repeat="v in model[field] track by $index"
-              style="display: inline-block; width: 7em; margin-right: 5px;" >
-              <input class="form-control" data-string-to-number="Float"
-                data-ng-model="model[field][$index]"
+            <div data-ng-repeat="v in model[fieldName] track by $index"
+              style="display: inline-block;" >
+              <label data-text-with-math="valueLabels[$index]" style="margin-right: 1ex"></label>
+              <input class="form-control sr-number-list" data-string-to-number="Float"
+                data-ng-model="model[fieldName][$index]"
                 style="text-align: right" required />
             </div>
         `,
         controller: $scope => {
-            srdbg("FLT ARR", $scope);
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/)
+                .map(s => utilities.interpolateString(s, $scope));
         },
     };
 });
