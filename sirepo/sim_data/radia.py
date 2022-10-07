@@ -93,37 +93,39 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        sirepo.util
+        import sirepo.util
 
-        def _model_or_super_with_field(model_name, model, field):
-            if field in model:
-                return model
-            for s in sch.model[model_name].get("_super", []).reversed():
-                if field in s:
-                    return s
+        sch = cls.schema()
 
-        def _fixup_boolean_fields(model, schema_model):
+        def _fixup_boolean_fields(model_name, model):
+            s_m = sch.model[model_name]
             for f in [
-                f for f in schema_model if f in model and schema_model[f][1] == "Boolean" and not model[f]
+                f for f in s_m if f in model and s_m[f][1] == "Boolean" and not model[f]
             ]:
                 model[f] = "0"
 
-        def _fixup_float_string_fields(model_name, model, schema_model):
-            for f in schema_model:
-                if f not in model:
+        def _fixup_float_string_fields(model_name, model):
+            if not model_name or not model:
+                return
+            s_m = sch.model.get(model_name)
+            if not s_m:
+                return
+            for f in model:
+                if f not in s_m:
                     continue
-                sf = schema_model[f][1]
+                sf = s_m[f][1]
                 if sf == "FloatArray" and isinstance(model[f], str):
-                    pkdp("FIXUP STRF {}.{} {}", model_name, f, model[f])
                     model[f] = sirepo.util.split_comma_delimited_string(model[f], float)
                     continue
                 if sf.startswith("model."):
-                    pkdp("FIXUP MDL {} {}", model_name, sf)
-                    sub_model = sf.split(".")[-1]
-                    _fixup_float_string_fields(sub_model, model[f], sch.model[sub_model])
+                    _fixup_float_string_fields(sf.split(".")[-1], model[f])
+                    _fixup_transforms(model[f])
+            sc = [x for x in s_m.get("_super", []) if x != "_" and x != "model"]
+            if sc:
+                _fixup_float_string_fields(sc[0], model)
 
-        def _fixup_geom_objects(geom_report):
-            for o in geom_report.objects:
+        def _fixup_geom_objects(objects):
+            for o in objects:
                 if o.get("points") is not None and not o.get("triangulationLevel"):
                     o.triangulationLevel = 0.5
                 if not o.get("bevels"):
@@ -135,18 +137,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                     o.fillets = []
                 if not o.get("segments"):
                     o.segments = o.get("division", "1, 1, 1")
-                if o.get("type") and sch.model.get(o.type):
-                    _fixup_float_string_fields(o.type, o, sch.model[o.type])
-                _fixup_transforms(o.get("transforms", []))
+                for f in ("type", "model",):
+                    _fixup_float_string_fields(o.get(f), o)
+                _fixup_transforms(o)
 
-        def _fixup_transforms(xforms):
-            for t in xforms:
-                _fixup_float_string_fields(t.model, t, sch.model[t.model])
-                _fixup_transforms(t.get("transforms", []))
-
+        def _fixup_transforms(model):
+            for t in model.get("transforms", []):
+                _fixup_float_string_fields(t.model, t)
+                _fixup_transforms(t)
 
         dm = data.models
-        sch = cls.schema()
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
         if dm.get("geometry"):
             dm.geometryReport = dm.geometry.copy()
@@ -161,11 +161,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
-        _fixup_geom_objects(dm.geometryReport)
-        for m in [m for m in dm if m in sch.model]:
-            s_m = sch.model[m]
-            _fixup_float_string_fields(m, dm, s_m)
-            _fixup_boolean_fields(dm, s_m)
+        _fixup_geom_objects(dm.geometryReport.objects)
+        for name in [name for name in dm if name in sch.model]:
+            _fixup_boolean_fields(name, dm[name])
+            _fixup_float_string_fields(name, dm[name])
+            _fixup_transforms(dm[name])
         cls._organize_example(data)
 
     @classmethod

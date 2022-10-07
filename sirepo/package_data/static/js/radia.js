@@ -312,13 +312,9 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
 
-    self.stringToFloatArray = function (str, scale) {
-        return str.split(/\s*,\s*/)
-            .map(function (v) {
-                return (scale || 1.0) * parseFloat(v);
-            });
+    self.scaledArray = function (arr, scale = 1.0) {
+        return arr.map(x => scale * x);
     };
-
 
     self.syncReports = () => {
         POST_SIM_REPORTS.forEach(r => {
@@ -327,7 +323,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         appState.saveChanges(POST_SIM_REPORTS);
     };
 
-   // update models so that editors see the correct values
+    // update models so that editors see the correct values
     // for now assign the entire object
     self.updateModelAndSuperClasses = (modelName, model) => {
         const s = [modelName, ...appState.superClasses(modelName)];
@@ -342,9 +338,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.validateMagnetization = (magnetization, material) => {
-        const mag = Math.hypot(
-            ...self.stringToFloatArray(magnetization || SIREPO.ZERO_STR)
-        );
+        const mag = Math.hypot(magnetization || SIREPO.ZERO_ARR);
         validationService.validateField(
             'geomObject',
             'material',
@@ -604,8 +598,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = function(o) {
-        let center = radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-        let size =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+        const scale = SIREPO.APP_SCHEMA.constants.objectScale;
+        let center = radiaService.scaledArray(o.center || SIREPO.ZERO_ARR, scale);
+        let size =   radiaService.scaledArray(o.size || SIREPO.ZERO_ARR, scale);
         const isGroup = o.members && o.members.length;
 
         if (isGroup) {
@@ -621,7 +616,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let pts = {};
         if (o.layoutShape === 'polygon') {
             const [k, i, j] = [o.extrusionAxis, o.widthAxis, o.heightAxis].map(radiaService.axisIndex);
-            const scaledPts = o.points.map(p => p.map(x => SIREPO.APP_SCHEMA.constants.objectScale * x));
+            const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
             pts[o.extrusionAxis] = scaledPts;
             const cp = center[k] + size[k] / 2.0;
             const cm = center[k] - size[k] / 2.0;
@@ -775,8 +770,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         for (const p in vtkPlotting.COORDINATE_PLANES) {
             const cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
             const spl = geometry.plane(
-                radiaService.stringToFloatArray(xform.symmetryPlane),
-                geometry.pointFromArr( radiaService.stringToFloatArray(
+                xform.symmetryPlane,
+                geometry.pointFromArr(radiaService.scaledArray(
                     xform.symmetryPoint,
                     SIREPO.APP_SCHEMA.constants.objectScale)
                 ));
@@ -889,15 +884,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function groupBounds(objs) {
-        let b = [
+        const b = [
             [Number.MAX_VALUE, -Number.MAX_VALUE],
             [Number.MAX_VALUE, -Number.MAX_VALUE],
             [Number.MAX_VALUE, -Number.MAX_VALUE]
         ];
+        const scale = SIREPO.APP_SCHEMA.constants.objectScale;
         b.forEach(function (c, i) {
             (objs || appState.models.geometryReport.objects || []).forEach(function (o) {
-                var ctr =  radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                var sz =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+                const ctr =  radiaService.scaledArray(o.center || SIREPO.ZERO_ARR, scale);
+                const sz =  radiaService.scaledArray(o.size || SIREPO.ZERO_ARR, scale);
                 c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
                 c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
             });
@@ -923,9 +919,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function mirrorFn(xform) {
         return function (shape1, shape2) {
-            var pl = geometry.plane(
-                radiaService.stringToFloatArray(xform.symmetryPlane),
-                geometry.pointFromArr(radiaService.stringToFloatArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
+            const pl = geometry.plane(
+                xform.symmetryPlane,
+                geometry.pointFromArr(
+                    radiaService.scaledArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale)
+                )
             );
             shape2.setCenter(
                 pl.mirrorPoint(geometry.pointFromArr(
@@ -943,7 +941,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function offsetFn(xform, i) {
         return function(shape1, shape2) {
-            const d = radiaService.stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
+            const d = radiaService.scaledArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
             shape2.setCenter(
                 shape1.getCenterCoords().map(function (c, j) {
                     return c + i * d[j];
@@ -955,14 +953,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function rotateFn(xform, i) {
         return function(shape1, shape2) {
-            var ctr =  radiaService.stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
-            var axis =  radiaService.stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
+            const scale = SIREPO.APP_SCHEMA.constants.objectScale;
+            const ctr =  radiaService.scaledArray(xform.center, scale);
+            const axis =  radiaService.scaledArray(xform.axis, scale);
             // need a 4-vector to account for translation
-            var shapeCtr4 = shape1.getCenterCoords();
+            const shapeCtr4 = shape1.getCenterCoords();
             shapeCtr4.push(0);
-            var angle = Math.PI * parseFloat(xform.angle) / 180.0;
-            var a = i * angle;
-            var m = geometry.rotationMatrix(ctr, axis, a);
+            const angle = Math.PI * parseFloat(xform.angle) / 180.0;
+            const a = i * angle;
+            const m = geometry.rotationMatrix(ctr, axis, a);
             shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
             shape2.rotationAngle = -180.0 * a / Math.PI;
             return shape2;
@@ -1999,14 +1998,12 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             $scope.download = function() {
                 var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
                 var data = [$scope.CSV_HEADING];
-                $scope.linePaths().forEach(function (p) {
-                    var row = [];
-                    var begin = radiaService.stringToFloatArray(p.begin);
-                    var end = radiaService.stringToFloatArray(p.end);
+                $scope.linePaths().forEach(p => {
+                    let row = [];
                     row.push(
                         p.name,
-                        begin[0], begin[1], begin[2],
-                        end[0], end[1], end[2]
+                        p.begin[0], p.begin[1], p.begin[2],
+                        p.end[0], p.end[1], p.end[2]
                     );
                     $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
                         row = row.concat(
@@ -3867,11 +3864,10 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
 
             function updateShape() {
                 const o = appState.models[$scope.modelName];
-                const size = utilities.splitCommaDelimitedString(o.size, parseFloat);
                 const s = shapes[o.type] || shapes.cuboid;
                 s.setFill(o.color);
                 const inds = radiaService.getAxisIndices();
-                const ar = size[inds.width] / size[inds.height];
+                const ar = o.size[inds.width] / o.size[inds.height];
                 s.setScales([
                     ar >= 1 ? ar : 1.0,
                     ar >= 1 ? 1.0 : ar

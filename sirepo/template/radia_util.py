@@ -85,14 +85,12 @@ def _apply_clone(g_id, xform):
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
         if cxf.model == "translateClone":
-            txf = radia.TrfTrsl(
-                sirepo.util.split_comma_delimited_string(cxf.distance, float)
-            )
+            txf = radia.TrfTrsl(cxf.distance)
             xf = radia.TrfCmbL(xf, txf)
         if cxf.model == "rotateClone":
             rxf = radia.TrfRot(
-                sirepo.util.split_comma_delimited_string(cxf.center, float),
-                sirepo.util.split_comma_delimited_string(cxf.axis, float),
+                xf.center,
+                cxf.axis,
                 numpy.pi * float(cxf.angle) / 180.0,
             )
             xf = radia.TrfCmbL(xf, rxf)
@@ -106,8 +104,8 @@ def _apply_rotation(g_id, xform):
     radia.TrfOrnt(
         g_id,
         radia.TrfRot(
-            sirepo.util.split_comma_delimited_string(xform.center, float),
-            sirepo.util.split_comma_delimited_string(xform.axis, float),
+            xform.center,
+            xform.axis,
             numpy.pi * float(xform.angle) / 180.0,
         ),
     )
@@ -137,8 +135,8 @@ def _apply_segments(g_id, segments, seg_type="pln", **kwargs):
 
 def _apply_symmetry(g_id, xform):
     xform = PKDict(xform)
-    plane = sirepo.util.split_comma_delimited_string(xform.symmetryPlane, float)
-    point = sirepo.util.split_comma_delimited_string(xform.symmetryPoint, float)
+    plane = xform.symmetryPlane
+    point = xform.symmetryPoint
     if xform.symmetryType == "parallel":
         radia.TrfZerPara(g_id, point, plane)
     if xform.symmetryType == "perpendicular":
@@ -149,7 +147,7 @@ def _apply_translation(g_id, xform):
     xform = PKDict(xform)
     radia.TrfOrnt(
         g_id,
-        radia.TrfTrsl(sirepo.util.split_comma_delimited_string(xform.distance, float)),
+        radia.TrfTrsl(xform.distance),
     )
 
 
@@ -447,7 +445,7 @@ def get_electron_trajectory(g_id, **kwargs):
             g_id,
             PKDict(
                 center="0,0,0",
-                axis=sirepo.util.to_comma_delimited_string(axis),
+                axis=axis,
                 angle=angle,
             ),
         )

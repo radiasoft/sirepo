@@ -386,8 +386,8 @@ def _build_dipole_objects(geom_objs, model, **kwargs):
 def _build_field_axis(length, axis):
     beam_dir = radia_util.AXIS_VECTORS[axis]
     f = PKDict(
-        begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
-        end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
+        begin=(-length / 2) * beam_dir,
+        end=(length / 2) * beam_dir,
         name=f"{axis.upper()}-Axis",
         numPoints=round(length / 2) + 1,
         start=-length / 2,
@@ -518,15 +518,15 @@ def _build_group(members, name=None):
 
 def _build_symm_xform(plane, type, point=None):
     tx = _build_geom_obj("symmetryTransform")
-    tx.symmetryPlane = sirepo.util.to_comma_delimited_string(plane)
-    tx.symmetryPoint = sirepo.util.to_comma_delimited_string(point or _ZERO)
+    tx.symmetryPlane = plane
+    tx.symmetryPoint = point or _ZERO
     tx.symmetryType = type
     return tx
 
 
 def _build_translate_clone(dist):
     tx = _build_geom_obj("translateClone")
-    tx.distance = sirepo.util.to_comma_delimited_string(dist)
+    tx.distance = dist
     return tx
 
 
@@ -1136,10 +1136,9 @@ def _parse_input_file_arg_str(s):
 
 
 def _prep_new_sim(data, new_sim_data=None):
+
     def _electron_initial_pos(axis, factor):
-        return sirepo.util.to_comma_delimited_string(
-            factor * radia_util.AXIS_VECTORS[axis]
-        )
+        return factor * radia_util.AXIS_VECTORS[axis]
 
     data.models.geometryReport.name = data.models.simulation.name
     if new_sim_data is None:
@@ -1680,12 +1679,8 @@ def _update_group(g, members, do_replace=False):
 
 
 def _update_kickmap(km, und, beam_axis):
-    km.direction = sirepo.util.to_comma_delimited_string(
-        radia_util.AXIS_VECTORS[beam_axis]
-    )
-    km.transverseDirection = sirepo.util.to_comma_delimited_string(
-        radia_util.AXIS_VECTORS[SCHEMA.constants.heightAxisMap[beam_axis]]
-    )
+    km.direction = radia_util.AXIS_VECTORS[beam_axis]
+    km.transverseDirection = radia_util.AXIS_VECTORS[SCHEMA.constants.heightAxisMap[beam_axis]]
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
