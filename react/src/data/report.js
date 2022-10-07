@@ -24,6 +24,7 @@ export class ReportEventManager {
             simulationId,
             report,
             pollInterval: 500,
+            forceRun: true,
             callback: (simulationData) => {
                 let reportListeners = this.reportEventListeners[report] || [];
                 for(let reportListener of reportListeners) {

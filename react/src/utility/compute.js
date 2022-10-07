@@ -43,7 +43,7 @@ export function pollStatefulCompute({ pollInterval, method, simulationId, appNam
     })
 }
 
-export function pollRunReport({ appName, models, simulationId, report, pollInterval, callback }) {
+export function pollRunReport({ appName, models, simulationId, report, pollInterval, callback, forceRun }) {
     let doFetch = () => fetch('/run-simulation', {
         method: 'POST',
         headers: {
@@ -51,7 +51,7 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
         },
         body: JSON.stringify({
             models,
-            forceRun: false,
+            forceRun,
             report,
             simulationId,
             simulationType: appName

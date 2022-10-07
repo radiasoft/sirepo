@@ -46,6 +46,7 @@ export class AutoRunReportLayout extends View {
                     simulationId,
                     report: report,
                     pollInterval: 500,
+                    forceRun: false,
                     callback: (simulationData) => {
                         console.log("polling report yielded new data", simulationData);
                         // guard concurrency
@@ -235,6 +236,7 @@ export class SimulationStartLayout extends View {
             let { state } = lastSimulationData;
 
             let getStateBasedElement = (state) => {
+                let elapsedTimeSeconds = Math.ceil(((new Date()) - lastSimulationStartTime) / 1000)
                 switch(state) {
                     case 'pending':
                         return (
@@ -252,10 +254,18 @@ export class SimulationStartLayout extends View {
                             </Stack>
                         )
                     case 'completed':
-                        let elapsedTimeSeconds = Math.ceil(((new Date()) - lastSimulationStartTime) / 1000)
+                        
                         return (    
                             <Stack gap={2}>
                                 <span>{'Simulation Completed'}</span>
+                                <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
+                                {startSimulationButton}
+                            </Stack>
+                        )
+                    case 'error':
+                        return (    
+                            <Stack gap={2}>
+                                <span>{'Simulation Error'}</span>
                                 <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
                                 {startSimulationButton}
                             </Stack>
