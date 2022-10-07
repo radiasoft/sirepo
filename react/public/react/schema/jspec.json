@@ -472,35 +472,40 @@
                 "type": "Float",
                 "defaultValue": 0.015,
                 "description": "",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(electronBeam.shape) == 'bunched_gaussian'"
             },
             "sigma_y": {
                 "displayName": "Vertical RMS Size",
                 "type": "Float",
                 "defaultValue": 0.015,
                 "description": "",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(electronBeam.shape) == 'bunched_gaussian'"
             },
             "sigma_z": {
                 "displayName": "RMS Bunch Length",
                 "type": "Float",
                 "defaultValue": 0.02,
                 "description": "",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(electronBeam.shape) == 'bunched_gaussian'"
             },
             "length": {
                 "displayName": "Length [m]",
                 "type": "Float",
                 "defaultValue": 0.2,
                 "description": "",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(electronBeam.shape) == 'bunched_uniform' || $(electronBeam.shape) == 'bunched_uniform_elliptic'"
             },
             "e_number": {
                 "displayName": "Number of Electrons",
                 "type": "Float",
                 "defaultValue": 100000000,
                 "description": "",
-                "min": 1
+                "min": 1,
+                "shown": "$(electronBeam.shape) == 'bunched_gaussian'"
             },
             "beam_type": {
                 "displayName": "Beam Type",
@@ -512,14 +517,16 @@
                 "type": "Float",
                 "defaultValue": 0.004,
                 "description": "",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(electronBeam.shape) == 'bunched_uniform_elliptic'"
             },
             "rv": {
                 "displayName": "Vertical Semi-Axis Length [m]",
                 "type": "Float",
                 "defaultValue": 0.004,
                 "description": "",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(electronBeam.shape) == 'bunched_uniform_elliptic'"
             }
         },
         "electronCoolingRate": {
@@ -528,7 +535,8 @@
                 "type": "Float",
                 "defaultValue": 100000,
                 "description": "",
-                "min": 1
+                "min": 1,
+                "shown": "$(simulationSettings.model) == 'particle'"
             },
             "force_formula": {
                 "displayName": "Force Formula",
@@ -618,14 +626,16 @@
                 "type": "Integer",
                 "defaultValue": 40,
                 "description": "Set the grid number in longitudinal direction for the 3D integration.",
-                "min": 1
+                "min": 1,
+                "shown": "$(intrabeamScatteringRate.longitudinalMethod) == 'nz'"
             },
             "log_c": {
                 "displayName": "Coulomb Logarithm",
                 "type": "Float",
                 "defaultValue": 20.6,
                 "description": "",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(intrabeamScatteringRate.longitudinalMethod) == 'log_c'"
             },
             "coupling": {
                 "displayName": "Transverse Coupling Rate",
@@ -648,14 +658,16 @@
                 "type": "Integer",
                 "defaultValue": 1,
                 "description": "Number of the charges of the ion.",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(ionBeam.particle) == 'OTHER'"
             },
             "mass": {
                 "displayName": "Mass [MeV/c²]",
                 "type": "Float",
                 "defaultValue": 938.272,
                 "description": "Mass of the ion.",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(ionBeam.particle) == 'OTHER'"
             },
             "kinetic_energy": {
                 "displayName": "Kinetic Energy [MeV]",
@@ -697,7 +709,8 @@
                 "type": "Float",
                 "defaultValue": 7,
                 "description": "RMS bunch length for the bunched ion beam.",
-                "min": 1e-99
+                "min": 1e-99,
+                "shown": "$(ionBeam.beam_type) == 'bunched'"
             },
             "beam_type": {
                 "displayName": "Beam Type",
@@ -756,12 +769,14 @@
             "colorMin": {
                 "displayName": "Minimum Histogram Value",
                 "type": "Float",
-                "defaultValue": 0
+                "defaultValue": 0,
+                "shown": "$(particleAnimation.colorRangeType) == 'fixed'"
             },
             "colorMax": {
                 "displayName": "Maximum Histogram Value",
                 "type": "Float",
-                "defaultValue": 10
+                "defaultValue": 10,
+                "shown": "$(particleAnimation.colorRangeType) == 'fixed'"
             }
         },
         "rateCalculationReport": {},
@@ -776,18 +791,21 @@
                 "displayName": "Ring Lattice File",
                 "type": "TwissFile",
                 "defaultValue": null,
-                "description": "This file should be in the MAD-X output format (*.tfs)."
+                "description": "This file should be in the MAD-X output format (*.tfs).",
+                "shown": "$(ring.latticeSource) == 'madx'"
             },
             "elegantTwiss": {
                 "displayName": "Elegant twiss_output",
                 "type": "TwissFile",
                 "defaultValue": null,
-                "description": "This file should be the SDDS output from the twiss_output command."
+                "description": "This file should be the SDDS output from the twiss_output command.",
+                "shown": "$(ring.latticeSource) == 'elegant'"
             },
             "elegantSirepo": {
                 "displayName": "Elegant Simulation",
                 "type": "ElegantSimList",
-                "defaultValue": null
+                "defaultValue": null,
+                "shown": "$(ring.latticeSource) == 'elegant-sirepo'"
             }
         },
         "simulationSettings": {
@@ -832,7 +850,8 @@
                 "type": "Integer",
                 "defaultValue": -1,
                 "description": "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero.",
-                "min": -1
+                "min": -1,
+                "shown": "$(simulationSettings.model) == 'particle'"
             },
             "ref_bet_x": {
                 "displayName": "Horizontal Beta Reference Point",
@@ -1144,7 +1163,8 @@
                                             "fields": [
                                                 "simulationSettings.ref_bet_x",
                                                 "simulationSettings.ref_bet_y"
-                                            ]
+                                            ],
+                                            "shown": "$(simulationSettings.model) == 'particle' && $(simulationSettings.e_cool) == '0'"
                                         },
                                         {
                                             "label": "Alpha Reference Point",

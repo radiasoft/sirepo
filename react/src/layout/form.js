@@ -18,6 +18,7 @@ import { Dependency, HookedDependencyGroup } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/input";
 import { FormController } from "../data/form";
 import "./form.scss";
+import { useEvaluatedInterpString } from "../hook/string";
 
 export function LayoutWithFormController(subLayout) {
     return class extends subLayout {
@@ -78,9 +79,8 @@ export class FieldGridLayout extends View {
     component = (props) => {
         let { config } = props;
 
-        let contextFn = useContext;
-
-        let formController = contextFn(ContextRelativeFormController);
+        let formController = useContext(ContextRelativeFormController);
+        let formState = useContext(ContextRelativeFormState);
 
         let columns = config.columns;
         let rows = config.rows;
@@ -96,11 +96,17 @@ export class FieldGridLayout extends View {
             </Row>
         )
 
+        let evalInterpStrFn = useEvaluatedInterpString;
+
         for(let idx = 0; idx < rows.length; idx++) {
             let row = rows[idx];
+            let shown = true;
+            if(row.shown) {
+                shown = evalInterpStrFn(formState, row.shown, (models, modelName, fieldName) => models[modelName][fieldName].value);
+            }
             let fields = row.fields;
             let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
-            let rowElement = (
+            let rowElement = shown ? (
                 <Row className="sr-form-row" key={idx}>
                     {labelElement ? <Col>{labelElement}</Col> : undefined}
                     {columns.map((_, index) => {
@@ -109,7 +115,7 @@ export class FieldGridLayout extends View {
                         return <FieldInput key={index} field={hookedField}></FieldInput>
                     })}
                 </Row>
-            )
+            ) : undefined;
             els.push(rowElement);
         }
 
