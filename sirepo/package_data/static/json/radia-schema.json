@@ -975,7 +975,7 @@
         "transform": {
             "id": ["_", "RandomId", ""],
             "name": ["Name", "String", "Transform"],
-            "object": ["Apply to", "geomObject", ""]
+            "type": ["_", "TransformTypes"]
         },
         "translate": {
             "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", "x, y, z"],
