@@ -1,6 +1,7 @@
 import { Zoom } from '@visx/zoom';
 import { Axis, ClipPath, Scale, Shape } from '@visx/visx';
 import { LegendOrdinal } from "@visx/legend";
+import { format } from "d3-format";
 
 /**
  *
@@ -23,9 +24,9 @@ export function Graph2d(props) {
     const intHeight = Number.parseInt(intWidth * 9 / 16);
 
     let xAxisSize = 30;
-    let yAxisSize = 50;
+    let yAxisSize = 40;
 
-    let margin = 10;
+    let margin = 20;
 
     let graphHeight = intHeight - xAxisSize - margin * 2;
     let graphWidth = intWidth - yAxisSize - margin * 2;
@@ -99,6 +100,10 @@ export function Graph2d(props) {
 
                 let paths = plots.map((plot, i) => toPath(plot, i));
                 const cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
+                let tickFormat = format(",.2e");
+                
+                let xTicks = 8;
+                let yTicks = 10;
 
                 return (
                     <>
@@ -116,11 +121,16 @@ export function Graph2d(props) {
                                     tickStroke={"#888"}
                                     scale={xScaleZoom}
                                     top={graphHeight}
+                                    tickFormat={tickFormat}
+                                    numTicks={xTicks}
+
                                 />
                                 <Axis.AxisLeft
                                     stroke={"#888"}
                                     tickStroke={"#888"}
                                     scale={yScale}
+                                    tickFormat={tickFormat}
+                                    numTicks={yTicks}
                                 />
                                 <g clipPath="url(#graph-clip)">
                                     <g transform={zoom.toString()} >
