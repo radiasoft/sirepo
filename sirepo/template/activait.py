@@ -378,7 +378,6 @@ def _build_model_py(v):
         else:
             return layer.dropoutRate
 
-
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
         Add=lambda layer: _branch(layer, "Add"),
