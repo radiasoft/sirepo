@@ -2620,7 +2620,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('floatArray', function(utilities) {
+SIREPO.app.directive('floatArray', function(appState, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2639,6 +2639,7 @@ SIREPO.app.directive('floatArray', function(utilities) {
             </div>
         `,
         controller: $scope => {
+            $scope.appState = appState;
             $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/)
                 .map(s => utilities.interpolateString(s, $scope));
         },
