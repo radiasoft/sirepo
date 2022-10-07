@@ -17,6 +17,7 @@ pykern.pksetup.setup(
         "asyncssh",
         "cryptography>=2.8",
         "futures",
+        "h5py",
         "numconv",
         "numpy",
         "pyIsEmail",
