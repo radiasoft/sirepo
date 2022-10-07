@@ -402,7 +402,6 @@ def _build_model_py(v):
 
     def _layer(layer):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
-        pkdp("\n\n\n layer={}", layer)
         return args_map[layer.layer](layer)
 
     def _branch_or_continue(layers, layer, layer_args):
