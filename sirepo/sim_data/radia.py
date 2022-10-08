@@ -63,8 +63,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 models.fieldPaths.paths.append(
                     PKDict(
                         _super="fieldPath",
-                        begin="0, -225, 0",
-                        end="0, 225, 0",
+                        begin=[0, -225, 0],
+                        end=[0, 225, 0],
                         id=0,
                         name="y axis",
                         numPoints=101,

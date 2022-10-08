@@ -518,15 +518,15 @@ def _build_group(members, name=None):
 
 def _build_symm_xform(plane, type, point=None):
     tx = _build_geom_obj("symmetryTransform")
-    tx.symmetryPlane = plane
-    tx.symmetryPoint = point or _ZERO
+    tx.symmetryPlane = plane.tolist()
+    tx.symmetryPoint = point.tolist() if point else _ZERO
     tx.symmetryType = type
     return tx
 
 
 def _build_translate_clone(dist):
     tx = _build_geom_obj("translateClone")
-    tx.distance = dist
+    tx.distance = dist.tolist()
     return tx
 
 
@@ -574,11 +574,6 @@ def _copy_geom_obj(o):
     o_copy = copy.deepcopy(o)
     o_copy.id = str(uuid.uuid4())
     return o_copy
-
-
-def _delim_string(val=None, default_val=None):
-    d = default_val if default_val is not None else []
-    return sirepo.util.to_comma_delimited_string(val if val is not None else d)
 
 
 def _extruded_points_plot(name, points, width_axis, height_axis):
@@ -1621,10 +1616,13 @@ def _update_geom_obj(o, **kwargs):
         v = kwargs.get(k)
         if k in o and v is None:
             continue
-        o[k] = _delim_string(val=v, default_val=d[k])
-        # remove the key from kwargs so it doesn't conflict with the update
-        if v is not None:
+        if v is None:
+            o[k] = d[k]
+        else:
+            # remove the key from kwargs so it doesn't conflict with the update
+            o[k] = list(v)
             del kwargs[k]
+
     o.update(kwargs)
     if "type" not in o:
         return o

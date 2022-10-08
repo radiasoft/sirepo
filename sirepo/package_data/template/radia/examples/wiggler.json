@@ -2,8 +2,8 @@
     "models": {
         "electronTrajectoryReport": {
             "finalBeamPosition": 250,
-            "initialAngles": "0.0, 0.0",
-            "initialPosition": "0.0, -250, 0"
+            "initialAngles": [0.0, 0.0],
+            "initialPosition": [0.0, -250, 0]
         },
         "fieldDisplay": {
             "colorMap": "viridis",
@@ -18,8 +18,8 @@
                 {
                     "_super": "fieldPath",
                     "axis": "y",
-                    "begin": "0, -225, 0",
-                    "end": "0, 225, 0",
+                    "begin": [0, -225, 0],
+                    "end": [0, 225, 0],
                     "id": 0,
                     "name": "Y-Axis",
                     "numPoints": 101,
