@@ -15,9 +15,11 @@ from sirepo.template import template_common
 from urllib import parse
 from urllib import request
 import csv
+import h5py
 import numpy as np
 import os
 import re
+import pandas
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
@@ -205,24 +207,19 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
 
 def sim_frame_epochAnimation(frame_args):
     # TODO(pjm): improve heading text
-    header = ["epoch", "loss", "val_loss"]
-    path = str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile))
-
-    v = sirepo.numpy.ndarray_from_csv(path, True)
-    if len(v.shape) == 1:
-        v.shape = (v.shape[0], 1)
+    d = pandas.read_csv(str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile)))
     return _report_info(
-        v[:, 0],
+        list(d.index),
         [
             PKDict(
-                points=v[:, i].tolist(),
-                label=header[i],
+                points=list(d[l]),
+                label=l,
             )
-            for i in (1, 2)
+            for l in ("loss", "val_loss")
         ],
     ).pkupdate(
         PKDict(
-            x_label=header[0],
+            x_label="epoch",
         )
     )
 
@@ -375,18 +372,24 @@ def _build_model_py(v):
     strides={layer.strides},
     padding="{layer.padding}"'''
 
+    def _dropout_args(layer):
+        if layer.get("rate"):
+            return layer.rate
+        else:
+            return layer.dropoutRate
+
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
         Add=lambda layer: _branch(layer, "Add"),
-        AlphaDropout=lambda layer: layer.dropoutRate,
+        AlphaDropout=lambda layer: _dropout_args(layer),
         AveragePooling2D=lambda layer: _pooling_args(layer),
         BatchNormalization=lambda layer: f"momentum={layer.momentum}",
         Concatenate=lambda layer: _branch(layer, "Concatenate"),
         Conv2D=lambda layer: _conv_args(layer),
         Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
-        Dropout=lambda layer: layer.dropoutRate,
+        Dropout=lambda layer: _dropout_args(layer),
         Flatten=lambda layer: "",
-        GaussianDropout=lambda layer: layer.dropoutRate,
+        GaussianDropout=lambda layer: _dropout_args(layer),
         GaussianNoise=lambda layer: layer.stddev,
         GlobalAveragePooling2D=lambda layer: "",
         MaxPooling2D=lambda layer: _pooling_args(layer),
@@ -779,6 +782,24 @@ def _fit_animation(frame_args):
     )
 
 
+def _is_image_data(data_file, v):
+    # POSIT (gurhar1133): assumes only .h5 input data_files
+    if not re.compile(r".h5$").search(data_file):
+        return False
+    with h5py.File(data_file, "r") as f:
+        if "images" not in f.keys():
+            return False
+        s = f["metadata/labels"].shape
+        if len(s) > 1:
+            # POSIT (gurhar1133): assumes output wont be tuples
+            raise AssertionError(
+                f"shape of labels={s}, should not be multi-dimensional outputs"
+            )
+        v.outputDim = s[0]
+        v.inputDim = ",".join([str(x) for x in f["images"].shape[1:]])
+    return True
+
+
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
@@ -794,7 +815,11 @@ def _generate_parameters_file(data):
     v.columnTypes = (
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
-    res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
+    v.image_data = _is_image_data(v.dataFile, v)
+    if v.image_data:
+        res += template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
+    else:
+        res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
     if "fileColumnReport" in report or report == "partitionSelectionReport":
         return res
     if _is_sim_report(report):
@@ -804,7 +829,8 @@ def _generate_parameters_file(data):
         or v.partition_section1 == "train_and_test"
         or v.partition_section2 == "train_and_test"
     )
-    res += template_common.render_jinja(SIM_TYPE, v, "partition.py")
+    if not v.image_data:
+        res += template_common.render_jinja(SIM_TYPE, v, "partition.py")
     if "partitionColumnReport" in report:
         res += template_common.render_jinja(SIM_TYPE, v, "save-partition.py")
         return res
