@@ -104,6 +104,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             ]:
                 model[f] = "0"
 
+        def _fixup_number_string_field(model, field, to_type=float):
+            if isinstance(model[field], str):
+                model[field] = sirepo.util.split_comma_delimited_string(model[field], to_type)
+
         def _fixup_float_string_fields(model_name, model):
             if not model_name or not model:
                 return
@@ -114,8 +118,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if f not in s_m:
                     continue
                 sf = s_m[f][1]
-                if sf == "FloatArray" and isinstance(model[f], str):
-                    model[f] = sirepo.util.split_comma_delimited_string(model[f], float)
+                if sf == "FloatArray":
+                    _fixup_number_string_field(model, f)
                     continue
                 if sf.startswith("model."):
                     _fixup_float_string_fields(sf.split(".")[-1], model[f])
@@ -139,7 +143,17 @@ class SimData(sirepo.sim_data.SimDataBase):
                     o.segments = o.get("division", "1, 1, 1")
                 for f in ("type", "model",):
                     _fixup_float_string_fields(o.get(f), o)
+                # fix "orphan" fields
+                for f in ("center", "magnetization", "size",):
+                    if f in o:
+                        _fixup_number_string_field(o, f)
                 _fixup_transforms(o)
+
+        def _fixup_field_paths(paths):
+            for p in paths:
+                for f in ("begin", "end",):
+                    if f in p:
+                        _fixup_number_string_field(p, f)
 
         def _fixup_transforms(model):
             for t in model.get("transforms", []):
@@ -162,6 +176,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
         _fixup_geom_objects(dm.geometryReport.objects)
+        _fixup_field_paths(dm.fieldPaths.paths)
         for name in [name for name in dm if name in sch.model]:
             _fixup_boolean_fields(name, dm[name])
             _fixup_float_string_fields(name, dm[name])
