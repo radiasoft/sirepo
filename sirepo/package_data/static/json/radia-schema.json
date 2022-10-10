@@ -458,10 +458,10 @@
             "gap": ["Gap [mm]", "Float", 1.0, "", 0.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
-                "center": "0.0, 0.0, 1.0",
+                "center": [0.0, 0.0, 1.0],
                 "color": "#ff00ff",
-                "segments": "4, 4, 4",
-                "magnetization": "0.0, 0.0, 1.0",
+                "segments": [4, 4, 4],
+                "magnetization": [0.0, 0.0, 1.0],
                 "name": "pole",
                 "remanentMag": 1.0,
                 "material": "NdFeB",
@@ -472,19 +472,19 @@
                         "color": null,
                         "model": "symmetryTransform",
                         "object": "",
-                        "symmetryPlane": "0,0,1",
-                        "symmetryPoint": "0,0,0",
+                        "symmetryPlane": [0, 0, 1],
+                        "symmetryPoint": [0, 0, 0],
                         "symmetryType": "parallel"
                     }
                 ],
-                "size": "5.0, 5.0, 5.0"
+                "size": [5.0, 5.0, 5.0]
             }]
         },
         "dipoleC": {
             "_super": ["_", "model", "dipoleBasic"],
             "coil": ["Coil", "model.racetrack", {
                 "axis": "z",
-                "center": "0.0, 131.25, 0.0",
+                "center": [0.0, 131.25, 0.0],
                 "color": "#ff0000",
                 "currentDensity": -2000.0,
                 "fieldCalc": "auto",
@@ -493,24 +493,24 @@
                 "numSegments": 3,
                 "planeAxis1": "x",
                 "planeAxis2": "y",
-                "radii": "5.0, 40.0",
-                "sides": "50.0, 62.5",
-                "size": "1.0, 1.0, 105.0",
+                "radii": [5.0, 40.0],
+                "sides": [50.0, 62.5],
+                "size": [1.0, 1.0, 105.0],
                 "type": "racetrack"
             }],
             "magnet": ["Magnet", "model.cee", {
                 "armHeight": 50.0,
                 "armPosition": "1",
-                "center": "0.0, 71.25, 0.0",
+                "center": [0.0, 71.25, 0.0],
                 "color": "#0000ff",
                 "extrusionAxis": "x",
                 "extrusionAxisSegments": 2,
-                "magnetization": "0.0, 0.0, 0.0",
+                "magnetization": [0.0, 0.0, 0.0],
                 "name": "core",
                 "remanentMag": 1.0,
                 "material": "Xc06",
                 "type": "cee",
-                "size": "50.0, 182.5, 210.0",
+                "size": [50.0, 182.5, 210.0],
                 "stemWidth": 62.5,
                 "stemPosition": "1"
             }],
@@ -605,15 +605,15 @@
                         ]
                     }
                 ],
-                "center": "0.0, 0.0, 30.0",
+                "center": [0.0, 0.0, 30.0],
                 "color": "#0000ff",
-                "segments": "4, 4, 4",
-                "magnetization": "0.0, 0.0, 1.0",
+                "segments": [4, 4, 4],
+                "magnetization": [0.0, 0.0, 1.0],
                 "name": "pole",
                 "remanentMag": 1.0,
                 "material": "Xc06",
                 "type": "cuboid",
-                "size": "50.0, 40.0, 50.0"
+                "size": [50.0, 40.0, 50.0]
             }],
             "corePoleGroup": ["_", "model.geomGroup", {
                 "name": "core + pole"
@@ -629,7 +629,7 @@
             "_super": ["_", "model", "dipoleC"],
             "coil": ["Coil", "model.racetrack", {
                 "axis": "z",
-                "center": "0.0, 0.0, 1.5",
+                "center": [0.0, 0.0, 1.5],
                 "color": "#33e69a",
                 "currentDensity": -10000.0,
                 "fieldCalc": "auto",
@@ -638,24 +638,24 @@
                 "numSegments": 3,
                 "planeAxis1": "x",
                 "planeAxis2": "y",
-                "radii": "0.1, 0.4",
-                "sides": "10.05, 10.05",
-                "size": "10.05, 10.05, 1.0",
+                "radii": [0.1, 0.4],
+                "sides": [10.05, 10.05],
+                "size": [10.05, 10.05, 1.0],
                 "type": "racetrack"
             }],
             "magnet": ["Magnet", "model.ell", {
                 "armHeight": 1.5,
                 "armPosition": "0",
-                "center": "0.0, 4.0, 3.75",
+                "center": [0.0, 4.0, 3.75],
                 "color": "#0066cd",
                 "extrusionAxis": "x",
                 "extrusionAxisSegments": 2,
-                "magnetization": "0.0, 0.0, 0.0",
+                "magnetization": [0.0, 0.0, 0.0],
                 "name": "core",
                 "remanentMag": 1.0,
                 "material": "Xc06",
                 "type": "ell",
-                "size": "10.0, 8.0, 3.75",
+                "size": [10.0, 8.0, 3.75],
                 "stemWidth": 1.5,
                 "stemPosition": "1",
                 "transforms": []
@@ -685,14 +685,14 @@
                         ]
                     }
                 ],
-                "center": "0.0, 2.5, 1.5",
+                "center": [0.0, 2.5, 1.5],
                 "color": "#0066cd",
-                "magnetization": "0.0, 0.0, 1.0",
+                "magnetization": [0.0, 0.0, 1.0],
                 "material": "Xc06",
                 "name": "pole",
                 "remanentMag": 1.0,
-                "segments": "4, 4, 4",
-                "size": "10.0, 5.0, 1.5",
+                "segments": [4, 4, 4],
+                "size": [10.0, 5.0, 1.5],
                 "transforms": [],
                 "type": "cuboid"
             }],
@@ -783,7 +783,7 @@
             "bevels": ["Bevels", "BevelTable", []],
             "fillets": ["Fillets", "FilletTable", []],
             "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
-            "segments": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$, N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$, N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"],
+            "segments": ["Num Divisions", "IntArray", [1, 1, 1], "", "N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$, N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$, N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
@@ -993,13 +993,13 @@
             "gap": ["Gap [mm]", "Float", 20.0, "", 0.0, "Measured along the height axis"],
             "magnet": ["Magnet Block", "model.geomObject", {
                 "color": "#00ffff",
-                "magnetization": "0.0, 0.0, -1.0",
+                "magnetization": [0.0, 0.0, -1.0],
                 "name": "magnet",
                 "remanentMag": 1.2,
                 "material": "NdFeB",
                 "type": "cuboid",
-                "segments": "1, 1, 3",
-                "size": "65.0, 18.0, 45.0"
+                "segments": [1, 1, 3],
+                "size": [65.0, 18.0, 45.0]
             }],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "octantGroup": ["_", "model.geomGroup", {
@@ -1016,27 +1016,27 @@
             }],
             "magnet": ["Magnet Block", "model.geomObject", {
                 "color": "#00ffff",
-                "magnetization": "0.0, 0.0, 1.0",
+                "magnetization": [0.0, 0.0, 1.0],
                 "name": "magnet",
                 "remanentMag": 1.2,
                 "material": "NdFeB",
                 "type": "cuboid",
-                "segments": "1, 1, 3",
-                "size": "65.0, 18.0, 45.0"
+                "segments": [1, 1, 3],
+                "size": [65.0, 18.0, 45.0]
             }],
             "magnetCrossSection": ["Cross Section [mm]", "FloatArray", [65.0, 45.0], "", "Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
             "magnetLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 18.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
                 "color": "#ff00ff",
-                "segments": "2, 5, 2",
-                "magnetization": "0.0, 0.0, 0.0",
+                "segments": [2, 5, 2],
+                "magnetization": [0.0, 0.0, 0.0],
                 "materialFile": "VaPermendur.csv",
                 "name": "pole",
                 "remanentMag": 0.0,
                 "material": "custom",
                 "type": "cuboid",
-                "size": "45.0, 5.0, 25.0"
+                "size": [45.0, 5.0, 25.0]
             }],
             "poleCrossSection": ["Cross Section [mm]", "FloatArray", [45.0, 25.0], "", "Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
             "poleLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 5.0],
@@ -1050,13 +1050,13 @@
                         "gapOffset": 1,
                         "object": {
                             "color": "#00ffff",
-                            "magnetization": "0.0, 0.0, 1.0",
+                            "magnetization": [0.0, 0.0, 1.0],
                             "name": "Termination Magnet",
                             "remanentMag": 1.2,
                             "material": "NdFeB",
                             "type": "cuboid",
-                            "segments": "1,1,3",
-                            "size": "32.5,45.0,9.0"
+                            "segments": [1, 1, 3],
+                            "size": [32.5 ,45.0 ,9.0]
                         }
                     }
                 ]

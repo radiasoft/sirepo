@@ -2646,6 +2646,32 @@ SIREPO.app.directive('floatArray', function(appState, utilities) {
     };
 });
 
+SIREPO.app.directive('intArray', function(appState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            info: '=',
+            model: '=',
+        },
+        template: `
+            <div data-ng-repeat="v in model[fieldName] track by $index"
+              style="display: inline-block;" >
+              <label data-text-with-math="valueLabels[$index]" style="margin-right: 1ex"></label>
+              <input class="form-control sr-number-list" data-string-to-number="Int"
+                data-ng-model="model[fieldName][$index]"
+                style="text-align: right" required />
+            </div>
+        `,
+        controller: $scope => {
+            $scope.appState = appState;
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/)
+                .map(s => utilities.interpolateString(s, $scope));
+        },
+    };
+});
+
 SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, stringsService, $compile, $timeout) {
 
     return {

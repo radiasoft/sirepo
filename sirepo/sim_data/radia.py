@@ -97,6 +97,11 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         sch = cls.schema()
 
+        def _delete_old_fields(model):
+            for f in ("divisions",):
+                if model.get(f):
+                    del model[f]
+
         def _fixup_boolean_fields(model_name, model):
             s_m = sch.model[model_name]
             for f in [
@@ -105,10 +110,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 model[f] = "0"
 
         def _fixup_number_string_field(model, field, to_type=float):
+            if field not in model:
+                return
             if isinstance(model[field], str):
                 model[field] = sirepo.util.split_comma_delimited_string(model[field], to_type)
 
-        def _fixup_float_string_fields(model_name, model):
+        def _fixup_number_string_fields(model_name, model):
             if not model_name or not model:
                 return
             s_m = sch.model.get(model_name)
@@ -121,12 +128,15 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if sf == "FloatArray":
                     _fixup_number_string_field(model, f)
                     continue
+                if sf == "IntArray":
+                    _fixup_number_string_field(model, f, to_type=int)
+                    continue
                 if sf.startswith("model."):
-                    _fixup_float_string_fields(sf.split(".")[-1], model[f])
+                    _fixup_number_string_fields(sf.split(".")[-1], model[f])
                     _fixup_transforms(model[f])
             sc = [x for x in s_m.get("_super", []) if x != "_" and x != "model"]
             if sc:
-                _fixup_float_string_fields(sc[0], model)
+                _fixup_number_string_fields(sc[0], model)
 
         def _fixup_geom_objects(objects):
             for o in objects:
@@ -140,25 +150,33 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if not o.get("fillets"):
                     o.fillets = []
                 if not o.get("segments"):
-                    o.segments = o.get("division", "1, 1, 1")
+                    o.segments = o.get("division", [1, 1, 1])
                 for f in ("type", "model",):
-                    _fixup_float_string_fields(o.get(f), o)
+                    _fixup_number_string_fields(o.get(f), o)
                 # fix "orphan" fields
-                for f in ("center", "magnetization", "size",):
-                    if f in o:
-                        _fixup_number_string_field(o, f)
+                for f in ("center", "magnetization", "segments", "size",):
+                    _fixup_number_string_field(o, f)
+                _fixup_terminations(o)
                 _fixup_transforms(o)
+                _delete_old_fields(o)
 
         def _fixup_field_paths(paths):
             for p in paths:
                 for f in ("begin", "end",):
-                    if f in p:
-                        _fixup_number_string_field(p, f)
+                    _fixup_number_string_field(p, f)
+
+        def _fixup_array(model, model_type_field, model_field):
+            for o in model.get(model_field, []):
+                if model_type_field not in o:
+                    continue
+                _fixup_number_string_fields(o[model_type_field], o)
+                _fixup_array(o, model_type_field, model_field)
+
+        def _fixup_terminations(model):
+            _fixup_array(model, "type", "terminations")
 
         def _fixup_transforms(model):
-            for t in model.get("transforms", []):
-                _fixup_float_string_fields(t.model, t)
-                _fixup_transforms(t)
+            _fixup_array(model, "model", "transforms")
 
         dm = data.models
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
@@ -178,8 +196,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         _fixup_geom_objects(dm.geometryReport.objects)
         _fixup_field_paths(dm.fieldPaths.paths)
         for name in [name for name in dm if name in sch.model]:
+            _delete_old_fields(dm[name])
             _fixup_boolean_fields(name, dm[name])
-            _fixup_float_string_fields(name, dm[name])
+            _fixup_number_string_fields(name, dm[name])
+            _fixup_terminations(dm[name])
             _fixup_transforms(dm[name])
         cls._organize_example(data)
 

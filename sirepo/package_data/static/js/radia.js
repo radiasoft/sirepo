@@ -35,8 +35,8 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="HMFile" data-ng-class="fieldClass">
             <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="false" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>
         </div>
-        <div data-ng-switch-when="IntStringArray" class="col-sm-7">
-            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>
+        <div data-ng-switch-when="IntArray" class="col-sm-7">
+            <div data-int-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info""></div>
         </div>
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
@@ -151,12 +151,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.centerExtrudedPoints = o =>  {
-        const ctr = utilities.splitCommaDelimitedString(o.center, parseFloat);
-        const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
         const idx = [self.axisIndex(o.widthAxis), self.axisIndex(o.heightAxis)];
         o.points = o.referencePoints.map(
             p => p.map(
-                (x, i) => p[i] + ctr[idx[i]] - (SIREPO.UTILS.minForIndex(o.referencePoints, i) + sz[idx[i]] / 2.0)
+                (x, i) => p[i] + o.center[idx[i]] - (
+                    SIREPO.UTILS.minForIndex(o.referencePoints, i) + o.size[idx[i]] / 2.0
+                )
             )
         );
     };
@@ -170,12 +170,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         if (o.referencePoints.length === 0) {
             return;
         }
-        const sz = utilities.splitCommaDelimitedString(o.size, parseFloat);
         [o.widthAxis, o.heightAxis].forEach((dim, i) => {
             const p = o.referencePoints.map(x => x[i]);
-            sz[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
+            o.size[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
         });
-        o.size = sz.join(',');
     };
 
     self.createPathModel = function(type) {
@@ -827,8 +825,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const o = self.getObject(shape.id);
         const groupId = o.groupId;
         if (groupId === '' || groupId !== groupShape.id) {
-            groupShape.center = shape.center.join(',');
-            groupShape.size = shape.size.join(',');
+            groupShape.center = shape.center;
+            groupShape.size = shape.size;
             return groupShape;
         }
         let mShapes = self.getObject(groupShape.id).members.map(function (mId) {
@@ -1071,14 +1069,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (o.type === 'racetrack') {
                 // calculate the size
                 let s = [0, 0, 0];
-                const sides = utilities.splitCommaDelimitedString(o.sides, parseFloat);
-                const radii = utilities.splitCommaDelimitedString(o.radii, parseFloat);
                 const i = geometry.basis.indexOf(o.axis);
                 s[i] = o.height;
                 for (const j of [0, 1]) {
-                    s[(i + j + 1) % 3] = sides[j] + 2.0 * radii[1];
+                    s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
                 }
-                o.size = s.join(', ');
+                o.size = s;
                 appState.saveQuietly('racetrack');
             }
             if (o.materialFile) {
@@ -2147,8 +2143,8 @@ SIREPO.app.directive('fieldPathTable', function(appState, geometry, panelState, 
            $scope.$on('axisPath.changed', (e, d) => {
                let m = appState.models.axisPath;
                m.name = `${m.axis.toUpperCase()}-Axis`;
-               m.begin = geometry.basisVectors[m.axis].map(x => m.start * x).join(',');
-               m.end = geometry.basisVectors[m.axis].map(x => m.stop * x).join(',');
+               m.begin = geometry.basisVectors[m.axis].map(x => m.start * x);
+               m.end = geometry.basisVectors[m.axis].map(x => m.stop * x);
                appState.saveQuietly('axisPath');
            });
         },
@@ -2977,8 +2973,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         gColor = getColor(info);
                         if (! gObj.center || ! gObj.size) {
                             var b = bundle.actor.getBounds();
-                            gObj.center = [0.5 * (b[1] + b[0]), 0.5 * (b[3] + b[2]), 0.5 * (b[5] + b[4])].join(',');
-                            gObj.size = [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])].join(',');
+                            gObj.center = [0.5 * (b[1] + b[0]), 0.5 * (b[3] + b[2]), 0.5 * (b[5] + b[4])];
+                            gObj.size = [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])];
                             didModifyGeom = true;
                         }
                         if (
