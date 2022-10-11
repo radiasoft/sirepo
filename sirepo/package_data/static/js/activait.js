@@ -1128,6 +1128,66 @@ SIREPO.app.directive('imagePreviewPanel', function(appState) {
         template: `hello world`,
         controller: function($scope, appState) {
 
+            $scope.loadImageFile = function() {
+                if (! appState.isLoaded() || imageData || $scope.isLoading) {
+                    return;
+                }
+                $scope.isLoading = true;
+                downloadImage('png', function(filename, response) {
+                    imageData = response.data;
+                    srdbg("response:", response);
+                    srdbg("imageData:", imageData);
+                    $scope.isLoading = false;
+                    // if (imageData.type == 'application/json') {
+                    //     // an error message has been returned
+                    //     imageData.text().then(function(text) {
+                    //         $scope.errorMessage = JSON.parse(text).error;
+                    //         $scope.$digest();
+                    //     });
+                    // }
+                    // else {
+                    var urlCreator = window.URL || window.webkitURL;
+                    if ($('.srw-processed-image').length) {
+                        const s = urlCreator.createObjectURL(imageData);
+                        srdbg("image url: ", s)
+                        $('.srw-processed-image')[0].src = s;
+                    }
+                    // }
+                });
+            };
+
+            function downloadImage(format, callback) {
+                var filename = 'sample_processed.png';
+                // var filename = $scope.model.imageFile.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format;
+                var url = requestSender.formatUrl({
+                    routeName: 'getApplicationData',
+                    '<filename>': filename,
+                });
+                // var m = appState.clone($scope.model);
+                // m.outputImageFormat = format;
+                $http.post(
+                    url,
+                    {
+                        'simulationId': appState.models.simulation.simulationId,
+                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
+                        'method': 'processedImage',
+                        'baseImage': 'sample.tif',
+                        'model': m,
+                    },
+                    {
+                        responseType: 'blob',
+                    }
+                ).then(
+                    function (response) {
+                        if (response.status == 200) {
+                            callback(filename, response);
+                            return;
+                        }
+                        error(response);
+                    },
+                    error);
+            }
+
         }
     }
 })

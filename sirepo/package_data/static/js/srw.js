@@ -2345,6 +2345,10 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 });
                 var m = appState.clone($scope.model);
                 m.outputImageFormat = format;
+                srdbg("$scope.model.imageFile", $scope.model.imageFile);
+                srdbg('filename', filename);
+                srdbg("url in downloadImage", url);
+                srdbg(m);
                 $http.post(
                     url,
                     {
