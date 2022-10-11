@@ -299,6 +299,11 @@ def stateful_compute_compute_column_info(data):
     return _compute_column_info(data.args.dataFile)
 
 
+def stateful_compute_sample_images(data):
+    pkdp("\n\n\n called stateful compute on data={}", data)
+    return data
+
+
 def stateless_compute_get_remote_data(data):
     return _get_remote_data(data.args.url, data.args.headers_only)
 

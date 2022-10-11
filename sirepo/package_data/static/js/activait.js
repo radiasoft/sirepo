@@ -1125,9 +1125,15 @@ SIREPO.app.directive('imagePreviewPanel', function(appState) {
     return {
         restrict: 'A',
         scope: {},
-        template: `hello world`,
-        controller: function($scope, appState) {
-
+        template: `
+        <div>
+          hello world
+          {{ loadImageFile() }}
+          <img class="img-responsive srw-processed-image" />
+        </div>
+        `,
+        controller: function($scope, $http, appState) {
+            var imageData;
             $scope.loadImageFile = function() {
                 if (! appState.isLoaded() || imageData || $scope.isLoading) {
                     return;
@@ -1159,20 +1165,20 @@ SIREPO.app.directive('imagePreviewPanel', function(appState) {
             function downloadImage(format, callback) {
                 var filename = 'sample_processed.png';
                 // var filename = $scope.model.imageFile.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format;
-                var url = requestSender.formatUrl({
-                    routeName: 'getApplicationData',
-                    '<filename>': filename,
-                });
+                // var url = requestSender.formatUrl({
+                //     routeName: 'getApplicationData',
+                //     '<filename>': filename,
+                // });
                 // var m = appState.clone($scope.model);
                 // m.outputImageFormat = format;
                 $http.post(
-                    url,
+                    'stateful-compute-sample-images',
                     {
                         'simulationId': appState.models.simulation.simulationId,
                         'simulationType': SIREPO.APP_SCHEMA.simulationType,
                         'method': 'processedImage',
                         'baseImage': 'sample.tif',
-                        'model': m,
+                        'model': 'model',
                     },
                     {
                         responseType: 'blob',
