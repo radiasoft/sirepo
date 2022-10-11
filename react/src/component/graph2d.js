@@ -102,8 +102,8 @@ export function Graph2d(props) {
                 const cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
                 let tickFormat = format(",.2e");
                 
-                let xTicks = 8;
-                let yTicks = 10;
+                let xTicks = 5;
+                let yTicks = 5;
 
                 return (
                     <>
