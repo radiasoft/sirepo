@@ -10,7 +10,7 @@ _LOCALHOST = "127.0.0.1"
 MAX_CASE_RUN_SECS = int(os.getenv("SIREPO_CONFTEST_MAX_CASE_RUN_SECS", 120))
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def auth_fc(auth_fc_module):
     # set the sentinel
     auth_fc_module.cookie_jar.clear()
