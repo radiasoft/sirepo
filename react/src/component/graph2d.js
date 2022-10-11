@@ -1,7 +1,25 @@
+// import { React }
+/* eslint eqeqeq: 0 */
+/* eslint no-unused-vars: 0 */
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Zoom } from '@visx/zoom';
 import { Axis, ClipPath, Scale, Shape } from '@visx/visx';
 import { LegendOrdinal } from "@visx/legend";
 import { format } from "d3-format";
+import "./graph2d.scss";
+
+
+//TODO(pjm): use a library for this or put in a sirepo utility
+function debounce(fn, ms) {
+    let timer
+    return _ => {
+        clearTimeout(timer)
+        timer = setTimeout(_ => {
+            timer = null
+            fn.apply(this, arguments)
+        }, ms)
+    };
+}
 
 /**
  *
@@ -17,21 +35,52 @@ import { format } from "d3-format";
  * @returns
  */
 export function Graph2d(props) {
-    let { width, height, plots, xRange, yRange, xLabel, yLabel } = props;
+    let {plots, xRange, yRange, xLabel, yLabel } = props;
+    const ref = useRef(null);
+    const [dim, setDim] = useState({
+        width: 100,
+        height: 100,
+    });
+    const [ticks, setTicks] = useState({
+        xTicks: 5,
+        yTicks: 5,
+    });
 
-    const intWidth = 500;
-    //TODO(pjm): aspect ratio
-    const intHeight = Number.parseInt(intWidth * 9 / 16);
+    useLayoutEffect(() => {
+        if (! ref || ! ref.current) {
+            return;
+        }
+
+        const handleResize = debounce(() => {
+            if (! ref || ! ref.current) {
+                return;
+            }
+            const w = Number.parseInt(ref.current.offsetWidth);
+            //TODO(pjm): use aspectRatio
+            const h = Number.parseInt(w * 9 / 16);
+            setDim({
+                width: w,
+                height: h,
+            });
+            setTicks({
+                xTicks: Math.max(Math.round(w / 100), 2),
+                yTicks: Math.max(Math.round(h / 50), 2),
+            });
+        }, 250);
+        window.addEventListener('resize', handleResize);
+        handleResize();
+        return _ => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [ref]);
 
     let xAxisSize = 30;
     let yAxisSize = 40;
 
-    let margin = 20;
+    let margin = 25;
 
-    let graphHeight = intHeight - xAxisSize - margin * 2;
-    let graphWidth = intWidth - yAxisSize - margin * 2;
-
-    // TODO: make legend
+    let graphHeight = dim.height - xAxisSize - margin * 2;
+    let graphWidth = dim.width - yAxisSize - margin * 2;
 
     let graphX = yAxisSize + margin;
     let graphY = margin;
@@ -57,23 +106,22 @@ export function Graph2d(props) {
     }
 
     return (
+        <div ref={ref}>
         <Zoom
-            height={intHeight}
-            width={intWidth}
+            height={dim.height}
+            width={dim.width}
             constrain={constrain}
         >
             {(zoom) => {
                 let xScale = Scale.scaleLinear({
                     domain: [xRange.min, xRange.max],
                     range: [0, graphWidth],
-                    round: true
                 });
 
                 let yScale = Scale.scaleLinear({
                     //TODO(pjm): scale y range over visible points
                     domain: [yRange.min, yRange.max],
                     range: [graphHeight, 0],
-                    round: true,
                     nice: true
                 });
 
@@ -81,7 +129,6 @@ export function Graph2d(props) {
                     domain: [xScale.invert((xScale(xRange.min) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),
                              xScale.invert((xScale(xRange.max) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),],
                     range: [0, graphWidth],
-                    round: true,
 
                 });
 
@@ -92,7 +139,7 @@ export function Graph2d(props) {
 
                 let toPath = (plot, index) => {
                     return (
-                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color}>
+                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color} strokeWidth={2}>
 
                         </Shape.LinePath>
                     )
@@ -101,18 +148,13 @@ export function Graph2d(props) {
                 let paths = plots.map((plot, i) => toPath(plot, i));
                 const cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
                 let tickFormat = format(",.2e");
-                
-                let xTicks = 8;
-                let yTicks = 10;
 
                 return (
                     <>
                         <svg
-                            height={height}
-                            width={width}
                             ref={zoom.containerRef}
                             style={{'userSelect': 'none'}}
-                            viewBox={`${0} ${0} ${intWidth} ${intHeight}`}
+                            viewBox={`${0} ${0} ${dim.width} ${dim.height}`}
                         >
                             <ClipPath.RectClipPath id={"graph-clip"} width={graphWidth} height={graphHeight}/>
                             <g transform={`translate(${graphX} ${graphY})`} width={graphWidth} height={graphHeight}>
@@ -122,15 +164,27 @@ export function Graph2d(props) {
                                     scale={xScaleZoom}
                                     top={graphHeight}
                                     tickFormat={tickFormat}
-                                    numTicks={xTicks}
-
+                                    numTicks={ticks.xTicks}
+                                    label={xLabel}
+                                    labelClassName={"sr-x-axis-label"}
+                                    labelOffset={15}
+                                    tickLabelProps={() => ({
+                                        fontSize: 13,
+                                        textAnchor: "middle",
+                                        verticalAnchor: "middle",
+                                    })}
                                 />
                                 <Axis.AxisLeft
                                     stroke={"#888"}
                                     tickStroke={"#888"}
                                     scale={yScale}
                                     tickFormat={tickFormat}
-                                    numTicks={yTicks}
+                                    numTicks={ticks.yTicks}
+                                    tickLabelProps={() => ({
+                                        fontSize: 13,
+                                        textAnchor: "end",
+                                        verticalAnchor: "middle",
+                                    })}
                                 />
                                 <g clipPath="url(#graph-clip)">
                                     <g transform={zoom.toString()} >
@@ -149,5 +203,6 @@ export function Graph2d(props) {
                 )
             }}
         </Zoom>
+        </div>
     )
 }
