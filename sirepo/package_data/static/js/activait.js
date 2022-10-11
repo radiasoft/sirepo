@@ -1120,6 +1120,19 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
     };
 });
 
+
+SIREPO.app.directive('imagePreviewPanel', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `hello world`,
+        controller: function($scope, appState) {
+
+        }
+    }
+})
+
+
 SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelState, utilities) {
     return {
         restrict: 'A',
