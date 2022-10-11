@@ -2324,11 +2324,11 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
               <a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-cloud-download"></span></a>
             </div>
             <div class="col-sm-12">
-              <div class="lead text-center">
+              <div class="lead text-center">xxx
                 <span data-ng-if="errorMessage">{{ errorMessage }}</span>
                 <span data ng-if="isLoading && ! errorMessage">Loading image ...</span>
                 </div>
-              {{ loadImageFile() }}
+              {{ loadImageFile() }}xxx
               <img class="img-responsive srw-processed-image" />
             </div>
           `,
@@ -2379,6 +2379,8 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 $scope.isLoading = true;
                 downloadImage('png', function(filename, response) {
                     imageData = response.data;
+                    srdbg("response:", response);
+                    srdbg("imageData:", imageData);
                     $scope.isLoading = false;
                     if (imageData.type == 'application/json') {
                         // an error message has been returned
@@ -2390,7 +2392,9 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                     else {
                         var urlCreator = window.URL || window.webkitURL;
                         if ($('.srw-processed-image').length) {
-                            $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
+                            const s = urlCreator.createObjectURL(imageData);
+                            srdbg("image url: ", s)
+                            $('.srw-processed-image')[0].src = s;
                         }
                     }
                 });
