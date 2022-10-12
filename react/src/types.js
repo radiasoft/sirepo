@@ -1,12 +1,13 @@
 //import { React }
 import { useContext, useEffect, useRef, useState } from "react";
-import { Row, Button, Col, Form, Container } from "react-bootstrap";
-import { ContextAppName, ContextSimulationInfoPromise } from "./context";
+import { Row, Button, Col, Form, Container, Modal } from "react-bootstrap";
+import { ContextAppName, ContextLayouts, ContextModelsWrapper, ContextSimulationInfoPromise } from "./context";
 import { pollStatefulCompute } from "./utility/compute";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./types.scss"
 import { downloadAs } from "./utility/download";
+import { useInterpolatedString } from "./hook/string";
 
 export class rsType {
     constructor({ isRequired }) {
@@ -113,9 +114,10 @@ export class rsBoolean extends rsType {
 }
 
 export class rsFile extends rsType {
-    constructor({ isRequired, pattern }) {
+    constructor({ isRequired, pattern, inspectModal }) {
         super({ isRequired })
         this.pattern = (pattern && new RegExp(pattern)) || undefined;
+        this.inspectModal = inspectModal;
     }
 
     dbValue = (value) => {
@@ -133,11 +135,24 @@ export class rsFile extends rsType {
         let contextFn = useContext;
         let stateFn = useState;
         let effectFn = useEffect;
+        let interpStrFn = useInterpolatedString;
 
         let [dummyState, updateDummyState] = stateFn({})
 
         let appName = contextFn(ContextAppName);
         let simulationInfoPromise = contextFn(ContextSimulationInfoPromise);
+        let layoutsWrapper = contextFn(ContextLayouts);
+        let models = contextFn(ContextModelsWrapper);
+
+        let [modalShown, updateModalShown] = stateFn(false);
+        let modal = this.inspectModal ? {
+            items: this.inspectModal.items.map((config, idx) => {
+                let layout = layoutsWrapper.getLayoutForConfig(config);
+                let Component = layout.component;
+                return <Component key={idx} config={config}/>
+            }),
+            title: interpStrFn(models, this.inspectModal.title)
+        } : undefined;
 
         let [fileNameList, updateFileNameList] = stateFn(undefined);
 
@@ -207,15 +222,24 @@ export class rsFile extends rsType {
                 <Button onClick={downloadFile}>
                     <FontAwesomeIcon icon={Icon.faDownload} fixedWidth/>
                 </Button>
-                <Button onClick={() => {}}>
+                {modal && <Button onClick={() => modal && updateModalShown(true)}>
                     <FontAwesomeIcon icon={Icon.faEye} fixedWidth/>
-                </Button>
+                </Button>}
                 <input type="file" ref={fileInputRef} style={{display: 'none'}} onChange={uploadFile}></input>
                 <Button onClick={() => {
                     return fileInputRef.current?.click()
                 }}>
                     <FontAwesomeIcon icon={Icon.faPlus} fixedWidth/>
                 </Button>
+
+                {modal && <Modal show={modalShown} size="lg" onHide={() => updateModalShown(false)}>
+                    <Modal.Header>
+                        {modal.title}
+                    </Modal.Header>
+                    <Modal.Body>
+                        {modal.items}
+                    </Modal.Body>
+                </Modal>}
             </div>
             
         )

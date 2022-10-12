@@ -63,11 +63,13 @@ export class AutoRunReportLayout extends View {
         let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
 
         let VisualComponent = simulationData ? layoutElement.component : undefined;
+        let inProgress = !simulationData || !simulationData.state || simulationData.state !== 'completed'
 
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {VisualComponent && <VisualComponent key={simulationPollingVersionRef.current} config={reportLayout} simulationData={simulationData}></VisualComponent>}
+                {VisualComponent && <VisualComponent key={simulationPollingVersionRef.current} config={reportLayout} simulationData={simulationData}/>}
+                {inProgress && <ProgressBar animated now={100}/>}
             </>
         )
     }

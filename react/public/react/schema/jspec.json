@@ -4,7 +4,29 @@
             "base": "File",
             "settings": {
                 "pattern": ".+\\.tfs",
-                "isRequired": true
+                "isRequired": true,
+                "inspectModal": {
+                    "title": "Twiss Parameters",
+                    "items": [
+                        {
+                            "name": "twissReport",
+                            "layout": "autoRunReport",
+                            "report": "twissReport",
+                            "dependencies": [
+                                "ionBeam.*",
+                                "intrabeamScatteringRate.*",
+                                "electronCoolingRate.*",
+                                "ring.*",
+                                "simulationSettings.*",
+                                "electronBeam.*",
+                                "cooler.*"
+                            ],
+                            "reportLayout": {
+                                "layout": "graph2d"
+                            }
+                        }
+                    ]
+                }
             }
         },
         "ElegantSimList": {
@@ -1505,21 +1527,6 @@
                                 }
                             ]
                         }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "twissReport",
-            "layout": "TODO",
-            "title": "Twiss Parameters",
-            "advanced": [
-                {
-                    "layout": "fieldList",
-                    "fields": [
-                        "twissReport.y1",
-                        "twissReport.y2",
-                        "twissReport.y3"
                     ]
                 }
             ]
