@@ -27,7 +27,7 @@ SIREPO.app.config(function() {
           <div data-fillet-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
         </div>
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
-            <div data-float-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info""></div>
+            <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
         <div data-ng-switch-when="Group" class="col-sm-12">
             <div data-group-editor="" data-field="model[field]" data-model="model"></div>
@@ -36,7 +36,7 @@ SIREPO.app.config(function() {
             <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="false" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>
         </div>
         <div data-ng-switch-when="IntArray" class="col-sm-7">
-            <div data-int-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info""></div>
+            <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
         </div>
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>

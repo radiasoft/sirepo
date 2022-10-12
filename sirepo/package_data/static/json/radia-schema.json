@@ -445,9 +445,9 @@
             "_super": ["_", "model", "transform"],
             "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "angle": ["Angle (deg)", "Float", "0.0"],
-            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", "x, y, z"],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
-            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", "x, y, z"],
+            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
+            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
@@ -696,15 +696,15 @@
                 "transforms": [],
                 "type": "cuboid"
             }],
-            "magnetSize": ["Size [mm]", "FloatArray", [10.0, 16.0, 7.5], "", "Length ({{ appState.models.simulation.beamAxis }}), Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "magnetSize": ["Size [mm]", "FloatArray", [10.0, 16.0, 7.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0, 0]],
             "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 10.0, "", 0.0],
             "gap": ["Gap", "Float", 1.5, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleH"]
         },
         "electronTrajectoryReport": {
             "energy": ["Electron Energy [GeV]", "Float", 1.0, "The sign of the energy determines the direction of the electron along the beam ({{ appState.models.simulation.beamAxis }}) axis"],
-            "initialPosition": ["Starting Position [mm]", "FloatArray", [0.0, 0.0, -10.0], "", "x, y, z"],
-            "initialAngles": ["Starting Angles [rad]", "FloatArray", [0.0, 0.0], "", "d{{ appState.models.simulation.widthAxis }}/d{{ appState.models.simulation.beamAxis }}, d{{ appState.models.simulation.heightAxis }}/d{{ appState.models.simulation.beamAxis }}"],
+            "initialPosition": ["Starting Position [mm]", "FloatArray", [0.0, 0.0, -10.0], "", ["x", "y", "z"]],
+            "initialAngles": ["Starting Angles [rad]", "FloatArray", [0.0, 0.0], "", ["d{{ appState.models.simulation.widthAxis }}/d{{ appState.models.simulation.beamAxis }}", "d{{ appState.models.simulation.heightAxis }}/d{{ appState.models.simulation.beamAxis }}"]],
             "inProgressText": ["_", "String", "Calculating"],
             "finalBeamPosition": ["Final {{ appState.models.simulation.beamAxis }} Position [mm]", "Float", 10.0],
             "numPoints": ["Num Points", "Integer", 101, "", 2]
@@ -782,17 +782,17 @@
             "_super": ["_", "model", "radiaObject"],
             "bevels": ["Bevels", "BevelTable", []],
             "fillets": ["Fillets", "FilletTable", []],
-            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
-            "segments": ["Num Divisions", "IntArray", [1, 1, 1], "", "N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$, N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$, N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"],
+            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "segments": ["Num Divisions", "IntArray", [1, 1, 1], "", ["N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
-            "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
+            "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Shape Type", "ObjectType", "cuboid"],
-            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", "x, y, z"]
+            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]]
         },
         "jay": {
             "_super": ["_", "model", "stemmed"],
@@ -802,17 +802,17 @@
         },
         "kickMapReport": {
             "beamAxis": ["_", "BeamAxis", "z", ""],
-            "begin": ["Start", "FloatArray", [0, 0, 0], "Start point", "x, y, z"],
+            "begin": ["Start", "FloatArray", [0, 0, 0], "Start point", ["x", "y", "z"]],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "component": ["Component", "KickMapComponent", "h"],
-            "direction": ["Direction", "FloatArray", [0, 0, 1], "Beam direction", "x, y, z"],
+            "direction": ["Direction", "FloatArray", [0, 0, 1], "Beam direction", ["x", "y", "z"]],
             "inProgressText": ["_", "String", "Calculating"],
             "isSelfContained": ["_", "Boolean", "1"],
             "numPeriods": ["Number of Periods", "Integer", 1],
             "numTransPoints1": ["Number of Points in Gap Direction", "Integer", 10, "", 2],
             "numTransPoints2": ["Number of Points in Transverse Direction", "Integer", 10, "", 2],
             "periodLength": ["Period Length [mm]", "Float", 1.0],
-            "transverseDirection": ["Gap Direction", "FloatArray", [0, 1, 0], "Gap direction", "x, y, z"],
+            "transverseDirection": ["Gap Direction", "FloatArray", [0, 1, 0], "Gap direction", ["x", "y", "z"]],
             "transverseRange1": ["Range in Gap Direction [mm]", "Float", 1.0, ""],
             "transverseRange2": ["Range in Transverse Direction [mm]", "Float", 1.0]
         },
@@ -824,8 +824,8 @@
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
-            "begin": ["Start", "FloatArray", [-10.0, 0, 0], "Start point", "x, y, z"],
-            "end": ["End", "FloatArray", [10.0, 0, 0], "End point", "x, y, z"],
+            "begin": ["Start", "FloatArray", [-10.0, 0, 0], "Start point", ["x", "y", "z"]],
+            "end": ["End", "FloatArray", [10.0, 0, 0], "End point", ["x", "y", "z"]],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
         },
@@ -865,7 +865,7 @@
         "objectCut": {
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
-            "cutPoint": ["Cut Point", "FloatArray", [0, 0, 0], "", "x, y, z"],
+            "cutPoint": ["Cut Point", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
             "type": ["_", "PathType", "manual"]
         },
          "objectShape": {
@@ -878,16 +878,16 @@
         "racetrack": {
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
-            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
+            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "currentDensity": ["Current Density [A/$mm^2$]", "Float", -2000.0],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
             "height": ["Height ({{ appState.models.simulation.heightAxis }}) [mm]", "Float", 105.0, "", "Size along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
-            "radii": ["Radii [mm]", "FloatArray", [5.0, 40.0], "", "Inner, Outer"],
-            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", "Length ({{ appState.models.simulation.beamAxis }}), Width ({{ appState.models.simulation.widthAxis }})"],
-            "size": ["_", "FloatArray", [1.0, 1.0, 105.0]],
+            "radii": ["Radii [mm]", "FloatArray", [5.0, 40.0], "", ["Inner", "Outer"], [0, 0]],
+            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})"], [0, 0]],
+            "size": ["_", "FloatArray", [1.0, 1.0, 105.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["_", "ObjectType", "racetrack"]
         },
         "radiaObject": {
@@ -899,15 +899,15 @@
         },
         "rotate": {
             "angle": ["Angle (deg)", "Float", "0.0"],
-            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", "x, y, z"],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
+            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
+            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Rotate"]
         },
         "rotateClone": {
             "id": ["_", "RandomId", ""],
             "angle": ["Angle (deg)", "Float", "0.0"],
-            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", "x, y, z"],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
+            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
+            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Rotate"]
         },
         "simulation": {
@@ -959,8 +959,8 @@
         "symmetryTransform": {
             "_super": ["_", "model", "transform"],
             "name": ["Name", "String", "Symmetry"],
-            "symmetryPlane": ["Symmetry Plane", "FloatArray", [1.0, 0.0, 0.0], "", "x, y, z"],
-            "symmetryPoint": ["Symmetry Point", "FloatArray", [0.0, 0.0, 0.0], "", "x, y, z"],
+            "symmetryPlane": ["Symmetry Plane", "FloatArray", [1.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "symmetryPoint": ["Symmetry Point", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "symmetryType": ["Symmetry", "SymmetryType", "parallel"]
         },
         "tee": {
@@ -978,12 +978,12 @@
             "type": ["_", "TransformTypes"]
         },
         "translate": {
-            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", "x, y, z"],
+            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Translate"]
         },
         "translateClone": {
             "id": ["_", "RandomId", ""],
-            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", "x, y, z"],
+            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Translate"]
         },
         "undulatorBasic": {
@@ -1024,7 +1024,7 @@
                 "segments": [1, 1, 3],
                 "size": [65.0, 18.0, 45.0]
             }],
-            "magnetCrossSection": ["Cross Section [mm]", "FloatArray", [65.0, 45.0], "", "Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "magnetCrossSection": ["Cross Section [mm]", "FloatArray", [65.0, 45.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
             "magnetLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 18.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
@@ -1038,7 +1038,7 @@
                 "type": "cuboid",
                 "size": [45.0, 5.0, 25.0]
             }],
-            "poleCrossSection": ["Cross Section [mm]", "FloatArray", [45.0, 25.0], "", "Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "poleCrossSection": ["Cross Section [mm]", "FloatArray", [45.0, 25.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
             "poleLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 5.0],
             "terminationGroup": ["_", "model.geomGroup", {
                 "name": "terminations"
