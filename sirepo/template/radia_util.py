@@ -6,7 +6,6 @@
 """
 import numpy
 import radia
-import sirepo.util
 import sys
 
 

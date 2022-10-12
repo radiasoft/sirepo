@@ -1131,7 +1131,6 @@ def _parse_input_file_arg_str(s):
 
 
 def _prep_new_sim(data, new_sim_data=None):
-
     def _electron_initial_pos(axis, factor):
         return factor * radia_util.AXIS_VECTORS[axis]
 
@@ -1386,7 +1385,7 @@ def _update_extruded(o):
     # Radia's extrusion routine seems to involve rotations, one result being that
     # segmentation in the extrusion direction must be along 'x' regardless of the
     # actual direction
-    o.segments = sirepo.util.to_comma_delimited_string(
+    o.segments = list(
         _AXES_UNIT + radia_util.AXIS_VECTORS.x * (o.extrusionAxisSegments - 1)
     )
     return o
@@ -1678,7 +1677,9 @@ def _update_group(g, members, do_replace=False):
 
 def _update_kickmap(km, und, beam_axis):
     km.direction = radia_util.AXIS_VECTORS[beam_axis]
-    km.transverseDirection = radia_util.AXIS_VECTORS[SCHEMA.constants.heightAxisMap[beam_axis]]
+    km.transverseDirection = radia_util.AXIS_VECTORS[
+        SCHEMA.constants.heightAxisMap[beam_axis]
+    ]
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
@@ -1689,9 +1690,7 @@ def _validate_objects(objects):
 
     for o in objects:
         if "material" in o and o.material in SCHEMA.constants.anisotropicMaterials:
-            if (
-                numpy.linalg.norm(o.magnetization) == 0
-            ):
+            if numpy.linalg.norm(o.magnetization) == 0:
                 raise ValueError(
                     "name={}, : material={}: anisotropic material requires non-0 magnetization".format(
                         o.name, o.material

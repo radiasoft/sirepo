@@ -102,6 +102,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if model.get(f):
                     del model[f]
 
+        def _fixup_array(model, model_type_field, model_field):
+            for o in model.get(model_field, []):
+                if model_type_field not in o:
+                    continue
+                _fixup_number_string_fields(o[model_type_field], o)
+                _fixup_array(o, model_type_field, model_field)
+
         def _fixup_boolean_fields(model_name, model):
             s_m = sch.model[model_name]
             for f in [
@@ -113,7 +120,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             if field not in model:
                 return
             if isinstance(model[field], str):
-                model[field] = sirepo.util.split_comma_delimited_string(model[field], to_type)
+                model[field] = sirepo.util.split_comma_delimited_string(
+                    model[field], to_type
+                )
 
         def _fixup_number_string_fields(model_name, model):
             if not model_name or not model:
@@ -151,10 +160,18 @@ class SimData(sirepo.sim_data.SimDataBase):
                     o.fillets = []
                 if not o.get("segments"):
                     o.segments = o.get("division", [1, 1, 1])
-                for f in ("type", "model",):
+                for f in (
+                    "type",
+                    "model",
+                ):
                     _fixup_number_string_fields(o.get(f), o)
                 # fix "orphan" fields
-                for f in ("center", "magnetization", "segments", "size",):
+                for f in (
+                    "center",
+                    "magnetization",
+                    "segments",
+                    "size",
+                ):
                     _fixup_number_string_field(o, f)
                 _fixup_terminations(o)
                 _fixup_transforms(o)
@@ -162,18 +179,18 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_field_paths(paths):
             for p in paths:
-                for f in ("begin", "end",):
+                for f in (
+                    "begin",
+                    "end",
+                ):
                     _fixup_number_string_field(p, f)
 
-        def _fixup_array(model, model_type_field, model_field):
-            for o in model.get(model_field, []):
-                if model_type_field not in o:
-                    continue
-                _fixup_number_string_fields(o[model_type_field], o)
-                _fixup_array(o, model_type_field, model_field)
-
         def _fixup_terminations(model):
-            _fixup_array(model, "type", "terminations")
+            for t in filter(
+                lambda x: x,
+                map(lambda x: x.get("object"), model.get("terminations", [])),
+            ):
+                _fixup_number_string_fields(t.get("type"), t)
 
         def _fixup_transforms(model):
             _fixup_array(model, "model", "transforms")
