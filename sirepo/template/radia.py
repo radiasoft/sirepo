@@ -1146,7 +1146,7 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
         new_sim_data.beamAxis,
         -1.0,
-    )
+    ).tolist()
     data.models.fieldLineoutAnimation.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
@@ -1158,7 +1158,7 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
         new_sim_data.beamAxis,
         -f,
-    )
+    ).tolist()
     data.models.electronTrajectoryReport.finalBeamPosition = f
     data.models.simulation.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
