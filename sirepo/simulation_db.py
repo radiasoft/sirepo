@@ -155,10 +155,10 @@ def examples(app):
     ]
 
 
-def find_user_simulation_copy(simulation_type, sid, uid):
+def find_user_simulation_copy(sim_type, sid, uid):
     """ONLY USED BY api_simulationData"""
     rows = iterate_simulation_datafiles(
-        simulation_type,
+        sim_type,
         process_simulation_list,
         PKDict({"simulation.outOfSessionSimulationId": sid}),
         uid=uid,

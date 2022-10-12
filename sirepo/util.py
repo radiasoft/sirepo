@@ -127,7 +127,7 @@ class SPathNotFound(Reply):
     """
 
     def __init__(self, sim_type, uid, sid, *args, **kwargs):
-        super(UserAlert, self).__init__(
+        super().__init__(
             PKDict(sim_type=sim_type, uid=uid, sid=sid),
             *args,
             **kwargs,
@@ -163,7 +163,7 @@ class UserAlert(Reply):
     """
 
     def __init__(self, display_text, *args, **kwargs):
-        super(UserAlert, self).__init__(PKDict(error=display_text), *args, **kwargs)
+        super().__init__(PKDict(error=display_text), *args, **kwargs)
 
 
 class UserDirNotFound(Reply):
