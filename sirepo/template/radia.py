@@ -825,7 +825,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
 
     # include methods from non-template packages
     if for_export:
-        v.sirepoUtilSplit = inspect.getsource(sirepo.util.split_comma_delimited_string)
+        pass
 
     v.dmpOutputFile = _DMP_FILE
     if "dmpImportFile" in data.models.simulation:
