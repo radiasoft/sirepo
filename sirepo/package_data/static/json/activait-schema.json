@@ -388,9 +388,10 @@
         },
         "conv2D": {
             "_super": ["-", "model", "neuralNetLayer"],
+            "dimensionality": ["Dimensionality", "Integer", 32],
             "layer": ["Layer", "NeuralNetLayer", "Conv2D"],
             "kernel" : ["Kernel Size", "Integer", 3],
-            "strides": ["Strides", "Integer", 1],
+            "strides": ["Strides", "OptionalInteger", 1],
             "padding": ["Padding", "Padding", "valid"]
         },
         "conv2DTranspose": {
@@ -424,7 +425,7 @@
         },
         "poolingLayer": {
             "size": ["Pool Size", "Integer", 2],
-            "strides": ["Strides", "Integer", 1],
+            "strides": ["Strides", "OptionalInteger", 1],
             "padding": ["Padding", "Padding", "valid"]
         },
         "separableConv2D": {

@@ -11,6 +11,11 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="AnalysisParameter" class="col-sm-5">
           <div data-analysis-parameter="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">
+          <input data-string-to-number="integer" data-ng-model="model[field]"
+            data-min="info[4]" data-max="info[5]" class="form-control"
+            style="text-align: right" data-lpignore="true" />
+        </div>
         <div data-ng-switch-when="Equation" class="col-sm-7">
           <div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>
           <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>

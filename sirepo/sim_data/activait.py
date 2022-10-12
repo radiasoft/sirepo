@@ -21,7 +21,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         "alphaDropoutRate",
         "denseActivation",
         "denseDimensionality",
-        "dropoutRate",
         "gaussianDropoutRate",
         "gaussianNoiseStddev",
     ]
@@ -76,21 +75,29 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _fixup_neural_net(cls, dm):
+        def _layer_fields(layer):
+            f = []
+            n = layer.layer.lower()
+            for field in layer:
+                if n in field.lower():
+                    f.append((field, field.lower().replace(n, "")))
+            return f
+
+        def _update(layer, old, new):
+            if old in layer:
+                layer[new] = layer[old]
+                layer.pop(old)
+
         for l in dm.neuralNet.layers:
-            for (old, new) in cls._layer_fields(l):
-                cls._update(l, old, new)
+            for (old, new) in _layer_fields(l):
+                _update(l, old, new)
             for f in cls._OLD_NEURAL_NET_FIELDS:
                 if f in l:
                     del l[f]
-
-    @classmethod
-    def _layer_fields(cls, layer):
-        f = []
-        n = layer.layer.lower()
-        for field in layer:
-            if n in field.lower():
-                f.append((field, field.lower().replace(n, "")))
-        return f
+            if "rate" in l:
+                # special fixup for dropoutRate
+                l.dropoutRate = l["rate"]
+                del l["rate"]
 
     @classmethod
     def _lib_file_basenames(cls, data):
@@ -98,12 +105,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         if name:
             return [cls.lib_file_name_with_model_field("dataFile", "file", name)]
         return []
-
-    @classmethod
-    def _update(cls, layer, old, new):
-        if old in layer:
-            layer[new] = layer[old]
-            layer.pop(old)
 
 
 class DataReader:
