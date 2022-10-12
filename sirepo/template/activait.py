@@ -300,9 +300,32 @@ def stateful_compute_compute_column_info(data):
 
 
 def stateful_compute_sample_images(data):
-    pkdp("\n\n\n called stateful compute on data={}", data)
-    return data
+    import matplotlib.pyplot as plt
+    from base64 import b64encode
+    from pykern.pkcompat import from_bytes
 
+    def make_data_url(filename):
+        prefix = 'data:image/jpeg;base64,'
+        fin = open(filename, 'rb')
+        contents = fin.read()
+        data_url = prefix + from_bytes(b64encode(contents))
+        fin.close()
+        return data_url
+
+    with h5py.File(_filepath('CIFAR-4.h5'), 'r') as f:
+        x_values = f['images']
+        y_values = f['metadata/image_types']
+        plt.figure(figsize=[10,10])
+        for i in range (25):
+            plt.subplot(5, 5, i+1)
+            plt.xticks([])
+            plt.yticks([])
+            plt.grid(False)
+            plt.imshow(x_values[i])
+            plt.xlabel(y_values[i])
+        p = _SIM_DATA.lib_file_write_path(data.args.filename) + ".png"
+        plt.savefig(p)
+        return PKDict(uri=make_data_url(p))
 
 def stateless_compute_get_remote_data(data):
     return _get_remote_data(data.args.url, data.args.headers_only)

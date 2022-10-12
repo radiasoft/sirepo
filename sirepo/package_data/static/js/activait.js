@@ -1121,79 +1121,34 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
 });
 
 
-SIREPO.app.directive('imagePreviewPanel', function(appState) {
+SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {},
         template: `
         <div>
-          hello world
-          {{ loadImageFile() }}
+          <h3> Sample Images </h3>
+          <button data-ng-click="loadImageFile()"> LOAD SAMPLES </button>
           <img class="img-responsive srw-processed-image" />
         </div>
         `,
-        controller: function($scope, $http, appState) {
-            var imageData;
+        controller: function($scope,  appState) {
             $scope.loadImageFile = function() {
-                if (! appState.isLoaded() || imageData || $scope.isLoading) {
-                    return;
-                }
-                $scope.isLoading = true;
-                downloadImage('png', function(filename, response) {
-                    imageData = response.data;
-                    srdbg("response:", response);
-                    srdbg("imageData:", imageData);
-                    $scope.isLoading = false;
-                    // if (imageData.type == 'application/json') {
-                    //     // an error message has been returned
-                    //     imageData.text().then(function(text) {
-                    //         $scope.errorMessage = JSON.parse(text).error;
-                    //         $scope.$digest();
-                    //     });
-                    // }
-                    // else {
-                    var urlCreator = window.URL || window.webkitURL;
-                    if ($('.srw-processed-image').length) {
-                        const s = urlCreator.createObjectURL(imageData);
-                        srdbg("image url: ", s)
-                        $('.srw-processed-image')[0].src = s;
-                    }
-                    // }
-                });
-            };
-
-            function downloadImage(format, callback) {
-                var filename = 'sample_processed.png';
-                // var filename = $scope.model.imageFile.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format;
-                // var url = requestSender.formatUrl({
-                //     routeName: 'getApplicationData',
-                //     '<filename>': filename,
-                // });
-                // var m = appState.clone($scope.model);
-                // m.outputImageFormat = format;
-                $http.post(
-                    'stateful-compute-sample-images',
-                    {
-                        'simulationId': appState.models.simulation.simulationId,
-                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
-                        'method': 'processedImage',
-                        'baseImage': 'sample.tif',
-                        'model': 'model',
-                    },
-                    {
-                        responseType: 'blob',
-                    }
-                ).then(
-                    function (response) {
-                        if (response.status == 200) {
-                            callback(filename, response);
-                            return;
+                requestSender.sendStatefulCompute(
+                    appState,
+                    function(response) {
+                        if ($('.srw-processed-image').length) {
+                            $('.srw-processed-image')[0].src = response.uri;
                         }
-                        error(response);
                     },
-                    error);
+                    {
+                        method: 'sample_images',
+                        args: {
+                            filename: 'sample'
+                        }
+                    }
+                );
             }
-
         }
     }
 })

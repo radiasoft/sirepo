@@ -2349,6 +2349,9 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 srdbg('filename', filename);
                 srdbg("url in downloadImage", url);
                 srdbg(m);
+
+                srdbg("id: ", appState.models.simulation.simulationId);
+                srdbg("type: ", SIREPO.APP_SCHEMA.simulationType);
                 $http.post(
                     url,
                     {
