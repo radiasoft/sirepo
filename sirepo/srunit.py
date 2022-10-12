@@ -686,7 +686,7 @@ class _TestClient(flask.testing.FlaskClient):
                 )
             return d
         except Exception as e:
-            if not isinstance(e, (sirepo.util.Reply)):
+            if not isinstance(e, (util.Reply)):
                 pkdlog(
                     "Exception: {}: msg={} uri={} status={} data={} stack={}",
                     type(e),
