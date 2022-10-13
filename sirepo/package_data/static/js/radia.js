@@ -2918,6 +2918,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
+                srdbg("Building Scene: Start")
                 //srdbg('buildScene', sceneData);
                 // scene -> multiple data -> multiple actors
                 let name = sceneData.name;

@@ -9,6 +9,7 @@ Radia "instance" goes away and references no longer have any meaning.
 """
 
 from ast import AsyncFunctionDef
+from ctypes import sizeof
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -30,7 +31,6 @@ import sdds
 import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
-# TODO: test that trimesh is installed, causes server error if not
 import trimesh
 import uuid
 
@@ -1625,6 +1625,7 @@ def _update_geom_obj(o, **kwargs):
         size=[1.0, 1.0, 1.0],
         stlVertices = [],
         stlFaces = [],
+        stlSlices = [],
     )
     for k in d:
         v = kwargs.get(k)
@@ -1659,6 +1660,23 @@ def _update_geom_obj(o, **kwargs):
             d.stlFaces.append(list(f))
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
+        
+        z_extents = mesh.bounds[:,2]
+        z_levels  = numpy.arange(*z_extents, step=.1)
+        pkdp("z_levels: {}", z_extents)
+        meshSlices = trimesh.intersections.mesh_multiplane(mesh=mesh,plane_origin=mesh.bounds[0],plane_normal=[0,0,1],heights=z_levels)[0]
+        pkdp("size: {}", len(meshSlices))
+        formattedSlices = []
+        index = 0
+        for s in meshSlices:
+            slicePoints = []
+            for l in s:
+                for p in l:
+                    if list(p) not in slicePoints:
+                        slicePoints.append(list(p))
+            formattedSlices.append([list(slicePoints), z_levels[index]])
+            index = index+1
+        o.stlSlices = formattedSlices
     return o
 
 
