@@ -1128,13 +1128,21 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
         template: `
         <div>
           <img class="img-responsive srw-processed-image" />
-          <button data-ng-click="prev()"> prev </button>
-          <button data-ng-click="next()"> next </button>
+          <div data-ng-if="isLoading()" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between;" data-ng-if="! isLoading()">
+            <button data-ng-click="prev()"> < prev image set </button>
+            <button data-ng-click="next()"> next image set > </button>
+          </div>
         </div>
         `,
         controller: function($scope,  appState) {
             var idx = 0;
             var uris;
+            var loading = true;
+
+            $scope.isLoading = () => loading;
 
             $scope.next = function() {
                 if (idx < 4) {
@@ -1162,6 +1170,7 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
                     function(response) {
                         uris = response.uris;
                         setImageFromUriIndex(0);
+                        loading = false;
                     },
                     {
                         method: 'sample_images',
