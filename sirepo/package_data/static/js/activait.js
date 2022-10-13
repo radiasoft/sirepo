@@ -1127,19 +1127,41 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
         scope: {},
         template: `
         <div>
-          <h3> Sample Images </h3>
-          <button data-ng-click="loadImageFile()"> LOAD SAMPLES </button>
           <img class="img-responsive srw-processed-image" />
+          <button data-ng-click="prev()"> prev </button>
+          <button data-ng-click="next()"> next </button>
         </div>
         `,
         controller: function($scope,  appState) {
-            $scope.loadImageFile = function() {
+            var idx = 0;
+            var uris;
+
+            $scope.next = function() {
+                if (idx < 4) {
+                    idx += 1;
+                    setImageFromUriIndex(idx);
+                }
+            };
+
+            $scope.prev = function() {
+                if (idx > 0) {
+                    idx -= 1;
+                    setImageFromUriIndex(idx);
+                }
+            };
+
+            const setImageFromUriIndex = (index) => {
+                if ($('.srw-processed-image').length) {
+                    $('.srw-processed-image')[0].src = uris[index];
+                }
+            };
+
+            const loadImageFile = () => {
                 requestSender.sendStatefulCompute(
                     appState,
                     function(response) {
-                        if ($('.srw-processed-image').length) {
-                            $('.srw-processed-image')[0].src = response.uri;
-                        }
+                        uris = response.uris;
+                        setImageFromUriIndex(0);
                     },
                     {
                         method: 'sample_images',
@@ -1148,7 +1170,9 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
                         }
                     }
                 );
-            }
+            };
+
+            loadImageFile();
         }
     }
 })

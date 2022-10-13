@@ -304,7 +304,7 @@ def stateful_compute_sample_images(data):
     from base64 import b64encode
     from pykern.pkcompat import from_bytes
 
-    def make_data_url(filename):
+    def _data_url(filename):
         f = open(filename, 'rb')
         u = 'data:image/jpeg;base64,' + from_bytes(b64encode(f.read()))
         f.close()
@@ -313,18 +313,22 @@ def stateful_compute_sample_images(data):
     with h5py.File(_filepath('CIFAR-4.h5'), 'r') as f:
         x_values = f['images']
         y_values = f['metadata/image_types']
-        # TODO (gurhar1133): save 5 plots and 5 corresponding uris
-        plt.figure(figsize=[10,10])
-        for i in range (25):
-            plt.subplot(5, 5, i+1)
-            plt.xticks([])
-            plt.yticks([])
-            plt.grid(False)
-            plt.imshow(x_values[i])
-            plt.xlabel(y_values[i])
-        p = _SIM_DATA.lib_file_write_path(data.args.filename) + ".png"
-        plt.savefig(p)
-        return PKDict(uri=make_data_url(p))
+        uris = []
+        n = 1
+        for i in range(0, 125, 25):
+            plt.figure(figsize=[10,10])
+            for j in range (25):
+                plt.subplot(5, 5, j+1)
+                plt.xticks([])
+                plt.yticks([])
+                plt.grid(False)
+                plt.imshow(x_values[i + j])
+                plt.xlabel(y_values[i + j])
+            p = _SIM_DATA.lib_file_write_path(data.args.filename) + f"_{n}.png"
+            plt.savefig(p)
+            uris.append(_data_url(p))
+            n += 1
+        return PKDict(uris=uris)
 
 def stateless_compute_get_remote_data(data):
     return _get_remote_data(data.args.url, data.args.headers_only)
