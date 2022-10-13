@@ -305,16 +305,15 @@ def stateful_compute_sample_images(data):
     from pykern.pkcompat import from_bytes
 
     def make_data_url(filename):
-        prefix = 'data:image/jpeg;base64,'
-        fin = open(filename, 'rb')
-        contents = fin.read()
-        data_url = prefix + from_bytes(b64encode(contents))
-        fin.close()
-        return data_url
+        f = open(filename, 'rb')
+        u = 'data:image/jpeg;base64,' + from_bytes(b64encode(f.read()))
+        f.close()
+        return u
 
     with h5py.File(_filepath('CIFAR-4.h5'), 'r') as f:
         x_values = f['images']
         y_values = f['metadata/image_types']
+        # TODO (gurhar1133): save 5 plots and 5 corresponding uris
         plt.figure(figsize=[10,10])
         for i in range (25):
             plt.subplot(5, 5, i+1)
