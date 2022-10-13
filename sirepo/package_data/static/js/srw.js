@@ -2390,8 +2390,7 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                     else {
                         var urlCreator = window.URL || window.webkitURL;
                         if ($('.srw-processed-image').length) {
-                            const s = urlCreator.createObjectURL(imageData);
-                            $('.srw-processed-image')[0].src = s;
+                            $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
                         }
                     }
                 });
