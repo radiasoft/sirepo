@@ -2324,11 +2324,11 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
               <a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-cloud-download"></span></a>
             </div>
             <div class="col-sm-12">
-              <div class="lead text-center">xxx
+              <div class="lead text-center">
                 <span data-ng-if="errorMessage">{{ errorMessage }}</span>
                 <span data ng-if="isLoading && ! errorMessage">Loading image ...</span>
                 </div>
-              {{ loadImageFile() }}xxx
+              {{ loadImageFile() }}
               <img class="img-responsive srw-processed-image" />
             </div>
           `,
@@ -2345,13 +2345,6 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 });
                 var m = appState.clone($scope.model);
                 m.outputImageFormat = format;
-                srdbg("$scope.model.imageFile", $scope.model.imageFile);
-                srdbg('filename', filename);
-                srdbg("url in downloadImage", url);
-                srdbg(m);
-
-                srdbg("id: ", appState.models.simulation.simulationId);
-                srdbg("type: ", SIREPO.APP_SCHEMA.simulationType);
                 $http.post(
                     url,
                     {
@@ -2386,8 +2379,6 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 $scope.isLoading = true;
                 downloadImage('png', function(filename, response) {
                     imageData = response.data;
-                    srdbg("response:", response);
-                    srdbg("imageData:", imageData);
                     $scope.isLoading = false;
                     if (imageData.type == 'application/json') {
                         // an error message has been returned
@@ -2400,7 +2391,6 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                         var urlCreator = window.URL || window.webkitURL;
                         if ($('.srw-processed-image').length) {
                             const s = urlCreator.createObjectURL(imageData);
-                            srdbg("image url: ", s)
                             $('.srw-processed-image')[0].src = s;
                         }
                     }
