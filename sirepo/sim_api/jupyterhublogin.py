@@ -116,7 +116,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
             # Get the local part of the email. Or in the case of another auth
             # method (ex github) it won't have an '@' so it will just be their
             # user name, handle, etc.
-            (github_handle or qcall.auth.user_name()).split("@")[0],
+            (github_handle or qcall.auth.logged_in_user_name()).split("@")[0],
         ).lower()
 
     def __user_name():

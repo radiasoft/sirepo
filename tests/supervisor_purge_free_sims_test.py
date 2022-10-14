@@ -43,7 +43,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
             uid,
             sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         )
-        with srunit.auth_db_session():
+        with srunit.quest_start():
             r = sirepo.auth_db.UserRole.search_all_for_column("uid")
         pkunit.pkeq(r, [uid], "expecting one premium user with same id")
 

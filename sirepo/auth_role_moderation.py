@@ -39,7 +39,7 @@ class API(sirepo.quest.API):
     def api_admModerate(self):
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
-                recipient=self.auth.user_name(info.uid),
+                recipient=self.auth.user_name(info.uid, self.auth.METHOD_EMAIL),
                 subject=_STATUS_TO_SUBJECT[info.status].format(info.app_name),
                 body=pkjinja.render_resource(
                     f"auth_role_moderation/{info.status}_email",
@@ -150,7 +150,7 @@ class API(sirepo.quest.API):
         _send_request_email(
             PKDict(
                 display_name=self.auth.user_display_name(u),
-                email_addr=self.auth.user_name(),
+                email_addr=self.auth.logged_in_user_name(),
                 link=l,
                 reason=req.req_data.reason,
                 role=sirepo.auth_role.for_sim_type(req.type),

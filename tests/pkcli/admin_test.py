@@ -30,10 +30,10 @@ def test_delete_user():
     from sirepo.sim_api import jupyterhublogin
 
     _init_db()
-    with srunit.auth_db_session() as qcall:
+    with srunit.quest_start() as qcall:
         pkunit.pkeq(_UID_IN_DB, qcall.auth.unchecked_get_user(_UID_IN_DB))
     admin.delete_user(_UID_IN_DB)
-    with auth_db.session_and_lock():
+    with srunit.quest_start() as qcall:
         _is_empty_table(jupyterhublogin.JupyterhubUser)
         _is_empty_table(auth_db.UserRegistration)
         _is_empty_table(auth_db.UserRoleInvite)

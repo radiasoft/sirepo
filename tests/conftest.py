@@ -61,7 +61,7 @@ def import_req(request):
         import sirepo.srunit
         import sirepo.http_request
 
-        with sirepo.srunit.auth_db_session() as qcall:
+        with sirepo.srunit.quest_start() as qcall:
             req = qcall.parse_params(
                 filename=path.basename,
                 folder="/import_test",

@@ -13,6 +13,7 @@ import datetime
 import hashlib
 import pyisemail
 import pykern.pkcompat
+import sirepo.auth
 import sirepo.auth_db
 import sirepo.quest
 import sirepo.smtp
@@ -23,7 +24,7 @@ import sirepo.util
 import sqlalchemy
 
 
-AUTH_METHOD = "email"
+AUTH_METHOD = sirepo.auth.METHOD_EMAIL
 
 #: User can see it
 AUTH_METHOD_VISIBLE = True

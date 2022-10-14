@@ -34,7 +34,7 @@ _DB_DIR = "db"
 
 
 @contextlib.contextmanager
-def auth_db_session():
+def quest_start():
     from sirepo import quest
 
     with quest.start() as qcall:

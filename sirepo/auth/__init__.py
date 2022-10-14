@@ -33,7 +33,10 @@ import sirepo.util
 #: what routeName to return in the event user is logged out in require_user
 LOGIN_ROUTE_NAME = "login"
 
-#: Guest is a special method
+#: Email is used by moderation. Do not use this var, use qcall.auth.METHOD_EMAIL
+METHOD_EMAIL = "email"
+
+#: Guest is a special method. Do not use this var, use qcall.auth.METHOD_GUEST
 METHOD_GUEST = "guest"
 
 #: key for auth method for login state
@@ -141,6 +144,9 @@ def only_for_api_method_modules():
 
 
 class _Auth(sirepo.quest.Attr):
+    METHOD_EMAIL = METHOD_EMAIL
+    METHOD_GUEST = METHOD_GUEST
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._logged_in_user = _cfg.logged_in_user
@@ -277,6 +283,13 @@ class _Auth(sirepo.quest.Attr):
         if check_path:
             simulation_db.user_path(u, check=True)
         return u
+
+    def logged_in_user_name(self):
+        """Return user_name for logged in user"""
+        return self.user_name(
+            uid=self.logged_in_user(),
+            method=self._qcall_bound_method(),
+        )
 
     def logged_in_user_set(self, uid, method=METHOD_GUEST):
         """Ephemeral login"""
@@ -434,9 +447,9 @@ class _Auth(sirepo.quest.Attr):
 
     def require_email_user(self):
         i = self.require_user()
-        u = self.user_name(i)
-        if not pyisemail.is_email(u):
-            sirepo.util.raise_forbidden(f"uid={i} username={u} is not an email")
+        m = self._qcall_bound_method()
+        if m != METHOD_EMAIL:
+            sirepo.util.raise_forbidden(f"method={m} is not email for uid={i}")
 
     def require_user(self):
         """Asserts whether user is logged in
@@ -542,17 +555,15 @@ class _Auth(sirepo.quest.Attr):
             return None
         return self._qcall_bound_user()
 
-    def user_name(self, uid=None):
-        if not uid:
-            uid = self.logged_in_user()
-            m = self._qcall_bound_method()
-        u = getattr(_METHOD_MODULES[m], "UserModel", None)
+    def user_name(self, uid, method):
+        """Return user_name"""
+        u = getattr(_METHOD_MODULES[method], "UserModel", None)
         if u:
             with sirepo.util.THREAD_LOCK:
                 return u.search_by(uid=uid).user_name
-        elif m == METHOD_GUEST:
+        elif method == METHOD_GUEST:
             return f"{METHOD_GUEST}-{uid}"
-        raise AssertionError(f"user_name not found for uid={uid} with method={m}")
+        raise AssertionError(f"user_name not found for uid={uid} with method={method}")
 
     def user_registration(self, uid, display_name=None):
         """Get UserRegistration record or create one
