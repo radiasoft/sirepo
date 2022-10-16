@@ -10,7 +10,7 @@
         "simulation": {
             "folder": "/Examples",
             "isExample": true,
-            "name": "XPCS SAXS Analysis"
+            "name": "CHX Analysis"
         },
         "catalog": {
             "catalogName": "chx"
