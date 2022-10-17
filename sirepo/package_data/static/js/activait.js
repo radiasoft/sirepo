@@ -347,6 +347,10 @@ SIREPO.app.controller('DataController', function (appState, panelState, requestS
         return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'text';
     };
 
+    self.isImageData = () => {
+        return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'image';
+    };
+
     //appState.whenModelsLoaded($scope, function() {
     //    $scope.$on('dataFile.changed', dataFileChanged);
     //    //TODO(pjm): enable when analysis tab is completed
@@ -1176,7 +1180,8 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     {
                         method: 'sample_images',
                         args: {
-                            filename: 'sample'
+                            imageFilename: 'sample',
+                            dataFile: appState.models.dataFile,
                         }
                     }
                 );
