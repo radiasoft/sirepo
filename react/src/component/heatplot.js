@@ -50,6 +50,7 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
 /**
  *
  * @param {{
+ *  title,
  *  xRange,
  *  yRange,
  *  xLabel,
@@ -58,7 +59,7 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
  * }} props
  * @returns
  */
-export function Heatplot({xRange, yRange, xLabel, yLabel, zMatrix}) {
+export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}) {
     const ref = useRef(null);
     const dim = useRefSize(ref, 1);
     if (! xRange) {
@@ -134,6 +135,16 @@ export function Heatplot({xRange, yRange, xLabel, yLabel, zMatrix}) {
                                     height={dim.height}
                                 >
                                     <g transform={`translate(${gm.graphX}, ${gm.graphY})`}>
+                                        {/* TODO(pjm): margin top should be larger if title is present */}
+                                        <text
+                                            x={gm.graphWidth / 2}
+                                            y={-gm.graphY / 2 + 5}
+                                            style={{
+                                                fontSize: '18px',
+                                                fontWeight: 'bold',
+                                                textAnchor: 'middle',
+                                            }}
+                                        >{title}</text>
                                         <DynamicAxis
                                             orientation={"bottom"}
                                             scale={xScale}
