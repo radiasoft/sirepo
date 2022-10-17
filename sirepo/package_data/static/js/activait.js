@@ -1239,7 +1239,12 @@ SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelStat
             $scope.getPaths = () => {
                 return appState.models.dataFile.dataList;
             };
-
+            srdbg("appState.models.columnInfo", appState.models.columnInfo);
+            // srdbg("appState.models:", appState.models.dataPathInfo);
+            srdbg("appState.models.dataFile.dataList", appState.models.dataFile.dataList);
+            srdbg("$scope.model.selectedPaths", $scope.model.selectedPaths);
+            // TODO (gurhar1133): use selected paths and the dataFile.dataList to
+            // make the update to columnInfo and saveChanges()
             if (! $scope.model.selectedPaths) {
                 $scope.model.selectedPaths = {};
                 for (const p of $scope.getPaths()) {

@@ -322,7 +322,10 @@ def stateful_compute_sample_images(data):
                 plt.yticks([])
                 plt.imshow(x[i + j])
                 plt.xlabel(str(f["metadata/labels"][y[i + j]]).replace("b'", "'"))
-            p = _SIM_DATA.lib_file_write_path(data.args.imageFilename) + f"_{int(i/25)}.png"
+            p = (
+                _SIM_DATA.lib_file_write_path(data.args.imageFilename)
+                + f"_{int(i/25)}.png"
+            )
             plt.savefig(p)
             u.append(_data_url(p))
         return PKDict(uris=u)
