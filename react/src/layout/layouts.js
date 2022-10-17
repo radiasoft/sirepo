@@ -1,5 +1,6 @@
 import { FieldGridLayout, FieldListLayout, LayoutWithFormController } from "./form";
 import { Graph2dFromApi } from "./graph2d";
+import { HeatplotFromApi } from "./heatplot";
 import { MissingLayout } from "./missing";
 import { PanelLayout } from "./panel";
 import { AutoRunReportLayout, ManualRunReportLayout, SimulationStartLayout } from "./report";
@@ -10,7 +11,7 @@ import { TableFromApi } from "./table";
 import { LayoutWithDownloadButton } from "./download";
 
 export class Layouts {
-    constructor () { 
+    constructor () {
         this.components = {
             tabs: new TabLayout(this),
             fieldList: new (LayoutWithSpacing(FieldListLayout))(this),
@@ -20,6 +21,7 @@ export class Layouts {
             autoRunReport: new AutoRunReportLayout(this),
             manualRunReport: new ManualRunReportLayout(this),
             graph2d: new (LayoutWithDownloadButton(Graph2dFromApi))(this),
+            heatplot: new (LayoutWithDownloadButton(HeatplotFromApi))(this),
             navTabs: new NavTabsLayout(this),
             table: new TableFromApi(this),
             startSimulation: new SimulationStartLayout(this)
