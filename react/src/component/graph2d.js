@@ -6,7 +6,7 @@ import { Zoom } from '@visx/zoom';
 import { ClipPath, Scale, Shape } from '@visx/visx';
 import { LegendOrdinal } from "@visx/legend";
 import { DynamicAxis } from "./axis";
-import { constrainZoom, useRefSize, plotSizeInfo } from "./util";
+import { constrainZoom, useRefSize, graphMetrics } from "./util";
 
 /**
  *
@@ -26,26 +26,26 @@ export function Graph2d(props) {
     const ref = useRef(null);
     //TODO(pjm): use props.aspectRatio if present
     const dim = useRefSize(ref, 9 / 16.0);
-    const ps = plotSizeInfo(dim);
+    const gm = graphMetrics(dim);
 
     function constrain(transformMatrix) {
         // no Y zoom
         transformMatrix.scaleY = 1;
         transformMatrix.translateY = 0;
-        return constrainZoom(transformMatrix, ps.graphWidth, 'X');
+        return constrainZoom(transformMatrix, gm.graphWidth, 'X');
     }
 
     return (
         <div ref={ref}>
             <Zoom
-                width={ps.graphWidth}
-                height={ps.graphHeight}
+                width={gm.graphWidth}
+                height={gm.graphHeight}
                 constrain={constrain}
             >
             {(zoom) => {
                 let xScale = Scale.scaleLinear({
                     domain: [xRange.min, xRange.max],
-                    range: [0, ps.graphWidth],
+                    range: [0, gm.graphWidth],
                 });
                 xScale.domain([
                     xScale.invert((xScale(xRange.min) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),
@@ -55,7 +55,7 @@ export function Graph2d(props) {
                 let yScale = Scale.scaleLinear({
                     //TODO(pjm): scale y range over visible points
                     domain: [yRange.min, yRange.max],
-                    range: [ps.graphHeight, 0],
+                    range: [gm.graphHeight, 0],
                     nice: true
                 });
 
@@ -80,20 +80,20 @@ export function Graph2d(props) {
                             style={{'userSelect': 'none'}}
                             viewBox={`${0} ${0} ${dim.width} ${dim.height}`}
                         >
-                            <ClipPath.RectClipPath id={"graph-clip"} width={ps.graphWidth} height={ps.graphHeight}/>
-                            <g transform={`translate(${ps.graphX} ${ps.graphY})`} width={ps.graphWidth} height={ps.graphHeight}>
+                            <ClipPath.RectClipPath id={"graph-clip"} width={gm.graphWidth} height={gm.graphHeight}/>
+                            <g transform={`translate(${gm.graphX} ${gm.graphY})`} width={gm.graphWidth} height={gm.graphHeight}>
                                 <DynamicAxis
                                     orientation={"bottom"}
                                     scale={xScale}
-                                    top={ps.graphHeight}
+                                    top={gm.graphHeight}
                                     label={xLabel}
-                                    plotSize={dim.width}
+                                    graphSize={gm.graphWidth}
                                 />
                                 <DynamicAxis
                                     orientation={"left"}
                                     scale={yScale}
                                     label={yLabel}
-                                    plotSize={dim.height}
+                                    graphSize={gm.graphHeight}
                                 />
                                 <g clipPath="url(#graph-clip)">
                                     <g transform={zoom.toString()} >
@@ -103,8 +103,8 @@ export function Graph2d(props) {
                                 {/* zoom container must be contained within svg so visx localPoint() works correctly */}
                                 <svg><rect
                                     ref={zoom.containerRef}
-                                    width={ps.graphWidth}
-                                    height={ps.graphHeight}
+                                    width={gm.graphWidth}
+                                    height={gm.graphHeight}
                                     style={{
                                         touchAction: 'none',
                                         fill: 'none',

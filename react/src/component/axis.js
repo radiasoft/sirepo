@@ -10,18 +10,18 @@ import "./axis.scss";
  *
  * @param {{
  *  orientation,
- *  plotSize,
+ *  graphSize,
  *  scale,
  *  top,
  *  label,
  * }} props
  * @returns
  */
-export function DynamicAxis({ orientation, plotSize, ...props }) {
+export function DynamicAxis({ orientation, graphSize, ...props }) {
     const isX = orientation == 'bottom';
     const AxisType = isX ? Axis.AxisBottom : Axis.AxisLeft;
     const [ticks, setTicks] = useState(0);
-    const t = Math.max(Math.round(plotSize / (isX ? 110 : 70)), 2);
+    const t = Math.max(Math.round(graphSize / (isX ? 110 : 70)), 2);
     if (t != ticks) {
         setTicks(t);
     }

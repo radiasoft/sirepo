@@ -5,7 +5,7 @@ import { useRef, useLayoutEffect } from 'react';
 import { useCanvas, useCanvasContext } from "./CanvasContext";
 import { Canvas } from "./Canvas";
 import { DynamicAxis } from "./axis";
-import { constrainZoom, useRefSize, plotSizeInfo } from "./util";
+import { constrainZoom, useRefSize, graphMetrics } from "./util";
 import { Zoom } from '@visx/zoom';
 import { Scale } from '@visx/visx';
 
@@ -25,9 +25,9 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
             // }
             //TODO(pjm): use colormap
             //const c = d3.rgb(colorScale(v));
-            img.data[++p] = v || 255;
-            img.data[++p] = v || 255;
-            img.data[++p] = v || 255;
+            img.data[++p] = v > 0 ? 255 : 0;
+            img.data[++p] = v > 0 ? 255 : 0;
+            img.data[++p] = v > 0 ? 255 : 0;
             img.data[++p] = 255;
         }
     }
@@ -64,20 +64,20 @@ export function Heatplot({xRange, yRange, xLabel, yLabel, zMatrix}) {
     if (! xRange) {
         return null;
     }
-    const ps = plotSizeInfo(dim);
+    const gm = graphMetrics(dim);
 
     function constrain(transformMatrix) {
         return constrainZoom(
-            constrainZoom(transformMatrix, ps.graphWidth, 'X'),
-            ps.graphHeight, 'Y',
+            constrainZoom(transformMatrix, gm.graphWidth, 'X'),
+            gm.graphHeight, 'Y',
         );
     }
 
     return (
         <div ref={ref}>
             <Zoom
-                width={ps.graphWidth}
-                height={ps.graphHeight}
+                width={gm.graphWidth}
+                height={gm.graphHeight}
                 constrain={constrain}
             >
             {(zoom) => {
@@ -92,27 +92,27 @@ export function Heatplot({xRange, yRange, xLabel, yLabel, zMatrix}) {
                 }
                 const xScale = Scale.scaleLinear({
                     domain: domain(
-                        xRange, zoom.transformMatrix.translateX, zoom.transformMatrix.scaleX, ps.graphWidth),
-                    range: [0, ps.graphWidth],
+                        xRange, zoom.transformMatrix.translateX, zoom.transformMatrix.scaleX, gm.graphWidth),
+                    range: [0, gm.graphWidth],
                 });
                 const yScale = Scale.scaleLinear({
                     domain: invert(
                         yRange,
                         domain(
-                            yRange, zoom.transformMatrix.translateY, zoom.transformMatrix.scaleY, ps.graphHeight)),
-                    range: [ps.graphHeight, 0],
+                            yRange, zoom.transformMatrix.translateY, zoom.transformMatrix.scaleY, gm.graphHeight)),
+                    range: [gm.graphHeight, 0],
                 });
                 const cursor = zoom.transformMatrix.scaleX > 1 ? 'move' : 'zoom-in';
                 return (
                     <>
                         <div style={{position: "relative"}}>
                             <Canvas
-                                width={ps.graphWidth}
-                                height={ps.graphHeight}
+                                width={gm.graphWidth}
+                                height={gm.graphHeight}
                                 style={{
                                     position: "absolute",
-                                    left: `${ps.graphX}px`,
-                                    top: `${ps.graphY}px`,
+                                    left: `${gm.graphX}px`,
+                                    top: `${gm.graphY}px`,
                                 }} >
 
                                 <HeatplotImage
@@ -120,8 +120,8 @@ export function Heatplot({xRange, yRange, xLabel, yLabel, zMatrix}) {
                                     yScaleDomain={yScale.domain()}
                                     xRange={xRange}
                                     yRange={yRange}
-                                    width={ps.graphWidth}
-                                    height={ps.graphHeight}
+                                    width={gm.graphWidth}
+                                    height={gm.graphHeight}
                                     zMatrix={zMatrix}
                                 />
                             </Canvas>
@@ -133,25 +133,25 @@ export function Heatplot({xRange, yRange, xLabel, yLabel, zMatrix}) {
                                     width={dim.width}
                                     height={dim.height}
                                 >
-                                    <g transform={`translate(${ps.graphX}, ${ps.graphY})`}>
+                                    <g transform={`translate(${gm.graphX}, ${gm.graphY})`}>
                                         <DynamicAxis
                                             orientation={"bottom"}
                                             scale={xScale}
-                                            top={ps.graphHeight}
+                                            top={gm.graphHeight}
                                             label={xLabel}
-                                            plotSize={dim.width}
+                                            graphSize={gm.graphWidth}
                                         />
                                         <DynamicAxis
                                             orientation={"left"}
                                             scale={yScale}
                                             label={yLabel}
-                                            plotSize={dim.height}
+                                            graphSize={gm.graphHeight}
                                         />
-                                        <svg width={ps.graphWidth} height={ps.graphHeight}>
+                                        <svg width={gm.graphWidth} height={gm.graphHeight}>
                                             <rect
                                                 ref={zoom.containerRef}
-                                                width={ps.graphWidth}
-                                                height={ps.graphHeight}
+                                                width={gm.graphWidth}
+                                                height={gm.graphHeight}
                                                 style={{
                                                     touchAction: 'none',
                                                     fill: 'none',

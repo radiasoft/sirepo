@@ -30,13 +30,22 @@ export function debounce(fn, ms) {
     };
 }
 
-export function plotSizeInfo(dim) {
-    const xAxisSize = 30;
-    const yAxisSize = 60;
-    const margin = 25;
+const xAxisSize = 30;
+const yAxisSize = 60;
+const margin = 25;
+
+function heightAdjustment() {
+    return xAxisSize + margin * 2;
+}
+
+function widthAdjustment() {
+    return yAxisSize + margin * 2;
+}
+
+export function graphMetrics(dim) {
     return {
-        graphHeight: dim.height - xAxisSize - margin * 2,
-        graphWidth: dim.width - yAxisSize - margin * 2,
+        graphHeight: dim.height - heightAdjustment(),
+        graphWidth: dim.width - widthAdjustment(),
         graphX: yAxisSize + margin,
         graphY: margin,
     };
@@ -56,7 +65,7 @@ export function useRefSize(ref, aspectRatio) {
                 return;
             }
             const w = Number.parseInt(ref.current.offsetWidth);
-            const h = Number.parseInt(w * aspectRatio);
+            const h = heightAdjustment() + Number.parseInt((w - widthAdjustment()) * aspectRatio);
             setDim({
                 width: w,
                 height: h,
