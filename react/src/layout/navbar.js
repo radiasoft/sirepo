@@ -32,6 +32,7 @@ export class NavBarModalButton extends View {
 
         let models = useContext(ContextModelsWrapper);
         let title = useInterpolatedString(models, config.title);
+        let modalTitle = useInterpolatedString(models, config.modal.title);
 
         let [modalShown, updateModalShown] = useState(false);
 
@@ -90,7 +91,7 @@ export class NavBarModalButton extends View {
 
                 <Modal show={modalShown} onHide={() => _cancel()} size="lg">
                     <Modal.Header className="lead bg-info bg-opacity-25">
-                        {title}
+                        {modalTitle}
                     </Modal.Header>
                     <Modal.Body>
                         {children}

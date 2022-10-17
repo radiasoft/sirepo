@@ -74,7 +74,6 @@ export function Graph2d(props) {
 
                 let paths = plots.map((plot, i) => toPath(plot, i));
                 const cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
-
                 return (
                     <>
                         <svg
