@@ -3963,8 +3963,10 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             appState,
             setPoints,
             {
-                points_file: $scope.modelData.pointsFile,
                 method: 'build_shape_points',
+                args: {
+                    points_file: $scope.modelData.pointsFile,
+                }
             }
         );
     }
@@ -4004,6 +4006,8 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
                 hasField || appState.isSubclass(modelType, m[0])
             );
         });
+        // show the type but disable it
+        panelState.enableField('geomObject', 'type', false);
         panelState.showField('extrudedPoints', 'referencePoints', ($scope.modelData.referencePoints || []).length > 0);
     }
 

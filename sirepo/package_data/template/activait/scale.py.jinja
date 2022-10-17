@@ -10,16 +10,16 @@ from sklearn.preprocessing import {{ dataFile_inputsScaler }}
 from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 {% endif %}
 
-def read_data(data_reader, data_path, **kwargs):
-    return sirepo.numpy.ndarray_from_ctx(
-        data_reader.data_context_manager(data_path),
+def read_data(data_reader, **kwargs):
+    return sirepo.numpy.ndarray_from_generator(
+        data_reader.csv_generator(),
         {{ 1 if columnInfo_hasHeaderRow else 0 }},
         **kwargs,
     )
 
 
 {% if dataFile_appMode == 'classification' or dataFile_appMode == 'regression' %}
-def read_data_and_encode_output_column(data_reader, data_path, column_types):
+def read_data_and_encode_output_column(data_reader, column_types):
     from sklearn.preprocessing import LabelEncoder
     _DATA_TYPE = np.float
 
@@ -36,7 +36,7 @@ def read_data_and_encode_output_column(data_reader, data_path, column_types):
             filename='{{ classificationOutputColEncodingFile }}',
         )
 
-    v = read_data(data_reader, data_path, dtype=None, encoding='utf=8')
+    v = read_data(data_reader, dtype=None, encoding='utf=8')
     if len(v.dtype.descr) > 1:
         descr = v.dtype.descr
         output_encoding = None
@@ -65,11 +65,15 @@ def scale_columns(values, column_types, col_type, scaler):
     return columns
 
 
-def scale_file(data_reader, data_path, column_types, inputs_scaler, outputs_scaler):
+def scale_file(data_reader, column_types, inputs_scaler, outputs_scaler):
     {% if dataFile_appMode == 'classification' or dataFile_appMode == 'regression' %}
-    v = read_data_and_encode_output_column(data_reader, data_path, column_types)
+    {% if dataFile_dataFormat == 'text' %}
+    v = read_data_and_encode_output_column(data_reader, column_types)
     {% else %}
-    v = read_data(data_reader, data_path)
+    v = read_data(data_reader)
+    {% endif %}
+    {% else %}
+    v = read_data(data_reader)
     {% endif %}
     in_idx = scale_columns(v, column_types, 'input', inputs_scaler)
     out_idx = scale_columns(v, column_types, 'output', outputs_scaler)
@@ -79,8 +83,7 @@ def scale_file(data_reader, data_path, column_types, inputs_scaler, outputs_scal
 
 
 scaled, in_idx, out_idx = scale_file(
-    sirepo.sim_data.activait.DataReader('{{ dataFile }}'),
-    '{{ dataPath }}',
+    sirepo.sim_data.activait.DataReaderFactory.build('{{ dataFile }}', '{{ dataPath }}'),
     {{ columnTypes }},
     {{ dataFile_inputsScaler }},
 {% if dataFile_appMode == 'classification' %}

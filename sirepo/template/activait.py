@@ -15,9 +15,11 @@ from sirepo.template import template_common
 from urllib import parse
 from urllib import request
 import csv
+import h5py
 import numpy as np
 import os
 import re
+import pandas
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
@@ -161,7 +163,7 @@ def stateless_compute_load_keras_model(data):
     import keras.models
 
     l = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.file)
+        _SIM_DATA.lib_file_name_with_model_field("mlModel", "modelFile", data.args.file)
     )
     return _build_ui_nn(keras.models.load_model(l))
 
@@ -205,24 +207,19 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
 
 def sim_frame_epochAnimation(frame_args):
     # TODO(pjm): improve heading text
-    header = ["epoch", "loss", "val_loss"]
-    path = str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile))
-
-    v = sirepo.numpy.ndarray_from_csv(path, True)
-    if len(v.shape) == 1:
-        v.shape = (v.shape[0], 1)
+    d = pandas.read_csv(str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile)))
     return _report_info(
-        v[:, 0],
+        list(d.index),
         [
             PKDict(
-                points=v[:, i].tolist(),
-                label=header[i],
+                points=list(d[l]),
+                label=l,
             )
-            for i in (1, 2)
+            for l in ("loss", "val_loss")
         ],
     ).pkupdate(
         PKDict(
-            x_label=header[0],
+            x_label="epoch",
         )
     )
 
@@ -299,19 +296,19 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
 
 
 def stateful_compute_compute_column_info(data):
-    return _compute_column_info(data.dataFile)
+    return _compute_column_info(data.args.dataFile)
 
 
 def stateless_compute_get_remote_data(data):
-    return _get_remote_data(data.url, data.headers_only)
+    return _get_remote_data(data.args.url, data.args.headers_only)
 
 
 def stateless_compute_remote_data_bytes_loaded(data):
-    return _remote_data_bytes_loaded(data.filename)
+    return _remote_data_bytes_loaded(data.args.filename)
 
 
 def stateless_compute_get_archive_file_list(data):
-    return _archive_file_list(data.filename, data.data_type)
+    return _archive_file_list(data.args.filename, data.args.data_type)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -322,10 +319,10 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _archive_file_list(filename, data_type):
-    reader = sirepo.sim_data.activait.DataReader(_filepath(filename))
+    reader = sirepo.sim_data.activait.DataReaderFactory.build(_filepath(filename))
 
     def _filter(item):
-        is_dir = getattr(item, reader.dir_check)()
+        is_dir = reader.is_dir(item)
         return is_dir if data_type == "image" else not is_dir
 
     return PKDict(datalist=reader.get_data_list(_filter))
@@ -375,18 +372,24 @@ def _build_model_py(v):
     strides={layer.strides},
     padding="{layer.padding}"'''
 
+    def _dropout_args(layer):
+        if layer.get("rate"):
+            return layer.rate
+        else:
+            return layer.dropoutRate
+
     args_map = PKDict(
         Activation=lambda layer: f'"{layer.activation}"',
         Add=lambda layer: _branch(layer, "Add"),
-        AlphaDropout=lambda layer: layer.dropoutRate,
+        AlphaDropout=lambda layer: _dropout_args(layer),
         AveragePooling2D=lambda layer: _pooling_args(layer),
         BatchNormalization=lambda layer: f"momentum={layer.momentum}",
         Concatenate=lambda layer: _branch(layer, "Concatenate"),
         Conv2D=lambda layer: _conv_args(layer),
         Dense=lambda layer: f'{layer.dimensionality}, activation="{layer.activation}"',
-        Dropout=lambda layer: layer.dropoutRate,
+        Dropout=lambda layer: _dropout_args(layer),
         Flatten=lambda layer: "",
-        GaussianDropout=lambda layer: layer.dropoutRate,
+        GaussianDropout=lambda layer: _dropout_args(layer),
         GaussianNoise=lambda layer: layer.stddev,
         GlobalAveragePooling2D=lambda layer: "",
         MaxPooling2D=lambda layer: _pooling_args(layer),
@@ -510,14 +513,12 @@ def _close_completed_branch(level, cur_node, neural_net):
     )
 
 
-def _cols_with_non_unique_values(data_reader, data_path, has_header_row, header):
+def _cols_with_non_unique_values(data_reader, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(
         r"\.npy$", str(data_reader.path.basename)
     ), f"numpy files are not supported path={data_reader.path.basename}"
-    v = sirepo.numpy.ndarray_from_ctx(
-        data_reader.data_context_manager(data_path), has_header_row
-    )
+    v = sirepo.numpy.ndarray_from_generator(data_reader.csv_generator(), has_header_row)
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0, :], axis=0)):
         if c:
@@ -538,8 +539,8 @@ def _compute_csv_info(filename, data_path):
         rowCount=0,
     )
     row = None
-    a = sirepo.sim_data.activait.DataReader(_filepath(filename))
-    with a.data_context_manager(data_path) as f:
+    a = sirepo.sim_data.activait.DataReaderFactory.build(_filepath(filename), data_path)
+    with a.data_context_manager() as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -553,7 +554,6 @@ def _compute_csv_info(filename, data_path):
         res.hasHeaderRow = False
     res.colsWithNonUniqueValues = _cols_with_non_unique_values(
         a,
-        data_path,
         res.hasHeaderRow,
         row,
     )
@@ -782,6 +782,24 @@ def _fit_animation(frame_args):
     )
 
 
+def _is_image_data(data_file, v):
+    # POSIT (gurhar1133): assumes only .h5 input data_files
+    if not re.compile(r".h5$").search(data_file):
+        return False
+    with h5py.File(data_file, "r") as f:
+        if "images" not in f.keys():
+            return False
+        s = f["metadata/labels"].shape
+        if len(s) > 1:
+            # POSIT (gurhar1133): assumes output wont be tuples
+            raise AssertionError(
+                f"shape of labels={s}, should not be multi-dimensional outputs"
+            )
+        v.outputDim = s[0]
+        v.inputDim = ",".join([str(x) for x in f["images"].shape[1:]])
+    return True
+
+
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
@@ -797,7 +815,11 @@ def _generate_parameters_file(data):
     v.columnTypes = (
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
-    res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
+    v.image_data = _is_image_data(v.dataFile, v)
+    if v.image_data:
+        res += template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
+    else:
+        res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
     if "fileColumnReport" in report or report == "partitionSelectionReport":
         return res
     if _is_sim_report(report):
@@ -807,7 +829,8 @@ def _generate_parameters_file(data):
         or v.partition_section1 == "train_and_test"
         or v.partition_section2 == "train_and_test"
     )
-    res += template_common.render_jinja(SIM_TYPE, v, "partition.py")
+    if not v.image_data:
+        res += template_common.render_jinja(SIM_TYPE, v, "partition.py")
     if "partitionColumnReport" in report:
         res += template_common.render_jinja(SIM_TYPE, v, "save-partition.py")
         return res

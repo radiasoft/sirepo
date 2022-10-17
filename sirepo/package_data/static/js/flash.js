@@ -525,7 +525,9 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
                     data => $scope.setupCommand = data.setupCommand,
                     {
                         method: 'setup_command',
-                        setupArguments: appState.models.setupArguments,
+                        args: {
+                            setupArguments: appState.models.setupArguments,
+                        }
                     });
             }
 
@@ -637,8 +639,10 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
             },
             {
                 method: 'update_lib_file',
-                simulationId: appState.models.simulation.simulationId,
-                archiveLibId: appState.models.problemFiles.archiveLibId,
+                args: {
+                    simulationId: appState.models.simulation.simulationId,
+                    archiveLibId: appState.models.problemFiles.archiveLibId,
+                }
             }
         );
     }
@@ -820,12 +824,14 @@ SIREPO.app.directive('archiveFileList', function() {
                     data => callback(data),
                     {
                         method: method,
-                        simulationId: appState.models.simulation.simulationId,
-                        filename: $scope.selectedFileName,
-                        models: flashService.isFlashPar($scope.selectedFileName)
-                            ? appState.applicationState()
-                            : {},
-                        archiveFiles: appState.models.problemFiles.archiveFiles,
+                        args: {
+                            simulationId: appState.models.simulation.simulationId,
+                            filename: $scope.selectedFileName,
+                            models: flashService.isFlashPar($scope.selectedFileName)
+                                ? appState.applicationState()
+                                : {},
+                            archiveFiles: appState.models.problemFiles.archiveFiles,
+                        }
                     });
             }
 

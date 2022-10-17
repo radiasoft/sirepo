@@ -834,7 +834,7 @@ def run_epilogue():
 
 
 def stateful_compute_compute_undulator_length(data):
-    return compute_undulator_length(data["tabulated_undulator"])
+    return compute_undulator_length(data.args["tabulated_undulator"])
 
 
 def stateful_compute_create_shadow_simulation(data):
@@ -844,12 +844,14 @@ def stateful_compute_create_shadow_simulation(data):
 
 
 def stateful_compute_delete_user_models(data):
-    return _delete_user_models(data["electron_beam"], data["tabulated_undulator"])
+    return _delete_user_models(
+        data.args["electron_beam"], data.args["tabulated_undulator"]
+    )
 
 
 def stateful_compute_model_list(data):
     res = []
-    model_name = data["model_name"]
+    model_name = data.args["model_name"]
     if model_name == "electronBeam":
         res.extend(get_predefined_beams())
     res.extend(_load_user_model_list(model_name))

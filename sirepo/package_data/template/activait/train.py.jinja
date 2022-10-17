@@ -1,5 +1,22 @@
-
+import numpy as np
 from keras.callbacks import CSVLogger
+{% if image_data %}
+import keras.losses
+
+model.compile(
+    optimizer='adam',
+    # TODO (gurhar1133): loss function needs to be un-hardcoded
+    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    metrics=['accuracy'],
+)
+
+history = model.fit(
+    x=trainx, y=trainy, epochs={{ neuralNet_epochs }},
+    validation_data=(valx, valy),
+    callbacks=[CSVLogger('{{ fitCSVFile }}')],
+)
+
+{% else %}
 
 model.compile(loss='{{ neuralNet_losses }}', optimizer='{{ neuralNet_optimizer }}')
 model.fit(
@@ -12,5 +29,10 @@ model.fit(
     verbose=False,
     callbacks=[CSVLogger('{{ fitCSVFile }}')],
 )
-np.save('{{ testFile }}', test[:, out_idx])
-np.save('{{ predictFile }}', model.predict(x=test[:, in_idx]))
+testy = test[:, out_idx]
+testx = test[:, in_idx]
+
+{% endif %}
+
+np.save('{{ testFile }}', testy)
+np.save('{{ predictFile }}', model.predict(x=testx))

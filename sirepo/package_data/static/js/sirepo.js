@@ -3427,7 +3427,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
             [
                 self.sectionTitle(),
                 SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName,
-                'RadiaSoft',
+                'Sirepo',
             ],
             function(n){ return n; })
             .join(' - ');

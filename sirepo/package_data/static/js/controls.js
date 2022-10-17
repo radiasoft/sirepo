@@ -52,7 +52,6 @@ SIREPO.app.config(() => {
 SIREPO.app.factory('controlsService', function(appState, latticeService, requestSender) {
     const self = {};
     const mevToKg = 5.6096e26;
-    const defaultFactor = 100;
     const elementaryCharge = 1.602e-19; // Coulomb
     const fieldMap = {
         QUADRUPOLE: 'K1',
@@ -97,10 +96,13 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             },
             {
                 method: 'current_to_kick',
-                command_beam: appState.models.command_beam,
-                //TODO(pjm): not sure why null values get sent but undefined values do not
-                amp_table: self.getAmpTables()[model.ampTable] || null,
-                current: model[self.currentField(kickField)],
+                args: {
+                    command_beam: appState.models.command_beam,
+                    //TODO(pjm): not sure why null values get sent but undefined values do not
+                    amp_table: self.getAmpTables()[model.ampTable] || null,
+                    current: model[self.currentField(kickField)],
+                    default_factor: appState.models.controlSettings.defaultFactor,
+                },
             });
     };
 
@@ -142,9 +144,12 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             },
             {
                 method: 'kick_to_current',
-                command_beam: appState.models.command_beam,
-                amp_table: self.getAmpTables()[model.ampTable] || null,
-                kick: model[self.kickField(currentField)],
+                args: {
+                    command_beam: appState.models.command_beam,
+                    amp_table: self.getAmpTables()[model.ampTable] || null,
+                    kick: model[self.kickField(currentField)],
+                    default_factor: appState.models.controlSettings.defaultFactor,
+                },
             });
     };
 
@@ -201,7 +206,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             },
             {
                 method: 'get_external_lattice',
-                simulationId: appState.models.dataFile.madxSirepo
+                args: {
+                    simulationId: appState.models.dataFile.madxSirepo
+                }
             }
         );
     }
@@ -619,6 +626,7 @@ SIREPO.viewLogic('beamlineView', function(appState, controlsService, panelState,
                 'deviceServerURL', 'readOnly', 'deviceServerUser', 'deviceServerProcName',
                 'deviceServerProcId', 'deviceServerMachine',
             ], controlsService.isDeviceServer(),
+            ['inputLogFile', 'defaultFactor'], ! controlsService.isDeviceServer(),
         ]);
     }
 
@@ -782,7 +790,94 @@ SIREPO.app.directive('optimizerTable', function(appState) {
     };
 });
 
-SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameCache, latticeService, panelState, utilities, $timeout) {
+
+SIREPO.app.directive('logSelector', function(appState, controlsService, requestSender, utilities, $rootScope) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div class="col-sm-12" data-ng-if="showSelector()">
+              <label>Selected log file time</label>
+              <input type="range" data-ng-model="appState.models.controlSettings.selectedTimeIndex" min="0" max="{{ logViewer.maxIndex }}">
+              <div>{{ logViewer.displayValue }}</div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.logViewer = {
+                maxIndex: 0,
+                displayValue: '',
+                isInitialized: false,
+            };
+
+            const updateFromLog = utilities.debounce(() => {
+                $scope.logViewer.displayValue = new Date($scope.logViewer.timeValues[
+                    appState.models.controlSettings.selectedTimeIndex] * 1000).toGMTString();
+                requestSender.sendStatefulCompute(
+                    appState,
+                    data => {
+                        $rootScope.$broadcast('initialMonitorPositionsReport.summaryData', {
+                            elementValues: [data.values],
+                        });
+                        // can't save controlSettings directly or plots would clear
+                        appState.models.controlSettings.simMode = 'singleUpdates';
+                        appState.saveQuietly('controlSettings');
+                        appState.models.initialMonitorPositionsReport.changed = ! appState.models.initialMonitorPositionsReport.changed;
+                        appState.saveChanges('initialMonitorPositionsReport');
+                    },
+                    {
+                        method: 'get_log_file_values_at_index',
+                        index: appState.models.controlSettings.selectedTimeIndex,
+                        models: appState.models.externalLattice.models,
+                        lib_file: appState.models.controlSettings.inputLogFile,
+                    });
+            }, SIREPO.debounce_timeout);
+
+            function init() {
+                $scope.logViewer.isInitialized = true;
+                appState.watchModelFields($scope, ['controlSettings.selectedTimeIndex'], updateFromLog);
+
+                requestSender.sendStatefulCompute(
+                    appState,
+                    data => {
+                        $scope.logViewer.timeValues = data.timeValues;
+                        $scope.logViewer.maxIndex = data.timeValues.length - 1;
+                        updateFromLog();
+                    },
+                    {
+                        method: 'get_log_file_time_list',
+                        lib_file: appState.models.controlSettings.inputLogFile,
+                    });
+            }
+
+            function isEnabled() {
+                if (controlsService.isDeviceServer() || ! appState.applicationState().controlSettings.inputLogFile) {
+                    return false;
+                }
+                return true;
+            }
+
+            $scope.showSelector = () => {
+                if (! isEnabled()) {
+                    return false;
+                }
+                return $scope.logViewer.maxIndex > 0;
+            };
+
+            $scope.$on('controlSettings.changed', () => {
+                if (isEnabled() && ! $scope.logViewer.isInitialized) {
+                    init();
+                }
+            });
+
+            if (isEnabled()) {
+                init();
+            }
+        },
+    };
+});
+
+SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameCache, latticeService, panelState, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -790,6 +885,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
             modelName: '@',
         },
         template: `
+            <div data-log-selector=""></div>
             <div class="row">
               <div class="col-sm-8 col-xl-7 text-right" ng-if="modelName == 'beamlines'">
                 <div data-ng-repeat="table in tables track by table.reading" style="display: inline-block; vertical-align: top; margin-right: 1.5em">
@@ -826,7 +922,6 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
                 <h4 style="position: absolute; top: -2%; left: 10%;">Beam Position at Monitors</h4>
                 <div data-report-content="parameter" data-model-key="initialMonitorPositionsReport"></div>
               </div>
-
             </div>
             `,
         controller: function($scope) {
