@@ -14,6 +14,8 @@ import copy
 import functools
 import importlib
 import signal
+import sirepo.const
+import sirepo.events
 import sirepo.feature_config
 import sirepo.job
 import sirepo.job_driver
@@ -39,7 +41,7 @@ def default_command():
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in("dev"), bool, "run supervisor in debug mode"),
         ip=(sirepo.job.DEFAULT_IP, str, "ip to listen on"),
-        port=(sirepo.job.DEFAULT_PORT, int, "what port to listen on"),
+        port=(sirepo.const.PORT_DEFAULTS.supervisor, int, "what port to listen on"),
     )
     sirepo.modules.import_and_init("sirepo.job_supervisor")
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)

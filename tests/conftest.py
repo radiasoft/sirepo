@@ -10,7 +10,7 @@ _LOCALHOST = "127.0.0.1"
 MAX_CASE_RUN_SECS = int(os.getenv("SIREPO_CONFTEST_MAX_CASE_RUN_SECS", 120))
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def auth_fc(auth_fc_module):
     # set the sentinel
     auth_fc_module.cookie_jar.clear()
@@ -19,7 +19,7 @@ def auth_fc(auth_fc_module):
     return auth_fc_module
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def auth_fc_module(request):
     with _auth_client_module(request) as c:
         yield c
@@ -210,6 +210,13 @@ def _auth_client_module(request, uwsgi=False):
         yield c
 
 
+def _check_port(port):
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((_LOCALHOST, int(port)))
+
+
 def _config_sbatch_supervisor_env(env):
     from pykern.pkcollections import PKDict
     import os
@@ -240,26 +247,7 @@ def _config_sbatch_supervisor_env(env):
 
 
 def _job_supervisor_check(env):
-    import socket
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        s.bind(
-            (
-                env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
-                int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT),
-            )
-        )
-    except Exception:
-        raise AssertionError(
-            "job_supervisor still running on ip={} port={}".format(
-                env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
-                env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT,
-            ),
-        )
-    finally:
-        s.close()
+    _check_port(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT)
 
 
 def _fc(request, fc_module, new_user=False):
@@ -279,6 +267,19 @@ def _fc(request, fc_module, new_user=False):
     else:
         fc_module.sr_login_as_guest(sim_type=c)
     return fc_module
+
+
+def _port():
+    import random
+    from sirepo import const
+
+    for p in random.sample(const.TEST_PORT_RANGE, 100):
+        try:
+            _check_port(p)
+            return str(p)
+        except Exception:
+            pass
+    raise AssertionError(f"ip={_LOCALHOST} unable to allocate port")
 
 
 def _sim_type(request):
@@ -312,17 +313,17 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     from pykern import pkunit
     from pykern import pkio
 
-    # different port than default so can run tests when supervisor running
-    p = "8101"
+    p = _port()
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME="1",
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
         SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
+        SIREPO_PKCLI_SERVICE_IP=_LOCALHOST,
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
     if uwsgi:
-        cfg.SIREPO_PKCLI_SERVICE_PORT = "8102"
-        cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = "8180"
+        cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
+        cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port()
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
         cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
             _LOCALHOST, p
