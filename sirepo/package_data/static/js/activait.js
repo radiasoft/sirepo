@@ -1251,7 +1251,6 @@ SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelStat
             }
 
             const updateColumnInfo = () => {
-                // TODO (gurhar1133): need to handle .selected array?
                 appState.models.columnInfo.header = appState.models.dataFile.dataList;
                 let a = [];
                 appState.models.columnInfo.header.forEach(
