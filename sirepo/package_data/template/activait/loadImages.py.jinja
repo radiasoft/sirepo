@@ -3,8 +3,10 @@ import h5py
 from sklearn.model_selection import train_test_split
 
 with h5py.File('{{ dataFile }}', 'r') as f:
+    test_and_validate = (100 - {{ partition_training }})/100
+    validation_size = ((test_and_validate * 100) - {{ partition_testing }})/100
     x_values = f['images']
     y_values = f['metadata/image_types']
-    trainx, tvx, trainy, tvy = train_test_split(x_values, y_values, test_size=0.25, random_state=42, shuffle=False)
+    trainx, tvx, trainy, tvy = train_test_split(x_values, y_values, test_size=test_and_validate, random_state=42, shuffle=False)
     trainx, tvx = trainx / 255.0, tvx / 255.0
-    testx, valx, testy, valy = train_test_split(tvx, tvy, test_size=0.5, random_state=42, shuffle=False)
+    testx, valx, testy, valy = train_test_split(tvx, tvy, test_size=validation_size, random_state=42, shuffle=False)
