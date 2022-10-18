@@ -415,6 +415,13 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     self.showRpnVariables = function() {
         appState.models.rpnVariables = appState.models.rpnVariables.sort(function(a, b) {
+            // work-around for #4935 put invalid variables last
+            if (a.name === null) {
+                return 1;
+            }
+            if (b.name === null) {
+                return -1;
+            }
             return a.name.localeCompare(b.name);
         });
         $('#sr-variables').modal('show');
@@ -3021,7 +3028,11 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                 return 'name' in $scope.newVar
                     && 'value' in $scope.newVar
                     && $scope.newVar.name !== ''
-                    && $scope.newVar.value !== '';
+                    && $scope.newVar.name !== null
+                    && $scope.newVar.name !== undefined
+                    && $scope.newVar.value !== ''
+                    && $scope.newVar.value !== null
+                    && $scope.newVar.value !== undefined;
             };
 
             $scope.saveChanges = function() {
