@@ -748,6 +748,11 @@
             "basic": [],
             "advanced": []
         },
+        "imageViewer": {
+            "title": "Image Samples",
+            "basic": [],
+            "advanced": []
+        },
         "separableConv2D": {
             "columns": [
                 "dimensionality",
