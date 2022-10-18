@@ -104,6 +104,7 @@ def test_elegant_no_frame_after_purge(auth_fc):
         0,
         s.frameCount,
     )
+    _adjust_time(fc, forward=False)
 
 
 def _adjust_time(fc, forward=True):
