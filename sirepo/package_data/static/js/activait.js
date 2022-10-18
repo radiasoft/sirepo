@@ -1255,7 +1255,9 @@ SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelStat
                 let a = [];
                 appState.models.columnInfo.header.forEach(
                     e => {
-                       a.push($scope.model.selectedPaths[e].inputOutput);
+                        if (e in $scope.model.selectedPaths) {
+                            a.push($scope.model.selectedPaths[e].inputOutput);
+                        }
                     }
                 );
                 appState.models.columnInfo.inputOutput = a;
