@@ -347,6 +347,10 @@ SIREPO.app.controller('DataController', function (appState, panelState, requestS
         return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'text';
     };
 
+    self.isImageData = () => {
+        return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'image';
+    };
+
     //appState.whenModelsLoaded($scope, function() {
     //    $scope.$on('dataFile.changed', dataFileChanged);
     //    //TODO(pjm): enable when analysis tab is completed
@@ -1120,6 +1124,75 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
     };
 });
 
+
+SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+        <div>
+          <img class="img-responsive srw-processed-image" />
+          <div data-ng-if="isLoading()" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between;" data-ng-if="! isLoading()">
+            <button data-ng-click="prev()"> < prev image set </button>
+            <button data-ng-click="next()"> next image set > </button>
+          </div>
+        </div>
+        `,
+        controller: function($scope, appState) {
+            var idx = 0;
+            var uris;
+            var loading = true;
+
+            $scope.isLoading = () => loading;
+
+            $scope.updateUriIndex = function(increment) {
+                if ((0 <= idx + increment) && (idx + increment <= 4)) {
+                    idx = idx + increment;
+                    setImageFromUriIndex(idx);
+                }
+            };
+
+            $scope.prev = function() {
+                $scope.updateUriIndex(-1);
+            };
+
+            $scope.next = function() {
+                $scope.updateUriIndex(1);
+            };
+
+            function setImageFromUriIndex(index) {
+                if ($('.srw-processed-image').length) {
+                    $('.srw-processed-image')[0].src = uris[index];
+                }
+            }
+
+            const loadImageFile = () => {
+                requestSender.sendStatefulCompute(
+                    appState,
+                    response => {
+                        uris = response.uris;
+                        setImageFromUriIndex(0);
+                        loading = false;
+                    },
+                    {
+                        method: 'sample_images',
+                        args: {
+                            imageFilename: 'sample',
+                            dataFile: appState.models.dataFile,
+                        }
+                    }
+                );
+            };
+
+            loadImageFile();
+        }
+    };
+});
+
+
 SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelState, utilities) {
     return {
         restrict: 'A',
@@ -1177,6 +1250,23 @@ SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelStat
                 appState.saveChanges($scope.modelName);
             }
 
+            const updateColumnInfo = () => {
+                appState.models.columnInfo.header = appState.models.dataFile.dataList;
+                let a = [];
+                appState.models.columnInfo.header.forEach(
+                    e => {
+                        if (e in $scope.model.selectedPaths) {
+                            a.push($scope.model.selectedPaths[e].inputOutput);
+                        }
+                    }
+                );
+                appState.models.columnInfo.inputOutput = a;
+                appState.saveChanges('columnInfo');
+            };
+
+            $scope.$on('dataPathInfo.changed', updateColumnInfo);
+
+            updateColumnInfo();
         },
     };
 });
