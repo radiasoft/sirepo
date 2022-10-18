@@ -9,6 +9,7 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import pykern.pkdebug
+import sirepo.const
 import sirepo.srdb
 import sirepo.util
 import re
@@ -72,12 +73,9 @@ SUPERVISOR_SRV_ROOT = None
 #: address where supervisor binds to
 DEFAULT_IP = "127.0.0.1"
 
-#: port supervisor is listening on
-DEFAULT_PORT = 8001
-
 #: cfg declaration for supervisor_uri for drivers and
 DEFAULT_SUPERVISOR_URI_DECL = (
-    "http://{}:{}".format(DEFAULT_IP, DEFAULT_PORT),
+    "http://{}:{}".format(DEFAULT_IP, sirepo.const.PORT_DEFAULTS.supervisor),
     str,
     "how to reach supervisor",
 )
