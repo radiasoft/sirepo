@@ -38,7 +38,6 @@ def init_quest(qcall):
 class _Cookie(sirepo.quest.Attr):
     def __init__(self, qcall):
         super().__init__()
-        self.__crypto = None
         self.__incoming_serialized = ""
         self._from_cookie_header(qcall)
 

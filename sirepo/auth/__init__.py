@@ -179,11 +179,9 @@ class _Auth(sirepo.quest.Attr):
         u = self._qcall_bound_user()
         with sirepo.util.THREAD_LOCK:
             r = self.user_registration(u)
-            if self._qcall_bound_method() == METHOD_GUEST:
-                assert (
-                    name is None
-                ), "Cookie method is {} and name is {}. Expected name to be None".format(
-                    METHOD_GUEST, name
+            if self._qcall_bound_method() == METHOD_GUEST and name is not None:
+                raise AssertionError(
+                    "user name={name} should be None with method={METHOD_GUEST}",
                 )
             r.display_name = name
             r.save()
@@ -311,10 +309,13 @@ class _Auth(sirepo.quest.Attr):
         Raises an exception if successful, except in the case of methods
 
         Args:
-            module (module): method module
-            uid (str): user to login
-            model (auth_db.UserDbBase): user to login (overrides uid)
-            sim_type (str): app to redirect to
+            method (module): method module (only if is_mock) [None]
+            uid (str): user to login [None]
+            model (auth_db.UserDbBase): user to login (overrides uid) [None]
+            sim_type (str): app to redirect to [None]
+            display_name (str): to save as the display_name [None]
+            is_mock (bool): simulationed login for api_srUnit [False]
+            want_redirect (bool): http redirect on success [False]
         """
         if method is None:
             assert is_mock, "only used by api_srUnit"
@@ -360,7 +361,7 @@ class _Auth(sirepo.quest.Attr):
                 model.uid = uid
                 model.save()
         if display_name:
-            self.complete_registration(self._parse_display_name(display_name))
+            self.complete_registration(self.parse_display_name(display_name))
         if is_mock:
             return
         if sim_type:
@@ -679,7 +680,7 @@ class _Auth(sirepo.quest.Attr):
             return None
         return module.UserModel.search_by(uid=uid)
 
-    def _parse_display_name(self, value):
+    def parse_display_name(self, value):
         res = value.strip()
         assert res, "invalid post data: displayName={}".format(value)
         return res

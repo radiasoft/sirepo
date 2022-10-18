@@ -18,7 +18,7 @@ class API(sirepo.quest.API):
         if not self.auth.is_logged_in():
             raise sirepo.util.SRException(LOGIN_ROUTE_NAME, None)
         self.auth.complete_registration(
-            self.auth._parse_display_name(self.parse_json().get("displayName")),
+            self.auth.parse_display_name(self.parse_json().get("displayName")),
         )
         return self.reply_ok()
 
