@@ -74,7 +74,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     fc.sr_email_login(user_premium)
     _status_eq(next_req_premium, "completed")
     _check_run_dir(should_exist=7)
-    _adjust_time(fc, forward=False)
+    _adjust_time(fc, restore=True)
 
 
 def test_elegant_no_frame_after_purge(auth_fc):
@@ -104,13 +104,13 @@ def test_elegant_no_frame_after_purge(auth_fc):
         0,
         s.frameCount,
     )
-    _adjust_time(fc, forward=False)
+    _adjust_time(fc, restore=True)
 
 
-def _adjust_time(fc, forward=True):
+def _adjust_time(fc, restore=False):
     fc.sr_get_json(
         "adjustTime",
         params=PKDict(
-            days=(1 if forward else -1) * (_PURGE_FREE_AFTER_DAYS + 1),
+            days=(-1 if restore else 1) * (_PURGE_FREE_AFTER_DAYS + 1),
         ),
     )
