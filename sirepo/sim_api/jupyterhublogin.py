@@ -208,6 +208,7 @@ def _event_end_api_call(qcall, kwargs):
     u = qcall.bucket_uget(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR)
     if not u:
         return
+    # Delete the JupyterHub cookies, because we are logging out of Sirepo.
     for c, v in (
         ("jupyterhub-hub-login", "hub"),
         (f"jupyterhub-user-{u}", f"user/{u}"),
