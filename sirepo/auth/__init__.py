@@ -432,6 +432,11 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
 
+    def parse_display_name(self, value):
+        res = value.strip()
+        assert res, "invalid post data: displayName={}".format(value)
+        return res
+
     def require_adm(self):
         u = self.require_user()
         if not sirepo.auth_db.UserRole.has_role(u, sirepo.auth_role.ROLE_ADM):
@@ -679,11 +684,6 @@ class _Auth(sirepo.quest.Attr):
         if not hasattr(module, "UserModel"):
             return None
         return module.UserModel.search_by(uid=uid)
-
-    def parse_display_name(self, value):
-        res = value.strip()
-        assert res, "invalid post data: displayName={}".format(value)
-        return res
 
     def _plan(self, data):
         r = data.roles
