@@ -1167,7 +1167,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 if ($('.srw-processed-image').length) {
                     $('.srw-processed-image')[0].src = uris[index];
                 }
-            };
+            }
 
             const loadImageFile = () => {
                 requestSender.sendStatefulCompute(
