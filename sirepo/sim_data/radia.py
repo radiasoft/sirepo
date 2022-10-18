@@ -63,8 +63,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 models.fieldPaths.paths.append(
                     PKDict(
                         _super="fieldPath",
-                        begin="0, -225, 0",
-                        end="0, 225, 0",
+                        begin=[0, -225, 0],
+                        end=[0, 225, 0],
                         id=0,
                         name="y axis",
                         numPoints=101,
@@ -93,6 +93,107 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
+        import sirepo.util
+
+        sch = cls.schema()
+
+        def _delete_old_fields(model):
+            for f in ("divisions",):
+                if model.get(f):
+                    del model[f]
+
+        def _fixup_array(model, model_type_field, model_field):
+            for o in model.get(model_field, []):
+                if model_type_field not in o:
+                    continue
+                _fixup_number_string_fields(o[model_type_field], o)
+                _fixup_array(o, model_type_field, model_field)
+
+        def _fixup_boolean_fields(model_name, model):
+            s_m = sch.model[model_name]
+            for f in [
+                f for f in s_m if f in model and s_m[f][1] == "Boolean" and not model[f]
+            ]:
+                model[f] = "0"
+
+        def _fixup_number_string_field(model, field, to_type=float):
+            if field not in model:
+                return
+            if isinstance(model[field], str):
+                model[field] = sirepo.util.split_comma_delimited_string(
+                    model[field], to_type
+                )
+
+        def _fixup_number_string_fields(model_name, model):
+            if not model_name or not model:
+                return
+            s_m = sch.model.get(model_name)
+            if not s_m:
+                return
+            for f in model:
+                if f not in s_m:
+                    continue
+                sf = s_m[f][1]
+                if sf == "FloatArray":
+                    _fixup_number_string_field(model, f)
+                    continue
+                if sf == "IntArray":
+                    _fixup_number_string_field(model, f, to_type=int)
+                    continue
+                if sf.startswith("model."):
+                    _fixup_number_string_fields(sf.split(".")[-1], model[f])
+                    _fixup_transforms(model[f])
+            sc = [x for x in s_m.get("_super", []) if x != "_" and x != "model"]
+            if sc:
+                _fixup_number_string_fields(sc[0], model)
+
+        def _fixup_geom_objects(objects):
+            for o in objects:
+                if o.get("points") is not None and not o.get("triangulationLevel"):
+                    o.triangulationLevel = 0.5
+                if not o.get("bevels"):
+                    o.bevels = []
+                for b in o.bevels:
+                    if not b.get("cutRemoval"):
+                        b["cutRemoval"] = "1"
+                if not o.get("fillets"):
+                    o.fillets = []
+                if not o.get("segments"):
+                    o.segments = o.get("division", [1, 1, 1])
+                for f in (
+                    "type",
+                    "model",
+                ):
+                    _fixup_number_string_fields(o.get(f), o)
+                # fix "orphan" fields
+                for f in (
+                    "center",
+                    "magnetization",
+                    "segments",
+                    "size",
+                ):
+                    _fixup_number_string_field(o, f)
+                _fixup_terminations(o)
+                _fixup_transforms(o)
+                _delete_old_fields(o)
+
+        def _fixup_field_paths(paths):
+            for p in paths:
+                for f in (
+                    "begin",
+                    "end",
+                ):
+                    _fixup_number_string_field(p, f)
+
+        def _fixup_terminations(model):
+            for t in filter(
+                lambda x: x,
+                map(lambda x: x.get("object"), model.get("terminations", [])),
+            ):
+                _fixup_number_string_fields(t.get("type"), t)
+
+        def _fixup_transforms(model):
+            _fixup_array(model, "model", "transforms")
 
         dm = data.models
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
@@ -109,25 +210,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
-        for o in dm.geometryReport.objects:
-            if o.get("points") is not None and not o.get("triangulationLevel"):
-                o.triangulationLevel = 0.5
-            if not o.get("bevels"):
-                o.bevels = []
-            for b in o.bevels:
-                if not b.get("cutRemoval"):
-                    b["cutRemoval"] = "1"
-            if not o.get("fillets"):
-                o.fillets = []
-            if not o.get("segments"):
-                o.segments = o.get("division", "1, 1, 1")
-        sch = cls.schema()
-        for m in [m for m in dm if m in sch.model]:
-            s_m = sch.model[m]
-            for f in [
-                f for f in s_m if f in dm[m] and s_m[f][1] == "Boolean" and not dm[m][f]
-            ]:
-                dm[m][f] = "0"
+        _fixup_geom_objects(dm.geometryReport.objects)
+        _fixup_field_paths(dm.fieldPaths.paths)
+        for name in [name for name in dm if name in sch.model]:
+            _delete_old_fields(dm[name])
+            _fixup_boolean_fields(name, dm[name])
+            _fixup_number_string_fields(name, dm[name])
+            _fixup_terminations(dm[name])
+            _fixup_transforms(dm[name])
         cls._organize_example(data)
 
     @classmethod

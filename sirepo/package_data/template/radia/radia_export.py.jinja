@@ -26,7 +26,6 @@ _MODELS = _OBJ_MODELS + _GROUP_MODELS
 sirepo_objs = {{ objects }}
 
 # sirepo.util functions
-{{ sirepoUtilSplit }}
 
 {% endif %}
 
@@ -43,10 +42,10 @@ def _add_object(o, radia_objs, id_map):
     sc = o.get("super_classes", [])
     mat = {{ matrix }}
     if _MODEL_OBJECT in sc:
-        ctr = split_comma_delimited_string(o["center"], float)
-        sz = split_comma_delimited_string(o["size"], float)
-        m = multiply_vector_by_matrix(split_comma_delimited_string(o["magnetization"], float), mat)
-        segs = multiply_vector_by_matrix(split_comma_delimited_string(o["segments"], int), mat)
+        ctr = o["center"]
+        sz = o["size"]
+        m = multiply_vector_by_matrix(o["magnetization"], mat)
+        segs = multiply_vector_by_matrix(o["segments"], mat)
     if t == _MODEL_CUBOID:
         g_id = build_cuboid(
             center=ctr,
@@ -86,11 +85,11 @@ def _add_object(o, radia_objs, id_map):
     )
     if t == _MODEL_RACETRACK:
         g_id = build_racetrack(
-            center=split_comma_delimited_string(o["center"], float),
+            center=o["center"],
             axis=o["axis"],
             calc=o["fieldCalc"],
-            radii=split_comma_delimited_string(o["radii"], float),
-            sides=split_comma_delimited_string(o["sides"], float),
+            radii=o["radii"],
+            sides=o["sides"],
             height=o["height"],
             num_segs=o["numSegments"],
             curr_density=o["currentDensity"],
