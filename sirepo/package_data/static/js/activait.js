@@ -1148,7 +1148,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
 
             $scope.isLoading = () => loading;
 
-            $scope.updateUriIndex = function(increment){
+            $scope.updateUriIndex = function(increment) {
                 if ((0 <= idx + increment) && (idx + increment <= 4)) {
                     idx = idx + increment;
                     setImageFromUriIndex(idx);
@@ -1163,7 +1163,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 $scope.updateUriIndex(1);
             };
 
-            const setImageFromUriIndex = (index) => {
+            function setImageFromUriIndex(index) {
                 if ($('.srw-processed-image').length) {
                     $('.srw-processed-image')[0].src = uris[index];
                 }
@@ -1172,7 +1172,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             const loadImageFile = () => {
                 requestSender.sendStatefulCompute(
                     appState,
-                    function(response) {
+                    response => {
                         uris = response.uris;
                         setImageFromUriIndex(0);
                         loading = false;
@@ -1262,9 +1262,7 @@ SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelStat
                 appState.saveChanges('columnInfo');
             };
 
-            $scope.$on('dataPathInfo.changed', () => {
-                updateColumnInfo();
-            });
+            $scope.$on('dataPathInfo.changed', updateColumnInfo);
 
             updateColumnInfo();
         },

@@ -302,11 +302,11 @@ def stateful_compute_compute_column_info(data):
 def stateful_compute_sample_images(data):
     import matplotlib.pyplot as plt
     from base64 import b64encode
-    from pykern.pkcompat import from_bytes
+    from pykern import pkcompat
 
     def _data_url(filename):
         f = open(filename, "rb")
-        u = "data:image/jpeg;base64," + from_bytes(b64encode(f.read()))
+        u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
         f.close()
         return u
 
@@ -321,7 +321,7 @@ def stateful_compute_sample_images(data):
                 plt.xticks([])
                 plt.yticks([])
                 plt.imshow(x[i + j])
-                plt.xlabel(str(f["metadata/labels"][y[i + j]]).replace("b'", "'"))
+                plt.xlabel(pkcompat.from_bytes(f["metadata/labels"][y[i + j]]))
             p = (
                 _SIM_DATA.lib_file_write_path(data.args.imageFilename)
                 + f"_{int(i/25)}.png"
