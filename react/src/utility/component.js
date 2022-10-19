@@ -20,13 +20,13 @@ export function constrainZoom(transformMatrix, size, dimension) {
 
 //TODO(pjm): use a library?
 export function debounce(fn, ms) {
-    let timer
+    let timer;
     return _ => {
-        clearTimeout(timer)
+        clearTimeout(timer);
         timer = setTimeout(_ => {
-            timer = null
-            fn.apply(this, arguments)
-        }, ms)
+            timer = null;
+            fn.apply(this, arguments);
+        }, ms);
     };
 }
 
@@ -34,24 +34,15 @@ const xAxisSize = 30;
 const yAxisSize = 60;
 const margin = 25;
 
-function heightAdjustment() {
+function graphContentHeightOffset() {
     return xAxisSize + margin * 2;
 }
 
-function widthAdjustment() {
+function graphContentWidthOffset() {
     return yAxisSize + margin * 2;
 }
 
-export function graphMetrics(dim) {
-    return {
-        graphHeight: dim.height - heightAdjustment(),
-        graphWidth: dim.width - widthAdjustment(),
-        graphX: yAxisSize + margin,
-        graphY: margin,
-    };
-}
-
-export function useRefSize(ref, aspectRatio) {
+function useRefSize(ref) {
     const [dim, setDim] = useState({
         width: 1000,
         height: 1000,
@@ -64,11 +55,9 @@ export function useRefSize(ref, aspectRatio) {
             if (! ref || ! ref.current) {
                 return;
             }
-            const w = Number.parseInt(ref.current.offsetWidth);
-            const h = heightAdjustment() + Number.parseInt((w - widthAdjustment()) * aspectRatio);
             setDim({
-                width: w,
-                height: h,
+                width: Number.parseInt(ref.current.offsetWidth),
+                height: Number.parseInt(ref.current.offsetHeight),
             });
         }, 250);
         window.addEventListener('resize', handleResize);
@@ -77,5 +66,24 @@ export function useRefSize(ref, aspectRatio) {
             window.removeEventListener('resize', handleResize);
         };
     }, [ref]);
-    return dim;
+    return [dim, setDim];
+}
+
+export function useGraphContentBounds(ref, aspectRatio) {
+    const [dim, setDim] = useRefSize(ref);
+    const h = graphContentHeightOffset() + Number.parseInt((dim.width - graphContentWidthOffset()) * aspectRatio);
+    if (h != dim.height) {
+        setDim({
+            width: dim.width,
+            height: h,
+        });
+    }
+    return {
+        contentWidth: dim.width,
+        contentHeight: dim.height,
+        height: dim.height - graphContentHeightOffset(),
+        width: dim.width - graphContentWidthOffset(),
+        x: yAxisSize + margin,
+        y: margin,
+    };
 }
