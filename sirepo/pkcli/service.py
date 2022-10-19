@@ -114,27 +114,25 @@ def http():
         with pkio.save_chdir(_run_dir()), _handle_signals(
             (signal.SIGINT, signal.SIGTERM)
         ):
-            if pkconfig.channel_in("dev"):
+            if pkconfig.channel_in("dev") and _cfg().react_port:
                 _install_react()
             _start(
                 ("job_supervisor",),
                 extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
             )
-            # Avoid race condition on creating auth db
+            e = PKDict()
+            if _cfg().react_port:
+                # Avoid race condition on creating auth db
+                time.sleep(0.3)
+                _start(
+                    ("npm", "start"),
+                    cwd="../react",
+                    prefix=(),
+                    extra_environ=PKDict(PORT=str(_cfg().react_port)),
+                )
+                e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
             time.sleep(0.3)
-            _start(
-                ("npm", "start"),
-                cwd="../react",
-                prefix=(),
-                extra_environ=PKDict(PORT=str(_cfg().react_port)),
-            )
-            time.sleep(0.3)
-            _start(
-                ("service", "flask"),
-                extra_environ=PKDict(
-                    SIREPO_SERVER_REACT_SERVER=f"http://127.0.0.1:{_cfg().react_port}/",
-                ),
-            )
+            _start(("service", "flask"), extra_environ=e)
             p, _ = os.wait()
     except ChildProcessError:
         pass
