@@ -297,7 +297,6 @@ def build_container(g_ids):
 
 
 def build_cuboid(**kwargs):
-    pkdp("Cuboid: {}", kwargs)
     d = PKDict(kwargs)
     g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
     _apply_segments(g_id, d.segments)
@@ -306,19 +305,9 @@ def build_cuboid(**kwargs):
 
 
 def build_stl(**kwargs):
-    pkdp("STL: {}", kwargs)
     d = PKDict(kwargs)
-    
-    pkdp("Faces: {}", d.faces)
-    pkdp("Vertices: {}", d.vertices)
-    
-    #g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
-    pkdp("build_stl() ObjPolyhdr: Start")
-    #g_id = radia.ObjPolyhdr(d.vertices, d.faces, d.magnetization)
-    g_id = radia.ObjMltExtPgn(d.slices, d.magnetization)
-    pkdp("build_stl() ObjPolyhdr: Done!")
-    #_apply_segments(g_id, d.segments)
-    pkdp("build_stl() MatApl: Start")
+    f = numpy.array(d.faces)+1
+    g_id = radia.ObjPolyhdr(d.vertices, f.tolist(), d.magnetization)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
 
@@ -398,9 +387,7 @@ def geom_to_data(g_id, name=None, divide=True):
 
     n = (name if name is not None else str(g_id)) + ".Geom"
     pd = PKDict(name=n, id=g_id, data=[])
-    pkdp("geom_to_data() first ObjDrwVTK: Call")
     d = _to_pkdict(radia.ObjDrwVTK(g_id, "Axes->No"))
-    pkdp("geom_to_data() first ObjDrwVTK: Done")
     d.update(_geom_bounds(g_id))
     n_verts = len(d.polygons.vertices)
     c = radia.ObjCntStuf(g_id)
@@ -415,9 +402,7 @@ def geom_to_data(g_id, name=None, divide=True):
         for g in c:
             # for fully recursive array
             # for g in get_all_geom(geom):
-            pkdp("geom_to_data() conditional ObjDrwVTK: Start")
             s_d = _to_pkdict(radia.ObjDrwVTK(g, "Axes->No"))
-            pkdp("geom_to_data() conditional ObjDrwVTK: Done")
             s_d.update(_geom_bounds(g))
             n_s_verts += len(s_d.polygons.vertices)
             s_d.id = g
@@ -429,9 +414,7 @@ def geom_to_data(g_id, name=None, divide=True):
             d.id = g_id
             d_arr = [d]
         pd.data = d_arr
-    pkdp("geom_to_data() ObjGeoLim: Start")
     pd.bounds = radia.ObjGeoLim(g_id)
-    pkdp("geom_to_data() ObjGeoLim: Done")
     return pd
 
 
