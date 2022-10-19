@@ -8,7 +8,6 @@ import numpy
 import radia
 import sirepo.util
 import sys
-import trimesh
 
 
 from numpy import linalg

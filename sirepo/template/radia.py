@@ -1626,6 +1626,7 @@ def _update_geom_obj(o, **kwargs):
         size=[1.0, 1.0, 1.0],
         stlVertices = [],
         stlFaces = [],
+        #stlSlices = [], TODO: Not implemented
     )
     for k in d:
         v = kwargs.get(k)
