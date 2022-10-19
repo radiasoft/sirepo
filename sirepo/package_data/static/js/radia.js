@@ -1834,7 +1834,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             };
 
             $scope.$on('radiaViewer.loaded', () => {
-                if ($scope.dataCleared) {
+                if ($scope.dataCleared && $scope.hasPaths()) {
                     $scope.simState.runSimulation();
                 }
                 $scope.dataCleared = false;
@@ -3624,7 +3624,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 const r = 'fieldLineoutAnimation';
                 for (const p of appState.models.fieldPaths.paths) {
-                    if (p.id === appState.models[r].fieldPath.id) {
+                    if (! appState.models[r].fieldPath || p.id === appState.models[r].fieldPath.id) {
                         appState.models[r].fieldPath = p;
                         appState.saveChanges(r);
                         break;
