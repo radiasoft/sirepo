@@ -1119,6 +1119,170 @@
                                                         ]
                                                     }
                                                 ]
+                                            },
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "electronBeam.cuttail"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Position",
+                                        "items": [
+                                            {
+                                                "layout": "fieldTable",
+                                                "columns": ["Horizontal", "Vertical"],
+                                                "rows": [
+                                                    {
+                                                        "label": "Position [m]",
+                                                        "description": "XBEAM, YBEAM: Transverse position in $x$ of the electron beam at the undulator entrance with respect to the undulator axis.",
+                                                        "fields": [
+                                                            "electronBeam.xbeam",
+                                                            "electronBeam.ybeam"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "label": "Average momentum",
+                                                        "description": "PXBEAM, PYBEAM: Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as $\\text{PXBEAM} = \\beta_x\\gamma$ where $\\beta_x = cv_x$ is the average transverse velocity and $\\gamma$ the Lorenz factor of the electron energy.",
+                                                        "fields": [
+                                                            "electronBeam.pxbeam",
+                                                            "electronBeam.pybeam"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Correlations",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "electronBeam.bunch",
+                                                    "electronBeam.bunchphase",
+                                                    "electronBeam.emod",
+                                                    "electronBeam.emodphase"
+                                                ]
+                                            },
+                                            {
+                                                "layout": "fieldTable",
+                                                "columns": ["Horizontal", "Vertical"],
+                                                "rows": [
+                                                    {
+                                                        "label": "Correlation strength [1/m]",
+                                                        "description": "CONDITX, CONDITY: is the correlation strength between the amplitude of the electron's betatron oscillation and its energy. If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can be increased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information.",
+                                                        "fields": [
+                                                            "electronBeam.conditx",
+                                                            "electronBeam.condity"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "Radiation",
+                        "basic": [
+                            {
+                                "layout": "tabs",
+                                "tabs": [
+                                    {
+                                        "name": "Main",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "radiation.xlambs",
+                                                    "io.radfile",
+                                                    "radiation.prad0",
+                                                    "radiation.zrayl",
+                                                    "radiation.zwaist"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Harmonics",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "radiation.nharm",
+                                                    "radiation.iallharm",
+                                                    "radiation.iharmsc",
+                                                    "radiation.pradh0"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                            
+                        ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "Particle Loading",
+                        "basic": [
+                            {
+                                "layout": "tabs",
+                                "tabs": [
+                                    {
+                                        "name": "Main",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "particleLoading.nbins",
+                                                    "io.distfile",
+                                                    "particleLoading.itgaus",
+                                                    "particleLoading.igamgaus",
+                                                    "particleLoading.inverfc",
+                                                    "particleLoading.ipseed"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Hammersley Sequence",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "particleLoading.ildpsi",
+                                                    "particleLoading.iall",
+                                                    "particleLoading.ildgam"
+                                                ]
+                                            },
+                                            {
+                                                "layout": "fieldTable",
+                                                "columns": ["Horizontal", "Vertical"],
+                                                "rows": [
+                                                    {
+                                                        "label": "Base for position",
+                                                        "description": "ILDX, ILDY: Hammersley base for loading the distribution in x. See ILDPSI for more information.",
+                                                        "fields": [
+                                                            "particleLoading.ildx",
+                                                            "particleLoading.ildy"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "label": "Base for momentum",
+                                                        "description": "ILDPX, ILDPY: Hammersley base for loading the distribution in px. See ILDPSI for more information.",
+                                                        "fields": [
+                                                            "particleLoading.ildpx",
+                                                            "particleLoading.ildpy"
+                                                        ]
+                                                    }
+                                                ]
                                             }
                                         ]
                                     }
