@@ -1,7 +1,12 @@
+// import { React }
+/* eslint eqeqeq: 0 */
+/* eslint no-unused-vars: 0 */
+import { useRef } from 'react';
 import { Zoom } from '@visx/zoom';
-import { Axis, ClipPath, Scale, Shape } from '@visx/visx';
+import { ClipPath, Scale, Shape } from '@visx/visx';
 import { LegendOrdinal } from "@visx/legend";
-import { format } from "d3-format";
+import { DynamicAxis } from "./axis";
+import { constrainZoom, useGraphContentBounds } from "../utility/component";
 
 /**
  *
@@ -17,72 +22,40 @@ import { format } from "d3-format";
  * @returns
  */
 export function Graph2d(props) {
-    let { width, height, plots, xRange, yRange, xLabel, yLabel } = props;
-
-    const intWidth = 500;
-    //TODO(pjm): aspect ratio
-    const intHeight = Number.parseInt(intWidth * 9 / 16);
-
-    let xAxisSize = 30;
-    let yAxisSize = 40;
-
-    let margin = 20;
-
-    let graphHeight = intHeight - xAxisSize - margin * 2;
-    let graphWidth = intWidth - yAxisSize - margin * 2;
-
-    // TODO: make legend
-
-    let graphX = yAxisSize + margin;
-    let graphY = margin;
+    let {plots, xRange, yRange, xLabel, yLabel } = props;
+    const ref = useRef(null);
+    //TODO(pjm): use props.aspectRatio if present
+    const gc = useGraphContentBounds(ref, 9 / 16.0);
 
     function constrain(transformMatrix) {
         // no Y zoom
         transformMatrix.scaleY = 1;
         transformMatrix.translateY = 0;
-        // constrain X zoom/pan within plot boundaries
-        if (transformMatrix.scaleX < 1) {
-            transformMatrix.scaleX = 1;
-            transformMatrix.translateX = 0;
-        }
-        else {
-            if (transformMatrix.translateX > 0) {
-                transformMatrix.translateX = 0;
-            }
-            else if (graphWidth * transformMatrix.scaleX + transformMatrix.translateX < graphWidth) {
-                transformMatrix.translateX = graphWidth - graphWidth * transformMatrix.scaleX;
-            }
-        }
-        return transformMatrix;
+        return constrainZoom(transformMatrix, gc.width, 'X');
     }
 
     return (
-        <Zoom
-            height={intHeight}
-            width={intWidth}
-            constrain={constrain}
-        >
+        <div ref={ref}>
+            <Zoom
+                width={gc.width}
+                height={gc.height}
+                constrain={constrain}
+            >
             {(zoom) => {
                 let xScale = Scale.scaleLinear({
                     domain: [xRange.min, xRange.max],
-                    range: [0, graphWidth],
-                    round: true
+                    range: [0, gc.width],
                 });
+                xScale.domain([
+                    xScale.invert((xScale(xRange.min) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),
+                    xScale.invert((xScale(xRange.max) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),
+                ]);
 
                 let yScale = Scale.scaleLinear({
                     //TODO(pjm): scale y range over visible points
                     domain: [yRange.min, yRange.max],
-                    range: [graphHeight, 0],
-                    round: true,
+                    range: [gc.height, 0],
                     nice: true
-                });
-
-                let xScaleZoom = Scale.scaleLinear({
-                    domain: [xScale.invert((xScale(xRange.min) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),
-                             xScale.invert((xScale(xRange.max) - zoom.transformMatrix.translateX) / zoom.transformMatrix.scaleX),],
-                    range: [0, graphWidth],
-                    round: true,
-
                 });
 
                 let legendScale = Scale.scaleOrdinal({
@@ -92,7 +65,7 @@ export function Graph2d(props) {
 
                 let toPath = (plot, index) => {
                     return (
-                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color}>
+                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color} strokeWidth={2}>
 
                         </Shape.LinePath>
                     )
@@ -100,54 +73,51 @@ export function Graph2d(props) {
 
                 let paths = plots.map((plot, i) => toPath(plot, i));
                 const cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
-                let tickFormat = format(",.2e");
-                
-                let xTicks = 5;
-                let yTicks = 5;
-
                 return (
                     <>
                         <svg
-                            height={height}
-                            width={width}
-                            ref={zoom.containerRef}
                             style={{'userSelect': 'none'}}
-                            viewBox={`${0} ${0} ${intWidth} ${intHeight}`}
+                            viewBox={`${0} ${0} ${gc.contentWidth} ${gc.contentHeight}`}
                         >
-                            <ClipPath.RectClipPath id={"graph-clip"} width={graphWidth} height={graphHeight}/>
-                            <g transform={`translate(${graphX} ${graphY})`} width={graphWidth} height={graphHeight}>
-                                <Axis.AxisBottom
-                                    stroke={"#888"}
-                                    tickStroke={"#888"}
-                                    scale={xScaleZoom}
-                                    top={graphHeight}
-                                    tickFormat={tickFormat}
-                                    numTicks={xTicks}
-
+                            <ClipPath.RectClipPath id={"graph-clip"} width={gc.width} height={gc.height}/>
+                            <g transform={`translate(${gc.x} ${gc.y})`} width={gc.width} height={gc.height}>
+                                <DynamicAxis
+                                    orientation={"bottom"}
+                                    scale={xScale}
+                                    top={gc.height}
+                                    label={xLabel}
+                                    graphSize={gc.width}
                                 />
-                                <Axis.AxisLeft
-                                    stroke={"#888"}
-                                    tickStroke={"#888"}
+                                <DynamicAxis
+                                    orientation={"left"}
                                     scale={yScale}
-                                    tickFormat={tickFormat}
-                                    numTicks={yTicks}
+                                    label={yLabel}
+                                    graphSize={gc.height}
                                 />
                                 <g clipPath="url(#graph-clip)">
                                     <g transform={zoom.toString()} >
                                         {paths}
                                     </g>
                                 </g>
-                                <rect
-                                    width={graphWidth}
-                                    height={graphHeight}
-                                    style={{'fill': 'none', 'cursor': cursor, 'pointerEvents': 'all'}}
-                                ></rect>
+                                {/* zoom container must be contained within svg so visx localPoint() works correctly */}
+                                <svg><rect
+                                    ref={zoom.containerRef}
+                                    width={gc.width}
+                                    height={gc.height}
+                                    style={{
+                                        touchAction: 'none',
+                                        fill: 'none',
+                                        cursor: cursor,
+                                        pointerEvents: 'all',
+                                    }}
+                                ></rect></svg>
                             </g>
                         </svg>
                         <LegendOrdinal scale={legendScale} direction="column"/>
                     </>
                 )
             }}
-        </Zoom>
+            </Zoom>
+        </div>
     )
 }

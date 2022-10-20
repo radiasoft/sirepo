@@ -1071,7 +1071,7 @@
                                 }
                             ]
                         },
-                        { 
+                        {
                             "name": "electronBeam",
                             "layout": "panel",
                             "title": "Cooling Electron Beam",
@@ -1461,6 +1461,26 @@
                             "name": "particleAnimation",
                             "layout": "panel",
                             "title": "Ion Particle Animation",
+                            "basic": [
+                                {
+                                    "layout": "manualRunReport",
+                                    "reportGroupName": "animation",
+                                    "reportName": "particleAnimation",
+                                    "frameIdFields": [
+                                        "particleAnimation.x",
+                                        "particleAnimation.y",
+                                        "particleAnimation.histogramBins",
+                                        "particleAnimation.plotRangeType",
+                                        "particleAnimation.horizontalSize",
+                                        "particleAnimation.horizontalOffset",
+                                        "particleAnimation.verticalSize",
+                                        "particleAnimation.verticalOffset"
+                                    ],
+                                    "reportLayout": {
+                                        "layout": "heatplot"
+                                    }
+                                }
+                            ],
                             "advanced": [
                                 {
                                     "layout": "tabs",
