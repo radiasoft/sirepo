@@ -263,19 +263,37 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display col-sm-11"
-              data-ng-style="sizeStyle()" data-show-border="true"
-              data-report-id="reportId" data-model-name="{{ modelName }}"
-              data-event-handlers="eventHandlers" data-reset-side="y"
-              data-enable-axes="true" data-axis-cfg="axisCfg"
-              data-axis-obj="axisObj" data-enable-selection="true"></div>
-            <div class="col-sm-1" style="padding-left: 0;" data-ng-if="supportsColorbar()">
-                <div class="colorbar"></div>
+            <ul data-ng-if="! isClientOnly" class="nav nav-tabs">
+                <li role="presentation" class="active" data-ng-class="{active: displayType === '2D'}">
+                    <a href data-ng-click="setDisplay('2D')">2D</a>
+                </li>
+                <li role="presentation" class="active" data-ng-class="{active: displayType === '3D'}">
+                    <a href data-ng-click="setDisplay('3D')">3D</a>
+                </li>
+            </ul>
+            <div>
+                <div data-vtk-display="" class="vtk-display col-sm-11"
+                  data-ng-style="sizeStyle()" data-show-border="true"
+                  data-report-id="reportId" data-model-name="{{ modelName }}"
+                  data-event-handlers="eventHandlers" data-reset-side="y"
+                  data-enable-axes="true" data-axis-cfg="axisCfg"
+                  data-axis-obj="axisObj" data-enable-selection="true"></div>
+                <div class="col-sm-1" style="padding-left: 0;" data-ng-if="supportsColorbar()">
+                    <div class="colorbar"></div>
+                </div>
             </div>
+            <!--
+            <div data-ng-show="displayType === '2D'">
+               <div data-report-panel="heatmap" data-model-name="{{ modelName }}"></div>
+            </div>
+            -->
         `,
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
+
+            $scope.displayType = '3D';
             $scope.isClientOnly = isGeometryOnly;
+
             let axesBoxes = {};
             let basePolyData = null;
             let colorbar = null;
@@ -703,6 +721,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             $scope.resize = () => {
                 //TODO(pjm): reposition camera?
+            };
+
+            $scope.setDisplay = d => {
+                $scope.displayType = d;
             };
 
             $scope.sizeStyle = () => {
