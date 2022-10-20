@@ -329,6 +329,9 @@ def stateful_compute_build_shape_points(data):
     ) as f:
         for r in csv.reader(f):
             pts.append([float(x) for x in r])
+    # Radia does not like it if the path is closed
+    if all(numpy.isclose(pts[0], pts[-1])):
+        del pts[-1]
     return PKDict(points=pts)
 
 
