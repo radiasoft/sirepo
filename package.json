@@ -2,11 +2,7 @@
   "name": "sirepo",
   "description": "Accelerator code gui",
   "dependencies": {
-    "@types/node": "^18.11.3",
-    "@types/react": "^18.0.21",
-    "@types/react-dom": "^18.0.6",
-    "html2canvas": "^1.4.1",
-    "typescript": "^4.8.4"
+    "html2canvas": "^1.4.1"
   },
   "devDependencies": {
     "jasmine-core": "latest",
