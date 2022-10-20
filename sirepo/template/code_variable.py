@@ -241,6 +241,9 @@ class CodeVar:
     def __variables_by_name(self, variables):
         res = PKDict()
         for v in variables:
+            # work-around for #4935 skip invalid variables
+            if v is None or v["name"] is None:
+                continue
             n = self.canonicalize(v["name"])
             value = v.get("value", 0)
             if self.case_insensitive and type(value) == str:

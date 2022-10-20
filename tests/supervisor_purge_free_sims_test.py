@@ -67,16 +67,14 @@ def test_myapp_free_user_sim_purged(auth_fc):
     next_req_premium = _run_sim(fc.sr_sim_data())
     fc.sr_email_login(user_free)
     next_req_free = _run_sim(fc.sr_sim_data())
-    fc.sr_get_json(
-        "adjustTime",
-        params=PKDict(days=_PURGE_FREE_AFTER_DAYS + 1),
-    )
+    _adjust_time(fc)
     time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
     _status_eq(next_req_free, "job_run_purged")
     _check_run_dir(should_exist=0)
     fc.sr_email_login(user_premium)
     _status_eq(next_req_premium, "completed")
     _check_run_dir(should_exist=7)
+    _adjust_time(fc, restore=True)
 
 
 def test_elegant_no_frame_after_purge(auth_fc):
@@ -89,10 +87,7 @@ def test_elegant_no_frame_after_purge(auth_fc):
     fc.sr_email_register(user_free)
     d = fc.sr_sim_data(sim_name="Compact Storage Ring", sim_type="elegant")
     r = fc.sr_run_sim(d, "animation")
-    fc.sr_get_json(
-        "adjustTime",
-        params=PKDict(days=_PURGE_FREE_AFTER_DAYS + 1),
-    )
+    _adjust_time(fc)
     time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
     s = fc.sr_post(
         "runStatus",
@@ -108,4 +103,14 @@ def test_elegant_no_frame_after_purge(auth_fc):
     pkunit.pkeq(
         0,
         s.frameCount,
+    )
+    _adjust_time(fc, restore=True)
+
+
+def _adjust_time(fc, restore=False):
+    fc.sr_get_json(
+        "adjustTime",
+        params=PKDict(
+            days=(-1 if restore else 1) * (_PURGE_FREE_AFTER_DAYS + 1),
+        ),
     )

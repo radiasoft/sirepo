@@ -171,9 +171,9 @@ class VTKUtils {
         for (const a of parseFieldData(str)) {
             pd.getFieldData().addArray(a);
         }
+        pd.buildCells();
         return pd;
     }
-
 
     /**
      * Creates a vtk user matrix from a SquareMatrix.
@@ -251,6 +251,15 @@ class VTKScene {
     }
 
     /**
+     * Gets the bounds of all the objects in the scene
+     * @returns {[number]}
+     */
+    bounds() {
+        this.renderer.resetCamera();
+        return this.renderer.computeVisiblePropBounds();
+    }
+
+    /**
      * Gets an icon based on the view direction ("into/out of the screen")
      * @returns {string}
      */
@@ -263,6 +272,20 @@ class VTKScene {
      */
     hasMarker() {
         return ! ! this.marker;
+    }
+
+    /**
+     * Refreshes the visibility of the orientation marker, if one exists
+     * @param doRender - if true, perform a render
+     */
+    refreshMarker(doRender=true) {
+        if (! this.hasMarker()) {
+            return;
+        }
+        this.marker.setEnabled(this.isMarkerEnabled);
+        if (doRender) {
+            this.render();
+        }
     }
 
     /**
@@ -306,6 +329,15 @@ class VTKScene {
     }
 
     /**
+     * Rotates the camera around the axis pointing into/out of the screen
+     * @param {number} angle - the angle ini degrees
+     */
+    rotate(angle) {
+        this.cam.roll(angle);
+        this.render();
+    }
+
+    /**
      * Builds a wireframe box around all the objects in the scene, with optional padding
      * @param {number} padPct - additional padding as a percentage of the size
      * @returns {BoxBundle}
@@ -314,16 +346,6 @@ class VTKScene {
         // must reset the camera before computing the bounds
         this.renderer.resetCamera();
         return VTKUtils.buildBoundingBox(this.bounds(), padPct);
-    }
-
-
-    /**
-     * Gets the bounds of all the objects in the scene
-     * @returns {number[]}
-     */
-    bounds() {
-        this.renderer.resetCamera();
-        return this.renderer.computeVisiblePropBounds();
     }
 
     /**
@@ -375,24 +397,10 @@ class VTKScene {
         if (direction) {
             this.viewDirection = Math.sign(direction);
         }
-        this.viewSide = side;
-        const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[side]
+        this.viewSide = side || this.resetSide;
+        const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[this.viewSide]
             .map(c =>  c * this.viewDirection);
-        this.setCam(pos, this.camProperties[side].viewUp);
-    }
-
-    /**
-     * Refreshes the visibility of the orientation marker, if one exists
-     * @param doRender - if true, perform a render
-     */
-    refreshMarker(doRender=true) {
-        if (! this.hasMarker()) {
-            return;
-        }
-        this.marker.setEnabled(this.isMarkerEnabled);
-        if (doRender) {
-            this.render();
-        }
+        this.setCam(pos, this.camProperties[this.viewSide].viewUp);
     }
 
     /**
@@ -488,6 +496,23 @@ class ActorBundle {
      */
     setColor(color) {
         this.actorProperties.setColor(VTKUtils.colorToFloat(color));
+    }
+
+    /**
+     *
+     * @param {[int]} colors - array of unsigned ints (0-255).
+     * @param {int} numColorComponents - the number of components in a color (3 for rgb or 4 for rgb + alpha)
+     */
+    setColorScalarsForCells(colors, numColorComponents) {
+        const pd = this.mapper.getInputData();
+        pd.getCellData().setScalars(
+            vtk.Common.Core.vtkDataArray.newInstance({
+                dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
+                numberOfComponents: numColorComponents,
+                values: colors,
+            })
+        );
+        pd.modified();
     }
 
     /**
@@ -631,6 +656,30 @@ class PlaneBundle extends ActorBundle {
 }
 
 /**
+ * A bundle for a line source defined by two points
+ */
+class PolyDataBundle extends ActorBundle {
+    /**
+     * @param vtk.Common.DataModel.vtkPolyData polyData
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        polyData,
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
+    ) {
+        super(
+            null,
+            transform,
+            actorProperties
+        );
+        this.polyData = polyData;
+        this.mapper.setInputData(polyData);
+    }
+}
+
+/**
  * A bundle for a sphere source
  */
 class SphereBundle extends ActorBundle {
@@ -737,6 +786,15 @@ class CoordMapper {
      */
     buildPlane(labOrigin, labP1, labP2, actorProperties) {
         return new PlaneBundle(labOrigin, labP1, labP2, this.transform, actorProperties);
+    }
+
+    /**
+     * Creates a Bundle from PolyData
+     * @param {vtk.Common.DataModel.vtkPolyData} polyData
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    buildPolyData(polyData, actorProperties) {
+        return new PolyDataBundle(polyData, this.transform, actorProperties);
     }
 
     /**
@@ -855,9 +913,9 @@ class ViewPortObject {
      * @param {[Point]} coords - 3d points
      * @returns {[Point]} - 2d points
      */
-   viewPortPoints(coords) {
+    viewPortPoints(coords) {
         return coords.map(x => this.viewPortPoint(x));
-   }
+    }
 
     /**
      * Translates corners from vtk world to viewport
@@ -1728,11 +1786,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             resetDrag();
                             return;
                         }
-                        o.center = floatArrayToString([
+                        o.center = [
                             shape.center.x,
                             shape.center.y,
                             shape.center.z
-                        ]);
+                        ].map(x => x * invObjScale);
                         $scope.source.saveObject(shape.id, function () {
                             resetDrag();
                             //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
@@ -1864,12 +1922,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.$applyAsync(function() {
                     $scope.source.editObjectWithId(shape.id);
                 });
-            }
-
-            function floatArrayToString(arr) {
-                return arr.map(function (v) {
-                    return invObjScale * v;
-                }).join(',');
             }
 
             function hideShapeLocation() {
@@ -2255,8 +2307,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     var ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
-                    obj.center = floatArrayToString(ctr);
-                    //replot();
+                    obj.center = ctr.map(x => x * invObjScale);
                     $scope.$emit('layout.object.dropped', obj);
                 }
             };
@@ -2798,6 +2849,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         height: Math.max(0, $(canvasHolder).height()),
                     }
                 };
+            };
+
+            $scope.rotate = angle => {
+                $scope.vtkScene.rotate(angle);
+                refresh(true);
             };
 
             $scope.setInteractionMode = mode => {

@@ -244,6 +244,7 @@
         "verticalPosition": 0
     },
     "exportRsOpt": {
+        "characteristic": "1",
         "elements": [],
         "numCores": 4,
         "numSamples": 100,

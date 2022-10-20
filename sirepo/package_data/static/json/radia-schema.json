@@ -9,14 +9,14 @@
         "dataDownloads": {
             "_default": [
                 {
-                    "title": "Save as SDDS",
-                    "suffix": "sdds"
-                }
-            ],
-            "fieldLineoutReport": [
-                {
                     "title": "Save as CSV",
                     "suffix": "csv"
+                }
+            ],
+            "fieldLineoutAnimation": [
+                {
+                    "title": "Save as SDDS",
+                    "suffix": "sdds"
                 },
                 {
                     "title": "Save for SRW import",
@@ -25,8 +25,8 @@
             ],
             "kickMapReport": [
                 {
-                    "title": "Save as Text",
-                    "suffix": "txt"
+                    "title": "Save as SDDS",
+                    "suffix": "sdds"
                 }
             ]
         },
@@ -389,6 +389,7 @@
     },
     "frameIdFields": {
         "solverAnimation": [],
+        "fieldLineoutAnimation": [],
         "magnetViewer": []
     },
     "localRoutes": {
@@ -444,9 +445,9 @@
             "_super": ["_", "model", "transform"],
             "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "angle": ["Angle (deg)", "Float", "0.0"],
-            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
+            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
@@ -457,10 +458,10 @@
             "gap": ["Gap [mm]", "Float", 1.0, "", 0.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
-                "center": "0.0, 0.0, 1.0",
+                "center": [0.0, 0.0, 1.0],
                 "color": "#ff00ff",
-                "segments": "4, 4, 4",
-                "magnetization": "0.0, 0.0, 1.0",
+                "segments": [4, 4, 4],
+                "magnetization": [0.0, 0.0, 1.0],
                 "name": "pole",
                 "remanentMag": 1.0,
                 "material": "NdFeB",
@@ -471,19 +472,19 @@
                         "color": null,
                         "model": "symmetryTransform",
                         "object": "",
-                        "symmetryPlane": "0,0,1",
-                        "symmetryPoint": "0,0,0",
+                        "symmetryPlane": [0, 0, 1],
+                        "symmetryPoint": [0, 0, 0],
                         "symmetryType": "parallel"
                     }
                 ],
-                "size": "5.0, 5.0, 5.0"
+                "size": [5.0, 5.0, 5.0]
             }]
         },
         "dipoleC": {
             "_super": ["_", "model", "dipoleBasic"],
             "coil": ["Coil", "model.racetrack", {
                 "axis": "z",
-                "center": "0.0, 131.25, 0.0",
+                "center": [0.0, 131.25, 0.0],
                 "color": "#ff0000",
                 "currentDensity": -2000.0,
                 "fieldCalc": "auto",
@@ -492,24 +493,24 @@
                 "numSegments": 3,
                 "planeAxis1": "x",
                 "planeAxis2": "y",
-                "radii": "5.0, 40.0",
-                "sides": "50.0, 62.5",
-                "size": "1.0, 1.0, 105.0",
+                "radii": [5.0, 40.0],
+                "sides": [50.0, 62.5],
+                "size": [1.0, 1.0, 105.0],
                 "type": "racetrack"
             }],
             "magnet": ["Magnet", "model.cee", {
                 "armHeight": 50.0,
                 "armPosition": "1",
-                "center": "0.0, 71.25, 0.0",
+                "center": [0.0, 71.25, 0.0],
                 "color": "#0000ff",
                 "extrusionAxis": "x",
                 "extrusionAxisSegments": 2,
-                "magnetization": "0.0, 0.0, 0.0",
+                "magnetization": [0.0, 0.0, 0.0],
                 "name": "core",
                 "remanentMag": 1.0,
                 "material": "Xc06",
                 "type": "cee",
-                "size": "50.0, 182.5, 210.0",
+                "size": [50.0, 182.5, 210.0],
                 "stemWidth": 62.5,
                 "stemPosition": "1"
             }],
@@ -524,6 +525,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "2",
                         "heightDir": [
                             0,
@@ -545,6 +547,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "3",
                         "heightDir": [
                             0,
@@ -566,6 +569,7 @@
                             1,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "2",
                         "heightDir": [
                             0,
@@ -587,6 +591,7 @@
                             1,
                             0
                         ],
+                        "cutRemoval": 1,
                         "edge": "3",
                         "heightDir": [
                             0,
@@ -600,15 +605,15 @@
                         ]
                     }
                 ],
-                "center": "0.0, 0.0, 30.0",
+                "center": [0.0, 0.0, 30.0],
                 "color": "#0000ff",
-                "segments": "4, 4, 4",
-                "magnetization": "0.0, 0.0, 1.0",
+                "segments": [4, 4, 4],
+                "magnetization": [0.0, 0.0, 1.0],
                 "name": "pole",
                 "remanentMag": 1.0,
                 "material": "Xc06",
                 "type": "cuboid",
-                "size": "50.0, 40.0, 50.0"
+                "size": [50.0, 40.0, 50.0]
             }],
             "corePoleGroup": ["_", "model.geomGroup", {
                 "name": "core + pole"
@@ -624,7 +629,7 @@
             "_super": ["_", "model", "dipoleC"],
             "coil": ["Coil", "model.racetrack", {
                 "axis": "z",
-                "center": "0.0, 0.0, 1.5",
+                "center": [0.0, 0.0, 1.5],
                 "color": "#33e69a",
                 "currentDensity": -10000.0,
                 "fieldCalc": "auto",
@@ -633,24 +638,24 @@
                 "numSegments": 3,
                 "planeAxis1": "x",
                 "planeAxis2": "y",
-                "radii": "0.1, 0.4",
-                "sides": "10.05, 10.05",
-                "size": "10.05, 10.05, 1.0",
+                "radii": [0.1, 0.4],
+                "sides": [10.05, 10.05],
+                "size": [10.05, 10.05, 1.0],
                 "type": "racetrack"
             }],
             "magnet": ["Magnet", "model.ell", {
                 "armHeight": 1.5,
                 "armPosition": "0",
-                "center": "0.0, 4.0, 3.75",
+                "center": [0.0, 4.0, 3.75],
                 "color": "#0066cd",
                 "extrusionAxis": "x",
                 "extrusionAxisSegments": 2,
-                "magnetization": "0.0, 0.0, 0.0",
+                "magnetization": [0.0, 0.0, 0.0],
                 "name": "core",
                 "remanentMag": 1.0,
                 "material": "Xc06",
                 "type": "ell",
-                "size": "10.0, 8.0, 3.75",
+                "size": [10.0, 8.0, 3.75],
                 "stemWidth": 1.5,
                 "stemPosition": "1",
                 "transforms": []
@@ -667,6 +672,7 @@
                             0,
                             0
                         ],
+                        "cutRemoval": 1,
                         "heightDir": [
                             0,
                             0,
@@ -679,21 +685,29 @@
                         ]
                     }
                 ],
-                "center": "0.0, 2.5, 1.5",
+                "center": [0.0, 2.5, 1.5],
                 "color": "#0066cd",
-                "magnetization": "0.0, 0.0, 1.0",
+                "magnetization": [0.0, 0.0, 1.0],
                 "material": "Xc06",
                 "name": "pole",
                 "remanentMag": 1.0,
-                "segments": "4, 4, 4",
-                "size": "10.0, 5.0, 1.5",
+                "segments": [4, 4, 4],
+                "size": [10.0, 5.0, 1.5],
                 "transforms": [],
                 "type": "cuboid"
             }],
-            "magnetSize": ["Size [mm]", "FloatStringArray", "10.0, 16.0, 7.5", "", "Length ({{ appState.models.simulation.beamAxis }}), Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "magnetSize": ["Size [mm]", "FloatArray", [10.0, 16.0, 7.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0, 0]],
             "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 10.0, "", 0.0],
             "gap": ["Gap", "Float", 1.5, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleH"]
+        },
+        "electronTrajectoryReport": {
+            "energy": ["Electron Energy [GeV]", "Float", 1.0, "The sign of the energy determines the direction of the electron along the beam ({{ appState.models.simulation.beamAxis }}) axis"],
+            "initialPosition": ["Starting Position [mm]", "FloatArray", [0.0, 0.0, -10.0], "", ["x", "y", "z"]],
+            "initialAngles": ["Starting Angles [rad]", "FloatArray", [0.0, 0.0], "", ["d{{ appState.models.simulation.widthAxis }}/d{{ appState.models.simulation.beamAxis }}", "d{{ appState.models.simulation.heightAxis }}/d{{ appState.models.simulation.beamAxis }}"]],
+            "inProgressText": ["_", "String", "Calculating"],
+            "finalBeamPosition": ["Final {{ appState.models.simulation.beamAxis }} Position [mm]", "Float", 10.0],
+            "numPoints": ["Num Points", "Integer", 101, "", 2]
         },
         "ell": {
             "_super": ["_", "model", "stemmed"],
@@ -723,13 +737,6 @@
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
-        },
-        "fieldLineoutReport": {
-            "fieldPath": ["_", "model.fieldPath", {}],
-            "fieldPaths": ["Path", "FieldPaths", []],
-            "fieldType": ["Field", "FieldType", "B"],
-            "inProgressText": ["_", "String", "Calculating"],
-            "plotAxis": ["Plot Axis", "BeamAxis", "z"]
         },
         "fieldIntegralReport": {
             "lastCalculated": ["_", "Integer", -1]
@@ -775,17 +782,17 @@
             "_super": ["_", "model", "radiaObject"],
             "bevels": ["Bevels", "BevelTable", []],
             "fillets": ["Fillets", "FilletTable", []],
-            "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "segments": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$, N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$, N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"],
+            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "segments": ["Num Divisions", "IntArray", [1, 1, 1], "", ["N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
-            "magnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Shape Type", "ObjectType", "cuboid"],
-            "size": ["Size [mm]", "FloatStringArray", "10.0, 10.0, 10.0", "", "x, y, z"]
+            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]]
         },
         "jay": {
             "_super": ["_", "model", "stemmed"],
@@ -795,17 +802,17 @@
         },
         "kickMapReport": {
             "beamAxis": ["_", "BeamAxis", "z", ""],
-            "begin": ["Start", "FloatStringArray", "0, 0, 0", "Start point", "x, y, z"],
+            "begin": ["Start", "FloatArray", [0, 0, 0], "Start point", ["x", "y", "z"]],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "component": ["Component", "KickMapComponent", "h"],
-            "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Beam direction", "x, y, z"],
+            "direction": ["Direction", "FloatArray", [0, 0, 1], "Beam direction", ["x", "y", "z"]],
             "inProgressText": ["_", "String", "Calculating"],
             "isSelfContained": ["_", "Boolean", "1"],
             "numPeriods": ["Number of Periods", "Integer", 1],
             "numTransPoints1": ["Number of Points in Gap Direction", "Integer", 10, "", 2],
             "numTransPoints2": ["Number of Points in Transverse Direction", "Integer", 10, "", 2],
             "periodLength": ["Period Length [mm]", "Float", 1.0],
-            "transverseDirection": ["Gap Direction", "FloatStringArray", "0, 1, 0", "Gap direction", "x, y, z"],
+            "transverseDirection": ["Gap Direction", "FloatArray", [0, 1, 0], "Gap direction", ["x", "y", "z"]],
             "transverseRange1": ["Range in Gap Direction [mm]", "Float", 1.0, ""],
             "transverseRange2": ["Range in Transverse Direction [mm]", "Float", 1.0]
         },
@@ -817,8 +824,8 @@
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
-            "begin": ["Start", "FloatStringArray", "-10.0, 0, 0", "Start point", "x, y, z"],
-            "end": ["End", "FloatStringArray", "10.0, 0, 0", "End point", "x, y, z"],
+            "begin": ["Start", "FloatArray", [-10.0, 0, 0], "Start point", ["x", "y", "z"]],
+            "end": ["End", "FloatArray", [10.0, 0, 0], "End point", ["x", "y", "z"]],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
         },
@@ -858,7 +865,7 @@
         "objectCut": {
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
-            "cutPoint": ["Cut Point", "FloatStringArray", "0, 0, 0", "", "x, y, z"],
+            "cutPoint": ["Cut Point", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
             "type": ["_", "PathType", "manual"]
         },
          "objectShape": {
@@ -871,16 +878,16 @@
         "racetrack": {
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
-            "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "currentDensity": ["Current Density [A/$mm^2$]", "Float", -2000.0],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
             "height": ["Height ({{ appState.models.simulation.heightAxis }}) [mm]", "Float", 105.0, "", "Size along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
-            "radii": ["Radii [mm]", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
-            "sides": ["Straight Sides [mm]", "FloatStringArray", "50.0, 62.5", "", "Length ({{ appState.models.simulation.beamAxis }}), Width ({{ appState.models.simulation.widthAxis }})"],
-            "size": ["_", "FloatStringArray", "1.0, 1.0, 105.0"],
+            "radii": ["Radii [mm]", "FloatArray", [5.0, 40.0], "", ["Inner", "Outer"], [0, 0]],
+            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})"], [0, 0]],
+            "size": ["_", "FloatArray", [1.0, 1.0, 105.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["_", "ObjectType", "racetrack"]
         },
         "radiaObject": {
@@ -892,15 +899,15 @@
         },
         "rotate": {
             "angle": ["Angle (deg)", "Float", "0.0"],
-            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
+            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Rotate"]
         },
         "rotateClone": {
             "id": ["_", "RandomId", ""],
             "angle": ["Angle (deg)", "Float", "0.0"],
-            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
+            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Rotate"]
         },
         "simulation": {
@@ -921,6 +928,19 @@
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""]
+        },
+        "fieldLineoutAnimation": {
+            "fieldPath": ["_", "model.fieldPath", {}],
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "fieldType": ["Field", "FieldType", "B"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "tasksPerNode": ["Tasks per node", "Integer", 32],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
@@ -939,8 +959,8 @@
         "symmetryTransform": {
             "_super": ["_", "model", "transform"],
             "name": ["Name", "String", "Symmetry"],
-            "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"],
-            "symmetryPoint": ["Symmetry Point", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "symmetryPlane": ["Symmetry Plane", "FloatArray", [1.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "symmetryPoint": ["Symmetry Point", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "symmetryType": ["Symmetry", "SymmetryType", "parallel"]
         },
         "tee": {
@@ -955,15 +975,15 @@
         "transform": {
             "id": ["_", "RandomId", ""],
             "name": ["Name", "String", "Transform"],
-            "object": ["Apply to", "geomObject", ""]
+            "type": ["_", "TransformTypes"]
         },
         "translate": {
-            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Translate"]
         },
         "translateClone": {
             "id": ["_", "RandomId", ""],
-            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Translate"]
         },
         "undulatorBasic": {
@@ -973,13 +993,13 @@
             "gap": ["Gap [mm]", "Float", 20.0, "", 0.0, "Measured along the height axis"],
             "magnet": ["Magnet Block", "model.geomObject", {
                 "color": "#00ffff",
-                "magnetization": "0.0, 0.0, -1.0",
+                "magnetization": [0.0, 0.0, -1.0],
                 "name": "magnet",
                 "remanentMag": 1.2,
                 "material": "NdFeB",
                 "type": "cuboid",
-                "segments": "1, 1, 3",
-                "size": "65.0, 18.0, 45.0"
+                "segments": [1, 1, 3],
+                "size": [65.0, 18.0, 45.0]
             }],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "octantGroup": ["_", "model.geomGroup", {
@@ -996,29 +1016,29 @@
             }],
             "magnet": ["Magnet Block", "model.geomObject", {
                 "color": "#00ffff",
-                "magnetization": "0.0, 0.0, 1.0",
+                "magnetization": [0.0, 0.0, 1.0],
                 "name": "magnet",
                 "remanentMag": 1.2,
                 "material": "NdFeB",
                 "type": "cuboid",
-                "segments": "1, 1, 3",
-                "size": "65.0, 18.0, 45.0"
+                "segments": [1, 1, 3],
+                "size": [65.0, 18.0, 45.0]
             }],
-            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "magnetCrossSection": ["Cross Section [mm]", "FloatArray", [65.0, 45.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
             "magnetLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 18.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
                 "color": "#ff00ff",
-                "segments": "2, 5, 2",
-                "magnetization": "0.0, 0.0, 0.0",
+                "segments": [2, 5, 2],
+                "magnetization": [0.0, 0.0, 0.0],
                 "materialFile": "VaPermendur.csv",
                 "name": "pole",
                 "remanentMag": 0.0,
                 "material": "custom",
                 "type": "cuboid",
-                "size": "45.0, 5.0, 25.0"
+                "size": [45.0, 5.0, 25.0]
             }],
-            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "poleCrossSection": ["Cross Section [mm]", "FloatArray", [45.0, 25.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
             "poleLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 5.0],
             "terminationGroup": ["_", "model.geomGroup", {
                 "name": "terminations"
@@ -1030,13 +1050,13 @@
                         "gapOffset": 1,
                         "object": {
                             "color": "#00ffff",
-                            "magnetization": "0.0, 0.0, 1.0",
+                            "magnetization": [0.0, 0.0, 1.0],
                             "name": "Termination Magnet",
                             "remanentMag": 1.2,
                             "material": "NdFeB",
                             "type": "cuboid",
-                            "segments": "1,1,3",
-                            "size": "32.5,45.0,9.0"
+                            "segments": [1, 1, 3],
+                            "size": [32.5 ,45.0 ,9.0]
                         }
                     }
                 ]
@@ -1050,7 +1070,10 @@
     },
     "strings": {
         "completionState": "",
-        "typeOfSimulation": "solve"
+        "typeOfSimulation": "solve",
+        "fieldLineoutAnimation": {
+            "typeOfSimulation": "Field Plot"
+        }
     },
     "view": {
         "axisPath": {
@@ -1166,18 +1189,20 @@
                 ]]
             ]
         },
+        "electronTrajectoryReport": {
+            "title": "Electron Trajectory",
+            "advanced": [
+                "energy",
+                "initialPosition",
+                "initialAngles",
+                "finalBeamPosition",
+                "numPoints"
+            ],
+            "basic": []
+        },
         "fieldIntegralReport": {
             "title": "Field Integrals (T · mm)",
             "advanced": [],
-            "basic": []
-        },
-        "fieldLineoutReport": {
-            "title": "Field on Path",
-            "advanced": [
-                "fieldPaths",
-                "fieldType",
-                "plotAxis"
-            ],
             "basic": []
         },
         "fieldMapPath": {
@@ -1461,6 +1486,15 @@
                 "method"
             ],
             "advanced": []
+        },
+        "fieldLineoutAnimation": {
+            "title": "Field on Path",
+            "basic": [],
+            "advanced": [
+                "fieldPaths",
+                "fieldType",
+                "plotAxis"
+            ]
         },
         "symmetryTransform": {
             "title": "Apply Symmetry",

@@ -31,10 +31,9 @@
                   <p class="elegant-error-box">{{ visualization.simulationAlerts }}</p>
                   <br>
                 </div>
-                <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>
+                <div data-view-log-iframe></div>
               </div>
             </div>
-            <!--<div data-run-simulation-fields=""></div>-->
             <div class="col-sm-6 pull-right" data-ng-show="visualization.simState.isStopped()">
               <button class="btn btn-default" data-ng-click="visualization.startSimulation()">{{ visualization.startButtonLabel() }}</button>
             </div>

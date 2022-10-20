@@ -33,7 +33,7 @@ def test_madx(fc):
     )
 
 
-def test_ml(fc):
+def test_activait(fc):
     _r(
         fc,
         "2019 World Happiness",

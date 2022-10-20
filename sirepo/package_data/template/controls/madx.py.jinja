@@ -64,6 +64,7 @@ def _run_simulation(correctors):
                 gamma={{command_beam_gamma}},
             ),
             amp_table_for_corrector[idx],
+            default_factor={{ controlSettings_defaultFactor }},
         )
         values[f'sr_opt{idx}'] = ac.current_to_kick(correctors[idx])
     with open('in.madx', 'w') as f:

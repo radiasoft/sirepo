@@ -242,11 +242,13 @@ class ParticleEnergy:
 
 
 def analysis_job_dispatch(data):
+    from sirepo import simulation_db
+
     t = sirepo.template.import_module(data.simulationType)
     return getattr(
         t,
         f"analysis_job_{_validate_method(t, data)}",
-    )(data)
+    )(data, simulation_db.simulation_run_dir(data))
 
 
 def compute_field_range(args, compute_range):
@@ -260,6 +262,7 @@ def compute_field_range(args, compute_range):
         PKDict(
             simulationType=args["simulationType"],
             simulationId=args["simulationId"],
+            # TODO(pjm): pass animation model name in, default to "animation"
             report="animation",
         )
     )

@@ -7,6 +7,7 @@
     "constants": {
         "maxBPMPoints": 10,
         "clight": 299792458,
+        "inProgressText": "Reading currents and monitors",
         "particleMassAndCharge": {
             "positron": [0.510998928e-03, 1],
             "electron": [0.510998928e-03, -1],
@@ -52,6 +53,10 @@
             ["none", "None"],
             ["horizontal", "Horizontal"],
             ["vertical", "Vertical"]
+        ],
+        "SimMode": [
+            ["optimizer", "optimizer"],
+            ["singleUpdates", "singleUpdates"]
         ]
     },
     "frameIdFields": {
@@ -118,6 +123,7 @@
             "sige": ["Relative Energy Spread", "Float", 0.001, "The relative energy spread $\\sigma_E / E$ (SIGE)."]
         },
         "controlSettings": {
+            "simMode": ["", "SimMode", "singleUpdates"],
             "operationMode": ["Operation Mode", "OperationMode", "madx"],
             "deviceServerURL": ["DeviceServer URL", "OptionalString", ""],
             "processVariables": ["", "ProcessVariables"],
@@ -127,7 +133,10 @@
             "deviceServerUser": ["DeviceServer user", "OptionalString", "", "the user that will be making future requests to set values"],
             "deviceServerProcName": ["DeviceServer procName", "OptionalString", "", "the name of the process or application making the set requests"],
             "deviceServerProcId": ["DeviceServer procId", "OptionalString", "", "the process ID of process making the sets"],
-            "deviceServerMachine": ["DeviceServer machine", "OptionalString", "", "the name or IP address of the machine making the request"]
+            "deviceServerMachine": ["DeviceServer machine", "OptionalString", "", "the name or IP address of the machine making the request"],
+            "inputLogFile": ["Control System Log File (optional) [hdf5]", "InputFile", "", "An HDF5 file containing the power and BPM values across a period of time"],
+            "selectedTimeIndex": ["Selected Time Index", "Integer", 0],
+            "defaultFactor": ["Default Amp Conversion Factor", "Float", 100]
         },
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
@@ -237,7 +246,9 @@
                     "controlSettings.deviceServerUser",
                     "controlSettings.deviceServerProcName",
                     "controlSettings.deviceServerProcId",
-                    "controlSettings.deviceServerMachine"
+                    "controlSettings.deviceServerMachine",
+                    "controlSettings.defaultFactor",
+                    "controlSettings.inputLogFile"
                 ]],
                 ["Process Variables", [
                     "controlSettings.processVariables"

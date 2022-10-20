@@ -11,6 +11,11 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="AnalysisParameter" class="col-sm-5">
           <div data-analysis-parameter="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">
+          <input data-string-to-number="integer" data-ng-model="model[field]"
+            data-min="info[4]" data-max="info[5]" class="form-control"
+            style="text-align: right" data-lpignore="true" />
+        </div>
         <div data-ng-switch-when="Equation" class="col-sm-7">
           <div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>
           <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
@@ -20,6 +25,10 @@ SIREPO.app.config(function() {
         </div>
         <div data-ng-switch-when="EquationParameters" class="col-sm-7">
           <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>
+        </div>
+        <div data-ng-switch-when="DataList" class="col-sm-5">
+          <select class="form-control" data-ng-model="model.selectedData" data-ng-options="f for f in model[field]">
+          </select>
         </div>
         <div data-ng-switch-when="ClusterFields" class="col-sm-7">
           <div data-cluster-fields="" data-model="model" data-field="field"></div>
@@ -32,7 +41,7 @@ SIREPO.app.config(function() {
         </div>
         <div data-ng-switch-when="URL" class="col-sm-7" data-field-class="fieldClass">
           <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
-          <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ model.bytesLoaded || 0 }} of {{ model.contentLength || 0 }} bytes</span>
+          <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ UTILS.formatToThousands(model.bytesLoaded, 1, true) || 0 }} of {{ UTILS.formatToThousands(model.contentLength, 1, true) || 0 }} {{ UTILS.orderOfMagnitude(model.contentLength, true).suffix }}B</span>
           <div class="sr-input-warning"></div>
           <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
@@ -336,6 +345,10 @@ SIREPO.app.controller('DataController', function (appState, panelState, requestS
 
     self.isTextData = () => {
         return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'text';
+    };
+
+    self.isImageData = () => {
+        return self.hasDataFile() && appState.applicationState().dataFile.dataFormat === 'image';
     };
 
     //appState.whenModelsLoaded($scope, function() {
@@ -1111,6 +1124,153 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
     };
 });
 
+
+SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+        <div>
+          <img class="img-responsive srw-processed-image" />
+          <div data-ng-if="isLoading()" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between;" data-ng-if="! isLoading()">
+            <button data-ng-click="prev()"> < prev image set </button>
+            <button data-ng-click="next()"> next image set > </button>
+          </div>
+        </div>
+        `,
+        controller: function($scope, appState) {
+            var idx = 0;
+            var uris;
+            var loading = true;
+
+            $scope.isLoading = () => loading;
+
+            $scope.updateUriIndex = function(increment) {
+                if ((0 <= idx + increment) && (idx + increment <= 4)) {
+                    idx = idx + increment;
+                    setImageFromUriIndex(idx);
+                }
+            };
+
+            $scope.prev = function() {
+                $scope.updateUriIndex(-1);
+            };
+
+            $scope.next = function() {
+                $scope.updateUriIndex(1);
+            };
+
+            function setImageFromUriIndex(index) {
+                if ($('.srw-processed-image').length) {
+                    $('.srw-processed-image')[0].src = uris[index];
+                }
+            }
+
+            const loadImageFile = () => {
+                requestSender.sendStatefulCompute(
+                    appState,
+                    response => {
+                        uris = response.uris;
+                        setImageFromUriIndex(0);
+                        loading = false;
+                    },
+                    {
+                        method: 'sample_images',
+                        args: {
+                            imageFilename: 'sample',
+                            dataFile: appState.models.dataFile,
+                        }
+                    }
+                );
+            };
+
+            loadImageFile();
+        }
+    };
+});
+
+
+SIREPO.app.directive('dataPathSelector', function(appState, mlService, panelState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <form name="form">
+              <table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">
+                <colgroup>
+                  <col style="width: 3em">
+                  <col style="width: 100%">
+                  <col span="3" style="width: 6em">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th> </th>
+                    <th>Data Path</th>
+                    <th class="text-center">Input</th>
+                    <th class="text-center">Output</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="path in getPaths()">
+                    <td class="form-group form-group-sm"> </td>
+                    <td class="form-group form-group-sm">{{ path }}</td>
+                    <td class="text-center">
+                      <input data-ng-model="model.selectedPaths[path].inputOutput" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />
+                    </td>
+                    <td class="text-center">
+                      <input data-ng-model="model.selectedPaths[path].inputOutput" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="sr-input-warning"></div>
+              <div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+            </form>
+        `,
+        controller: function($scope) {
+            $scope.modelName = 'dataPathInfo';
+            $scope.model = appState.models[$scope.modelName];
+            $scope.fields = ['inputOutput'];
+
+            $scope.getPaths = () => {
+                return appState.models.dataFile.dataList;
+            };
+
+            if (! $scope.model.selectedPaths) {
+                $scope.model.selectedPaths = {};
+                for (const p of $scope.getPaths()) {
+                    $scope.model.selectedPaths[p] = {
+                        inputOutput: '',
+                    };
+                }
+                appState.saveChanges($scope.modelName);
+            }
+
+            const updateColumnInfo = () => {
+                appState.models.columnInfo.header = appState.models.dataFile.dataList;
+                let a = [];
+                appState.models.columnInfo.header.forEach(
+                    e => {
+                        if (e in $scope.model.selectedPaths) {
+                            a.push($scope.model.selectedPaths[e].inputOutput);
+                        }
+                    }
+                );
+                appState.models.columnInfo.inputOutput = a;
+                appState.saveChanges('columnInfo');
+            };
+
+            $scope.$on('dataPathInfo.changed', updateColumnInfo);
+
+            updateColumnInfo();
+        },
+    };
+});
+
 SIREPO.app.directive('equation', function(appState, mlService, $timeout) {
     return {
         scope: {
@@ -1365,6 +1525,9 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     self.reports = [];
 
     function loadReports() {
+        if (appState.applicationState().dataFile.dataFormat !== 'text') {
+            return;
+        }
         appState.models.columnInfo.inputOutput.forEach(function(type, idx) {
             if (type == 'none') {
                 return;
@@ -1380,6 +1543,9 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
 
     $scope.showPartitionSelection = function() {
         if (appState.isLoaded()) {
+            if (appState.applicationState().dataFile.dataFormat !== 'text') {
+                return false;
+            }
             if (appState.applicationState().dataFile.appMode == 'regression') {
                 return appState.applicationState().partition.method == 'selection';
             }
@@ -1403,8 +1569,8 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
               <div class="form-group form-group-sm">
               <button class="add-remove-child-btn" data-ng-if="removableChild()" data-ng-click="removeChild(childIndex)"> Remove this child </button>
                 <table class="table table-striped table-condensed" style="border: 2px solid #8c8b8b; position: relative;">
-                  <tr data-ng-repeat="layer in layerLevel track by $index" data-ng-init="layerIndex = $index">
-                    <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
+                  <tr data-ng-repeat="layer in layerLevel track by $index + layerId" data-ng-init="layerIndex = $index">
+                    <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index) + layerId">
                       <div data-ng-if="fieldInfo.field">
                         <b>{{ fieldInfo.label }} </b>
                         <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="layerName(layer)" data-model="layer"></div>
@@ -1415,7 +1581,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     </td>
                     <td colspan="100%">
                       <div data-ng-if="checkBranch(layer)">
-                        <div data-ng-repeat="l in layer.children track by $index" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
+                        <div data-ng-repeat="l in layer.children track by $index + layerId" class="ml-sub-table" data-parent-layer="layer" data-neural-net-layers-form="" data-child-index="$index" data-layer-target="l"></div>
                       </div>
                     </td>
                     <td colspan="100%">
@@ -1436,7 +1602,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                   <tr>
                     <td>
                       <b>Add Layer</b>
-                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in options(layerEnum)" data-ng-change="addLayer()"></select>
+                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>
                     </td>
                     <td colspan="100%"></td>
                     <td colspan="100%"></td>
@@ -1474,10 +1640,10 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.selectedLayer = '';
             $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
             $scope.layerLevel = getLayerLevel();
+            $scope.layerId = 0;
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             };
-
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
                     return;
@@ -1573,25 +1739,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.form.$setDirty();
             };
 
-            $scope.options = layerEnum => {
-                if (mlService.devMode) {
-                    return layerEnum;
-                }
-                const unSupportedLayers = [
-                    // 'Add',
-                    // 'Concatenate',
-                    'AveragePooling2D',
-                    // 'Conv2D',
-                    'Conv2DTranspose',
-                    'GlobalAveragePooling2D',
-                    'MaxPooling2D',
-                    'SeparableConv2D',
-                    'UpSampling2D',
-                    'ZeroPadding2D'
-                ];
-                return layerEnum.filter(x => !unSupportedLayers.includes(x[0]));
-            };
-
             $scope.outputColCount = function() {
                 if (! appState.isLoaded()) {
                     return '';
@@ -1621,20 +1768,15 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                     ];
                     const layerSchema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
                     if (layerSchema) {
-                        Object.keys(layerSchema)
-                            .sort()
-                            .reverse()
-                            .filter(f => f !== '_super' && f !== 'layer')
-                            .forEach(function(field) {
-                                cols.push({
-                                    field: field,
-                                    label: layerSchema[field][0],
-                                });
-                        });
+                        for (const f of SIREPO.APP_SCHEMA.view[stringsService.lcfirst(name)].columns) {
+                            cols.push({
+                                field: f,
+                                label: layerSchema[f][0],
+                            });
+                        }
                     }
                     layerFields[name] = cols;
                 });
-
             }
 
             function getLayerLevel() {
@@ -1663,11 +1805,23 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 $scope.layerLevel.push(n);
             }
 
+            $scope.rebuildLayers = () => {
+                if ($scope.$parent.rebuildLayers) {
+                    // parent layer must be rebuilt so the new neuralNet model is referenced
+                    $scope.$parent.rebuildLayers();
+                }
+                $scope.layerLevel = getLayerLevel();
+                // layerId is a unique value used by angular "track by"
+                $scope.layerId = Math.random();
+            };
+
             $scope.$on('cancelChanges', (e, name) => {
                 if (name == 'neuralNet') {
-                    $scope.layerLevel = getLayerLevel();
+                    $scope.rebuildLayers();
                 }
             });
+
+            $scope.$on('neuralNet.changed', $scope.rebuildLayers);
 
             buildLayerFields();
         },
@@ -1949,6 +2103,41 @@ SIREPO.app.directive('trimButton', function(appState, mlService) {
     };
 });
 
+SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $scope) {
+    appState.models.mlModel.mlModule = 'neuralnet';
+    panelState.showField('mlModel', 'modelFile', appState.models.mlModel.mlModule == 'modelFile');
+    function displayFileInput() {
+        if (appState.models.mlModel.mlModule == 'modelFile') {
+            panelState.showField('mlModel', 'modelFile', true);
+            return;
+        }
+        panelState.showField('mlModel', 'modelFile', false);
+    }
+
+    $scope.watchFields = [
+        ['mlModel.mlModule'],
+        displayFileInput
+    ];
+
+    $scope.$on('mlModel.changed', () => {
+        if (appState.models.mlModel.mlModule == 'modelFile') {
+            requestSender.sendStatelessCompute(
+                appState,
+                (data) => {
+                    appState.models.neuralNet.layers = data.layers.slice(0, -1);
+                    appState.models.mlModel.mlModule = 'neuralnet';
+                    appState.saveChanges(['mlModel', 'neuralNet']);
+                },
+                {
+                    method: 'load_keras_model',
+                    args: {
+                        file: appState.models.mlModel.modelFile
+                    }
+                }
+            );
+        }
+    });
+});
 
 SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
 
@@ -2003,16 +2192,19 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
 
     function computeColumnInfo() {
         const dataFile = appState.models.dataFile;
-        if (! dataFile.file) {
+        if (! dataFile.file || (isArchiveFile(dataFile.file) && ! dataFile.selectedData)) {
             appState.models.columnReports = [];
             appState.saveChanges('columnReports');
             return;
         }
-        if (dataFile.file === dataFile.oldFile) {
+        if (dataFile.file === dataFile.oldFile && ! isArchiveFile(dataFile.file)) {
             return;
         }
         dataFile.oldFile = dataFile.file;
         appState.saveQuietly('dataFile');
+        if (! isTextData(dataFile)) {
+            return;
+        }
         requestSender.sendStatefulCompute(
             appState,
             function(data) {
@@ -2023,7 +2215,9 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 method: 'compute_column_info',
-                dataFile: dataFile,
+                args: {
+                    dataFile: dataFile,
+                }
             }
         );
     }
@@ -2041,8 +2235,15 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
     }
 
     function dataFileChanged() {
-        computeColumnInfo();
         const dataFile = appState.models.dataFile;
+        if (! isArchiveFile(dataFile.file)) {
+            dataFile.selectedData = null;
+        }
+        else {
+            getArchiveDataList();
+        }
+        updateEditor();
+        computeColumnInfo();
         const partition = appState.models.partition;
         if (dataFile.appMode === 'regression'
             && partition.training + partition.testing >= 100) {
@@ -2057,6 +2258,17 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             }
         }
         appState.saveQuietly('partition');
+    }
+
+    function isArchiveFile(filename) {
+        if (! filename) {
+            return false;
+        }
+        return [".h5", ".tar.gz", ".zip"].some(x => filename.endsWith(x));
+    }
+
+    function isTextData(dataFile) {
+        return dataFile.dataFormat === 'text';
     }
 
     function processAppMode() {
@@ -2074,6 +2286,7 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         const o = dataFile.dataOrigin;
         panelState.showField(modelName, 'file', o === 'file');
         panelState.showField(modelName, 'url', o === 'url');
+        panelState.showField(modelName, 'dataList', isArchiveFile(dataFile.file) && isTextData(dataFile));
         validateURL();
     }
 
@@ -2108,8 +2321,51 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 method: 'remote_data_bytes_loaded',
-                filename: dataFile.file,
+                args: {
+                    filename: dataFile.file,
+                }
             }
+        );
+    }
+
+    function getArchiveDataList() {
+        function setDataList(l) {
+            appState.models[modelName].dataList = l;
+            appState.models.dataFileCache[dataFile.file].dataList = l;
+            updateSelectedData(dataFile);
+            appState.saveChanges('dataFileCache');
+            appState.saveQuietly(modelName);
+        }
+
+        const dataFile = appState.models[modelName];
+        if (! dataFile.file || ! isArchiveFile(dataFile.file)) {
+            appState.models[modelName].dataList = null;
+            dataFile.selectedData = null;
+            appState.saveQuietly(modelName);
+            return;
+        }
+
+        const f = appState.models.dataFileCache[dataFile.file];
+        if (hasCachedDataList(f)) {
+            setDataList(f.dataList);
+            return;
+        }
+
+        appState.models.dataFileCache[dataFile.file] = {
+            dataList: null,
+        };
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                setDataList(d.datalist);
+            },
+            {
+                method: 'get_archive_file_list',
+                args: {
+                    filename: dataFile.file,
+                    data_type: dataFile.dataFormat,
+                }
+            },
         );
     }
 
@@ -2126,8 +2382,10 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
             },
             {
                 method: 'get_remote_data',
-                url: appState.models[modelName].url,
-                headers_only: headersOnly
+                args: {
+                    url: appState.models[modelName].url,
+                    headers_only: headersOnly
+                }
             },
             {
                 onError: data => {
@@ -2137,16 +2395,34 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
         );
     }
 
+    function hasCachedDataList(cache) {
+        return cache && cache.dataList && cache.dataList.length;
+    }
+
     function updateData() {
         const dataFile = appState.models[modelName];
+        const dataFileCache = appState.models.dataFileCache;
+        const urlCache = appState.models.urlCache;
 
         //TODO(mvk): button to force reload; handle deletion of file; share files across users;
         // store urls; share urls across apps
         if (dataFile.dataOrigin === 'url') {
             dataFile.oldURL = dataFile.url;
+            const f = urlCache[dataFile.url];
+            if (f) {
+                dataFile.file = f.file;
+                dataFile.dataList = f.dataList;
+                dataFile.bytesLoaded = f.size;
+                dataFile.contentLength = f.size;
+                appState.saveQuietly(modelName);
+                dataFileChanged();
+                return;
+            }
             dataFile.bytesLoaded = 0;
             dataFile.contentLength = 0;
             dataFile.file = '';
+            dataFile.dataList = [];
+            dataFile.selectedData = null;
             appState.saveQuietly(modelName);
             //TODO(mvk): two stages now; should be a single background call but not a "simulation"
             // write in chunks on server and send updates - can we use websockets?
@@ -2157,22 +2433,36 @@ SIREPO.viewLogic('dataFileView', function(appState, panelState, persistentSimula
                 getRemoteData(false, d => {
                     dataFile.file = d.filename;
                     dataFile.bytesLoaded = dataFile.contentLength;
+                    urlCache[dataFile.url] = {
+                        file: dataFile.file,
+                        size: dataFile.contentLength,
+                    };
+                    appState.saveChanges('urlCache');
                     appState.saveQuietly(modelName);
                     dataFileChanged();
                 });
             });
         }
-        dataFileChanged();
+        else {
+            dataFileChanged();
+        }
+    }
+
+    function updateSelectedData(dataFile) {
+        if (dataFile.dataList && ! dataFile.dataList.includes(dataFile.selectedData)) {
+            dataFile.selectedData = dataFile.dataList[0];
+        }
     }
 
     $scope.watchFields = [
         [`${modelName}.appMode`], processAppMode,
-        [`${modelName}.dataOrigin`], updateEditor,
+        [`${modelName}.dataOrigin`, `${modelName}.file`, `${modelName}.dataFormat`], updateEditor,
         [`${modelName}.url`], validateURL,
     ];
 
     $scope.whenSelected = () => {
         processAppMode();
+        dataFileChanged();
         updateEditor();
     };
 

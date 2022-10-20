@@ -316,7 +316,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, simulationDataCache, utilities, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -328,6 +328,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
+    }
+
+    function broadcastFieldsChanged(modelFields) {
+        $rootScope.$broadcast('fieldsChanged', modelFields);
     }
 
     function broadcastChanged(name) {
@@ -497,31 +501,32 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             });
     };
 
-    self.deepEquals = function(v1, v2) {
+    self.deepEquals = function(v1, v2, doStripHashKey=false) {
+
+        function stripHashKey(keys) {
+            return doStripHashKey ? keys.filter(k => k !== '$$hashKey') : keys;
+        }
+
         if (v1 === v2) {
             return true;
         }
         if (angular.isArray(v1) && angular.isArray(v2)) {
-            if (v1.length != v2.length) {
+            if (v1.length !== v2.length) {
                 return false;
             }
-            for (var i = 0; i < v1.length; i++) {
-                if (! self.deepEquals(v1[i], v2[i])) {
+            for (let i = 0; i < v1.length; i++) {
+                if (! self.deepEquals(v1[i], v2[i], doStripHashKey)) {
                     return false;
                 }
             }
             return true;
         }
         if (angular.isObject(v1) && angular.isObject(v2)) {
-            var keys = Object.keys(v1);
-            if (keys.length != Object.keys(v2).length) {
+            const keys = stripHashKey(Object.keys(v1));
+            if (keys.length !== stripHashKey(Object.keys(v2)).length) {
                 return false;
             }
-            return ! keys.some(k => {
-                if (! self.deepEquals(v1[k], v2[k])) {
-                    return true;
-                }
-            });
+            return ! keys.some(k => ! self.deepEquals(v1[k], v2[k], doStripHashKey));
         }
         return v1 == v2;
     };
@@ -653,7 +658,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId) {
             return;
         }
-        simulationDataCache.clear();
         self.clearModels();
         var routeObj = {
             routeName: 'simulationData',
@@ -760,6 +764,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (typeof(name) == 'string') {
             name = [name];
         }
+        let updatedFields = [];
         var updatedModels = [];
         var requireReportUpdate = false;
 
@@ -771,6 +776,12 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                 }
             }
             else {
+                for (let f in self.models[name[i]]) {
+                    const s = savedModelValues[name[i]];
+                    if (! s || ! self.deepEquals(s[f], self.models[name[i]][f], true)) {
+                        updatedFields.push(`${name[i]}.${f}`);
+                    }
+                }
                 self.saveQuietly(name[i]);
                 updatedModels.push(name[i]);
                 if (! self.isReportModelName(name[i])) {
@@ -785,6 +796,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             }
             broadcastChanged(updatedModels[i]);
         }
+        broadcastFieldsChanged(updatedFields);
         self.autoSave(function() {
             if (requireReportUpdate) {
                 self.updateReports();
@@ -994,22 +1006,6 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         return SIREPO.APP_SCHEMA.cookies[notification.cookie];
     }
 
-    return self;
-});
-
-/*
-Cache for data not on models (never sent to the server) that can be used
-within a single simulation (sid).
-*/
-SIREPO.app.factory('simulationDataCache', function ($rootScope){
-    const self = {};
-    self.clear = () => {
-        for (let k in self) {
-            if (k !== 'clear') {
-                delete self[k];
-            }
-        }
-    };
     return self;
 });
 
@@ -3431,7 +3427,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
             [
                 self.sectionTitle(),
                 SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName,
-                'RadiaSoft',
+                'Sirepo',
             ],
             function(n){ return n; })
             .join(' - ');

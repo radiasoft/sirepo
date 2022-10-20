@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-cfg="reportCfg" data-report-id="reportId"></div>
+        <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
     //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
@@ -52,13 +52,35 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="UnitSphere">
           <div data-multi-level-editor="unitSphere" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="Sources">
-          <div data-sources-editor="" data-model-name="modelName"
+        <div data-ng-switch-when="SourcesOrTallies">
+          <div data-sources-or-tallies-editor="" data-model-name="modelName"
             data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="TallyAspects" class="col-sm-12">
           <div data-tally-aspects="" data-model="model" data-field="model[field]"></div>
            <div class="sr-input-warning"></div>
+        </div>
+        <div data-ng-switch-when="TallyScoreWithGrouping" class="col-sm-10">
+          <div data-tally-score-group="" data-model="model" data-field="field" data-enum="enum"></div>
+        </div>
+        <div data-ng-switch-when="SimpleListEditor" class="col-sm-7">
+          <div data-simple-list-editor="" data-model="model" data-field="field" data-sub-model="info[4]"></div>
+        </div>
+        <div data-ng-switch-when="Filter">
+          <div data-multi-level-editor="filter" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="MaterialValue" data-ng-class="fieldClass">
+          <div data-material-list="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="TallyList" data-ng-class="fieldClass">
+          <div class="input-group">
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="t.name as t.name for t in model.tallies"></select>
+          </div>
+        </div>
+        <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
+          <div class="input-group">
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="s.score as s.score for s in (model.tallies | filter:{name:model.tally})[0].scores"></select>
+          </div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -69,9 +91,36 @@ SIREPO.app.config(() => {
 SIREPO.app.factory('cloudmcService', function(appState) {
     const self = {};
     appState.setAppService(self);
+
+    function findScore(tallies, tally, score) {
+        return findTally(tallies, tally).scores.filter(v => v.score == score).length
+            ? score
+            : null;
+    }
+
+    function findTally(tallies, tally) {
+        return tallies.filter(v => v.name == tally)[0];
+    }
+
     self.computeModel = modelKey => modelKey;
+
+    self.findTally = () => {
+        return findTally(appState.models.openmcAnimation.tallies, appState.models.openmcAnimation.tally);
+    };
+
     self.isGraveyard = volume => {
         return volume.name && volume.name.toLowerCase() == 'graveyard';
+    };
+
+    self.validateSelectedTally = () => {
+        const a = appState.models.openmcAnimation;
+        if (! a.tally || ! findTally(a.tallies, a.tally)) {
+            a.tally = a.tallies[0].name;
+        }
+        if (! a.score || ! findScore(a.tallies, a.tally, a.score)) {
+            a.score = findTally(a.tallies, a.tally).scores[0].score;
+        }
+        appState.saveQuietly('openmcAnimation');
     };
     return self;
 });
@@ -85,10 +134,6 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         self.simState.runSimulation();
     }
 
-    self.geom3dReportCfg = {
-        fitToWindow: true,
-        objectsToLoad: ['volumes'],
-    };
     self.isGeometrySelected = () => {
         return appState.applicationState().geometryInput.dagmcFile;
     };
@@ -120,23 +165,38 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, $scope) {
     const self = this;
-    self.geom3dReportCfg = {
-        fitToWindow: false,
-        objectsToLoad: ['tallies'],
-    };
     self.frameCache = frameCache;
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
+    let errorMessage;
+
+    function validateSelectedTally(tallies) {
+        appState.models.openmcAnimation.tallies = tallies;
+        appState.saveQuietly('openmcAnimation');
+        cloudmcService.validateSelectedTally();
+    }
+
     self.simHandleStatus = function (data) {
+        errorMessage = data.error;
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
+        if (data.tallies) {
+            validateSelectedTally(data.tallies);
+        }
     };
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.errorMessage = () => errorMessage;
     self.simState.runningMessage = () => {
         return `Completed batch: ${self.simState.getFrameCount()}`;
+    };
+    self.simCompletionState = () => {
+        if (self.simState.isStateError) {
+            return '';
+        }
+        return `${frameCache.getFrameCount()} batches`;
     };
     self.simState.logFileURL = function() {
         return requestSender.formatUrl('downloadDataFile', {
@@ -146,6 +206,10 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             '<frame>': SIREPO.nonDataFileFrame,
             '<suffix>': 'log',
         });
+    };
+    self.tallyTitle = () => {
+        const a = appState.models.openmcAnimation;
+        return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
     return self;
 });
@@ -191,32 +255,41 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRendering, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
-            fitToWindow: '=',
             modelName: '@',
-            reportCfg: '<',
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display"
+            <div data-vtk-display="" class="vtk-display col-sm-11"
               data-ng-style="sizeStyle()" data-show-border="true"
               data-report-id="reportId" data-model-name="{{ modelName }}"
               data-event-handlers="eventHandlers" data-reset-side="y"
               data-enable-axes="true" data-axis-cfg="axisCfg"
               data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div class="col-sm-1" style="padding-left: 0;" data-ng-if="supportsColorbar()">
+                <div class="colorbar"></div>
+            </div>
         `,
         controller: function($scope, $element) {
-            $scope.isClientOnly = true;
-            $scope.model = appState.models[$scope.modelName];
+            const isGeometryOnly = $scope.modelName === 'geometry3DReport';
+            $scope.isClientOnly = isGeometryOnly;
             let axesBoxes = {};
+            let basePolyData = null;
+            let colorbar = null;
+            let colorbarPtr = null;
+            let fieldData = [];
             let picker = null;
-            let vtkScene = null;
+            let minField, maxField;
             let selectedVolume = null;
+            let tally = null;
 
             const bundleByVolume = {};
+            const colorbarThickness = 30;
+            let tallyBundle = null;
+            let vtkScene = null;
             // volumes are measured in centimeters
             const scale = 0.01;
             const coordMapper = new SIREPO.VTK.CoordMapper(
@@ -224,19 +297,21 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     new SIREPO.GEOMETRY.SquareMatrix([[scale, 0, 0], [0, scale, 0], [0, 0, scale]])
                 )
             );
-            const geom3dCfg = $scope.reportCfg || {};
-            const watchFields = ['geometry3DReport.bgColor', 'geometry3DReport.showEdges'];
-
+            const watchFields = [`${$scope.modelName}.bgColor`, `${$scope.modelName}.showEdges`];
+            const clientOnlyFields = ['voxels.colorMap'].concat(watchFields);
+            const voxelPoly = [
+                [0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [4, 5, 1, 0],
+                [3, 2, 6, 7],
+                [4, 0, 3, 7],
+                [1, 5, 6, 2],
+            ];
             const _SCENE_BOX = '_scene';
 
-            function addTally(str, name) {
-                const pd = SIREPO.VTK.VTKUtils.parseLegacy(str);
+            function addTally(data) {
+                loadTally(data);
                 $rootScope.$broadcast('vtk.hideLoader');
-                const b = coordMapper.buildActorBundle();
-                b.mapper.setInputData(pd);
-                setColorsFromFieldData(pd, name, SIREPO.PLOTTING.Utils.COLOR_MAP().jet);
-                b.setActorProperty('lighting', false);
-                vtkScene.addActor(b.actor);
                 initAxes();
                 buildAxes();
                 vtkScene.renderer.resetCamera();
@@ -254,10 +329,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 const b = coordMapper.buildActorBundle(reader, {
                     color: v.color,
                     opacity: v.opacity,
-                    edgeVisibility: $scope.model.showEdges === '1',
+                    edgeVisibility: model().showEdges === '1',
                 });
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
+                picker.addPickList(b.actor);
                 return res;
             }
 
@@ -270,8 +346,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     boundsBox = SIREPO.VTK.VTKUtils.buildBoundingBox(actor.getBounds());
                 }
                 else {
+                    // always clear the scene box
                     name = _SCENE_BOX;
-                    boundsBox = vtkScene.sceneBoundingBox(0.02);
+                    vtkScene.removeActor(axesBoxes[name]);
+                    delete axesBoxes[name];
+                    boundsBox = vtkScene.sceneBoundingBox();
                 }
                 if (! axesBoxes[name]) {
                     vtkScene.addActor(boundsBox.actor);
@@ -304,6 +383,97 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 return d;
             }
 
+            function buildVoxel(lowerLeft, wx, wy, wz, points, polys) {
+                const pi = points.length / 3;
+                points.push(...lowerLeft);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1], lowerLeft[2]]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1] + wy, lowerLeft[2]]);
+                points.push(...[lowerLeft[0], lowerLeft[1] + wy, lowerLeft[2]]);
+                points.push(...[lowerLeft[0], lowerLeft[1], lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1], lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0] + wx, lowerLeft[1] + wy, lowerLeft[2] + wz]);
+                points.push(...[lowerLeft[0], lowerLeft[1] + wy, lowerLeft[2] + wz]);
+                for (const r of voxelPoly) {
+                    polys.push(4);
+                    polys.push(...r.map(v => v + pi));
+                }
+            }
+
+            function buildVoxels() {
+                function getMeshFilter() {
+                    const t = cloudmcService.findTally();
+                    for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
+                        const f = t[`filter${k}`];
+                        if (f && f._type === 'meshFilter') {
+                            return f;
+                        }
+                    }
+                    return null;
+                }
+
+                if (tallyBundle) {
+                    vtkScene.removeActor(tallyBundle.actor);
+                    picker.deletePickList(tallyBundle.actor);
+                    tallyBundle = null;
+                }
+                const mesh = getMeshFilter();
+                if (! mesh) {
+                    return;
+                }
+                const [nx, ny, nz] = mesh.dimension;
+                const [wx, wy, wz] = [
+                    (mesh.upper_right[0] - mesh.lower_left[0]) / mesh.dimension[0],
+                    (mesh.upper_right[1] - mesh.lower_left[1]) / mesh.dimension[1],
+                    (mesh.upper_right[2] - mesh.lower_left[2]) / mesh.dimension[2],
+                ];
+                const [sx, sy, sz] = mesh.upper_right.map(
+                    (x, i) => (1.0 - appState.models.voxels.voxelInsetPct)
+                        * Math.abs(x - mesh.lower_left[i]) / mesh.dimension[i]
+                );
+                const points = [];
+                const polys = [];
+                fieldData = [];
+                const fd = basePolyData.getFieldData().getArrayByName(model().aspect).getData();
+                minField = Number.MAX_VALUE;
+                maxField = Number.MIN_VALUE;
+                for (let zi = 0; zi < nz; zi++) {
+                    for (let yi = 0; yi < ny; yi++) {
+                        for (let xi = 0; xi < nx; xi++) {
+                            const f = fd[zi * nx * ny + yi * nx + xi];
+                            if (! isInFieldThreshold(f)) {
+                                continue;
+                            }
+                            if (f < minField) {
+                                minField = f;
+                            }
+                            else if (f > maxField) {
+                                maxField = f;
+                            }
+                            fieldData.push(f);
+                            const p = [
+                                xi * wx + mesh.lower_left[0],
+                                yi * wy + mesh.lower_left[1],
+                                zi * wz + mesh.lower_left[2],
+                            ];
+                            buildVoxel(p, sx, sy, sz, points, polys);
+                        }
+                    }
+                }
+                basePolyData.getPoints().setData(new window.Float32Array(points), 3);
+                basePolyData.getPolys().setData(new window.Uint32Array(polys));
+                basePolyData.buildCells();
+
+                tallyBundle = coordMapper.buildPolyData(
+                    basePolyData,
+                    {
+                        lighting: false,
+                    }
+                );
+                vtkScene.addActor(tallyBundle.actor);
+                picker.addPickList(tallyBundle.actor);
+                setTallyColors();
+            }
+
             function getVolumeById(volId) {
                 for (const n in appState.models.volumes) {
                     const v = appState.models.volumes[n];
@@ -324,7 +494,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             }
 
             function handlePick(callData) {
-                if (vtkScene.renderer !== callData.pokedRenderer) {
+                if (vtkScene.renderer !== callData.pokedRenderer || isGeometryOnly) {
                     return;
                 }
 
@@ -369,62 +539,72 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 });
             }
 
-            function setColorsFromFieldData(polyData, name, colorMap) {
-                const dataColors = [];
-                const d = Array.from(polyData.getFieldData().getArrayByName(name).getData());
-                const s = SIREPO.PLOTTING.Utils.colorScale(
-                    SIREPO.UTILS.largeMin(d),
-                    SIREPO.UTILS.largeMax(d),
-                    colorMap
-                );
-                d.map(x => SIREPO.VTK.VTKUtils.colorToFloat(s(x)).map(x => Math.floor(255 * x)))
-                    .forEach((c, i) => {
-                        // when the field value is 0, don't draw the element at all
-                        dataColors.push(...c, d[i] === 0 ? 0 : 255);
-                    });
-                polyData.getCellData().setScalars(
-                    vtk.Common.Core.vtkDataArray.newInstance({
-                        numberOfComponents: 4,
-                        values: dataColors,
-                        dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
-                    })
-                );
-                polyData.buildCells();
+            function isInFieldThreshold(value) {
+                //TODO(pjm): add a min threshold value to openmcAnimation model
+                return value > 0;
             }
 
-            function loadTally(name) {
-                const u = requestSender.formatUrl(
-                    'downloadDataFile',
-                    {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<model>': 'openmcAnimation',
-                        '<frame>': -1,
-                        '<suffix>': 'vtk',
-                    });
-                requestSender.sendRequest(u, d => addTally(d.content, name));
+            function setTallyColors() {
+                const cellsPerVoxel = voxelPoly.length;
+                const s = SIREPO.PLOTTING.Utils.colorScale(
+                    minField,
+                    maxField,
+                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.voxels.colorMap],
+                );
+                colorbar.scale(s);
+                colorbarPtr = d3.select('.colorbar').call(colorbar);
+                const sc = [];
+                const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
+                for (const f of basePolyData.getFieldData().getArrayByName(model().aspect).getData()) {
+                    if (! isInFieldThreshold(f)) {
+                        continue;
+                    }
+                    const c = SIREPO.VTK.VTKUtils.colorToFloat(s(f)).map(v => Math.floor(255 * v));
+                    c.push(o);
+                    for (let j = 0; j < cellsPerVoxel; j++) {
+                        sc.push(...c);
+                    }
+                }
+                tallyBundle.setColorScalarsForCells(sc, 4);
+                basePolyData.modified();
+                vtkScene.render();
             }
+
+            function loadTally(data) {
+                basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
+                buildVoxels();
+            }
+
+            $scope.supportsColorbar = () => ! isGeometryOnly;
 
             function loadVolumes(volIds) {
                 //TODO(pjm): update progress bar with each promise resolve?
                 return Promise.all(volIds.map(i => addVolume(i)));
             }
 
+            function model() {
+                return appState.models[$scope.modelName];
+            }
+
+            function scoreUnits() {
+                return SIREPO.APP_SCHEMA.constants.scoreUnits[appState.models.openmcAnimation.score] || '';
+            }
+
             function setGlobalProperties() {
                 if (! vtkScene.renderer) {
                     return;
                 }
-                vtkScene.setBgColor(appState.models.geometry3DReport.bgColor);
+                vtkScene.setBgColor(model().bgColor);
                 for (const volId in bundleByVolume) {
                     const b = bundleByVolume[volId];
                     const v = getVolumeById(volId);
                     b.setActorProperty(
                         'opacity',
-                        v.isVisible ? v.opacity * appState.models.geometry3DReport.opacity : 0
+                        v.isVisible ? v.opacity * model().opacity : 0
                     );
                     b.setActorProperty(
                         'edgeVisibility',
-                        appState.models.geometry3DReport.showEdges === '1'
+                        model().showEdges === '1'
                     );
                 }
                 vtkScene.render();
@@ -435,13 +615,50 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 vtkScene.render();
             }
 
+            function showFieldInfo(callData) {
+                function info(field, pos) {
+                    const p = pos.map(
+                        x => SIREPO.UTILS.roundToPlaces(x, 4).toLocaleString(
+                            undefined,
+                            {
+                                minimumFractionDigits: 3,
+                            }
+                        )
+                    );
+                    return {
+                        info: `
+                                ${SIREPO.UTILS.roundToPlaces(field, 3)}
+                                ${scoreUnits()} at
+                                (${p[0]}, ${p[1]}, ${p[2]})cm
+                            `,
+                    };
+                }
+
+                if (vtkScene.renderer !== callData.pokedRenderer) {
+                    return;
+                }
+                const pos = callData.position;
+                picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
+                const cid = picker.getCellId();
+                if (cid < 0) {
+                    $scope.$broadcast('vtk.selected', null);
+                    return;
+                }
+                const f = fieldData[Math.floor(cid / 6)];
+                $scope.$broadcast(
+                    'vtk.selected',
+                    info(f, picker.getMapperPosition())
+                );
+                colorbarPtr.pointTo(f);
+            }
+
             function volumesError(reason) {
                 srlog(new Error(`Volume load failed: ${reason}`));
                 $rootScope.$broadcast('vtk.hideLoader');
             }
 
             function volumesLoaded() {
-                if (! $scope.model) {
+                if (! vtkScene) {
                     // volumesLoaded may be called after the component was destroyed
                     return;
                 }
@@ -463,13 +680,25 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     });
             }
 
+            $scope.onlyClientFieldsChanged = false;
+
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
-                $scope.model = null;
+                vtkScene = null;
             };
 
             $scope.init = () => {
                 $scope.fieldDelegate = buildOpacityDelegate();
+            };
+
+            $scope.load = json => {
+                if (vtkScene) {
+                    $rootScope.$broadcast('vtk.showLoader');
+                    addTally(json.content, model().aspect);
+                }
+                else {
+                    tally = json.content;
+                }
             };
 
             $scope.resize = () => {
@@ -477,7 +706,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             };
 
             $scope.sizeStyle = () => {
-                if (! geom3dCfg.fitToWindow) {
+                if (! isGeometryOnly) {
                     return {};
                 }
                 // 53 legend size + 35 bottom panel padding
@@ -490,8 +719,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 };
             };
 
+            $scope.$on('fieldsChanged', function(e, modelFields) {
+                $scope.onlyClientFieldsChanged = modelFields && modelFields.every(x => clientOnlyFields.includes(x));
+            });
+
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
+                colorbar = Colorbar()
+                    .margin({top: 5, right: colorbarThickness + 10, bottom: 5, left: 0})
+                    .thickness(colorbarThickness)
+                    .orient('vertical')
+                    .barlength($('.vtk-canvas-holder').height())
+                    .origin([0, 0]);
                 vtkScene = d;
                 const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
@@ -508,6 +747,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     )
                 );
 
+                picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
+                picker.setPickFromList(true);
+                vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                if (! isGeometryOnly) {
+                    vtkScene.renderWindow.getInteractor().onMouseMove(showFieldInfo);
+                }
+
                 const vols = [];
                 for (const n in appState.models.volumes) {
                     if (! cloudmcService.isGraveyard(appState.models.volumes[n])) {
@@ -515,17 +761,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     }
                 }
                 vtkScene.render();
-                if (geom3dCfg.objectsToLoad.includes('volumes')) {
+                if (isGeometryOnly) {
                     loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
                 }
-                if (geom3dCfg.objectsToLoad.includes('tallies')) {
-                    loadTally(appState.models.tally.aspect);
+                if (tally) {
+                    addTally(tally, model().aspect);
+                    tally = null;
                 }
                 vtkScene.resetView();
 
-                picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
-                picker.setPickFromList(false);
-                vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
@@ -540,6 +784,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             });
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
+
+            appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -889,8 +1136,10 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
                     },
                     {
                         method: 'validate_material_name',
-                        name: value,
-                        component: scope.model.component,
+                        args: {
+                            name: value,
+                            component: scope.model.component,
+                        }
                     }
                 );
 
@@ -996,7 +1245,7 @@ SIREPO.app.directive('point3d', function() {
     };
 });
 
-SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
+SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -1005,46 +1254,46 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
             field: '=',
         },
         template: `
-            <div style="position: relative; top: -25px">
-              <div class="col-sm-12">
-                <button class="btn btn-xs btn-info pull-right"
-                  data-ng-click="addSource()">
-                  <span class="glyphicon glyphicon-plus"></span> Add Source</button>
-                <table data-ng-if="model[field].length"
-                  style="width: 100%; table-layout: fixed; margin-bottom: 10px"
-                  class="table table-hover">
-                  <colgroup>
-                    <col>
-                    <col style="width: 8em">
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th>Space</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr data-ng-repeat="m in model[field] track by $index">
-                      <td>
-                        <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap">
-                          {{ description(m) }}
-                        </div>
-                      </td>
-                      <td>
-                        <button class="btn btn-xs btn-info" style="width: 5em"
-                          data-ng-click="editSource(m)">Edit</button>
-                        <button data-ng-click="removeSource(m)"
-                          class="btn btn-danger btn-xs"><span
-                            class="glyphicon glyphicon-remove"></span></button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div class="col-sm-7">
+              <button class="btn btn-xs btn-info pull-right"
+                data-ng-click="addItem()">
+                <span class="glyphicon glyphicon-plus"></span> Add {{ itemName }}</button>
+            </div>
+            <div class="col-sm-12">
+              <table data-ng-if="model[field].length"
+                style="width: 100%; table-layout: fixed; margin-bottom: 10px"
+                class="table table-hover">
+                <colgroup>
+                  <col>
+                  <col style="width: 8em">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>{{ itemHeading }}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="m in model[field] track by $index">
+                    <td>
+                      <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap">
+                        {{ description(m) }}
+                      </div>
+                    </td>
+                    <td>
+                      <button class="btn btn-xs btn-info" style="width: 5em"
+                        data-ng-click="editItem(m)">Edit</button>
+                      <button data-ng-click="removeItem(m)"
+                        class="btn btn-danger btn-xs"><span
+                          class="glyphicon glyphicon-remove"></span></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
         `,
         controller: function($scope) {
-            const childModel = 'source';
+            const childModel = $scope.field == 'sources' ? 'source' : 'tally';
             const infoFields = {
                 box: ['lower_left', 'upper_right'],
                 cartesianIndependent: ['x', 'y', 'z'],
@@ -1059,6 +1308,9 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
                 watt: ['a', 'b'],
             };
 
+            $scope.itemName = childModel === 'source' ? 'Source' : 'Tally';
+            $scope.itemHeading = childModel === 'source' ? 'Space' : 'Tally';
+
             function nextIndex() {
                 return $scope.model[$scope.field].length;
             }
@@ -1068,17 +1320,24 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
                 panelState.showModalEditor(childModel);
             }
 
-            $scope.addSource = () => {
+            $scope.addItem = () => {
                 editChild(appState.setModelDefaults({
                     _index: nextIndex(),
                 }, childModel));
             };
 
             $scope.description = m => {
-                return typeInfo('SpatialDistribution', m.space);
+                if (childModel == 'source')  {
+                    return sourceInfo('SpatialDistribution', m.space);
+                }
+                return tallyInfo(m);
             };
 
-            function typeInfo(modelType, model) {
+            function tallyInfo(model) {
+                return model.name + ': ' + model.scores.map(t => t.score).join(', ');
+            }
+
+            function sourceInfo(modelType, model) {
                 let res = appState.enumDescription(modelType, model._type);
                 if (infoFields[model._type]) {
                     res += '(';
@@ -1088,7 +1347,7 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
                         }
                         res += `${f}=`;
                         if (model[f]._type) {
-                            res += typeInfo('ProbabilityDistribution', model[f]);
+                            res += sourceInfo('ProbabilityDistribution', model[f]);
                         }
                         else {
                             res += model[f];
@@ -1115,11 +1374,11 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
                 return res + ' ';
             }
 
-            $scope.editSource = model => {
+            $scope.editItem = model => {
                 editChild(model);
             };
 
-            $scope.removeSource = model => {
+            $scope.removeItem = model => {
                 const c = [];
                 for (const m of $scope.model[$scope.field]) {
                     if (m._index != model._index) {
@@ -1138,6 +1397,45 @@ SIREPO.app.directive('sourcesEditor', function(appState, panelState) {
                     appState.saveChanges($scope.modelName);
                 }
             });
+        },
+    };
+});
+
+// A special enum editor which groups items within optgroups
+SIREPO.app.directive('tallyScoreGroup', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            enum: '=',
+        },
+        template: `
+            <select class="form-control" data-ng-model="model[field]"
+              data-ng-options="item.v as item.l group by item.g for item in items">
+            </select>
+        `,
+        controller: function($scope) {
+            // enums are in order by group
+            const groups = {
+                flux: 'Flux scores',
+                absorption: 'Reaction scores',
+                'delayed-nu-fission': 'Particle production scores',
+                current: 'Miscellaneous scores',
+            };
+            $scope.items = [];
+            let g = '';
+            for (const t of $scope.enum.TallyScore) {
+                const v = t[0];
+                if (groups[v]) {
+                    g = groups[v];
+                }
+                $scope.items.push({
+                    v: v,
+                    l: t[1],
+                    g: g,
+                });
+            }
         },
     };
 });
@@ -1194,7 +1492,6 @@ SIREPO.app.directive('tallyAspects', function() {
     };
 });
 
-
 SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
     function processPlanes() {
         panelState.showFields('reflectivePlanes', [
@@ -1202,25 +1499,99 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
             appState.models.reflectivePlanes.useReflectivePlanes == '1',
         ]);
     }
-    function updateEditor() {
-        for (const a of SIREPO.APP_SCHEMA.enum.TallyAspect) {
-            panelState.showEnum(
-                'tally',
-                'aspect',
-                a[0],
-                appState.models.tally.aspects.includes(a[0])
-            );
-        }
-    }
-    $scope.whenSelected = () => {
-        updateEditor();
-        processPlanes();
-    };
+    $scope.whenSelected = processPlanes;
     $scope.watchFields = [
         ['reflectivePlanes.useReflectivePlanes'], processPlanes,
     ];
-    $scope.$watchCollection('appState.models.tally.aspects', updateEditor);
+});
 
+SIREPO.app.directive('simpleListEditor', function(panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            subModel: '=',
+        },
+        template: `
+            <div data-ng-repeat="row in model[field] track by $index">
+              <div class="form-group form-group-sm">
+                <div data-field-editor="subField"
+                  data-model-name="subModel" data-label-size="0"
+                  data-field-size="10"
+                  data-model="model[field][$index]"></div>
+                <div class="col-sm-2" style="margin-top: 5px">
+                  <button data-ng-click="removeIndex($index)"
+                    class="btn btn-danger btn-xs"><span
+                      class="glyphicon glyphicon-remove"></span></button>
+                </div>
+              </div>
+            </div>
+            <div class="form-group form-group-sm">
+              <div data-field-editor="subField" data-model-name="subModel"
+                data-field-size="10"
+                data-label-size="0" data-model="newRowModel"></div>
+            </div>
+        `,
+        controller: function($scope, $element) {
+            $scope.subField = SIREPO.APP_SCHEMA.view[$scope.subModel].advanced[0];
+            $scope.newRowModel = {};
 
-    $scope.$on('tally.changed', updateEditor);
+            $scope.removeIndex = (idx) => {
+                $scope.model[$scope.field].splice(idx, 1);
+            };
+
+            $scope.$watchCollection('newRowModel', (newValue, oldValue) => {
+                if (newValue && newValue[$scope.subField]) {
+                    $scope.model[$scope.field].push({
+                        [$scope.subField]: newValue[$scope.subField],
+                    });
+                    $scope.newRowModel = {};
+                    // the focus should now be set to the new field in the field array
+                    panelState.waitForUI(() => {
+                        $($element).find(
+                            `.model-${$scope.subModel}-${$scope.subField} input`,
+                        ).eq(-2).focus();
+                });
+                }
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('materialList', function(appState, cloudmcService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="v.key as v.name for v in volumes"></select>
+        `,
+        controller: function($scope) {
+            function initVolumes() {
+                const res = [];
+                const volumes = appState.applicationState().volumes;
+                for (const k in volumes) {
+                    if (cloudmcService.isGraveyard(volumes[k])) {
+                        continue;
+                    }
+                    res.push({
+                        key: k,
+                        name: volumes[k].name,
+                    });
+                }
+                res.sort((a, b) => a.name.localeCompare(b.name));
+                return res;
+            }
+            $scope.volumes = initVolumes();
+        },
+    };
+});
+
+SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panelState, $scope) {
+    $scope.watchFields = [
+        ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
+    ];
 });
