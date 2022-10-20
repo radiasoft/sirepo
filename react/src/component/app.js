@@ -60,7 +60,7 @@ export const AppRoot = (props) => {
 
     const hasSchema = useSetup(true,
         (finishInitSchema) => {
-            fetch(`/react/schema/${appName}.json`).then(resp => {
+            fetch(`/static/react-json/${appName}-schema.json`).then(resp => {
                 resp.json().then(json => {
                     updateSchema(compileSchemaFromJson(json));
                     finishInitSchema();
