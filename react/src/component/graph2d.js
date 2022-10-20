@@ -30,6 +30,8 @@ export function Graph2d(props) {
     function constrain(transformMatrix) {
         // no Y zoom
         transformMatrix.scaleY = 1;
+        // TODO(garsuga): something is happening here. maybe this scale restriction needs to be more intelligent
+        transformMatrix.scaleX = Math.min(250, transformMatrix.scaleX);
         transformMatrix.translateY = 0;
         return constrainZoom(transformMatrix, gc.width, 'X');
     }
@@ -63,16 +65,19 @@ export function Graph2d(props) {
                     range: plots.map(plot => plot.color)
                 })
 
+                console.log("zoom scaleX: " + zoom.transformMatrix.scaleX);
+                let strokeWidth = Math.max(2 / zoom.transformMatrix.scaleX, 1);
+
                 let toPath = (plot, index) => {
                     return (
-                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color} strokeWidth={2}>
+                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color} strokeWidth={strokeWidth}>
 
                         </Shape.LinePath>
                     )
                 }
 
                 let paths = plots.map((plot, i) => toPath(plot, i));
-                const cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
+                let cursor = zoom.transformMatrix.scaleX > 1 ? 'ew-resize' : 'zoom-in';
                 return (
                     <>
                         <svg
