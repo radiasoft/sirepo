@@ -1289,6 +1289,128 @@
                                 ]
                             }
                         ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "Mesh",
+                        "basic": [
+                            {
+                                "layout": "tabs",
+                                "tabs": [
+                                    {
+                                        "name": "Main",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "mesh.ncar",
+                                                    "mesh.lbc",
+                                                    "mesh.rmax0",
+                                                    "mesh.dgrid"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Space Charge",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "mesh.nscz",
+                                                    "mesh.nscr",
+                                                    "mesh.nptr",
+                                                    "mesh.rmax0sc",
+                                                    "mesh.iscrkup"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "Focusing",
+                        "basic": [
+                            {
+                                "layout": "tabs",
+                                "tabs": [
+                                    {
+                                        "name": "Quadrupoles",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "io.maginfile"
+                                                ]
+                                            },
+                                            {
+                                                "layout": "fieldTable",
+                                                "columns": ["Focus", "Defocus"],
+                                                "rows": [
+                                                    {
+                                                        "label": "Quadrupole field strength [T/m]",
+                                                        "description": "QUADF, QUADD: The field strength of F quadrupoles, focusing in the x-plane.",
+                                                        "fields": [
+                                                            "focusing.quadf",
+                                                            "focusing.quadd"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "label": "Quadrupole length",
+                                                        "description": "FL, DL: Length of the F-quadrupoles in measures of the undulator period. The integration step size DELZ must resolve the quadrupole length.",
+                                                        "fields": [
+                                                            "focusing.fl",
+                                                            "focusing.dl"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "focusing.drl",
+                                                    "focusing.f1st"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Misalignment",
+                                        "items": [
+                                            {
+                                                "layout": "fieldTable",
+                                                "columns": ["Horizontal", "Vertical"],
+                                                "rows": [
+                                                    {
+                                                        "label": "Quadrupole misalignment [m]",
+                                                        "description": "QFDX, QFDY: Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-QFDX, QFDX] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file.",
+                                                        "fields": [
+                                                            "focusing.qfdx",
+                                                            "focusing.qfdy"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Solenoid",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "focusing.solen",
+                                                    "focusing.sl"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             }
