@@ -965,31 +965,31 @@
                             "name": "ionBeam",
                             "layout": "panel",
                             "title": "Ion Beam",
-                                "basic": [
-                                    {
-                                        "layout": "fieldList",
-                                        "fields": [
-                                            "ionBeam.particle",
-                                            "ionBeam.charge_number",
-                                            "ionBeam.mass",
-                                            "ionBeam.kinetic_energy",
-                                            "ionBeam.momentum_spread",
-                                            "ionBeam.particle_number",
-                                            "ionBeam.beam_type",
-                                            "ionBeam.rms_bunch_length"
-                                        ]
-                                    },
-                                    {
-                                        "layout": "fieldTable",
-                                        "columns": ["Horizontal", "Vertical"],
-                                        "rows": [
-                                            {
-                                                "label": "RMS Normalized Emittance [m*rad]",
-                                                "fields": ["ionBeam.norm_emit_x", "ionBeam.norm_emit_y"]
-                                            }
-                                        ]
-                                    }
-                                ]
+                            "basic": [
+                                {
+                                    "layout": "fieldList",
+                                    "fields": [
+                                        "ionBeam.particle",
+                                        "ionBeam.charge_number",
+                                        "ionBeam.mass",
+                                        "ionBeam.kinetic_energy",
+                                        "ionBeam.momentum_spread",
+                                        "ionBeam.particle_number",
+                                        "ionBeam.beam_type",
+                                        "ionBeam.rms_bunch_length"
+                                    ]
+                                },
+                                {
+                                    "layout": "fieldTable",
+                                    "columns": ["Horizontal", "Vertical"],
+                                    "rows": [
+                                        {
+                                            "label": "RMS Normalized Emittance [m*rad]",
+                                            "fields": ["ionBeam.norm_emit_x", "ionBeam.norm_emit_y"]
+                                        }
+                                    ]
+                                }
+                            ]
                         },
                         {
                             "name": "coolingAndIBS",

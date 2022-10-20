@@ -962,5 +962,83 @@
             "description": "XLAMD: The undulator period length."
           }
         }
+    },
+    "view": {
+        "name": "navtabs",
+        "layout": "navTabs",
+        "tabs": [
+            {
+                "name": "source",
+                "title": "Source",
+                "icon": "",
+                "items": [
+                    {
+                        "layout": "panel",
+                        "title": "Undulator",
+                        "basic": [
+                            {
+                                "layout": "tabs",
+                                "tabs": [
+                                    {
+                                        "name": "Main",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "undulator.aw0",
+                                                    "undulator.awd",
+                                                    "undulator.iwityp",
+                                                    "undulator.fbess0"
+                                                ]
+                                            },
+                                            {
+                                                "layout": "fieldTable",
+                                                "columns": ["Horizontal", "Vertical"],
+                                                "rows": [
+                                                    {
+                                                        "label": "Undulator focus parameter",
+                                                        "description": "XKX, XKY: Normalized natural focusing of the undulator in $x$. Common values are XKX = 0.0, XKY = 1.0 for a planar undulator or XKX, XKY = 0.5 for a helical undulator, but might vary if focusing by curved pole faces is simulated. The values should fulfill the constraint XKX + XKY = 1.0. ",
+                                                        "fields": [
+                                                            "undulator.xkx",
+                                                            "undulator.xky"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Dimensions",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "undulator.xlamd",
+                                                    "undulator.nwig",
+                                                    "undulator.nsec"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Tapering",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "undulator.wcoefz1",
+                                                    "undulator.wcoefz2",
+                                                    "undulator.wcoefz3"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
     }
 }
