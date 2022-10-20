@@ -95,7 +95,8 @@ export class rsBoolean extends rsType {
     }
 
     dbValue = (value) => {
-        return (value === "true" || value === true) ? "1" : "0"; // TODO ???????? why arent these just booleans?
+        let ret = (value === "true" || value === true || value === "1") ? "1" : "0"; // TODO ???????? why arent these just booleans?
+        return ret;
     }
 
     validate = (value) => {
@@ -108,7 +109,7 @@ export class rsBoolean extends rsType {
             event.target.value = event.target.checked;
             props.onChange(event);
         }
-        let value = props.value == true || props.value == "true";
+        let value = props.value == true || props.value == "true" || props.value === "1";
         return <Form.Check {...props} onChange={onChange} checked={value}></Form.Check>
     }
 }
