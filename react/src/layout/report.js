@@ -9,6 +9,7 @@ import { useStore } from "react-redux";
 import { ProgressBar, Stack, Button } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
+import { useEvaluatedInterpString } from "../hook/string";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
@@ -106,7 +107,7 @@ export class ManualRunReportLayout extends View {
 
     component = (props) => {
         let { config } = props;
-        let { reportName, reportGroupName, reportLayout, frameIdFields } = config;
+        let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig } = config;
         
         let reportEventManager = useContext(ContextReportEventManager);
         let schema = useContext(ContextSchema);
@@ -117,6 +118,12 @@ export class ManualRunReportLayout extends View {
         let [reportData, updateReportData] = useState(undefined);
 
         let reportEventsVersionRef = useRef(uuidv4())
+
+        let shown = true;
+
+        if(shownConfig) {
+            shown = useEvaluatedInterpString(modelsWrapper, shownConfig);
+        }
 
         let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
 
@@ -165,7 +172,7 @@ export class ManualRunReportLayout extends View {
         let panelController = useContext(ContextPanelController);
 
         useEffect(() => {
-            panelController.setShown(!!reportData);
+            panelController.setShown(shown && !!reportData);
         }, [!!reportData])
 
         let VisualComponent = reportData ? layoutElement.component : undefined;
@@ -173,7 +180,7 @@ export class ManualRunReportLayout extends View {
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {VisualComponent && <VisualComponent key={reportEventsVersionRef.current} config={reportLayout} simulationData={reportData}></VisualComponent>}
+                {VisualComponent && shown && <VisualComponent key={reportEventsVersionRef.current} config={reportLayout} simulationData={reportData}></VisualComponent>}
             </>
         )
     }

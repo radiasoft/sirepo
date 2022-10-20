@@ -1466,6 +1466,7 @@
                                     "layout": "manualRunReport",
                                     "reportGroupName": "animation",
                                     "reportName": "particleAnimation",
+                                    "shown": "$(simulationSettings.model) == 'particle'",
                                     "frameIdFields": [
                                         "particleAnimation.x",
                                         "particleAnimation.y",
