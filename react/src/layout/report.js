@@ -173,7 +173,7 @@ export class ManualRunReportLayout extends View {
 
         useEffect(() => {
             panelController.setShown(shown && !!reportData);
-        }, [!!reportData])
+        }, [shown, !!reportData])
 
         let VisualComponent = reportData ? layoutElement.component : undefined;
 
