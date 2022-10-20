@@ -1840,7 +1840,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
                 $scope.dataCleared = false;
             });
 
-            $scope.$on('fieldLineoutAnimation.changed', function () {
+            $scope.$on('fieldLineoutAnimation.saved', function () {
                 if ($scope.showFieldLineoutPanel()) {
                     // Dont run automatically for sbatch or nersc
                     if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
