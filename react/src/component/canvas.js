@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { CanvasContext } from "./CanvasContext";
+import { CanvasContext } from "./canvascontext";
 
 //TODO(pjm): use visx canvas when available
 // code from https://codesandbox.io/s/xorr68vzqz?file=/src/Canvas.js

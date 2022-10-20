@@ -2,8 +2,8 @@
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
 import { useRef, useLayoutEffect } from 'react';
-import { useCanvas, useCanvasContext } from "./CanvasContext";
-import { Canvas } from "./Canvas";
+import { useCanvas, useCanvasContext } from "./canvascontext";
+import { Canvas } from "./canvas";
 import { DynamicAxis } from "./axis";
 import { constrainZoom, useGraphContentBounds } from "../utility/component";
 import { Zoom } from '@visx/zoom';
