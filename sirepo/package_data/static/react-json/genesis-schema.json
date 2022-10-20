@@ -1032,6 +1032,95 @@
                                                 ]
                                             }
                                         ]
+                                    },
+                                    {
+                                        "name": "Errors and Misalignment",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "undulator.iertyp",
+                                                    "undulator.delaw",
+                                                    "undulator.iseed"
+                                                ]
+                                            },
+                                            {
+                                                "layout": "fieldTable",
+                                                "columns": ["Horizontal", "Vertical"],
+                                                "rows": [
+                                                    {
+                                                        "label": "Misalignment [m]",
+                                                        "description": "AWX, AWY: Maximum offset in x for undulator module misalignment. The error for each individual module follows a uniform distribution",
+                                                        "fields": [
+                                                            "undulator.awx",
+                                                            "undulator.awy"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "Electron Beam",
+                        "basic": [
+                            {
+                                "layout": "tabs",
+                                "tabs": [
+                                    {
+                                        "name": "Main",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "electronBeam.npart",
+                                                    "io.beamFile",
+                                                    "electronBeam.gamma0",
+                                                    "electronBeam.delgam",
+                                                    "electronBeam.curpeak",
+                                                    "simulationControl.eloss"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Dimensions",
+                                        "items": [
+                                            {
+                                                "layout": "fieldTable",
+                                                "columns": ["Horizontal", "Vertical"],
+                                                "rows": [
+                                                    {
+                                                        "label": "RMS size [m]",
+                                                        "description": "RXBEAM, RYBEAM: The RMS value of the transverse, spatial distribution.",
+                                                        "fields": [
+                                                            "electronBeam.rxbeam",
+                                                            "electronBeam.rybeam"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "label": "Alpha",
+                                                        "description": "ALPHAX, ALPHAY: Rotation of the transverse phase space distribution in x according to the standard definition ALPHAX = - < xx' >  GAMMA0 / EMITX.",
+                                                        "fields": [
+                                                            "electronBeam.alphax",
+                                                            "electronBeam.alphay"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "label": "RMS emittance [m]",
+                                                        "description": "EMITX, EMITY: The normalized RMS emittance.",
+                                                        "fields": [
+                                                            "electronBeam.emitx",
+                                                            "electronBeam.emity"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
                                     }
                                 ]
                             }
