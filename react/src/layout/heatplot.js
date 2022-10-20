@@ -15,7 +15,7 @@ function apiResponseToHeatplotConfig(apiResponse) {
     } = apiResponse;
 
     if (! xRange) {
-        return {};
+        return undefined;
     }
     let [xMin, xMax] = xRange;
     let [yMin, yMax] = yRange;
