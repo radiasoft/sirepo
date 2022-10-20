@@ -811,11 +811,17 @@ SIREPO.app.directive('logSelector', function(appState, controlsService, requestS
             };
 
             const updateFromLog = utilities.debounce(() => {
+                if (! appState.isLoaded()) {
+                    return;
+                }
                 $scope.logViewer.displayValue = new Date($scope.logViewer.timeValues[
                     appState.models.controlSettings.selectedTimeIndex] * 1000).toGMTString();
                 requestSender.sendStatefulCompute(
                     appState,
                     data => {
+                        if (! appState.isLoaded()) {
+                            return;
+                        }
                         $rootScope.$broadcast('initialMonitorPositionsReport.summaryData', {
                             elementValues: [data.values],
                         });
