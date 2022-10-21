@@ -272,21 +272,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 </li>
             </ul>
             <div>
-                <div data-vtk-display="" class="vtk-display col-sm-11"
+                <div data-ng-show="isClientOnly || displayType === '3D'" data-vtk-display="" class="vtk-display col-sm-11"
                   data-ng-style="sizeStyle()" data-show-border="true"
                   data-report-id="reportId" data-model-name="{{ modelName }}"
                   data-event-handlers="eventHandlers" data-reset-side="y"
                   data-enable-axes="true" data-axis-cfg="axisCfg"
                   data-axis-obj="axisObj" data-enable-selection="true"></div>
-                <div class="col-sm-1" style="padding-left: 0;" data-ng-if="supportsColorbar()">
+                <div class="col-sm-1" style="padding-left: 0;" data-ng-show="supportsColorbar()">
                     <div class="colorbar"></div>
                 </div>
             </div>
-            <!--
             <div data-ng-show="displayType === '2D'">
-               <div data-report-panel="heatmap" data-model-name="{{ modelName }}"></div>
+               <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
-            -->
         `,
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
@@ -418,16 +416,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function buildVoxels() {
-                function getMeshFilter() {
-                    const t = cloudmcService.findTally();
-                    for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
-                        const f = t[`filter${k}`];
-                        if (f && f._type === 'meshFilter') {
-                            return f;
-                        }
-                    }
-                    return null;
-                }
 
                 if (tallyBundle) {
                     vtkScene.removeActor(tallyBundle.actor);
@@ -451,7 +439,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 const points = [];
                 const polys = [];
                 fieldData = [];
-                const fd = basePolyData.getFieldData().getArrayByName(model().aspect).getData();
+                const fd = getFieldData();
                 minField = Number.MAX_VALUE;
                 maxField = Number.MIN_VALUE;
                 for (let zi = 0; zi < nz; zi++) {
@@ -490,6 +478,43 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 vtkScene.addActor(tallyBundle.actor);
                 picker.addPickList(tallyBundle.actor);
                 setTallyColors();
+            }
+
+            function getFieldAtPlanePos(axis, pos) {
+                const axisIndex = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
+                const mesh = getMeshFilter();
+                if (! mesh) {
+                    return null;
+                }
+                const n = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[axis];
+                const o = n.map(
+                    (x, i) => i === axisIndex ? pos : (mesh.upper_right[i] + mesh.lower_left[i]) / 2.0
+                );
+                const p = vtk.Common.DataModel.vtkPlane.newInstance({
+                    normal: n,
+                    origin: o,
+                });
+                srdbg('cut', n, o);
+                const cutter = vtk.Filters.Core.vtkCutter.newInstance();
+                cutter.setCutFunction(p);
+                cutter.setInputData(basePolyData);
+                cutter.update();
+                srdbg('cutter', cutter.getOutputData().getFieldData().getNumberOfComponents());
+            }
+
+            function getFieldData() {
+                return basePolyData.getFieldData().getArrayByName(model().aspect).getData();
+            }
+
+            function getMeshFilter() {
+                const t = cloudmcService.findTally();
+                for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
+                    const f = t[`filter${k}`];
+                    if (f && f._type === 'meshFilter') {
+                        return f;
+                    }
+                }
+                return null;
             }
 
             function getVolumeById(volId) {
@@ -573,7 +598,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 colorbarPtr = d3.select('.colorbar').call(colorbar);
                 const sc = [];
                 const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
-                for (const f of basePolyData.getFieldData().getArrayByName(model().aspect).getData()) {
+                for (const f of getFieldData()) {
                     if (! isInFieldThreshold(f)) {
                         continue;
                     }
@@ -591,9 +616,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
+                getFieldAtPlanePos('y', 0.5);
             }
 
-            $scope.supportsColorbar = () => ! isGeometryOnly;
+            $scope.supportsColorbar = () => $scope.displayType === '3D' && ! isGeometryOnly;
 
             function loadVolumes(volIds) {
                 //TODO(pjm): update progress bar with each promise resolve?
