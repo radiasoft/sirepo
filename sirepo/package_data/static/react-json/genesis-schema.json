@@ -1411,6 +1411,104 @@
                                 ]
                             }
                         ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "I/O",
+                        "basic": [
+                            {
+                                "layout": "tabs",
+                                "tabs": [
+                                    {
+                                        "name": "Main",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "io.iotail",
+                                                    "io.ndcut",
+                                                    "io.ffspec"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Field",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "io.fieldfile",
+                                                    "io.alignradf",
+                                                    "io.offsetradf"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Particles",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "io.partfile",
+                                                    "io.convharm",
+                                                    "io.multconv",
+                                                    "io.ibfield",
+                                                    "io.imagl",
+                                                    "io.idril"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "visualization",
+                "title": "Visualization",
+                "icon": "",
+                "items": [
+                    {
+                        "layout": "panel",
+                        "title": "Simulation Control",
+                        "basic": [
+                            {
+                                "layout": "tabs",
+                                "tabs": [
+                                    {
+                                        "name": "Main",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "simulationControl.delz",
+                                                    "simulationControl.zstop",
+                                                    "simulationControl.iorb",
+                                                    "simulationControl.isravg",
+                                                    "simulationControl.isrsig"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "Output Frequency",
+                                        "items": [
+                                            {
+                                                "layout": "fieldList",
+                                                "fields": [
+                                                    "io.ippart",
+                                                    "io.ipradi"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             }
