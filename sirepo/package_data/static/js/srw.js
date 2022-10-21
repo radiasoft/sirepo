@@ -2541,10 +2541,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 var a = appState.models.coherentModesAnimation;
                 if (checkRunMode(a.jobRunMode)) {
                     return true;
-                };
+                }
                 if (a.sbatchCores < 3) {
                     throw new Error(`${a.sbatchCores} cores found, should be > 3 for coherent modes`);
-                };
+                }
             }
 
             function setActiveAnimation() {
