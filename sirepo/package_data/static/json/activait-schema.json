@@ -355,7 +355,6 @@
         "neuralNet": {
             "optimizer": ["Optimizer", "NeuralNetOptimizer", "adam"],
             "losses": ["Losses", "NeuralNetLosses", "mean_squared_error"],
-            "lossOptions": ["Loss Options", "String", ""],
             "epochs" : ["Epochs", "Integer", 500],
             "batch_size": ["Batch Size", "Integer", 50],
             "shuffle": ["Shuffle Before Epoch", "Boolean", "1"]
@@ -718,9 +717,7 @@
                 "batch_size",
                 "shuffle"
             ],
-            "advanced": [
-                "lossOptions"
-            ]
+            "advanced": []
         },
         "neuralNetLayer": {
             "title": "Neural Network Layers",
