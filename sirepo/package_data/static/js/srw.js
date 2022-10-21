@@ -2534,14 +2534,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return $scope.model == 'coherentModesAnimation';
             }
 
-            function checkRunMode(runMode) {
-                return (runMode == 'sequential') || (runMode == 'parallel');
-            }
 
             function coherentModesEnoughCores() {
                 var a = appState.models.coherentModesAnimation;
-                if (checkRunMode(a.jobRunMode)) {
-                    return true;
+                srdbg(a);
+                if (a.jobRunMode == 'sequential') {
+                    throw new Error('Coherent modes should not be run sequentially');
                 }
                 if (a.sbatchCores < coreMinimum) {
                     throw new Error(`${a.sbatchCores} cores found, should be > 3 for coherent modes`);
