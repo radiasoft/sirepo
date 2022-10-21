@@ -2507,6 +2507,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             </form>
         `,
         controller: function($scope, appState, authState, stringsService) {
+            const coreMinimum = 3;
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
@@ -2542,7 +2543,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (checkRunMode(a.jobRunMode)) {
                     return true;
                 }
-                if (a.sbatchCores < 3) {
+                if (a.sbatchCores < coreMinimum) {
                     throw new Error(`${a.sbatchCores} cores found, should be > 3 for coherent modes`);
                 }
             }
