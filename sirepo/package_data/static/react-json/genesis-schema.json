@@ -1509,7 +1509,73 @@
                                 ]
                             }
                         ]
+                    },
+                    {
+                        "name": "simulationStatus",
+                        "layout": "panel",
+                        "title": "Simulation Status",
+                        "basic": [
+                            {
+                                "layout": "startSimulation",
+                                "reportGroupName": "animation"
+                            }
+                        ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "Parameter Report",
+                        "basic": [
+                            {
+                                "layout": "manualRunReport",
+                                "reportGroupName": "animation",
+                                "reportName": "parameterAnimation",
+                                "frameIdFields": [
+                                    "parameterAnimation.y1",
+                                    "parameterAnimation.y2",
+                                    "parameterAnimation.y3"
+                                ],
+                                "reportLayout": {
+                                    "layout": "graph2d"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "Particle Distribution",
+                        "basic": [
+                            {
+                                "layout": "manualRunReport",
+                                "reportGroupName": "animation",
+                                "reportName": "particleAnimation",
+                                "frameIdFields": [
+                                    "particleAnimation.x",
+                                    "particleAnimation.y",
+                                    "particleAnimation.histogramBins"
+                                ],
+                                "reportLayout": {
+                                    "layout": "heatplot"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "layout": "panel",
+                        "title": "Field Distribution",
+                        "basic": [
+                            {
+                                "layout": "manualRunReport",
+                                "reportGroupName": "animation",
+                                "reportName": "fieldDistributionAnimation",
+                                "frameIdFields": [
+                                ],
+                                "reportLayout": {
+                                    "layout": "heatplot"
+                                }
+                            }
+                        ]
                     }
+
                 ]
             }
         ]
