@@ -1073,7 +1073,11 @@ def _levels_with_children(cur_node, neural_net):
 
 
 def _loss_function(loss_fn):
-    if loss_fn in ("binary_crossentropy", "categorical_crossentropy", "sparse_categorical_crossentropy"):
+    if loss_fn in (
+        "binary_crossentropy",
+        "categorical_crossentropy",
+        "sparse_categorical_crossentropy",
+    ):
         l = "".join(w.title() for w in loss_fn.split("_"))
         return "keras.losses." + l + "(from_logits=True)"
     return loss_fn
