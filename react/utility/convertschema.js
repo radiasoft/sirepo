@@ -13,7 +13,7 @@ function convertModels(fileName) {
         for(let [fieldName, field] of Object.entries(model)) {
             let [name, typeString, defaultValue, description, min, max] = field;
             newModel[fieldName] = {
-                name,
+                displayName: name,
                 type: typeString,
                 defaultValue,
                 description,

@@ -1,6 +1,23 @@
 import { globalTypes, partialTypes } from "../types";
 import { mapProperties } from "./object";
 
+export function mergeSchemaJson(original, overrides) {
+    return {
+        view: [
+            ...(original.view || []),
+            ...(overrides.view || [])
+        ],
+        model: {
+            ...(original.model || {}),
+            ...(overrides.model || {})
+        },
+        type: {
+            ...(original.type || {}),
+            ...(overrides.type || {})
+        }
+    }
+}
+
 export function compileSchemaFromJson(schemaObj) {
     let enumTypes = {};
     let additionalTypes = {};
