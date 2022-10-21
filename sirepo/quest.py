@@ -14,6 +14,7 @@ import sirepo.flask
 import sirepo.modules
 import sirepo.uri
 import sirepo.util
+import re
 
 
 _HTTP_DATA_ATTR = "http_data"
@@ -22,7 +23,11 @@ _PARENT_ATTR = "parent"
 
 _SIM_TYPE_ATTR = "sim_type"
 
+_SPEC_ATTR = "quest_spec"
+
 _hack_current = None
+
+_SPEC_SIM_TYPE_CONST = re.compile(r"\s*SimType\s+const=(\S+)")
 
 
 def hack_current():
@@ -222,6 +227,11 @@ class API(pykern.quest.API):
             return
         self._bucket[_SIM_TYPE_ATTR] = sim_type
 
+    def sim_type_set_from_spec(self, func):
+        s = getattr(func, _SPEC_ATTR).sim_type
+        if s:
+            self.sim_type_set(s)
+
     def sim_type_uget(self, value=None):
         """Return value or reuqest's sim_type
 
@@ -232,7 +242,7 @@ class API(pykern.quest.API):
         """
         if value:
             return sirepo.util.assert_sim_type(value)
-        t = self._bucket.get(_SIM_TYPE_ATTR)
+        return self._bucket.get(_SIM_TYPE_ATTR)
 
     def uri_for_api(self, api_name, params=None):
         """Generate uri for api method
@@ -291,6 +301,9 @@ class Spec(pykern.quest.Spec):
     def __init__(self, perm, **kwargs):
         self.perm = perm
         self.kwargs = PKDict(kwargs)
+        self.sim_type = None
+        m = _SPEC_SIM_TYPE_CONST.search(self.kwargs.get("sim_type") or "")
+        self.sim_type = m.group(1) if m else None
         super().__init__()
 
     # TODO(robnagler) put this in super and just setattr perm.
@@ -304,6 +317,7 @@ class Spec(pykern.quest.Spec):
             sirepo.api_perm.ATTR,
             getattr(sirepo.api_perm.APIPerm, self.perm.upper()),
         )
+        setattr(_wrapper, _SPEC_ATTR, self)
         return _wrapper
 
 

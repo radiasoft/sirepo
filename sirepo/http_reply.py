@@ -417,7 +417,7 @@ def _gen_exception_reply_SRException(qcall, args):
                 }
             ),
         )
-    pkdc("redirect to route={} params={}  type={}", r, p, t)
+    pkdc("redirect to route={} params={} type={}", r, p, t)
     return gen_redirect_for_local_route(
         qcall,
         t,

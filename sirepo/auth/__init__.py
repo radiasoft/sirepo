@@ -156,6 +156,7 @@ class _Auth(sirepo.quest.Attr):
         from sirepo import auth_role_moderation, oauth, uri_router
 
         t = sirepo.template.assert_sim_type(sim_type)
+        self.qcall.sim_type_set(t)
         if t not in sirepo.feature_config.auth_controlled_sim_types():
             return
         if not uri_router.maybe_sim_type_required_for_api(self.qcall):
@@ -169,7 +170,7 @@ class _Auth(sirepo.quest.Attr):
         elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
         if r in sirepo.auth_role.for_moderated_sim_types():
-            auth_role_moderation.raise_control_for_user(self.qcall, u, r)
+            auth_role_moderation.raise_control_for_user(self.qcall, u, r, t)
         sirepo.util.raise_forbidden(f"uid={u} does not have access to sim_type={t}")
 
     def complete_registration(self, name=None):
@@ -428,7 +429,11 @@ class _Auth(sirepo.quest.Attr):
         return self._auth_state()
 
     def only_for_api_logout(self):
-        sirepo.events.emit(self, "auth_logout", PKDict(uid=self._qcall_bound_user()))
+        sirepo.events.emit(
+            self.qcall,
+            "auth_logout",
+            PKDict(uid=self._qcall_bound_user()),
+        )
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
 

@@ -45,11 +45,11 @@ if [[ ${SIREPO_AUTH_GITHUB_KEY:-} && ${SIREPO_AUTH_GITHUB_SECRET:-} ]]; then
     export SIREPO_SIM_API_JUPYTERHUBLOGIN_RS_JUPYTER_MIGRATE=1
 fi
 
-sirepo service nginx-proxy &
 sirepo service uwsgi &
+sirepo service nginx-proxy &
 sirepo job_supervisor &
 sirepo service jupyterhub &
-if ! wait -n; then
-    kill -9 $(jobs -p) || true
-    exit 1
-fi
+declare -a x=( $(jobs -p) )
+# this doesn't kill uwsgi for some reason; TERM is better than KILL
+trap "kill ${x[*]}" EXIT
+wait -n

@@ -252,18 +252,17 @@ def _call_api(parent, route, kwargs, data=None):
             qcall.parent_set(parent)
         # POSIT: sirepo.quest does not copy this attr in parent_set
         qcall.attr_set("uri_route", route)
+        qcall.sim_type_set_from_spec(route.func)
         if not parent:
             sirepo.auth.init_quest(qcall)
         if data:
             qcall.http_data_set(data)
-        p = None
-        s = None
         try:
             # must be first so exceptions have access to sim_type
             if kwargs:
                 # Any (GET) uri will have simulation_type in uri if it is application
                 # specific.
-                s = qcall.sim_type_set(kwargs.get("simulation_type"))
+                qcall.sim_type_set(kwargs.get("simulation_type"))
             elif kwargs is None:
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)

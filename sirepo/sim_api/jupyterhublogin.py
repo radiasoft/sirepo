@@ -34,7 +34,7 @@ _SIM_TYPE = "jupyterhublogin"
 
 
 class API(sirepo.quest.API):
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     def api_checkAuthJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
@@ -46,7 +46,7 @@ class API(sirepo.quest.API):
         return self.reply_ok(PKDict(username=u))
 
     @sirepo.quest.Spec(
-        "require_user", do_migration="Bool", sim_type=f"SimType default={_SIM_TYPE}"
+        "require_user", do_migration="Bool", sim_type=f"SimType const={_SIM_TYPE}"
     )
     def api_migrateJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
@@ -58,7 +58,7 @@ class API(sirepo.quest.API):
             return self.reply_redirect("jupyterHub")
         sirepo.oauth.raise_authorize_redirect(self, _SIM_TYPE, github_auth=True)
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     def api_redirectJupyterHub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(self)

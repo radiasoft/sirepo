@@ -11,7 +11,6 @@ import jupyterhub.auth
 import pykern.pkresource
 import re
 import requests
-import sirepo.simulation_db
 import tornado.web
 import traitlets
 
@@ -69,24 +68,9 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
             if m:
                 _handle_unauthenticated(m.group(1))
 
-        def _maybe_srexception(response):
-            if "srException" not in response:
-                return
-            from sirepo import uri
-
-            e = PKDict(response.srException)
-            _handle_unauthenticated(
-                uri.local_route(
-                    _SIM_TYPE,
-                    route_name=e.routeName,
-                    params=e.params,
-                ),
-            )
-
-        r = requests.post(
-            # POSIT: no params on checkAuthJupyterhub
-            self.sirepo_uri
-            + sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterhub,
+        r = requests.get(
+            # POSIT: sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterhub
+            self.sirepo_uri + "/check-auth-jupyterhub",
             cookies={k: handler.get_cookie(k) for k in handler.cookies.keys()},
         )
         _cookies(r)
@@ -95,7 +79,6 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
         r.raise_for_status()
         _maybe_html(r)
         res = PKDict(r.json())
-        _maybe_srexception(res)
         assert "username" in res, f"expected username in response={res}"
         return res
 
