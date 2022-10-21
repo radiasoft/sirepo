@@ -107,18 +107,18 @@ SIREPO.app.directive('catalogPicker', function() {
             field: '=',
         },
         template: `
-            <div data-ng-hide="!awaitingCatalogNames">Loading...</div>
-            <select class="form-control" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
+            <div data-ng-hide="haveCatalogNames">Loading...</div>
+            <select class="form-control" data-ng-show="haveCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
         `,
         controller: function($scope, appState, errorService, requestSender) {
             $scope.catalogNames = [];
-            $scope.awaitingCatalogNames = true;
+            $scope.haveCatalogNames = false;
 
             requestSender.sendStatelessCompute(
                 appState,
                 json => {
                     $scope.catalogNames = json.data.catalogs;
-                    $scope.awaitingCatalogNames = false;
+                    $scope.haveCatalogNames = true;
                 },
                 {
                     method: 'catalog_names',
@@ -377,6 +377,10 @@ SIREPO.app.directive('scansTable', function() {
             const errorOptions = {
                 modelName: $scope.modelName,
                 onError: (data) => {
+                    if (scanRequestInterval) {
+                        $interval.cancel(scanRequestInterval);
+                        scanRequestInterval = null;
+                    }
                     errorService.alertText(data.error);
                     panelState.setLoading($scope.modelName, false);
                 },
