@@ -319,10 +319,15 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 
 def stateful_compute_build_shape_points(data):
     pts = []
+    o = data.args.object
+    if not o.get("points_file"):
+        return PKDict(points=pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
+            o, _get_stemmed_info(o)
+        ))
     with open(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
-                "extrudedPoints", "pointsFile", data.args.points_file
+                "extrudedPoints", "pointsFile", o.points_file
             )
         ),
         "rt",
@@ -1382,6 +1387,7 @@ def _save_trajectory_csv(path, **kwargs):
 # permutation order based on the extrusion axis:
 #   x -> (y, z), y -> (z, x), z -> (x, y)
 def _update_extruded(o):
+    pkdp("UPDATE EXTRUDE {}", o)
     o.widthAxis = radia_util.next_axis(o.extrusionAxis)
     o.heightAxis = radia_util.next_axis(o.widthAxis)
 
