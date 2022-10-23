@@ -611,6 +611,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = function(o) {
+        //srdbg('SHH FOR', o);
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
         let center = radiaService.scaledArray(o.center || SIREPO.ZERO_ARR, scale);
         let size =   radiaService.scaledArray(o.size || SIREPO.ZERO_ARR, scale);
@@ -628,6 +629,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         let pts = {};
         if (o.layoutShape === 'polygon') {
+            srdbg("BLD POLY FOR", o);
             const [k, i, j] = [o.extrusionAxis, o.widthAxis, o.heightAxis].map(radiaService.axisIndex);
             const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
             pts[o.extrusionAxis] = scaledPts;
@@ -639,6 +641,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             p = scaledPts.map(x => x[0]);
             [mx, mn] = [Math.max(...p), Math.min(...p)];
             pts[o.heightAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
+            srdbg("BLT POLY PTS", pts);
         }
         const shape = vtkPlotting.plotShape(
             o.id, o.name,
@@ -1109,6 +1112,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         m.center = lo.center;
         m.name = lo.type;
         m.name = newObjectName(m);
+        srdbg('DROPPED', m);
         self.editObject(m);
     });
 
@@ -4029,6 +4033,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 
     $scope.$on('geomObject.changed', () => {
+        srdbg('GO CH');
         if (editedModels.includes('extrudedPoly')) {
             radiaService.buildShapePoints($scope.modelData, setPoints);
         }
@@ -4064,10 +4069,12 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function setPoints(data) {
-        $scope.modelData.referencePoints = data.points;
-        $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
-        $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
-        radiaService.updateExtruded($scope.modelData);
+        srdbg($scope.modelName, 'set pts', data);
+        $scope.modelData.points = data.points;
+        //appState.saveChanges($scope.modelName)
+        //$scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
+        //$scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
+        //radiaService.updateExtruded($scope.modelData);
     }
 
     const self = {};
