@@ -581,7 +581,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (! o) {
             return;
         }
-        srdbg('save', id);
         if (o.layoutShape === 'polygon') {
             radiaService.updateExtruded(o);
         }
@@ -631,7 +630,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         let pts = {};
         if (o.layoutShape === 'polygon') {
-            srdbg("BLD POLY FOR", o);
             const [k, i, j] = [o.extrusionAxis, o.widthAxis, o.heightAxis].map(radiaService.axisIndex);
             const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
             pts[o.extrusionAxis] = scaledPts;
@@ -643,7 +641,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             p = scaledPts.map(x => x[0]);
             [mx, mn] = [Math.max(...p), Math.min(...p)];
             pts[o.heightAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
-            srdbg("BLT POLY PTS", pts);
         }
         const shape = vtkPlotting.plotShape(
             o.id, o.name,
@@ -713,7 +710,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function addShapesForObject(o) {
         let baseShape = self.getShape(o.id);
         if (! baseShape) {
-            srdbg('ADD BASE FOR', o);
             baseShape = self.shapeForObject(o);
             self.shapes.push(baseShape);
         }
@@ -776,7 +772,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (o.groupId !== '') {
             let gShape = self.getShape(o.groupId);
             if (! gShape) {
-                srdbg('GSHAPE');
                 gShape = self.shapeForObject(self.getObject(o.groupId));
                 self.shapes.push(gShape);
             }
@@ -835,7 +830,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         for (const s of getTransformedShapes(o)) {
             self.shapes.splice(indexOfShape(s), 1);
         }
-        srdbg('DEL');
         let shape = self.shapeForObject(o);
         for (const s of getVirtualShapes(shape)) {
             self.shapes.splice(indexOfShape(s), 1);
@@ -1078,13 +1072,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (! watchedModels.includes(modelName)) {
             return;
         }
-        srdbg('MC', modelName);
         let o = self.selectedObject;
         if (o) {
             if (! radiaService.getObject(o.id)) {
                 // catch unrelated saved objects
                 if (o.type === modelName || panelState.getBaseModelKey(o.type) === modelName) {
-                    srdbg('add', o);
                     addObject(o);
                 }
                 else {
@@ -1119,7 +1111,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         m.center = lo.center;
         m.name = lo.type;
         m.name = newObjectName(m);
-        srdbg('DROPPED', m);
         self.editObject(m);
     });
 
@@ -4075,12 +4066,10 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function setPoints(data) {
-        srdbg($scope.modelName, 'set pts', data);
         $scope.modelData.points = data.points;
         $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
         $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
         appState.saveChanges($scope.modelName);
-        //radiaService.updateExtruded($scope.modelData);
     }
 
     const self = {};
