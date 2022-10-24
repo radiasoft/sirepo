@@ -448,8 +448,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
 
     self.copyObject = function(o) {
-        var copy = appState.clone(o);
+        const copy = appState.clone(o);
         copy.name = newObjectName(copy);
+        copy.id = radiaService.generateId();
         copy.groupId = '';
         addObject(copy);
         self.editObject(copy);
