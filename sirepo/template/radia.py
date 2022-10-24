@@ -1389,7 +1389,6 @@ def _save_trajectory_csv(path, **kwargs):
 # permutation order based on the extrusion axis:
 #   x -> (y, z), y -> (z, x), z -> (x, y)
 def _update_extruded(o):
-    pkdp("UPDATE EXTRUDE {}", o)
     o.widthAxis = radia_util.next_axis(o.extrusionAxis)
     o.heightAxis = radia_util.next_axis(o.widthAxis)
 
