@@ -5,11 +5,7 @@ from keras.callbacks import CSVLogger
 
 model.compile(
     optimizer='adam',
-{% if "keras" in neuralNet_losses %}
     loss={{ neuralNet_losses }},
-{% else %}
-    loss='{{ neuralNet_losses }}',
-{% endif %}
     metrics=['accuracy'],
 )
 
@@ -22,11 +18,7 @@ history = model.fit(
 {% else %}
 
 model.compile(
-{% if "keras" in neuralNet_losses %}
     loss={{ neuralNet_losses }},
-{% else %}
-    loss='{{ neuralNet_losses }}',
-{% endif %}
     optimizer='{{ neuralNet_optimizer }}'
 )
 model.fit(
