@@ -321,9 +321,11 @@ def stateful_compute_build_shape_points(data):
     pts = []
     o = data.args.object
     if not o.get("pointsFile"):
-        return PKDict(points=pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
-            o, _get_stemmed_info(o)
-        ))
+        return PKDict(
+            points=pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
+                o, _get_stemmed_info(o)
+            )
+        )
     with open(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
