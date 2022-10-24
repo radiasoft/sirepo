@@ -26,9 +26,13 @@ if MPI.COMM_WORLD.Get_rank():
 """
 
 
+def cfg():
+    return _cfg
+
+
 def get_cmd():
     c = ["python", "parameters.py"]
-    return c if cfg.in_slurm else _mpiexec_cmd() + c
+    return c if _cfg.in_slurm else _mpiexec_cmd() + c
 
 
 def restrict_op_to_first_rank(op):
@@ -100,13 +104,12 @@ def _mpiexec_cmd():
         "--bind-to",
         "none",
         "-n",
-        str(cfg.cores),
+        str(_cfg.cores),
     ]
 
 
-cfg = pkconfig.init(
+_cfg = pkconfig.init(
     cores=(1, int, "cores to use per run"),
     in_slurm=(False, bool, "True if being run by slurm"),
-    slaves=(1, int, "DEPRECATED: set $SIREPO_MPI_CORES"),
+    slaves=pkconfig.ReplacedBy("sirepo.mpi.cores"),
 )
-cfg.cores = max(cfg.cores, cfg.slaves)

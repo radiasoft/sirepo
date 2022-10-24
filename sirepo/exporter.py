@@ -19,7 +19,7 @@ import base64
 import sirepo.util
 
 
-def create_archive(sim, sapi):
+def create_archive(sim, qcall):
     """Zip up the json file and its dependencies
 
     Args:
@@ -29,7 +29,7 @@ def create_archive(sim, sapi):
         py.path.Local: zip file name
     """
     if hasattr(sim.template, "create_archive"):
-        res = sim.template.create_archive(sim, sapi)
+        res = sim.template.create_archive(sim, qcall)
         if res:
             return res
     if not pkio.has_file_extension(sim.filename, ("zip", "html")):
@@ -42,15 +42,15 @@ def create_archive(sim, sapi):
         if want_zip:
             t = "application/zip"
         else:
-            f, t = _create_html(f, c)
-        return sapi.reply_file(
+            f, t = _create_html(f, c, qcall)
+        return qcall.reply_attachment(
             f,
             content_type=t,
             filename=sim.filename,
         )
 
 
-def _create_html(zip_path, data):
+def _create_html(zip_path, data, qcall):
     """Convert zip to html data
 
     Args:
@@ -62,8 +62,8 @@ def _create_html(zip_path, data):
     # Use same tmp directory
     fp = zip_path.new(ext=".html")
     values = pkcollections.Dict(data=data)
-    values.uri = uri_router.uri_for_api("importArchive", external=False)
-    values.server = uri_router.uri_for_api("importArchive")[: -len(values.uri)]
+    values.uri = qcall.absolute_uri(qcall.uri_for_api("importArchive"))
+    values.server = qcall.sreq.http_server_uri
     sc = simulation_db.SCHEMA_COMMON
     values.appLongName = sc.appInfo[data.simulationType].longName
     values.appShortName = sc.appInfo[data.simulationType].shortName

@@ -7,9 +7,8 @@
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-from sirepo import api_perm
 import datetime
-import sirepo.api
+import sirepo.quest
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.auth_role
@@ -22,17 +21,17 @@ cfg = None
 _SIM_TYPE = "flash"
 
 
-class API(sirepo.api.Base):
-    @api_perm.require_user
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("require_user")
     def api_simOauthFlashAuthorized(self):
-        o, _ = sirepo.oauth.check_authorized_callback()
+        o, _ = sirepo.oauth.check_authorized_callback(qcall)
         i = PKDict(o.get(cfg.info_url).json())
         # TODO(robnagler) should this not raise forbidden?
         assert (
             i.status == cfg.info_valid_user
         ), f"unexpected status in info={i} expect={cfg.info_valid_user}"
         sirepo.auth_db.UserRole.add_role_or_update_expiration(
-            sirepo.auth.logged_in_user(),
+            self.auth.logged_in_user(),
             sirepo.auth_role.for_sim_type(_SIM_TYPE),
             expiration=datetime.datetime.fromtimestamp(PKDict(o.token).expires_at),
         )

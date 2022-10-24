@@ -33,7 +33,6 @@ class MockOAuthClient(object):
 
     def create_authorization_url(self, *args, **kwargs):
         from sirepo.auth import github
-        import sirepo.http_reply
 
         r = github.cfg.callback_uri
         self.values.redirect_uri = r

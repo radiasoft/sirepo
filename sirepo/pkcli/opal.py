@@ -9,11 +9,11 @@ from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
 import re
+import sirepo.mpi
 import sirepo.template.opal as template
 
 
@@ -29,7 +29,7 @@ def run_background(cfg_dir):
 
 
 def _run_opal(with_mpi=False, compute_positions=False):
-    if with_mpi and mpi.cfg.cores < 2:
+    if with_mpi and sirepo.mpi.cfg().cores < 2:
         with_mpi = False
     if with_mpi:
         mpi.run_program(
