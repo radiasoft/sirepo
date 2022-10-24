@@ -1191,6 +1191,7 @@ def _set_fields_by_layer_type(l, new_layer):
                     activation=l.activation.__name__,
                 ),
                 Dropout=lambda l: PKDict(dropoutRate=l.rate),
+                Flatten=lambda l: PKDict(),
                 MaxPooling2D=lambda l: PKDict(
                     strides=l.strides[0],
                     padding=l.padding,

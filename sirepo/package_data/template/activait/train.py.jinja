@@ -10,8 +10,11 @@ model.compile(
 )
 
 history = model.fit(
-    x=trainx, y=trainy, epochs={{ neuralNet_epochs }},
+    x=trainx,
+    y=trainy,
+    epochs={{ neuralNet_epochs }},
     validation_data=(valx, valy),
+    batch_size={{ neuralNet_batch_size }},
     callbacks=[CSVLogger('{{ fitCSVFile }}')],
 )
 
