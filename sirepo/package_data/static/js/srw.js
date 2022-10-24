@@ -2534,23 +2534,26 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return $scope.model == 'coherentModesAnimation';
             }
 
+            function coherentModesCoresError(cores, minCores) {
+                if (cores < minCores) {
+                    throw new Error(`${cores} cores found, should be > 3 for coherent modes`);
+                }
+            }
 
             function coherentModesEnoughCores() {
-                var a = appState.models.coherentModesAnimation;
-                srdbg(a);
-                if (a.jobRunMode == 'sequential') {
+                var c = appState.models.coherentModesAnimation;
+                if (c.jobRunMode == 'sequential') {
                     throw new Error('Coherent modes should not be run sequentially');
                 }
-                else if (a.jobRunMode == 'parallel') {
-                    // TODO (gurhar1133): leave comment explanation
-                    const n = Number(appState.enumDescription('JobRunMode', a.jobRunMode).split(" ")[0])
-                    if (n < coreMinimum) {
-                        throw new Error(`${n} cores found, should be > 3 for coherent modes`);
-                    }
+                else if (c.jobRunMode == 'parallel') {
+                    coherentModesCoresError(
+                        // Using enumDescription to obtain cores count from UI
+                        Number(appState.enumDescription('JobRunMode', c.jobRunMode).split(" ")[0]),
+                        coreMinimum,
+                    );
+                    return;
                 }
-                else if (a.sbatchCores < coreMinimum) {
-                    throw new Error(`${a.sbatchCores} cores found, should be > 3 for coherent modes`);
-                }
+                coherentModesCoresError(c.sbatchCores, coreMinimum);
             }
 
             function setActiveAnimation() {
