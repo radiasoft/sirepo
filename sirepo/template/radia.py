@@ -320,14 +320,14 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 def stateful_compute_build_shape_points(data):
     pts = []
     o = data.args.object
-    if not o.get("points_file"):
+    if not o.get("pointsFile"):
         return PKDict(points=pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
             o, _get_stemmed_info(o)
         ))
     with open(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
-                "extrudedPoints", "pointsFile", o.points_file
+                "extrudedPoints", "pointsFile", o.pointsFile
             )
         ),
         "rt",

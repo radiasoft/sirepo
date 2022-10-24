@@ -165,6 +165,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.buildShapePoints = (o, callback) => {
+        srdbg('BLH SH FOR', o);
         requestSender.sendStatefulCompute(
             appState,
             callback,
@@ -4034,7 +4035,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 
     $scope.$on('geomObject.changed', () => {
-        srdbg('GO CH');
         if (editedModels.includes('extrudedPoly')) {
             radiaService.buildShapePoints($scope.modelData, setPoints);
         }
