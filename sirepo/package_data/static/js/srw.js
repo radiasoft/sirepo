@@ -2542,10 +2542,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     throw new Error('Coherent modes should not be run sequentially');
                 }
                 else if (a.jobRunMode == 'parallel') {
-                    srdbg(SIREPO.APP_SCHEMA.enum.JobRunMode);
-                    // TODO (gurhar1133): pull enum using appState.enumDescription
-                    // leave comment explanation
-
+                    // TODO (gurhar1133): leave comment explanation
+                    const n = Number(appState.enumDescription('JobRunMode', a.jobRunMode).split(" ")[0])
+                    if (n < coreMinimum) {
+                        throw new Error(`${n} cores found, should be > 3 for coherent modes`);
+                    }
                 }
                 else if (a.sbatchCores < coreMinimum) {
                     throw new Error(`${a.sbatchCores} cores found, should be > 3 for coherent modes`);
