@@ -3,7 +3,14 @@
 # Start Sirepo Jupyterhub with email login
 # If $SIREPO_AUTH_GITHUB_KEY and $SIREPO_AUTH_GITHUB_SECRET, then
 # add github authentication to test SIREPO_SIM_API_JUPYTERHUBLOGIN_RS_JUPYTER_MIGRATE.
+
 #
+# juptyerhub upgrades: If you get this:
+# Found database schema version 4dc2d5a8c53c != 651f5419b74d. Backup your database and run `jupyterhub upgrade-db` to upgrade to the latest schema.
+# Then you need to:
+#   cd run/jupyterhub
+#   jupyterhub upgrade-db
+# so that it sees the sqlite db.
 set -eou pipefail
 
 if [[ ! -d ~/mail ]]; then

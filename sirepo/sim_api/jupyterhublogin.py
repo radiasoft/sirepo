@@ -42,7 +42,7 @@ class API(sirepo.quest.API):
             have_simulation_db=False,
         )
         if not u:
-            u = create_user()
+            u = create_user(self)
         return self.reply_ok(PKDict(username=u))
 
     @sirepo.quest.Spec(
@@ -54,7 +54,7 @@ class API(sirepo.quest.API):
             sirepo.util.raise_forbidden("migrate not enabled")
         d = self.parse_json()
         if not d.doMigration:
-            create_user()
+            create_user(self)
             return self.reply_redirect("jupyterHub")
         sirepo.oauth.raise_authorize_redirect(self, _SIM_TYPE, github_auth=True)
 
@@ -66,7 +66,7 @@ class API(sirepo.quest.API):
             return self.reply_redirect("jupyterHub")
         if not _cfg.rs_jupyter_migrate:
             if not u:
-                create_user()
+                create_user(self)
             return self.reply_redirect("jupyterHub")
         return self.reply_ok()
 
