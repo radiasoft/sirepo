@@ -28,6 +28,12 @@ def import_and_init(name):
     # Not a real initialization, but needed in values, and actually makes sense to do
     _i("sirepo.simulation_db", [])
     _i("sirepo.auth_db", [])
+    if "sirepo.job_supervisor" == name:
+        # job_supervisor doesn't need job_driver in its init so hack this
+        values.job_driver = importlib.import_module("sirepo.job_driver")
+        _i("sirepo.job_supervisor", ["job_driver"])
+        _i("sirepo.job_driver", ["job_supervisor"])
+        return values[_base(name)]
     _i("sirepo.session", [])
     _i("sirepo.cookie", [])
     _i("sirepo.auth", ["simulation_db"])
@@ -44,10 +50,4 @@ def import_and_init(name):
         return values[_base(name)]
     if "sirepo.server" == name:
         return _i("sirepo.server", [])
-    if "sirepo.job_supervisor" == name:
-        # job_supervisor doesn't need job_driver in its init so hack this
-        values.job_driver = importlib.import_module("sirepo.job_driver")
-        _i("sirepo.job_supervisor", ["job_driver"])
-        _i("sirepo.job_driver", ["job_supervisor"])
-        return values[_base(name)]
     raise AssertionError(f"unsupported module={name}")
