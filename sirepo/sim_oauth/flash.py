@@ -38,7 +38,7 @@ class API(sirepo.quest.API):
         raise sirepo.util.Redirect(_SIM_TYPE)
 
 
-def init_apis():
+def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
         authorize_url=(
