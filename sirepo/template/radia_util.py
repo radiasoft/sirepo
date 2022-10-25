@@ -53,7 +53,6 @@ FIELD_UNITS = PKDict(
 _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
 
-#_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 class MPI:
     def __init__(self):
@@ -305,8 +304,11 @@ def build_cuboid(**kwargs):
 
 def build_stl(**kwargs):
     d = PKDict(kwargs)
-    f = numpy.array(d.faces)+1
-    g_id = radia.ObjPolyhdr(d.vertices, f.tolist(), d.magnetization)
+    g_id = radia.ObjPolyhdr(
+        d.vertices,
+        (numpy.array(d.faces) + 1).tolist(),
+        d.magnetization
+    )
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
 

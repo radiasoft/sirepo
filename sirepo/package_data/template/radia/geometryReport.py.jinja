@@ -2,7 +2,6 @@ import h5py
 import os
 import re
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog
 import sirepo.mpi
 import sirepo.util
 from sirepo.template import radia_examples
@@ -90,8 +89,10 @@ def _add_object(o, radia_objs, id_map):
     if t == _MODEL_STL:
         g_id = radia_util.build_stl(
             filename = o.get('file'),
-            center=ctr, #TODO: Not currently reflective
-            size=sz, #TODO Not currently reflective
+            #TODO(BG) Not currently reflective
+            center=ctr,
+            #TODO(BG) Not currently reflective
+            size=sz,
             vertices=o.stlVertices,
             faces=o.stlFaces,
             magnetization=m,

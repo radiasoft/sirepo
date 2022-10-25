@@ -8,8 +8,6 @@ Radia "instance" goes away and references no longer have any meaning.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from ast import AsyncFunctionDef
-from ctypes import sizeof
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -26,7 +24,6 @@ import csv
 import h5py
 import math
 import numpy
-import radia
 import re
 import sdds
 import sirepo.csv
@@ -343,6 +340,16 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data, False, for_export=True)
 
 
+def validate_file(file_type, path):
+    if path.ext == ".stl":
+        mesh = _create_stl_trimesh(path)
+        if trimesh.convex.is_convex(mesh) == False:
+            return (f"not convex model")
+    else:
+        return (f"invalid file type: {path.ext}")
+    return None
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -572,6 +579,11 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
     geom_objs.append(_update_group(model.octantGroup, oct_grp, do_replace=True))
 
     return _update_geom_from_undulator(geom_objs, model, **kwargs)
+
+
+def _create_stl_trimesh(file_path):
+    with open(file_path, "r") as f:
+        return trimesh.load(f, file_type="stl", force="mesh", process=True)
 
 
 # deep copy of an object, but with a new id
@@ -1626,7 +1638,8 @@ def _update_geom_obj(o, **kwargs):
         size=[1.0, 1.0, 1.0],
         stlVertices = [],
         stlFaces = [],
-        #stlSlices = [], TODO: Not implemented
+        # TODO(BG) Not implemented
+        #stlSlices = [],
     )
     for k in d:
         v = kwargs.get(k)
@@ -1662,23 +1675,24 @@ def _update_geom_obj(o, **kwargs):
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
         
-        #TODO: Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
+        #TODO(BG) Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
         """
         z_extents = mesh.bounds[:,2]
-        z_levels  = np.arange(*z_extents, step=1)
-        meshSlices = trimesh.intersections.mesh_multiplane(mesh=mesh,plane_origin=mesh.bounds[0],plane_normal=[0,0,1],heights=z_levels)[0]
+        z_levels  = numpy.arange(*z_extents, step=1)
+        meshSlices = trimesh.intersections.mesh_multiplane(mesh=mesh, plane_origin=mesh.bounds[0], plane_normal=[0,0,1], heights=z_levels)[0]
         formattedSlices = []
         index = 0
         for s in meshSlices:
             slicePoints = []
             for l in s:
                 for p in l:
-                    p[0] = round(p[0],5) #Remove redundant points by rounding
+                    #Remove redundant points by rounding
+                    p[0] = round(p[0],5)
                     p[1] = round(p[1],5)
                     if list(p) not in slicePoints:
                         slicePoints.append(list(p))
             formattedSlices.append([list(slicePoints), z_levels[index]])
-            index = index+1
+            index += 1
         for s in formattedSlices:
             s[0] = sort_points_clockwise(s[0])
         o.stlSlices = formattedSlices
@@ -1736,40 +1750,29 @@ def _update_kickmap(km, und, beam_axis):
     km.periodLength = und.periodLength
 
 
-def _create_stl_trimesh(filePath):
-    trimesh.util.attach_to_log()
-    f=open(filePath)
-    mesh = trimesh.load(f, file_type='stl', force='mesh', process=True)
-    f.close()
-    return mesh
-
-
-#TODO: Necessary helper function to implement object slicing with radia.radObjMltExtPgn()
+#TODO(BG) Necessary helper function to implement object slicing with radia.radObjMltExtPgn()
 #Edge Case: Need to remove linear points along same vecter before returning
 """
-def sort_points_clockwise(points):
+def _sort_points_clockwise(points):
     angles = []
-    x = [p[0] for p in points]
-    y = [p[1] for p in points]
-    center = (sum(x) / len(points), sum(y) / len(points))
+    center = (sum([p[0] for p in points]) / len(points), sum([p[1] for p in points]) / len(points))
     for p in points:
-        vector = [p[0]-center[0],p[1]-center[1]]
-        vlength = math.sqrt(pow(vector[0],2) + pow(vector[1],2))
+        vector = [p[0] - center[0], p[1] - center[1]]
+        vlength = math.sqrt(pow(vector[0], 2) + pow(vector[1], 2))
         if vlength == 0:
-            angles.append(-np.pi)
+            angles.append(-numpy.pi)
         else:
-            normalized = [vector[0]/vlength,vector[1]/vlength]
+            normalized = [vector[0] / vlength, vector[1] / vlength]
             angle = math.atan2(normalized[0], normalized[1])
-            if angle < 0: #funciton checks against x-positive, if negative angle add to 2pi for mirror
-                angle = 2*np.pi + angle
+            # function checks against x-positive, if negative angle add to 2pi for mirror
+            if angle < 0:
+                angle = 2 * numpy.pi + angle
             angles.append(angle)
     for i in range(len(angles)):
-        angles[i] = [angles[i],points[i]]
-    angles.sort()
-    points = []
-    for a in angles:
-        points.append(a[1])    
-    return points # might have to check by lengths as well if angles are the same
+        angles[i] = [angles[i], points[i]]
+    angles.sort()  
+    # might have to check by lengths as well if angles are the same
+    return [x[1] for x in angels]
 """
 
 
@@ -1789,17 +1792,6 @@ def _validate_objects(objects):
                         o.name, o.material
                     )
                 )
-
-
-def validate_file(file_type, path):
-    err = None
-    if str(path).endswith('.stl') == True:
-        mesh = _create_stl_trimesh(path)
-        if trimesh.convex.is_convex(mesh) == False:
-            err = "Model is not Convex"
-    else:
-        err = "Not an STL File"
-    return err
 
 
 _H5_PATH_ID_MAP = _geom_h5_path("idMap")
