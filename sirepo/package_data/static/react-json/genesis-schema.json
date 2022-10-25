@@ -654,6 +654,7 @@
             "displayName": "Update all Runge-Kutta integration steps",
             "type": "Boolean",
             "defaultValue": "0",
+            "shown": "$(mesh.nscz) == true",
             "description": "ISCRKUP: If set to a non-zero value then the space charge field is updated at each of the 4 Runge-Kutta integration steps instead of the default behavior, where the space charge field is calculated only once before the Runge-Kutta integration. It increases the stability and precision of the space charge field but it comes with a cost in slower execution speed."
           },
           "lbc": {
@@ -672,12 +673,14 @@
             "displayName": "Number of radial grid points",
             "type": "Integer",
             "defaultValue": 40,
+            "shown": "$(mesh.nscz) == true",
             "description": "NPTR: Number of radial grid points, on which the space charge field is evaluated. The radial axis is automatically chosen by GENESIS 1.3 to be twice as long as the maximum offset of macro particles relative to the center of the electron beam. This excludes effects of the boundary condition even for the case of narrow beams."
           },
           "nscr": {
             "displayName": "Number of azimuthal modes",
             "type": "Integer",
             "defaultValue": 1,
+            "shown": "$(mesh.nscz) == true",
             "description": "NSCR: Number of azimuthal modes for space charge calculation."
           },
           "nscz": {
@@ -696,6 +699,7 @@
             "displayName": "Radial grid size [m]",
             "type": "Float",
             "defaultValue": 0,
+            "shown": "$(mesh.nscz) == true",
             "description": "RMAX0SC: Explicitly defines the radial grid size for space charge calculations when set to a positive value. Otherwise, Genesis calculates the grid size from the current size of the electron beam."
           }
         },
@@ -964,6 +968,24 @@
         }
     },
     "view": [
+        {
+            "name": "simulationRenameNavButton",
+            "layout": "navbarModalButton",
+            "title": "$(simulation.name)",
+            "icon": "faPencil",
+            "modal": {
+                "title": "Simulation",
+                "items": [
+                    {
+                        "name": "simulation",
+                        "layout": "fieldList",
+                        "fields": [
+                            "simulation.name"
+                        ]
+                    }
+                ]
+            }
+        },
         {
             "name": "navtabs",
             "layout": "navTabs",
@@ -1462,6 +1484,37 @@
                                                 }
                                             ]
                                         }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "layout": "panel",
+                            "title": "Scan",
+                            "basic": [
+                                {
+                                    "layout": "fieldList",
+                                    "fields": [
+                                        "scan.iscan",
+                                        "scan.nscan",
+                                        "scan.svar"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "layout": "panel",
+                            "title": "Time Dependence",
+                            "basic": [
+                                {
+                                    "layout": "fieldList",
+                                    "fields": [
+                                        "timeDependence.curlen",
+                                        "timeDependence.zsep",
+                                        "timeDependence.nslice",
+                                        "timeDependence.ntail",
+                                        "timeDependence.shotnoise",
+                                        "timeDependence.isntyp"
                                     ]
                                 }
                             ]
