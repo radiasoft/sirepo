@@ -297,6 +297,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             let colorbar = null;
             let colorbarPtr = null;
             let fieldData = [];
+            let allData = [];
             let picker = null;
             let minField, maxField;
             let selectedVolume = null;
@@ -439,13 +440,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 const points = [];
                 const polys = [];
                 fieldData = [];
+                allData = [];
                 const fd = getFieldData();
                 minField = Number.MAX_VALUE;
-                maxField = Number.MIN_VALUE;
+                maxField = -Number.MAX_VALUE;
                 for (let zi = 0; zi < nz; zi++) {
                     for (let yi = 0; yi < ny; yi++) {
                         for (let xi = 0; xi < nx; xi++) {
                             const f = fd[zi * nx * ny + yi * nx + xi];
+                            allData.push(f);
                             if (! isInFieldThreshold(f)) {
                                 continue;
                             }
@@ -480,26 +483,31 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 setTallyColors();
             }
 
-            function getFieldAtPlanePos(axis, pos) {
-                const axisIndex = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
+            function getFieldAtPlanePos() {
+                const axis = appState.models.tallyReport.axis;
+                const pos = appState.models.tallyReport.planePos;
+                const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
+                const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
                 const mesh = getMeshFilter();
-                if (! mesh) {
-                    return null;
+                const [nx, ny, nz] = mesh.dimension;
+                const p = Math.min(mesh.dimension[n], Math.max(0, Math.floor(
+                    mesh.dimension[n] * (pos - mesh.lower_left[n]) /
+                    (mesh.upper_right[n] - mesh.lower_left[n])
+                )));
+                const r = [0, 1, 2].map(i => n === i ? [p, p + 1] : [0, mesh.dimension[i]]);
+                const f = [];
+                for (let zi = r[2][0]; zi < r[2][1]; ++zi) {
+                    for (let yi = r[1][0]; yi < r[1][1]; ++yi) {
+                        for (let xi = r[0][0]; xi < r[0][1]; ++xi) {
+                            f.push(allData[zi * nx * ny + yi * nx + xi]);
+                        }
+                    }
                 }
-                const n = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[axis];
-                const o = n.map(
-                    (x, i) => i === axisIndex ? pos : (mesh.upper_right[i] + mesh.lower_left[i]) / 2.0
-                );
-                const p = vtk.Common.DataModel.vtkPlane.newInstance({
-                    normal: n,
-                    origin: o,
-                });
-                srdbg('cut', n, o);
-                const cutter = vtk.Filters.Core.vtkCutter.newInstance();
-                cutter.setCutFunction(p);
-                cutter.setInputData(basePolyData);
-                cutter.update();
-                srdbg('cutter', cutter.getOutputData().getFieldData().getNumberOfComponents());
+                const ff = [];
+                for (let j = 0; j < mesh.dimension[m]; ++j) {
+                    ff.push(f.slice(j * mesh.dimension[l], (j + 1) * mesh.dimension[l]));
+                }
+                return ff;
             }
 
             function getFieldData() {
@@ -616,7 +624,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                getFieldAtPlanePos('y', 0.5);
+                const f = getFieldAtPlanePos();
             }
 
             $scope.supportsColorbar = () => $scope.displayType === '3D' && ! isGeometryOnly;
@@ -1642,4 +1650,9 @@ SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panel
     $scope.watchFields = [
         ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
     ];
+
+    function updateEditor() {
+        srdbg($scope);
+    }
+    $scope.whenSelected = updateEditor;
 });

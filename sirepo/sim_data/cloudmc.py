@@ -29,6 +29,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "openmcAnimation",
                 "reflectivePlanes",
                 "settings",
+                "tallyReport",
                 "volumes",
                 "voxels",
             ),

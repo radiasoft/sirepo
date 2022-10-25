@@ -437,8 +437,7 @@
         },
         "tallyReport": {
             "axis": ["Axis", "Axis", "y"],
-            "colorMap": ["Color Map", "ColorMap", "jet"],
-            "planePos": ["{{ axis }}", "Float", 0.0]
+            "planePos": ["{{ appState.models.tallyReport.axis }}", "Float", 0.0]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -610,7 +609,9 @@
                 "voxels.colorMap",
                 "opacity",
                 "bgColor",
-                "showEdges"
+                "showEdges",
+                "tallyReport.axis",
+                "tallyReport.planePos"
             ]
         },
         "particle": {
