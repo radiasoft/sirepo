@@ -20,11 +20,11 @@ def test_wrap_in_request():
     import sirepo.srunit
 
     @sirepo.srunit.wrap_in_request(sim_types="srw", before_request=b)
-    def f():
+    def f(qcall):
         if s["f"]:
             raise getattr(sirepo.util, s["f"])("f-hello")
 
-    f()
+    f(None)
 
     import pykern.pkunit
     import flask

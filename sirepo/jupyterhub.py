@@ -11,7 +11,6 @@ import jupyterhub.auth
 import pykern.pkresource
 import re
 import requests
-import sirepo.server
 import tornado.web
 import traitlets
 
@@ -31,10 +30,6 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
     refresh_pre_spawn = True
 
     sirepo_uri = traitlets.Unicode(config=True, help="uri to reach sirepo")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        sirepo.server.init()
 
     async def authenticate(self, handler, data):
         # returning None means the user is forbidden (403)
@@ -70,27 +65,12 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
             m = re.search(
                 r'window.location = "(.*)"', pkcompat.from_bytes(response.content)
             )
-            m and _handle_unauthenticated(m.group(1))
+            if m:
+                _handle_unauthenticated(m.group(1))
 
-        def _maybe_srexception(response):
-            if "srException" not in response:
-                return
-            from sirepo import uri
-
-            e = PKDict(response.srException)
-            _handle_unauthenticated(
-                uri.local_route(
-                    _SIM_TYPE,
-                    route_name=e.routeName,
-                    params=e.params,
-                    external=False,
-                ),
-            )
-
-        r = requests.post(
-            # POSIT: no params on checkAuthJupyterhub
-            self.sirepo_uri
-            + sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterhub,
+        r = requests.get(
+            # POSIT: sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterhub
+            self.sirepo_uri + "/check-auth-jupyterhub",
             cookies={k: handler.get_cookie(k) for k in handler.cookies.keys()},
         )
         _cookies(r)
@@ -99,8 +79,7 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
         r.raise_for_status()
         _maybe_html(r)
         res = PKDict(r.json())
-        _maybe_srexception(res)
-        assert "username" in res, f"unexpected response={res}"
+        assert "username" in res, f"expected username in response={res}"
         return res
 
     def _redirect(self, handler, uri):

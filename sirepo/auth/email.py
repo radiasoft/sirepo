@@ -5,31 +5,26 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import api_perm
-from sirepo import auth
-from sirepo import auth_db
-from sirepo import http_reply
-from sirepo import http_request
-from sirepo import smtp
-from sirepo import srtime
-from sirepo import uri_router
 import datetime
-import flask
 import hashlib
 import pyisemail
-import sirepo.api
+import pykern.pkcompat
+import sirepo.auth
+import sirepo.auth_db
+import sirepo.quest
+import sirepo.smtp
+import sirepo.srtime
 import sirepo.template
 import sirepo.uri
 import sirepo.util
 import sqlalchemy
 
 
-AUTH_METHOD = "email"
+AUTH_METHOD = sirepo.auth.METHOD_EMAIL
 
 #: User can see it
 AUTH_METHOD_VISIBLE = True
@@ -50,30 +45,30 @@ _EXPIRES_MINUTES = 8 * 60
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("allow_cookieless_set_user", token="EmailAuthToken")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("allow_cookieless_set_user", token="EmailAuthToken")
     def api_authEmailAuthorized(self, simulation_type, token):
         """Clicked by user in an email
 
         Token must exist in db and not be expired.
         """
-        if http_request.is_spider():
+        if self.sreq.is_spider():
             sirepo.util.raise_forbidden("robots not allowed")
         req = self.parse_params(type=simulation_type)
         with sirepo.util.THREAD_LOCK:
             u = AuthEmailUser.search_by(token=token)
-            if u and u.expires >= srtime.utc_now():
+            if u and u.expires >= sirepo.srtime.utc_now():
                 n = self._verify_confirm(
-                    req.type, token, auth.need_complete_registration(u)
+                    req.type,
+                    token,
+                    self.auth.need_complete_registration(u),
                 )
                 AuthEmailUser.delete_changed_email(u)
                 u.user_name = u.unverified_email
                 u.token = None
                 u.expires = None
                 u.save()
-                auth.login(
-                    this_module, sim_type=req.type, sapi=self, model=u, display_name=n
-                )
+                self.auth.login(this_module, sim_type=req.type, model=u, display_name=n)
                 raise AssertionError("auth.login returned unexpectedly")
             if not u:
                 pkdlog("login with invalid token={}", token)
@@ -84,16 +79,16 @@ class API(sirepo.api.Base):
                     u.unverified_email,
                 )
             # if user is already logged in via email, then continue to the app
-            if auth.user_if_logged_in(AUTH_METHOD):
+            if self.auth.user_if_logged_in(AUTH_METHOD):
                 pkdlog(
                     "user already logged in. ignoring invalid token: {}, user: {}",
                     token,
-                    auth.logged_in_user(),
+                    self.auth.logged_in_user(),
                 )
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
-            auth.login_fail_redirect(req.type, this_module, "email-token")
+            self.auth.login_fail_redirect(req.type, this_module, "email-token")
 
-    @sirepo.api.Spec("require_cookie_sentinel", email="Email")
+    @sirepo.quest.Spec("require_cookie_sentinel", email="Email")
     def api_authEmailLogin(self):
         """Start the login process for the user.
 
@@ -109,9 +104,11 @@ class API(sirepo.api.Base):
             u.save()
         return self._send_login_email(
             u,
-            uri_router.uri_for_api(
-                "authEmailAuthorized",
-                dict(simulation_type=req.type, token=u.token),
+            self.absolute_uri(
+                self.uri_for_api(
+                    "authEmailAuthorized",
+                    dict(simulation_type=req.type, token=u.token),
+                ),
             ),
         )
 
@@ -124,14 +121,14 @@ class API(sirepo.api.Base):
         login_text = (
             "sign in to" if user.user_name else "confirm your email and finish creating"
         )
-        r = smtp.send(
+        r = sirepo.smtp.send(
             recipient=user.unverified_email,
             subject="Sign in to Sirepo",
             body="""
     Click the link below to {} your Sirepo account.
-    
+
     This link will expire in {} hours and can only be used once.
-    
+
     {}
     """.format(
                 login_text, _EXPIRES_MINUTES / 60, uri
@@ -143,7 +140,7 @@ class API(sirepo.api.Base):
         return self.reply_ok()
 
     def _verify_confirm(self, sim_type, token, need_complete_registration):
-        m = flask.request.method
+        m = self.sreq.http_method
         if m == "GET":
             raise sirepo.util.Redirect(
                 sirepo.uri.local_route(
@@ -170,14 +167,14 @@ class API(sirepo.api.Base):
         return d.get("displayName")
 
 
-def avatar_uri(model, size):
+def avatar_uri(qcall, model, size):
     return "https://www.gravatar.com/avatar/{}?d=mp&s={}".format(
-        hashlib.md5(pkcompat.to_bytes(model.user_name)).hexdigest(),
+        hashlib.md5(pykern.pkcompat.to_bytes(model.user_name)).hexdigest(),
         size,
     )
 
 
-def unchecked_user_by_user_name(user_name):
+def unchecked_user_by_user_name(qcall, user_name):
     with sirepo.util.THREAD_LOCK:
         u = AuthEmailUser.search_by(user_name=user_name)
         if u:
@@ -208,7 +205,7 @@ def _init_model(base):
         expires = sqlalchemy.Column(sqlalchemy.DateTime())
 
         def create_token(self):
-            self.expires = srtime.utc_now() + _EXPIRES_DELTA
+            self.expires = sirepo.srtime.utc_now() + _EXPIRES_DELTA
             self.token = sirepo.util.create_token(self.unverified_email)
 
         @classmethod
@@ -223,4 +220,4 @@ def _init_model(base):
     UserModel = AuthEmailUser
 
 
-auth_db.init_model(_init_model)
+sirepo.auth_db.init_model(_init_model)

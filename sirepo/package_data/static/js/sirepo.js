@@ -671,7 +671,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         requestSender.sendRequest(
             routeObj,
             function(data) {
-                if (data.redirect) {
+                if (data.notFoundCopyRedirect) {
                     requestSender.localRedirect('notFoundCopy', {
                         ':simulationIds': data.redirect.simulationId
                             + (data.redirect.userCopySimulationId
