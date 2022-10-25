@@ -1,0 +1,50 @@
+# -*- coding: utf-8 -*-
+"""Trimesh and Radia stl import test
+
+:copyright: Copyright (c) 2017-2022 RadiaSoft LLC. All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+
+RAW_VERTICES = [[0, 0, 0], [0, 0, 1], [0, 1, 0]]
+RAW_FACES = [[0, 1, 2]]
+
+def __create_mesh(filePath):
+    import trimesh
+    
+    f = open(filePath)
+    mesh = trimesh.load(f, file_type='stl', force='mesh', process=True)
+    f.close()
+    return mesh
+
+def __create_polygon(mesh):
+    import numpy
+    from pykern.pkcollections import PKDict
+    import radia
+    import trimesh
+
+    stlVertices = []
+    stlFaces = []
+    for v in list(mesh.vertices):
+        stlVertices.append(list(v))
+    for f in list(mesh.faces):
+        stlFaces.append(list(f))
+    f = numpy.array(stlFaces)+1
+    g_id = radia.ObjPolyhdr(stlVertices, f.tolist())
+    return g_id
+
+def test_trimesh_raw():
+    import trimesh
+    
+    mesh = trimesh.Trimesh(vertices=RAW_VERTICES, faces=RAW_FACES)
+
+def test_import():
+    from pykern import pkunit
+    
+    for d in pkunit.case_dirs(): # runs through the test "in" directories
+        with pkunit.ExceptToFile():
+            mesh = __create_mesh(filePath)
+            polyId = __create_polygon(mesh)
+
+def test_import_bad_stl():
+    mesh = __create_mesh(filePath)
+    polyId = __create_polygon(mesh)
