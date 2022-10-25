@@ -18,7 +18,7 @@ MYAPP = "myapp"
 #: import sirepo.server
 server = None
 
-#: app result from server.init
+#: app result from server.init_app
 app = None
 
 #: Matches javascript-redirect.html
@@ -34,11 +34,11 @@ _DB_DIR = "db"
 
 
 @contextlib.contextmanager
-def auth_db_session():
-    import sirepo.auth_db
+def quest_start():
+    from sirepo import quest
 
-    with sirepo.auth_db.session():
-        yield
+    with quest.start() as qcall:
+        yield qcall
 
 
 def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=False):
@@ -78,13 +78,12 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=Fals
 
         with contextlib.nullcontext() if no_chdir_work else pkunit.save_chdir_work():
             from pykern import pkio
+            from sirepo import modules
 
             setup_srdb_root(cfg=cfg)
             pkconfig.reset_state_for_testing(cfg)
-            from sirepo import server as s
-
-            server = s
-            app = server.init(is_server=True)
+            server = modules.import_and_init("sirepo.server")
+            app = server.init_app(is_server=True)
             app.config["TESTING"] = True
             app.test_client_class = _TestClient
             setattr(app, a, app.test_client(job_run_mode=job_run_mode))
@@ -139,11 +138,12 @@ def test_in_request(
     try:
         from pykern import pkunit
         from pykern import pkcollections
+        from sirepo import flask
 
         if before_request:
             before_request(fc)
         setattr(
-            server._app,
+            flask.app(),
             server.SRUNIT_TEST_IN_REQUEST,
             PKDict(op=op, want_cookie=want_cookie, want_user=want_user),
         )
@@ -173,9 +173,11 @@ def test_in_request(
 
 class UwsgiClient(PKDict):
     def __init__(self, env, *args, **kwargs):
-        import sirepo.pkcli.service
+        from sirepo.pkcli import service
+        from sirepo import modules
 
-        c = sirepo.pkcli.service._cfg()
+        modules.import_and_init("sirepo.uri")
+        c = service._cfg()
         for k in ("nginx_proxy_port", "ip"):
             self[f"_{k}"] = env.get(f"SIREPO_PKCLI_SERVICE_{k.upper()}") or c[k]
 
@@ -195,11 +197,9 @@ class UwsgiClient(PKDict):
         return pkjson.load_any(r.text)
 
     def _server_route(self, route_or_uri):
-        from sirepo import simulation_db
-        import sirepo.uri
+        from sirepo import uri
 
-        sirepo.uri.init(simulation_db=simulation_db)
-        return sirepo.uri.server_route(route_or_uri, None, None)
+        return uri.server_route(route_or_uri, None, None)
 
 
 def wrap_in_request(*args, **kwargs):
@@ -225,7 +225,10 @@ def wrap_in_request(*args, **kwargs):
 
     def _decorator(func):
         def _wrapper(*ignore_args, **ignore_kwargs):
-            return test_in_request(lambda: func(), **kwargs)
+            return test_in_request(
+                lambda qcall: func(qcall),
+                **kwargs,
+            )
 
         return _wrapper
 
@@ -267,9 +270,9 @@ class _TestClient(flask.testing.FlaskClient):
                     a.get("frameCount"),
                 )
             pkdlog("frameReport={} count={}", r, c)
-            import sirepo.sim_data
+            from sirepo import sim_data
 
-            s = sirepo.sim_data.get_class(self.sr_sim_type)
+            s = sim_data.get_class(self.sr_sim_type)
             for i in c:
                 pkdlog("frameIndex={} frameCount={}", i, run.get("frameCount"))
                 f = self.sr_get_json(
@@ -291,13 +294,13 @@ class _TestClient(flask.testing.FlaskClient):
             dict: parsed auth_state
         """
         from pykern import pkunit
-        import pykern.pkcollections
+        from pykern import pkcollections
 
         m = re.search(
             r"(\{.*\})",
             pkcompat.from_bytes(self.sr_get("authState").data),
         )
-        s = pykern.pkcollections.json_load_any(m.group(1))
+        s = pkcollections.json_load_any(m.group(1))
         for k, v in kwargs.items():
             pkunit.pkeq(
                 v,
@@ -623,10 +626,8 @@ class _TestClient(flask.testing.FlaskClient):
             object: parsed JSON result
         """
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
-        import pykern.pkjson
-        import sirepo.http_reply
-        import sirepo.uri
-        import sirepo.util
+        from pykern import pkjson
+        from sirepo import uri, util, http_reply
 
         redirects = kwargs.setdefault("__redirects", 0) + 1
         assert redirects <= 5
@@ -635,7 +636,7 @@ class _TestClient(flask.testing.FlaskClient):
         u = None
         r = None
         try:
-            u = sirepo.uri.server_route(route_or_uri, params, query)
+            u = uri.server_route(route_or_uri, params, query)
             pkdc("uri={}", u)
             r = op(u)
             pkdc(
@@ -648,7 +649,7 @@ class _TestClient(flask.testing.FlaskClient):
                 m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(r.data))
                 if m:
                     if m.group(1).endswith("#/error"):
-                        raise sirepo.util.Error(
+                        raise util.Error(
                             PKDict(error="server error uri={}".format(m.group(1))),
                         )
                     if kwargs.get("redirect", True):
@@ -677,18 +678,15 @@ class _TestClient(flask.testing.FlaskClient):
             if raw_response:
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
-            d = pykern.pkjson.load_any(r.data)
-            if (
-                isinstance(d, dict)
-                and d.get("state") == sirepo.http_reply.SR_EXCEPTION_STATE
-            ):
-                raise sirepo.util.SRException(
+            d = pkjson.load_any(r.data)
+            if isinstance(d, dict) and d.get("state") == http_reply.SR_EXCEPTION_STATE:
+                raise util.SRException(
                     d.srException.routeName,
                     d.srException.params,
                 )
             return d
         except Exception as e:
-            if not isinstance(e, (sirepo.util.Reply)):
+            if not isinstance(e, (util.Reply)):
                 pkdlog(
                     "Exception: {}: msg={} uri={} status={} data={} stack={}",
                     type(e),

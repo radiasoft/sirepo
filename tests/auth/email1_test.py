@@ -223,14 +223,13 @@ def test_invalid_method(auth_fc):
         },
     )
     fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
-    import sirepo.auth
+    from sirepo import auth
 
-    sirepo.auth.cfg.methods = set(["guest"])
-    sirepo.auth.cfg.deprecated_methods = set()
-    sirepo.auth.visible_methods = sirepo.auth.valid_methods = tuple(
-        sirepo.auth.cfg.methods
-    )
-    sirepo.auth.non_guest_methods = tuple()
+    # TODO(robnagler) should be possible to do this by supplying config
+    auth._cfg.methods = set(["guest"])
+    auth._cfg.deprecated_methods = set()
+    auth.visible_methods = auth.valid_methods = tuple(auth._cfg.methods)
+    auth.non_guest_methods = tuple()
     fc.sr_auth_state(
         displayName=None,
         isLoggedIn=False,

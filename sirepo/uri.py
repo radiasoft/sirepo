@@ -6,10 +6,9 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-import flask
 import pykern.pkinspect
 import re
-from urllib.parse import urlencode, quote
+import urllib.parse
 
 #: route parsing
 PARAM_RE = r"([\?\*]?)<{}>"
@@ -17,21 +16,20 @@ PARAM_RE = r"([\?\*]?)<{}>"
 #: optional parameter that consumes rest of parameters
 PATH_INFO_CHAR = "*"
 
+# TODO(robnagler): make class that gets returned
 
-def app_root(sim_type, external=False):
+
+def app_root(sim_type=None):
     """Generate uri for application root
 
     Args:
-        sim_type (str): application name
-        external (bool): if True, make the uri absolute [False]
+        sim_type (str): application name [None]
     Returns:
         str: formatted URI
     """
-    t = http_request.sim_type(sim_type)
     return uri_router.uri_for_api(
         "root",
-        params=PKDict(path_info=t) if t else None,
-        external=external,
+        params=PKDict(path_info=sim_type) if sim_type else None,
     )
 
 
@@ -39,26 +37,25 @@ def default_local_route_name(schema):
     return schema.appDefaults.route
 
 
-def init(**imports):
+def init_module(**imports):
     import sirepo.util
 
+    # import simulation_db, uri_router
     sirepo.util.setattr_imports(imports)
 
 
-def local_route(sim_type, route_name=None, params=None, query=None, external=False):
+def local_route(sim_type, route_name=None, params=None, query=None):
     """Generate uri for local route with params
 
     Args:
-        sim_type (str): application name
+        sim_type (str): simulation type (must be valid)
         route_name (str): a local route [defaults to local default]
         params (dict): paramters to pass to route
         query (dict): query values (joined and escaped)
-        external (bool): if True, make the uri absolute [False]
     Returns:
         str: formatted URI
     """
-    t = http_request.sim_type(sim_type)
-    s = simulation_db.get_schema(t)
+    s = simulation_db.get_schema(sim_type)
     if not route_name:
         route_name = default_local_route_name(s)
     parts = s.localRoutes[route_name].route.split("/:")
@@ -69,7 +66,7 @@ def local_route(sim_type, route_name=None, params=None, query=None, external=Fal
             if not params or p not in params:
                 continue
         u += "/" + _to_uri(params[p])
-    return app_root(t, external=external) + "#" + u + _query(query)
+    return app_root(sim_type) + "#" + u + _query(query)
 
 
 def server_route(route_or_uri, params, query):
@@ -111,10 +108,10 @@ def unchecked_root_redirect(path):
 def _query(query):
     if not query:
         return ""
-    return "?" + urlencode(query)
+    return "?" + urllib.parse.urlencode(query)
 
 
 def _to_uri(element):
     if isinstance(element, bool):
         return str(int(element))
-    return quote(element, safe="()-_.!~*'")
+    return urllib.parse.quote(element, safe="()-_.!~*'")

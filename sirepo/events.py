@@ -35,7 +35,7 @@ _MAP = PKDict(
 )
 
 
-def emit(event, kwargs=None):
+def emit(qcall, event, kwargs=None):
     """Call the handlers for `event` with `kwargs`
 
     Handlers will be called in registration order (FIFO).
@@ -44,8 +44,10 @@ def emit(event, kwargs=None):
         event (str): one of the names in `_MAP`
         kwargs (PKDict): optional arguments to pass to event
     """
+    if kwargs is None:
+        kwargs = PKDict()
     for h in _MAP[event]:
-        h(PKDict() if kwargs is None else kwargs)
+        h(qcall, kwargs)
 
 
 def register(registrants):

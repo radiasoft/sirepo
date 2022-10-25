@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
 from sirepo.template import flash_parser
 import re
+import sirepo.mpi
 import sirepo.sim_data
 import sirepo.util
 import subprocess
@@ -323,10 +324,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def __run_make(cls, make_dir):
-        import sirepo.mpi
-
         cls.__run_command_and_parse_log_on_error(
-            ["make", f"-j{sirepo.mpi.cfg.cores}"],
+            ["make", f"-j{sirepo.mpi.cfg().cores}"],
             make_dir,
             cls.COMPILE_LOG,
             "Compile",

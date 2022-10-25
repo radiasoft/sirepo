@@ -1825,10 +1825,12 @@ SIREPO.app.directive('textWithMath', function(appState, mathRendering, utilities
     return {
         restrict: 'A',
         scope: {
+            'isDynamic': '<',
             'textWithMath': '<',
         },
         template: `
-            <span data-ng-bind-html="::getHTML()"></span>
+            <span data-ng-if="! isDynamic" data-ng-bind-html="::getHTML()"></span>
+            <span data-ng-if="isDynamic" data-ng-bind-html="getHTML()"></span>
         `,
         controller: function($scope) {
             $scope.appState = appState;
@@ -2614,6 +2616,32 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             scope.$on('$destroy', function() {
                 $(element).off();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('numArray', function(appState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            info: '=',
+            model: '=',
+            numType: '@',
+        },
+        template: `
+            <div data-ng-repeat="v in model[fieldName] track by $index"
+              style="display: inline-block;" >
+              <label data-text-with-math="valueLabels[$index]" style="margin-right: 1ex"></label>
+              <input class="form-control sr-number-list" data-string-to-number="{{ numType }}"
+                data-ng-model="model[fieldName][$index]" data-min="info[5][$index]" data-max="info[6][$index]"
+                style="text-align: right" required />
+            </div>
+        `,
+        controller: $scope => {
+            $scope.appState = appState;
+            $scope.valueLabels = $scope.info[4].map(s => utilities.interpolateString(s, $scope));
         },
     };
 });

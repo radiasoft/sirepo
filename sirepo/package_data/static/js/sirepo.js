@@ -671,7 +671,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         requestSender.sendRequest(
             routeObj,
             function(data) {
-                if (data.redirect) {
+                if (data.notFoundCopyRedirect) {
                     requestSender.localRedirect('notFoundCopy', {
                         ':simulationIds': data.redirect.simulationId
                             + (data.redirect.userCopySimulationId
@@ -3427,7 +3427,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
             [
                 self.sectionTitle(),
                 SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName,
-                'RadiaSoft',
+                'Sirepo',
             ],
             function(n){ return n; })
             .join(' - ');

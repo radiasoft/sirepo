@@ -7,10 +7,10 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
-from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
+import sirepo.mpi
 import sirepo.template.warpvnd as template
 
 
@@ -46,7 +46,7 @@ def run_background(cfg_dir):
         simulation_db.write_json(
             py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE),
             {
-                "mpiCores": mpi.cfg.cores,
+                "mpiCores": sirepo.mpi.cfg().cores,
             },
         )
         template_common.exec_parameters_with_mpi()

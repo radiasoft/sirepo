@@ -913,9 +913,9 @@ class ViewPortObject {
      * @param {[Point]} coords - 3d points
      * @returns {[Point]} - 2d points
      */
-   viewPortPoints(coords) {
+    viewPortPoints(coords) {
         return coords.map(x => this.viewPortPoint(x));
-   }
+    }
 
     /**
      * Translates corners from vtk world to viewport
@@ -1786,11 +1786,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             resetDrag();
                             return;
                         }
-                        o.center = floatArrayToString([
+                        o.center = [
                             shape.center.x,
                             shape.center.y,
                             shape.center.z
-                        ]);
+                        ].map(x => x * invObjScale);
                         $scope.source.saveObject(shape.id, function () {
                             resetDrag();
                             //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
@@ -1922,12 +1922,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.$applyAsync(function() {
                     $scope.source.editObjectWithId(shape.id);
                 });
-            }
-
-            function floatArrayToString(arr) {
-                return arr.map(function (v) {
-                    return invObjScale * v;
-                }).join(',');
             }
 
             function hideShapeLocation() {
@@ -2313,8 +2307,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     var ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
-                    obj.center = floatArrayToString(ctr);
-                    //replot();
+                    obj.center = ctr.map(x => x * invObjScale);
                     $scope.$emit('layout.object.dropped', obj);
                 }
             };

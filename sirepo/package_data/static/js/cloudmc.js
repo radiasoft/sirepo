@@ -255,7 +255,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRendering, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -263,23 +263,31 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display"
+            <div data-vtk-display="" class="vtk-display col-sm-11"
               data-ng-style="sizeStyle()" data-show-border="true"
               data-report-id="reportId" data-model-name="{{ modelName }}"
               data-event-handlers="eventHandlers" data-reset-side="y"
               data-enable-axes="true" data-axis-cfg="axisCfg"
               data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div class="col-sm-1" style="padding-left: 0;" data-ng-if="supportsColorbar()">
+                <div class="colorbar"></div>
+            </div>
         `,
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.isClientOnly = isGeometryOnly;
             let axesBoxes = {};
             let basePolyData = null;
+            let colorbar = null;
+            let colorbarPtr = null;
+            let fieldData = [];
             let picker = null;
             let minField, maxField;
             let selectedVolume = null;
             let tally = null;
+
             const bundleByVolume = {};
+            const colorbarThickness = 30;
             let tallyBundle = null;
             let vtkScene = null;
             // volumes are measured in centimeters
@@ -325,6 +333,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 });
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
+                picker.addPickList(b.actor);
                 return res;
             }
 
@@ -341,7 +350,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     name = _SCENE_BOX;
                     vtkScene.removeActor(axesBoxes[name]);
                     delete axesBoxes[name];
-                    boundsBox = vtkScene.sceneBoundingBox(0.02);
+                    boundsBox = vtkScene.sceneBoundingBox();
                 }
                 if (! axesBoxes[name]) {
                     vtkScene.addActor(boundsBox.actor);
@@ -404,6 +413,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
                 if (tallyBundle) {
                     vtkScene.removeActor(tallyBundle.actor);
+                    picker.deletePickList(tallyBundle.actor);
                     tallyBundle = null;
                 }
                 const mesh = getMeshFilter();
@@ -422,6 +432,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 );
                 const points = [];
                 const polys = [];
+                fieldData = [];
                 const fd = basePolyData.getFieldData().getArrayByName(model().aspect).getData();
                 minField = Number.MAX_VALUE;
                 maxField = Number.MIN_VALUE;
@@ -438,6 +449,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                             else if (f > maxField) {
                                 maxField = f;
                             }
+                            fieldData.push(f);
                             const p = [
                                 xi * wx + mesh.lower_left[0],
                                 yi * wy + mesh.lower_left[1],
@@ -449,6 +461,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 }
                 basePolyData.getPoints().setData(new window.Float32Array(points), 3);
                 basePolyData.getPolys().setData(new window.Uint32Array(polys));
+                basePolyData.buildCells();
 
                 tallyBundle = coordMapper.buildPolyData(
                     basePolyData,
@@ -457,6 +470,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     }
                 );
                 vtkScene.addActor(tallyBundle.actor);
+                picker.addPickList(tallyBundle.actor);
                 setTallyColors();
             }
 
@@ -480,7 +494,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             }
 
             function handlePick(callData) {
-                if (vtkScene.renderer !== callData.pokedRenderer) {
+                if (vtkScene.renderer !== callData.pokedRenderer || isGeometryOnly) {
                     return;
                 }
 
@@ -537,6 +551,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                     maxField,
                     SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.voxels.colorMap],
                 );
+                colorbar.scale(s);
+                colorbarPtr = d3.select('.colorbar').call(colorbar);
                 const sc = [];
                 const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
                 for (const f of basePolyData.getFieldData().getArrayByName(model().aspect).getData()) {
@@ -559,6 +575,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 buildVoxels();
             }
 
+            $scope.supportsColorbar = () => ! isGeometryOnly;
+
             function loadVolumes(volIds) {
                 //TODO(pjm): update progress bar with each promise resolve?
                 return Promise.all(volIds.map(i => addVolume(i)));
@@ -566,6 +584,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             function model() {
                 return appState.models[$scope.modelName];
+            }
+
+            function scoreUnits() {
+                return SIREPO.APP_SCHEMA.constants.scoreUnits[appState.models.openmcAnimation.score] || '';
             }
 
             function setGlobalProperties() {
@@ -591,6 +613,43 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
             function setVolumeProperty(bundle, name, value) {
                 bundle.setActorProperty(name, value);
                 vtkScene.render();
+            }
+
+            function showFieldInfo(callData) {
+                function info(field, pos) {
+                    const p = pos.map(
+                        x => SIREPO.UTILS.roundToPlaces(x, 4).toLocaleString(
+                            undefined,
+                            {
+                                minimumFractionDigits: 3,
+                            }
+                        )
+                    );
+                    return {
+                        info: `
+                                ${SIREPO.UTILS.roundToPlaces(field, 3)}
+                                ${scoreUnits()} at
+                                (${p[0]}, ${p[1]}, ${p[2]})cm
+                            `,
+                    };
+                }
+
+                if (vtkScene.renderer !== callData.pokedRenderer) {
+                    return;
+                }
+                const pos = callData.position;
+                picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
+                const cid = picker.getCellId();
+                if (cid < 0) {
+                    $scope.$broadcast('vtk.selected', null);
+                    return;
+                }
+                const f = fieldData[Math.floor(cid / 6)];
+                $scope.$broadcast(
+                    'vtk.selected',
+                    info(f, picker.getMapperPosition())
+                );
+                colorbarPtr.pointTo(f);
             }
 
             function volumesError(reason) {
@@ -666,6 +725,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
 
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
+                colorbar = Colorbar()
+                    .margin({top: 5, right: colorbarThickness + 10, bottom: 5, left: 0})
+                    .thickness(colorbarThickness)
+                    .orient('vertical')
+                    .barlength($('.vtk-canvas-holder').height())
+                    .origin([0, 0]);
                 vtkScene = d;
                 const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
@@ -681,6 +746,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                         vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                     )
                 );
+
+                picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
+                picker.setPickFromList(true);
+                vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                if (! isGeometryOnly) {
+                    vtkScene.renderWindow.getInteractor().onMouseMove(showFieldInfo);
+                }
 
                 const vols = [];
                 for (const n in appState.models.volumes) {
@@ -698,9 +770,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, panelState
                 }
                 vtkScene.resetView();
 
-                picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
-                picker.setPickFromList(false);
-                vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
@@ -1067,8 +1136,10 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
                     },
                     {
                         method: 'validate_material_name',
-                        name: value,
-                        component: scope.model.component,
+                        args: {
+                            name: value,
+                            component: scope.model.component,
+                        }
                     }
                 );
 
