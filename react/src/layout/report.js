@@ -183,32 +183,32 @@ export function ReportAnimationController(props) {
 
     let animationControlButtons = (
         <div className="d-flex flex-row justify-content-center w-100">
-            <Button onClick={() => {
+            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekBeginning();
                 animationReader.getNextFrame().then(reportDataCallback);
             }}>
                 <FontAwesomeIcon icon={Icon.faBackward}></FontAwesomeIcon>
             </Button>
-            <Button onClick={() => {
+            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.getPreviousFrame().then(reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faBackwardStep}></FontAwesomeIcon>
             </Button>
-            <Button onClick={() => {
+            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.beginPresentation('forward', presentationIntervalMs, reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faPlay}></FontAwesomeIcon>
             </Button>
-            <Button onClick={() => {
+            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.getNextFrame().then(reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faForwardStep}></FontAwesomeIcon>
             </Button>
-            <Button onClick={() => {
+            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekEnd();
                 animationReader.getNextFrame().then(reportDataCallback);
