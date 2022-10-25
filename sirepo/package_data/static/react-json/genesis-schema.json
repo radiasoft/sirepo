@@ -1549,6 +1549,7 @@
                                     "layout": "manualRunReport",
                                     "reportGroupName": "animation",
                                     "reportName": "particleAnimation",
+                                    "frameCountFieldName": "particleFrameCount",
                                     "frameIdFields": [
                                         "particleAnimation.x",
                                         "particleAnimation.y",
@@ -1568,6 +1569,7 @@
                                     "layout": "manualRunReport",
                                     "reportGroupName": "animation",
                                     "reportName": "fieldDistributionAnimation",
+                                    "frameCountFieldName": "fieldFrameCount",
                                     "frameIdFields": [
                                     ],
                                     "reportLayout": {

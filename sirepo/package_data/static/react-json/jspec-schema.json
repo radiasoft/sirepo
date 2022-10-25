@@ -1467,6 +1467,7 @@
                                     "reportGroupName": "animation",
                                     "reportName": "particleAnimation",
                                     "shown": "$(simulationSettings.model) == 'particle'",
+                                    "frameCountFieldName": "frameCount",
                                     "frameIdFields": [
                                         "particleAnimation.x",
                                         "particleAnimation.y",
