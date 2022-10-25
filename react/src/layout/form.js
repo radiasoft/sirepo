@@ -18,7 +18,7 @@ import { Dependency, HookedDependencyGroup } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/input";
 import { FormController } from "../data/form";
 import "./form.scss";
-import { useEvaluatedInterpString } from "../hook/string";
+import { useShown, ValueSelector } from "../hook/shown";
 
 export function LayoutWithFormController(subLayout) {
     return class extends subLayout {
@@ -96,14 +96,11 @@ export class FieldGridLayout extends View {
             </Row>
         )
 
-        let evalInterpStrFn = useEvaluatedInterpString;
+        let shownFn = useShown;
 
         for(let idx = 0; idx < rows.length; idx++) {
             let row = rows[idx];
-            let shown = true;
-            if(row.shown) {
-                shown = evalInterpStrFn(formState, row.shown, (models, modelName, fieldName) => models[modelName][fieldName].value);
-            }
+            let shown = shownFn(row.shown, true, formState, ValueSelector.Fields);
             let fields = row.fields;
             let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
             let rowElement = shown ? (

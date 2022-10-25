@@ -9,9 +9,9 @@ import { useStore } from "react-redux";
 import { ProgressBar, Stack, Button } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { useEvaluatedInterpString } from "../hook/string";
 import { useStopwatch } from "../hook/stopwatch";
 import { AnimationReader } from "../data/report";
+import { useShown, ValueSelector } from "../hook/shown";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
@@ -98,11 +98,7 @@ export class ManualRunReportLayout extends View {
 
         let reportEventsVersionRef = useRef(uuidv4())
 
-        let shown = true;
-
-        if(shownConfig) {
-            shown = useEvaluatedInterpString(modelsWrapper, shownConfig);
-        }
+        let shown = useShown(shownConfig, true, modelsWrapper, ValueSelector.Models);
 
         let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
 
