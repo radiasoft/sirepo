@@ -337,11 +337,11 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data, False, for_export=True)
 
 
-def validate_file(file_type, path):
+def validate_file(file_path, path):
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
-            return (f"not convex model")
+            return (f"not convex model: {path.basename}")
     else:
         return (f"invalid file type: {path.ext}")
     return None
