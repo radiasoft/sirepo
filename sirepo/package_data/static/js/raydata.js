@@ -107,24 +107,25 @@ SIREPO.app.directive('catalogPicker', function() {
             field: '=',
         },
         template: `
-            <div data-ng-hide="haveCatalogNames">Loading...</div>
-            <select class="form-control" data-ng-show="haveCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
+            <div data-ng-hide="!awaitingCatalogNames">Loading...</div>
+            <select class="form-control" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
         `,
         controller: function($scope, appState, errorService, requestSender) {
             $scope.catalogNames = [];
-            $scope.haveCatalogNames = false;
+            $scope.awaitingCatalogNames = true;
 
             requestSender.sendStatelessCompute(
                 appState,
                 json => {
                     $scope.catalogNames = json.data.catalogs;
-                    $scope.haveCatalogNames = true;
+                    $scope.awaitingCatalogNames = false;
                 },
                 {
                     method: 'catalog_names',
                 },
                 {
                     onError: data => {
+                        $scope.awaitingCatalogNames = false;
                         errorService.alertText(data.error);
                     },
                 }
