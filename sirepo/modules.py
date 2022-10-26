@@ -11,7 +11,7 @@ import importlib
 
 def import_and_init(name):
     values = PKDict(
-        want_apis=name not in ("sirepo.job_supervisor", "sirepo.pkcli.job_agent"),
+        want_apis=name != "sirepo.job_supervisor",
         want_flask=name == "sirepo.server",
     )
 
@@ -32,11 +32,13 @@ def import_and_init(name):
     _i("sirepo.job", [])
     # Not a real initialization, but needed in values, and actually makes sense to do
     _i("sirepo.simulation_db", [])
-    _i("sirepo.auth", ["simulation_db"])
     if name != "sirepo.pkcli.job_agent":
         _i("sirepo.auth_db", [])
         _i("sirepo.session", [])
         _i("sirepo.cookie", [])
+    _i("sirepo.auth", ["simulation_db"])
+    if name in "sirepo.pkcli.job_agent":
+        return None
     m = _i("sirepo.uri_router", ["want_apis", "simulation_db"])
     if "sirepo.uri_router" == name:
         # Used only by sirepo.server so everything else should already be initialized
@@ -46,8 +48,6 @@ def import_and_init(name):
     _i("sirepo.http_reply", ["simulation_db"])
     _i("sirepo.uri", ["simulation_db", "uri_router"])
     _i("sirepo.quest", ["http_reply", "http_request", "uri_router"])
-    if name in "sirepo.pkcli.job_agent":
-        return None
     if name in ("sirepo.auth", "sirepo.uri"):
         return values[_base(name)]
     if "sirepo.job_supervisor" == name:
