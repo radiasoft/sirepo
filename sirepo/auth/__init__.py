@@ -90,8 +90,10 @@ def hack_logged_in_user():
 def init_quest(qcall):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
+    if _cfg.logged_in_user:
+        return
     sirepo.auth_db.init_quest(qcall)
-    if not _cfg.logged_in_user and sirepo.flask.in_request():
+    if sirepo.flask.in_request():
         sirepo.request.init_quest(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
