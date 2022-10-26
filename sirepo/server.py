@@ -748,7 +748,6 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
         __name__,
         static_folder=None,
     )
-    _app.config["PROPAGATE_EXCEPTIONS"] = True
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
     for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
