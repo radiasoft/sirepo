@@ -1487,37 +1487,6 @@
                                     ]
                                 }
                             ]
-                        },
-                        {
-                            "layout": "panel",
-                            "title": "Scan",
-                            "basic": [
-                                {
-                                    "layout": "fieldList",
-                                    "fields": [
-                                        "scan.iscan",
-                                        "scan.nscan",
-                                        "scan.svar"
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "layout": "panel",
-                            "title": "Time Dependence",
-                            "basic": [
-                                {
-                                    "layout": "fieldList",
-                                    "fields": [
-                                        "timeDependence.curlen",
-                                        "timeDependence.zsep",
-                                        "timeDependence.nslice",
-                                        "timeDependence.ntail",
-                                        "timeDependence.shotnoise",
-                                        "timeDependence.isntyp"
-                                    ]
-                                }
-                            ]
                         }
                     ]
                 },
