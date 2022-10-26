@@ -495,11 +495,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     (mesh.upper_right[n] - mesh.lower_left[n])
                 )));
                 const r = [0, 1, 2].map(i => n === i ? [p, p + 1] : [0, mesh.dimension[i]]);
-                const f = [];
+                const f = Array(mesh.dimension[l] * mesh.dimension[m]);
+                let i = 0;
                 for (let zi = r[2][0]; zi < r[2][1]; ++zi) {
                     for (let yi = r[1][0]; yi < r[1][1]; ++yi) {
                         for (let xi = r[0][0]; xi < r[0][1]; ++xi) {
-                            f.push(allData[zi * nx * ny + yi * nx + xi]);
+                            f[i] = allData[zi * nx * ny + yi * nx + xi];
+                            ++i;
                         }
                     }
                 }
