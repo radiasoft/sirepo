@@ -42,7 +42,6 @@ export class AutoRunReportLayout extends View {
             let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
             simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-                console.log("starting to poll report");
                 pollRunReport({
                     appName,
                     models,
@@ -51,7 +50,6 @@ export class AutoRunReportLayout extends View {
                     pollInterval: 500,
                     forceRun: false,
                     callback: (simulationData) => {
-                        console.log("polling report yielded new data", simulationData);
                         // guard concurrency
                         if(simulationPollingVersionRef.current == pollingVersion) {
                             updateSimulationData(simulationData);
@@ -211,7 +209,6 @@ export function ReportAnimationController(props) {
             }}>
                 <FontAwesomeIcon icon={Icon.faForward}></FontAwesomeIcon>
             </Button>
-            <div className="align-self-end">{`${animationReader.getFrameCount()} frames`}</div>
         </div>
     )
     

@@ -97,7 +97,6 @@ export class AnimationReader {
     }
 
     getNextFrame = () => {
-        console.log("getting next frame: " + this.nextFrameIndex);
         return this.getFrame(this.nextFrameIndex++);
     }
 

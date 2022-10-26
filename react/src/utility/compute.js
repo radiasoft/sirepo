@@ -1,10 +1,8 @@
 export function pollCompute({ doFetch, pollInterval, callback }) {
-    console.log("started polling compute");
     let iterate = () => {
         doFetch().then(async (resp) => {
             let respObj = await resp.json();
             let { state } = respObj;
-            console.log("polled compute: " + state);
 
             if (state === 'pending' || state === 'running') {
                 setTimeout(iterate, pollInterval);

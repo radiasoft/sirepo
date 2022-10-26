@@ -23,7 +23,6 @@ export function Panel(props) {
         buttonPortalId: panelButtonsId,
         // upward communication is poor practice, this should be avoided or done another way
         onChangeShown: (shown) => {
-            console.log("shown", shown);
             updateShown(shown)
         }
     })
