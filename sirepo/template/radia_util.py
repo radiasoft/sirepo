@@ -302,9 +302,7 @@ def build_cuboid(**kwargs):
 def build_stl(**kwargs):
     d = PKDict(kwargs)
     g_id = radia.ObjPolyhdr(
-        d.vertices,
-        (numpy.array(d.faces) + 1).tolist(),
-        d.magnetization
+        d.vertices, (numpy.array(d.faces) + 1).tolist(), d.magnetization
     )
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id

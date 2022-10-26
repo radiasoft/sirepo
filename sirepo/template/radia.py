@@ -341,9 +341,9 @@ def validate_file(file_path, path):
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
-            return (f"not convex model: {path.basename}")
+            return f"not convex model: {path.basename}"
     else:
-        return (f"invalid file type: {path.ext}")
+        return f"invalid file type: {path.ext}"
     return None
 
 
@@ -793,6 +793,7 @@ def _generate_kick_map(g_id, model):
 
 def _generate_obj_data(g_id, name):
     return radia_util.geom_to_data(g_id, name=name)
+
 
 def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None):
     import jinja2
@@ -1625,10 +1626,10 @@ def _update_geom_obj(o, **kwargs):
         magnetization=[0.0, 0.0, 0.0],
         segments=[1, 1, 1],
         size=[1.0, 1.0, 1.0],
-        stlVertices = [],
-        stlFaces = [],
+        stlVertices=[],
+        stlFaces=[],
         # TODO(BG) Not implemented
-        #stlSlices = [],
+        # stlSlices = [],
     )
     for k in d:
         v = kwargs.get(k)
@@ -1666,8 +1667,8 @@ def _update_geom_obj(o, **kwargs):
             d.stlFaces.append(list(f))
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
-        
-        #TODO(BG) Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
+
+        # TODO(BG) Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
         """
         z_extents = mesh.bounds[:,2]
         z_levels  = numpy.arange(*z_extents, step=1)
@@ -1740,8 +1741,8 @@ def _update_kickmap(km, und, beam_axis):
     km.periodLength = und.periodLength
 
 
-#TODO(BG) Necessary helper function to implement object slicing with radia.radObjMltExtPgn()
-#Edge Case: Need to remove linear points along same vecter before returning
+# TODO(BG) Necessary helper function to implement object slicing with radia.radObjMltExtPgn()
+# Edge Case: Need to remove linear points along same vecter before returning
 """
 def _sort_points_clockwise(points):
     angles = []
