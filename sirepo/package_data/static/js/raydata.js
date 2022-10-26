@@ -391,6 +391,7 @@ SIREPO.app.directive('scansTable', function() {
                 const el = $('#sr-analysis-output');
                 el.modal('show');
                 el.on('hidden.bs.modal', function() {
+                    $scope.setSelectedScan(null);
                     el.off();
                 });
                 requestSender.sendStatelessCompute(
@@ -504,6 +505,9 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.setSelectedScan = (scan) => {
                 $scope.selectedScan = scan;
+                if ($scope.selectedScan !== null) {
+                    $scope.showAnalysisOutputModal();
+                }
             };
 
             $scope.showDeleteButton = (index) => {
@@ -547,12 +551,6 @@ SIREPO.app.directive('scansTable', function() {
                 if (scanRequestInterval) {
                     $interval.cancel(scanRequestInterval);
                     scanRequestInterval = null;
-                }
-            });
-
-            $scope.$watch('selectedScan', () => {
-                if ($scope.selectedScan !== null) {
-                    $scope.showAnalysisOutputModal();
                 }
             });
         },
