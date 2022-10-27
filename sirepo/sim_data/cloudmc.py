@@ -19,10 +19,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def statepoint_filename(cls, data):
-        return f"statepoint.{data.models.settings.batches}.h5"
-
-    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         cls._init_models(
@@ -39,6 +35,19 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "voxels",
             ),
         )
+
+    @classmethod
+    def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
+        try:
+            super().sim_files_to_run_dir(data, run_dir)
+        except sirepo.sim_data.SimDbFileNotFound as e:
+            if post_init:
+                raise e
+
+    @classmethod
+    def statepoint_filename(cls, data):
+        return f"statepoint.{data.models.settings.batches}.h5"
+
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):

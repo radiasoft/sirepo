@@ -601,7 +601,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                //updateTallyReport();
             }
 
             $scope.supportsColorbar = () => $scope.displayType === '3D' && ! isGeometryOnly;
@@ -679,40 +678,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     info(f, picker.getMapperPosition())
                 );
                 colorbarPtr.pointTo(f);
-            }
-
-            function updateTallyReport() {
-                const rpt = 'tallyReport';
-                const t = appState.models[rpt];
-                const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(t.axis);
-                const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(t.axis);
-                const mesh = getMeshFilter();
-                const dims = mesh.dimension;
-                const ranges = mesh.lower_left.map((x, i) => [scale * x, scale * mesh.upper_right[i]]);
-                const p = Math.min(dims[n], Math.max(0, Math.floor(
-                    dims[n] * (scale * t.planePos - ranges[n][0]) /
-                    (ranges[n][1] - ranges[n][0])
-                )));
-                const r = [0, 1, 2].map(i => n === i ? [p, p + 1] : [0, dims[i]]);
-                const f = Array(dims[l] * dims[m]);
-                let i = 0;
-                for (let zi = r[2][0]; zi < r[2][1]; ++zi) {
-                    for (let yi = r[1][0]; yi < r[1][1]; ++yi) {
-                        for (let xi = r[0][0]; xi < r[0][1]; ++xi) {
-                            f[i] = allData[zi * dims[0] * dims[1] + yi * dims[0] + xi];
-                            ++i;
-                        }
-                    }
-                }
-                const score = [];
-                for (let j = 0; j < dims[m]; ++j) {
-                    score.push(f.slice(j * dims[l], (j + 1) * dims[l]));
-                }
-                t.colorMap = appState.models.openmcAnimation.colorMap;
-                t.score = score;
-                [t.xLabel, t.yLabel] = [l, m].map(x => SIREPO.GEOMETRY.GeometryUtils.BASIS()[x]);
-                [t.xRange, t.yRange, t.zRange] = [l, m, n].map(x => [ranges[x][0], ranges[x][1], dims[x]])
-                appState.saveChanges('tallyReport');
             }
 
             function volumesError(reason) {
@@ -849,13 +814,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             $scope.$on('sr-volume-property.changed', (event, volId, prop, val) => {
                 setVolumeProperty(bundleByVolume[volId], prop, val);
             });
-
-            $scope.$on('tallyReport.changed', () => {
-                srdbg('TR CH');
-                //updateTallyReport();
-            });
-
-            //appState.watchModelFields($scope, ['tallyReport.axis', 'tallyReport.planePos'], updateTallyReport);
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
@@ -1667,10 +1625,11 @@ SIREPO.app.directive('materialList', function(appState, cloudmcService) {
 SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panelState, $scope) {
     $scope.watchFields = [
         ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
+        ['tallyReport.axis'], updateEditor,
     ];
 
     function updateEditor() {
-        srdbg($scope);
+
     }
     $scope.whenSelected = updateEditor;
 });

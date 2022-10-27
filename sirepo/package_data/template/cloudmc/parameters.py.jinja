@@ -2,6 +2,7 @@
 import numpy
 import openmc
 import openmc_data_downloader
+import sirepo.sim_data
 
 
 def create_geometry():
@@ -80,3 +81,6 @@ create_materials()
 create_settings()
 create_tallies()
 openmc.run()
+sirepo.sim_data.get_class("cloudmc").put_sim_file(
+    "{{ simId }}", "{{ statepointFilename }}", "{{ statepointFilename }}"
+)

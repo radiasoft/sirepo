@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo import util
 from sirepo.template import template_common
+import numpy
 import re
 import sirepo.sim_data
 
@@ -59,6 +60,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
+    _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     if sim_in.report == "tallyReport":
         template_common.write_sequential_result(
             _tally_report_plot(run_dir, sim_in)
@@ -77,6 +79,23 @@ def next_axis_indices(axis):
     return [_AXES.index(x) for x in _next_axes(axis)]
 
 
+def _get_tally(run_dir, sim_in):
+    import openmc
+
+    return openmc.StatePoint(
+        run_dir.join(_statepoint_filename(sim_in))
+    ).get_tally(name=sim_in.models.openmcAnimation.tally)
+
+
+def _get_mesh(tally):
+    import openmc
+
+    try:
+        return tally.find_filter(openmc.MeshFilter).mesh
+    except ValueError:
+        return None
+
+
 def _tally_report_plot(run_dir, sim_in):
     import math
     import openmc
@@ -89,10 +108,10 @@ def _tally_report_plot(run_dir, sim_in):
     tally = _get_tally(run_dir, sim_in)
     all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
         :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
-    ]
+    ].tolist()
     mesh = _get_mesh(tally)
     dims = mesh.dimension
-    ranges = [[scale * x, scale * mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left.map)]
+    ranges = scale * numpy.array([[x, mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left)])
     p = min(dims[n], max(0, math.floor(
         dims[n] * (scale * t.planePos - ranges[n][0]) /
         (ranges[n][1] - ranges[n][0])
@@ -109,33 +128,17 @@ def _tally_report_plot(run_dir, sim_in):
 
     score = []
     for j in range(dims[m]):
-        score.append(f.slice(j * dims[l], (j + 1) * dims[l]))
+        score.append(f[j * dims[l]:(j + 1) * dims[l]])
+
     return PKDict(
         title=f"Score at {t.axis} = {0.01 * t.planePos}m",
         x_label=f"{_AXES[l]} [m]",
         x_range=[ranges[l][0], ranges[l][1], dims[l]],
-        y_ylabel=f"{_AXES[m]} [m]",
+        y_label=f"{_AXES[m]} [m]",
         y_range=[ranges[m][0], ranges[m][1], dims[m]],
         z_matrix=score,
         z_range=[ranges[n][0], ranges[n][1], dims[n]],
     )
-
-
-def _get_tally(run_dir, sim_in):
-    import openmc
-
-    return openmc.StatePoint(
-        run_dir.join(_statepoint_filename(sim_in))
-    ).get_tally(name=sim_in.models.openmcAnimation.tally)
-
-
-def _get_mesh(tally):
-    import openmc
-
-    try:
-        return tally.find_filter(openmc.MeshFilter).mesh
-    except ValueError:
-        return None
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -345,12 +348,12 @@ def _generate_materials(data):
 
 def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    if report in ("openmcAnimation", "tallyReport"):
-        _SIM_DATA.sim_files_to_run_dir(data, run_dir, post_init=True)
     if report in ("dagmcAnimation", "tallyReport"):
         return ""
     res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
+    v.simId = data.models.simulation.simulationId
+    v.statepointFilename = _statepoint_filename(data)
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
