@@ -580,7 +580,9 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
 
 def _create_stl_trimesh(file_path):
     with open(file_path, "r") as f:
-        return trimesh.load(f, file_type="stl", force="mesh", process=True)
+        # TODO(BG) figure out why throws excpetion when decoding specific byte (create more binary files for testing)
+        m = trimesh.exchange.stl.load_stl(file_obj=f)
+        return trimesh.Trimesh(vertices=m['vertices'], faces=m['faces'], process=True)
 
 
 # deep copy of an object, but with a new id
