@@ -772,7 +772,7 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
     _init_proxy_react()
-    uri_router.init(_app, simulation_db)
+    sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
     if is_server:
         global _google_tag_manager
 
