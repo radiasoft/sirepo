@@ -492,7 +492,7 @@ class API(sirepo.quest.API):
 
         self._proxy_react(path_info)
         if path_info is None:
-            return self.reply_redirect(_cfg.home_page_uri)
+            return self.reply_redirect(cfg.home_page_uri)
         if template.is_sim_type(path_info):
             return self._render_root_page("index", PKDict(app_name=path_info))
         u = sirepo.uri.unchecked_root_redirect(path_info)
@@ -776,9 +776,9 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     if is_server:
         global _google_tag_manager
 
-        if _cfg.google_tag_manager_id:
+        if cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>
-        (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
+        (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
         </script>"""
         sirepo.db_upgrade.do_all()
         # Avoid unnecessary logging
@@ -881,12 +881,12 @@ def _simulations_using_file(req, ignore_sim_id=None):
 
 
 def _source_cache_key():
-    if _cfg.enable_source_cache_key:
+    if cfg.enable_source_cache_key:
         return "?{}".format(simulation_db.app_version())
     return ""
 
 
-_cfg = pkconfig.init(
+cfg = pkconfig.init(
     db_dir=pkconfig.ReplacedBy("sirepo.srdb.root"),
     enable_source_cache_key=(
         True,
