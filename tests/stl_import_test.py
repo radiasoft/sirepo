@@ -21,7 +21,6 @@ RAW_EXPECTED = [[0.0, 1.0, 0.0],
  [1.0, 1.0, 0.0],
  [0.0, 1.0, 0.0]]
 
-
 def _create_mesh(filePath):
     import trimesh
     
