@@ -57,6 +57,22 @@ def background_percent_complete(report, run_dir, is_running):
     return _percent_complete(run_dir, is_running)
 
 
+def extract_report_data(run_dir, sim_in):
+    if sim_in.report == "tallyReport":
+        r = sim_in.models.tallyReport
+        template_common.write_sequential_result(
+            PKDict(
+                title="Score",
+                x_range=r.xRange,
+                y_range=r.yRange,
+                x_label=f"{r.xLabel} [m]",
+                y_label=f"{r.yLabel} [m]",
+                z_matrix=r.score,
+            )
+        )
+
+
+
 def get_data_file(run_dir, model, frame, options):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if model == "dagmcAnimation":
@@ -264,9 +280,10 @@ def _generate_materials(data):
 
 def _generate_parameters_file(data):
     report = data.get("report", "")
-    res, v = template_common.generate_parameters_file(data)
-    if report == "dagmcAnimation":
+    pkdp("GRN PRM {}", report)
+    if report in ("dagmcAnimation", "tallyReport"):
         return ""
+    res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
