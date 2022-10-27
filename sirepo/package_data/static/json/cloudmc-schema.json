@@ -437,7 +437,7 @@
         },
         "tallyReport": {
             "axis": ["Axis", "Axis", "y"],
-            "planePos": ["{{ appState.models.tallyReport.axis }}", "Range", 0.0, "{{ appState.models.tallyReport.zRange[0] }}", "{{ appState.models.tallyReport.zRange[1] }}"],
+            "planePos": ["{{ appState.models.tallyReport.axis }}", "Float", 0.0, "", "{{ appState.models.tallyReport.zRange[0] }}", "{{ appState.models.tallyReport.zRange[1] }}"],
             "score": ["_", "Array", [[]]]
         },
         "tallyScore": {
