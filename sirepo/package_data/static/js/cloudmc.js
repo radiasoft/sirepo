@@ -284,7 +284,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             </div>
             <div data-ng-show="displayType === '2D'">
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
-               <!--<input class="fieldClass col-sm-4" type="range" data-ng-model="tallyReport.planePos" min="tallyReport.zRange[0]" max="tallyReport.zRange[1]" step="tallyReport.zStep">-->
+               <!--<input class="fieldClass col-sm-4" type="range" data-ng-model="tallyReport.planePos" min="tallyReport.zRange[0]" max="tallyReport.zRange[1]" step="tallyReport.zRange[2]">-->
             </div>
         `,
         controller: function($scope, $element) {
@@ -571,6 +571,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function setTallyColors() {
+                appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
+                appState.saveChanges('tallyReport');
                 const cellsPerVoxel = voxelPoly.length;
                 const s = SIREPO.PLOTTING.Utils.colorScale(
                     minField,
@@ -599,7 +601,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                updateTallyReport();
+                //updateTallyReport();
             }
 
             $scope.supportsColorbar = () => $scope.displayType === '3D' && ! isGeometryOnly;
@@ -680,39 +682,36 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function updateTallyReport() {
-                srdbg('UPDATET TR');
                 const rpt = 'tallyReport';
                 const t = appState.models[rpt];
                 const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(t.axis);
                 const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(t.axis);
                 const mesh = getMeshFilter();
-                const [nx, ny, nz] = mesh.dimension;
-                const p = Math.min(mesh.dimension[n], Math.max(0, Math.floor(
-                    mesh.dimension[n] * (t.planePos - mesh.lower_left[n]) /
-                    (mesh.upper_right[n] - mesh.lower_left[n])
+                const dims = mesh.dimension;
+                const ranges = mesh.lower_left.map((x, i) => [scale * x, scale * mesh.upper_right[i]]);
+                const p = Math.min(dims[n], Math.max(0, Math.floor(
+                    dims[n] * (scale * t.planePos - ranges[n][0]) /
+                    (ranges[n][1] - ranges[n][0])
                 )));
-                const r = [0, 1, 2].map(i => n === i ? [p, p + 1] : [0, mesh.dimension[i]]);
-                const f = Array(mesh.dimension[l] * mesh.dimension[m]);
+                const r = [0, 1, 2].map(i => n === i ? [p, p + 1] : [0, dims[i]]);
+                const f = Array(dims[l] * dims[m]);
                 let i = 0;
                 for (let zi = r[2][0]; zi < r[2][1]; ++zi) {
                     for (let yi = r[1][0]; yi < r[1][1]; ++yi) {
                         for (let xi = r[0][0]; xi < r[0][1]; ++xi) {
-                            f[i] = allData[zi * nx * ny + yi * nx + xi];
+                            f[i] = allData[zi * dims[0] * dims[1] + yi * dims[0] + xi];
                             ++i;
                         }
                     }
                 }
                 const score = [];
-                for (let j = 0; j < mesh.dimension[m]; ++j) {
-                    score.push(f.slice(j * mesh.dimension[l], (j + 1) * mesh.dimension[l]));
+                for (let j = 0; j < dims[m]; ++j) {
+                    score.push(f.slice(j * dims[l], (j + 1) * dims[l]));
                 }
+                t.colorMap = appState.models.openmcAnimation.colorMap;
                 t.score = score;
-                t.xLabel = SIREPO.GEOMETRY.GeometryUtils.BASIS()[l];
-                t.xRange = [mesh.lower_left[l], mesh.upper_right[l], mesh.dimension[l]];
-                t.yLabel = SIREPO.GEOMETRY.GeometryUtils.BASIS()[m];
-                t.yRange = [mesh.lower_left[m], mesh.upper_right[m], mesh.dimension[m]];
-                t.zRange = [mesh.lower_left[n], mesh.upper_right[n]];
-                t.zStep = mesh.dimension[n];
+                [t.xLabel, t.yLabel] = [l, m].map(x => SIREPO.GEOMETRY.GeometryUtils.BASIS()[x]);
+                [t.xRange, t.yRange, t.zRange] = [l, m, n].map(x => [ranges[x][0], ranges[x][1], dims[x]])
                 appState.saveChanges('tallyReport');
             }
 

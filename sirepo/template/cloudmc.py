@@ -14,6 +14,7 @@ import re
 import sirepo.sim_data
 
 
+_AXES = ["x", "y", "z"]
 VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -59,19 +60,82 @@ def background_percent_complete(report, run_dir, is_running):
 
 def extract_report_data(run_dir, sim_in):
     if sim_in.report == "tallyReport":
-        r = sim_in.models.tallyReport
-        pkdp("TR {}", r)
         template_common.write_sequential_result(
-            PKDict(
-                title="Score",
-                x_range=r.xRange,
-                y_range=r.yRange,
-                x_label=f"{r.xLabel} [m]",
-                y_label=f"{r.yLabel} [m]",
-                z_matrix=r.score,
-            )
+            _tally_report_plot(run_dir, sim_in)
         )
 
+def _next_axes(axis):
+    w = _next_axis(axis)
+    return [w, _next_axis(w)]
+
+
+def _next_axis(axis):
+    return _AXES[(_AXES.index(axis) + 1) % len(_AXES)]
+
+
+def next_axis_indices(axis):
+    return [_AXES.index(x) for x in _next_axes(axis)]
+
+
+def _tally_report_plot(run_dir, sim_in):
+    import math
+    import openmc
+
+    rpt = "tallyReport"
+    t = sim_in.models[rpt]
+    scale = 0.01
+    n = _AXES.index(t.axis)
+    l, m = next_axis_indices(t.axis)
+    tally = _get_tally(run_dir, sim_in)
+    all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
+        :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
+    ]
+    mesh = _get_mesh(tally)
+    dims = mesh.dimension
+    ranges = [[scale * x, scale * mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left.map)]
+    p = min(dims[n], max(0, math.floor(
+        dims[n] * (scale * t.planePos - ranges[n][0]) /
+        (ranges[n][1] - ranges[n][0])
+    )))
+    r = [[p, p + 1] if i == n else [0, dims[i]] for i in range(3)]
+    f = [0] * (dims[l] * dims[m])
+
+    i = 0
+    for zi in range(r[2][0], r[2][1]):
+        for yi in range(r[1][0], r[1][1]):
+            for xi in range(r[0][0], r[0][1]):
+                f[i] = all_data[zi * dims[0] * dims[1] + yi * dims[0] + xi]
+                i += 1
+
+    score = []
+    for j in range(dims[m]):
+        score.append(f.slice(j * dims[l], (j + 1) * dims[l]))
+    return PKDict(
+        title=f"Score at {t.axis} = {0.01 * t.planePos}m",
+        x_label=f"{_AXES[l]} [m]",
+        x_range=[ranges[l][0], ranges[l][1], dims[l]],
+        y_ylabel=f"{_AXES[m]} [m]",
+        y_range=[ranges[m][0], ranges[m][1], dims[m]],
+        z_matrix=score,
+        z_range=[ranges[n][0], ranges[n][1], dims[n]],
+    )
+
+
+def _get_tally(run_dir, sim_in):
+    import openmc
+
+    return openmc.StatePoint(
+        run_dir.join(_statepoint_filename(sim_in))
+    ).get_tally(name=sim_in.models.openmcAnimation.tally)
+
+
+def _get_mesh(tally):
+    import openmc
+
+    try:
+        return tally.find_filter(openmc.MeshFilter).mesh
+    except ValueError:
+        return None
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -164,7 +228,7 @@ def stateless_compute_validate_material_name(data):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, run_dir=run_dir),
     )
 
 
@@ -279,9 +343,10 @@ def _generate_materials(data):
     return res
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    pkdp("GRN PRM {}", report)
+    if report in ("openmcAnimation", "tallyReport"):
+        _SIM_DATA.sim_files_to_run_dir(data, run_dir, post_init=True)
     if report in ("dagmcAnimation", "tallyReport"):
         return ""
     res, v = template_common.generate_parameters_file(data)

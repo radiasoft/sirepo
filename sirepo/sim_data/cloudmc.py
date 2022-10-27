@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 202 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 
@@ -16,6 +17,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             "dagmcFile",
             data.models.geometryInput.dagmcFile,
         )
+
+    @classmethod
+    def statepoint_filename(cls, data):
+        return f"statepoint.{data.models.settings.batches}.h5"
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -47,4 +52,12 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _lib_file_basenames(cls, data):
         return [
             cls.dagmc_filename(data),
+        ]
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        return [
+            PKDict(
+                basename=cls.statepoint_filename(data),
+            )
         ]
