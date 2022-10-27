@@ -8,9 +8,8 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import api_perm
 import datetime
-import sirepo.api
+import sirepo.quest
 import sirepo.util
 import time
 
@@ -25,7 +24,7 @@ _timedelta = None
 _initialized = False
 
 
-def adjust_time(days, sapi=None):
+def adjust_time(days, qcall=None):
     """Shift the system time by days
 
     Args:
@@ -40,14 +39,14 @@ def adjust_time(days, sapi=None):
             _timedelta = datetime.timedelta(days=d)
     except Exception:
         pass
-    if sapi:
+    if qcall:
         if not _timedelta:
             days = 0
-        sapi.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
+        qcall.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("internal_test", days="TimeDeltaDays optional")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("internal_test", days="TimeDeltaDays optional")
     def api_adjustTime(self, days=None):
         """Shift the system time by days and get the adjusted time
 
@@ -55,7 +54,7 @@ class API(sirepo.api.Base):
             days (str): must be integer. If None or 0, no adjustment.
         """
 
-        adjust_time(days, sapi=self)
+        adjust_time(days, qcall=self)
         return self.reply_ok(
             {
                 "adjustedNow": utc_now().isoformat(),
@@ -64,7 +63,11 @@ class API(sirepo.api.Base):
         )
 
 
-def init():
+def init_apis(*args, **kwargs):
+    init_module()
+
+
+def init_module():
     global _initialized, utc_now_as_int
     if _initialized:
         return
@@ -74,10 +77,6 @@ def init():
         utc_now_as_float = time.time
         utc_now = datetime.datetime.utcnow
     utc_now_as_int = lambda: int(utc_now_as_float())
-
-
-def init_apis(*args, **kwargs):
-    init()
 
 
 def to_timestamp(dt):

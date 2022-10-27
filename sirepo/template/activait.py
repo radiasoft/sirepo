@@ -838,6 +838,7 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
+    v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
         inputDim=dm.columnInfo.inputOutput.count("input"),
         layerImplementationNames=_layer_implementation_list(data),
@@ -1071,6 +1072,13 @@ def _levels_with_children(cur_node, neural_net):
     return cur_node, 1, l
 
 
+def _loss_function(loss_fn):
+    l = "".join(w.title() for w in loss_fn.split("_"))
+    if loss_fn == "sparse_categorical_crossentropy":
+        return "keras.losses." + l + "(from_logits=True)"
+    return "keras.losses." + l + "()"
+
+
 def _make_layers(model):
     neural_net = []
     for l in model._layers:
@@ -1183,6 +1191,7 @@ def _set_fields_by_layer_type(l, new_layer):
                     activation=l.activation.__name__,
                 ),
                 Dropout=lambda l: PKDict(dropoutRate=l.rate),
+                Flatten=lambda l: PKDict(),
                 MaxPooling2D=lambda l: PKDict(
                     strides=l.strides[0],
                     padding=l.padding,

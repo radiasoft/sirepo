@@ -14,16 +14,14 @@ import sqlalchemy.sql.expression
 
 # limit imports here
 import sirepo.auth_role
-import sirepo.srcontext
 import sirepo.srdb
 import sirepo.srtime
 import sirepo.util
+import sirepo.quest
 
 
 #: sqlite file located in sirepo_db_dir
 _SQLITE3_BASENAME = "auth.db"
-
-_SRCONTEXT_SESSION_KEY = "auth_db_session"
 
 #: SQLAlchemy database engine
 _engine = None
@@ -118,27 +116,20 @@ def db_filename():
     return sirepo.srdb.root().join(_SQLITE3_BASENAME)
 
 
-def init():
-    def _create_tables(engine):
-        b = UserDbBase
-        k = set(b.metadata.tables.keys())
-        assert k.issubset(
-            set(b.TABLES)
-        ), f"sqlalchemy tables={k} not a subset of known tables={b.TABLES}"
-        b.metadata.create_all(engine)
+def init_model(callback):
+    with sirepo.util.THREAD_LOCK:
+        callback(UserDbBase)
+        UserDbBase.metadata.create_all(_engine)
 
+
+def init_module():
     global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole, UserRoleInvite
 
     if _engine:
         return
+
     f = db_filename()
     _migrate_db_file(f)
-    _engine = sqlalchemy.create_engine(
-        "sqlite:///{}".format(f),
-        # We do our own thread locking so no need to have pysqlite warn us when
-        # we access a single connection across threads
-        connect_args={"check_same_thread": False},
-    )
 
     @sqlalchemy.ext.declarative.as_declarative()
     class UserDbBase(object):
@@ -259,7 +250,7 @@ def init():
 
         @classmethod
         def _session(cls):
-            return sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
+            return sirepo.quest.hack_current().auth_db._orm_session
 
         @classmethod
         def _unchecked_model_from_tablename(cls, tablename):
@@ -378,10 +369,10 @@ def init():
         )
 
         @classmethod
-        def get_moderation_request_rows(cls):
+        def get_moderation_request_rows(cls, qcall):
             from sirepo import auth
 
-            t = auth.get_module("email").UserModel
+            t = qcall.auth.get_module("email").UserModel
             with sirepo.util.THREAD_LOCK:
                 q = (
                     cls._session()
@@ -417,24 +408,32 @@ def init():
                     s.moderator_uid = moderator_uid
                 s.save()
 
-    _create_tables(_engine)
+    b = UserDbBase
+    k = set(b.metadata.tables.keys())
+    assert k.issubset(
+        set(b.TABLES)
+    ), f"sqlalchemy tables={k} not a subset of known tables={b.TABLES}"
+    _engine = sqlalchemy.create_engine(
+        "sqlite:///{}".format(f),
+        # We do our own thread locking so no need to have pysqlite warn us when
+        # we access a single connection across threads
+        connect_args={"check_same_thread": False},
+    )
+    b.metadata.create_all(_engine)
 
 
-def init_model(callback):
-    with sirepo.util.THREAD_LOCK:
-        callback(UserDbBase)
-        UserDbBase.metadata.create_all(_engine)
+def init_quest(qcall):
+    qcall.attr_set("auth_db", _AuthDb())
 
 
 @contextlib.contextmanager
 def session():
-    init()
-    with sirepo.srcontext.create() as c:
-        try:
-            _create_session(c)
-            yield
-        finally:
-            _destroy_session(c)
+    qcall = sirepo.quest.API()
+    try:
+        init_quest(qcall)
+        yield
+    finally:
+        qcall.destroy()
 
 
 @contextlib.contextmanager
@@ -445,14 +444,13 @@ def session_and_lock():
         yield
 
 
-def _create_session(context):
-    s = context.get(_SRCONTEXT_SESSION_KEY)
-    assert not s, f"existing session={s}"
-    context[_SRCONTEXT_SESSION_KEY] = sqlalchemy.orm.Session(bind=_engine)
+class _AuthDb(sirepo.quest.Attr):
+    def __init__(self):
+        super().__init__()
+        self._orm_session = sqlalchemy.orm.Session(bind=_engine)
 
-
-def _destroy_session(context):
-    context.pop(_SRCONTEXT_SESSION_KEY).rollback()
+    def destroy(self):
+        self._orm_session.rollback()
 
 
 def _migrate_db_file(fn):

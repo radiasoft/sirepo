@@ -18,10 +18,10 @@ import copy
 import inspect
 import pykern.pkio
 import re
-import sirepo.auth
 import sirepo.auth_db
 import sirepo.const
 import sirepo.http_reply
+import sirepo.quest
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
@@ -66,7 +66,7 @@ _PARALLEL_STATUS_FIELDS = frozenset(
     )
 )
 
-cfg = None
+_cfg = None
 
 #: how many times restart request when Awaited() raised
 _MAX_RETRIES = 10
@@ -93,7 +93,7 @@ class ServerReq(PKDict):
         # no longer contains secret so ok to log
         assert s, "no secret in message content={}".format(self.content)
         assert (
-            s == sirepo.job.cfg.server_secret
+            s == sirepo.job.cfg().server_secret
         ), "server_secret did not match content={}".format(self.content)
         return await _Supervisor.receive(self)
 
@@ -131,16 +131,14 @@ class SlotQueue(sirepo.tornado.Queue):
         return SlotProxy(_op=op, _q=self)
 
 
-def init():
-    global cfg, _DB_DIR, _NEXT_REQUEST_SECONDS, job_driver
+def init_module(**imports):
+    global _cfg, _DB_DIR, _NEXT_REQUEST_SECONDS
 
-    if cfg:
+    if _cfg:
         return
-    job.init()
-    from sirepo import job_driver
-
-    job_driver.init(pkinspect.this_module())
-    cfg = pkconfig.init(
+    # import sirepo.job_driver
+    sirepo.util.setattr_imports(imports)
+    _cfg = pkconfig.init(
         job_cache_secs=(300, int, "when to re-read job state from disk"),
         max_secs=dict(
             analysis=(
@@ -172,7 +170,7 @@ def init():
         purge_non_premium_after_secs=(
             0,
             pkconfig.parse_seconds,
-            "how long to wait before purging non-premium users simulations",
+            "expiration period for purging non-premium users simulations",
         ),
         purge_non_premium_task_secs=(
             None,
@@ -185,19 +183,16 @@ def init():
     _NEXT_REQUEST_SECONDS = PKDict(
         {
             job.PARALLEL: 2,
-            job.SBATCH: cfg.sbatch_poll_secs,
+            job.SBATCH: _cfg.sbatch_poll_secs,
             job.SEQUENTIAL: 1,
         }
     )
-    sirepo.auth_db.init()
     tornado.ioloop.IOLoop.current().add_callback(
         _ComputeJob.purge_free_simulations,
     )
 
 
 async def terminate():
-    from sirepo import job_driver
-
     await job_driver.terminate()
 
 
@@ -339,7 +334,7 @@ class _Supervisor(PKDict):
                 return m - db.computeJobQueued
 
             r = []
-            with sirepo.auth_db.session():
+            with sirepo.quest.start() as qcall:
                 for i in filter(_filter_jobs, _ComputeJob.instances.values()):
                     d = PKDict(
                         simulationType=i.db.simulationType,
@@ -416,7 +411,7 @@ class _ComputeJob(_Supervisor):
 
     def cache_timeout_set(self):
         self.timer = tornado.ioloop.IOLoop.current().call_later(
-            cfg.job_cache_secs,
+            _cfg.job_cache_secs,
             self.cache_timeout,
         )
 
@@ -470,6 +465,7 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     async def purge_free_simulations(cls):
+        # TODO add-qcall
         def _get_uids_and_files():
             r = []
             u = None
@@ -512,24 +508,26 @@ class _ComputeJob(_Supervisor):
             n.status = job.JOB_RUN_PURGED
             cls.__db_write_file(n)
 
-        if not cfg.purge_non_premium_task_secs:
+        if not _cfg.purge_non_premium_task_secs:
             return
         s = sirepo.srtime.utc_now()
         u = None
         f = None
         try:
-            _too_old = sirepo.srtime.utc_now_as_int() - cfg.purge_non_premium_after_secs
-            with sirepo.auth_db.session():
+            _too_old = (
+                sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
+            )
+            with sirepo.quest.start() as qcall:
                 for u, v in _get_uids_and_files():
-                    with sirepo.auth.set_user_outside_of_http_request(u):
-                        for f in v:
-                            _purge_sim(jid=f.purebasename)
+                    qcall.auth.logged_in_user_set(u)
+                    for f in v:
+                        _purge_sim(jid=f.purebasename)
                     await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())
         finally:
             tornado.ioloop.IOLoop.current().call_later(
-                cfg.purge_non_premium_task_secs,
+                _cfg.purge_non_premium_task_secs,
                 cls.purge_free_simulations,
             )
 
@@ -1111,6 +1109,7 @@ class _Op(PKDict):
     async def run_timeout(self):
         """Can be any op that's timed"""
         pkdlog("{} max_run_secs={}", self, self.max_run_secs)
+        # TODO add-qcall and pass to op, can't be Op() or Supervisor()
         await self._supervisor.op_run_timeout(self)
 
     def send(self):
@@ -1139,10 +1138,10 @@ class _Op(PKDict):
             sirepo.job.OP_ANALYSIS,
             sirepo.job.OP_IO,
         ):
-            return cfg.max_secs[self.opName]
+            return _cfg.max_secs[self.opName]
         if self.kind == job.PARALLEL and self.msg.get("isPremiumUser"):
-            return cfg.max_secs["parallel_premium"]
-        return cfg.max_secs[self.kind]
+            return _cfg.max_secs["parallel_premium"]
+        return _cfg.max_secs[self.kind]
 
     def __hash__(self):
         return hash((self.opId,))

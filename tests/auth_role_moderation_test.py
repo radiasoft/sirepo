@@ -28,7 +28,7 @@ def test_moderation(auth_fc):
     fc = auth_fc
     fc.sr_email_register("x@x.x", sim_type="srw")
     fc.sr_sim_type = "myapp"
-    with srunit.auth_db_session():
+    with srunit.quest_start():
         sirepo.auth_db.UserRole.delete_all()
         sirepo.auth_db.UserRoleInvite.delete_all()
     with pkunit.pkexcept("SRException.*moderationRequest"):
