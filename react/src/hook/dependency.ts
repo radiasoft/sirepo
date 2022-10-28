@@ -1,10 +1,13 @@
-export function useDependentValues(models, dependencies) {
+import { Dependency } from "../data/dependency";
+import { ModelsWrapper } from "../data/model";
+
+export function useDependentValues(modelsWrapper: ModelsWrapper, dependencies: Dependency[]) {
     let modelNames = [...new Set(dependencies.map(dependency => dependency.modelName))];
 
     let modelValues = Object.fromEntries(modelNames.map(modelName => {
         return [
             modelName,
-            models.hookModel(modelName)
+            modelsWrapper.hookModel(modelName)
         ]
     }))
 
