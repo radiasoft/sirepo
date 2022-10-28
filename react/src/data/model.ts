@@ -1,6 +1,12 @@
 import { useDispatch, useSelector } from "react-redux";
 import { Dispatch, AnyAction } from "redux";
-import { ModelActions, ModelSelectors } from "../store/models";
+import { ModelActions, ModelSelectors, ModelState } from "../store/models";
+
+
+export type ModelWrapper = {
+    updateModel: (value: ModelState) => void;
+    hookModel: () => ModelState;
+}
 
 export class ModelsWrapper {
     modelActions: ModelActions;
@@ -15,21 +21,21 @@ export class ModelsWrapper {
         this.dispatch = dispatchFn();
     }
 
-    getModel = (modelName, state) => {
+    getModel = (modelName: string, state: any) => {
         return this.modelSelectors.selectModel(modelName)(state);
     }
 
-    getModels = (state) => {
+    getModels = (state: any) => {
         return this.modelSelectors.selectModels(state);
     }
 
-    getIsLoaded = (state) => {
+    getIsLoaded = (state: any) => {
         return this.modelSelectors.selectIsLoaded(state);
     }
 
-    forModel = (modelName) => {
+    forModel: (modelName: string) => ModelWrapper = (modelName: string) => {
         return {
-            updateModel: (value) => {
+            updateModel: (value: ModelState) => {
                 return this.updateModel(modelName, value);
             },
             hookModel: () => {
@@ -38,7 +44,7 @@ export class ModelsWrapper {
         }
     }
 
-    updateModel = (modelName, value) => {
+    updateModel = (modelName: string, value: ModelState) => {
         console.log("dispatching update to ", modelName, " changing to value ", value);
         this.dispatch(this.modelActions.updateModel({
             name: modelName,
@@ -46,7 +52,7 @@ export class ModelsWrapper {
         }))
     }
 
-    hookModel = (modelName) => {
+    hookModel = (modelName: string) => {
         let selectFn = useSelector;
         return selectFn(this.modelSelectors.selectModel(modelName));
     }
@@ -61,7 +67,7 @@ export class ModelsWrapper {
         return selectFn(this.modelSelectors.selectIsLoaded);
     }
 
-    saveToServer = (simulationInfo, state) => {
+    saveToServer = (simulationInfo: any, state: any) => {
         let models = this.getModels(state);
         simulationInfo.models = models;
         fetch("/save-simulation", {
