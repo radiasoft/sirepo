@@ -129,9 +129,13 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
     if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_files)
+        return template_common.compute_field_range(
+            data,
+            _compute_range_across_files,
+            qcall=qcall,
+        )
     assert False, "unknown application data method={}".format(data.method)
 
 

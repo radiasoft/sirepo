@@ -452,9 +452,13 @@ def code_var(variables):
     )
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
     if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_frames)
+        return template_common.compute_field_range(
+            data,
+            _compute_range_across_frames,
+            qcall=qcall,
+        )
     if code_var(data.variables).get_application_data(
         data, SCHEMA, ignore_array_values=True
     ):

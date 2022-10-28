@@ -166,13 +166,13 @@ def get_analysis_report(run_dir, data):
     )
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
     if data["method"] == "update_kicker":
-        return _update_epics_kicker(data)
+        return _update_epics_kicker(data, qcall)
     if data["method"] == "read_kickers":
         return _read_epics_kickers(data)
     if data["method"] == "enable_steering":
-        return _enable_steering(data)
+        return _enable_steering(data, qcall)
     assert False, "unknown application_data method: {}".format(data["method"])
 
 
@@ -927,16 +927,18 @@ def _elements_of_types(data, types):
     return [m for m in data.models.elements if "type" in m and m.type in types]
 
 
-def _enable_steering(data):
-    sim_dir = _epics_dir(data["simulationId"])
+def _enable_steering(data, qcall):
+    sim_dir = _epics_dir(data["simulationId"], qcall)
     if sim_dir.exists():
         # TODO(pjm): use save to tmp followed by mv for atomicity
         simulation_db.write_json(sim_dir.join(STEERING_FILE), data["beamSteering"])
     return PKDict()
 
 
-def _epics_dir(sim_id):
-    return simulation_db.simulation_dir(SIM_TYPE, sim_id).join("epicsServerAnimation")
+def _epics_dir(sim_id, qcall):
+    return simulation_db.simulation_dir(SIM_TYPE, sim_id, qcall=qcall).join(
+        "epicsServerAnimation",
+    )
 
 
 def _fit_to_equation(x, y, equation, var, params):
@@ -1353,7 +1355,7 @@ def _tokenize_equation(eq):
     ]
 
 
-def _update_epics_kicker(data):
+def _update_epics_kicker(data, qcall):
     epics_settings = data.epicsServerAnimation
     # data validation is done by casting values to int() or float()
     prefix = "sr_epics:corrector{}:".format(int(data["epics_field"]))
@@ -1363,7 +1365,9 @@ def _update_epics_kicker(data):
         field = "{}{}Current".format(prefix, f.upper())
         fields.append(field)
         values.append(float(data["kicker"]["{}kick".format(f)]))
-    update_epics_kickers(epics_settings, _epics_dir(data.simulationId), fields, values)
+    update_epics_kickers(
+        epics_settings, _epics_dir(data.simulationId, qcall), fields, values
+    )
     return PKDict()
 
 

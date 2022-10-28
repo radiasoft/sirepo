@@ -280,7 +280,7 @@ class API(sirepo.quest.API):
         req = self.parse_post(template=True, filename=filename or None)
         with simulation_db.tmp_dir(qcall=self) as d:
             assert "method" in req.req_data
-            res = req.template.get_application_data(req.req_data, tmp_dir=d)
+            res = req.template.get_application_data(req.req_data, qcall=self, tmp_dir=d)
             assert (
                 res != None
             ), f"unhandled application data method: {req.req_data.method}"

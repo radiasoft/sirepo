@@ -179,10 +179,10 @@ def generate_field_report(data, run_dir, args=None):
     return res
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
     if data.method == "compute_simulation_steps":
         field_file = (
-            simulation_db.simulation_dir(SIM_TYPE, data["simulationId"])
+            simulation_db.simulation_dir(SIM_TYPE, data["simulationId"], qcall=qcall)
             .join("fieldCalculationAnimation")
             .join(_FIELD_ESTIMATE_FILE)
         )

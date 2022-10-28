@@ -70,23 +70,29 @@ class CodeVar:
         except ValueError:
             return v
 
-    def get_application_data(self, args, schema, ignore_array_values):
+    def stateful_compute_rpn_value(data, schema, ignore_array_values, **kwargs):
+        if ignore_array_values and re.search(r"^\{.*\}$", data.value):
+            # accept array of values enclosed in curly braces
+            data.result = ""
+            return True
+        v, err = self.eval_var(data.value)
+        if err:
+            data.error = err
+        else:
+            data.result = v
+        return data
+
+    def stateful_compute_recompute_rpn_cache_values(
+        data, schema, ignore_array_values, **kwargs
+    ):
+        self.recompute_cache(data.cache)
+        return data
+
+    def stateful_compute_recompute_rpn_cache_values(
+        self, data, schema, ignore_array_values, **kwargs
+    ):
         from sirepo import simulation_db
 
-        if args.method == "rpn_value":
-            if ignore_array_values and re.search(r"^\{.*\}$", args.value):
-                # accept array of values enclosed in curly braces
-                args.result = ""
-                return True
-            v, err = self.eval_var(args.value)
-            if err:
-                args.error = err
-            else:
-                args.result = v
-            return True
-        if args.method == "recompute_rpn_cache_values":
-            self.recompute_cache(args.cache)
-            return True
         if args.method == "validate_rpn_delete":
             model_data = simulation_db.read_json(
                 simulation_db.sim_data_file(
