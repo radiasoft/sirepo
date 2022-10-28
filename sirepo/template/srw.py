@@ -1205,14 +1205,18 @@ def _compute_PGM_value(model):
                 _grDen3=model.grooveDensity3,
                 _grDen4=model.grooveDensity4,
                 _e_avg=model.energyAvg,
-                _cff=1.5,  # model['cff'],
-                _ang_graz=model.grazingAngle,
+                _cff=None,
+                _ang_graz=model.grazingAngle / 1000.0,
                 _ang_roll=model.rollAngle,
             )
             cff, defAng = opGr.ang2cff(
                 _en=model.energyAvg, _ang_graz=model.grazingAngle / 1000.0
             )
             model.cff = cff
+        else:
+            raise AssertionError(
+                "invalid computeParametersFrom: {}", model.computeParametersFrom
+            )
         angroll = model.rollAngle
         if abs(angroll) < np.pi / 4 or abs(angroll - np.pi) < np.pi / 4:
             model.orientation = "y"
@@ -1257,6 +1261,12 @@ def _compute_grating_orientation(model):
             _x=model.horizontalOffset,
             _y=model.verticalOffset,
         )
+        cff = model.cff
+        grazingAngle = model.grazingAngle / 1000
+        if model.computeParametersFrom == "1":
+            grazingAngle = 0
+        elif model.computeParametersFrom == "2":
+            cff = None
         opGr = srwlib.SRWLOptG(
             _mirSub=mirror,
             _m=model.diffractionOrder,
@@ -1266,8 +1276,8 @@ def _compute_grating_orientation(model):
             _grDen3=model.grooveDensity3,
             _grDen4=model.grooveDensity4,
             _e_avg=model.energyAvg,
-            _cff=model.cff,
-            _ang_graz=model.grazingAngle,
+            _cff=cff,
+            _ang_graz=grazingAngle,
             _ang_roll=model.rollAngle,
         )
         pkdc(
