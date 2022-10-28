@@ -174,7 +174,8 @@ def register_api_module(module):
     if not hasattr(m, "API"):
         if pkinspect.module_functions("api_", module=m):
             raise AssertionError(f"module={m.__name__} has old interface")
-        pkdlog("module={} does not have API class; no apis", m)
+        if pkconfig.channel_in("dev"):
+            pkdlog(f"api_module={m.__name__} does not have API class (no apis)")
         # some modules (ex: sirepo.auth.basic) don't have any APIs
         return
     c = m.API
