@@ -1,15 +1,13 @@
 import { useDispatch, useSelector } from "react-redux";
-
-export type ModelActions = {
-    selectModels: ,
-    selectModel,
-    selectIsLoaded
-}
+import { Dispatch, AnyAction } from "redux";
+import { ModelActions, ModelSelectors } from "../store/models";
 
 export class ModelsWrapper {
-    modelActions: ModelActions
+    modelActions: ModelActions;
+    modelSelectors: ModelSelectors;
+    dispatch: Dispatch<AnyAction>;
 
-    constructor({ modelActions, modelSelectors }) {
+    constructor({ modelActions, modelSelectors }: { modelActions: ModelActions, modelSelectors: ModelSelectors }) {
         this.modelActions = modelActions;
         this.modelSelectors = modelSelectors;
 

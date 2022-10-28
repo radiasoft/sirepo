@@ -41,7 +41,7 @@ export let modelActions: ModelActions = {
 export type ModelSelectors = {
     selectIsLoaded: (state: any) => boolean,
     selectModels: (state: any) => ModelStates,
-    selectModel: (state: any) => ModelState
+    selectModel: (name: string) => ((state: any) => ModelState)
 }
 export let modelSelectors: ModelSelectors = {
     selectIsLoaded: (state: any) => {
