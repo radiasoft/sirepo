@@ -38,7 +38,6 @@ export const formStatesSlice: Slice<{
     }
 });
 
-export type SelectFormState = (name: string) => ((state: any) => FormState);
-export const selectFormState: SelectFormState = (name: string) => (state) => state[formStatesSlice.name][name];
+export const selectFormState: (name: string) => ((state: any) => FormState) = (name: string) => (state) => state[formStatesSlice.name][name];
 
 export const { updateFormState, updateFormFieldState } = formStatesSlice.actions;
