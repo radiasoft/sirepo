@@ -27,7 +27,7 @@ export type SchemaTypeJson = {
 export type SchemaJson = {
     type: {[typeName: string]: SchemaTypeJson},
     model: {[modelName: string]: SchemaModelJson},
-    view: [SchemaViewJson]
+    view: SchemaViewJson[]
 }
 
 export type SchemaView = SchemaViewJson;
@@ -47,7 +47,7 @@ export type SchemaModel = {
 
 export type Schema = {
     models: {[modelName: string]: SchemaModel},
-    views: [SchemaView]
+    views: SchemaView[]
 }
 
 export function compileSchemaFromJson(schemaObj: SchemaJson) {
