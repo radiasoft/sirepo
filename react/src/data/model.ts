@@ -78,7 +78,6 @@ export class ModelsWrapper {
             body: JSON.stringify(simulationInfo)
         }).then(resp => {
             // TODO: error handling
-            console.log("resp", resp);
         })
     }
 }

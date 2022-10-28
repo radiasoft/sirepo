@@ -57,7 +57,8 @@ def _do_beamline(template, data):
         if t in {"crystal"}:
             template._compute_crystal_orientation(i)
         if t in {"grating"}:
-            i.energyAvg = dm.simulation.photonEnergy
+            if not i.get("energyAvg"):
+                i.energyAvg = dm.simulation.photonEnergy
             template._compute_PGM_value(i)
 
 

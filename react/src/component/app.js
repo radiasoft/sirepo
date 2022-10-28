@@ -9,7 +9,7 @@ import { configureStore } from "@reduxjs/toolkit"
 import { modelsSlice } from "../store/models";
 import { formStatesSlice } from "../store/formState";
 import { useSetup } from "../hook/setup";
-import { compileSchemaFromJson } from "../utility/schema";
+import { compileSchemaFromJson, mergeSchemaJson } from "../utility/schema";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "../component/simbrowser";
 import { Layouts } from "../layout/layouts";
@@ -58,14 +58,30 @@ export const AppRoot = (props) => {
 
     let appName = useContext(ContextAppName);
 
-    const hasSchema = useSetup(true,
+    
+
+    const hasAppSchema = useSetup(true,
         (finishInitSchema) => {
-            fetch(`/static/react-json/${appName}-schema.json`).then(resp => {
+            Promise.all([
+                fetch(`/static/react-json/common-schema.json`),
+                fetch(`/static/react-json/${appName}-schema.json`)
+            ]).then(([commonResp, appResp]) => {
+                Promise.all([
+                    commonResp.json(), 
+                    appResp.json()
+                ]).then(([commonJson, appJson]) => {
+                    let schemaJson = mergeSchemaJson(commonJson, appJson)
+                    updateSchema(compileSchemaFromJson(schemaJson));
+                    finishInitSchema();
+                })
+            })
+
+            /*fetch(`/static/react-json/${appName}-schema.json`).then(resp => {
                 resp.json().then(json => {
                     updateSchema(compileSchemaFromJson(json));
                     finishInitSchema();
                 })
-            })
+            })*/
         }
     )
 
@@ -77,7 +93,7 @@ export const AppRoot = (props) => {
         }
     )
 
-    if(hasSchema && hasMadeHomepageRequest) {
+    if(hasAppSchema && hasMadeHomepageRequest) {
         //let AppChild = buildAppComponentsRoot(schema);
         return (
             <Provider store={formStateStore}>

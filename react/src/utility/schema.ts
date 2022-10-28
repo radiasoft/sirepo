@@ -50,6 +50,23 @@ export type Schema = {
     views: SchemaView[]
 }
 
+export function mergeSchemaJson(original, overrides) {
+    return {
+        view: [
+            ...(original.view || []),
+            ...(overrides.view || [])
+        ],
+        model: {
+            ...(original.model || {}),
+            ...(overrides.model || {})
+        },
+        type: {
+            ...(original.type || {}),
+            ...(overrides.type || {})
+        }
+    }
+}
+
 export function compileSchemaFromJson(schemaObj: SchemaJson) {
     let enumTypes = {};
     let additionalTypes = {};

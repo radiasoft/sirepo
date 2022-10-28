@@ -1,6 +1,6 @@
 import { mapProperties } from "../utility/object";
 import { useDispatch, useSelector } from "react-redux";
-import { useEvaluatedInterpString } from "../hook/string";
+import { useShown, ValueSelector } from "../hook/shown";
 
 export let formStateFromModel = (model, modelSchema) => mapProperties(modelSchema, (fieldName, { type }) => {
     const valid = type.validate(model[fieldName])
@@ -89,15 +89,8 @@ export class FormController {
 
             let currentValue = model.value[fieldName];
 
-            let evalInterpStrFn = useEvaluatedInterpString;
-            let active = true;
-
-            if(hookedDependency.shown) {
-                active = evalInterpStrFn(formState, hookedDependency.shown, (models, modelName, fieldName) => models[modelName][fieldName].value);
-                if(typeof(active) !== 'boolean'){
-                    throw new Error(`'shown' function did not evaluate to a boolean "${hookedDependency.shown}" -> ${active}`)
-                }
-            }
+            let shownFn = useShown;
+            let active = shownFn(hookedDependency.shown, true, formState, ValueSelector.Fields);
 
             currentValue = {
                 ...currentValue,

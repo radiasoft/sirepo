@@ -6,20 +6,20 @@ export type BaseComputeParams = {
 }
 
 export function pollCompute({ doFetch, pollInterval, callback }: BaseComputeParams & { doFetch: () => Promise<Response> }) {
-    let doIteration = () => {
+    let iterate = () => {
         doFetch().then(async (resp) => {
             let respObj = await resp.json();
             let { state } = respObj;
 
             if (state === 'pending' || state === 'running') {
-                setTimeout(doIteration, pollInterval);
+                setTimeout(iterate, pollInterval);
             }
 
             callback(respObj);
         })
     }
 
-    doIteration();
+    iterate();
 }
 
 export type StatefulComputeParams = {
@@ -85,18 +85,18 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
         })
     });
 
-    let doIteration = async (lastResp) => {
+    let iterate = async (lastResp) => {
         let respObj = await lastResp.json();
         let { nextRequest, state } = respObj;
 
         callback(respObj);
         
         if (!state || state === 'pending' || state === 'running') {
-            setTimeout(() => doPoll(nextRequest).then(doIteration), pollInterval);
+            setTimeout(() => doPoll(nextRequest).then(iterate), pollInterval);
         }
     } 
 
-    doFetch().then(doIteration);
+    doFetch().then(iterate);
 }
 
 export type CancelComputeParams = {

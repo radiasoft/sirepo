@@ -16,6 +16,13 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
     cacheCanvas.height = zMatrix.length;
     const img = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
 
+    let zmin = Math.min(...zMatrix.map(row => Math.min(...row)));
+    let zmax = Math.max(...zMatrix.map(row => Math.max(...row)));
+
+    console.log(`zmin: ${zmin}, zmax: ${zmax}`);
+
+    let scaleZScalar = (v) => (v - zmin) / zmax;
+
     for (let yi = cacheCanvas.height - 1, p = -1; yi >= 0; --yi) {
         for (let xi = 0; xi < cacheCanvas.width; ++xi) {
             const v = zMatrix[yi][xi];
@@ -25,9 +32,16 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
             // }
             //TODO(pjm): use colormap
             //const c = d3.rgb(colorScale(v));
+            /*img.data[++p] = v > 0 ? 255 : 0;
             img.data[++p] = v > 0 ? 255 : 0;
             img.data[++p] = v > 0 ? 255 : 0;
-            img.data[++p] = v > 0 ? 255 : 0;
+            img.data[++p] = 255;*/
+
+            let c =  Math.ceil(scaleZScalar(v) * 255);
+
+            img.data[++p] = c;
+            img.data[++p] = c;
+            img.data[++p] = c;
             img.data[++p] = 255;
         }
     }

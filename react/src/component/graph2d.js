@@ -65,7 +65,6 @@ export function Graph2d(props) {
                     range: plots.map(plot => plot.color)
                 })
 
-                console.log("zoom scaleX: " + zoom.transformMatrix.scaleX);
                 let strokeWidth = Math.max(2 / zoom.transformMatrix.scaleX, 1);
 
                 let toPath = (plot, index) => {
