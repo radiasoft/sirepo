@@ -1986,10 +1986,10 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
 
     $scope.whenSelected = () => {
         // set form dirty so user does not have to change anything to export
-        $scope.$parent.form.$setDirty();
+        //$scope.$parent.form.$setDirty();
     };
 
-    $scope.$on('exportRsOpt.saved', $scope.export);
+    //$scope.$on('exportRsOpt.saved', $scope.export);
 
 });
 

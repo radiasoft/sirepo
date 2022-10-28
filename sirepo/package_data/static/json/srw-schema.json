@@ -1722,14 +1722,7 @@
         },
         "machineLearningAnimation": {
             "title": "Machine Learning Training Data",
-            "basic": [
-                "jobRunMode",
-                "tasksPerNode",
-                "sbatchCores",
-                "sbatchHours",
-                "sbatchQueue",
-                "sbatchProject"
-            ],
+            "basic": [],
             "advanced": []
         },
         "mask": {
@@ -1797,7 +1790,8 @@
                 "totalSamples",
                 "randomSeed",
                 "characteristic"
-            ]
+            ],
+            "advanced": []
         },
         "multipole": {
             "title": "Dipole",

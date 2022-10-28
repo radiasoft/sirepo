@@ -107,6 +107,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             "gaussianBeam",
             "initialIntensityReport",
             "intensityReport",
+            "machineLearningAnimation",
             "mirrorReport",
             "multipole",
             "exportRsOpt",
