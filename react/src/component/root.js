@@ -1,4 +1,4 @@
-import { useParams, Routes, Route, Navigate } from "react-router-dom";
+import { useParams, Routes, Route } from "react-router-dom";
 import { ContextAppName } from "../context";
 
 function AppNameWrapper(props) {
@@ -11,24 +11,14 @@ function AppNameWrapper(props) {
     )
 }
 
-function ReactRerouteComponent(props) {
-    let { appName } = useParams();
-
-    return <Navigate to={`/react/${appName}`}></Navigate>
-}
-
 export function RootRouter(props) {
     return (
         <Routes>
-            <Route path="react">
-                <Route path=":appName/*" element={
-                    <AppNameWrapper>
-                        {props.children}
-                    </AppNameWrapper>
-                }>
-                </Route>
-            </Route>
-            <Route path=":appName" element={<ReactRerouteComponent/>}>
+            <Route path="react/:appName/*" element={
+                 <AppNameWrapper>
+                    {props.children}
+                </AppNameWrapper>
+            }>
             </Route>
         </Routes>
     )
