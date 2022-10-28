@@ -52,7 +52,8 @@
             ["nearest", "Nearest"]
         ],
         "MLModule": [
-            ["neuralnet", "Neural Network"]
+            ["neuralnet", "Neural Network"],
+            ["modelFile", "From Model Archive File"]
         ],
         "NeuralNetActivation": [
             ["exponential", "Exponential (base e)"],
@@ -91,11 +92,10 @@
             ["binary_crossentropy", "Binary Cross-Entropy"],
             ["categorical_crossentropy", "Categorical Crossentropy"],
             ["categorical_hinge", "Categorical Hinge"],
-            ["cosine_proximity", "Cosine Proximity"],
-            ["crossentropy", "Crossentropy"],
+            ["cosine_similarity", "Cosine Similarity"],
             ["hinge", "Hinge"],
-            ["kullback_leibler_diverence", "Kullback Leibler Divergence"],
-            ["logcosh", "log(cosh(x))"],
+            ["k_l_divergence", "Kullback Leibler Divergence"],
+            ["log_cosh", "log(cosh(x))"],
             ["mean_absolute_error", "Mean Absolute Error"],
             ["mean_absolute_percentage_error", "Mean Absolute Percentage Error"],
             ["mean_squared_error", "Mean Squared Error"],
@@ -348,7 +348,8 @@
         },
         "logisticRegressionErrorRateAnimation": {},
         "mlModel": {
-            "mlModule": ["Model Type", "MLModule", "neuralnet"]
+            "mlModule": ["Model Type", "MLModule", "neuralnet"],
+            "modelFile": ["Model File", "InputFile", "", "Provide an HDF5 file created by Keras model.save()"]
         },
         "neuralNet": {
             "optimizer": ["Optimizer", "NeuralNetOptimizer", "adam"],
@@ -386,9 +387,10 @@
         },
         "conv2D": {
             "_super": ["-", "model", "neuralNetLayer"],
+            "dimensionality": ["Dimensionality", "Integer", 32],
             "layer": ["Layer", "NeuralNetLayer", "Conv2D"],
             "kernel" : ["Kernel Size", "Integer", 3],
-            "strides": ["Strides", "Integer", 1],
+            "strides": ["Strides", "OptionalInteger", 1],
             "padding": ["Padding", "Padding", "valid"]
         },
         "conv2DTranspose": {
@@ -422,7 +424,7 @@
         },
         "poolingLayer": {
             "size": ["Pool Size", "Integer", 2],
-            "strides": ["Strides", "Integer", 1],
+            "strides": ["Strides", "OptionalInteger", 1],
             "padding": ["Padding", "Padding", "valid"]
         },
         "separableConv2D": {
@@ -700,7 +702,8 @@
         "mlModel": {
             "title": "Model",
             "basic": [
-                "mlModule"
+                "mlModule",
+                "modelFile"
             ],
             "advanced": []
         },
@@ -741,6 +744,11 @@
         },
         "pathChooser": {
             "title": "Data Paths",
+            "basic": [],
+            "advanced": []
+        },
+        "imageViewer": {
+            "title": "Image Samples",
             "basic": [],
             "advanced": []
         },

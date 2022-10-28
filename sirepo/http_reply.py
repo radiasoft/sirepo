@@ -12,7 +12,6 @@ from pykern import pkjinja
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import flask
 import mimetypes
 import pykern.pkinspect
 import re
@@ -30,7 +29,7 @@ SR_EXCEPTION_STATE = "srException"
 #: mapping of extension (json, js, html) to MIME type
 MIME_TYPE = None
 
-#: default Max-Age header (same as flask.app.SEND_FILE_MAX_AGE_DEFAULT)
+#: default Max-Age header
 CACHE_MAX_AGE = 43200
 
 _ERROR_STATE = "error"
@@ -49,23 +48,23 @@ _SUBPROCESS_ERROR_RE = re.compile(
 _RELOAD_JS_ROUTES = None
 
 
-def gen_exception(exc):
+def gen_exception(qcall, exc):
     """Generate from an Exception
 
     Args:
         exc (Exception): valid convert into a response
     """
     # If an exception occurs here, we'll fall through
-    # to flask, which will have code to handle this case.
+    # to the server, which will have code to handle this case.
     if isinstance(exc, sirepo.util.Reply):
-        return _gen_exception_reply(exc)
+        return _gen_exception_reply(qcall, exc)
     if isinstance(exc, werkzeug.exceptions.HTTPException):
-        return _gen_exception_werkzeug(exc)
-    return _gen_exception_error(exc)
+        return _gen_exception_werkzeug(qcall, exc)
+    return _gen_exception_error(qcall, exc)
 
 
-def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
-    """Generate a flask file attachment response
+def gen_file_as_attachment(qcall, content_or_path, filename=None, content_type=None):
+    """Generate a file attachment response
 
     Args:
         content_or_path (bytes or py.path): File contents
@@ -73,12 +72,12 @@ def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
         content_type (str): MIMETYPE of file [guessed]
 
     Returns:
-        flask.Response: reply object
+        Response: reply object
     """
 
     def f():
         if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
-            return flask.send_file(str(content_or_path))
+            return qcall.reply_file(content_or_path)
         if content_type == "application/json":
             return gen_response(pkjson.dump_pretty(content_or_path))
         return gen_response(content_or_path)
@@ -101,28 +100,28 @@ def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
-    """Generate JSON flask response
+    """Generate JSON response
 
     Args:
         value (dict): what to format
         pretty (bool): pretty print [False]
     Returns:
-        flask.Response: reply object
+        Response: reply object
     """
     if not response_kwargs:
         response_kwargs = PKDict()
     return gen_response(
         simulation_db.generate_json(value, pretty=pretty),
-        mimetype=MIME_TYPE.json,
+        content_type=MIME_TYPE.json,
         **response_kwargs,
     )
 
 
 def gen_json_ok(*args, **kwargs):
-    """Generate state=ok JSON flask response
+    """Generate state=ok JSON response
 
     Returns:
-        flask.Response: reply object
+        Response: reply object
     """
     if not args:
         # do not cache this, see #1390
@@ -139,7 +138,7 @@ def gen_redirect(uri):
     Args:
         uri (str): any valid uri (even with anchor)
     Returns:
-        flask.Response: reply object
+        Response: reply object
     """
     return gen_redirect_for_anchor(uri)
 
@@ -154,7 +153,7 @@ def gen_redirect_for_anchor(uri, **kwargs):
     Args:
         uri (str): where to redirect to
     Returns:
-        flask.Response: reply object
+        Response: reply object
     """
     return render_static_jinja(
         "javascript-redirect",
@@ -163,19 +162,13 @@ def gen_redirect_for_anchor(uri, **kwargs):
     )
 
 
-def gen_redirect_for_app_root(sim_type):
-    """Redirect to app root for sim_type
-
-    Args:
-        sim_type (str): valid sim_type or None [http_request.sim_type]
-    Returns:
-        flask.Response: reply object
-    """
-    return gen_redirect_for_anchor(sirepo.uri.app_root(sim_type))
-
-
 def gen_redirect_for_local_route(
-    sim_type=None, route=None, params=None, query=None, **kwargs
+    qcall,
+    sim_type=None,
+    route=None,
+    params=None,
+    query=None,
+    **kwargs,
 ):
     """Generate a javascript redirect to sim_type/route/params
 
@@ -183,20 +176,29 @@ def gen_redirect_for_local_route(
     application_mode/appMode.
 
     Args:
-        sim_type (str): how to find the schema [http_request.sim_type]
+        qcall (request): request object
+        sim_type (str): how to find the schema [qcall.sim_type]
         route (str): name in localRoutes [None: use default route]
         params (dict): parameters for route (including :Name)
 
     Returns:
-        flask.Response: reply object
+        Response: reply object
     """
     return gen_redirect_for_anchor(
-        sirepo.uri.local_route(sim_type, route, params, query), **kwargs
+        sirepo.uri.local_route(qcall.sim_type_uget(sim_type), route, params, query),
+        **kwargs,
     )
 
 
 def gen_response(*args, **kwargs):
-    return sirepo.util.flask_app().response_class(*args, **kwargs)
+    if "content_type" in kwargs:
+        kwargs["mimetype"] = kwargs["content_type"]
+        del kwargs["content_type"]
+    c = sirepo.flask.app().response_class
+    if args and isinstance(args[0], c):
+        assert len(args) == 1 and not kwargs
+        return args[0]
+    return c(*args, **kwargs)
 
 
 def gen_tornado_exception(exc):
@@ -221,9 +223,13 @@ def headers_for_no_cache(resp):
     return resp
 
 
-def init(**imports):
+def init_module(**imports):
     global MIME_TYPE, _RELOAD_JS_ROUTES
 
+    if MIME_TYPE:
+        return
+
+    # import simulation_db
     sirepo.util.setattr_imports(imports)
     MIME_TYPE = PKDict(
         html="text/html",
@@ -249,12 +255,12 @@ def render_static_jinja(base, ext, j2_ctx, cache_ok=False):
         cache_ok (bool): OK to cache the result? [default: False]
 
     Returns:
-        Flask.Response: reply
+        Response: reply
     """
     p = sirepo.resource.static(ext, f"{base}.{ext}")
-    r = flask.Response(
+    r = gen_response(
         pkjinja.render_file(p, j2_ctx, strict_undefined=True),
-        mimetype=MIME_TYPE[ext],
+        content_type=MIME_TYPE[ext],
     )
     if cache_ok:
         return headers_for_cache(r, path=p)
@@ -268,12 +274,12 @@ def render_html(path):
         path (py.path): srhtml to render
 
     Returns:
-        Flask.Response: reply
+        Response: reply
     """
     return headers_for_cache(
-        flask.Response(
+        gen_response(
             sirepo.html.render(path),
-            mimetype=MIME_TYPE.html,
+            content_type=MIME_TYPE.html,
         ),
         path=path,
     )
@@ -285,14 +291,26 @@ def _as_attachment(resp, content_type, filename):
     return resp
 
 
-def _gen_exception_error(exc):
+def _gen_exception_error(qcall, exc):
     pkdlog("unsupported exception={} msg={}", type(exc), exc)
-    if sirepo.http_request.is_spider():
-        raise werkzeug.exceptions.InternalServerError()
-    return gen_redirect_for_local_route(None, route="error")
+    if qcall.sreq.is_spider():
+        return gen_response(
+            """<!doctype html><html>
+<head><title>500 Internal Server Error</title></head>
+<body><h1>Internal Server Error</h1></body>
+</html>
+""",
+            content_type=MIME_TYPE.html,
+            status=500,
+        )
+    return gen_redirect_for_local_route(qcall, None, route="error")
 
 
-def _gen_exception_reply(exc):
+def _gen_exception_base(qcall, exc):
+    return _gen_exception_reply(qcall, exc)
+
+
+def _gen_exception_reply(qcall, exc):
     f = getattr(
         pykern.pkinspect.this_module(),
         "_gen_exception_reply_" + exc.__class__.__name__,
@@ -300,20 +318,32 @@ def _gen_exception_reply(exc):
     )
     pkdc("exception={} sr_args={}", exc, exc.sr_args)
     if not f:
-        return _gen_exception_error(exc)
-    return f(exc.sr_args)
+        return _gen_exception_error(qcall, exc)
+    return f(qcall, exc.sr_args)
 
 
-def _gen_exception_reply_Error(args):
+def _gen_exception_reply(qcall, exc):
+    f = getattr(
+        pykern.pkinspect.this_module(),
+        "_gen_exception_reply_" + exc.__class__.__name__,
+        None,
+    )
+    pkdc("exception={} sr_args={}", exc, exc.sr_args)
+    if not f:
+        return _gen_exception_error(qcall, exc)
+    return f(qcall, exc.sr_args)
+
+
+def _gen_exception_reply_Error(qcall, args):
     try:
-        t = sirepo.http_request.sim_type(args.pkdel("sim_type"))
+        t = qcall.sim_type_uget(args.pkdel("sim_type"))
         s = simulation_db.get_schema(sim_type=t)
     except Exception:
         # sim_type is bad so don't cascade errors, just
         # try to get the schema without the type
         t = None
         s = simulation_db.get_schema(sim_type=None)
-    if flask.request.method == "POST":
+    if qcall.sreq.method_is_post():
         return gen_json(args.pkupdate({_STATE: _ERROR_STATE}))
     q = PKDict()
     for k, v in args.items():
@@ -324,26 +354,39 @@ def _gen_exception_reply_Error(args):
             pkdlog('error in "error" query {}={} exception={}', k, v, e)
             continue
         q[k] = v
-    return gen_redirect_for_local_route(t, route="error", query=q)
+    return gen_redirect_for_local_route(qcall, t, route="error", query=q)
 
 
-def _gen_exception_reply_Redirect(args):
+def _gen_exception_reply_Redirect(qcall, args):
     return gen_redirect(args.uri)
 
 
-def _gen_exception_reply_Response(args):
+def _gen_exception_reply_Response(qcall, args):
     r = args.response
     assert isinstance(
-        r, sirepo.util.flask_app().response_class
+        r, sirepo.flask.app().response_class
     ), "invalid class={} response={}".format(type(r), r)
     return r
 
 
-def _gen_exception_reply_SRException(args):
+def _gen_exception_reply_SPathNotFound(qcall, args):
+    pkdlog("uncaught SPathNotFound {}", args)
+    return gen_response(
+        """<!doctype html><html>
+<head><title>404 Not Found</title></head>
+<body><h1>Not Found</h1></body>
+</html>
+""",
+        content_type=MIME_TYPE.html,
+        status=404,
+    )
+
+
+def _gen_exception_reply_SRException(qcall, args):
     r = args.routeName
     p = args.params or PKDict()
     try:
-        t = sirepo.http_request.sim_type(p.pkdel("sim_type"))
+        t = qcall.sim_type_uget(p.pkdel("sim_type"))
         s = simulation_db.get_schema(sim_type=t)
     except Exception as e:
         pkdc("exception={} stack={}", e, pkdexc())
@@ -362,7 +405,7 @@ def _gen_exception_reply_SRException(args):
     if (
         # must be first, to always delete reload_js
         not p.pkdel("reload_js")
-        and flask.request.method == "POST"
+        and qcall.sreq.method_is_post()
         and r not in _RELOAD_JS_ROUTES
     ):
         pkdc("POST response={} route={} params={}", SR_EXCEPTION_STATE, r, p)
@@ -374,8 +417,9 @@ def _gen_exception_reply_SRException(args):
                 }
             ),
         )
-    pkdc("redirect to route={} params={}  type={}", r, p, t)
+    pkdc("redirect to route={} params={} type={}", r, p, t)
     return gen_redirect_for_local_route(
+        qcall,
         t,
         route=r,
         params=p,
@@ -383,20 +427,24 @@ def _gen_exception_reply_SRException(args):
     )
 
 
-def _gen_exception_reply_UserAlert(args):
+def _gen_exception_reply_UserDirNotFound(qcall, args):
+    return qcall.auth.user_dir_not_found(**args)
+
+
+def _gen_exception_reply_UserAlert(qcall, args):
     return gen_json(
         PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: args.error}),
     )
 
 
-def _gen_exception_reply_WWWAuthenticate(args):
+def _gen_exception_reply_WWWAuthenticate(qcall, args):
     return gen_response(
         status=401,
         headers={"WWW-Authenticate": 'Basic realm="*"'},
     )
 
 
-def _gen_exception_werkzeug(exc):
+def _gen_exception_werkzeug(qcall, exc):
     # TODO(robnagler) convert exceptions to our own
     raise exc
 

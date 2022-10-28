@@ -29,9 +29,6 @@ import zipfile
 
 cfg = None
 
-#: This should be treated as read only and used sparingly. See discussion in sirepo.server.init
-is_server = False
-
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
@@ -41,7 +38,7 @@ AUTH_HEADER = "Authorization"
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = "Bearer"
 
-#: Lock for operations across Sirepo (flask)
+#: Lock for operations across Sirepo (server)
 THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
@@ -51,8 +48,6 @@ TOKEN_SIZE = 16
 # for reasoning on why define both
 _INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)", re.IGNORECASE)
 _VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
-
-_log_not_flask = _log_not_request = 0
 
 
 class Reply(Exception):
@@ -64,11 +59,11 @@ class Reply(Exception):
     """
 
     def __init__(self, sr_args, *args, **kwargs):
-        super(Reply, self).__init__()
+        super().__init__()
+        self.sr_args = sr_args
         if args or kwargs:
             kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
             pkdlog(*args, **kwargs)
-        self.sr_args = sr_args
 
     def __repr__(self):
         a = self.sr_args
@@ -95,7 +90,7 @@ class Error(Reply):
             values = PKDict(error=values)
         else:
             assert values.get("error"), 'values={} must contain "error"'.format(values)
-        super(Error, self).__init__(values, *args, **kwargs)
+        super().__init__(values, *args, **kwargs)
 
 
 class Redirect(Reply):
@@ -107,7 +102,7 @@ class Redirect(Reply):
     """
 
     def __init__(self, uri, *args, **kwargs):
-        super(Redirect, self).__init__(PKDict(uri=uri), *args, **kwargs)
+        super().__init__(PKDict(uri=uri), *args, **kwargs)
 
 
 class Response(Reply):
@@ -119,7 +114,24 @@ class Response(Reply):
     """
 
     def __init__(self, response, *args, **kwargs):
-        super(Response, self).__init__(PKDict(response=response), *args, **kwargs)
+        super().__init__(PKDict(response=response), *args, **kwargs)
+
+
+class SPathNotFound(Reply):
+    """Raised by simulation_db
+
+    Args:
+        sim_type (str): simulation type
+        uid (str): user
+        sid (str): simulation id
+    """
+
+    def __init__(self, sim_type, uid, sid, *args, **kwargs):
+        super().__init__(
+            PKDict(sim_type=sim_type, uid=uid, sid=sid),
+            *args,
+            **kwargs,
+        )
 
 
 class SRException(Reply):
@@ -135,8 +147,10 @@ class SRException(Reply):
     """
 
     def __init__(self, route_name, params, *args, **kwargs):
-        super(SRException, self).__init__(
-            PKDict(routeName=route_name, params=params), *args, **kwargs
+        super().__init__(
+            PKDict(routeName=route_name, params=params),
+            *args,
+            **kwargs,
         )
 
 
@@ -149,7 +163,23 @@ class UserAlert(Reply):
     """
 
     def __init__(self, display_text, *args, **kwargs):
-        super(UserAlert, self).__init__(PKDict(error=display_text), *args, **kwargs)
+        super().__init__(PKDict(error=display_text), *args, **kwargs)
+
+
+class UserDirNotFound(Reply):
+    """Raised by simulation_db
+
+    Args:
+        user_dir (py.path): directory not found
+        uid (str): user
+    """
+
+    def __init__(self, user_dir, uid, *args, **kwargs):
+        super().__init__(
+            PKDict(user_dir=user_dir, uid=uid),
+            *args,
+            **kwargs,
+        )
 
 
 class WWWAuthenticate(Reply):
@@ -163,24 +193,17 @@ class WWWAuthenticate(Reply):
         super().__init__(PKDict(), *args, **kwargs)
 
 
-def convert_exception(exception, display_text="unexpected error"):
-    """Convert exception so can be raised
+def assert_sim_type(sim_type):
+    """Validate simulation type
 
     Args:
-        exception (Exception): Reply or other exception
-        display_text (str): what to send back to the client
+        sim_type (str): to check
+
     Returns:
-        Exception: to raise
+        str: validated sim_type
     """
-    if isinstance(exception, Reply):
-        return exception
-    return UserAlert(
-        display_text,
-        "exception={} str={} stack={}",
-        type(exception),
-        exception,
-        pkdexc(),
-    )
+    assert is_sim_type(sim_type), f"invalid simulation type={sim_type}"
+    return sim_type
 
 
 def create_token(value):
@@ -226,12 +249,6 @@ def find_obj(arr, key, value):
     return None
 
 
-def flask_app():
-    import flask
-
-    return flask.current_app or None
-
-
 def import_submodule(submodule, type_or_data):
     """Import fully qualified module that contains submodule for sim type
 
@@ -268,30 +285,22 @@ def import_submodule(submodule, type_or_data):
     )
 
 
-def in_flask_request():
-    # These are globals but possibly accessed from a threaded context. That is
-    # desired so we limit logging between all threads.
-    # The number 10 below doesn't need to be exact. Just something greater than
-    # "a few" so we see logging once the app is initialized and serving requests.
-    global _log_not_flask, _log_not_request
-    f = sys.modules.get("flask")
-    if not f:
-        if _log_not_flask < 10:
-            _log_not_flask += 1
-            pkdlog("flask is not imported")
-        return False
-    if not f.request:
-        if _log_not_request < 10:
-            _log_not_request += 1
-            if is_server:
-                # This will help debug https://github.com/radiasoft/sirepo/issues/3727
-                pkdlog("flask.request is False")
-        return False
-    return True
-
-
 def is_python_identifier(name):
     return _VALID_PYTHON_IDENTIFIER.search(name)
+
+
+def is_sim_type(sim_type):
+    """Validate simulation type
+
+    Args:
+        sim_type (str): to check
+
+    Returns:
+        bool: true if is a sim_type
+    """
+    from sirepo import feature_config
+
+    return sim_type in feature_config.cfg().sim_types
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):

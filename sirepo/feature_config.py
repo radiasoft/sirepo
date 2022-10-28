@@ -109,12 +109,6 @@ def proprietary_sim_types():
     )
 
 
-def _data_dir(value):
-    import sirepo.srdb
-
-    return sirepo.srdb.root().join(value)
-
-
 def _init():
     from pykern import pkconfig
     from pykern import pkio
@@ -163,10 +157,10 @@ def _init():
             "codes that contain proprietary information and authorization to use is granted through oauth",
         ),
         raydata=dict(
-            data_dir=(
-                None,
-                _data_dir,
-                "abspath of dir to store raydata analysis output",
+            scan_monitor_url=(
+                "http://127.0.0.1:9001/scan-monitor",
+                str,
+                "url to reach scan monitor daemon",
             ),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
@@ -211,10 +205,6 @@ def _init():
         if v[0] in s:
             s.add(v[1])
     _cfg.sim_types = frozenset(s)
-    if "raydata" in _cfg.sim_types:
-        assert (
-            _cfg.raydata.data_dir
-        ), "raydata is a sim type but no cfg.raydata.data_dir (also check job_driver.cfg.aux_volumes)"
     _check_packages(_cfg.package_path)
     return _cfg
 

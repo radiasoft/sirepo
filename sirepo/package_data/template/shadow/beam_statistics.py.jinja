@@ -12,6 +12,9 @@ import re
 alpha = 0
 energy = {{ photonEnergy }}
 epsilon = {{beamStatisticsReport_epsilon}}
+# specify m squared and sigma_x, sigma_z values to determine sigma_theta_x, sigma_theta_z values
+# wavelength [cm]
+ph_lambda = 1.2398419843320026 / energy * 1e-6 * 1e2
 
 {% if zonePlateMethods %}
 {{zonePlateMethods}}
@@ -65,7 +68,7 @@ def apply_aperture(oe, mat):
         # Convert Sigma to x, y, xp, yp, via Pmat Sigma Pmat (since Pmat is symmetric)
         numpy.matmul(numpy.matmul(Pmat, mat), Pmat),
         # wavelength [cm]
-        1.2398419843320026 / energy * 1e-6 * 1e2,
+        ph_lambda,
         # half aperture x, y [cm]
         oe.RX_SLIT[0] / 2 * {{ beamStatisticsReport_k_apert_x }},
         oe.RZ_SLIT[0] / 2 * {{ beamStatisticsReport_k_apert_y }},
@@ -129,9 +132,27 @@ def process_stats():
         xz = numpy.array(xz)
         return ((1/2) * numpy.arctan(2 * scale * xz / (x ** 2 - z ** 2))).tolist()
 
-    def compute_emittance(res):
-        res.emit_x = (numpy.sqrt((numpy.array(res.sigmax) * 1e2) ** 2 * numpy.array(res.sigdix) ** 2 - (numpy.array(res.sigxdix) * 1e2) ** 2)).tolist()
-        res.emit_z = (numpy.sqrt((numpy.array(res.sigmaz) * 1e2) ** 2 * numpy.array(res.sigdiz) ** 2 - (numpy.array(res.sigzdiz) * 1e2) ** 2)).tolist()
+
+    def compute_coherence_length(v1, emit):
+        v = (4 * v1) / (numpy.array(emit) ** 2 / (ph_lambda / 4 / numpy.pi) ** 2 - 1)
+        v[v < 0] = 0
+        return numpy.sqrt(v).tolist()
+
+
+    def compute_emittance(v1, v2, v3):
+        return numpy.sqrt(
+            v1 * numpy.array(v2) ** 2 - (numpy.array(v3) * 1e2) ** 2
+        ).tolist()
+
+
+    def compute_emittance_and_coherence_length(res):
+        res00 = (numpy.array(res.sigmax) * 1e2) ** 2
+        res22 = (numpy.array(res.sigmaz) * 1e2) ** 2
+        res.emit_x = compute_emittance(res00, res.sigdix, res.sigxdix)
+        res.emit_z = compute_emittance(res22, res.sigdiz, res.sigzdiz)
+        res.xi_x = compute_coherence_length(res00, res.emit_x)
+        res.xi_z = compute_coherence_length(res22, res.emit_z)
+
 
     def rotated_values(stats, field):
         if field == 'sigmaxz':
@@ -151,7 +172,7 @@ def process_stats():
         res[f] = rotated_values(beam_stats, f)
     res.angxz = compute_angx(res.sigmax, res.sigmaz, res.sigmaxz, scale=1e-4)
     res.angxpzp = compute_angx(res.sigdix, res.sigdiz, res.sigmaxpzp)
-    compute_emittance(res)
+    compute_emittance_and_coherence_length(res)
     return res
 
 

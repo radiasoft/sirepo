@@ -7,6 +7,8 @@ Radia "instance" goes away and references no longer have any meaning.
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+import inspect
+
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -140,11 +142,11 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def create_archive(sim, sapi):
+def create_archive(sim, qcall):
     from sirepo import http_reply
 
     if sim.filename.endswith("dat"):
-        return sapi.reply_file(
+        return qcall.reply_attachment(
             simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
             content_type="application/octet-stream",
             filename=sim.filename,
@@ -191,10 +193,8 @@ def extract_report_data(run_dir, sim_in):
             run_dir=run_dir,
         )
     if sim_in.report == "electronTrajectoryReport":
-        a = sirepo.util.split_comma_delimited_string(
-            sim_in.models.electronTrajectoryReport.initialAngles + ",0",
-            float,
-        )
+        a = sim_in.models.electronTrajectoryReport.initialAngles
+        a.append(0)
         angles = [0, 0, 0]
         angles[radia_util.axes_index(sim_in.models.simulation.widthAxis)] = a[0]
         angles[radia_util.axes_index(sim_in.models.simulation.heightAxis)] = a[1]
@@ -202,9 +202,7 @@ def extract_report_data(run_dir, sim_in):
             _electron_trajectory_plot(
                 sim_in.models.simulation.simulationId,
                 energy=sim_in.models.electronTrajectoryReport.energy,
-                pos=sirepo.util.split_comma_delimited_string(
-                    sim_in.models.electronTrajectoryReport.initialPosition, float
-                ),
+                pos=sim_in.models.electronTrajectoryReport.initialPosition,
                 angles=angles,
                 y_final=sim_in.models.electronTrajectoryReport.finalBeamPosition,
                 num_points=sim_in.models.electronTrajectoryReport.numPoints,
@@ -324,7 +322,7 @@ def stateful_compute_build_shape_points(data):
     with open(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
-                "extrudedPoints", "pointsFile", data.points_file
+                "extrudedPoints", "pointsFile", data.args.points_file
             )
         ),
         "rt",
@@ -388,8 +386,8 @@ def _build_dipole_objects(geom_objs, model, **kwargs):
 def _build_field_axis(length, axis):
     beam_dir = radia_util.AXIS_VECTORS[axis]
     f = PKDict(
-        begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
-        end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
+        begin=(-length / 2) * beam_dir,
+        end=(length / 2) * beam_dir,
         name=f"{axis.upper()}-Axis",
         numPoints=round(length / 2) + 1,
         start=-length / 2,
@@ -420,8 +418,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = sirepo.util.split_comma_delimited_string(f_path.begin, float)
-    p2 = sirepo.util.split_comma_delimited_string(f_path.end, float)
+    p1 = f_path.begin
+    p2 = f_path.end
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -520,15 +518,15 @@ def _build_group(members, name=None):
 
 def _build_symm_xform(plane, type, point=None):
     tx = _build_geom_obj("symmetryTransform")
-    tx.symmetryPlane = sirepo.util.to_comma_delimited_string(plane)
-    tx.symmetryPoint = sirepo.util.to_comma_delimited_string(point or _ZERO)
+    tx.symmetryPlane = plane.tolist()
+    tx.symmetryPoint = point.tolist() if point else _ZERO
     tx.symmetryType = type
     return tx
 
 
 def _build_translate_clone(dist):
     tx = _build_geom_obj("translateClone")
-    tx.distance = sirepo.util.to_comma_delimited_string(dist)
+    tx.distance = dist.tolist()
     return tx
 
 
@@ -555,7 +553,7 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
             _update_geom_obj(
                 o,
                 size=radia_util.multiply_vector_by_matrix(
-                    sirepo.util.split_comma_delimited_string(o.size, float),
+                    o.size,
                     kwargs["matrix"],
                 ),
             )
@@ -576,11 +574,6 @@ def _copy_geom_obj(o):
     o_copy = copy.deepcopy(o)
     o_copy.id = str(uuid.uuid4())
     return o_copy
-
-
-def _delim_string(val=None, default_val=None):
-    d = default_val if default_val is not None else []
-    return sirepo.util.to_comma_delimited_string(val if val is not None else d)
 
 
 def _extruded_points_plot(name, points, width_axis, height_axis):
@@ -744,8 +737,8 @@ def _generate_field_integrals(sim_id, g_id, f_paths):
         res = PKDict()
         for p in l_paths:
             res[p.name] = PKDict()
-            p1 = sirepo.util.split_comma_delimited_string(p.begin, float)
-            p2 = sirepo.util.split_comma_delimited_string(p.end, float)
+            p1 = p.begin
+            p2 = p.end
             for i_type in radia_util.INTEGRABLE_FIELD_TYPES:
                 res[p.name][i_type] = radia_util.field_integral(g_id, i_type, p1, p2)
         return res
@@ -769,11 +762,11 @@ def _generate_data(sim_id, g_id, name, view_type, field_type, field_paths=None):
 def _generate_kick_map(g_id, model):
     km = radia_util.kick_map(
         g_id,
-        sirepo.util.split_comma_delimited_string(model.begin, float),
-        sirepo.util.split_comma_delimited_string(model.direction, float),
+        model.begin,
+        model.direction,
         int(model.numPeriods),
         float(model.periodLength),
-        sirepo.util.split_comma_delimited_string(model.transverseDirection, float),
+        model.transverseDirection,
         float(model.transverseRange1),
         int(model.numTransPoints1),
         float(model.transverseRange2),
@@ -829,6 +822,10 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
 
     v.doReset = False
     v.isParallel = is_parallel
+
+    # include methods from non-template packages
+    if for_export:
+        pass
 
     v.dmpOutputFile = _DMP_FILE
     if "dmpImportFile" in data.models.simulation:
@@ -893,7 +890,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         raise ValueError("Invalid view {} ({})".format(v_type, VIEW_TYPES))
     v.viewType = v_type
     v.dataFile = _GEOM_FILE if for_export else f"{rpt_out}.h5"
-    if v_type == SCHEMA.constants.viewTypeFields:
+    if v_type == SCHEMA.constants.viewTypeFields or for_export:
         f_type = disp.fieldType
         if f_type not in radia_util.FIELD_TYPES:
             raise ValueError(
@@ -1135,9 +1132,7 @@ def _parse_input_file_arg_str(s):
 
 def _prep_new_sim(data, new_sim_data=None):
     def _electron_initial_pos(axis, factor):
-        return sirepo.util.to_comma_delimited_string(
-            factor * radia_util.AXIS_VECTORS[axis]
-        )
+        return factor * radia_util.AXIS_VECTORS[axis]
 
     data.models.geometryReport.name = data.models.simulation.name
     if new_sim_data is None:
@@ -1151,7 +1146,7 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
         new_sim_data.beamAxis,
         -1.0,
-    )
+    ).tolist()
     data.models.fieldLineoutAnimation.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
@@ -1163,7 +1158,7 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
         new_sim_data.beamAxis,
         -f,
-    )
+    ).tolist()
     data.models.electronTrajectoryReport.finalBeamPosition = f
     data.models.simulation.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
@@ -1390,7 +1385,7 @@ def _update_extruded(o):
     # Radia's extrusion routine seems to involve rotations, one result being that
     # segmentation in the extrusion direction must be along 'x' regardless of the
     # actual direction
-    o.segments = sirepo.util.to_comma_delimited_string(
+    o.segments = list(
         _AXES_UNIT + radia_util.AXIS_VECTORS.x * (o.extrusionAxisSegments - 1)
     )
     return o
@@ -1398,7 +1393,7 @@ def _update_extruded(o):
 
 def _update_dipoleBasic(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    sz = sirepo.util.split_comma_delimited_string(assembly.pole.size, float)
+    sz = assembly.pole.size
     return _update_geom_obj(
         assembly.pole,
         size=sz,
@@ -1409,9 +1404,7 @@ def _update_dipoleBasic(model, assembly, **kwargs):
 
 def _update_dipoleC(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    mag_sz = numpy.array(
-        sirepo.util.split_comma_delimited_string(assembly.magnet.size, float)
-    )
+    mag_sz = numpy.array(assembly.magnet.size)
     pole_sz, pole_ctr = _fit_poles_in_c_bend(
         arm_height=model.magnet.armHeight,
         gap=model.gap,
@@ -1439,10 +1432,7 @@ def _update_dipoleC(model, assembly, **kwargs):
 def _update_dipoleH(model, assembly, **kwargs):
     d = PKDict(kwargs)
     # magnetSize is for the entire magnet - split it here so we can apply symmetries
-    mag_sz = (
-        numpy.array(sirepo.util.split_comma_delimited_string(model.magnetSize, float))
-        / 2
-    )
+    mag_sz = numpy.array(model.magnetSize) / 2
     pole_sz, pole_ctr = _fit_poles_in_h_bend(
         arm_height=model.magnet.armHeight,
         gap=model.gap,
@@ -1484,7 +1474,7 @@ def _update_geom_from_undulator(geom_objs, model, **kwargs):
 def _update_undulatorBasic(model, assembly, **kwargs):
     d = PKDict(kwargs)
 
-    sz = numpy.array(sirepo.util.split_comma_delimited_string(model.magnet.size, float))
+    sz = numpy.array(model.magnet.size)
 
     sz = sz / 2 * d.width_dir + sz * d.height_dir + sz * d.length_dir
     _update_geom_obj(
@@ -1520,8 +1510,8 @@ def _update_undulatorBasic(model, assembly, **kwargs):
 def _update_undulatorHybrid(model, assembly, **kwargs):
     d = PKDict(kwargs)
 
-    pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
-    mag_x = sirepo.util.split_comma_delimited_string(model.magnetCrossSection, float)
+    pole_x = model.poleCrossSection
+    mag_x = model.magnetCrossSection
 
     gap_half_height = model.gap / 2 * d.height_dir
     gap_offset = model.gapOffset * d.height_dir
@@ -1571,7 +1561,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     for t in model.terminations:
         o = t.object
         m = assembly.groupedObjects.get("terminationGroup", [])
-        sz = numpy.array(sirepo.util.split_comma_delimited_string(o.size, float))
+        sz = numpy.array(o.size)
         _update_geom_obj(
             _find_by_id(m, o.id),
             center=pos
@@ -1625,10 +1615,13 @@ def _update_geom_obj(o, **kwargs):
         v = kwargs.get(k)
         if k in o and v is None:
             continue
-        o[k] = _delim_string(val=v, default_val=d[k])
-        # remove the key from kwargs so it doesn't conflict with the update
-        if v is not None:
+        if v is None:
+            o[k] = d[k]
+        else:
+            # remove the key from kwargs so it doesn't conflict with the update
+            o[k] = list(v)
             del kwargs[k]
+
     o.update(kwargs)
     if "type" not in o:
         return o
@@ -1650,8 +1643,8 @@ def _update_racetrack(o, **kwargs):
 
 def _get_stemmed_info(o):
     w, h = radia_util.AXIS_VECTORS[o.widthAxis], radia_util.AXIS_VECTORS[o.heightAxis]
-    c = sirepo.util.split_comma_delimited_string(o.center, float)
-    s = sirepo.util.split_comma_delimited_string(o.size, float)
+    c = o.center
+    s = o.size
 
     plane_ctr = [numpy.sum(w * c), numpy.sum(h * c)]
     plane_size = [numpy.sum(w * s), numpy.sum(h * s)]
@@ -1683,12 +1676,10 @@ def _update_group(g, members, do_replace=False):
 
 
 def _update_kickmap(km, und, beam_axis):
-    km.direction = sirepo.util.to_comma_delimited_string(
-        radia_util.AXIS_VECTORS[beam_axis]
-    )
-    km.transverseDirection = sirepo.util.to_comma_delimited_string(
-        radia_util.AXIS_VECTORS[SCHEMA.constants.heightAxisMap[beam_axis]]
-    )
+    km.direction = radia_util.AXIS_VECTORS[beam_axis]
+    km.transverseDirection = radia_util.AXIS_VECTORS[
+        SCHEMA.constants.heightAxisMap[beam_axis]
+    ]
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
@@ -1699,12 +1690,7 @@ def _validate_objects(objects):
 
     for o in objects:
         if "material" in o and o.material in SCHEMA.constants.anisotropicMaterials:
-            if (
-                numpy.linalg.norm(
-                    sirepo.util.split_comma_delimited_string(o.magnetization, float)
-                )
-                == 0
-            ):
+            if numpy.linalg.norm(o.magnetization) == 0:
                 raise ValueError(
                     "name={}, : material={}: anisotropic material requires non-0 magnetization".format(
                         o.name, o.material

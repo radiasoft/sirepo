@@ -24,19 +24,20 @@ import { ViewGrid } from "../components/simulation";
 import Schema from './schema'
 import { Graph2dFromApi } from "../components/graph2d";
 import { SchemaEditorPanel, FormStateInitializer } from "../components/form";
-import { 
+import {
     ContextAppName,
-    ContextReduxFormActions, 
-    ContextReduxFormSelectors, 
-    ContextReduxModelActions, 
-    ContextReduxModelSelectors, 
-    ContextSimulationInfoPromise, 
-    ContextSimulationListPromise 
+    ContextReduxFormActions,
+    ContextReduxFormSelectors,
+    ContextReduxModelActions,
+    ContextReduxModelSelectors,
+    ContextSimulationInfoPromise,
+    ContextSimulationListPromise
 } from '../components/context'
 import { Panel } from "../components/panel";
 
 const pollRunSimulation = ({ appName, models, simulationId, report, pollInterval}) => {
     return new Promise((resolve, reject) => {
+        //rjn: why is this necessary
         let doFetch = () => {
             fetch('/run-simulation', {
                 method: 'POST',
@@ -55,7 +56,7 @@ const pollRunSimulation = ({ appName, models, simulationId, report, pollInterval
                 console.log("status", simulationStatus);
                 let { state } = simulationStatus;
                 console.log("polled simulation: " + state);
-                if(state == 'completed') {
+                if (state == 'completed') {
                     resolve(simulationStatus);
                 } else if (state == 'pending') {
                     //setTimeout(doFetch, pollInterval);
@@ -191,11 +192,11 @@ let SimulationVisualWrapper = (visualName, title, visualComponent, passedProps) 
                     })
                 })
             });
-    
+
             simulationDataPromise.then(updateSimulationData);
         }, [])
 
-        
+
 
         let VisualComponent = simulationData ? visualComponent(simulationData) : undefined;
 
@@ -208,7 +209,7 @@ let SimulationVisualWrapper = (visualName, title, visualComponent, passedProps) 
 }
 
 class AppViewBuilder{
-    constructor (appInfo) { 
+    constructor (appInfo) {
         this.components = {
             'editor': SchemaEditorPanel(appInfo),
             'graph2d': (viewInfo) => SimulationVisualWrapper(viewInfo.viewName, viewInfo.view.title, Graph2dFromApi, { width: '100%', height: '100%' })
@@ -262,7 +263,7 @@ function buildAppComponentsRoot(schema) {
     })
 
     let viewBuilder = new AppViewBuilder({ schema });
-    
+
     let viewComponents = mapProperties(viewInfos, (viewName, viewInfo) => viewBuilder.buildComponentForView(viewInfo));
 
     const RequiresIsLoaded = (componentIf, componentElse) => (props) => {

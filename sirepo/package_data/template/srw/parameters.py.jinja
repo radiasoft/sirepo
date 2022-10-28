@@ -416,6 +416,12 @@ def _rsopt_set_params({{ rsOptFuctionSignature() }}):
     {% endif %}
     {% endif %}
     {% endfor %}
+    _get_beamline_param(
+        vp,
+        'si_type',
+        'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'
+    )[2] = {{ rsOptCharacteristic }}
+
     return vp
 
 {% endif %}

@@ -186,7 +186,9 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
             },
             {
                 method: 'column_info',
-                analysisData: appState.models.analysisData,
+                args: {
+                    analysisData: appState.models.analysisData,
+                }
             }
         );
     }

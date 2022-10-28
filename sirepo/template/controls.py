@@ -37,7 +37,6 @@ def background_percent_complete(report, run_dir, is_running):
             elementValues=e,
             ptcTrackColumns=_get_ptc_track_columns(run_dir),
             twissColumns=sirepo.template.madx.PTC_OBSERVE_TWISS_COLS,
-            # elementModifiedTime=mt,
         )
     e, mt = read_summary_line(
         run_dir,
@@ -49,28 +48,34 @@ def background_percent_complete(report, run_dir, is_running):
         elementValues=e,
         ptcTrackColumns=_get_ptc_track_columns(run_dir),
         twissColumns=sirepo.template.madx.PTC_OBSERVE_TWISS_COLS,
-        # elementModifiedTime=mt,
     )
 
 
 def extract_beam_position_report(data, run_dir):
-    summary = read_summary_line(run_dir)[0][0]
-    elmap = PKDict()
-    for k in summary:
-        m = re.search(r"el_(\d+)\.(x|y)", k)
-        if not m:
-            continue
-        el_id = int(m.group(1))
-        dim = m.group(2)
-        if el_id not in elmap:
-            elmap[el_id] = PKDict()
-        elmap[el_id][dim] = summary[k]
+    def _y_range(points):
+        ymin = 1e24
+        ymax = -1e24
+        for i in range(len(points.s)):
+            for dim in ("x", "y"):
+                # convert values to float
+                if points[dim][i] is not None:
+                    points[dim][i] = float(points[dim][i])
+                if dim == "y" and points.y[i] is not None:
+                    if points.y[i] < ymin:
+                        ymin = points.y[i]
+                    elif points.y[i] > ymax:
+                        ymax = points.y[i]
+        return [ymin, ymax]
+
     points = PKDict(
         s=[],
         x=[],
         y=[],
+        log_x=[],
+        log_y=[],
     )
     p = 0
+    elmap = _get_element_positions(data, run_dir)
     for el in _SIM_DATA.beamline_elements(data.models.externalLattice.models):
         if "l" in el:
             p += el.l
@@ -78,19 +83,9 @@ def extract_beam_position_report(data, run_dir):
             points.s.append(p)
             points.x.append(elmap[el._id].get("x", None))
             points.y.append(elmap[el._id].get("y", None))
-    ymin = 1e24
-    ymax = -1e24
-    for i in range(len(points.s)):
-        for dim in ("x", "y"):
-            if points[dim][i] is not None:
-                points[dim][i] = float(points[dim][i])
-            if dim == "y" and points.y[i] is not None:
-                if points.y[i] < ymin:
-                    ymin = points.y[i]
-                elif points.y[i] > ymax:
-                    ymax = points.y[i]
-
-    return PKDict(
+            points.log_x.append(elmap[el._id].get("log_x", None))
+            points.log_y.append(elmap[el._id].get("log_y", None))
+    res = PKDict(
         y_label="",
         x_label="s [m]",
         dynamicYLabel=True,
@@ -98,23 +93,56 @@ def extract_beam_position_report(data, run_dir):
         x_range=[points.s[0], points.s[-1]],
         plots=[
             PKDict(
+                style="scatter",
                 field="x",
                 points=points.x,
                 label="x [m]",
-                style="scatter",
                 symbol="triangle-up",
                 color="#1f77b4",
             ),
             PKDict(
+                style="scatter",
                 field="y",
                 points=points.y,
                 label="y [m]",
-                style="scatter",
                 symbol="triangle-down",
                 color="#ff7f0e",
             ),
         ],
-        y_range=[ymin, ymax],
+        y_range=_y_range(points),
+    )
+    if is_viewing_log_file(data):
+        res.plots[0].label = "sim x [m]"
+        res.plots[1].label = "sim y [m]"
+        res.plots.insert(
+            0,
+            PKDict(
+                style="scatter",
+                field="log_y",
+                points=points.log_y,
+                label="y [m]",
+                symbol="diamond",
+                color="#d62728",
+            ),
+        )
+        res.plots.insert(
+            0,
+            PKDict(
+                style="scatter",
+                field="log_x",
+                points=points.log_x,
+                label="x [m]",
+                symbol="square",
+                color="#2ca02c",
+            ),
+        )
+    return res
+
+
+def is_viewing_log_file(data):
+    return (
+        data.models.controlSettings.operationMode == "madx"
+        and data.models.controlSettings.inputLogFile
     )
 
 
@@ -186,7 +214,7 @@ def stateful_compute_get_madx_sim_list(data):
 def stateful_compute_get_external_lattice(data):
     madx = sirepo.simulation_db.read_json(
         _SIM_DATA.controls_madx_dir().join(
-            data.simulationId,
+            data.args.simulationId,
             sirepo.simulation_db.SIMULATION_DATA_FILE,
         ),
     )
@@ -210,19 +238,32 @@ def stateful_compute_get_external_lattice(data):
     )
 
 
+def stateful_compute_get_log_file_time_list(data):
+    import h5py
+
+    with h5py.File(_log_file_path(data.lib_file), "r") as f:
+        return PKDict(
+            timeValues=list(f["monitor/ubh1L"]),
+        )
+
+
+def stateful_compute_get_log_file_values_at_index(data):
+    return PKDict(values=_log_file_values(data.models, data.index, data.lib_file))
+
+
 def stateless_compute_current_to_kick(data):
     return PKDict(
-        kick=AmpConverter(data.command_beam, data.amp_table).current_to_kick(
-            data.current
-        ),
+        kick=AmpConverter(
+            data.args.command_beam, data.args.amp_table, data.args.default_factor
+        ).current_to_kick(data.args.current),
     )
 
 
 def stateless_compute_kick_to_current(data):
     return PKDict(
-        current=AmpConverter(data.command_beam, data.amp_table).kick_to_current(
-            data.kick
-        ),
+        current=AmpConverter(
+            data.args.command_beam, data.args.amp_table, data.args.default_factor
+        ).kick_to_current(data.args.kick),
     )
 
 
@@ -413,6 +454,30 @@ def _generate_parameters(v, data):
         )
 
 
+def _get_element_positions(data, run_dir):
+    summary = read_summary_line(run_dir)[0][0]
+    log_summary = None
+    if is_viewing_log_file(data):
+        log_summary = _log_file_values(
+            data.models.externalLattice.models,
+            data.models.controlSettings.selectedTimeIndex,
+            data.models.controlSettings.inputLogFile,
+        )
+    elmap = PKDict()
+    for k in summary:
+        m = re.search(r"el_(\d+)\.(x|y)", k)
+        if not m:
+            continue
+        el_id = int(m.group(1))
+        dim = m.group(2)
+        if el_id not in elmap:
+            elmap[el_id] = PKDict()
+        elmap[el_id][dim] = summary[k]
+        if log_summary and k in log_summary:
+            elmap[el_id][f"log_{dim}"] = log_summary[k]
+    return elmap
+
+
 def _get_ptc_track_columns(run_dir):
     if run_dir.join(_PTC_TRACK_COLUMNS_FILE).exists():
         return pkio.read_text(_PTC_TRACK_COLUMNS_FILE).split(",")
@@ -467,6 +532,49 @@ def _is_enabled(data, el):
     if el.type == "QUADRUPOLE":
         return data.models.optimizerSettings.inputs.quads[str(el._id)]
     return True
+
+
+def _log_file_path(lib_file):
+    return _SIM_DATA.lib_file_abspath(
+        _SIM_DATA.lib_file_name_with_model_field(
+            "controlSettings", "inputLogFile", lib_file
+        )
+    )
+
+
+def _log_file_values(models, index, lib_file):
+    import h5py
+
+    def log_field_to_element():
+        res = PKDict()
+        for el in _SIM_DATA.beamline_elements(models):
+            n = el.name.lower()
+            if "current_kick" in el:
+                res[n] = f"el_{el._id}.current_kick"
+            elif "current_k1" in el:
+                res[n] = f"el_{el._id}.current_k1"
+            else:
+                if "x" in el:
+                    n2 = n if "h" in n else re.sub(r"(\d)", r"h\1", n)
+                    res[n2] = f"el_{el._id}.x"
+                if "y" in el:
+                    n2 = n if "v" in n else re.sub(r"(\d)", r"v\1", n)
+                    res[n2] = f"el_{el._id}.y"
+        return res
+
+    with h5py.File(_log_file_path(lib_file), "r") as f:
+        values = PKDict()
+        for section in ("monitor", "power"):
+            idx = index if section == "monitor" else index * 2
+            for k in f[section]:
+                values[k] = f[section][k][idx]
+
+        f_to_e = log_field_to_element()
+        res = PKDict()
+        for f in values:
+            if f in f_to_e:
+                res[f_to_e[f]] = values[f] * (1e-6 if "b" in f else 1)
+        return res
 
 
 def _validate_process_variables(v, data):
