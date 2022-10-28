@@ -1,7 +1,56 @@
 import { globalTypes, partialTypes } from "../types";
 import { mapProperties } from "./object";
 
-export function compileSchemaFromJson(schemaObj) {
+export type SchemaViewJson = {
+    layout: string
+} & {[propName: string]: any}
+
+export type ScheamFieldJson<T> = {
+    displayName: string,
+    type: string,
+    defaultValue?: T,
+    description?: string,
+    shown?: string,
+    min?: number,
+    max?: number
+}
+
+export type SchemaModelJson = {
+    [fieldName: string]: ScheamFieldJson<any>
+}
+
+export type SchemaTypeJson = {
+    base: string,
+    settings: {[key: string]: any}
+}
+
+export type SchemaJson = {
+    type: {[typeName: string]: SchemaTypeJson},
+    model: {[modelName: string]: SchemaModelJson},
+    view: [SchemaViewJson]
+}
+
+export type SchemaView = SchemaViewJson;
+
+export type SchemaField<T> = {
+    displayName: string,
+    type: any,
+    defaultValue?: T,
+    shown?: string,
+    min?: number,
+    max?: number
+}
+
+export type SchemaModel = {
+    [fieldName: string]: SchemaField<any>
+}
+
+export type Schema = {
+    models: {[modelName: string]: SchemaModel},
+    views: [SchemaView]
+}
+
+export function compileSchemaFromJson(schemaObj: SchemaJson) {
     let enumTypes = {};
     let additionalTypes = {};
 
