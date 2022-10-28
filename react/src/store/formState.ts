@@ -23,9 +23,7 @@ export type FormFieldStateUpdate<T> = {
 }
 
 export const formStatesSlice: Slice<{
-    [modelName: string]: {
-        
-    }
+    [modelName: string]: FormState
 }> = createSlice({
     name: 'formStates',
     initialState: {},
