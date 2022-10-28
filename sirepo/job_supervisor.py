@@ -343,7 +343,7 @@ class _Supervisor(PKDict):
                         lastUpdateTime=i.db.lastUpdateTime,
                         elapsedTime=i.elapsed_time(),
                         statusMessage=i.db.get("jobStatusMessage", ""),
-                        computeModel=sirepo.sim_data.split_jid(
+                        computeModel=sirepo.job.split_jid(
                             i.db.computeJid
                         ).compute_model,
                     )
@@ -477,7 +477,7 @@ class _ComputeJob(_Supervisor):
                     )
                 )
             ):
-                n = sirepo.sim_data.split_jid(jid=f.purebasename).uid
+                n = sirepo.job.split_jid(jid=f.purebasename).uid
                 if (
                     n in p
                     or f.mtime() > _too_old
@@ -628,7 +628,7 @@ class _ComputeJob(_Supervisor):
             for h in d.history:
                 h.setdefault(k, v)
         d.pksetdefault(
-            computeModel=lambda: sirepo.sim_data.split_jid(compute_jid).compute_model,
+            computeModel=lambda: sirepo.job.split_jid(compute_jid).compute_model,
             dbUpdateTime=lambda: f.mtime(),
         )
         if "cancelledAfterSecs" in d:

@@ -30,9 +30,6 @@ _ANIMATION_NAME = "animation"
 #: prefix for auth header of sim_db_file requests
 _AUTH_HEADER_PREFIX = f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} "
 
-#: use to separate components of job_id
-_JOB_ID_SEP = "-"
-
 _MODEL_RE = re.compile(r"^[\w-]+$")
 
 _IS_PARALLEL_RE = re.compile("animation", re.IGNORECASE)
@@ -462,13 +459,7 @@ class SimDataBase(object):
         Returns:
             str: unique name (treat opaquely)
         """
-        return _JOB_ID_SEP.join(
-            (
-                uid,
-                cls.parse_sid(data),
-                cls.compute_model(data),
-            )
-        )
+        return sirepo.job.join_jid(uid, cls.parse_sid(data), cls.compute_model(data))
 
     @classmethod
     def parse_model(cls, obj):
@@ -817,22 +808,6 @@ class SimDbFileNotFound(Exception):
     """A sim db file could not be found"""
 
     pass
-
-
-def split_jid(jid):
-    """Split jid into named parts
-
-    Args:
-        jid (str): properly formed job identifier
-    Returns:
-        PKDict: parts named uid, sid, compute_model.
-    """
-    return PKDict(
-        zip(
-            ("uid", "sid", "compute_model"),
-            jid.split(_JOB_ID_SEP),
-        )
-    )
 
 
 def _request(method, uri, data=None):

@@ -201,6 +201,7 @@ class DriverBase(PKDict):
         return job.agent_cmd_stdin_env(
             ("sirepo", "job_agent", "start"),
             env=self._agent_env(),
+            uid=self.uid,
             **kwargs,
         )
 

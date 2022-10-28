@@ -436,6 +436,7 @@ class _Cmd(PKDict):
         self._terminating = False
         self._start_time = int(time.time())
         self.jid = self.msg.computeJid
+        self._uid = job.split_jid(jid=self.jid).uid
 
     def destroy(self):
         self._terminating = True
@@ -455,6 +456,7 @@ class _Cmd(PKDict):
             cmd=self.job_cmd_cmd(),
             env=self.job_cmd_env(),
             source_bashrc=self.job_cmd_source_bashrc(),
+            uid=self._uid,
         )
 
     def job_cmd_env(self, env=None):
@@ -466,6 +468,7 @@ class _Cmd(PKDict):
                 SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=cfg.supervisor_sim_db_file_uri,
                 SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN=cfg.supervisor_sim_db_file_token,
             ),
+            uid=self._uid,
         )
 
     def job_cmd_source_bashrc(self):
