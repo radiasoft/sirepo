@@ -1,29 +1,53 @@
+import { ModelState } from "../store/models";
+import { SchemaField, SchemaModel } from "../utility/schema";
+import { ModelsWrapper, ModelWrapper } from "./model";
+
 export class Dependency {
-    constructor(dependencyString) {
+    modelName: string;
+    fieldName: string;
+
+    constructor(dependencyString: string) {
         let { modelName, fieldName } = this.mapDependencyNameToParts(dependencyString);
         this.modelName = modelName;
         this.fieldName = fieldName;
     }
 
-    mapDependencyNameToParts = (dep) => {
-        let [modelName, fieldName] = dep.split('.').filter(s => s && s.length > 0);
+    mapDependencyNameToParts: (dep: string) => { modelName: string, fieldName: string } = (dep) => {
+        let [modelName, fieldName] = dep.split('.').filter((s: string) => s && s.length > 0);
         return {
             modelName,
             fieldName
         }
     }
 
-    getDependencyString = () => {
+    getDependencyString: () => string = () => {
         return this.modelName + "." + this.fieldName;
     }
 }
 
+export type HookedModel = { 
+    schema: SchemaModel,
+    value: ModelState
+} & ModelWrapper
+
+export type HookedDependency<T> = {
+    modelName: string,
+    fieldName: string,
+    model: HookedModel,
+    value: T
+} & SchemaField<T>
+
 export class HookedDependencyGroup {
+    modelsWrapper: ModelsWrapper;
+    dependencies: Dependency[];
+    hookedModels: {[modelName: string]: HookedModel}
+    hookedDependencies: HookedDependency<unknown>[]
+
     constructor({ dependencies, modelsWrapper, schemaModels }) {
         this.modelsWrapper = modelsWrapper;
         this.dependencies = dependencies;
 
-        let modelNames = [... new Set(dependencies.map(dep => dep.modelName))];
+        let modelNames: string[] = [... new Set<string>(dependencies.map((dep: Dependency) => dep.modelName))];
         this.hookedModels = Object.fromEntries(
             modelNames.map(modelName => {
                 let model = this.modelsWrapper.forModel(modelName);
