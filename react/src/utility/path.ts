@@ -1,7 +1,4 @@
-/**
- * @param {string} str 
- */
- export function trimPathSeparators(str, {front=true, end=true}) {
+export function trimPathSeparators(str: string, {front=true, end=true}): string {
     while(front && str.length > 0 && str.substring(0, 1) === '/') {
         str = str.substring(1);
     }
@@ -11,10 +8,7 @@
     return str;
 }
 
-/**
- * @param  {...string} paths 
- */
-export function joinPath(...paths) {
+export function joinPath(...paths: string[]): string {
     let path = '';
 
     paths = paths || [];
