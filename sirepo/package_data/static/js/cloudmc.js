@@ -402,6 +402,24 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 return d;
             }
 
+            function buildPlanePosDelegate() {
+                const m = 'tallyReport';
+                const f = 'planePos';
+                const d = panelState.getFieldDelegate(m, f);
+                d.range = () => {
+
+                    return {
+                        min: appState.fieldProperties(m, f).min,
+                        max: appState.fieldProperties(m, f).max,
+                        step: 0.01
+                    };
+                };
+                d.readout = () => {
+                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+                };
+                return d;
+            }
+
             function buildVoxel(lowerLeft, wx, wy, wz, points, polys) {
                 const pi = points.length / 3;
                 points.push(...lowerLeft);
@@ -716,7 +734,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             };
 
             $scope.init = () => {
-                $scope.fieldDelegate = buildOpacityDelegate();
+                buildOpacityDelegate();
             };
 
             $scope.load = json => {
