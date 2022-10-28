@@ -5,7 +5,7 @@ import {
     Nav,
     Navbar
 } from "react-bootstrap";
-import {
+import React, {
     useState,
     useEffect,
     useContext
@@ -21,9 +21,8 @@ import {
     ContextReportEventManager
 } from "../context";
 import {
-    updateModel,
-    selectModel,
-    selectModels
+    modelSelectors,
+    modelActions
 } from "../store/models";
 import { ModelsWrapper } from "../data/model";
 import { FormStateInitializer } from "../component/form";
@@ -40,13 +39,8 @@ function SimulationInfoInitializer(props) {
     let appName = useContext(ContextAppName);
 
     let modelsWrapper = new ModelsWrapper({
-        modelActions: {
-            updateModel
-        },
-        modelSelectors: {
-            selectModel,
-            selectModels
-        }
+        modelActions,
+        modelSelectors
     })
 
     useEffect(() => {

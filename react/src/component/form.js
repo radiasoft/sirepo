@@ -4,7 +4,7 @@ import {
     Col
 } from "react-bootstrap";
 import { LabelTooltip } from "../component/label";
-import {
+import React, {
     useState,
     useContext,
     useEffect
@@ -16,9 +16,8 @@ import {
 } from "../context";
 import { FormState } from "../data/form";
 import {
-    updateFormFieldState,
-    updateFormState,
-    selectFormState
+    formActions,
+    formSelectors
 } from "../store/formState";
 import { formStateFromModel } from "../data/form";
 import { useStore } from "react-redux";
@@ -57,13 +56,8 @@ export function FormStateInitializer(props) {
 
     let models = useContext(ContextModelsWrapper);
     let formState = new FormState({
-        formActions: {
-            updateFormFieldState,
-            updateFormState
-        },
-        formSelectors: {
-            selectFormState
-        }
+        formActions,
+        formSelectors
     })
 
     useEffect(() => {
