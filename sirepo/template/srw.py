@@ -658,13 +658,15 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             )
         r = r.get(PARSED_DATA_ATTR)
         r.models.simulation.simulationId = i
-        r = simulation_db.save_simulation_json(r, do_validate=True, fixup=True)
+        r = simulation_db.save_simulation_json(
+            r, do_validate=True, fixup=True, qcall=qcall
+        )
     except Exception:
         # TODO(robnagler) need to clean up simulations except in dev
         raise
         if i:
             try:
-                simulation_db.delete_simulation(req.type, i)
+                simulation_db.delete_simulation(req.type, i, qcall=qcall)
             except Exception:
                 pass
         raise
@@ -700,7 +702,7 @@ def post_execution_processing(
     return _parse_srw_log(run_dir)
 
 
-def prepare_for_client(data):
+def prepare_for_client(data, qcall, **kwargs):
     save = False
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         if (
@@ -743,7 +745,7 @@ def prepare_for_client(data):
             "save simulation json with sim_data_template_fixup={}",
             data.get("sim_data_template_fixup", None),
         )
-        simulation_db.save_simulation_json(data, fixup=True)
+        simulation_db.save_simulation_json(data, fixup=True, qcall=qcall)
     return data
 
 
@@ -810,7 +812,7 @@ def process_undulator_definition(model):
         return model
 
 
-def python_source_for_model(data, model, plot_reports=True):
+def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
     data.report = model or _SIM_DATA.SRW_RUN_ALL_MODEL
     data.report = re.sub("beamlineAnimation0", "initialIntensityReport", data.report)
     data.report = re.sub("beamlineAnimation", "watchpointReport", data.report)
@@ -820,10 +822,6 @@ def python_source_for_model(data, model, plot_reports=True):
 def run_epilogue():
     # POSIT: only called from template.run_epilogue
     def _op():
-        from pykern import pkio
-        from sirepo import simulation_db
-        from sirepo.template import template_common
-
         sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         if sim_in.report == "coherentModesAnimation":
             # this sim creates _really_ large intermediate files which should get removed

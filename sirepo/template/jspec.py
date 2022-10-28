@@ -169,7 +169,7 @@ def post_execution_processing(
     return _get_time_step_warning(run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     ring = data.models.ring
     elegant_twiss_file = None
     if ring.latticeSource == "elegant":

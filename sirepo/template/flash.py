@@ -165,7 +165,7 @@ def post_execution_processing(
     return e
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, None)
 
 

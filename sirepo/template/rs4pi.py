@@ -194,7 +194,7 @@ def import_file(req, tmp_dir=None, **kwargs):
     return data
 
 
-def prepare_for_client(data):
+def prepare_for_client(data, qcall, **kwargs):
     if _TMP_INPUT_FILE_FIELD in data["models"]["simulation"]:
         _move_import_file(data)
     return data

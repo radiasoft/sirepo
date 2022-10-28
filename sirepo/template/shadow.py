@@ -181,7 +181,7 @@ def post_execution_processing(
     return _parse_shadow_log(run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     data.report = model
     if not model:
         beamline = data.models.beamline

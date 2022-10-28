@@ -514,7 +514,7 @@ def post_execution_processing(
     return _parse_opal_log(run_dir)
 
 
-def prepare_for_client(data):
+def prepare_for_client(data, qcall, **kwargs):
     code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
 
@@ -532,7 +532,7 @@ def prepare_sequential_output_file(run_dir, data):
                 pass
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     if model == "madx":
         return OpalMadxConverter().to_madx_text(data)
     return _generate_parameters_file(data)

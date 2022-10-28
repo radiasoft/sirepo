@@ -208,7 +208,7 @@ def prepare_sequential_output_file(run_dir, data):
             save_sequential_report_data(data, run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 

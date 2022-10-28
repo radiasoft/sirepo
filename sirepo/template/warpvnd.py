@@ -289,7 +289,7 @@ def prepare_sequential_output_file(run_dir, data):
                 )
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)[0]
 
 

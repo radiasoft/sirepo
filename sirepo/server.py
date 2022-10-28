@@ -732,7 +732,7 @@ class API(sirepo.quest.API):
 
     def _simulation_data_reply(self, req, data):
         if hasattr(req.template, "prepare_for_client"):
-            d = req.template.prepare_for_client(data)
+            d = req.template.prepare_for_client(data, qcall=self)
         return self.headers_for_no_cache(self.reply_json(data))
 
 
