@@ -704,6 +704,7 @@ class API(sirepo.quest.API):
         )
 
     def _proxy_react(self, path):
+        import requests
         def _build():
             if re.search(r"^react/\w+$", path):
                 p = "index.html"
