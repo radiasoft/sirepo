@@ -1,4 +1,4 @@
-import { globalTypes, partialTypes } from "../types";
+import { globalTypes, partialTypes, rsAbstrType } from "../types";
 import { mapProperties } from "./object";
 
 export type SchemaViewJson = {
@@ -34,7 +34,7 @@ export type SchemaView = SchemaViewJson;
 
 export type SchemaField<T> = {
     displayName: string,
-    type: any,
+    type: rsAbstrType,
     defaultValue?: T,
     shown?: string,
     min?: number,
