@@ -71,7 +71,7 @@ export function compileSchemaFromJson(schemaObj: SchemaJson) {
     let models = {};
 
     // TODO merge this from file
-    let simulationModel = {
+    let simulationModel: SchemaModelJson = {
         documentationUrl: {
             displayName: "Documentation URL", 
             type: "OptionalString", 
@@ -117,10 +117,12 @@ export function compileSchemaFromJson(schemaObj: SchemaJson) {
     if(schemaObj.model) {
         let missingTypeNames = [];
 
-        models = mapProperties({
+        let allModels: {[modelName: string]: SchemaModelJson} = {
             ...schemaObj.model,
-            simulation: simulationModel
-        }, (modelName, modelObj) => {
+            "simulation": simulationModel
+        }
+
+        models = mapProperties(allModels, (modelName, modelObj) => {
             return mapProperties(modelObj, (fieldName, field) => {
                 let { displayName, type: typeName, defaultValue, description, shown, min, max } = field;
                 let type = types[typeName];
