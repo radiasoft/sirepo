@@ -1,5 +1,5 @@
 //import { React }
-import { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { Row, Button, Col, Form, Container, Modal } from "react-bootstrap";
 import { ContextAppName, ContextLayouts, ContextModelsWrapper, ContextSimulationInfoPromise } from "./context";
 import { pollStatefulCompute } from "./utility/compute";
@@ -8,26 +8,46 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./types.scss"
 import { downloadAs } from "./utility/download";
 import { useInterpolatedString } from "./hook/string";
+import { SchemaView } from "./utility/schema";
 
-export class rsType {
-    constructor({ isRequired }) {
+
+export interface rsAbstrType { 
+    isRequired: boolean,
+    component: React.FunctionComponent,
+    dbValue: (value: any) => any,
+    hasValue: (value: any) => boolean,
+    validate: (value: any) => boolean
+}
+
+export type rsTypeParamsBase = {
+    isRequired: boolean
+}
+
+export abstract class rsType implements rsAbstrType {
+    isRequired: boolean;
+
+    constructor({ isRequired }: rsTypeParamsBase) {
         //this.colSize = this.hasValue(colSize) ? colSize : 5;
         this.isRequired = this.hasValue(isRequired) ? isRequired : true;
+
+        this.component = (props) => {
+            let {value, valid, touched, onChange, ...otherProps} = props;
+
+            let InputComponent = this.component;
+            return (
+                <Col>
+                    <InputComponent
+                    {...otherProps}
+                    value={this.hasValue(value) ? value : ""}
+                    isInvalid={!valid && touched}
+                    onChange={onChange}/>
+                </Col>
+            )
+        }
     }
 
     component = (props) => {
-        let {value, valid, touched, onChange, ...otherProps} = props;
-
-        let InputComponent = this.inputComponent;
-        return (
-            <Col>
-                <InputComponent
-                {...otherProps}
-                value={this.hasValue(value) ? value : ""}
-                isInvalid={!valid && touched}
-                onChange={onChange}/>
-            </Col>
-        )
+        return <></>
     }
 
     dbValue = (value) => {
@@ -42,11 +62,13 @@ export class rsType {
 }
 
 export class rsString extends rsType {
-    constructor(props) {
+    align: string;
+
+    constructor(props: rsTypeParamsBase) {
         super(props);
         this.align = "text-start";
     }
-    inputComponent = (props) => {
+    component = (props) => {
         return (
             <Form.Control className={this.align} type="text" {...props}></Form.Control>
         )
@@ -57,12 +79,14 @@ export class rsString extends rsType {
 }
 
 export class rsAbstrNumber extends rsType {
-    constructor(props) {
+    align: string;
+
+    constructor(props: rsTypeParamsBase) {
         super(props);
         this.align = "text-end";
     }
 
-    inputComponent = (props) => {
+    component = (props) => {
         return (
             <Form.Control className={this.align} type="text" {...props}></Form.Control>
         )
@@ -90,7 +114,7 @@ export class rsInteger extends rsAbstrNumber {
 }
 
 export class rsBoolean extends rsType {
-    constructor({ isRequired }) {
+    constructor({ isRequired }: rsTypeParamsBase) {
         super({ isRequired });
     }
 
@@ -103,7 +127,7 @@ export class rsBoolean extends rsType {
         return (!this.isRequired) || this.hasValue(value);
     }
 
-    inputComponent = (props) => {
+    component = (props) => {
         // checkboxes are really dumb so we need more settings here
         let onChange = (event) => {
             event.target.value = event.target.checked;
@@ -115,7 +139,10 @@ export class rsBoolean extends rsType {
 }
 
 export class rsFile extends rsType {
-    constructor({ isRequired, pattern, inspectModal }) {
+    pattern: RegExp;
+    inspectModal: SchemaView;
+
+    constructor({ isRequired, pattern, inspectModal }: rsTypeParamsBase & { pattern?: string, inspectModal?: SchemaView }) {
         super({ isRequired })
         this.pattern = (pattern && new RegExp(pattern)) || undefined;
         this.inspectModal = inspectModal;
@@ -130,7 +157,7 @@ export class rsFile extends rsType {
         return (!this.isRequired) || (this.hasValue(value) && value.length > 0);
     }
 
-    inputComponent = (props) => {
+    component = (props) => {
         let { dependency, ...otherProps } = props;
 
         let contextFn = useContext;
@@ -183,8 +210,8 @@ export class rsFile extends rsType {
         // TODO: loading indicator
         // TODO: file upload
 
-        let fileInputRef = useRef();
-        let formSelectRef = useRef();
+        let fileInputRef = useRef<HTMLInputElement>();
+        let formSelectRef = useRef<HTMLSelectElement>();
 
         let options = (fileNameList || []).map(fileName => (
             <option key={fileName} value={fileName}>{fileName}</option>
@@ -248,7 +275,10 @@ export class rsFile extends rsType {
 }
 
 export class rsPartEnumStatefulComputeResult extends rsType {
-    constructor({ isRequired, computeMethod, resultName }) {
+    computeMethod: string;
+    resultName: string;
+
+    constructor({ isRequired, computeMethod, resultName }: rsTypeParamsBase & { computeMethod: string, resultName: string }) {
         super({ isRequired });
         this.computeMethod = computeMethod;
         this.resultName = resultName;
@@ -259,7 +289,7 @@ export class rsPartEnumStatefulComputeResult extends rsType {
         return true;
     }
 
-    inputComponent = (props) => {
+    component = (props) => {
         let contextFn = useContext;
         let stateFn = useState;
         let effectFn = useEffect;
@@ -327,13 +357,17 @@ export const globalTypes = {
     'OptionalBoolean': new rsBoolean({ isRequired: false })
 }
 
+export type EnumAllowedValues = [{ value: string, displayName: string }]
+
 export class rsEnum extends rsType {
-    constructor({ isRequired, allowedValues }) {
+    allowedValues: EnumAllowedValues;
+
+    constructor({ isRequired, allowedValues }: rsTypeParamsBase & { allowedValues: EnumAllowedValues }) {
         super({ isRequired });
         this.allowedValues = allowedValues;
     }
 
-    inputComponent = (props) => {
+    component = (props) => {
         const options = this.allowedValues.map(allowedValue => (
             <option key={allowedValue.value} value={allowedValue.value}>{allowedValue.displayName}</option>
         ));
