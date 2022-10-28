@@ -154,7 +154,7 @@ _RSOPT_PARAMS = {
     ]
     for i in sublist
 }
-_RSOPT_PARAMS_NO_ROT = [p for p in _RSOPT_PARAMS if p != "rotation"]
+_RSOPT_PARAMS_NO_ROTATION = [p for p in _RSOPT_PARAMS if p != "rotation"]
 
 _PROGRESS_LOG_DIR = "__srwl_logs__"
 
@@ -1048,7 +1048,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if data.report == _SIM_DATA.EXPORT_RSOPT:
+    if data.report in (_SIM_DATA.EXPORT_RSOPT, "machineLearningAnimation"):
         p = ""
         _export_rsopt_config(data)
     else:
@@ -1455,7 +1455,10 @@ def _enum_text(name, model, field):
 
 
 def _export_rsopt_config(data):
-    return _write_rsopt_zip(data, _rsopt_jinja_context(data))
+    ctx = _rsopt_jinja_context(data)
+    if data.report == "machineLearningAnimation":
+        template_common.render_jinja(SIM_TYPE, ctx, f"{_SIM_DATA.EXPORT_RSOPT}_run.py")
+    return _write_rsopt_zip(data, ctx)
 
 
 def _extend_plot(
@@ -2245,10 +2248,11 @@ def _rsopt_jinja_context(data):
         rsOptCharacteristic=model.characteristic,
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
-        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROT,
+        rsOptParamsNoRotation=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName="scan_results",
         scanType=model.scanType,
         totalSamples=model.totalSamples,
+        zipFileName=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
     )
 
 

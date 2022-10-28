@@ -387,7 +387,7 @@ def rsopt_run({{ rsOptFuctionSignature() }}):
 def _rsopt_set_params({{ rsOptFuctionSignature() }}):
     vp = varParam.copy()
     {% for e in rsOptElements %}
-    {% for p in rsOptParamsNoRot %}
+    {% for p in rsOptParamsNoRotation %}
     {% if p in e %}
     {% for x in e[p].initial %}
     {% if e[p].offsets[loop.index0] != 0 %}
