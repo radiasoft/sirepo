@@ -9,6 +9,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
+from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
@@ -20,7 +21,6 @@ import os
 import pickle
 import pykern.pkjson
 import re
-import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.uri_router
@@ -595,7 +595,7 @@ def sim_frame(frame_args):
     return extract_report_data(frame_args.sim_in)
 
 
-def import_file(req, tmp_dir, qcall, **kwargs):
+def import_file(req, tmp_dir, sapi, **kwargs):
     import sirepo.server
 
     i = None
@@ -618,7 +618,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             forceRun=True,
             simulationId=i,
         )
-        r = qcall.call_api("runSimulation", data=d)
+        r = sapi.call_api("runSimulation", data=d)
         for _ in range(_IMPORT_PYTHON_POLLS):
             if r.status_code != 200:
                 raise sirepo.util.UserAlert(
@@ -649,7 +649,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
                     r,
                 )
             time.sleep(r.nextRequestSeconds)
-            r = qcall.call_api("runStatus", data=r.nextRequest)
+            r = sapi.call_api("runStatus", data=r.nextRequest)
         else:
             raise sirepo.util.UserAlert(
                 "error parsing python",
@@ -669,7 +669,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
                 pass
         raise
     raise sirepo.util.Response(
-        qcall.call_api(
+        sapi.call_api(
             "simulationData",
             kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i),
         ),
@@ -829,6 +829,8 @@ def run_epilogue():
             # this sim creates _really_ large intermediate files which should get removed
             for p in pkio.sorted_glob("*_mi.h5"):
                 p.remove()
+
+    import sirepo.mpi
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
@@ -1203,14 +1205,18 @@ def _compute_PGM_value(model):
                 _grDen3=model.grooveDensity3,
                 _grDen4=model.grooveDensity4,
                 _e_avg=model.energyAvg,
-                _cff=1.5,  # model['cff'],
-                _ang_graz=model.grazingAngle,
+                _cff=None,
+                _ang_graz=model.grazingAngle / 1000.0,
                 _ang_roll=model.rollAngle,
             )
             cff, defAng = opGr.ang2cff(
                 _en=model.energyAvg, _ang_graz=model.grazingAngle / 1000.0
             )
             model.cff = cff
+        else:
+            raise AssertionError(
+                "invalid computeParametersFrom: {}", model.computeParametersFrom
+            )
         angroll = model.rollAngle
         if abs(angroll) < np.pi / 4 or abs(angroll - np.pi) < np.pi / 4:
             model.orientation = "y"
@@ -1255,6 +1261,12 @@ def _compute_grating_orientation(model):
             _x=model.horizontalOffset,
             _y=model.verticalOffset,
         )
+        cff = model.cff
+        grazingAngle = model.grazingAngle / 1000
+        if model.computeParametersFrom == "1":
+            grazingAngle = 0
+        elif model.computeParametersFrom == "2":
+            cff = None
         opGr = srwlib.SRWLOptG(
             _mirSub=mirror,
             _m=model.diffractionOrder,
@@ -1264,8 +1276,8 @@ def _compute_grating_orientation(model):
             _grDen3=model.grooveDensity3,
             _grDen4=model.grooveDensity4,
             _e_avg=model.energyAvg,
-            _cff=model.cff,
-            _ang_graz=model.grazingAngle,
+            _cff=cff,
+            _ang_graz=grazingAngle,
             _ang_roll=model.rollAngle,
         )
         pkdc(
@@ -2152,11 +2164,10 @@ def _resize_report(report, ar2d, x_range, y_range):
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
+    job.init()
     # roughly 20x size increase for json
-    if ar2d.size * _JSON_MESSAGE_EXPANSION > sirepo.job.cfg().max_message_bytes:
-        max_width = int(
-            math.sqrt(sirepo.job.cfg().max_message_bytes / _JSON_MESSAGE_EXPANSION)
-        )
+    if ar2d.size * _JSON_MESSAGE_EXPANSION > job.cfg.max_message_bytes:
+        max_width = int(math.sqrt(job.cfg.max_message_bytes / _JSON_MESSAGE_EXPANSION))
         if max_width < width_pixels:
             pkdc(
                 "auto scaling dimensions to fit message size. size: {}, max_width: {}",
@@ -2331,7 +2342,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or "", v)
     if _SIM_DATA.srw_is_background_report(report) and "beamlineAnimation" not in report:
-        if sirepo.mpi.cfg().in_slurm:
+        if sirepo.mpi.cfg.in_slurm:
             v.sbatchBackup = "1"
         if report == "multiElectronAnimation":
             if dm.multiElectronAnimation.calcCoherence == "1":
