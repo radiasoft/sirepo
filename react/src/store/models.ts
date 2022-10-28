@@ -1,4 +1,4 @@
-import { createSlice, Slice } from '@reduxjs/toolkit';
+import { ActionCreatorWithPayload, createSlice, Slice } from '@reduxjs/toolkit';
 
 export type ModelState = {
     [fieldName: string]: any
@@ -31,15 +31,19 @@ export const modelsSlice: Slice<ModelsStoreState> = createSlice({
 
 let { updateModel } = modelsSlice.actions;
 
-export let modelActions = {
+export type ModelActions = {
+    updateModel: ActionCreatorWithPayload<ModelStateUpdate>
+}
+export let modelActions: ModelActions = {
     updateModel
 }
 
-export let modelSelectors: {
+export type ModelSelectors = {
     selectIsLoaded: (state: any) => boolean,
     selectModels: (state: any) => ModelStates,
     selectModel: (state: any) => ModelState
-} = {
+}
+export let modelSelectors: ModelSelectors = {
     selectIsLoaded: (state: any) => {
         return state[modelsSlice.name].isLoaded;
     },
