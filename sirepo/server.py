@@ -78,7 +78,9 @@ class API(sirepo.quest.API):
             simulation_db.lib_dir_from_sim_dir(src),
         )
         target = simulation_db.simulation_dir(
-            req.type, data.models.simulation.simulationId
+            req.type,
+            data.models.simulation.simulationId,
+            qcall=self,
         )
         # TODO(robnagler) does not work, supervisor needs to be notified to
         # copy the simulation state.
@@ -234,7 +236,7 @@ class API(sirepo.quest.API):
             for s in simulation_db.examples(req.type):
                 if s["models"]["simulation"]["name"] != simulation_name:
                     continue
-                simulation_db.save_new_example(s)
+                simulation_db.save_new_example(s, qcall=self)
                 rows = simulation_db.iterate_simulation_datafiles(
                     req.type,
                     simulation_db.process_simulation_list,
@@ -270,7 +272,7 @@ class API(sirepo.quest.API):
             response: may be a file or JSON
         """
         req = self.parse_post(template=True, filename=filename or None)
-        with simulation_db.tmp_dir() as d:
+        with simulation_db.tmp_dir(qcall=self) as d:
             assert "method" in req.req_data
             res = req.template.get_application_data(req.req_data, tmp_dir=d)
             assert (
@@ -361,9 +363,12 @@ class API(sirepo.quest.API):
                         "no import_file in template req={}",
                         req,
                     )
-                with simulation_db.tmp_dir() as d:
+                with simulation_db.tmp_dir(qcall=self) as d:
                     data = req.template.import_file(
-                        req, tmp_dir=d, reply_op=s, qcall=self
+                        req,
+                        tmp_dir=d,
+                        reply_op=s,
+                        qcall=self,
                     )
                 if "error" in data:
                     return self.reply_json(data)
@@ -664,7 +669,7 @@ class API(sirepo.quest.API):
         )
         e = None
         in_use = None
-        with simulation_db.tmp_dir() as d:
+        with simulation_db.tmp_dir(qcall=self) as d:
             t = d.join(req.filename)
             f.save(str(t))
             if hasattr(req.template, "validate_file"):
@@ -722,7 +727,7 @@ class API(sirepo.quest.API):
     def _save_new_and_reply(self, req, data):
         return self._simulation_data_reply(
             req,
-            simulation_db.save_new_simulation(data, uid=self.auth.logged_in_user()),
+            simulation_db.save_new_simulation(data, qcall=self),
         )
 
     def _simulation_data_reply(self, req, data):

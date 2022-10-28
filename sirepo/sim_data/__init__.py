@@ -282,9 +282,8 @@ class SimDataBase(object):
 
         raise sirepo.util.UserAlert(
             'Simulation library file "{}" does not exist'.format(basename),
-            "basename={} not in lib or resource directories uid={}",
+            "basename={} not in lib or resource directories",
             basename,
-            sirepo.auth.hack_logged_in_user(),
         )
 
     @classmethod

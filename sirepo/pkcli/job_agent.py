@@ -72,7 +72,6 @@ def start():
         ),
     )
     pkdlog("{}", cfg)
-    sirepo.modules.import_and_init("sirepo.pkcli.job_agent")
     if pkconfig.channel_in_internal_test() and cfg.start_delay:
         pkdlog("start_delay={}", cfg.start_delay)
         time.sleep(cfg.start_delay)

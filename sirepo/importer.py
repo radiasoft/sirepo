@@ -31,7 +31,7 @@ def do_form(form, qcall):
     data = read_zip(base64.decodebytes(pkcompat.to_bytes(form["zip"])), qcall)
     data.models.simulation.folder = "/Import"
     data.models.simulation.isExample = False
-    return simulation_db.save_new_simulation(data, uid=qcall.auth.logged_in_user())
+    return simulation_db.save_new_simulation(data, qcall=qcall)
 
 
 def read_json(text, qcall, sim_type=None):
@@ -74,7 +74,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
     from sirepo import simulation_db
     import sirepo.sim_data
 
-    with simulation_db.tmp_dir() as tmp:
+    with simulation_db.tmp_dir(qcall=qcall) as tmp:
         data = None
         zipped = PKDict()
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:

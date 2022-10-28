@@ -82,11 +82,6 @@ non_guest_methods = None
 _cfg = None
 
 
-def hack_logged_in_user():
-    # avoids case of no quest (sirepo.agent)
-    return _cfg.logged_in_user or sirepo.quest.hack_current().auth.logged_in_user()
-
-
 def init_quest(qcall):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
@@ -107,7 +102,10 @@ def init_module(**imports):
     def _init_full():
         global visible_methods, valid_methods, non_guest_methods
 
-        simulation_db.hook_auth_user = hack_logged_in_user
+        simulation_db.hook_auth_user = (
+            lambda: _cfg.logged_in_user
+            or sirepo.quest.hack_current().auth.logged_in_user()
+        )
         p = pkinspect.this_module().__name__
         visible_methods = []
         valid_methods = _cfg.methods.union(_cfg.deprecated_methods)

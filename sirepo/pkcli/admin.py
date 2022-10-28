@@ -137,14 +137,12 @@ def _build_ops(simulations, sim_type, examples):
 
 
 def _create_example(qcall, example):
-    simulation_db.save_new_example(example, uid=qcall.auth.logged_in_user())
+    simulation_db.save_new_example(example, qcall=qcall)
 
 
 def _delete(qcall, ops):
     for s, t in ops.delete:
-        simulation_db.delete_simulation(
-            t, s.simulationId, uid=qcall.auth.logged_in_user()
-        )
+        simulation_db.delete_simulation(t, s.simulationId, qcall=qcall)
 
 
 def _example_is_too_old(last_modified):

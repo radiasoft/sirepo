@@ -74,7 +74,7 @@ class API(sirepo.quest.API):
         )
         s = suffix and sirepo.srschema.parse_name(suffix)
         t = None
-        with simulation_db.tmp_dir() as d:
+        with simulation_db.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
             t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)

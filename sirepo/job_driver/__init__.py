@@ -130,7 +130,7 @@ class DriverBase(PKDict):
         m = op.msg
         with sirepo.quest.start() as qcall:
             qcall.auth.logged_in_user_set(m.uid)
-            d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
+            d = sirepo.simulation_db.simulation_lib_dir(m.simulationType, uid=m.uid)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
             op.lib_dir_symlink.mksymlinkto(d, absolute=True)
             m.pkupdate(

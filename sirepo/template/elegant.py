@@ -701,7 +701,7 @@ def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
     d = test_data
     if "id" in req:
-        d = simulation_db.read_simulation_json(SIM_TYPE, sid=req.id)
+        d = simulation_db.read_simulation_json(SIM_TYPE, sid=req.id, qcall=req.qcall)
     p = pkio.py_path(req.filename)
     res = parse_input_text(
         p,
@@ -713,6 +713,7 @@ def import_file(req, test_data=None, **kwargs):
         simulation_db.delete_simulation(
             SIM_TYPE,
             d.models.simulation.simulationId,
+            qcall=req.call,
         )
     return res
 

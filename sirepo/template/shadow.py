@@ -10,7 +10,6 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import template_common
-from sirepo import simulation_db
 from sirepo.template.template_common import ModelUnits
 import sirepo.template.srw_shadow
 import re

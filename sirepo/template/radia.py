@@ -147,7 +147,7 @@ def create_archive(sim, qcall):
 
     if sim.filename.endswith("dat"):
         return qcall.reply_attachment(
-            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
+            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(_DMP_FILE),
             content_type="application/octet-stream",
             filename=sim.filename,
         )

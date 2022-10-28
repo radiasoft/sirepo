@@ -61,7 +61,7 @@ def parse_post(qcall, kwargs):
     Returns:
         PKDict: with arg names set to parsed values
     """
-    res = PKDict()
+    res = PKDict(qcall=qcall)
     r = kwargs.pkdel("req_data")
     if r is None:
         r = parse_json(qcall)
