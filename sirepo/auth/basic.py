@@ -7,7 +7,6 @@
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkconfig
-import flask
 
 
 AUTH_METHOD = "basic"
@@ -24,10 +23,10 @@ def init_apis(*args, **kwargs):
     )
 
 
-def require_user():
+def require_user(qcall):
     """Check for basic auth credentials against cfg"""
-    v = flask.request.authorization
-    if v and v.type == "basic" and _check(v):
+    v = qcall.sreq.get("http_authorization")
+    if v and v.type == "basic" and cfg.uid == v.username and cfg.password == v.password:
         return cfg.uid
     return None
 
@@ -41,7 +40,3 @@ def _cfg_uid(value):
         dir=True
     ), "uid={} does not exist".format(value)
     return value
-
-
-def _check(v):
-    return cfg.uid == v.username and cfg.password == v.password

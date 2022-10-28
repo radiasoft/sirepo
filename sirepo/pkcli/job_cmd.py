@@ -42,7 +42,6 @@ def default_command(in_file):
         str: json output of command, e.g. status msg
     """
     try:
-        job.init()
         f = pkio.py_path(in_file)
         msg = pkjson.load_any(f)
         # TODO(e-carlin): find common place to serialize/deserialize paths
@@ -158,7 +157,7 @@ def _do_download_data_file(msg, template):
         requests.put(
             msg.dataFileUri + u,
             data=c,
-            verify=job.cfg.verify_tls,
+            verify=job.cfg().verify_tls,
         ).raise_for_status()
         return PKDict()
     except Exception as e:
@@ -332,7 +331,7 @@ def _parse_python_errors(text):
 
 
 def _validate_msg(msg):
-    if len(msg) >= job.cfg.max_message_bytes:
+    if len(msg) >= job.cfg().max_message_bytes:
         return PKDict(state=job.COMPLETED, error="Response is too large to send")
     return None
 

@@ -62,7 +62,6 @@ class FileReq(tornado.web.RequestHandler):
 
 
 def token_for_user(uid):
-    assert not sirepo.util.flask_app(), "can only be called from a non-threaded context"
     for u, k in _TOKEN_TO_UID.items():
         if u == uid:
             return k

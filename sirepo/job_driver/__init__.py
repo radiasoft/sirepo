@@ -15,8 +15,6 @@ import sirepo.auth
 import sirepo.events
 import sirepo.sim_db_file
 import sirepo.simulation_db
-import sirepo.srcontext
-import sirepo.srdb
 import sirepo.tornado
 import tornado.gen
 import tornado.ioloop
@@ -34,7 +32,7 @@ _DEFAULT_CLASS = None
 
 _DEFAULT_MODULE = "local"
 
-cfg = None
+_cfg = None
 
 _CPU_SLOT_OPS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
 
@@ -127,12 +125,11 @@ class DriverBase(PKDict):
         )
 
     def make_lib_dir_symlink(self, op):
-        import sirepo.auth_db
+        import sirepo.auth
 
         m = op.msg
-        with sirepo.auth_db.session(), sirepo.auth.set_user_outside_of_http_request(
-            m.uid
-        ):
+        with sirepo.quest.start() as qcall:
+            qcall.auth.logged_in_user_set(m.uid)
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
             op.lib_dir_symlink.mksymlinkto(d, absolute=True)
@@ -369,7 +366,7 @@ class DriverBase(PKDict):
 
         if not self._idle_timer:
             self._idle_timer = tornado.ioloop.IOLoop.current().call_later(
-                cfg.idle_check_secs,
+                _cfg.idle_check_secs,
                 _kill_if_idle,
             )
 
@@ -377,11 +374,14 @@ class DriverBase(PKDict):
         pass
 
 
-def init(job_supervisor_module):
-    global cfg, _CLASSES, _DEFAULT_CLASS, job_supervisor
-    assert not cfg
-    job_supervisor = job_supervisor_module
-    cfg = pkconfig.init(
+def init_module(**imports):
+    global _cfg, _CLASSES, _DEFAULT_CLASS
+
+    if _cfg:
+        return _cfg
+    # import sirepo.job_supervisor
+    sirepo.util.setattr_imports(imports)
+    _cfg = pkconfig.init(
         modules=((_DEFAULT_MODULE,), set, "available job driver modules"),
         idle_check_secs=(
             1800,
@@ -391,11 +391,12 @@ def init(job_supervisor_module):
     )
     _CLASSES = PKDict()
     p = pkinspect.this_module().__name__
-    for n in cfg.modules:
+    for n in _cfg.modules:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.CLASS.init_class(job_supervisor)
     _DEFAULT_CLASS = _CLASSES.get("docker") or _CLASSES.get(_DEFAULT_MODULE)
     pkdlog("modules={}", sorted(_CLASSES.keys()))
+    return _cfg
 
 
 async def terminate():

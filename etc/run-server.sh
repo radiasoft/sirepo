@@ -8,7 +8,12 @@ export SIREPO_SMTP_SERVER='dev'
 export SIREPO_SMTP_USER='n/a'
 export SIREPO_MPI_CORES=2
 case ${1:-} in
-    docker|local)
+    docker)
+        # POSIT: run-supervisor.sh
+        export SIREPO_SRDB_ROOT=$HOME/tmp/sirepo-run
+        mkdir -p "$SIREPO_SRDB_ROOT"
+        ;;
+    local)
         ;;
     nersc)
         export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC'

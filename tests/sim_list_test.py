@@ -26,8 +26,8 @@ def test_copy_non_session(fc):
             simulation_id=i,
         ),
     )
-    pkeq(i, r.redirect.simulationId)
-    pkeq(None, r.redirect.userCopySimulationId)
+    pkeq(i, r.notFoundCopyRedirect.simulationId)
+    pkeq(None, r.notFoundCopyRedirect.userCopySimulationId)
     d = fc.sr_post(
         "copyNonSessionSimulation",
         PKDict(
@@ -45,7 +45,7 @@ def test_copy_non_session(fc):
             simulation_id=i,
         ),
     )
-    pkeq(d.models.simulation.simulationId, r.redirect.userCopySimulationId)
+    pkeq(d.models.simulation.simulationId, r.notFoundCopyRedirect.userCopySimulationId)
 
 
 def test_illegals(fc):

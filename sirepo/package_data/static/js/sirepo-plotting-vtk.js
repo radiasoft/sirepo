@@ -2319,6 +2319,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
                     $scope.shapes = $scope.source.getShapes();
                     drawShapes();
+                    replot();
                 });
 
                 $scope.$on('cancelChanges', function(e, name) {

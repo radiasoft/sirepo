@@ -61,8 +61,8 @@ def import_req(request):
         import sirepo.srunit
         import sirepo.http_request
 
-        with sirepo.srunit.auth_db_session():
-            req = sirepo.http_request.parse_params(
+        with sirepo.srunit.quest_start() as qcall:
+            req = qcall.parse_params(
                 filename=path.basename,
                 folder="/import_test",
                 template=True,
@@ -346,7 +346,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         )
 
     for i in u:
-        subprocess.run(["kill -9 $(lsof -t -i :" + i + ")"], shell=True)
+        subprocess.run(["kill -9 $(lsof -t -i :" + i + ") >& /dev/null"], shell=True)
 
     if sbatch_module:
         # must be performed after fc initialized so work_dir is configured
