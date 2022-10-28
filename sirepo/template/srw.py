@@ -1457,7 +1457,10 @@ def _enum_text(name, model, field):
 def _export_rsopt_config(data):
     ctx = _rsopt_jinja_context(data)
     if data.report == "machineLearningAnimation":
-        template_common.render_jinja(SIM_TYPE, ctx, f"{_SIM_DATA.EXPORT_RSOPT}_run.py")
+        pkio.write_text(
+            f"{_SIM_DATA.EXPORT_RSOPT}_run.sh",
+            template_common.render_jinja(SIM_TYPE, ctx, f"{_SIM_DATA.EXPORT_RSOPT}_run.sh")
+        )
     return _write_rsopt_zip(data, ctx)
 
 
