@@ -1,4 +1,4 @@
-import { createSlice, Slice } from '@reduxjs/toolkit';
+import { ActionCreatorWithPayload, createSlice, Slice } from '@reduxjs/toolkit';
 
 export type FormFieldState<T> = {
     valid: boolean,
@@ -22,7 +22,7 @@ export type FormFieldStateUpdate<T> = {
     value: FormFieldState<T>
 }
 
-export const formStatesSlice: Slice<{
+export let formStatesSlice: Slice<{
     [modelName: string]: FormState
 }> = createSlice({
     name: 'formStates',
@@ -38,6 +38,21 @@ export const formStatesSlice: Slice<{
     }
 });
 
-export const selectFormState: (name: string) => ((state: any) => FormState) = (name: string) => (state) => state[formStatesSlice.name][name];
+export type FormSelectors = {
+    selectFormState: (name: string) => ((state: any) => FormState)
+}
 
-export const { updateFormState, updateFormFieldState } = formStatesSlice.actions;
+export let formSelectors: FormSelectors = {
+    selectFormState: (name: string) => (state) => state[formStatesSlice.name][name]
+}
+
+let { updateFormState, updateFormFieldState } = formStatesSlice.actions;
+
+export type FormActions = {
+    updateFormState: ActionCreatorWithPayload<FormStateUpdate>,
+    updateFormFieldState: ActionCreatorWithPayload<FormFieldStateUpdate<unknown>>
+}
+export let formActions: FormActions = {
+    updateFormState,
+    updateFormFieldState
+}
