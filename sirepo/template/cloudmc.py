@@ -100,8 +100,7 @@ def _tally_report_plot(run_dir, sim_in):
     import math
     import openmc
 
-    rpt = "tallyReport"
-    t = sim_in.models[rpt]
+    t = sim_in.models.tallyReport
     scale = 0.01
     n = _AXES.index(t.axis)
     l, m = next_axis_indices(t.axis)
@@ -109,6 +108,7 @@ def _tally_report_plot(run_dir, sim_in):
     all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
         :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
     ].tolist()
+    pkdp("SCORE {} ASPECT {} MIN {} MAX {}", sim_in.models.openmcAnimation.score, sim_in.models.openmcAnimation.aspect, numpy.min(all_data), numpy.max(all_data))
     mesh = _get_mesh(tally)
     dims = mesh.dimension
     ranges = scale * numpy.array([[x, mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left)])
@@ -123,7 +123,7 @@ def _tally_report_plot(run_dir, sim_in):
     for zi in range(r[2][0], r[2][1]):
         for yi in range(r[1][0], r[1][1]):
             for xi in range(r[0][0], r[0][1]):
-                f[i] = all_data[zi * dims[0] * dims[1] + yi * dims[0] + xi]
+                f[i] = all_data[zi * dims[0] * dims[1] + yi * dims[0] + xi][0]
                 i += 1
 
     score = []
@@ -131,13 +131,13 @@ def _tally_report_plot(run_dir, sim_in):
         score.append(f[j * dims[l]:(j + 1) * dims[l]])
 
     return PKDict(
-        title=f"Score at {t.axis} = {0.01 * t.planePos}m",
-        x_label=f"{_AXES[l]} [m]",
-        x_range=[ranges[l][0], ranges[l][1], dims[l]],
-        y_label=f"{_AXES[m]} [m]",
-        y_range=[ranges[m][0], ranges[m][1], dims[m]],
+        title=f"Score at {t.axis} = {scale * t.planePos}m",
+        x_label=f"{_AXES[m]} [m]",
+        x_range=[ranges[m][0], ranges[m][1], int(dims[m])],
+        y_label=f"{_AXES[l]} [m]",
+        y_range=[ranges[l][0], ranges[l][1], int(dims[l])],
         z_matrix=score,
-        z_range=[ranges[n][0], ranges[n][1], dims[n]],
+        z_range=[ranges[n][0], ranges[n][1], int(dims[n])],
     )
 
 
@@ -348,6 +348,8 @@ def _generate_materials(data):
 
 def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
+    for f in [b.basename for b in _SIM_DATA.sim_file_basenames(data)]:
+        pkio.unchecked_remove(f)
     if report in ("dagmcAnimation", "tallyReport"):
         return ""
     res, v = template_common.generate_parameters_file(data)

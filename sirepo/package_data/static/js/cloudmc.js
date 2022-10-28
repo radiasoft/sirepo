@@ -299,7 +299,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             let colorbar = null;
             let colorbarPtr = null;
             let fieldData = [];
-            let allData = [];
             let picker = null;
             let minField, maxField;
             let selectedVolume = null;
@@ -460,7 +459,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 const points = [];
                 const polys = [];
                 fieldData = [];
-                allData = [];
                 const fd = getFieldData();
                 minField = Number.MAX_VALUE;
                 maxField = -Number.MAX_VALUE;
@@ -468,7 +466,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     for (let yi = 0; yi < ny; yi++) {
                         for (let xi = 0; xi < nx; xi++) {
                             const f = fd[zi * nx * ny + yi * nx + xi];
-                            allData.push(f);
                             if (! isInFieldThreshold(f)) {
                                 continue;
                             }
@@ -488,6 +485,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                         }
                     }
                 }
+                srdbg('MIN', minField, 'MAX', maxField);
                 basePolyData.getPoints().setData(new window.Float32Array(points), 3);
                 basePolyData.getPolys().setData(new window.Uint32Array(polys));
                 basePolyData.buildCells();
