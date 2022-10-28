@@ -1,10 +1,15 @@
-export function pollCompute({ doFetch, pollInterval, callback }) {
-    console.log("started polling compute");
+import { ModelStates } from "../store/models";
+
+export type BaseComputeParams = {
+    pollInterval: number,
+    callback: (resp: any) => void
+}
+
+export function pollCompute({ doFetch, pollInterval, callback }: BaseComputeParams & { doFetch: () => Promise<Response> }) {
     let doIteration = () => {
         doFetch().then(async (resp) => {
             let respObj = await resp.json();
             let { state } = respObj;
-            console.log("polled compute: " + state);
 
             if (state === 'pending' || state === 'running') {
                 setTimeout(doIteration, pollInterval);
@@ -17,7 +22,13 @@ export function pollCompute({ doFetch, pollInterval, callback }) {
     doIteration();
 }
 
-export function pollStatefulCompute({ pollInterval, method, simulationId, appName, callback }) {
+export type StatefulComputeParams = {
+    method: string,
+    simulationId: string,
+    appName: string
+} & BaseComputeParams
+
+export function pollStatefulCompute({ pollInterval, method, simulationId, appName, callback }: StatefulComputeParams) {
     let doFetch = () => fetch('/stateful-compute', {
         method: 'POST',
         headers: {
@@ -43,7 +54,13 @@ export function pollStatefulCompute({ pollInterval, method, simulationId, appNam
     })
 }
 
-export function pollRunReport({ appName, models, simulationId, report, pollInterval, callback, forceRun }) {
+export type ReportComputeParams = {
+    forceRun: boolean
+    models: ModelStates,
+    report: string
+} & StatefulComputeParams
+
+export function pollRunReport({ appName, models, simulationId, report, pollInterval, callback, forceRun }: ReportComputeParams) {
     let doFetch = () => fetch('/run-simulation', {
         method: 'POST',
         headers: {
@@ -82,7 +99,14 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
     doFetch().then(doIteration);
 }
 
-export function cancelReport({ appName, models, simulationId, report }) {
+export type CancelComputeParams = {
+    appName: string,
+    models: ModelStates,
+    simulationId: string,
+    report: string
+}
+
+export function cancelReport({ appName, models, simulationId, report }: CancelComputeParams) {
     return fetch('/run-cancel', {
         method: 'POST',
         headers: {
@@ -98,7 +122,7 @@ export function cancelReport({ appName, models, simulationId, report }) {
     })
 }
 
-export function getSimulationFrame(frameId) {
+export function getSimulationFrame(frameId: string) {
     return new Promise((resolve, reject) => {
         fetch(`/simulation-frame/${frameId}`).then(async (resp) => {
             let respObj = await resp.json();
