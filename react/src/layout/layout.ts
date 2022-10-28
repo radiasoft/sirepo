@@ -1,7 +1,14 @@
+import React from "react";
+import { Dependency } from "../data/dependency";
 import { useRenderCount } from "../hook/debug";
+import { SchemaView } from "../utility/schema";
+import { Layouts } from "./layouts";
 
-export class View {
-    constructor(layoutsWrapper) {
+export abstract class View {
+    layoutsWrapper: Layouts;
+    name: string;
+
+    constructor(layoutsWrapper: Layouts) {
         this.layoutsWrapper = layoutsWrapper;
 
         this.name = this.constructor.name;
@@ -20,7 +27,7 @@ export class View {
         let originalComponentDef = this.component;
         this.component = (props) => {
             let newProps = this._componentBaseInit(props);
-            originalComponentDef(newProps);
+            return originalComponentDef(newProps);
         }
     }
 
@@ -35,15 +42,10 @@ export class View {
      * parent elements can make required hooks
      * @param {*} config 
      */
-    getFormDependencies = (config) => {
-        throw new Error("getFormDependencies() not implemented")
-    }
-
+    abstract getFormDependencies(config): (config: SchemaView) => Dependency[];
     /**
      * Creates a new component for this view
      * @param {{ config: * }} props 
      */
-    component = (props) => {
-        throw new Error("component() not implemented")
-    }
+    abstract component(props): React.FunctionComponent;
 }
