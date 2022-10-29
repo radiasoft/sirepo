@@ -2098,6 +2098,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             <div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">
               <a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
               ${SIREPO.appPanelHeadingButtons || ''}
+              {{ (SIREPO.modelPanelHeadingButtons || {})[viewName] }}
               <div data-ng-if="isReport" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">
                 <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
                 <ul class="dropdown-menu dropdown-menu-right">

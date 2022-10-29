@@ -65,6 +65,11 @@ SIREPO.app.config(function() {
         </ul>
         </div>
     `;
+    SIREPO.modelPanelHeadingButtons = {
+        exportRsOpt: `
+          <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
+        `,
+    };
 
     SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
     SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
