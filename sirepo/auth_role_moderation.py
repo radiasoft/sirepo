@@ -77,13 +77,16 @@ class API(sirepo.quest.API):
             app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
                 sirepo.auth_role.sim_type(i.role)
             ].longName,
-            display_name=self.auth.user_display_name(i.uid),
             role=i.role,
             status=req.req_data.status,
             moderator_uid=self.auth.logged_in_user(),
         )
         pkdlog("status={} uid={} role={} token={}", p.status, i.uid, i.role, i.token)
-        with self.auth.substitute_user(uid=i.uid, method=self.auth.METHOD_EMAIL):
+        with self.auth.logged_in_user_set(uid=i.uid, method=self.auth.METHOD_EMAIL):
+            p.pkupdate(
+                display_name=self.auth.user_display_name(i.uid),
+                user_name=self.auth.logged_in_user_name(),
+            )
             _set_moderation_status(p)
             _send_moderation_status_email(p)
         return self.reply_ok()

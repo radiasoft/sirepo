@@ -102,10 +102,6 @@ def init_module(**imports):
     def _init_full():
         global visible_methods, valid_methods, non_guest_methods
 
-        simulation_db.hook_auth_user = (
-            lambda: _cfg.logged_in_user
-            or sirepo.quest.hack_current().auth.logged_in_user()
-        )
         p = pkinspect.this_module().__name__
         visible_methods = []
         valid_methods = _cfg.methods.union(_cfg.deprecated_methods)
@@ -162,8 +158,8 @@ class _Auth(sirepo.quest.Attr):
         u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
         if sirepo.auth_db.UserRole.has_role(
-            u, r
-        ) and not sirepo.auth_db.UserRole.is_expired(u, r):
+            qcall=self.qcall, role=r
+        ) and not sirepo.auth_db.UserRole.is_expired(qcall=self.qcall, role=r):
             return
         elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
@@ -267,8 +263,6 @@ class _Auth(sirepo.quest.Attr):
         Returns:
             str: uid of authenticated user
         """
-        if self._logged_in_user:
-            return self._logged_in_user
         u = self._qcall_bound_user()
         if not self.is_logged_in():
             raise sirepo.util.SRException(
@@ -454,7 +448,10 @@ class _Auth(sirepo.quest.Attr):
 
     def require_adm(self):
         u = self.require_user()
-        if not sirepo.auth_db.UserRole.has_role(u, sirepo.auth_role.ROLE_ADM):
+        if not sirepo.auth_db.UserRole.has_role(
+            qcall=self.qcall,
+            role=sirepo.auth_role.ROLE_ADM,
+        ):
             sirepo.util.raise_forbidden(f"uid={u} role=ROLE_ADM not found")
 
     def require_auth_basic(self):
@@ -723,7 +720,7 @@ class _Auth(sirepo.quest.Attr):
         return self.qcall.cookie.unchecked_get_value(_COOKIE_STATE)
 
     def _qcall_bound_user(self):
-        return _cfg.logged_in_user or self.qcall.cookie.unchecked_get_value(
+        return self._logged_in_user or self.qcall.cookie.unchecked_get_value(
             _COOKIE_USER
         )
 

@@ -409,9 +409,9 @@ def init_module():
                 return sirepo.auth_role.ModerationStatus.check(s.status)
 
         @classmethod
-        def set_status(cls, uid, role, status, moderator_uid=None):
+        def set_status(cls, qcall, role, status, moderator_uid):
             with sirepo.util.THREAD_LOCK:
-                s = cls.search_by(uid=uid, role=role)
+                s = cls.search_by(uid=qcall.auth.logged_in_user(), role=role)
                 s.status = sirepo.auth_role.ModerationStatus.check(status)
                 if moderator_uid:
                     s.moderator_uid = moderator_uid

@@ -107,5 +107,5 @@ def read_zip(zip_bytes, qcall, sim_type=None):
             needed.add(n)
         for b, src in zipped.items():
             if b in needed:
-                src.copy(s.lib_file_write_path(b, uid=u))
+                src.copy(s.lib_file_write_path(b, qcall=qcall))
         return data

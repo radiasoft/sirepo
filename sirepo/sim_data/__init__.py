@@ -371,11 +371,11 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def lib_files_for_export(cls, data):
+    def lib_files_for_export(cls, data, qcall=None):
         cls._assert_server_side()
         res = []
         for b in cls.lib_file_basenames(data):
-            f = cls.lib_file_abspath(b, data=data)
+            f = cls.lib_file_abspath(b, data=data, qcall=qcall)
             if f.exists():
                 res.append(f)
         return res

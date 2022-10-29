@@ -38,7 +38,7 @@ def create_archive(sim, qcall):
         )
     with simulation_db.tmp_dir(qcall=qcall) as d:
         want_zip = sim.filename.endswith("zip")
-        f, c = _create_zip(sim, want_python=want_zip, out_dir=d, qcall)
+        f, c = _create_zip(sim, want_python=want_zip, out_dir=d, qcall=qcall)
         if want_zip:
             t = "application/zip"
         else:
@@ -90,7 +90,7 @@ def _create_zip(sim, want_python, out_dir, qcall):
     data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
     simulation_db.update_rsmanifest(data)
     data.pkdel("report")
-    files = sim_data.get_class(data).lib_files_for_export(data)
+    files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
     if want_python:
         for f in _python(data, sim, qcall):
             files.append(f)

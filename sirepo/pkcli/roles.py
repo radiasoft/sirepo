@@ -22,7 +22,7 @@ def add(uid_or_email, *roles):
         *roles: The roles to assign to the user
     """
 
-    with _parse_args(uid_or_email, roles) as qcall):
+    with _parse_args(uid_or_email, roles) as qcall:
         sirepo.auth_db.UserRole.add_roles(qcall, roles)
 
 
