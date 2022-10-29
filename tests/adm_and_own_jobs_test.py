@@ -16,7 +16,7 @@ def setup_module(module):
     )
 
 
-def test_adm_jobs(auth_fc):
+def test_adm_jobs_simple(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 

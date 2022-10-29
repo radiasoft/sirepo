@@ -38,7 +38,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_adm")
     def api_admJobs(self):
         return self.request(
-            _request_content=PKDict(**self.parse_post()),
+            _request_content=PKDict(**self._parse_post_just_data()),
         )
 
     @sirepo.quest.Spec("require_user")
@@ -133,7 +133,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     def api_ownJobs(self):
         return self.request(
-            _request_content=self.parse_post().pkupdate(
+            _request_content=self._parse_post_just_data().pkupdate(
                 uid=self.auth.logged_in_user(),
             ),
         )
@@ -245,6 +245,13 @@ class API(sirepo.quest.API):
         )
         r.raise_for_status()
         return pkjson.load_any(r.content)
+
+    def _parse_post_just_data(self):
+        """Remove computed objects"""
+        r = self.parse_post()
+        r.pkdel("qcall")
+        r.pkdel("template")
+        return r
 
     def _request_compute(self):
         return self.request(
