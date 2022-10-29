@@ -51,10 +51,8 @@ def create_user(email, display_name):
                 email,
             )
         # Completely new Sirepo user
-        u = qcall.auth.create_user(
-            lambda u: qcall.auth.user_registration(uid=u, display_name=display_name),
-            module,
-        )
+        u = qcall.auth.create_user(module)
+        qcall.auth.user_registration(uid=u, display_name=display_name)
         module.AuthEmailUser(
             unverified_email=email,
             uid=u,
@@ -73,12 +71,12 @@ def create_user(email, display_name):
             email,
             display_name,
         )
-        qcall.auth.logged_in_user_set(u, method=m)
-        n = sirepo.sim_api.jupyterhublogin.create_user(
-            qcall,
-            check_dir=True,
-        )
-        sirepo.auth_db.UserRole.add_roles(
-            u, sirepo.auth_role.for_sim_type("jupyterhublogin")
-        )
+        with qcall.auth.logged_in_user_set(u, method=m):
+            n = sirepo.sim_api.jupyterhublogin.create_user(
+                qcall,
+                check_dir=True,
+            )
+            sirepo.auth_db.UserRole.add_roles(
+                qcall, sirepo.auth_role.for_sim_type("jupyterhublogin")
+            )
         return PKDict(email=email, jupyterhub_user_name=n)

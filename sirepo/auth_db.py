@@ -42,7 +42,7 @@ UserRole = None
 UserRoleInvite = None
 
 
-def all_uids():
+def all_uids(qcall):
     return UserRegistration.search_all_for_column("uid")
 
 
@@ -284,13 +284,16 @@ def init_module():
                 return [r[0] for r in cls._session().query(cls.role.distinct()).all()]
 
         @classmethod
-        def add_roles(cls, qcall, role_or_roles, expiration=None):
-            if isinstance(role_or_roles, str):
-                role_or_roles = [role_or_roles]
+        def add_roles(cls, qcall, roles, expiration=None):
             with sirepo.util.THREAD_LOCK:
-                for r in role_or_roles:
+                u = qcall.auth.logged_in_user()
+                for r in roles:
                     try:
-                        UserRole(uid=uid, role=r, expiration=expiration).save()
+                        UserRole(
+                            uid=u,
+                            role=r,
+                            expiration=expiration,
+                        ).save()
                     except sqlalchemy.exc.IntegrityError:
                         pass
                 audit_proprietary_lib_files(qcall=qcall)
@@ -299,7 +302,7 @@ def init_module():
         def add_role_or_update_expiration(cls, qcall, role, expiration):
             with sirepo.util.THREAD_LOCK:
                 if not cls.has_role(qcall, role):
-                    cls.add_roles(qcall=qcall, role=role, expiration=expiration)
+                    cls.add_roles(qcall=qcall, roles=[role], expiration=expiration)
                     return
                 r = cls.search_by(uid=qcall.auth.logged_in_user(), role=role)
                 r.expiration = expiration
@@ -398,9 +401,9 @@ def init_module():
             return [PKDict(zip(r.keys(), r)) for r in q]
 
         @classmethod
-        def get_status(cls, uid, role):
+        def get_status(cls, qcall, role):
             with sirepo.util.THREAD_LOCK:
-                s = cls.search_by(uid=uid, role=role)
+                s = cls.search_by(uid=qcall.auth.logged_in_user(), role=role)
                 if not s:
                     return None
                 return sirepo.auth_role.ModerationStatus.check(s.status)

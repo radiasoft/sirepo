@@ -519,9 +519,9 @@ class _ComputeJob(_Supervisor):
             )
             with sirepo.quest.start() as qcall:
                 for u, v in _get_uids_and_files():
-                    qcall.auth.logged_in_user_set(u)
-                    for f in v:
-                        _purge_sim(jid=f.purebasename)
+                    with qcall.auth.logged_in_user_set(u):
+                        for f in v:
+                            _purge_sim(jid=f.purebasename)
                     await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())
