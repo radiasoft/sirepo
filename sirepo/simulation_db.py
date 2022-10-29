@@ -495,16 +495,23 @@ def read_json(filename):
     return json_load(json_filename(filename))
 
 
-def read_simulation_json(sim_type, *args, **kwargs):
+def read_simulation_json(sim_type, sid, qcall):
     """Calls `open_json_file` and fixes up data, possibly saving
 
     Args:
         sim_type (str): simulation type
+        sid (str): simulation id
 
     Returns:
         data (dict): simulation data
     """
-    return open_json_file(sim_type, fixup=True, save=True, *args, **kwargs)
+    return open_json_file(
+        sim_type=sim_type,
+        fixup=True,
+        save=True,
+        sid=sid,
+        qcall=qcall,
+    )
 
 
 def save_new_example(data, uid=None, qcall=None):
@@ -802,7 +809,7 @@ def validate_sim_db_file_path(path, uid):
     ), f"invalid path={path} or uid={uid}"
 
 
-def validate_serial(req_data):
+def validate_serial(req_data, qcall):
     """Verify serial in data validates
 
     Args:
@@ -817,7 +824,7 @@ def validate_serial(req_data):
         sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
         sid = req_data.models.simulation.simulationId
         req_ser = req_data.models.simulation.simulationSerial
-        curr = read_simulation_json(sim_type, sid=sid)
+        curr = read_simulation_json(sim_type, sid=sid, qcall=qcall)
         curr_ser = curr.models.simulation.simulationSerial
         if not req_ser is None:
             if req_ser == curr_ser:

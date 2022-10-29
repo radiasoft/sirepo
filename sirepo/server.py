@@ -426,7 +426,9 @@ class API(sirepo.quest.API):
             f = getattr(req.template, "export_jupyter_notebook", None)
             if not f:
                 sirepo.util.raise_not_found(f"API not supported for tempate={req.type}")
-            return f(simulation_db.read_simulation_json(req.type, sid=req.id))
+            return f(
+                simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
+            )
 
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         return self.reply_attachment(
@@ -463,7 +465,7 @@ class API(sirepo.quest.API):
     def api_pythonSource(self, simulation_type, simulation_id, model=None, title=None):
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         m = model and req.sim_data.parse_model(model)
-        d = simulation_db.read_simulation_json(req.type, sid=req.id)
+        d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
         suffix = simulation_db.get_schema(
             simulation_type
         ).constants.simulationSourceExtension
@@ -512,7 +514,7 @@ class API(sirepo.quest.API):
         # do not fixup_old_data yet
         req = self.parse_post(id=True, template=True)
         d = req.req_data
-        simulation_db.validate_serial(d)
+        simulation_db.validate_serial(d, qcall=self)
         return self._simulation_data_reply(
             req,
             simulation_db.save_simulation_json(d, fixup=True, modified=True),
@@ -688,7 +690,7 @@ class API(sirepo.quest.API):
                 e = req.template.validate_file(req.file_type, t)
             if (
                 not e
-                and req.sim_data.lib_file_exists(req.filename)
+                and req.sim_data.lib_file_exists(req.filename, qcall=sefl)
                 and not self.sreq.internal_req.form.get("confirm")
             ):
                 in_use = _simulations_using_file(req, ignore_sim_id=req.id)
@@ -867,6 +869,7 @@ def _init_proxy_react():
 def _lib_file_write_path(req):
     return req.sim_data.lib_file_write_path(
         req.sim_data.lib_file_name_with_type(req.filename, req.file_type),
+        qcall=req.qcall,
     )
 
 

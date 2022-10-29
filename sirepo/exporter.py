@@ -87,7 +87,7 @@ def _create_zip(sim, want_python, out_dir, qcall):
         py.path.Local: zip file name
     """
     path = out_dir.join(sim.id + ".zip")
-    data = simulation_db.open_json_file(sim.type, sid=sim.id)
+    data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
     simulation_db.update_rsmanifest(data)
     data.pkdel("report")
     files = sim_data.get_class(data).lib_files_for_export(data)

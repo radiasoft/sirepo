@@ -96,15 +96,16 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
         needed = set()
         s = sirepo.sim_data.get_class(data.simulationType)
+        u = qcall.auth.logged_in_user()
         for n in s.lib_file_basenames(data):
             # TODO(robnagler) this does not allow overwrites of lib files,
             # but it needs to be modularized
-            if s.lib_file_exists(n):
+            if s.lib_file_exists(n, qcall=qcall):
                 continue
             # TODO(robnagler) raise useralert instead of an assert
             assert n in zipped, "auxiliary file={} missing in archive".format(n)
             needed.add(n)
         for b, src in zipped.items():
             if b in needed:
-                src.copy(s.lib_file_write_path(b))
+                src.copy(s.lib_file_write_path(b, uid=u))
         return data

@@ -299,9 +299,9 @@ class SimDataBase(object):
         return sorted(set(cls._lib_file_basenames(data)))
 
     @classmethod
-    def lib_file_exists(cls, basename):
+    def lib_file_exists(cls, basename, qcall=None):
         cls._assert_server_side()
-        return bool(cls._lib_file_abspath(basename))
+        return bool(cls._lib_file_abspath(basename, qcall=qcall))
 
     @classmethod
     def lib_file_in_use(cls, data, basename):
@@ -362,11 +362,13 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def lib_file_write_path(cls, basename, uid=None):
+    def lib_file_write_path(cls, basename, qcall=None):
         cls._assert_server_side()
         from sirepo import simulation_db
 
-        return simulation_db.simulation_lib_dir(cls.sim_type(), uid=uid).join(basename)
+        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
+            basename
+        )
 
     @classmethod
     def lib_files_for_export(cls, data):
