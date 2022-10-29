@@ -42,10 +42,10 @@ export abstract class View {
      * parent elements can make required hooks
      * @param {*} config 
      */
-    abstract getFormDependencies(config): (config: SchemaView) => Dependency[];
+    abstract getFormDependencies(config: SchemaView): Dependency[];
     /**
      * Creates a new component for this view
      * @param {{ config: * }} props 
      */
-    abstract component(props): React.FunctionComponent;
+    component: React.FunctionComponent;
 }
