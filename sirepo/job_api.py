@@ -51,7 +51,7 @@ class API(sirepo.quest.API):
         return self.request(
             _request_content=PKDict(
                 uid=u,
-                userDir=str(sirepo.simulation_db.user_path(u)),
+                userDir=str(sirepo.simulation_db.user_path(qcall=self)),
             ),
         )
 
@@ -295,7 +295,7 @@ class API(sirepo.quest.API):
             uid=self.auth.logged_in_user(),
         ).pkupdate(
             computeJid=s.parse_jid(d, uid=b.uid),
-            userDir=str(sirepo.simulation_db.user_path(b.uid)),
+            userDir=str(sirepo.simulation_db.user_path(qcall=self)),
         )
         return self._run_mode(b)
 

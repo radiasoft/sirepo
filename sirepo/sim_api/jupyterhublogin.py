@@ -152,7 +152,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
         return u
 
 
-def delete_user_dir(qcall, uid):
+def delete_user_dir(qcall):
     n = _unchecked_jupyterhub_user_name(qcall, have_simulation_db=False)
     if not n:
         return

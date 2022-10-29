@@ -288,10 +288,18 @@ class _Auth(sirepo.quest.Attr):
             method=self._qcall_bound_method(),
         )
 
+    @contextlib.contextmanager
     def logged_in_user_set(self, uid, method=METHOD_GUEST):
-        """Ephemeral login"""
-        self._logged_in_user = uid
-        self._logged_in_method = method
+        """Ephemeral login or may be used to logout"""
+        u = self._logged_in_user
+        m = self._logged_in_method
+        try:
+            self._logged_in_user = uid
+            self._logged_in_method = None if uid is None else method
+            yield
+        finally:
+            self._logged_in_user = u
+            self._logged_in_method = m
 
     def login(
         self,

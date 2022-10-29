@@ -46,13 +46,13 @@ def all_uids():
     return UserRegistration.search_all_for_column("uid")
 
 
-def audit_proprietary_lib_files(uid, force=False, sim_types=None):
+def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
     """Add/removes proprietary files based on a user's roles
 
     For example, add the Flash tarball if user has the flash role.
 
     Args:
-      uid (str): The uid of the user to audit
+      qcall (quest.API): logged in user
       force (bool): Overwrite existing lib files with the same name as new ones
       sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
     """
@@ -66,7 +66,7 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
 
     def _add(proprietary_code_dir, sim_type, sim_data_class):
         p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
-        with sirepo.simulation_db.tmp_dir(chdir=True, uid=uid) as t:
+        with sirepo.simulation_db.tmp_dir(chdir=True, qcall=qcall) as t:
             d = t.join(p.basename)
             d.mksymlinkto(p, absolute=False)
             subprocess.check_output(
@@ -80,7 +80,7 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
             )
             # lib_dir may not exist: git.radiasoft.org/ops/issues/645
             l = pykern.pkio.mkdir_parent(
-                sirepo.simulation_db.simulation_lib_dir(sim_type, uid=uid),
+                sirepo.simulation_db.simulation_lib_dir(sim_type, qcall=qcall),
             )
             e = [f.basename for f in pykern.pkio.sorted_glob(l.join("*"))]
             for f in sim_data_class.proprietary_code_lib_file_basenames():
@@ -93,6 +93,7 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
             s
         ), f"sim_types={sim_types} not a subset of proprietary_sim_types={s}"
         s = sim_types
+    u = qcall.auth.logged_in_user()
     for t in s:
         c = sirepo.sim_data.get_class(t)
         if not c.proprietary_code_tarball():
@@ -102,14 +103,16 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
             "; run: sirepo setup_dev" if pykern.pkconfig.channel_in("dev") else ""
         )
         r = UserRole.has_role(
-            uid,
-            sirepo.auth_role.for_sim_type(t),
+            qcall=qcall,
+            role=sirepo.auth_role.for_sim_type(t),
         )
         if r:
             _add(d, t, c)
             continue
         # SECURITY: User no longer has access so remove all artifacts
-        pykern.pkio.unchecked_remove(sirepo.simulation_db.simulation_dir(t, uid=uid))
+        pykern.pkio.unchecked_remove(
+            sirepo.simulation_db.simulation_dir(t, qcall=qcall)
+        )
 
 
 def db_filename():
@@ -281,7 +284,7 @@ def init_module():
                 return [r[0] for r in cls._session().query(cls.role.distinct()).all()]
 
         @classmethod
-        def add_roles(cls, uid, role_or_roles, expiration=None):
+        def add_roles(cls, qcall, role_or_roles, expiration=None):
             if isinstance(role_or_roles, str):
                 role_or_roles = [role_or_roles]
             with sirepo.util.THREAD_LOCK:
@@ -290,51 +293,54 @@ def init_module():
                         UserRole(uid=uid, role=r, expiration=expiration).save()
                     except sqlalchemy.exc.IntegrityError:
                         pass
-                audit_proprietary_lib_files(uid)
+                audit_proprietary_lib_files(qcall=qcall)
 
         @classmethod
-        def add_role_or_update_expiration(cls, uid, role, expiration):
+        def add_role_or_update_expiration(cls, qcall, role, expiration):
             with sirepo.util.THREAD_LOCK:
-                if not cls.has_role(uid, role):
-                    cls.add_roles(uid, role, expiration=expiration)
+                if not cls.has_role(qcall, role):
+                    cls.add_roles(qcall=qcall, role=role, expiration=expiration)
                     return
-                r = cls.search_by(uid=uid, role=role)
+                r = cls.search_by(uid=qcall.auth.logged_in_user(), role=role)
                 r.expiration = expiration
                 r.save()
 
         @classmethod
-        def delete_roles(cls, uid, roles):
+        def delete_roles(cls, qcall, roles):
             with sirepo.util.THREAD_LOCK:
                 cls.execute(
                     sqlalchemy.delete(cls)
                     .where(
-                        cls.uid == uid,
+                        cls.uid == qcall.auth.logged_in_user(),
                     )
                     .where(
                         cls.role.in_(roles),
                     )
                 )
                 cls._session().commit()
-                audit_proprietary_lib_files(uid)
+                audit_proprietary_lib_files(qcall=qcall)
 
         @classmethod
-        def get_roles(cls, uid):
+        def get_roles(cls, qcall):
             with sirepo.util.THREAD_LOCK:
                 return UserRole.search_all_for_column(
                     "role",
-                    uid=uid,
+                    uid=qcall.auth.logged_in_user(),
                 )
 
         @classmethod
-        def has_role(cls, uid, role):
+        def has_role(cls, qcall, role):
             with sirepo.util.THREAD_LOCK:
-                return bool(cls.search_by(uid=uid, role=role))
+                return bool(cls.search_by(uid=qcall.auth.logged_in_user(), role=role))
 
         @classmethod
-        def is_expired(cls, uid, role):
+        def is_expired(cls, qcall, role):
             with sirepo.util.THREAD_LOCK:
-                assert cls.has_role(uid, role), f"No role for uid={uid} and role={role}"
-                r = cls.search_by(uid=uid, role=role)
+                u = qcall.auth.logged_in_user()
+                assert cls.has_role(
+                    qcall=qcall, role=role
+                ), f"No role for uid={u} and role={role}"
+                r = cls.search_by(uid=u, role=role)
                 if not r.expiration:
                     # Roles with no expiration can't expire
                     return False

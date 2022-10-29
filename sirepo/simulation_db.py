@@ -130,9 +130,7 @@ def default_data(sim_type):
 
 def delete_simulation(simulation_type, sid, uid=None, qcall=None):
     """Deletes the simulation's directory."""
-    pkio.unchecked_remove(
-        simulation_dir(simulation_type, sid, uid=_uid_arg(uid, qcall))
-    )
+    pkio.unchecked_remove(simulation_dir(simulation_type, sid, uid=uid, qcall=qcall))
 
 
 def delete_user(uid):
@@ -303,7 +301,7 @@ def iterate_simulation_datafiles(
     simulation_type, op, search=None, uid=None, qcall=None
 ):
     res = []
-    sim_dir = simulation_dir(simulation_type, uid=_uid_arg(uid, qcall))
+    sim_dir = simulation_dir(simulation_type, uid=uid, qcall=qcall)
     for p in pkio.sorted_glob(sim_dir.join("*", SIMULATION_DATA_FILE)):
         try:
             data = open_json_file(
@@ -390,7 +388,7 @@ def open_json_file(
     Returns:
         dict: data
     """
-    p = path or sim_data_file(sim_type, sid, uid=_uid_arg(uid, qcall))
+    p = path or sim_data_file(sim_type, sid, uid=uid, qcall=qcall)
     if not p.exists():
         if path:
             util.raise_not_found("path={} not found", path)
@@ -519,19 +517,20 @@ def save_new_example(data, uid=None, qcall=None):
     return save_new_simulation(
         data,
         do_validate=False,
-        uid=_uid_arg(uid, qcall),
+        uid=uid,
+        qcall=qcall,
     )
 
 
 def save_new_simulation(data, do_validate=True, uid=None, qcall=None):
-    uid = _uid_arg(uid, qcall)
-    d = simulation_dir(data.simulationType, uid=uid)
+    d = simulation_dir(data.simulationType, uid=uid, qcall=qcall)
     sid = _random_id(d, data.simulationType).id
     data.models.simulation.simulationId = sid
     return save_simulation_json(
         data,
         do_validate=do_validate,
         uid=uid,
+        qcall=qcall,
         fixup=True,
         modified=True,
     )
@@ -549,7 +548,6 @@ def save_simulation_json(
         do_validate (bool): call srschema.validate_name [True]
         modified (bool): call prepare_for_save and update lastModified [False]
     """
-    uid = _uid_arg(uid, qcall)
     if fixup:
         data = fixup_old_data(data)[0]
         # we cannot change the logged in user so we need to
@@ -558,12 +556,12 @@ def save_simulation_json(
         if modified:
             t = sirepo.template.import_module(data.simulationType)
             if hasattr(t, "prepare_for_save"):
-                data = t.prepare_for_save(data, uid=uid)
+                data = t.prepare_for_save(data, qcall=qcall)
     # old implementation value
     data.pkdel("computeJobHash")
     s = data.models.simulation
     sim_type = data.simulationType
-    fn = sim_data_file(sim_type, s.simulationId, uid=uid)
+    fn = sim_data_file(sim_type, s.simulationId, uid=uid, qcall=qcall)
     with util.THREAD_LOCK:
         need_validate = True
         try:
@@ -579,6 +577,7 @@ def save_simulation_json(
                     sim_type,
                     lambda res, _, d: res.append(d),
                     PKDict({"simulation.folder": s.folder}),
+                    qcall=qcall,
                     uid=uid,
                 ),
                 SCHEMA_COMMON.common.constants.maxSimCopies,
@@ -618,7 +617,7 @@ def sim_data_file(sim_type, sim_id, uid=None, qcall=None):
     Returns:
         py.path.local: simulation path
     """
-    return simulation_dir(sim_type, sim_id, uid=_uid_arg(uid, qcall)).join(
+    return simulation_dir(sim_type, sim_id, uid=uid, qcall=qcall).join(
         SIMULATION_DATA_FILE
     )
 
@@ -635,11 +634,11 @@ def simulation_dir(simulation_type, sid=None, uid=None, qcall=None):
         sid (str): simulation id (optional)
         uid (str): user id
     """
-    p = user_path(uid=_uid_arg(uid, qcall))
+    p = user_path(uid=uid, qcall=qcall)
     d = p.join(sirepo.template.assert_sim_type(simulation_type))
     with util.THREAD_LOCK:
         if not d.exists():
-            _create_lib_and_examples(p, d.basename)
+            _create_lib_and_examples(p, d.basename, uid=uid, qcall=qcall)
     if not sid:
         return d
     return d.join(assert_sid(sid))
@@ -666,7 +665,7 @@ def simulation_lib_dir(simulation_type, uid=None, qcall=None):
         py.path: directory name
     """
     # POSIT: _create_lib_and_examples
-    return simulation_dir(simulation_type, uid=_uid_arg(uid, qcall)).join(_LIB_DIR)
+    return simulation_dir(simulation_type, uid=uid, qcall=qcall).join(_LIB_DIR)
 
 
 def simulation_run_dir(req_or_data, remove_dir=False, uid=None, qcall=None):
@@ -686,7 +685,8 @@ def simulation_run_dir(req_or_data, remove_dir=False, uid=None, qcall=None):
     d = simulation_dir(
         t,
         s.parse_sid(req_or_data),
-        uid=_uid_arg(uid, qcall),
+        uid=uid,
+        qcall=qcall,
     ).join(s.compute_model(req_or_data))
     if remove_dir:
         pkio.unchecked_remove(d)
@@ -712,7 +712,7 @@ def tmp_dir(chdir=False, uid=None, qcall=None):
     """
     d = None
     try:
-        p = user_path(uid or qcall.auth.logged_in_user(), check=True)
+        p = user_path(uid=uid, qcall=qcall, check=True)
         d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR))["path"]
         pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
@@ -767,7 +767,7 @@ def user_create():
     return _random_id(user_path_root())["id"]
 
 
-def user_path(uid, check=False):
+def user_path(uid=None, qcall=None, check=False):
     """Path for uid or root of all users
 
     Args:
@@ -776,7 +776,7 @@ def user_path(uid, check=False):
     Return:
         py.path: root user's directory
     """
-    assert uid
+    uid = _uid_arg(uid, qcall)
     d = user_path_root().join(uid)
     if check and not d.check():
         raise util.UserDirNotFound(user_dir=d, uid=uid)
@@ -855,13 +855,13 @@ def write_json(filename, data):
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
-def _create_lib_and_examples(user_dir, sim_type):
+def _create_lib_and_examples(user_dir, sim_type, uid=None, qcall=None):
     # POSIT: simulation_lib_dir
     pkio.mkdir_parent(user_dir.join(sim_type).join(_LIB_DIR))
     # POSIT: user_dir structure
-    u = user_dir.basename
+    uid = user_dir.basename
     for s in examples(sim_type):
-        save_new_example(s, uid=u)
+        save_new_example(s, uid=uid, qcall=qcall)
 
 
 def _files_in_schema(schema):

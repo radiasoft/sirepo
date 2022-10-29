@@ -37,8 +37,9 @@ def audit_proprietary_lib_files(*uid):
         *uid: UID(s) of the user(s) to audit. If None, all users will be audited.
     """
     with sirepo.quest.start() as qcall:
-        for u in uid or sirepo.auth_db.all_uids():
-            sirepo.auth_db.audit_proprietary_lib_files(u)
+        for u in uid or sirepo.auth_db.all_uids(qcall):
+            with qcall.auth.logged_in_user_set(u):
+                sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
 
 
 def create_examples():
@@ -79,12 +80,12 @@ def delete_user(uid):
     with sirepo.quest.start() as qcall:
         if qcall.auth.unchecked_get_user(uid) is None:
             return
-        qcall.auth.logged_in_user_set(uid)
-        if sirepo.template.is_sim_type("jupyterhublogin"):
-            from sirepo.sim_api import jupyterhublogin
+        with qcall.auth.logged_in_user_set(uid):
+            if sirepo.template.is_sim_type("jupyterhublogin"):
+                from sirepo.sim_api import jupyterhublogin
 
-            jupyterhublogin.delete_user_dir(qcall, uid)
-        simulation_db.delete_user(uid)
+                jupyterhublogin.delete_user_dir(qcall=qcall)
+            simulation_db.delete_user(qcall=qcall)
         # This needs to be done last so we have access to the records in
         # previous steps.
         sirepo.auth_db.UserDbBase.delete_user(uid)
@@ -190,10 +191,10 @@ def _iterate_sims_by_users(qcall, all_sim_types):
     for d in pkio.sorted_glob(simulation_db.user_path_root().join("*")):
         if _is_src_dir(d):
             continue
-        qcall.auth.logged_in_user_set(simulation_db.uid_from_dir_name(d))
-        s = _get_named_example_sims(qcall, all_sim_types)
-        for t in s.keys():
-            yield (t, s)
+        with qcall.auth.logged_in_user_set(simulation_db.uid_from_dir_name(d)):
+            s = _get_named_example_sims(qcall, all_sim_types)
+            for t in s.keys():
+                yield (t, s)
 
 
 def _revert(ops, examples):
