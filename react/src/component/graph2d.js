@@ -1,7 +1,7 @@
 // import { React }
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 import { Zoom } from '@visx/zoom';
 import { ClipPath, Scale, Shape } from '@visx/visx';
 import { LegendOrdinal } from "@visx/legend";
@@ -12,7 +12,7 @@ import { constrainZoom, useGraphContentBounds } from "../utility/component";
  *
  * @param {{
  *  plots: [
- *      { color, label, points: [{ x: float, y:float }] }
+ *      { color, label, points: [{ x: number, y: number }] }
  *  ],
  *  xRange,
  *  yRange,

@@ -1,7 +1,7 @@
 import { Button } from "react-bootstrap";
 import usePortal from "react-useportal"; 
 import { ContextPanelController } from "../context";
-import { useContext, useRef } from "react";
+import React, { useContext, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import html2canvas from 'html2canvas';

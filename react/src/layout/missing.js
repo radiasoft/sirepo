@@ -1,7 +1,7 @@
 import { View } from "./layout";
 
 export class MissingLayout extends View {
-    getFormDependencies = () => {
+    getFormDependencies = (config) => {
         return [];
     }
 

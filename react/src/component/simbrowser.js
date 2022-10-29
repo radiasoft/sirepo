@@ -1,5 +1,5 @@
 import { trimPathSeparators, joinPath } from "../utility/path";
-import { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
     Accordion,
     Container,
@@ -10,13 +10,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { ContextAppName, ContextRelativeRouterHelper, ContextSimulationListPromise } from "../context";
 import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react-router-dom";
-import React from "react";
 import { SimulationRoot } from "./simulation";
 import { RouteHelper } from "../hook/route";
 import "./simbrowser.scss";
 import { SrNavbar, NavbarContainerId } from "./navbar";
 import { titleCaseString } from "../utility/string";
-import usePortal from "react-useportal";
 
 function buildSimulationsTree(simulations) {
     let root = {

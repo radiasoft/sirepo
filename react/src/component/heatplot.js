@@ -1,7 +1,7 @@
 // import { React }
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
-import { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import { useCanvas, useCanvasContext } from "./canvascontext";
 import { Canvas } from "./canvas";
 import { DynamicAxis } from "./axis";

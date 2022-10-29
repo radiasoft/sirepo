@@ -1,6 +1,5 @@
-import { useEffect, useContext } from "react";
+import React from "react";
 import { Graph2d } from "../component/graph2d";
-import { ContextPanelController } from "../context";
 import { View } from "./layout";
 
 export function apiResponseToGraph2dConfig(apiResponse) {

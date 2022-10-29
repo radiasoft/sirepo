@@ -1,7 +1,7 @@
 // import { React }
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Axis } from '@visx/visx';
 import { format } from "d3-format";
 import "./axis.scss";

@@ -1,4 +1,5 @@
 import "./table.scss";
+import React from "react";
 
 export function Table(props) {
     let { rows, columnNames, rowNames } = props;

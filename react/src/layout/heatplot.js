@@ -3,6 +3,7 @@
 /* eslint no-unused-vars: 0 */
 import { Heatplot } from "../component/heatplot";
 import { View } from "./layout";
+import React from "react";
 
 function apiResponseToHeatplotConfig(apiResponse) {
     let {

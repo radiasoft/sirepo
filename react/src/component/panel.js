@@ -4,7 +4,7 @@ import {
     Button,
     Modal
 } from "react-bootstrap";
-import { useState, Fragment } from "react";
+import React, { useState, Fragment } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { EditorForm } from "./form";
