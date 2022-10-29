@@ -542,6 +542,7 @@ def save_simulation_json(
         do_validate (bool): call srschema.validate_name [True]
         modified (bool): call prepare_for_save and update lastModified [False]
     """
+    uid = _uid_arg(uid, qcall)
     if fixup:
         data = fixup_old_data(data)[0]
         # we cannot change the logged in user so we need to
@@ -550,12 +551,11 @@ def save_simulation_json(
         if modified:
             t = sirepo.template.import_module(data.simulationType)
             if hasattr(t, "prepare_for_save"):
-                data = t.prepare_for_save(data)
+                data = t.prepare_for_save(data, uid=uid)
     # old implementation value
     data.pkdel("computeJobHash")
     s = data.models.simulation
     sim_type = data.simulationType
-    uid = _uid_arg(uid, qcall)
     fn = sim_data_file(sim_type, s.simulationId, uid=uid)
     with util.THREAD_LOCK:
         need_validate = True

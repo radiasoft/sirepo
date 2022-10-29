@@ -100,8 +100,9 @@ def _20210211_upgrade_runner_to_job_db(qcall):
         d = PKDict(
             computeJid=c.parse_jid(i, u),
             computeJobHash=c.compute_job_hash(
-                i
-            ),  # TODO(e-carlin): Another user cookie problem
+                i,
+                qcall=qcall,
+            ),
             computeJobSerial=t,
             computeJobStart=t,
             computeModel=c.compute_model(i),

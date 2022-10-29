@@ -471,13 +471,14 @@ def export_rsopt_config(data, filename):
     return fz
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
+    uid = qcall.auth.logged_in_user()
     if data.method == "model_list":
         res = []
         model_name = data.model_name
         if model_name == "electronBeam":
             res.extend(get_predefined_beams())
-        res.extend(_load_user_model_list(model_name))
+        res.extend(_load_user_model_list(model_name, uid=uid))
         if model_name == "electronBeam":
             for beam in res:
                 srw_common.process_beam_parameters(beam)
@@ -487,7 +488,11 @@ def get_application_data(data, **kwargs):
 
         return Convert().to_shadow(data)
     if data.method == "delete_user_models":
-        return _delete_user_models(data.electron_beam, data.tabulated_undulator)
+        return _delete_user_models(
+            data.electron_beam,
+            data.tabulated_undulator,
+            uid=uid,
+        )
     elif data.method == "compute_undulator_length":
         return compute_undulator_length(data.tabulated_undulator)
     elif data.method == "processedImage":
@@ -713,7 +718,9 @@ def prepare_for_client(data, qcall, **kwargs):
             continue
         model = data.models[model_name]
         if _SIM_DATA.srw_is_user_defined_model(model):
-            user_model_list = _load_user_model_list(model_name)
+            user_model_list = _load_user_model_list(
+                model_name, uid=qcall.auth.logged_in_user()
+            )
             search_model = None
             models_by_id = _user_model_map(user_model_list, "id")
             if "id" in model and model.id in models_by_id:
@@ -738,7 +745,9 @@ def prepare_for_client(data, qcall, **kwargs):
                     user_model_list, "id", data.models.simulation.simulationId + " {}"
                 )
                 user_model_list.append(_create_user_model(data, model_name))
-                _save_user_model_list(model_name, user_model_list)
+                _save_user_model_list(
+                    model_name, user_model_list, uid=qcall.auth.logged_in_user()
+                )
                 save = True
     if save:
         pkdc(
@@ -749,7 +758,7 @@ def prepare_for_client(data, qcall, **kwargs):
     return data
 
 
-def prepare_for_save(data):
+def prepare_for_save(data, uid):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         if (
             model_name == "tabulatedUndulator"
@@ -759,20 +768,20 @@ def prepare_for_save(data):
             continue
         model = data.models[model_name]
         if _SIM_DATA.srw_is_user_defined_model(model):
-            user_model_list = _load_user_model_list(model_name)
+            user_model_list = _load_user_model_list(model_name, uid=uid)
             models_by_id = _user_model_map(user_model_list, "id")
 
             if model.id not in models_by_id:
                 pkdc("adding new model: {}", model.name)
                 user_model_list.append(_create_user_model(data, model_name))
-                _save_user_model_list(model_name, user_model_list)
+                _save_user_model_list(model_name, user_model_list, uid=uid)
             elif models_by_id[model.id] != model:
                 pkdc("replacing beam: {}: {}", model.id, model.name)
                 for i, m in enumerate(user_model_list):
                     if m.id == model.id:
                         pkdc("found replace beam, id: {}, i: {}", m.id, i)
                         user_model_list[i] = _create_user_model(data, model_name)
-                        _save_user_model_list(model_name, user_model_list)
+                        _save_user_model_list(model_name, user_model_list, uid=uid)
                         break
     return data
 
@@ -1431,17 +1440,17 @@ def _create_user_model(data, model_name):
     return model
 
 
-def _delete_user_models(electron_beam, tabulated_undulator):
+def _delete_user_models(electron_beam, tabulated_undulator, uid=None):
     """Remove the beam and undulator user model list files"""
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         model = electron_beam if model_name == "electronBeam" else tabulated_undulator
         if not model or "id" not in model:
             continue
-        user_model_list = _load_user_model_list(model_name)
+        user_model_list = _load_user_model_list(model_name, uid=uid)
         for i, m in enumerate(user_model_list):
             if m.id == model.id:
                 del user_model_list[i]
-                _save_user_model_list(model_name, user_model_list)
+                _save_user_model_list(model_name, user_model_list, uid=uid)
                 break
     return PKDict()
 
@@ -2001,15 +2010,15 @@ def _is_for_rsopt(report):
     return report == _SIM_DATA.EXPORT_RSOPT
 
 
-def _load_user_model_list(model_name):
-    f = _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name])
+def _load_user_model_list(model_name, uid=None):
+    f = _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name], uid=uid)
     try:
         if f.exists():
             return simulation_db.read_json(f)
     except Exception:
         pkdlog("user list read failed, resetting contents: {}", f)
-    _save_user_model_list(model_name, [])
-    return _load_user_model_list(model_name)
+    _save_user_model_list(model_name, [], uid=uid)
+    return _load_user_model_list(model_name, uid=uid)
 
 
 def _parse_srw_log(run_dir):
@@ -2278,10 +2287,10 @@ def _safe_beamline_item_name(name, names):
     return current
 
 
-def _save_user_model_list(model_name, beam_list):
+def _save_user_model_list(model_name, beam_list, uid):
     pkdc("saving {} list", model_name)
     simulation_db.write_json(
-        _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name]),
+        _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name], uid=uid),
         beam_list,
     )
 

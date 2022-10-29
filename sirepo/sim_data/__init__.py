@@ -121,7 +121,7 @@ class SimDataBase(object):
     _LIB_RESOURCE_DIR = "lib"
 
     @classmethod
-    def compute_job_hash(cls, data):
+    def compute_job_hash(cls, data, qcall):
         """Hash fields related to data and set computeJobHash
 
         Only needs to be unique relative to the report, not globally unique
@@ -164,7 +164,7 @@ class SimDataBase(object):
         res.update(
             "".join(
                 (
-                    str(cls.lib_file_abspath(b, data=data).mtime())
+                    str(cls.lib_file_abspath(b, data=data, qcall=qcall).mtime())
                     for b in sorted(cls.lib_file_basenames(data))
                 ),
             ).encode()
@@ -267,7 +267,7 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
-    def lib_file_abspath(cls, basename, data=None):
+    def lib_file_abspath(cls, basename, data=None, qcall=None):
         """Returns full, unique paths of simulation files
 
         Args:
@@ -275,7 +275,7 @@ class SimDataBase(object):
         Returns:
             object: py.path.local to files (duplicates removed) OR py.path.local
         """
-        p = cls._lib_file_abspath(basename, data=data)
+        p = cls._lib_file_abspath(basename, data=data, qcall=qcall)
         if p:
             return p
         from sirepo import auth
@@ -362,11 +362,11 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def lib_file_write_path(cls, basename):
+    def lib_file_write_path(cls, basename, uid=None):
         cls._assert_server_side()
         from sirepo import simulation_db
 
-        return simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
+        return simulation_db.simulation_lib_dir(cls.sim_type(), uid=uid).join(basename)
 
     @classmethod
     def lib_files_for_export(cls, data):
@@ -649,7 +649,7 @@ class SimDataBase(object):
             )
 
     @classmethod
-    def _lib_file_abspath(cls, basename, data=None):
+    def _lib_file_abspath(cls, basename, data=None, qcall=None):
         import sirepo.simulation_db
 
         if _cfg.lib_file_uri:
@@ -663,7 +663,10 @@ class SimDataBase(object):
                 return p
         elif not _cfg.lib_file_resource_only:
             # Command line utility or server
-            f = sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
+            f = sirepo.simulation_db.simulation_lib_dir(
+                cls.sim_type(),
+                qcall=qcall,
+            ).join(basename)
             if f.check(file=True):
                 return f
         try:

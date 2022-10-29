@@ -100,7 +100,7 @@ class API(sirepo.quest.API):
     def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
         req = self.parse_post(id=True, folder=True, name=True, template=True)
-        d = simulation_db.read_simulation_json(req.type, sid=req.id)
+        d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
         d.models.simulation.pkupdate(
             name=req.name,
             folder=req.folder,
@@ -129,7 +129,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sid="SimId")
     def api_deleteSimulation(self):
         req = self.parse_post(id=True)
-        simulation_db.delete_simulation(req.type, req.id)
+        simulation_db.delete_simulation(req.type, req.id, qcall=self)
         return self.reply_ok()
 
     @sirepo.quest.Spec(
@@ -237,6 +237,7 @@ class API(sirepo.quest.API):
                 "simulation.name": simulation_name,
                 "simulation.isExample": True,
             },
+            qcall=self,
         )
         if len(rows) == 0:
             for s in simulation_db.examples(req.type):
@@ -249,6 +250,7 @@ class API(sirepo.quest.API):
                     {
                         "simulation.name": simulation_name,
                     },
+                    qcall=self,
                 )
                 break
             else:
@@ -553,7 +555,7 @@ class API(sirepo.quest.API):
         # TODO(robnagler) need real type transforms for inputs
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         try:
-            d = simulation_db.read_simulation_json(req.type, sid=req.id)
+            d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
             return self._simulation_data_reply(req, d)
         except sirepo.util.SPathNotFound:
             return _not_found(req)
@@ -567,6 +569,7 @@ class API(sirepo.quest.API):
                     req.type,
                     simulation_db.process_simulation_list,
                     req.req_data.get("search"),
+                    qcall=self,
                 ),
                 key=lambda row: row["name"],
             )
@@ -644,7 +647,9 @@ class API(sirepo.quest.API):
                 req,
             )
         for r in simulation_db.iterate_simulation_datafiles(
-            req.type, _simulation_data_iterator
+            req.type,
+            _simulation_data_iterator,
+            qcall=self,
         ):
             f = r.models.simulation.folder
             l = o.lower()
@@ -654,7 +659,7 @@ class API(sirepo.quest.API):
                 r.models.simulation.folder = n + f[len() :]
             else:
                 continue
-            simulation_db.save_simulation_json(r, fixup=False)
+            simulation_db.save_simulation_json(r, fixup=False, qcall=self)
         return self.reply_ok()
 
     @sirepo.quest.Spec(
@@ -873,7 +878,9 @@ def _simulation_data_iterator(res, path, data):
 def _simulations_using_file(req, ignore_sim_id=None):
     res = []
     for r in simulation_db.iterate_simulation_datafiles(
-        req.type, _simulation_data_iterator
+        req.type,
+        _simulation_data_iterator,
+        qcall=req.qcall,
     ):
         if not req.sim_data.lib_file_in_use(r, req.filename):
             continue

@@ -274,11 +274,12 @@ class API(sirepo.quest.API):
         # TODO(e-carlin): some of these fields are only used for some type of reqs
         b.pksetdefault(
             analysisModel=lambda: s.parse_model(d),
-            computeJobHash=lambda: d.get("computeJobHash") or s.compute_job_hash(d),
+            computeJobHash=lambda: d.get("computeJobHash")
+            or s.compute_job_hash(d, qcall=self),
             computeJobSerial=lambda: d.get("computeJobSerial", 0),
             computeModel=lambda: s.compute_model(d),
             isParallel=lambda: s.is_parallel(d),
-            runDir=lambda: str(simulation_db.simulation_run_dir(d)),
+            runDir=lambda: str(simulation_db.simulation_run_dir(d, qcall=self)),
             # TODO(robnagler) relative to srdb root
             simulationId=lambda: s.parse_sid(d),
             simulationType=lambda: d.simulationType,
