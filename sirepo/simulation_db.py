@@ -133,10 +133,10 @@ def delete_simulation(simulation_type, sid, qcall=None):
     pkio.unchecked_remove(simulation_dir(simulation_type, sid, qcall=qcall))
 
 
-def delete_user(uid):
+def delete_user(qcall):
     """Deletes a user's directory."""
     assert uid is not None
-    pkio.unchecked_remove(user_path(uid=uid))
+    pkio.unchecked_remove(user_path(qcall=qcall))
 
 
 def examples(app):
@@ -358,7 +358,7 @@ def migrate_guest_to_persistent_user(guest_uid, to_uid):
     """
     with util.THREAD_LOCK:
         for path in glob.glob(
-            str(user_path(guest_uid).join("*", "*", SIMULATION_DATA_FILE)),
+            str(user_path(uid=guest_uid).join("*", "*", SIMULATION_DATA_FILE)),
         ):
             data = read_json(path)
             sim = data["models"]["simulation"]
@@ -757,7 +757,8 @@ def user_path(uid=None, qcall=None, check=False):
     """Path for uid or root of all users
 
     Args:
-        uid (str): user id
+        uid (str): user id (qcall is preferred)
+        qcall (quest.API): logged in user
         check (bool): assert directory exists
     Return:
         py.path: root user's directory
@@ -778,21 +779,20 @@ def user_path_root():
     return sirepo.srdb.root().join(USER_ROOT_DIR)
 
 
-def validate_sim_db_file_path(path, uid):
+def validate_sim_db_file_path(path, qcall):
     from sirepo import job
 
+    u = qcall.auth.logged_in_user()
     assert re.search(
-        re.compile(
-            r"^{}/{}/{}/({})/{}/[a-zA-Z0-9-_\.]{{1,128}}$".format(
-                job.SIM_DB_FILE_URI,
-                USER_ROOT_DIR,
-                uid,
-                "|".join(feature_config.cfg().sim_types),
-                _ID_PARTIAL_RE_STR,
-            )
+        r"^{}/{}/{}/({})/{}/[a-zA-Z0-9-_\.]{{1,128}}$".format(
+            job.SIM_DB_FILE_URI,
+            USER_ROOT_DIR,
+            u,
+            "|".join(feature_config.cfg().sim_types),
+            _ID_PARTIAL_RE_STR,
         ),
         path,
-    ), f"invalid path={path} or uid={uid}"
+    ), f"invalid path={path} or uid={u}"
 
 
 def validate_serial(req_data, qcall):
@@ -847,7 +847,7 @@ def _create_lib_and_examples(user_dir, sim_type, qcall=None):
     # POSIT: user_dir structure
     uid = user_dir.basename
     for s in examples(sim_type):
-        save_new_example(s, uid=uid, qcall=qcall)
+        save_new_example(s, qcall=qcall)
 
 
 def _files_in_schema(schema):
@@ -1096,7 +1096,8 @@ def _uid_arg(uid=None, qcall=None):
     if uid:
         return uid
     if qcall:
-        return qcall.auth.logged_in_user()
+        # Avoid recursion to user_path with check_path=False
+        return qcall.auth.logged_in_user(check_path=False)
     uid = _cfg.logged_in_user
     assert uid, "uid not supplied and no logged_in_user config"
     return uid

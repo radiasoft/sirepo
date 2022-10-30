@@ -276,7 +276,7 @@ class _Auth(sirepo.quest.Attr):
             self._qcall_bound_method(),
         )
         if check_path:
-            simulation_db.user_path(u, check=True)
+            simulation_db.user_path(uid=u, check=True)
         return u
 
     def logged_in_user_name(self):
