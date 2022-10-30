@@ -301,7 +301,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return filename
 
     @classmethod
-    def lib_file_names_for_type(cls, file_type):
+    def lib_file_names_for_type(cls, file_type, qcall=None):
         return sorted(
             cls.srw_lib_file_paths_for_type(
                 file_type,
@@ -422,12 +422,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         return path.ext[1:] in cls.SRW_FILE_TYPE_EXTENSIONS.get(file_type, tuple())
 
     @classmethod
-    def srw_lib_file_paths_for_type(cls, file_type, op, want_user_lib_dir):
+    def srw_lib_file_paths_for_type(cls, file_type, op, want_user_lib_dir, qcall=None):
         """Search for files of type"""
         res = []
         for e in cls.SRW_FILE_TYPE_EXTENSIONS[file_type]:
             for f in cls._lib_file_list(
-                "*.{}".format(e), want_user_lib_dir=want_user_lib_dir
+                f"*.{e}",
+                want_user_lib_dir=want_user_lib_dir,
+                qcall=qcall,
             ):
                 x = op(f)
                 if x:

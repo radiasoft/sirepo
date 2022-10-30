@@ -316,7 +316,7 @@ class SimDataBase(object):
         return any(f for f in cls.lib_file_basenames(data) if f == basename)
 
     @classmethod
-    def lib_file_names_for_type(cls, file_type):
+    def lib_file_names_for_type(cls, file_type, qcall=None):
         """Return sorted list of files which match `file_type`
 
         Args:
@@ -327,7 +327,7 @@ class SimDataBase(object):
         return sorted(
             (
                 cls.lib_file_name_without_type(f.basename)
-                for f in cls._lib_file_list("{}.*".format(file_type))
+                for f in cls._lib_file_list("{}.*".format(file_type), qcall=qcall)
             )
         )
 
@@ -682,7 +682,7 @@ class SimDataBase(object):
         return None
 
     @classmethod
-    def _lib_file_list(cls, pat, want_user_lib_dir=True):
+    def _lib_file_list(cls, pat, want_user_lib_dir=True, qcall=None):
         """Unsorted list of absolute paths matching glob pat
 
         Only works locally.
@@ -706,7 +706,9 @@ class SimDataBase(object):
             res.update(
                 (f.basename, f)
                 for f in pkio.sorted_glob(
-                    simulation_db.simulation_lib_dir(cls.sim_type()).join(pat),
+                    simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
+                        pat
+                    ),
                 )
             )
         return res.values()

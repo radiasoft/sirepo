@@ -139,7 +139,7 @@ class API(sirepo.quest.API):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, filename=filename)
         n = req.sim_data.lib_file_name_without_type(req.filename)
-        p = req.sim_data.lib_file_abspath(req.filename)
+        p = req.sim_data.lib_file_abspath(req.filename, qcall=self)
         try:
             return self.reply_attachment(p, filename=n)
         except Exception as e:
@@ -203,7 +203,7 @@ class API(sirepo.quest.API):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, file_type=file_type)
         return self.reply_json(
-            req.sim_data.lib_file_names_for_type(req.file_type),
+            req.sim_data.lib_file_names_for_type(req.file_type, qcall=self),
         )
 
     @sirepo.quest.Spec(
@@ -517,7 +517,9 @@ class API(sirepo.quest.API):
         simulation_db.validate_serial(d, qcall=self)
         return self._simulation_data_reply(
             req,
-            simulation_db.save_simulation_json(d, fixup=True, modified=True),
+            simulation_db.save_simulation_json(
+                d, fixup=True, modified=True, qcall=self
+            ),
         )
 
     @sirepo.quest.Spec(
@@ -690,7 +692,7 @@ class API(sirepo.quest.API):
                 e = req.template.validate_file(req.file_type, t)
             if (
                 not e
-                and req.sim_data.lib_file_exists(req.filename, qcall=sefl)
+                and req.sim_data.lib_file_exists(req.filename, qcall=self)
                 and not self.sreq.internal_req.form.get("confirm")
             ):
                 in_use = _simulations_using_file(req, ignore_sim_id=req.id)
