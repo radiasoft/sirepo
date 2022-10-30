@@ -51,7 +51,7 @@ def read_json(text, qcall, sim_type=None):
     # need to verify_app_directory here, because this may be the
     # first point we know sim_type.
     data = simulation_db.json_load(text)
-    data = simulation_db.fixup_old_data(data)[0]
+    data = simulation_db.fixup_old_data(data, qcall=qcall)[0]
     assert (
         not sim_type or data.simulationType == sim_type
     ), "simulationType={} invalid, expecting={}".format(

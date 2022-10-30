@@ -66,7 +66,7 @@ def parse_post(qcall, kwargs):
     if r is None:
         r = parse_json(qcall)
     if kwargs.pkdel("fixup_old_data"):
-        r = simulation_db.fixup_old_data(r)[0]
+        r = simulation_db.fixup_old_data(r, qcall=qcall)[0]
     res.pkupdate(req_data=r)
     kwargs.pksetdefault(type=True)
 

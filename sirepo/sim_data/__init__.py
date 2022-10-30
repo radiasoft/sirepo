@@ -199,7 +199,7 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         """Update model data to latest schema
 
         Modifies `data` in place.

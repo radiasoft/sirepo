@@ -14,7 +14,7 @@ from sirepo.template import srw_common
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("srw")
 
 
-def do(template, data):
+def do(template, data, qcall):
     _do_beamline(template, data)
     dm = data.models
     data = _do_electron_beam(template, data)
@@ -32,7 +32,7 @@ def do(template, data):
             ).undulator_parameter
     if "length" in dm.tabulatedUndulator:
         tabulated_undulator = dm.tabulatedUndulator
-        und_length = template.compute_undulator_length(tabulated_undulator)
+        und_length = template.compute_undulator_length(tabulated_undulator, qcall=qcall)
         if _SIM_DATA.srw_uses_tabulated_zipfile(data) and "length" in und_length:
             dm.undulator.length = und_length.length
         del dm.tabulatedUndulator["length"]

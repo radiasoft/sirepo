@@ -313,7 +313,7 @@ def compute_crl_focus(model):
 def compute_undulator_length(model, qcall=None):
     if model.undulatorType == "u_i":
         return PKDict()
-    if _SIM_DATA.lib_file_exists(model.magneticFile, qcall=qcall):
+    if qcall and _SIM_DATA.lib_file_exists(model.magneticFile, qcall=qcall):
         z = _SIM_DATA.lib_file_abspath(model.magneticFile, qcall=qcall)
         return PKDict(
             length=_SIM_DATA.srw_format_float(

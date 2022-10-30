@@ -548,7 +548,7 @@ class API(sirepo.quest.API):
                     userCopySimulationId=simulation_db.find_user_simulation_copy(
                         sim_type=req.type,
                         sid=req.id,
-                        uid=self.auth.logged_in_user(),
+                        qcall=self,
                     ),
                 ),
             )

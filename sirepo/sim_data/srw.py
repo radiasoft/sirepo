@@ -90,7 +90,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return analysis_model
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         """Fixup data to match the most recent schema."""
         dm = data.models
         has_electron_beam_position = "electronBeamPosition" in dm
@@ -186,8 +186,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             ):
                 if f in e:
                     del e[f]
-        cls.__fixup_old_data_beamline(data)
-        cls.__fixup_old_data_by_template(data)
+        cls.__fixup_old_data_beamline(data, qcall)
+        cls.__fixup_old_data_by_template(data, qcall)
         hv = (
             "horizontalPosition",
             "horizontalRange",
@@ -570,14 +570,14 @@ class SimData(sirepo.sim_data.SimDataBase):
             beam.rmsDivergenceY = convert_gb_size("rmsSizeY", beam.photonEnergy)
 
     @classmethod
-    def __fixup_old_data_by_template(cls, data):
+    def __fixup_old_data_by_template(cls, data, qcall):
         import sirepo.template.srw_fixup
         import sirepo.template.srw
 
-        sirepo.template.srw_fixup.do(sirepo.template.srw, data)
+        sirepo.template.srw_fixup.do(sirepo.template.srw, data, qcall=qcall)
 
     @classmethod
-    def __fixup_old_data_beamline(cls, data):
+    def __fixup_old_data_beamline(cls, data, qcall):
         dm = data.models
         for i in dm.beamline:
             t = i.type

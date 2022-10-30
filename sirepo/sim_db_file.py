@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdlog
 from pykern.pkcollections import PKDict
 import re
 import sirepo.job
+import sirepo.quest
 import sirepo.simulation_db
 import sirepo.tornado
 import sirepo.util
@@ -58,7 +59,12 @@ class FileReq(tornado.web.RequestHandler):
         if not u:
             pkdlog("token={} not found", m.group(1))
             raise sirepo.tornado.error_forbidden()
-        sirepo.simulation_db.validate_sim_db_file_path(self.request.path, u)
+        with sirepo.quest.start() as qcall:
+            with qcall.auth.logged_in_user_set(u):
+                sirepo.simulation_db.validate_sim_db_file_path(
+                    self.request.path,
+                    qcall=qcall,
+                )
 
 
 def token_for_user(uid):
