@@ -1284,9 +1284,6 @@ SIREPO.viewLogic('gaussianBeamView', function(appState, panelState, srwService, 
 SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, requestSender, srwService, $scope) {
 
     function computePGMValue(item) {
-        if (item.computeParametersFrom == '3') {
-            return;
-        }
         updateGratingFields(item);
         requestSender.sendStatelessCompute(
             appState,
@@ -1316,7 +1313,7 @@ SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, requestSe
     }
 
     $scope.whenSelected = updateGratingFields;
-    $scope.watchFields = [
+    $scope.watchFieldsNoInit = [
         [
             'energyAvg', 'cff', 'grazingAngle', 'rollAngle', 'computeParametersFrom',
         ], computePGMValue,
