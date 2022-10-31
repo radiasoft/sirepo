@@ -65,11 +65,6 @@ SIREPO.app.config(function() {
         </ul>
         </div>
     `;
-    SIREPO.modelPanelHeadingButtons = {
-        exportRsOpt: `
-          <a href data-ng-click="$rootScope.$broadcast('POOP')" class="dropdown-toggle" data-toggle="dropdown" title="Export ML Script"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
-        `,
-    };
 
     SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
     SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
@@ -1959,11 +1954,23 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
     };
 });
 
-SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSimulation, requestSender, $scope, $rootScope) {
+SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSimulation, requestSender, $compile, $scope, $rootScope) {
 
     const self = this;
     self.simScope = $scope;
     self.simComputeModel = 'exportRsOpt';
+
+
+    function addExportButton() {
+        $('#sr-exportRsOpt-basicEditor .model-panel-heading-buttons').append(
+            $compile(
+                `
+                    <a href data-ng-click="export()" class="dropdown-toggle" data-toggle="dropdown" title="Export ML Script">
+                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span>
+                   </a>
+                `
+        )($scope));
+    }
 
     self.simHandleStatus = data => {
         if (self.simState.isStopped()) {
@@ -1993,14 +2000,12 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
     };
 
     $scope.whenSelected = () => {
-        srdbg('RSOPT VIEW');
         // set form dirty so user does not have to change anything to export
         //$scope.$parent.form.$setDirty();
     };
 
-    //$scope.$on('exportRsOpt.saved', $scope.export);
     appState.whenModelsLoaded($scope, () => {
-        $scope.$on('POOP', () => { srdbg('YUP POOP'); });
+        addExportButton();
     });
 
 });
