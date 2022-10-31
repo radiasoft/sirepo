@@ -51,7 +51,13 @@ _ROBOTS_TXT = None
 _app = None
 
 #: See `_proxy_react`
-_PROXY_REACT_URIS = None
+_PROXY_REACT_URI_SET = None
+
+#: See `_proxy_react`
+_PROXY_REACT_URI_RE = None
+
+#: See `_proxy_react`
+_REACT_SERVER_BUILD = "build"
 
 
 class API(sirepo.quest.API):
@@ -486,7 +492,7 @@ class API(sirepo.quest.API):
 
         self._proxy_react(path_info)
         if path_info is None:
-            return self.reply_redirect(_cfg.home_page_uri)
+            return self.reply_redirect(cfg.home_page_uri)
         if template.is_sim_type(path_info):
             return self._render_root_page("index", PKDict(app_name=path_info))
         u = sirepo.uri.unchecked_root_redirect(path_info)
@@ -700,14 +706,31 @@ class API(sirepo.quest.API):
     def _proxy_react(self, path):
         import requests
 
-        if not _cfg.react_server or path not in _PROXY_REACT_URIS:
+        def _build():
+            if re.search(r"^react/\w+$", path):
+                p = "index.html"
+            elif path in cfg.react_sim_types:
+                raise sirepo.util.Redirect(f"/react/{path}")
+            else:
+                p = path
+            # call call api due to recursion of proxy_react
+            raise sirepo.util.Response(
+                flask.send_file(
+                    sirepo.resource.static(sirepo.util.safe_path(f"react/{p}")),
+                    conditional=True,
+                ),
+            )
+
+        def _dev():
+            r = requests.get(cfg.react_server + path)
+            # We want to throw an exception here, because it shouldn't happen
+            r.raise_for_status()
+            raise sirepo.util.Response(self.reply_as_proxy(r))
+
+        if not path or not cfg.react_server:
             return
-        if path in _cfg.react_sim_types:
-            path = ""
-        r = requests.get(_cfg.react_server + path)
-        # We want to throw an exception here, because it shouldn't happen
-        r.raise_for_status()
-        raise sirepo.util.Response(self.reply_as_proxy(r))
+        if path in _PROXY_REACT_URI_SET or _PROXY_REACT_URI_RE.search(path):
+            _build() if cfg.react_server == _REACT_SERVER_BUILD else _dev()
 
     def _render_root_page(self, page, values):
         values.update(
@@ -752,25 +775,15 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     _app.sirepo_use_reloader = use_reloader
     for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
         _app.register_error_handler(int(e), _handle_error)
-    if _cfg.react_server:
-        global _PROXY_REACT_URIS
-        p = [
-            "manifest.json",
-            "static/js/bundle.js",
-            "static/js/bundle.js.map",
-        ]
-        for x in _cfg.react_sim_types:
-            p.append(x)
-            p.append(f"{x}-schema.json")
-        _PROXY_REACT_URIS = set(p)
+    _init_proxy_react()
     sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
     sirepo.flask.app_set(_app)
     if is_server:
         global _google_tag_manager
 
-        if _cfg.google_tag_manager_id:
+        if cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>
-        (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
+        (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
         </script>"""
         sirepo.db_upgrade.do_all()
         # Avoid unnecessary logging
@@ -787,6 +800,8 @@ def _cfg_react_server(value):
         return None
     if not pkconfig.channel_in("dev"):
         pkconfig.raise_error("invalid channel={}; must be dev", pkconfig.cfg.channel)
+    if value == _REACT_SERVER_BUILD:
+        return value
     u = urllib.parse.urlparse(value)
     if (
         u.scheme
@@ -817,6 +832,26 @@ def _handle_error(error):
         ),
         status_code,
     )
+
+
+def _init_proxy_react():
+    if not cfg.react_server:
+        return
+    global _PROXY_REACT_URI_RE, _PROXY_REACT_URI_SET
+    p = [
+        "asset-manifest.json",
+        "manifest.json",
+        "static/js/bundle.js",
+        "static/js/bundle.js.map",
+    ]
+    for x in cfg.react_sim_types:
+        p.append(x)
+        p.append(f"{x}-schema.json")
+    _PROXY_REACT_URI_SET = set(p)
+    r = "^react/"
+    if cfg.react_server == _REACT_SERVER_BUILD:
+        r += r"|^static/(css|js)/main\."
+    _PROXY_REACT_URI_RE = re.compile(r)
 
 
 def _lib_file_write_path(req):
@@ -851,12 +886,12 @@ def _simulations_using_file(req, ignore_sim_id=None):
 
 
 def _source_cache_key():
-    if _cfg.enable_source_cache_key:
+    if cfg.enable_source_cache_key:
         return "?{}".format(simulation_db.app_version())
     return ""
 
 
-_cfg = pkconfig.init(
+cfg = pkconfig.init(
     db_dir=pkconfig.ReplacedBy("sirepo.srdb.root"),
     enable_source_cache_key=(
         True,
@@ -866,5 +901,5 @@ _cfg = pkconfig.init(
     google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
     react_server=(None, _cfg_react_server, "Base URL of npm start server"),
-    react_sim_types=(("myapp",), set, "React apps"),
+    react_sim_types=(("myapp", "jspec", "genesis"), set, "React apps"),
 )

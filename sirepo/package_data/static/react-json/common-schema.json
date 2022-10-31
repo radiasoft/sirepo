@@ -1,0 +1,85 @@
+{
+    "type": {
+      "AspectRatio": {
+        "base": "Enum",
+        "settings": {
+          "allowedValues": [
+            ["2", "1 x 2"],
+            ["1.777777", "9 x 16"],
+            ["1.333333", "3 x 4"],
+            ["1", "1 x 1"],
+            ["0.75", "4 x 3"],
+            ["0.5625", "16 x 9"],
+            ["0.5", "2 x 1"]
+          ]
+        }
+      },
+      "Boolean": {
+        "base": "Enum",
+        "settings": {
+          "allowedValues": [
+            ["0", "No"],
+            ["1", "Yes"]
+          ]
+        }
+      },
+      "ColorMap": {
+        "base": "Enum",
+        "settings": {
+          "allowedValues": [
+            ["grayscale", "grayscale"],
+            ["viridis", "viridis"],
+            ["afmhot", "afmhot"],
+            ["coolwarm", "coolwarm"],
+            ["jet", "jet"],
+            ["blues", "blues"],
+            ["contrast", "high contrast"]
+          ]
+        }
+      },
+      "JobRunMode": {
+        "base": "Enum",
+        "settings": {
+          "allowedValues": [
+            ["sequential", "sequential"],
+            ["parallel", "parallel"],
+            ["sbatch", "sbatch"]
+          ]
+        }
+      },
+      "FramesPerSecond": {
+        "base": "Enum",
+        "settings": {
+          "allowedValues": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+          ]
+        }
+      },
+      "NERSCQueue": {
+        "base": "Enum",
+        "settings": {
+          "allowedValues": [
+            ["debug", "debug"],
+            ["premium", "premium"],
+            ["realtime", "realtime"],
+            ["regular", "regular"]
+          ]
+        }
+      },
+      "PlotRangeType": {
+        "base": "Enum",
+        "settings": {
+          "allowedValues": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
+          ]
+        }
+      }
+    }
+  }
