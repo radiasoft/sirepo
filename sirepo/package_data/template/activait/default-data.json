@@ -1,0 +1,15 @@
+{
+    "models": {
+        "columnReports": [],
+        "neuralNet": {
+            "layers": []
+        },
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "default",
+            "notes": ""
+        }
+    },
+    "simulationType": "activait"
+}

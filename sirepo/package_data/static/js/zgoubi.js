@@ -737,7 +737,9 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                         },
                         {
                             method: 'tosca_info',
-                            tosca: tosca,
+                            args: {
+                                tosca: tosca,
+                            }
                         }
                     );
                     updateMagnetFiles(tosca);

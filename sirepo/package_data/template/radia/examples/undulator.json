@@ -4,7 +4,12 @@
             "colorMap": "viridis",
             "scaling": "linear"
         },
-        "fieldLineoutReport": {
+        "electronTrajectoryReport": {
+            "finalBeamPosition": 150,
+            "initialAngles": [0.0, 0.0],
+            "initialPosition": [0.0, -150, 0]
+        },
+        "fieldLineoutAnimation": {
             "plotAxis": "y"
         },
         "fieldPaths": {
@@ -12,8 +17,9 @@
             "paths": [
                 {
                     "_super": "fieldPath",
-                    "begin": "-0.0,-150,-0.0",
-                    "end": "0.0,150,0.0",
+                    "axis": "y",
+                    "begin": [0.0, -150, -0.0],
+                    "end": [0.0, 150, 0.0],
                     "id": "6233b2ae-cc3e-4ec8-a746-b1e947a67ca0",
                     "name": "Y-Axis",
                     "numPoints": 301,
@@ -31,55 +37,55 @@
             "objects": [
                 {
                     "_super": "geomObject",
-                    "center": "11.25,1.25,-22.5",
+                    "center": [11.25,1.25,-22.5],
                     "color": "#ff00ff",
-                    "division": "2,5,2",
+                    "segments": [2, 5, 2],
                     "groupId": "630ea5d1-4948-498e-8ef3-1f2d86d51e57",
                     "id": "b861cdfe-879d-48c2-9fb9-b9095a0e7f3e",
                     "layoutShape": "rect",
-                    "magnetization": "0.0,0.0,0.0",
+                    "magnetization": [0.0, 0.0, 0.0],
                     "material": "custom",
                     "materialFile": "VaPermendur.csv",
                     "model": "cuboid",
                     "name": "half pole",
                     "remanentMag": 0,
-                    "size": "22.5,2.5,25.0",
+                    "size": [22.5, 2.5, 25.0],
                     "transforms": [],
                     "type": "cuboid"
                 },
                 {
                     "_super": "geomObject",
-                    "center": "16.25,11.5,-33.5",
+                    "center": [16.25, 11.5, -33.5],
                     "color": "#00ffff",
-                    "division": "1,1,3",
+                    "segments": [1, 1, 3],
                     "groupId": "a41746a3-88fd-4fde-980d-87f542158116",
                     "id": "c8950a0b-7663-4108-8fe0-0e49e6a4c4a4",
                     "layoutShape": "rect",
-                    "magnetization": "0.0,0.0,1.0",
+                    "magnetization": [0.0, 0.0, 1.0],
                     "material": "NdFeB",
                     "materialFile": "",
                     "model": "cuboid",
                     "name": "magnet",
                     "remanentMag": 1.2,
-                    "size": "32.5,18.0,45.0",
+                    "size": [32.5, 18.0, 45.0],
                     "transforms": [],
                     "type": "cuboid"
                 },
                 {
                     "_super": "geomObject",
-                    "center": "11.25,23.0,-22.5",
+                    "center": [11.25, 23.0, -22.5],
                     "color": "#ff00ff",
-                    "division": "2,5,2",
+                    "segments": [2, 5, 2],
                     "groupId": "a41746a3-88fd-4fde-980d-87f542158116",
                     "id": "8b2628eb-2df7-46e3-a01f-d3ff76d7da2a",
                     "layoutShape": "rect",
-                    "magnetization": "0.0,0.0,0.0",
+                    "magnetization": [0.0, 0.0, 0.0],
                     "material": "custom",
                     "materialFile": "VaPermendur.csv",
                     "model": "cuboid",
                     "name": "pole",
                     "remanentMag": 0,
-                    "size": "22.5,5.0,25.0",
+                    "size": [22.5, 5.0, 25.0],
                     "transforms": [],
                     "type": "cuboid"
                 },
@@ -100,10 +106,10 @@
                             "_super": "transform",
                             "alternateFields": true,
                             "angle": "0.0",
-                            "axis": "0.0, 0.0, 1.0",
-                            "center": "0.0, 0.0, 0.0",
+                            "axis": [0.0, 0.0, 1.0],
+                            "center": [0.0, 0.0, 0.0],
                             "color": null,
-                            "distance": "10.0, 0.0, 0.0",
+                            "distance": [10.0, 0.0, 0.0],
                             "id": "80de8b16-e5e6-489a-9133-2d1c2d1be5c3",
                             "model": "cloneTransform",
                             "name": "cloneTransform.80de8b16-e5e6-489a-9133-2d1c2d1be5c3",
@@ -112,7 +118,7 @@
                             "transforms": [
                                 {
                                     "color": null,
-                                    "distance": "0.0,23.0,0.0",
+                                    "distance": [0.0, 23.0, 0.0],
                                     "id": "97858e14-93f6-411a-a9e7-13a40df85007",
                                     "model": "translateClone",
                                     "name": "translateClone.97858e14-93f6-411a-a9e7-13a40df85007"
@@ -128,15 +134,15 @@
                     "_super": "geomObject",
                     "type": "cuboid",
                     "bevels": [],
-                    "center": "16.25,53.0,-33.5",
-                    "division": "1,1,3",
+                    "center": [16.25, 53.0, -33.5],
+                    "segments": [1, 1, 3],
                     "id": "b40f7233-89ba-49d5-90bc-f4efb4e0e421",
                     "layoutShape": "rect",
-                    "magnetization": "0.0,0.0,1.0",
+                    "magnetization": [0.0, 0.0, 1.0],
                     "remanentMag": 1.2,
                     "material": "NdFeB",
                     "materialFile": "",
-                    "size": "32.5,9.0,45.0",
+                    "size": [32.5, 9.0, 45.0],
                     "transforms": [],
                     "groupId": "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c",
                     "h_m_curve": null
@@ -175,8 +181,8 @@
                             "model": "symmetryTransform",
                             "name": "symmetryTransform.def13e4f-248b-417b-80bf-b449d0eb94c9",
                             "object": "",
-                            "symmetryPlane": "1,0,0",
-                            "symmetryPoint": "0,0,0",
+                            "symmetryPlane": [1, 0, 0],
+                            "symmetryPoint": [0, 0, 0],
                             "symmetryType": "perpendicular"
                         },
                         {
@@ -186,8 +192,8 @@
                             "model": "symmetryTransform",
                             "name": "symmetryTransform.3adcfe6c-11df-41ba-bf93-672fe85534c3",
                             "object": "",
-                            "symmetryPlane": "0,0,1",
-                            "symmetryPoint": "0,0,0",
+                            "symmetryPlane": [0, 0, 1],
+                            "symmetryPoint": [0, 0, 0],
                             "symmetryType": "parallel"
                         },
                         {
@@ -197,8 +203,8 @@
                             "model": "symmetryTransform",
                             "name": "symmetryTransform.5129b865-cf4a-474a-a485-019d1f5938c5",
                             "object": "",
-                            "symmetryPlane": "0,1,0",
-                            "symmetryPoint": "0,0,0",
+                            "symmetryPlane": [0, 1, 0],
+                            "symmetryPoint": [0, 0, 0],
                             "symmetryType": "perpendicular"
                         }
                     ]
@@ -228,13 +234,13 @@
                 "_super": "geomObject",
                 "color": "#00ffff",
                 "id": "c8950a0b-7663-4108-8fe0-0e49e6a4c4a4",
-                "magnetization": "0.0, 0.0, 1.0",
+                "magnetization": [0.0, 0.0, 1.0],
                 "name": "magnet",
                 "remanentMag": 1.2,
                 "material": "NdFeB",
                 "type": "cuboid",
-                "segments": "1, 1, 3",
-                "size": "65.0, 18.0, 45.0"
+                "segments": [1, 1, 3],
+                "size": [65.0, 18.0, 45.0]
             },
             "name": "",
             "numPeriods": 2,
@@ -248,15 +254,15 @@
                 "_super": "geomObject",
                 "bevels": [],
                 "color": "#ff00ff",
-                "segments": "2, 5, 2",
+                "segments": [2, 5, 2],
                 "id": "8b2628eb-2df7-46e3-a01f-d3ff76d7da2a",
-                "magnetization": "0.0, 0.0, 0.0",
+                "magnetization": [0.0, 0.0, 0.0],
                 "materialFile": "VaPermendur.csv",
                 "name": "pole",
                 "remanentMag": 0.0,
                 "material": "custom",
                 "type": "cuboid",
-                "size": "45.0, 5.0, 25.0"
+                "size": [45.0, 5.0, 25.0]
             },
             "terminationGroup": {
                 "_super": "radiaObject",
@@ -277,15 +283,15 @@
                         "_super": "geomObject",
                         "type": "cuboid",
                         "bevels": [],
-                        "center": "16.25,53.0,-33.5",
-                        "segments": "1,1,3",
+                        "center": [16.25, 53.0, -33.5],
+                        "segments": [1, 1, 3],
                         "id": "b40f7233-89ba-49d5-90bc-f4efb4e0e421",
                         "layoutShape": "rect",
-                        "magnetization": "0.0,0.0,1.0",
+                        "magnetization": [0.0, 0.0, 1.0],
                         "remanentMag": 1.2,
                         "material": "NdFeB",
                         "materialFile": "",
-                        "size": "32.5,9.0,45.0",
+                        "size": [32.5, 9.0, 45.0],
                         "transforms": [],
                         "groupId": "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c",
                         "h_m_curve": null
@@ -295,15 +301,15 @@
             "transforms": []
         },
         "kickMapReport": {
-            "begin": "0, -52.5, 0",
+            "begin": [0, -52.5, 0],
             "component": "h",
-            "direction": "0, 1, 0",
+            "direction": [0, 1, 0],
             "inProgressText": "Calculating",
             "numPeriods": 3,
             "numTransPoints1": 21,
             "numTransPoints2": 21,
             "periodLength": 35,
-            "transverseDirection": "1, 0, 0",
+            "transverseDirection": [1, 0, 0],
             "transverseRange1": 15,
             "transverseRange2": 15
         },

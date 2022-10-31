@@ -786,6 +786,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
         controller: function($scope, $element) {
             $scope.appState = appState;
             $scope.utilities = utilities;
+            $scope.UTILS = SIREPO.UTILS;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
                     (fieldType == 'Integer' || fieldType.indexOf('Float') >= 0)
@@ -1824,10 +1825,12 @@ SIREPO.app.directive('textWithMath', function(appState, mathRendering, utilities
     return {
         restrict: 'A',
         scope: {
+            'isDynamic': '<',
             'textWithMath': '<',
         },
         template: `
-            <span data-ng-bind-html="::getHTML()"></span>
+            <span data-ng-if="! isDynamic" data-ng-bind-html="::getHTML()"></span>
+            <span data-ng-if="isDynamic" data-ng-bind-html="getHTML()"></span>
         `,
         controller: function($scope) {
             $scope.appState = appState;
@@ -2613,6 +2616,32 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             scope.$on('$destroy', function() {
                 $(element).off();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('numArray', function(appState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            info: '=',
+            model: '=',
+            numType: '@',
+        },
+        template: `
+            <div data-ng-repeat="v in model[fieldName] track by $index"
+              style="display: inline-block;" >
+              <label data-text-with-math="valueLabels[$index]" style="margin-right: 1ex"></label>
+              <input class="form-control sr-number-list" data-string-to-number="{{ numType }}"
+                data-ng-model="model[fieldName][$index]" data-min="info[5][$index]" data-max="info[6][$index]"
+                style="text-align: right" required />
+            </div>
+        `,
+        controller: $scope => {
+            $scope.appState = appState;
+            $scope.valueLabels = $scope.info[4].map(s => utilities.interpolateString(s, $scope));
         },
     };
 });
@@ -3531,30 +3560,43 @@ SIREPO.app.directive('modelArray', function() {
             field: '=',
         },
         template: `
-            <div  style="position: relative; top: -25px">
-            <div class="row">
-              <div class="col-sm-11"><div class="row">
-                <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
-                <div class="col-sm-3 text-center" data-ng-repeat="heading in headings track by $index">
-<div data-label-with-tooltip="" data-label="{{ heading[0] }}" data-tooltip="{{ heading[3] }}"></div>
-                </div></div>
-              </div>
-            </div>
-            <div class="form-group form-group-sm" data-ng-show="showRow($index)" data-ng-repeat="m in modelArray() track by $index">
-              <div class="col-sm-11"><div class="row">
-                <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
-                <div class="col-sm-3" data-ng-repeat="f in fields track by $index">
-                  <input data-string-to-number="" data-ng-model="m[f]" class="form-control" style="text-align: right" data-lpignore="true" />
+            <div style="position: relative; top: -25px">
+              <div class="row">
+                <div class="col-sm-11">
+                  <div class="row">
+                    <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
+                    <div class="col-sm-3 text-center"
+                      data-ng-repeat="heading in headings track by $index">
+                      <div data-label-with-tooltip="" data-label="{{ heading[0] }}"
+                        data-tooltip="{{ heading[3] }}"></div>
+                    </div>
+                  </div>
                 </div>
-              </div></div>
-              <div class="col-sm-1"><button style="margin-left: -15px; margin-top: 5px" data-ng-show="! isEmpty($index)" data-ng-click="deleteRow($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div>
-            </div>
+              </div>
+              <div class="form-group form-group-sm" data-ng-show="showRow($index)"
+                data-ng-repeat="m in modelArray() track by $index">
+                <div class="col-sm-11">
+                  <div class="row">
+                    <div data-ng-if="pad > 0" data-ng-attr-class="col-sm-{{ pad }}"></div>
+                    <div class="col-sm-3" data-ng-repeat="f in fields track by $index">
+                      <input data-string-to-number="" data-ng-model="m[f]" class="form-control"
+                        style="text-align: right" data-lpignore="true" />
+                    </div>
+                  </div>
+                </div>
+                <div class="col-sm-1">
+                  <button style="margin-left: -15px; margin-top: 5px"
+                    data-ng-show="! isEmpty($index)" data-ng-click="deleteRow($index)"
+                    class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span>
+                  </button>
+                </div>
+              </div>
             </div>
         `,
         controller: function(appState, $scope) {
             const mView = SIREPO.APP_SCHEMA.view[$scope.field];
             $scope.fields = mView.advanced;
-            $scope.headings = SIREPO.APP_SCHEMA.model[$scope.field];
+            $scope.headings = $scope.fields.map(f => SIREPO.APP_SCHEMA.model[$scope.field][f]);
             $scope.pad = (4 - $scope.fields.length) * 3;
 
             function initArray() {
@@ -4112,8 +4154,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
         template: `
             <div class="clearfix"></div>
             <div style="margin-top: 10px" data-ng-show="showSbatchOptions()">
-                <div data-model-field="\'sbatchHours\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
-                <div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
+                <div data-ng-repeat="sbatchField in sbatchFields" data-model-field='sbatchField' data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
                 <div data-ng-show="showNERSCFields()">
                     <div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>
                     <div data-model-field="\'sbatchProject\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
@@ -4123,6 +4164,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
         `,
         controller: function($scope, authState, sbatchLoginStatusService, stringsService) {
             $scope.sbatchQueueFieldIsDirty = false;
+            $scope.sbatchFields = ['sbatchHours', 'sbatchCores', 'tasksPerNode'];
             function trimHoursAndCores() {
                 var m = appState.models[$scope.simState.model];
                 ['Hours', 'Cores'].forEach(function(e) {
@@ -4219,9 +4261,6 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             <div data-canceled-due-to-timeout-alert="simState"></div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">
               <div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>
-              <div data-ng-show="simState.isStateError()">
-                <div class="col-sm-12">{{ stateAsText() }}</div>
-              </div>
               <div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0">
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
               </div>

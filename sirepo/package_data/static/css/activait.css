@@ -1,0 +1,23 @@
+.ml-button-bar {
+  background-color: #f9f9f9;
+  position: absolute;
+  z-index: 1000;
+  right: 1.5em;
+  top: -1px;
+  white-space: nowrap;
+}
+.sr-nn-button-bar-parent {
+  display: none;
+  position: relative;
+}
+tr:hover > td > .sr-nn-button-bar-parent {
+  display: inline;
+}
+.add-remove-child-btn {
+  margin-top: .5em;
+  margin-bottom: .3em;
+}
+.ml-sub-table {
+  margin: 1em;
+  margin-top: 2em;
+}

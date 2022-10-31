@@ -161,7 +161,7 @@ _WIGGLER_TRAJECTORY_FILENAME = "xshwig.sha"
 
 
 def stateless_compute_compute_harmonic_photon_energy(data):
-    return _compute_harmonic_photon_energy(data)
+    return _compute_harmonic_photon_energy(data.args)
 
 
 def stateful_compute_convert_to_srw(data):

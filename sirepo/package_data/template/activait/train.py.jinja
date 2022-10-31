@@ -1,0 +1,43 @@
+import numpy as np
+import keras.losses
+from keras.callbacks import CSVLogger
+{% if image_data %}
+
+model.compile(
+    optimizer='adam',
+    loss={{ neuralNet_losses }},
+    metrics=['accuracy'],
+)
+
+history = model.fit(
+    x=trainx,
+    y=trainy,
+    epochs={{ neuralNet_epochs }},
+    validation_data=(valx, valy),
+    batch_size={{ neuralNet_batch_size }},
+    callbacks=[CSVLogger('{{ fitCSVFile }}')],
+)
+
+{% else %}
+
+model.compile(
+    loss={{ neuralNet_losses }},
+    optimizer='{{ neuralNet_optimizer }}'
+)
+model.fit(
+    x=train[:, in_idx],
+    y=train[:, out_idx],
+    validation_data=(validate[:, in_idx], validate[:, out_idx]),
+    batch_size={{ neuralNet_batch_size }},
+    shuffle={% if neuralNet_shuffle == '1' %}True{% else %}False{% endif %},
+    epochs={{ neuralNet_epochs }},
+    verbose=False,
+    callbacks=[CSVLogger('{{ fitCSVFile }}')],
+)
+testy = test[:, out_idx]
+testx = test[:, in_idx]
+
+{% endif %}
+
+np.save('{{ testFile }}', testy)
+np.save('{{ predictFile }}', model.predict(x=testx))

@@ -77,7 +77,7 @@ def test_madx(fc):
     )
 
 
-def test_ml(fc):
+def test_activait(fc):
     fc.sr_animation_run(
         fc.sr_sim_data("iris Dataset"),
         "animation",

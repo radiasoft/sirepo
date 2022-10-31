@@ -16,12 +16,10 @@ from sirepo import simulation_db
 from sirepo import template
 from sirepo import uri_router
 import base64
-import copy
 import sirepo.util
-import zipfile
 
 
-def create_archive(sim, sapi):
+def create_archive(sim, qcall):
     """Zip up the json file and its dependencies
 
     Args:
@@ -31,7 +29,7 @@ def create_archive(sim, sapi):
         py.path.Local: zip file name
     """
     if hasattr(sim.template, "create_archive"):
-        res = sim.template.create_archive(sim, sapi)
+        res = sim.template.create_archive(sim, qcall)
         if res:
             return res
     if not pkio.has_file_extension(sim.filename, ("zip", "html")):
@@ -44,15 +42,15 @@ def create_archive(sim, sapi):
         if want_zip:
             t = "application/zip"
         else:
-            f, t = _create_html(f, c)
-        return sapi.reply_file(
+            f, t = _create_html(f, c, qcall)
+        return qcall.reply_attachment(
             f,
             content_type=t,
             filename=sim.filename,
         )
 
 
-def _create_html(zip_path, data):
+def _create_html(zip_path, data, qcall):
     """Convert zip to html data
 
     Args:
@@ -64,8 +62,8 @@ def _create_html(zip_path, data):
     # Use same tmp directory
     fp = zip_path.new(ext=".html")
     values = pkcollections.Dict(data=data)
-    values.uri = uri_router.uri_for_api("importArchive", external=False)
-    values.server = uri_router.uri_for_api("importArchive")[: -len(values.uri)]
+    values.uri = qcall.absolute_uri(qcall.uri_for_api("importArchive"))
+    values.server = qcall.sreq.http_server_uri
     sc = simulation_db.SCHEMA_COMMON
     values.appLongName = sc.appInfo[data.simulationType].longName
     values.appShortName = sc.appInfo[data.simulationType].shortName
@@ -94,13 +92,9 @@ def _create_zip(sim, want_python, out_dir):
     data.pkdel("report")
     files = sim_data.get_class(data).lib_files_for_export(data)
     if want_python:
-        files.append(_python(data))
-    with zipfile.ZipFile(
-        str(path),
-        mode="w",
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
+        for f in _python(data, sim):
+            files.append(f)
+    with sirepo.util.write_zip(str(path)) as z:
         for f in files:
             z.write(str(f), f.basename)
         z.writestr(
@@ -110,7 +104,7 @@ def _create_zip(sim, want_python, out_dir):
     return path, data
 
 
-def _python(data):
+def _python(data, sim):
     """Generate python in current directory
 
     Args:
@@ -124,5 +118,19 @@ def _python(data):
 
     template = sirepo.template.import_module(data)
     res = pkio.py_path("run.py")
-    res.write(template.python_source_for_model(copy.deepcopy(data), None))
-    return res
+    d = copy.deepcopy(data)
+    d.file_ext = ".zip"
+    t = template.python_source_for_model(d, None)
+    if type(t) == pkcollections.PKDict:
+        return _write_multiple_export_files(t)
+    res.write(t)
+    return [res]
+
+
+def _write_multiple_export_files(source):
+    r = []
+    for k in source.keys():
+        p = pkio.py_path(k)
+        p.write(source[k])
+        r.append(p)
+    return r

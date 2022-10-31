@@ -1,0 +1,252 @@
+{
+    "models": {
+        "analysisCluster": {
+            "basic": "clusterCount",
+            "model": "a"
+        },
+        "analysisData": {
+            "title": "c"
+        },
+        "analysisFFT": {
+            "model": "a"
+        },
+        "analysisFit": {
+            "basic": "fitVariable",
+            "model": "a"
+        },
+        "analysisNone": {
+            "model": "a"
+        },
+        "analysisReport": {
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterKmeansInit": 2,
+            "clusterMethod": "kmeans",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "a * x + b",
+            "fitParameters": "a,b",
+            "fitVariable": "x",
+            "history": [],
+            "notes": "",
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisTrim": {
+            "basic": "trimMax",
+            "model": "a"
+        },
+        "classificationAnimation": {
+            "classifier": "knn"
+        },
+        "columnInfo": {
+            "colsWithNonUniqueValues": {},
+            "hasHeaderRow": true,
+            "header": [
+                "Score",
+                "Country or region",
+                "Overall rank",
+                "GDP per capita",
+                "Social support",
+                "Healthy life expectancy",
+                "Freedom to make life choices",
+                "Generosity",
+                "Perceptions of corruption"
+            ],
+            "inputOutput": [
+                "output",
+                "none",
+                "none",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input"
+            ],
+            "rowCount": 157,
+            "selected": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        "columnReports": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+        ],
+        "dataFile": {
+            "appMode": "regression",
+            "file": "2019Happiness.data.csv",
+            "inputsScaler": "RobustScaler",
+            "oldFile": "2019Happiness.data.csv",
+            "outputsScaler": "RobustScaler"
+        },
+        "dtClassifierClassificationMetricsAnimation": {},
+        "dtClassifierConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "epochAnimation": {
+            "plotScale": "linear"
+        },
+        "fftReport": {
+            "column": "0"
+        },
+        "fileColumnReport": {
+            "x": -1
+        },
+        "fileColumnReport0": {
+            "columnNumber": 0,
+            "x": -1
+        },
+        "fileColumnReport1": {
+            "columnNumber": 1,
+            "x": -1
+        },
+        "fileColumnReport2": {
+            "columnNumber": 2,
+            "x": -1
+        },
+        "fileColumnReport3": {
+            "columnNumber": 3,
+            "x": -1
+        },
+        "fileColumnReport4": {
+            "columnNumber": 4,
+            "x": -1
+        },
+        "fileColumnReport5": {
+            "columnNumber": 5,
+            "x": -1
+        },
+        "fileColumnReport6": {
+            "columnNumber": 6,
+            "x": -1
+        },
+        "fileColumnReport7": {
+            "columnNumber": 7,
+            "x": -1
+        },
+        "fileColumnReport8": {
+            "columnNumber": 8,
+            "x": -1
+        },
+        "fitAnimation": {
+            "colorMap": "viridis",
+            "columnNumber": 0,
+            "histogramBins": 30
+        },
+        "fitAnimation0": {
+            "columnNumber": 0
+        },
+        "fitReport": {},
+        "hiddenReport": {
+            "subreports": []
+        },
+        "knnClassification": {
+            "kmax": 50,
+            "kmin": 1
+        },
+        "knnClassificationMetricsAnimation": {},
+        "knnConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "knnErrorRateAnimation": {},
+        "linearSvcClassification": {
+            "toleranceMax": 0.15,
+            "toleranceMin": 0.001,
+            "totalNumValues": 20
+        },
+        "linearSvcConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "linearSvcErrorRateAnimation": {},
+        "logisticRegressionClassification": {
+            "toleranceMax": 25,
+            "toleranceMin": 1,
+            "totalNumValues": 20
+        },
+        "logisticRegressionClassificationMetricsAnimation": {},
+        "logisticRegressionConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "logisticRegressionErrorRateAnimation": {},
+        "mlModel": {
+            "mlModule": "neuralnet"
+        },
+        "neuralNet": {
+            "batch_size": 50,
+            "epochs": 500,
+            "layers": [
+                {
+                    "activation": "relu",
+                    "dimensionality": 10,
+                    "layer": "Dense"
+                },
+                {
+                    "activation": "relu",
+                    "dimensionality": 10,
+                    "layer": "Dense"
+                },
+                {
+                    "activation": "sigmoid",
+                    "dimensionality": 10,
+                    "layer": "Dense"
+                }
+            ],
+            "losses": "mean_squared_error",
+            "optimizer": "adam",
+            "shuffle": "1"
+        },
+        "neuralNetLayer": {
+            "activationActivation": "relu",
+            "alphaDropoutRate": 0.5,
+            "denseActivation": "relu",
+            "denseDimensionality": 10,
+            "dropoutRate": 0.5,
+            "gaussianDropoutRate": 0.5,
+            "gaussianNoiseStddev": 0.01,
+            "layer": "Dense"
+        },
+        "partition": {
+            "cutoff0": 19,
+            "cutoff1": 137,
+            "method": "random",
+            "random_state": 42,
+            "section0": "validate",
+            "section1": "train_and_test",
+            "section2": "validate",
+            "testing": 12.5,
+            "trainTestPercent": 75,
+            "training": 75,
+            "validation": 12.5
+        },
+        "partitionColumnReport": {},
+        "partitionSelectionReport": {},
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "2019 World Happiness",
+            "notes": ""
+        }
+    },
+    "simulationType": "activait"
+}

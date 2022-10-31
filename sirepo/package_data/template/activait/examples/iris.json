@@ -1,0 +1,156 @@
+{
+    "models": {
+        "classificationAnimation": {
+            "classifier": "knn"
+        },
+        "columnInfo": {
+            "colsWithNonUniqueValues": {},
+            "hasHeaderRow": true,
+            "header": [
+                "sepal length",
+                "sepal width",
+                "petal length",
+                "petal width",
+                "class"
+            ],
+            "inputOutput": [
+                "input",
+                "input",
+                "input",
+                "input",
+                "output"
+            ],
+            "rowCount": 151
+        },
+        "columnReports": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "dataFile": {
+            "appMode": "classification",
+            "file": "iris.data.csv",
+            "inputsScaler": "RobustScaler",
+            "oldFile": "iris.data.csv",
+            "outputsScaler": "RobustScaler"
+        },
+        "dtClassifierClassificationMetricsAnimation": {},
+        "dtClassifierConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "epochAnimation": {
+            "plotScale": "linear"
+        },
+        "fileColumnReport": {},
+        "fileColumnReport0": {
+            "columnNumber": 0
+        },
+        "fileColumnReport1": {
+            "columnNumber": 1
+        },
+        "fileColumnReport2": {
+            "columnNumber": 2
+        },
+        "fileColumnReport3": {
+            "columnNumber": 3
+        },
+        "fileColumnReport4": {
+            "columnNumber": 4
+        },
+        "fitAnimation": {
+            "colorMap": "viridis",
+            "columnNumber": 0,
+            "histogramBins": 30
+        },
+        "knnClassification": {
+            "kmax": 50,
+            "kmin": 1
+        },
+        "knnClassificationMetricsAnimation": {},
+        "knnConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "knnErrorRateAnimation": {},
+        "linearSvcClassification": {
+            "toleranceMax": 0.15,
+            "toleranceMin": 0.001,
+            "totalNumValues": 20
+        },
+        "linearSvcConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "linearSvcErrorRateAnimation": {},
+        "logisticRegressionClassification": {
+            "toleranceMax": 25,
+            "toleranceMin": 1,
+            "totalNumValues": 20
+        },
+        "logisticRegressionClassificationMetricsAnimation": {},
+        "logisticRegressionConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "logisticRegressionErrorRateAnimation": {},
+        "mlModel": {
+            "mlModule": "neuralnet"
+        },
+        "neuralNet": {
+            "batch_size": 50,
+            "epochs": 500,
+            "layers": [],
+            "losses": "mean_squared_error",
+            "optimizer": "adam",
+            "shuffle": "1"
+        },
+        "neuralNetLayer": {
+            "activationActivation": "relu",
+            "alphaDropoutRate": 0.5,
+            "denseActivation": "relu",
+            "denseDimensionality": 10,
+            "dropoutRate": 0.5,
+            "gaussianDropoutRate": 0.5,
+            "gaussianNoiseStddev": 0.01,
+            "layer": "Dense"
+        },
+        "partition": {
+            "cutoff0": 18,
+            "cutoff1": 132,
+            "method": "random",
+            "random_state": 42,
+            "section0": "validate",
+            "section1": "train_and_test",
+            "section2": "validate",
+            "testing": 25,
+            "trainTestPercent": 75,
+            "training": 75,
+            "validation": 12.5
+        },
+        "partitionColumnReport": {},
+        "partitionColumnReport0": {
+            "columnNumber": 0
+        },
+        "partitionColumnReport1": {
+            "columnNumber": 1
+        },
+        "partitionColumnReport2": {
+            "columnNumber": 2
+        },
+        "partitionColumnReport3": {
+            "columnNumber": 3
+        },
+        "partitionColumnReport4": {
+            "columnNumber": 4
+        },
+        "partitionSelectionReport": {},
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "iris Dataset",
+            "notes": ""
+        }
+    },
+    "simulationType": "activait"
+}

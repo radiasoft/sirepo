@@ -226,6 +226,7 @@
         "sbatchHours": 0.4,
         "sbatchProject": "",
         "sbatchQueue": "debug",
+        "tasksPerNode": 32,
         "useIntensityLimits": "0",
         "usePlotRange": "0",
         "verticalOffset": 0,
@@ -269,6 +270,7 @@
         "verticalPosition": 0
     },
     "exportRsOpt": {
+        "characteristic": "1",
         "elements": [],
         "numCores": 4,
         "numSamples": 100,
@@ -409,6 +411,7 @@
         "sbatchProject": "",
         "sbatchQueue": "debug",
         "stokesParameter": "0",
+        "tasksPerNode": 32,
         "useIntensityLimits": "0",
         "usePlotRange": "0",
         "verticalOffset": 0,

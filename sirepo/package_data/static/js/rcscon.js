@@ -597,7 +597,9 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
                 callback,
                 {
                     method: 'compute_column_count',
-                    files: files,
+                    args: {
+                        files: files,
+                    }
                 }
             );
         }
@@ -703,7 +705,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 </table>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
-                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
                 <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
               </div>
             </form>

@@ -4,34 +4,29 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdpretty
+import pykern.pkcollections
+import pykern.pkconfig
+import pykern.pkio
+import sirepo.feature_config
+import sirepo.simulation_db
+import tempfile
 
 
 def fixup_package_data_json():
-    import pykern.pkconfig
-    import tempfile
-
-    pykern.pkconfig.reset_state_for_testing(
-        dict(SIREPO_SIMULATION_DB_TMP_DIR=tempfile.mkdtemp()),
-    )
-
-    from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdpretty
-    from pykern.pkcollections import PKDict
-    import pykern.pkcollections
-    import pykern.pkio
-    import sirepo.auth
-    import sirepo.feature_config
-    import sirepo.server
-    import sirepo.simulation_db
-    import sirepo.util
+    def _is_valid(path):
+        return any(
+            x
+            for x in sirepo.feature_config.cfg().sim_types
+            if pykern.pkio.py_path().bestrelpath(f).startswith(x + "/")
+        )
 
     i = 0
-    for f in pykern.pkio.sorted_glob(
-        pykern.pkio.py_path().join("*", "examples", "*.json"),
-    ) + pykern.pkio.sorted_glob(
-        pykern.pkio.py_path().join("*", "default-data.json"),
+    for f in pykern.pkio.sorted_glob("*/examples/*.json") + pykern.pkio.sorted_glob(
+        "*/default-data.json"
     ):
-        if not any(x for x in sirepo.feature_config.cfg().sim_types if x in str(f)):
+        if not _is_valid(f):
             continue
         pkdlog(f)
         d = sirepo.simulation_db.json_load(f)
@@ -49,7 +44,9 @@ def fixup_package_data_json():
         for m in d.models.values():
             if isinstance(m, dict):
                 m.pkdel("startTime")
-        sirepo.util.json_dump(d, path=f, pretty=True)
+        sirepo.simulation_db.write_json(f, d)
         i += 1
     if i <= 0:
-        pykern.pkcli.command_error("must be run from package_data/template")
+        pykern.pkcli.command_error(
+            "no examples found; must be run from package_data/template"
+        )

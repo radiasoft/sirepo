@@ -242,11 +242,13 @@ class ParticleEnergy:
 
 
 def analysis_job_dispatch(data):
+    from sirepo import simulation_db
+
     t = sirepo.template.import_module(data.simulationType)
     return getattr(
         t,
         f"analysis_job_{_validate_method(t, data)}",
-    )(data)
+    )(data, simulation_db.simulation_run_dir(data))
 
 
 def compute_field_range(args, compute_range):
@@ -260,6 +262,7 @@ def compute_field_range(args, compute_range):
         PKDict(
             simulationType=args["simulationType"],
             simulationId=args["simulationId"],
+            # TODO(pjm): pass animation model name in, default to "animation"
             report="animation",
         )
     )
@@ -602,18 +605,25 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     )
 
 
-def sim_frame(frame_id, op, sapi):
+def sim_frame(frame_id, op, qcall):
     from sirepo import http_reply, http_request
 
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
-    sapi.parse_post(req_data=f, id=True, check_sim_exists=True)
+    qcall.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
         x = op(f)
     except Exception as e:
-        pkdlog("error generating report frame_id={} stack={}", frame_id, pkdexc())
-        raise sirepo.util.convert_exception(e, display_text="Report not generated")
-    r = sapi.reply_json(x)
+        if isinstance(e, sirepo.util.Reply):
+            return e
+        raise sirepo.util.UserAlert(
+            "Report not generated",
+            "exception={} str={} stack={}",
+            type(e),
+            e,
+            pkdexc(),
+        )
+    r = qcall.reply_json(x)
     if "error" not in x and s.want_browser_frame_cache(s.frameReport):
         r.headers["Cache-Control"] = "private, max-age=31536000"
     else:

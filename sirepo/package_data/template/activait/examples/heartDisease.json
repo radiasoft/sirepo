@@ -1,0 +1,320 @@
+{
+    "models": {
+        "analysisCluster": {
+            "basic": "clusterCount",
+            "model": "a"
+        },
+        "analysisData": {
+            "title": "c"
+        },
+        "analysisFFT": {
+            "model": "a"
+        },
+        "analysisFit": {
+            "basic": "fitVariable",
+            "model": "a"
+        },
+        "analysisNone": {
+            "model": "a"
+        },
+        "analysisReport": {
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterKmeansInit": 2,
+            "clusterMethod": "kmeans",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "a * x + b",
+            "fitParameters": "a,b",
+            "fitVariable": "x",
+            "history": [],
+            "notes": "",
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisTrim": {
+            "basic": "trimMax",
+            "model": "a"
+        },
+        "classificationAnimation": {
+            "classifier": "knn"
+        },
+        "columnInfo": {
+            "colsWithNonUniqueValues": {},
+            "hasHeaderRow": true,
+            "header": [
+                "has_heart_disease",
+                "age",
+                "resting_blood_pressure",
+                "cholesterol",
+                "max_heart_rate_achieved",
+                "st_depression",
+                "num_major_vessels",
+                "sex_male",
+                "chest_pain_type_atypical angina",
+                "chest_pain_type_non-anginal pain",
+                "chest_pain_type_typical angina",
+                "fasting_blood_sugar_lower than 120mg/ml",
+                "rest_ecg_left ventricular hypertrophy",
+                "rest_ecg_normal",
+                "exercise_induced_angina_yes",
+                "st_slope_flat",
+                "st_slope_upsloping",
+                "thalassemia_fixed defect",
+                "thalassemia_normal",
+                "thalassemia_reversable defect"
+            ],
+            "inputOutput": [
+                "output",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input",
+                "input"
+            ],
+            "rowCount": 304,
+            "selected": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        "columnReports": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+        ],
+        "dataFile": {
+            "appMode": "classification",
+            "file": "heartDisease.data.csv",
+            "inputsScaler": "RobustScaler",
+            "oldFile": "heartDisease.data.csv",
+            "outputsScaler": "RobustScaler"
+        },
+        "dtClassifierClassificationMetricsAnimation": {},
+        "dtClassifierConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "epochAnimation": {
+            "plotScale": "linear"
+        },
+        "fftReport": {
+            "column": "0"
+        },
+        "fileColumnReport": {
+            "x": -1
+        },
+        "fileColumnReport0": {
+            "columnNumber": 0,
+            "x": -1
+        },
+        "fileColumnReport1": {
+            "columnNumber": 1,
+            "x": -1
+        },
+        "fileColumnReport10": {
+            "columnNumber": 10,
+            "x": -1
+        },
+        "fileColumnReport11": {
+            "columnNumber": 11,
+            "x": -1
+        },
+        "fileColumnReport12": {
+            "columnNumber": 12,
+            "x": -1
+        },
+        "fileColumnReport13": {
+            "columnNumber": 13,
+            "x": -1
+        },
+        "fileColumnReport14": {
+            "columnNumber": 14,
+            "x": -1
+        },
+        "fileColumnReport15": {
+            "columnNumber": 15,
+            "x": -1
+        },
+        "fileColumnReport16": {
+            "columnNumber": 16,
+            "x": -1
+        },
+        "fileColumnReport17": {
+            "columnNumber": 17,
+            "x": -1
+        },
+        "fileColumnReport18": {
+            "columnNumber": 18,
+            "x": -1
+        },
+        "fileColumnReport19": {
+            "columnNumber": 19,
+            "x": -1
+        },
+        "fileColumnReport2": {
+            "columnNumber": 2,
+            "x": -1
+        },
+        "fileColumnReport3": {
+            "columnNumber": 3,
+            "x": -1
+        },
+        "fileColumnReport4": {
+            "columnNumber": 4,
+            "x": -1
+        },
+        "fileColumnReport5": {
+            "columnNumber": 5,
+            "x": -1
+        },
+        "fileColumnReport6": {
+            "columnNumber": 6,
+            "x": -1
+        },
+        "fileColumnReport7": {
+            "columnNumber": 7,
+            "x": -1
+        },
+        "fileColumnReport8": {
+            "columnNumber": 8,
+            "x": -1
+        },
+        "fileColumnReport9": {
+            "columnNumber": 9,
+            "x": -1
+        },
+        "fitAnimation": {
+            "colorMap": "viridis",
+            "columnNumber": 0,
+            "histogramBins": 30
+        },
+        "fitReport": {},
+        "hiddenReport": {
+            "subreports": []
+        },
+        "knnClassification": {
+            "kmax": 50,
+            "kmin": 1
+        },
+        "knnClassificationMetricsAnimation": {},
+        "knnConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "knnErrorRateAnimation": {},
+        "linearSvcClassification": {
+            "toleranceMax": 0.15,
+            "toleranceMin": 0.001,
+            "totalNumValues": 20
+        },
+        "linearSvcConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "linearSvcErrorRateAnimation": {},
+        "logisticRegressionClassification": {
+            "toleranceMax": 25,
+            "toleranceMin": 1,
+            "totalNumValues": 20
+        },
+        "logisticRegressionClassificationMetricsAnimation": {},
+        "logisticRegressionConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "logisticRegressionErrorRateAnimation": {},
+        "mlModel": {
+            "mlModule": "neuralnet"
+        },
+        "neuralNet": {
+            "batch_size": 50,
+            "epochs": 500,
+            "layers": [],
+            "losses": "mean_squared_error",
+            "optimizer": "adam",
+            "shuffle": "1"
+        },
+        "neuralNetLayer": {
+            "activationActivation": "relu",
+            "alphaDropoutRate": 0.5,
+            "denseActivation": "relu",
+            "denseDimensionality": 10,
+            "dropoutRate": 0.5,
+            "gaussianDropoutRate": 0.5,
+            "gaussianNoiseStddev": 0.01,
+            "layer": "Dense"
+        },
+        "partition": {
+            "cutoff0": 38,
+            "cutoff1": 266,
+            "method": "random",
+            "random_state": 42,
+            "section0": "validate",
+            "section1": "train_and_test",
+            "section2": "validate",
+            "testing": 25,
+            "trainTestPercent": 75,
+            "training": 75,
+            "validation": 12.5
+        },
+        "partitionColumnReport": {},
+        "partitionSelectionReport": {},
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "Heart Disease",
+            "notes": ""
+        }
+    },
+    "simulationType": "activait"
+}

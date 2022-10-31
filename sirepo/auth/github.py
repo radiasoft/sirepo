@@ -10,17 +10,16 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import api_perm
-from sirepo import auth
-from sirepo import auth_db
-from sirepo import util
-import sirepo.api
+import sirepo.auth_db
 import sirepo.events
 import sirepo.oauth
+import sirepo.quest
 import sqlalchemy
 
 
 AUTH_METHOD = "github"
+
+this_module = pkinspect.this_module()
 
 #: Used by auth_db
 AuthGithubUser = None
@@ -29,17 +28,17 @@ AuthGithubUser = None
 UserModel = None
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("allow_cookieless_set_user")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("allow_cookieless_set_user")
     def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.
 
         Tracks oauth users in a database.
         """
-        oc, t = sirepo.oauth.check_authorized_callback(github_auth=True)
+        oc, t = sirepo.oauth.check_authorized_callback(self, github_auth=True)
         d = oc.get("https://api.github.com/user").json()
-        sirepo.events.emit("github_authorized", PKDict(user_name=d["login"]))
-        with util.THREAD_LOCK:
+        sirepo.events.emit(self, "github_authorized", PKDict(user_name=d["login"]))
+        with sirepo.util.THREAD_LOCK:
             u = AuthGithubUser.search_by(oauth_id=d["id"])
             if u:
                 # always update user_name
@@ -47,29 +46,25 @@ class API(sirepo.api.Base):
             else:
                 u = AuthGithubUser(oauth_id=d["id"], user_name=d["login"])
             u.save()
-            auth.login(
-                pkinspect.this_module(),
-                model=u,
-                sim_type=t,
-                want_redirect=True,
-            )
+            self.auth.login(this_module, model=u, sim_type=t, want_redirect=True)
             raise AssertionError("auth.login returned unexpectedly")
 
-    @sirepo.api.Spec("require_cookie_sentinel")
+    @sirepo.quest.Spec("require_cookie_sentinel")
     def api_authGithubLogin(self, simulation_type):
         """Redirects to Github"""
         sirepo.oauth.raise_authorize_redirect(
+            self,
             self.parse_params(type=simulation_type).type,
             github_auth=True,
         )
 
-    @sirepo.api.Spec("allow_cookieless_set_user")
+    @sirepo.quest.Spec("allow_cookieless_set_user")
     def api_oauthAuthorized(self, oauth_type):
         """Deprecated use `api_authGithubAuthorized`"""
         return self.api_authGithubAuthorized()
 
 
-def avatar_uri(model, size):
+def avatar_uri(qcall, model, size):
     return "https://avatars.githubusercontent.com/{}?size={}".format(
         model.user_name,
         size,
@@ -118,7 +113,7 @@ def _init():
     cfg.callback_api = "authGithubAuthorized"
 
     AUTH_METHOD_VISIBLE = cfg.method_visible
-    auth_db.init_model(_init_model)
+    sirepo.auth_db.init_model(_init_model)
 
 
 _init()

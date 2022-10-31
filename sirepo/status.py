@@ -8,15 +8,11 @@ from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
-from sirepo import api_perm
-from sirepo import http_reply
-from sirepo import server
 from sirepo import simulation_db
-from sirepo import uri_router
 import datetime
 import random
 import re
-import sirepo.api
+import sirepo.quest
 import time
 
 
@@ -32,8 +28,8 @@ _SIM_NAME = "Undulator Radiation"
 _SIM_REPORT = "initialIntensityReport"
 
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("require_auth_basic")
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("require_auth_basic")
     def api_serverStatus(self):
         """Allow for remote monitoring of the web server status.
 
