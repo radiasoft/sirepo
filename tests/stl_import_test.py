@@ -25,7 +25,7 @@ def _create_mesh(file_path):
     import trimesh
     
     with open(file_path) as f:
-        return trimesh.load(f, file_type='stl', force='mesh', process=True)
+        return trimesh.load(f, file_type="stl", force="mesh", process=True)
 
 def _convex_check(mesh):
     import trimesh
