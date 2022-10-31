@@ -45,7 +45,6 @@ def test_uid():
     qcall = None
 
     def _do(path, uid, expect=True):
-        pkdp("{} {}", uid, path)
         if expect:
             with pkexcept(AssertionError):
                 simulation_db.sim_db_file_uri_to_path(path, expect_uid=uid)
