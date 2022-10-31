@@ -2219,14 +2219,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         link: function(scope, element) {
             scope.panel = element.next();
 
-            function addModelPanelHeadingButtons() {
-                $(element).find(`.model-panel-heading-buttons`).append(
-                    (SIREPO.modelPanelHeadingButtons || {})[scope.viewName]
-                );
-            }
-
             panelState.waitForUI(function() {
-                addModelPanelHeadingButtons();
                 var view = appState.viewInfo(scope.viewName || scope.modelKey);
                 if (! view) {
                     var editorId = '#' + panelState.modalId(scope.modelKey);
