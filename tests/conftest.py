@@ -54,7 +54,7 @@ def fc_module(request):
     from pykern.pkcollections import PKDict
 
     a = _sirepo_args(request, "fc_module", PKDict())
-    if a.setup_func:
+    if "setup_func" in a:
         a.setup_func()
     with _subprocess_start(request, fc_args=a) as c:
         yield c
