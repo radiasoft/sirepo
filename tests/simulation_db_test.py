@@ -38,48 +38,43 @@ def test_last_modified(fc):
 
 
 def test_uid():
-    from sirepo import srunit
     from pykern.pkunit import pkeq, pkexcept, pkre
+    from pykern.pkdebug import pkdp
     from sirepo import simulation_db
 
     qcall = None
 
     def _do(path, uid, expect=True):
-        with qcall.auth.logged_in_user_set(uid):
-            if expect:
-                with pkexcept(AssertionError):
-                    simulation_db.validate_sim_db_file_path(path, qcall)
-            else:
-                simulation_db.validate_sim_db_file_path(path, qcall)
+        pkdp("{} {}", uid, path)
+        if expect:
+            with pkexcept(AssertionError):
+                simulation_db.sim_db_file_uri_to_path(path, expect_uid=uid)
+        else:
+            p = simulation_db.sim_db_file_uri_to_path(path, expect_uid=uid)
+            pkre(path + "$", str(p))
 
-    with srunit.quest_start() as qcall:
-        _do(
-            "/sim-db-file/user/xxx/elegant/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
-            "yyy",
-        )
-
-        _do(
-            "/sim-db-file/user/xxx/elegant/RrCoL7rQ/../../../foo",
-            "xxx",
-        )
-
-        _do(
-            "/sim-db-file/user/yyy/invalid/R/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
-            "yyy",
-        )
-
-        _do(
-            "/sim-db-file/user/yyy/invalid/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
-            "yyy",
-        )
-
-        _do(
-            "/sim-db-file/user/HsCFbRrQ/elegant/RrCoL7rQ/{}".format("x" * 129),
-            "HsCFbRrQ",
-        )
-
-        _do(
-            "/sim-db-file/user/HsCFbRrQ/elegant/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
-            "HsCFbRrQ",
-            expect=False,
-        )
+    _do(
+        "xxx/elegant/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
+        "yyy",
+    )
+    _do(
+        "xxx/elegant/RrCoL7rQ/../../../foo",
+        "xxx",
+    )
+    _do(
+        "yyy/invalid/R/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
+        "yyy",
+    )
+    _do(
+        "yyy/invalid/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
+        "yyy",
+    )
+    _do(
+        "HsCFbRrQ/elegant/RrCoL7rQ/{}".format("x" * 129),
+        "HsCFbRrQ",
+    )
+    _do(
+        "HsCFbRrQ/elegant/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
+        "HsCFbRrQ",
+        expect=False,
+    )

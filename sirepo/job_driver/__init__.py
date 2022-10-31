@@ -131,7 +131,8 @@ class DriverBase(PKDict):
         with sirepo.quest.start() as qcall:
             with qcall.auth.logged_in_user_set(m.uid):
                 d = sirepo.simulation_db.simulation_lib_dir(
-                    m.simulationType, qcall=qcall
+                    m.simulationType,
+                    qcall=qcall,
                 )
                 op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
                 op.lib_dir_symlink.mksymlinkto(d, absolute=True)
@@ -214,7 +215,6 @@ class DriverBase(PKDict):
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
                     job.SIM_DB_FILE_URI,
-                    sirepo.simulation_db.USER_ROOT_DIR,
                     self.uid,
                 ),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,

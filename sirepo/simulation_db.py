@@ -88,6 +88,8 @@ _cfg = None
 #: version for development
 _dev_version = None
 
+_SIM_DB_FILE_PATH_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
+
 
 def app_version():
     """Force the version to be dynamic if running in dev channel
@@ -135,7 +137,6 @@ def delete_simulation(simulation_type, sid, qcall=None):
 
 def delete_user(qcall):
     """Deletes a user's directory."""
-    assert uid is not None
     pkio.unchecked_remove(user_path(qcall=qcall))
 
 
@@ -610,6 +611,26 @@ def sim_data_file(sim_type, sim_id, qcall=None):
     return simulation_dir(sim_type, sim_id, qcall=qcall).join(SIMULATION_DATA_FILE)
 
 
+def sim_db_file_uri(simulation_type, sid, basename):
+    return "/".join(
+        [
+            sirepo.template.assert_sim_type(simulation_type),
+            assert_sid(sid),
+            _assert_sim_db_file_path(basename),
+        ]
+    )
+
+
+def sim_db_file_uri_to_path(path, expect_uid):
+    p = path.split("/")
+    assert len(p) == 4, f"path={p} has too many parts"
+    assert p[0] == expect_uid, f"uid={p[0]} is not expect_uid={expect_uid}"
+    sirepo.template.assert_sim_type(p[1]),
+    assert_sid(p[2]),
+    _assert_sim_db_file_path(p[3]),
+    return user_path_root().join(*p)
+
+
 def sim_from_path(path):
     return _sim_from_path(path)
 
@@ -630,16 +651,6 @@ def simulation_dir(simulation_type, sid=None, qcall=None):
     if not sid:
         return d
     return d.join(assert_sid(sid))
-
-
-def simulation_file_uri(simulation_type, sid, basename):
-    return "/".join(
-        [
-            sirepo.template.assert_sim_type(simulation_type),
-            assert_sid(sid),
-            basename,
-        ]
-    )
 
 
 def simulation_lib_dir(simulation_type, qcall=None):
@@ -779,22 +790,6 @@ def user_path_root():
     return sirepo.srdb.root().join(USER_ROOT_DIR)
 
 
-def validate_sim_db_file_path(path, qcall):
-    from sirepo import job
-
-    u = qcall.auth.logged_in_user()
-    assert re.search(
-        r"^{}/{}/{}/({})/{}/[a-zA-Z0-9-_\.]{{1,128}}$".format(
-            job.SIM_DB_FILE_URI,
-            USER_ROOT_DIR,
-            u,
-            "|".join(feature_config.cfg().sim_types),
-            _ID_PARTIAL_RE_STR,
-        ),
-        path,
-    ), f"invalid path={path} or uid={u}"
-
-
 def validate_serial(req_data, qcall):
     """Verify serial in data validates
 
@@ -839,6 +834,11 @@ def write_json(filename, data):
         filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
     """
     util.json_dump(data, path=json_filename(filename), pretty=True)
+
+
+def _assert_sim_db_file_path(basename):
+    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
+    return basename
 
 
 def _create_lib_and_examples(user_dir, sim_type, qcall=None):

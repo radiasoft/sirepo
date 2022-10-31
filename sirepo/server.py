@@ -82,6 +82,7 @@ class API(sirepo.quest.API):
         sirepo.sim_data.get_class(req.type).lib_files_from_other_user(
             data,
             simulation_db.lib_dir_from_sim_dir(src),
+            qcall=self,
         )
         target = simulation_db.simulation_dir(
             req.type,
@@ -470,7 +471,7 @@ class API(sirepo.quest.API):
             simulation_type
         ).constants.simulationSourceExtension
         return self.reply_attachment(
-            req.template.python_source_for_model(d, m),
+            req.template.python_source_for_model(d, m, qcall=self),
             "{}.{}".format(
                 d.models.simulation.name + ("-" + title if title else ""),
                 "madx" if m == "madx" else suffix,

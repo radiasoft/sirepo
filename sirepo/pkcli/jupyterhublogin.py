@@ -77,6 +77,7 @@ def create_user(email, display_name):
                 check_dir=True,
             )
             sirepo.auth_db.UserRole.add_roles(
-                qcall, sirepo.auth_role.for_sim_type("jupyterhublogin")
+                qcall,
+                [sirepo.auth_role.for_sim_type("jupyterhublogin")],
             )
         return PKDict(email=email, jupyterhub_user_name=n)

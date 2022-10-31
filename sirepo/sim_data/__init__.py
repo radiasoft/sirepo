@@ -381,7 +381,7 @@ class SimDataBase(object):
         return res
 
     @classmethod
-    def lib_files_from_other_user(cls, data, other_lib_dir):
+    def lib_files_from_other_user(cls, data, other_lib_dir, qcall):
         """Copy auxiliary files to other user
 
         Does not copy resource files. Only works locally.
@@ -393,7 +393,7 @@ class SimDataBase(object):
         cls._assert_server_side()
         from sirepo import simulation_db
 
-        t = simulation_db.simulation_lib_dir(cls.sim_type())
+        t = simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall)
         for f in cls._lib_file_basenames(data):
             s = other_lib_dir.join(f)
             if s.exists():
@@ -803,7 +803,7 @@ class SimDataBase(object):
     def _sim_file_uri(cls, sim_id, basename):
         from sirepo import simulation_db
 
-        return simulation_db.simulation_file_uri(
+        return simulation_db.sim_db_file_uri(
             cls.sim_type(),
             sim_id,
             basename,
