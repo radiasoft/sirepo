@@ -8,7 +8,7 @@
 _RAW_VERTICES = [[0, 0, 0], [1, 1, 0], [0, 1, 0], [0.5, 0.5, 1]]
 _RAW_FACES = [[1, 2, 3], [1, 2, 4], [1, 4, 3], [4, 2, 3]]
 
-RAW_EXPECTED = [[0.0, 1.0, 0.0],
+_RAW_EXPECTED = [[0.0, 1.0, 0.0],
  [1.0, 1.0, 0.0],
  [0.0, 0.0, 0.0],
  [0.0, 0.0, 0.0],
@@ -39,7 +39,7 @@ def test_raw():
 
     d = radia.ObjDrwVTK(radia.ObjPolyhdr(_RAW_VERTICES, _RAW_FACES), "Axes->No")
     actual = numpy.array([round(x, 6) for x in d["polygons"]["vertices"]]).reshape(-1, 3).tolist()
-    pkeq(RAW_EXPECTED, actual)
+    pkeq(_RAW_EXPECTED, actual)
     
 def test_import():
     from pykern import pkunit
