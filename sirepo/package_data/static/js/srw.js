@@ -67,7 +67,7 @@ SIREPO.app.config(function() {
     `;
     SIREPO.modelPanelHeadingButtons = {
         exportRsOpt: `
-          <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
+          <a href data-ng-click="$rootScope.$broadcast('POOP')" class="dropdown-toggle" data-toggle="dropdown" title="Export ML Script"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
         `,
     };
 
@@ -1990,11 +1990,15 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
     };
 
     $scope.whenSelected = () => {
+        srdbg('RSOPT VIEW');
         // set form dirty so user does not have to change anything to export
         //$scope.$parent.form.$setDirty();
     };
 
     //$scope.$on('exportRsOpt.saved', $scope.export);
+    appState.whenModelsLoaded($scope, () => {
+        $scope.$on('POOP', () => { srdbg('YUP POOP'); });
+    });
 
 });
 

@@ -2084,7 +2084,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
     };
 });
 
-SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, plotToPNG, requestSender, utilities) {
+SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, plotToPNG, requestSender, utilities, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -2098,7 +2098,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             <div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">
               <a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
               ${SIREPO.appPanelHeadingButtons || ''}
-              {{ (SIREPO.modelPanelHeadingButtons || {})[viewName] }}
+              <div class="model-panel-heading-buttons"></div>
               <div data-ng-if="isReport" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">
                 <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
                 <ul class="dropdown-menu dropdown-menu-right">
@@ -2218,7 +2218,15 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         link: function(scope, element) {
             scope.panel = element.next();
+
+            function addModelPanelHeadingButtons() {
+                $(element).find(`.model-panel-heading-buttons`).append(
+                    (SIREPO.modelPanelHeadingButtons || {})[scope.viewName]
+                );
+            }
+
             panelState.waitForUI(function() {
+                addModelPanelHeadingButtons();
                 var view = appState.viewInfo(scope.viewName || scope.modelKey);
                 if (! view) {
                     var editorId = '#' + panelState.modalId(scope.modelKey);
