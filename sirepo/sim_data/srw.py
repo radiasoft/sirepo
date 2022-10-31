@@ -678,4 +678,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     i.autocomputeVectors = (
                         "vertical" if i.normalVectorX == 0 else "horizontal"
                     )
+            if t == "grating":
+                if not i.get("energyAvg"):
+                    i.energyAvg = dm.simulation.photonEnergy
             cls.update_model_defaults(i, t)
