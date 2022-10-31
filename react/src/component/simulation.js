@@ -57,8 +57,6 @@ function SimulationInfoInitializer(props) {
                 let simulationInfo = await resp.json();
                 let { models } = simulationInfo;
 
-                console.log("models", models);
-
                 for(let [modelName, model] of Object.entries(models)) {
                     modelsWrapper.updateModel(modelName, model);
                 }

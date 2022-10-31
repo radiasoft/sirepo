@@ -9,7 +9,9 @@ import { useStore } from "react-redux";
 import { ProgressBar, Stack, Button } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { useEvaluatedInterpString } from "../hook/string";
+import { useStopwatch } from "../hook/stopwatch";
+import { AnimationReader } from "../data/report";
+import { useShown, ValueSelector } from "../hook/shown";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
@@ -40,7 +42,6 @@ export class AutoRunReportLayout extends View {
             let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
             simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-                console.log("starting to poll report");
                 pollRunReport({
                     appName,
                     models,
@@ -49,7 +50,6 @@ export class AutoRunReportLayout extends View {
                     pollInterval: 500,
                     forceRun: false,
                     callback: (simulationData) => {
-                        console.log("polling report yielded new data", simulationData);
                         // guard concurrency
                         if(simulationPollingVersionRef.current == pollingVersion) {
                             updateSimulationData(simulationData);
@@ -76,28 +76,6 @@ export class AutoRunReportLayout extends View {
     }
 }
 
-function getFrameId({
-    frameIndex,
-    reportName,
-    simulationId,
-    appName,
-    computeJobHash,
-    computeJobSerial,
-    hookedDependendies
-}) {
-    let frameIdElements = [
-        frameIndex,
-        reportName,
-        simulationId,
-        appName,
-        computeJobHash,
-        computeJobSerial,
-        ...((hookedDependendies || []).map(v => v.value))
-    ]
-
-    return frameIdElements.join('*');
-}
-
 export class ManualRunReportLayout extends View {
     getFormDependencies = (config) => {
         let { reportLayout } = config;
@@ -107,23 +85,18 @@ export class ManualRunReportLayout extends View {
 
     component = (props) => {
         let { config } = props;
-        let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig } = config;
+        let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig, frameCountFieldName } = config;
         
         let reportEventManager = useContext(ContextReportEventManager);
         let schema = useContext(ContextSchema);
         let modelsWrapper = useContext(ContextModelsWrapper);
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
         let appName = useContext(ContextAppName);
-
-        let [reportData, updateReportData] = useState(undefined);
+        let panelController = useContext(ContextPanelController);
 
         let reportEventsVersionRef = useRef(uuidv4())
 
-        let shown = true;
-
-        if(shownConfig) {
-            shown = useEvaluatedInterpString(modelsWrapper, shownConfig);
-        }
+        let shown = useShown(shownConfig, true, modelsWrapper, ValueSelector.Models);
 
         let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
 
@@ -135,6 +108,12 @@ export class ManualRunReportLayout extends View {
 
         let hookedFrameIdDependencies = frameIdDependencies.map(frameIdDependencyGroup.getHookedDependency);
 
+        let [animationReader, updateAnimationReader] = useState(undefined);
+
+        useEffect(() => {
+            panelController.setShown(false);
+        }, [0])
+
         useEffect(() => {
             let reportEventsVersion = uuidv4();
             reportEventsVersionRef.current = reportEventsVersion;
@@ -144,46 +123,109 @@ export class ManualRunReportLayout extends View {
                     return; // guard against concurrency with older versions
                 }
 
-                updateReportData(undefined);
-
                 let { state } = simulationData;
                 if(state == "completed") {
                     simulationInfoPromise.then(({simulationId}) => {
-                        let { frameCount, computeJobHash, computeJobSerial } = simulationData;
-                        let frameId = getFrameId({
-                            frameIndex: frameCount - 1, // pick last frame for now
+                        let { computeJobHash, computeJobSerial } = simulationData;
+                        let frameCount = !!frameCountFieldName ? simulationData[frameCountFieldName] : 1;
+                        let animationReader = new AnimationReader({
                             reportName,
                             simulationId,
-                            computeJobHash,
-                            computeJobSerial,
                             appName,
-                            hookedDependendies: hookedFrameIdDependencies
+                            computeJobSerial,
+                            computeJobHash,
+                            hookedFrameIdFields: hookedFrameIdDependencies,
+                            frameCount
                         })
-
-                        getSimulationFrame(frameId).then(simulationData => {
-                            updateReportData(simulationData);
-                        });
+                        updateAnimationReader(animationReader);
                     })
                 }
             })
         })
 
-        let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
-        let panelController = useContext(ContextPanelController);
-
-        useEffect(() => {
-            panelController.setShown(shown && !!reportData);
-        }, [shown, !!reportData])
-
-        let VisualComponent = reportData ? layoutElement.component : undefined;
-
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {VisualComponent && shown && <VisualComponent key={reportEventsVersionRef.current} config={reportLayout} simulationData={reportData}></VisualComponent>}
+                {reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayoutConfig={reportLayout} animationReader={animationReader}></ReportAnimationController>}
             </>
         )
     }
+}
+
+export function ReportAnimationController(props) {
+    let { animationReader, reportLayoutConfig, shown } = props;
+    let layoutsWrapper = useContext(ContextLayouts);
+    let layoutElement = layoutsWrapper.getLayoutForConfig(reportLayoutConfig);
+
+    let panelController = useContext(ContextPanelController);
+
+    let [currentReportData, updateCurrentReportData] = useState(undefined);
+
+    let reportDataCallback = (simulationData) => updateCurrentReportData(simulationData);
+    let presentationIntervalMs = 1000;
+
+    useEffect(() => {
+        if(currentReportData === undefined) {
+            animationReader.getNextFrame().then(reportDataCallback);
+        }
+    }, [0])
+
+    useEffect(() => {
+        let s = shown && !!currentReportData;
+        panelController.setShown(s);
+    }, [shown, !!currentReportData])
+
+    let animationControlButtons = (
+        <div className="d-flex flex-row justify-content-center w-100">
+            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
+                animationReader.cancelPresentations();
+                animationReader.seekBeginning();
+                animationReader.getNextFrame().then(reportDataCallback);
+            }}>
+                <FontAwesomeIcon icon={Icon.faBackward}></FontAwesomeIcon>
+            </Button>
+            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
+                animationReader.cancelPresentations();
+                animationReader.getPreviousFrame().then(reportDataCallback)
+            }}>
+                <FontAwesomeIcon icon={Icon.faBackwardStep}></FontAwesomeIcon>
+            </Button>
+            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+                animationReader.cancelPresentations();
+                animationReader.beginPresentation('forward', presentationIntervalMs, reportDataCallback)
+            }}>
+                <FontAwesomeIcon icon={Icon.faPlay}></FontAwesomeIcon>
+            </Button>
+            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+                animationReader.cancelPresentations();
+                animationReader.getNextFrame().then(reportDataCallback)
+            }}>
+                <FontAwesomeIcon icon={Icon.faForwardStep}></FontAwesomeIcon>
+            </Button>
+            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+                animationReader.cancelPresentations();
+                animationReader.seekEnd();
+                animationReader.getNextFrame().then(reportDataCallback);
+            }}>
+                <FontAwesomeIcon icon={Icon.faForward}></FontAwesomeIcon>
+            </Button>
+        </div>
+    )
+    
+    let LayoutComponent = layoutElement ? layoutElement.component : undefined;
+
+    return (
+        <>
+            {
+                LayoutComponent && shown && currentReportData && (
+                    <>
+                        <LayoutComponent config={reportLayoutConfig} simulationData={currentReportData}/>
+                        {animationReader.getFrameCount() > 1 && animationControlButtons}
+                    </>
+                )
+            }
+        </>
+    )
 }
 
 export class SimulationStartLayout extends View {
@@ -202,20 +244,24 @@ export class SimulationStartLayout extends View {
 
         let store = useStore();
 
+        
+
         let [lastSimulationData, updateLastSimulationData] = useState(undefined);
-        let [lastSimulationStartTime, updateLastSimulatonStartTime] = useState(undefined);
+        let stopwatch = useStopwatch();
 
         let simulationPollingVersionRef = useRef(uuidv4())
 
         let startSimulation = () => {
             updateLastSimulationData(undefined);
-            updateLastSimulatonStartTime(new Date());
+            stopwatch.reset();
+            stopwatch.start();
             let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
 
             reportEventManager.onReportData(reportGroupName, (simulationData) => {
                 if(simulationPollingVersionRef.current === pollingVersion) {
                     updateLastSimulationData(simulationData);
+                    stopwatch.stop();
                 }
             })
 
@@ -230,8 +276,9 @@ export class SimulationStartLayout extends View {
         }
 
         let endSimulation = () => {
+            debugger;
             updateLastSimulationData(undefined);
-            updateLastSimulatonStartTime(undefined);
+            stopwatch.reset();
             simulationPollingVersionRef.current = uuidv4();
 
             simulationInfoPromise.then(({simulationId}) => {
@@ -249,9 +296,9 @@ export class SimulationStartLayout extends View {
 
         if(lastSimulationData) {
             let { state } = lastSimulationData;
-
+            let elapsedTimeSeconds = stopwatch.isComplete() ? Math.ceil(stopwatch.getElapsedSeconds()) : undefined;
             let getStateBasedElement = (state) => {
-                let elapsedTimeSeconds = Math.ceil(((new Date()) - lastSimulationStartTime) / 1000)
+                
                 switch(state) {
                     case 'pending':
                         return (
@@ -269,7 +316,6 @@ export class SimulationStartLayout extends View {
                             </Stack>
                         )
                     case 'completed':
-                        
                         return (    
                             <Stack gap={2}>
                                 <span>{'Simulation Completed'}</span>
