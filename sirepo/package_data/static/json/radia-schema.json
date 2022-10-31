@@ -935,7 +935,6 @@
             "sbatchProject": ["Project", "OptionalString", ""]
         },
         "fieldLineoutAnimation": {
-            "fieldPath": ["_", "model.fieldPath", {}],
             "fieldPaths": ["Path", "FieldPaths", []],
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"],
