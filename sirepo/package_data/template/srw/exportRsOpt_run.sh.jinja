@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+unzip '{{ zipFileName }}'
+cd './{{ fileBase }}'
+bash '{{ shFileName }}'
