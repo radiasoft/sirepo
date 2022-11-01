@@ -1,6 +1,10 @@
 import { mapProperties } from "../utility/object";
 import { useDispatch, useSelector } from "react-redux";
 import { useShown, ValueSelector } from "../hook/shown";
+import React from "react";
+import { FormActions, FormFieldState, FormSelectors, FormState } from "../store/formState";
+import { AnyAction, Dispatch } from "redux";
+import { HookedDependency, HookedModel } from "./dependency";
 
 export let formStateFromModel = (model, modelSchema) => mapProperties(modelSchema, (fieldName, { type }) => {
     const valid = type.validate(model[fieldName])
@@ -12,8 +16,21 @@ export let formStateFromModel = (model, modelSchema) => mapProperties(modelSchem
     }
 })
 
-export class FormState {
-    constructor({ formActions, formSelectors }) {
+export type FormStateFieldWrapper<T> = {
+    updateField: (value: FormFieldState<T>) => void
+}
+
+export type FormStateModelWrapper = {
+    updateModel: (value: FormState) => void,
+    hookModel: () => FormState,
+    forField: (fieldName: string) => FormStateFieldWrapper<unknown>
+}
+
+export class FormStateWrapper {
+    formActions: FormActions;
+    formSelectors: FormSelectors;
+    dispatch: Dispatch<AnyAction>;
+    constructor({ formActions, formSelectors }: { formActions: FormActions, formSelectors: FormSelectors }) {
         this.formActions = formActions;
         this.formSelectors = formSelectors;
 
@@ -25,7 +42,7 @@ export class FormState {
         return this.formSelectors.selectFormState(modelName)(state);
     }
 
-    forModel = (modelName) => {
+    forModel: (modelName: string) => FormStateModelWrapper = (modelName) => {
         return {
             updateModel: (value) => {
                 return this.updateModel(modelName, value);
@@ -66,11 +83,28 @@ export class FormState {
     }
 }
 
-export class FormController {
-    constructor({ formState, hookedDependencies }) {
-        this.formState = formState;
+export const ContextRelativeFormState = React.createContext<FormStateWrapper>(undefined);
 
-        this.hookedModels = {};
+export type FormHookedModel = {
+    dependency: HookedModel,
+    value: FormState,
+} & FormStateModelWrapper
+
+export type FormHookedField<T> = {
+    fieldName: string,
+    modelName: string,
+    model: FormHookedModel,
+    value: FormFieldState<T>,
+    dependency: HookedDependency<unknown>,
+    updateValue: (value: T) => void
+}
+
+export class FormController {
+    formState: FormStateWrapper;
+    hookedModels: {[modelName: string]: FormHookedModel}
+    hookedFields: FormHookedField<unknown>[];
+    constructor({ formState, hookedDependencies }: { formState: FormStateWrapper, hookedDependencies: HookedDependency<unknown>[] }) {
+        this.formState = formState;
 
         this.hookedFields = hookedDependencies.map(hookedDependency => {
             let { fieldName, modelName } = hookedDependency;

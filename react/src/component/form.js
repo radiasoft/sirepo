@@ -14,7 +14,7 @@ import {
     ContextModelsWrapper,
     ContextRelativeFormState
 } from "../context";
-import { FormState } from "../data/form";
+import { FormStateWrapper } from "../data/form";
 import {
     formActions,
     formSelectors
@@ -55,7 +55,7 @@ export function FormStateInitializer(props) {
     let store = useStore();
 
     let models = useContext(ContextModelsWrapper);
-    let formState = new FormState({
+    let formState = new FormStateWrapper({
         formActions,
         formSelectors
     })

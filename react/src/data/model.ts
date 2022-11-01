@@ -1,7 +1,9 @@
+import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Dispatch, AnyAction } from "redux";
 import { ModelActions, ModelSelectors, ModelState } from "../store/models";
 
+export const ContextModelsWrapper = React.createContext<ModelsWrapper>(undefined);
 
 export type ModelWrapper = {
     updateModel: (value: ModelState) => void;

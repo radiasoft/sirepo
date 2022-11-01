@@ -43,7 +43,7 @@ export class HookedDependencyGroup {
     hookedModels: {[modelName: string]: HookedModel}
     hookedDependencies: HookedDependency<unknown>[]
 
-    constructor({ dependencies, modelsWrapper, schemaModels }) {
+    constructor({ dependencies, modelsWrapper, schemaModels }: { dependencies: Dependency[], modelsWrapper: ModelsWrapper, schemaModels: {[modelName: string]: SchemaModel}}) {
         this.modelsWrapper = modelsWrapper;
         this.dependencies = dependencies;
 
