@@ -1,3 +1,4 @@
+import React from "react";
 import { ModelState } from "../store/models";
 import { SchemaField, SchemaModel } from "../utility/schema";
 import { ModelsWrapper, ModelWrapper } from "./model";
@@ -37,6 +38,7 @@ export type HookedDependency<T> = {
     value: T
 } & SchemaField<T>
 
+export const ContextRelativeHookedDependencyGroup = React.createContext<HookedDependencyGroup>(undefined);
 export class HookedDependencyGroup {
     modelsWrapper: ModelsWrapper;
     dependencies: Dependency[];

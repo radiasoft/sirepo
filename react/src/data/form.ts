@@ -84,6 +84,7 @@ export class FormStateWrapper {
 }
 
 export const ContextRelativeFormState = React.createContext<FormStateWrapper>(undefined);
+export const ContextRelativeFormController = React.createContext<FormController>(undefined);
 
 export type FormHookedModel = {
     dependency: HookedModel,
