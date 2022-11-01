@@ -4,13 +4,10 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
-from sirepo import srunit
 
 
-@srunit.wrap_in_request(want_cookie=True, want_user=True)
-def test_srw_1(qcall):
+def test_srw_1(fc):
     _t(
         {
             "amx": ("amx", None),
@@ -24,12 +21,12 @@ def test_srw_1(qcall):
             "exported_undulator_radiation": ("exported_undulator_radiation", None),
             "lcls_simplified": ("lcls_simplified", None),
             "lcls_sxr": ("lcls_sxr", None),
-        }
+        },
+        fc,
     )
 
 
-@srunit.wrap_in_request(want_cookie=True, want_user=True)
-def test_srw_2(qcall):
+def test_srw_2(fc):
     _t(
         {
             "nsls-ii-esm-beamline": ("nsls-ii-esm-beamline", None),
@@ -42,27 +39,24 @@ def test_srw_2(qcall):
             "srx_bl2": ("srx", "--op_BL=2"),
             "srx_bl3": ("srx", "--op_BL=3"),
             "srx_bl4": ("srx", "--op_BL=4"),
-        }
+        },
+        fc,
     )
 
 
-def _t(tests):
-    from sirepo.template.srw_importer import import_python
-    from pykern import pkio, pkjson
+def _t(tests, fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp
-    import glob
-    import py
+    from pykern.pkcollections import PKDict
 
-    with pkio.save_chdir(pkunit.work_dir()):
+    with pkunit.save_chdir_work(want_empty=False):
         for b in sorted(tests.keys()):
-            base_py = "{}.py".format(tests[b][0])
-            code = pkio.read_text(pkunit.data_dir().join(base_py))
-            actual = import_python(
-                code,
-                tmp_dir=".",
-                user_filename=r"c:\anything\{}.anysuffix".format(tests[b][0]),
-                arguments=tests[b][1],
+            fc.sr_get_root("srw")
+            res = fc.sr_post_form(
+                "importFile",
+                PKDict(folder="/srw_import_test"),
+                PKDict(simulation_type="srw"),
+                file=pkunit.data_dir().join(f"{tests[b][0]}.py"),
             )
-            actual["version"] = "IGNORE-VALUE"
-            pkunit.assert_object_with_json(b, actual)
+            res["version"] = "IGNORE-VALUE"
+            pkunit.assert_object_with_json(b, res)

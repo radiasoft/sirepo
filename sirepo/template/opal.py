@@ -504,7 +504,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
     return data
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 

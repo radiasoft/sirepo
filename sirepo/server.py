@@ -450,7 +450,7 @@ class API(sirepo.quest.API):
             folder=req.folder,
         )
         if hasattr(req.template, "new_simulation"):
-            req.template.new_simulation(d, req.req_data)
+            req.template.new_simulation(d, req.req_data, qcall=self)
         return self._save_new_and_reply(req, d)
 
     @sirepo.quest.Spec("allow_visitor")

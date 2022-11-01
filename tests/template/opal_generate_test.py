@@ -20,7 +20,7 @@ def test_generate_python():
         for name in ("CSR Bend Drift", "CTF3 RF Photoinjector"):
             data = _example_data(name)
             data["report"] = "animation"
-            actual = opal.python_source_for_model(data, None)
+            actual = opal.python_source_for_model(data, None, qcall=None)
             outfile = name.lower().replace(" ", "-") + ".txt"
             pkio.write_text(outfile, actual)
             expect = pkio.read_text(pkunit.data_dir().join(outfile))

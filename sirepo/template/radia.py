@@ -284,7 +284,7 @@ def import_file(req, tmp_dir=None, **kwargs):
     return data
 
 
-def new_simulation(data, new_sim_data):
+def new_simulation(data, new_sim_data, qcall, **kwargs):
     _prep_new_sim(data, new_sim_data=new_sim_data)
     dirs = _geom_directions(new_sim_data.beamAxis, new_sim_data.heightAxis)
     t = new_sim_data.get("magnetType", "freehand")

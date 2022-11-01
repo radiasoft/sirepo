@@ -160,7 +160,7 @@ def get_data_file(run_dir, model, frame, options):
     return files[int(frame)]
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
     source = new_simulation_data["sourceType"]
     if not source:
         source = "laserPulse"

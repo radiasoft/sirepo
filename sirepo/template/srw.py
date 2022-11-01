@@ -460,7 +460,7 @@ def get_application_data(data, qcall, **kwargs):
         )
     elif data.method == "processedImage":
         try:
-            return _process_image(data, kwargs["tmp_dir"])
+            return _process_image(data, kwargs["tmp_dir"], qcall=qcall)
         except Exception as e:
             pkdlog("exception during processedImage: {}", pkdexc())
             return PKDict(
@@ -646,7 +646,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
     )
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
     sim = data.models.simulation
     sim.sourceType = new_simulation_data.sourceType
     if _SIM_DATA.srw_is_gaussian_source(sim):
@@ -657,7 +657,8 @@ def new_simulation(data, new_simulation_data):
         data.models.sourceIntensityReport.method = "2"
     elif _SIM_DATA.srw_is_tabulated_undulator_source(sim):
         data.models.undulator.length = compute_undulator_length(
-            data.models.tabulatedUndulator
+            data.models.tabulatedUndulator,
+            qcall=qcall,
         ).length
         data.models.electronBeamPosition.driftCalculationMethod = "manual"
 
@@ -784,7 +785,7 @@ def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
     data.report = model or _SIM_DATA.SRW_RUN_ALL_MODEL
     data.report = re.sub("beamlineAnimation0", "initialIntensityReport", data.report)
     data.report = re.sub("beamlineAnimation", "watchpointReport", data.report)
-    return _generate_parameters_file(data, plot_reports=plot_reports)
+    return _generate_parameters_file(data, plot_reports=plot_reports, qcall=qcall)
 
 
 def run_epilogue():
@@ -1643,7 +1644,7 @@ def _flux_units(model):
     return "ph/s/.1%bw" if int(model.fluxType) == 1 else "ph/s/.1%bw/mm^2"
 
 
-def _generate_beamline_optics(report, data):
+def _generate_beamline_optics(report, data, qcall=None):
     res = PKDict(names=[], last_id=None, watches=PKDict())
     models = data.models
     if len(models.beamline) == 0 or not (
@@ -1703,7 +1704,9 @@ def _generate_beamline_optics(report, data):
                 )
                 res.names.append(items[-1].name)
             if "heightProfileFile" in item:
-                item.heightProfileDimension = _height_profile_dimension(item, data)
+                item.heightProfileDimension = _height_profile_dimension(
+                    item, data, qcall=qcall
+                )
             items.append(item)
             res.names.append(name)
             if item.type == "watch":
@@ -1802,7 +1805,7 @@ def _generate_beamline_optics(report, data):
     return optics, prop, res
 
 
-def _generate_parameters_file(data, plot_reports=False, run_dir=None):
+def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None):
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
@@ -1834,7 +1837,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.python_file = run_dir.join("user_python.py")
         pkio.write_text(v.python_file, dm.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, "import.py")
-    _set_parameters(v, data, plot_reports, run_dir)
+    _set_parameters(v, data, plot_reports, run_dir, qcall=qcall)
     v.in_server = run_dir is not None
     return _trim(res + template_common.render_jinja(SIM_TYPE, v))
 
@@ -1946,15 +1949,15 @@ def _get_first_element_position(report, data):
     return template_common.DEFAULT_INTENSITY_DISTANCE
 
 
-def _height_profile_dimension(item, data):
+def _height_profile_dimension(item, data, qcall=None):
     """Find the dimension of the provided height profile .dat file.
     1D files have 2 columns, 2D - 8 columns.
     """
     dimension = 0
     if item.heightProfileFile and item.heightProfileFile != "None":
-        with _SIM_DATA.lib_file_abspath(item.heightProfileFile, data=data).open(
-            "r"
-        ) as f:
+        with _SIM_DATA.lib_file_abspath(
+            item.heightProfileFile, data=data, qcall=qcall
+        ).open("r") as f:
             header = f.readline().strip().split()
             dimension = 1 if len(header) == 2 else 2
     return dimension
@@ -2007,7 +2010,7 @@ def _parse_srw_log(run_dir):
     return "An unknown error occurred"
 
 
-def _process_image(data, tmp_dir):
+def _process_image(data, tmp_dir, qcall=None):
     """Process image and return
 
     Args:
@@ -2019,7 +2022,11 @@ def _process_image(data, tmp_dir):
     # This should just be a basename, but this ensures it.
     import srwl_uti_smp
 
-    path = str(_SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)))
+    path = str(
+        _SIM_DATA.lib_file_abspath(
+            sirepo.util.secure_filename(data.baseImage), qcall=qcall
+        )
+    )
     m = data.model
     with pkio.save_chdir(tmp_dir):
         if m.sampleSource == "file":
@@ -2268,11 +2275,13 @@ def _save_user_model_list(model_name, beam_list, qcall):
     )
 
 
-def _set_magnetic_measurement_parameters(run_dir, v):
+def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
     src_zip = (
         str(run_dir.join(v.tabulatedUndulator_magneticFile))
         if run_dir
-        else str(_SIM_DATA.lib_file_abspath(v.tabulatedUndulator_magneticFile))
+        else str(
+            _SIM_DATA.lib_file_abspath(v.tabulatedUndulator_magneticFile, qcall=qcall)
+        )
     )
     target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
     # The MagnMeasZip class defined above has convenient properties we can use here
@@ -2287,7 +2296,7 @@ def _set_magnetic_measurement_parameters(run_dir, v):
     v.magneticMeasurementsIndexFile = mmz.index_file
 
 
-def _set_parameters(v, data, plot_reports, run_dir):
+def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
@@ -2295,7 +2304,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
         v.beamlineOptics,
         v.beamlineOpticsParameters,
         beamline_info,
-    ) = _generate_beamline_optics(report, data)
+    ) = _generate_beamline_optics(report, data, qcall=qcall)
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
     # 1: auto-undulator 2: auto-wiggler
     v.energyCalculationMethod = (
@@ -2309,7 +2318,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
-        _set_magnetic_measurement_parameters(run_dir or "", v)
+        _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
     if _SIM_DATA.srw_is_background_report(report) and "beamlineAnimation" not in report:
         if sirepo.mpi.cfg().in_slurm:
             v.sbatchBackup = "1"

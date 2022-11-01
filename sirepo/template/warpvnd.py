@@ -244,7 +244,7 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
     return current * constants.elementary_charge / dz
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
     if "conductorFile" in new_simulation_data:
         c_file = new_simulation_data.conductorFile
         if c_file:

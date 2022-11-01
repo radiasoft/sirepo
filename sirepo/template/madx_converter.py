@@ -71,10 +71,10 @@ class MadxConverter:
         self.drift_type = self.full_field_map.from_madx.DRIFT[0]
         return self._convert(data)
 
-    def to_madx_text(self, data):
+    def to_madx_text(self, data, qcall=None):
         from sirepo.template import madx
 
-        return madx.python_source_for_model(self.to_madx(data), None)
+        return madx.python_source_for_model(self.to_madx(data), None, qcall=qcall)
 
     def _build_field_map(self, field_map):
         res = PKDict(
