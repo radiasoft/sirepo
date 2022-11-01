@@ -587,7 +587,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function setTallyColors() {
-                appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
+                appState.models.tallyReport.colorMap = appState.models.voxels.colorMap;
                 appState.saveChanges('tallyReport');
                 const cellsPerVoxel = voxelPoly.length;
                 const s = SIREPO.PLOTTING.Utils.colorScale(

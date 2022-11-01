@@ -131,6 +131,7 @@ def _tally_report_plot(run_dir, sim_in):
         score.append(f[j * dims[l]:(j + 1) * dims[l]])
 
     return PKDict(
+        aspectRatio=abs(ranges[l][1] - ranges[l][0]) / abs(ranges[m][1] - ranges[m][0]),
         title=f"Score at {t.axis} = {scale * t.planePos}m",
         x_label=f"{_AXES[m]} [m]",
         x_range=[ranges[m][0], ranges[m][1], int(dims[m])],
@@ -183,6 +184,9 @@ def sim_frame(frame_args):
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
     try:
+        pkdp("VTK DS {}", getattr(t, frame_args.aspect)[
+                    :, :, t.get_score_index(frame_args.score)
+                ])
         t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
             filename=f,
             datasets={
