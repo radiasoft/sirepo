@@ -1,4 +1,11 @@
+import React from "react";
+
+export const ContextPanelController = React.createContext<PanelController>(undefined);
+
 export class PanelController {
+    buttonPortalId: string;
+    onChangeShown: (shown: boolean) => void;
+
     constructor({
         buttonPortalId,
         onChangeShown
@@ -7,7 +14,7 @@ export class PanelController {
         this.onChangeShown = onChangeShown;
     }
 
-    setShown = (shown) => {
+    setShown = (shown: boolean) => {
         this.onChangeShown(shown);
     }
 }
