@@ -557,4 +557,3 @@ SIREPO.app.directive('scansTable', function() {
         },
     };
 });
-// TODO(rorour): need to ignore tests and change back those files
