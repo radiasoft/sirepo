@@ -1776,6 +1776,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function resetDrag() {
                 [dragX, dragY] = [0, 0];
                 draggedShape = null;
+                selectedObject = null;
             }
 
             function d3DragEndShape(shape) {

@@ -164,9 +164,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.centerExtrudedPoints = o =>  {
-        if ((o.referencePoints || []).length === 0) {
-            return;
-        }
         const idx = [self.axisIndex(o.widthAxis), self.axisIndex(o.heightAxis)];
         o.points = o.referencePoints.map(
             p => p.map(
@@ -323,14 +320,17 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.updateExtruded = o => {
-        self.updateExtrudedSize(o);
-        self.centerExtrudedPoints(o);
+        if (o.referencePoints && o.referencePoints.length) {
+            self.updateExtrudedSize(o);
+            self.centerExtrudedPoints(o);
+            return;
+        }
+        self.buildShapePoints(o, data => {
+            o.points = data.points;
+        });
     };
 
     self.updateExtrudedSize = o => {
-        if ((o.referencePoints || []).length === 0) {
-            return;
-        }
         [o.widthAxis, o.heightAxis].forEach((dim, i) => {
             const p = o.referencePoints.map(x => x[i]);
             o.size[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
