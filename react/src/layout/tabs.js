@@ -1,7 +1,8 @@
-import { ContextLayouts } from "../context";
+import { ContextLayouts, ContextModelsWrapper } from "../context";
 import { useContext } from "react";
 import { View } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
+import { useShown, ValueSelector } from "../hook/shown";
 
 export class TabLayout extends View {
     getFormDependencies = (config) => {
@@ -26,9 +27,15 @@ export class TabLayout extends View {
 
         let firstTabKey = undefined;
 
+        let modelsWrapper = useContext(ContextModelsWrapper);
+
+        let shownFn = useShown;
+
         for (let tabConfig of tabs) {
-            let name = tabConfig.name;
-            let layoutConfigs = tabConfig.items;
+            let { name, items: layoutConfigs, shown: shownConfig } = tabConfig;
+
+            let shown = shownFn(shownConfig, true, modelsWrapper, ValueSelector.Models);
+
             let layoutElements = layoutConfigs.map((layoutConfig, idx) => {
                 let ele = this.layoutsWrapper.getLayoutForConfig(layoutConfig)
                 let LayoutElement = ele.component;
@@ -36,7 +43,7 @@ export class TabLayout extends View {
             })
             firstTabKey = firstTabKey || name;
             tabEls.push(
-                <Tab key={name} eventKey={name} title={name}>
+                <Tab className={!shown ? 'd-none' : undefined} key={name} eventKey={name} title={name}>
                     {layoutElements}
                 </Tab>
             )

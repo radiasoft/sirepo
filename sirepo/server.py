@@ -919,5 +919,5 @@ cfg = pkconfig.init(
     google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
     react_server=(None, _cfg_react_server, "Base URL of npm start server"),
-    react_sim_types=(("myapp", "jspec"), set, "React apps"),
+    react_sim_types=(("myapp", "jspec", "genesis"), set, "React apps"),
 )

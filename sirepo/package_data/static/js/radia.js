@@ -144,6 +144,19 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.axisIndex = axis => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
 
+    self.buildShapePoints = (o, callback) => {
+        requestSender.sendStatefulCompute(
+            appState,
+            callback,
+            {
+                method: 'build_shape_points',
+                args: {
+                    object: o,
+                }
+            }
+        );
+    };
+
     self.calcWidthAxis = (depthAxis, heightAxis) => {
         return self.axes.filter((a) => {
             return a !== depthAxis && a !== heightAxis;
@@ -162,21 +175,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
                 )
             )
         );
-    };
-
-    self.updateExtruded = o => {
-        self.updateExtrudedSize(o);
-        self.centerExtrudedPoints(o);
-    };
-
-    self.updateExtrudedSize = o => {
-        if ((o.referencePoints || []).length === 0) {
-            return;
-        }
-        [o.widthAxis, o.heightAxis].forEach((dim, i) => {
-            const p = o.referencePoints.map(x => x[i]);
-            o.size[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
-        });
     };
 
     self.createPathModel = function(type) {
@@ -324,6 +322,21 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         appState.saveChanges(POST_SIM_REPORTS);
     };
 
+    self.updateExtruded = o => {
+        self.updateExtrudedSize(o);
+        self.centerExtrudedPoints(o);
+    };
+
+    self.updateExtrudedSize = o => {
+        if ((o.referencePoints || []).length === 0) {
+            return;
+        }
+        [o.widthAxis, o.heightAxis].forEach((dim, i) => {
+            const p = o.referencePoints.map(x => x[i]);
+            o.size[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
+        });
+    };
+
     // update models so that editors see the correct values
     // for now assign the entire object
     self.updateModelAndSuperClasses = (modelName, model) => {
@@ -436,8 +449,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
 
     self.copyObject = function(o) {
-        var copy = appState.clone(o);
+        const copy = appState.clone(o);
         copy.name = newObjectName(copy);
+        copy.id = radiaService.generateId();
         copy.groupId = '';
         addObject(copy);
         self.editObject(copy);
@@ -1834,13 +1848,13 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             };
 
             $scope.$on('radiaViewer.loaded', () => {
-                if ($scope.dataCleared) {
+                if ($scope.dataCleared && $scope.hasPaths()) {
                     $scope.simState.runSimulation();
                 }
                 $scope.dataCleared = false;
             });
 
-            $scope.$on('fieldLineoutAnimation.changed', function () {
+            $scope.$on('fieldLineoutAnimation.saved', function () {
                 if ($scope.showFieldLineoutPanel()) {
                     // Dont run automatically for sbatch or nersc
                     if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
@@ -3624,7 +3638,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 const r = 'fieldLineoutAnimation';
                 for (const p of appState.models.fieldPaths.paths) {
-                    if (p.id === appState.models[r].fieldPath.id) {
+                    if (! appState.models[r].fieldPath || p.id === appState.models[r].fieldPath.id) {
                         appState.models[r].fieldPath = p;
                         appState.saveChanges(r);
                         break;
@@ -3954,16 +3968,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             $scope.modelData.referencePoints = [];
             return;
         }
-        requestSender.sendStatefulCompute(
-            appState,
-            setPoints,
-            {
-                method: 'build_shape_points',
-                args: {
-                    points_file: $scope.modelData.pointsFile,
-                }
-            }
-        );
+        radiaService.buildShapePoints($scope.modelData, setPoints);
     }
 
     function buildTriangulationLevelDelegate() {
@@ -4009,7 +4014,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     buildTriangulationLevelDelegate();
 });
 
-SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, $scope) {
+SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $scope) {
 
     let editedModels = [];
 
@@ -4027,9 +4032,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     $scope.$on('geomObject.changed', () => {
         if (editedModels.includes('extrudedPoly')) {
-            $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
-            $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
-            radiaService.updateExtruded($scope.modelData);
+            radiaService.buildShapePoints($scope.modelData, setPoints);
         }
         editedModels = [];
     });
@@ -4060,6 +4063,13 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(o.extrusionAxis),
             true
         );
+    }
+
+    function setPoints(data) {
+        $scope.modelData.points = data.points;
+        $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
+        $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
+        appState.saveChanges($scope.modelName);
     }
 
     const self = {};
