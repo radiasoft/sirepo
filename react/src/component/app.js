@@ -2,8 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import {
     ContextAppName,
     ContextSimulationListPromise,
-    ContextSchema,
-    ContextLayouts
+    ContextSchema
 } from "../context"
 import { configureStore } from "@reduxjs/toolkit"
 import { modelsSlice } from "../store/models";
@@ -12,7 +11,7 @@ import { useSetup } from "../hook/setup";
 import { compileSchemaFromJson, mergeSchemaJson } from "../utility/schema";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "../component/simbrowser";
-import { Layouts } from "../layout/layouts";
+import { ContextLayouts, Layouts } from "../layout/layouts";
 import "./app.scss";
 
 function SimulationListInitializer(props) {

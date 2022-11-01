@@ -1,3 +1,5 @@
+import React from "react";
+
 export function LayoutWithSpacing(subView) {
     return class extends subView {
         constructor(layoutsWrapper) {

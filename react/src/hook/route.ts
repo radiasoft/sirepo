@@ -1,5 +1,5 @@
 import React from "react";
-import { Location } from "react-router-dom";
+import { Path } from "react-router-dom";
 import { joinPath } from "../utility/path";
 
 export const ContextRelativeRouterHelper = React.createContext<RouteHelper>(undefined);
@@ -11,9 +11,9 @@ export const ContextRelativeRouterHelper = React.createContext<RouteHelper>(unde
  */
 // TODO move to utility or data
  export class RouteHelper {
-    pathPrefix: Location;
+    pathPrefix: Path;
 
-    constructor(pathPrefix: Location) {
+    constructor(pathPrefix: Path) {
         this.pathPrefix = pathPrefix;
     }
 

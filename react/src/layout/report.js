@@ -1,6 +1,6 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency, HookedDependencyGroup } from "../data/dependency";
-import { ContextPanelController, ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextModelsWrapper, ContextLayouts, ContextReportEventManager, ContextSchema } from "../context";
+import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextSchema } from "../context";
 import { useDependentValues } from "../hook/dependency";
 import { View } from "./layout";
 import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
@@ -10,8 +10,12 @@ import { ProgressBar, Stack, Button } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useStopwatch } from "../hook/stopwatch";
-import { AnimationReader } from "../data/report";
+import { AnimationReader, ContextReportEventManager } from "../data/report";
 import { useShown, ValueSelector } from "../hook/shown";
+import { ContextModelsWrapper } from "../data/model";
+import React from "react";
+import { ContextPanelController } from "../data/panel";
+import { ContextLayouts } from "./layouts";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {

@@ -1,7 +1,7 @@
 import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarContainerId } from "../component/navbar";
-import { ContextModelsWrapper, ContextRelativeFormController, ContextRelativeRouterHelper, ContextSimulationInfoPromise } from "../context";
+import { ContextSimulationInfoPromise } from "../context";
 import { useInterpolatedString } from "../hook/string";
 import { useContext, useState } from "react";
 import { View } from "./layout";
@@ -10,7 +10,10 @@ import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/panel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { RouteHelper } from "../hook/route";
+import { ContextRelativeRouterHelper, RouteHelper } from "../hook/route";
+import React from "react";
+import { ContextModelsWrapper } from "../data/model";
+import { ContextRelativeFormController } from "../data/form";
 
 export class NavBarModalButton extends View {
     getChildLayouts = (config) => {
@@ -83,7 +86,7 @@ export class NavBarModalButton extends View {
             <>
                 <NavbarPortal>
                     <Col>
-                        <div onClick={() => updateModalShown(true)} variant="secondary">
+                        <div onClick={() => updateModalShown(true)}>
                             <span>{title}<a className="ms-2">{iconElement}</a></span>
                         </div>
                     </Col>

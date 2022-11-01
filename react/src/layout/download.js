@@ -1,11 +1,11 @@
 import { Button } from "react-bootstrap";
-import usePortal from "react-useportal"; 
-import { ContextPanelController } from "../context";
+import usePortal from "react-useportal";
 import React, { useContext, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import html2canvas from 'html2canvas';
 import { downloadAs } from "../utility/download";
+import { ContextPanelController } from "../data/panel";
 
 export function LayoutWithDownloadButton(subLayout) {
     return class extends subLayout {

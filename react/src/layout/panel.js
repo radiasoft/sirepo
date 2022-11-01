@@ -1,7 +1,5 @@
 import {
-    ContextModelsWrapper,
-    ContextSimulationInfoPromise,
-    ContextRelativeFormController,
+    ContextSimulationInfoPromise
 } from "../context";
 import { useContext } from "react";
 import { useInterpolatedString } from "../hook/string";
@@ -10,6 +8,9 @@ import { useStore } from "react-redux";
 import { EditorPanel } from "../component/panel";
 import "./panel.scss";
 import { Col } from "react-bootstrap";
+import React from "react";
+import { ContextRelativeFormController } from "../data/form";
+import { ContextModelsWrapper } from "../data/model";
 
 export class PanelLayout extends View {
     getChildLayoutByConfig = (layoutConfig) => {

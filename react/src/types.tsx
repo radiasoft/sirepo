@@ -1,7 +1,7 @@
 //import { React }
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Button, Col, Form, Modal } from "react-bootstrap";
-import { ContextAppName, ContextLayouts, ContextModelsWrapper, ContextSimulationInfoPromise } from "./context";
+import { ContextAppName, ContextSimulationInfoPromise } from "./context";
 import { pollStatefulCompute } from "./utility/compute";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
@@ -9,6 +9,8 @@ import "./types.scss"
 import { downloadAs } from "./utility/download";
 import { useInterpolatedString } from "./hook/string";
 import { SchemaView } from "./utility/schema";
+import { ContextLayouts } from "./layout/layouts";
+import { ContextModelsWrapper } from "./data/model";
 
 
 export interface rsAbstrType { 

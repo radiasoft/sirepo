@@ -12,24 +12,21 @@ import React, {
 } from "react";
 import {
     ContextAppName,
-    ContextSimulationListPromise,
-    ContextRelativeRouterHelper,
-    ContextLayouts,
     ContextSchema,
-    ContextModelsWrapper,
-    ContextSimulationInfoPromise,
-    ContextReportEventManager
+    ContextSimulationInfoPromise
 } from "../context";
 import {
     modelSelectors,
     modelActions
 } from "../store/models";
-import { ModelsWrapper } from "../data/model";
+import { ContextModelsWrapper, ModelsWrapper } from "../data/model";
 import { FormStateInitializer } from "../component/form";
 import { useResolvedPath } from "react-router-dom";
-import { RouteHelper } from "../hook/route";
+import { ContextRelativeRouterHelper, RouteHelper } from "../hook/route";
 import { ReportEventManager } from "../data/report";
 import { SrNavbar } from "./navbar";
+import { ContextReportEventManager } from "../data/report"; 
+import { ContextLayouts } from "../layout/layouts";
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;

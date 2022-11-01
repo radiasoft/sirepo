@@ -1,8 +1,9 @@
-import { ContextLayouts, ContextModelsWrapper } from "../context";
 import { useContext } from "react";
 import { View } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
 import { useShown, ValueSelector } from "../hook/shown";
+import React from "react";
+import { ContextModelsWrapper } from "../data/model";
 
 export class TabLayout extends View {
     getFormDependencies = (config) => {
