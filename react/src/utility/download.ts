@@ -1,5 +1,3 @@
-import { Blob } from "buffer";
-
 export function downloadAs(blob: Blob, fileName: string) {
     const aElement = document.createElement('a');
     aElement.setAttribute('download', fileName);
