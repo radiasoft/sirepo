@@ -1,15 +1,21 @@
 import { getSimulationFrame, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
+import React from "react";
+
+export const ContextReportEventManager = React.createContext<ReportEventManager>(undefined);
+
+export type ReportEventSubscriber = (simulationData: any) => void;
 
 export class ReportEventManager {
+    reportEventListeners: {[reportName: string]: ReportEventSubscriber[]} = {}
+
     constructor() {
-        this.reportEventListeners = {};
     }
 
-    onReportData = (report, callback) => {
-        let reportListeners = this.reportEventListeners[report] || [];
+    onReportData = (reportName: string, callback: ReportEventSubscriber): void => {
+        let reportListeners = this.reportEventListeners[reportName] || [];
         reportListeners.push(callback);
-        this.reportEventListeners[report] = reportListeners;
+        this.reportEventListeners[reportName] = reportListeners;
     }
 
     startReport = ({
@@ -60,6 +66,11 @@ function getFrameId({
 // Note this accepts hookedFrameIdFields but provides no mechanism for updating them.
 // This iterates all future frames assuming this data does not need to change/be current
 export class AnimationReader {
+    frameCount: number;
+    nextFrameIndex: number;
+    getFrameId: (frameIndex: number) => string;
+    presentationVersionNum: string;
+
     constructor({
         reportName,
         simulationId,

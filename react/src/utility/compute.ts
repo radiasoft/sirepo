@@ -23,12 +23,11 @@ export function pollCompute({ doFetch, pollInterval, callback }: BaseComputePara
 }
 
 export type StatefulComputeParams = {
-    method: string,
     simulationId: string,
     appName: string
 } & BaseComputeParams
 
-export function pollStatefulCompute({ pollInterval, method, simulationId, appName, callback }: StatefulComputeParams) {
+export function pollStatefulCompute({ pollInterval, method, simulationId, appName, callback }: StatefulComputeParams & { method: string }) {
     let doFetch = () => fetch('/stateful-compute', {
         method: 'POST',
         headers: {
