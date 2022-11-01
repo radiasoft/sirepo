@@ -4,10 +4,13 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from __future__ import absolute_import, division, print_function
 import pytest
+from sirepo import srunit
 
 
-def test_srw_1(fc):
+@srunit.wrap_in_request(want_cookie=True, want_user=True)
+def test_srw_1(qcall):
     _t(
         {
             "amx": ("amx", None),
@@ -22,11 +25,12 @@ def test_srw_1(fc):
             "lcls_simplified": ("lcls_simplified", None),
             "lcls_sxr": ("lcls_sxr", None),
         },
-        fc,
+        qcall,
     )
 
 
-def test_srw_2(fc):
+@srunit.wrap_in_request(want_cookie=True, want_user=True)
+def test_srw_2(qcall):
     _t(
         {
             "nsls-ii-esm-beamline": ("nsls-ii-esm-beamline", None),
@@ -40,23 +44,29 @@ def test_srw_2(fc):
             "srx_bl3": ("srx", "--op_BL=3"),
             "srx_bl4": ("srx", "--op_BL=4"),
         },
-        fc,
+        qcall,
     )
 
 
-def _t(tests, fc):
+def _t(tests, qcall):
+    from sirepo import quest
+    from sirepo.template.srw_importer import import_python
+    from pykern import pkio, pkjson
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp
-    from pykern.pkcollections import PKDict
+    import glob
+    import py
 
-    with pkunit.save_chdir_work(want_empty=False):
+    with pkio.save_chdir(pkunit.work_dir()):
         for b in sorted(tests.keys()):
-            fc.sr_get_root("srw")
-            res = fc.sr_post_form(
-                "importFile",
-                PKDict(folder="/srw_import_test"),
-                PKDict(simulation_type="srw"),
-                file=pkunit.data_dir().join(f"{tests[b][0]}.py"),
+            base_py = "{}.py".format(tests[b][0])
+            code = pkio.read_text(pkunit.data_dir().join(base_py))
+            actual = import_python(
+                code,
+                tmp_dir=".",
+                user_filename=r"c:\anything\{}.anysuffix".format(tests[b][0]),
+                arguments=tests[b][1],
+                qcall=qcall,
             )
-            res["version"] = "IGNORE-VALUE"
-            pkunit.assert_object_with_json(b, res)
+            actual["version"] = "IGNORE-VALUE"
+            pkunit.assert_object_with_json(b, actual)
