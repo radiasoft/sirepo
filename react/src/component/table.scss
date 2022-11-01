@@ -1,0 +1,11 @@
+.sr-table-cell-header {
+    font-weight: bold;
+}
+
+.sr-table-cell {
+    padding: 5px 5px 5px 5px;
+}
+
+.sr-table-row:not(:last-child) {
+    border-bottom: 1px solid gray;
+}

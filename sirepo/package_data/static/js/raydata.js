@@ -107,21 +107,25 @@ SIREPO.app.directive('catalogPicker', function() {
             field: '=',
         },
         template: `
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
+            <div data-ng-hide="!awaitingCatalogNames">Loading...</div>
+            <select class="form-control" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
         `,
         controller: function($scope, appState, errorService, requestSender) {
             $scope.catalogNames = [];
+            $scope.awaitingCatalogNames = true;
 
             requestSender.sendStatelessCompute(
                 appState,
                 json => {
                     $scope.catalogNames = json.data.catalogs;
+                    $scope.awaitingCatalogNames = false;
                 },
                 {
                     method: 'catalog_names',
                 },
                 {
                     onError: data => {
+                        $scope.awaitingCatalogNames = false;
                         errorService.alertText(data.error);
                     },
                 }
@@ -316,6 +320,7 @@ SIREPO.app.directive('scansTable', function() {
                     </tr>
                   </tbody>
                 </table>
+                <div ng-if="awaitingScans">Loading scans...</div>
               </div>
             </div>
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
@@ -356,6 +361,7 @@ SIREPO.app.directive('scansTable', function() {
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
             $scope.availableColumns = [];
+            $scope.awaitingScans = false;
             // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['status', 'start', 'stop', 'suid'];
             $scope.images = null;
@@ -372,6 +378,10 @@ SIREPO.app.directive('scansTable', function() {
             const errorOptions = {
                 modelName: $scope.modelName,
                 onError: (data) => {
+                    if (scanRequestInterval) {
+                        $interval.cancel(scanRequestInterval);
+                        scanRequestInterval = null;
+                    }
                     errorService.alertText(data.error);
                     panelState.setLoading($scope.modelName, false);
                 },
@@ -382,6 +392,7 @@ SIREPO.app.directive('scansTable', function() {
                 const el = $('#sr-analysis-output');
                 el.modal('show');
                 el.on('hidden.bs.modal', function() {
+                    $scope.setSelectedScan(null);
                     el.off();
                 });
                 requestSender.sendStatelessCompute(
@@ -407,23 +418,25 @@ SIREPO.app.directive('scansTable', function() {
                         return;
                 }
                 function doRequest() {
-                        requestSender.sendStatelessCompute(
-                            appState,
-                            (json) => {
-                                $scope.scans = json.data.scans.slice();
-                            },
-                            {
-                                method: 'scans',
-                                args: {
-                                    analysisStatus: $scope.analysisStatus,
-                                    catalogName: appState.models.catalog.catalogName,
-                                    searchStartTime: m.searchStartTime,
-                                    searchStopTime: m.searchStopTime,
-                                    selectedColumns: appState.models.metadataColumns.selected,
-                                }
-                            },
-                            errorOptions
-                        );
+                    $scope.awaitingScans = true;
+                    requestSender.sendStatelessCompute(
+                        appState,
+                        (json) => {
+                            $scope.awaitingScans = false;
+                            $scope.scans = json.data.scans.slice();
+                        },
+                        {
+                            method: 'scans',
+                            args: {
+                                analysisStatus: $scope.analysisStatus,
+                                catalogName: appState.models.catalog.catalogName,
+                                searchStartTime: m.searchStartTime,
+                                searchStopTime: m.searchStopTime,
+                                selectedColumns: appState.models.metadataColumns.selected,
+                            }
+                        },
+                        errorOptions
+                    );
                 }
                 if (scanRequestInterval) {
                     $interval.cancel(scanRequestInterval);
@@ -493,6 +506,9 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.setSelectedScan = (scan) => {
                 $scope.selectedScan = scan;
+                if ($scope.selectedScan !== null) {
+                    $scope.showAnalysisOutputModal();
+                }
             };
 
             $scope.showDeleteButton = (index) => {
@@ -536,12 +552,6 @@ SIREPO.app.directive('scansTable', function() {
                 if (scanRequestInterval) {
                     $interval.cancel(scanRequestInterval);
                     scanRequestInterval = null;
-                }
-            });
-
-            $scope.$watch('selectedScan', () => {
-                if ($scope.selectedScan !== null) {
-                    $scope.showAnalysisOutputModal();
                 }
             });
         },

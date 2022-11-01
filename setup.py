@@ -19,7 +19,7 @@ pykern.pksetup.setup(
         "futures",
         "numconv",
         "numpy",
-        "pyIsEmail==1.3.2",
+        "pyIsEmail",
         "pykern",
         "pytz",
         "requests",
