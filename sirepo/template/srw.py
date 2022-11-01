@@ -1011,7 +1011,7 @@ def write_parameters(data, run_dir, is_parallel):
     """
     if data.report in (_SIM_DATA.EXPORT_RSOPT, "machineLearningAnimation"):
         p = ""
-        _export_rsopt_config(data)
+        _export_rsopt_config(data, run_dir=run_dir)
     else:
         p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
@@ -1425,14 +1425,19 @@ def _enum_text(name, model, field):
     return ""
 
 
-def _export_rsopt_config(data):
+def _export_rsopt_config(data, run_dir):
     ctx = _rsopt_jinja_context(data)
+    f = _write_rsopt_zip(data, ctx)
     if data.report == "machineLearningAnimation":
+        s = f"{_SIM_DATA.EXPORT_RSOPT}_run.sh"
         pkio.write_text(
-            f"{_SIM_DATA.EXPORT_RSOPT}_run.sh",
-            template_common.render_jinja(SIM_TYPE, ctx, f"{_SIM_DATA.EXPORT_RSOPT}_run.sh")
+            s,
+            template_common.render_jinja(SIM_TYPE, ctx, s)
         )
-    return _write_rsopt_zip(data, ctx)
+        template_common.subprocess_output(
+            ["bash", s],
+        )
+    return f
 
 
 def _extend_plot(

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-unzip '{{ zipFileName }}'
+mkdir '{{ fileBase }}'
+unzip '{{ zipFileName }}' -d '{{ fileBase }}'
 cd './{{ fileBase }}'
 bash '{{ shFileName }}'
