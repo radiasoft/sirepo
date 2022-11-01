@@ -283,8 +283,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 </div>
             </div>
             <div data-ng-show="displayType === '2D'">
-               <div data-report-content="heatmap" data-model-key="tallyReport"></div>
                <!--<input class="fieldClass col-sm-4" type="range" data-ng-model="tallyReport.planePos" min="tallyReport.zRange[0]" max="tallyReport.zRange[1]" step="tallyReport.zRange[2]">-->
+               <div data-field-editor="'planePos'" data-model-name="'tallyReport'"></div>
+               <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
         `,
         controller: function($scope, $element) {
@@ -292,7 +293,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             $scope.displayType = '3D';
             $scope.isClientOnly = isGeometryOnly;
-            $scope.tallyReport = appState.models.tallyReport;
+            //$scope.tallyReport = appState.models.tallyReport;
 
             let axesBoxes = {};
             let basePolyData = null;
@@ -1645,6 +1646,11 @@ SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panel
     ];
 
     function updateEditor() {
+        srdbg('P', $scope.$parent);
+        [
+            appState.models.tallyReport.horizontalAxis,
+            appState.models.tallyReport.verticalAxis
+        ] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.tallyReport.axis);
 
     }
     $scope.whenSelected = updateEditor;

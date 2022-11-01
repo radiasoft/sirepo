@@ -438,7 +438,10 @@
         "tallyReport": {
             "axis": ["Axis", "Axis", "y"],
             "colorMap": ["Color Map", "ColorMap", "jet"],
-            "planePos": ["{{ appState.models.tallyReport.axis }} [cm]", "Float", 0.0, "", "{{ appState.models.tallyReport.zRange[0] }}", "{{ appState.models.tallyReport.zRange[1] }}"]
+            "horizontalAxis": ["_", "Axis", "z"],
+            "horizontalTrim": ["Trim {{  }}"],
+            "planePos": ["{{ appState.models.tallyReport.axis }} [cm]", "Float", 0.0, "", -1, 1],
+            "verticalAxis": ["_", "Axis", "x"]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
