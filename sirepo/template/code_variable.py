@@ -70,44 +70,6 @@ class CodeVar:
         except ValueError:
             return v
 
-    def stateful_compute_rpn_value(data, schema, ignore_array_values, **kwargs):
-        if ignore_array_values and re.search(r"^\{.*\}$", data.value):
-            # accept array of values enclosed in curly braces
-            data.result = ""
-            return True
-        v, err = self.eval_var(data.value)
-        if err:
-            data.error = err
-        else:
-            data.result = v
-        return data
-
-    def stateful_compute_recompute_rpn_cache_values(
-        data, schema, ignore_array_values, **kwargs
-    ):
-        self.recompute_cache(data.cache)
-        return data
-
-    def stateful_compute_recompute_rpn_cache_values(
-        self, data, schema, ignore_array_values, **kwargs
-    ):
-        from sirepo import simulation_db
-
-        if args.method == "validate_rpn_delete":
-            model_data = simulation_db.read_json(
-                simulation_db.sim_data_file(
-                    args.simulationType,
-                    args.simulationId,
-                )
-            )
-            args.error = self.validate_var_delete(
-                args.name,
-                model_data,
-                schema,
-            )
-            return True
-        return False
-
     def get_expr_dependencies(self, expr, depends=None, visited=None):
         # expr must be in postfix format
         if depends is None:
@@ -147,6 +109,44 @@ class CodeVar:
             v, err = self.eval_var(k)
             if not err:
                 cache[k] = v
+
+    def stateful_compute_rpn_value(self, data, schema, ignore_array_values, **kwargs):
+        if ignore_array_values and re.search(r"^\{.*\}$", data.value):
+            # accept array of values enclosed in curly braces
+            data.result = ""
+            return True
+        v, err = self.eval_var(data.value)
+        if err:
+            data.error = err
+        else:
+            data.result = v
+        return data
+
+    def stateful_compute_recompute_rpn_cache_values(
+        self, data, schema, ignore_array_values, **kwargs
+    ):
+        self.recompute_cache(data.cache)
+        return data
+
+    def stateful_compute_recompute_rpn_cache_values(
+        self, data, schema, ignore_array_values, **kwargs
+    ):
+        from sirepo import simulation_db
+
+        if args.method == "validate_rpn_delete":
+            model_data = simulation_db.read_json(
+                simulation_db.sim_data_file(
+                    args.simulationType,
+                    args.simulationId,
+                )
+            )
+            args.error = self.validate_var_delete(
+                args.name,
+                model_data,
+                schema,
+            )
+            return True
+        return False
 
     def validate_var_delete(self, name, data, schema):
         search = self.canonicalize(name)

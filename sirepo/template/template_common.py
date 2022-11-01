@@ -659,11 +659,9 @@ def stateful_compute_dispatch(data):
     m = _validate_method(t, data)
     k = PKDict(data=data)
     if re.search(r"(?:^rpn|_rpn)_", m):
+        k.schema = getattr(t, "SCHEMA")
         t = getattr(t, "code_var")(data.variables)
-        k.update(
-            schema=getattr(t, "SCHEMA"),
-            ignore_array_values=getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True),
-        )
+        k.ignore_array_values = getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True)
     return getattr(t, f"stateful_compute_{m}")(**k)
 
 

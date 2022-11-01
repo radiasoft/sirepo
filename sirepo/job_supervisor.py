@@ -495,14 +495,14 @@ class _ComputeJob(_Supervisor):
             if r:
                 yield u, r
 
-        def _purge_sim(jid):
+        def _purge_sim(jid, qcall):
             d = cls.__db_load(jid)
             if d.lastUpdateTime > _too_old:
                 return
             cls._purged_jids_cache.add(jid)
             if d.status == job.JOB_RUN_PURGED:
                 return
-            p = sirepo.simulation_db.simulation_run_dir(d)
+            p = sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
             pkio.unchecked_remove(p)
             n = cls.__db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
@@ -521,7 +521,7 @@ class _ComputeJob(_Supervisor):
                 for u, v in _get_uids_and_files():
                     with qcall.auth.logged_in_user_set(u):
                         for f in v:
-                            _purge_sim(jid=f.purebasename)
+                            _purge_sim(jid=f.purebasename, qcall=qcall)
                     await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())
