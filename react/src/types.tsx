@@ -14,6 +14,7 @@ import { SchemaView } from "./utility/schema";
 export interface rsAbstrType { 
     isRequired: boolean,
     component: React.FunctionComponent,
+    inputComponent: React.FunctionComponent,
     dbValue: (value: any) => any,
     hasValue: (value: any) => boolean,
     validate: (value: any) => boolean
@@ -29,26 +30,24 @@ export abstract class rsType implements rsAbstrType {
     constructor({ isRequired }: rsTypeParamsBase) {
         //this.colSize = this.hasValue(colSize) ? colSize : 5;
         this.isRequired = this.hasValue(isRequired) ? isRequired : true;
-
-        this.component = (props) => {
-            let {value, valid, touched, onChange, ...otherProps} = props;
-
-            let InputComponent = this.component;
-            return (
-                <Col>
-                    <InputComponent
-                    {...otherProps}
-                    value={this.hasValue(value) ? value : ""}
-                    isInvalid={!valid && touched}
-                    onChange={onChange}/>
-                </Col>
-            )
-        }
     }
 
     component = (props) => {
-        return <></>
+        let {value, valid, touched, onChange, ...otherProps} = props;
+
+        let InputComponent = this.inputComponent;
+        return (
+            <Col>
+                <InputComponent
+                {...otherProps}
+                value={this.hasValue(value) ? value : ""}
+                isInvalid={!valid && touched}
+                onChange={onChange}/>
+            </Col>
+        )
     }
+
+    abstract inputComponent: React.FunctionComponent<any>;
 
     dbValue = (value) => {
         return value;
@@ -68,7 +67,7 @@ export class rsString extends rsType {
         super(props);
         this.align = "text-start";
     }
-    component = (props) => {
+    inputComponent = (props) => {
         return (
             <Form.Control className={this.align} type="text" {...props}></Form.Control>
         )
@@ -86,7 +85,7 @@ export class rsAbstrNumber extends rsType {
         this.align = "text-end";
     }
 
-    component = (props) => {
+    inputComponent = (props) => {
         return (
             <Form.Control className={this.align} type="text" {...props}></Form.Control>
         )
@@ -127,7 +126,7 @@ export class rsBoolean extends rsType {
         return (!this.isRequired) || this.hasValue(value);
     }
 
-    component = (props) => {
+    inputComponent = (props) => {
         // checkboxes are really dumb so we need more settings here
         let onChange = (event) => {
             event.target.value = event.target.checked;
@@ -157,7 +156,7 @@ export class rsFile extends rsType {
         return (!this.isRequired) || (this.hasValue(value) && value.length > 0);
     }
 
-    component = (props) => {
+    inputComponent = (props) => {
         let { dependency, ...otherProps } = props;
 
         let contextFn = useContext;
@@ -293,7 +292,7 @@ export class rsPartEnumStatefulComputeResult extends rsType {
         return true;
     }
 
-    component = (props) => {
+    inputComponent = (props) => {
         let contextFn = useContext;
         let stateFn = useState;
         let effectFn = useEffect;
@@ -371,7 +370,7 @@ export class rsEnum extends rsType {
         this.allowedValues = allowedValues;
     }
 
-    component = (props) => {
+    inputComponent = (props) => {
         const options = this.allowedValues.map(allowedValue => (
             <option key={allowedValue.value} value={allowedValue.value}>{allowedValue.displayName}</option>
         ));
