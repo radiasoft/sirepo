@@ -1,7 +1,7 @@
 import { ActionCreatorWithPayload, createSlice, Slice } from '@reduxjs/toolkit';
 
 export type ModelState = {
-    [fieldName: string]: any
+    [fieldName: string]: unknown
 }
 
 export type ModelStateUpdate = {
@@ -11,20 +11,12 @@ export type ModelStateUpdate = {
 
 export type ModelStates = {[modelName: string]: ModelState}
 
-export type ModelsStoreState = {
-    isLoaded: boolean,
-    models: ModelStates
-}
-
-export const modelsSlice: Slice<ModelsStoreState> = createSlice({
+export const modelsSlice: Slice<ModelStates> = createSlice({
     name: 'modelsSlice',
-    initialState: {
-        isLoaded: false,
-        models: {},
-    },
+    initialState: {},
     reducers: {
         updateModel: (state, {payload: {name, value}}: { payload: ModelStateUpdate }) => {
-            state.models[name] = value;
+            state[name] = value;
         },
     }
 });
@@ -39,18 +31,10 @@ export let modelActions: ModelActions = {
 }
 
 export type ModelSelectors = {
-    selectIsLoaded: (state: any) => boolean,
-    selectModels: (state: any) => ModelStates,
     selectModel: (name: string) => ((state: any) => ModelState)
 }
 export let modelSelectors: ModelSelectors = {
-    selectIsLoaded: (state: any) => {
-        return state[modelsSlice.name].isLoaded;
-    },
-    selectModels: (state: any) => {
-        return state[modelsSlice.name].models;
-    },
     selectModel: (name: string) => {
-        return (state: ModelsStoreState) => state[modelsSlice.name].models[name];
+        return (state: any) => state[modelsSlice.name].models[name];
     }
 }

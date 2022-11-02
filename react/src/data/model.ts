@@ -2,6 +2,7 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Dispatch, AnyAction } from "redux";
 import { ModelActions, ModelSelectors, ModelState } from "../store/models";
+import { AbstractModelsWrapper } from "./form";
 
 export const ContextModelsWrapper = React.createContext<ModelsWrapper>(undefined);
 
@@ -10,12 +11,13 @@ export type ModelWrapper = {
     hookModel: () => ModelState;
 }
 
-export class ModelsWrapper {
+export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
     modelActions: ModelActions;
     modelSelectors: ModelSelectors;
     dispatch: Dispatch<AnyAction>;
 
     constructor({ modelActions, modelSelectors }: { modelActions: ModelActions, modelSelectors: ModelSelectors }) {
+        super();
         this.modelActions = modelActions;
         this.modelSelectors = modelSelectors;
 
@@ -25,25 +27,6 @@ export class ModelsWrapper {
 
     getModel = (modelName: string, state: any) => {
         return this.modelSelectors.selectModel(modelName)(state);
-    }
-
-    getModels = (state: any) => {
-        return this.modelSelectors.selectModels(state);
-    }
-
-    getIsLoaded = (state: any) => {
-        return this.modelSelectors.selectIsLoaded(state);
-    }
-
-    forModel: (modelName: string) => ModelWrapper = (modelName: string) => {
-        return {
-            updateModel: (value: ModelState) => {
-                return this.updateModel(modelName, value);
-            },
-            hookModel: () => {
-                return this.hookModel(modelName);
-            }
-        }
     }
 
     updateModel = (modelName: string, value: ModelState) => {
@@ -59,18 +42,17 @@ export class ModelsWrapper {
         return selectFn(this.modelSelectors.selectModel(modelName));
     }
 
-    hookModels = () => {
-        let selectFn = useSelector;
-        return selectFn(this.modelSelectors.selectModels);
+    getFieldFromModel(fieldName: string, model: ModelState): unknown {
+        return model[fieldName];
+    }
+    setFieldInModel(fieldName: string, model: ModelState, value: unknown): ModelState {
+        let m = {...model};
+        m[fieldName] = value;
+        return m;
     }
 
-    hookIsLoaded = () => {
-        let selectFn = useSelector;
-        return selectFn(this.modelSelectors.selectIsLoaded);
-    }
-
-    saveToServer = (simulationInfo: any, state: any) => {
-        let models = this.getModels(state);
+    saveToServer = (simulationInfo: any, modelNames: string[], state: any) => {
+        let models = modelNames.map(mn => this.getModel(mn, state));
         simulationInfo.models = models;
         fetch("/save-simulation", {
             method: 'POST',
