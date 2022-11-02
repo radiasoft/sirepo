@@ -673,11 +673,11 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             function(data) {
                 if (data.notFoundCopyRedirect) {
                     requestSender.localRedirect('notFoundCopy', {
-                        ':simulationIds': data.redirect.simulationId
-                            + (data.redirect.userCopySimulationId
-                               ? ('-' + data.redirect.userCopySimulationId)
+                        ':simulationIds': data.notFoundCopyRedirect.simulationId
+                            + (data.notFoundCopyRedirect.userCopySimulationId
+                               ? ('-' + data.notFoundCopyRedirect.userCopySimulationId)
                                : ''),
-                        ':section': data.redirect.section,
+                        ':section': data.notFoundCopyRedirect.section,
                     });
                     return;
                 }

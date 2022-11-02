@@ -203,11 +203,14 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        n = data.models.controlSettings.inputLogFile
-        if n:
-            return [
-                cls.lib_file_name_with_model_field("controlSettings", "inputLogFile", n)
-            ]
+        if "controlSettings" in data.models:
+            n = data.models.controlSettings.inputLogFile
+            if n:
+                return [
+                    cls.lib_file_name_with_model_field(
+                        "controlSettings", "inputLogFile", n
+                    )
+                ]
         return []
 
     @classmethod
