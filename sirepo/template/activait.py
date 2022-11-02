@@ -311,6 +311,7 @@ def stateful_compute_sample_images(data):
         return u
 
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
+        # TODO(pjm): these need to come from dataPathInfo models
         x = f["images"]
         y = f["metadata/image_types"]
         u = []
@@ -467,9 +468,9 @@ def _build_model_py(v):
     return f"""
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
-input_args = Input(shape=({v.inputDim},))
+input_args = Input(shape=input_shape)
 {_build_layers(net)}
-x = Dense({v.outputDim}, activation="linear")(x)
+x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
 """
 
@@ -814,24 +815,6 @@ def _fit_animation(frame_args):
     )
 
 
-def _is_image_data(data_file, v):
-    # POSIT (gurhar1133): assumes only .h5 input data_files
-    if not re.compile(r".h5$").search(data_file):
-        return False
-    with h5py.File(data_file, "r") as f:
-        if "images" not in f.keys():
-            return False
-        s = f["metadata/labels"].shape
-        if len(s) > 1:
-            # POSIT (gurhar1133): assumes output wont be tuples
-            raise AssertionError(
-                f"shape of labels={s}, should not be multi-dimensional outputs"
-            )
-        v.outputDim = s[0]
-        v.inputDim = ",".join([str(x) for x in f["images"].shape[1:]])
-    return True
-
-
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
@@ -840,15 +823,13 @@ def _generate_parameters_file(data):
     v.dataPath = dm.dataFile.selectedData
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
-        inputDim=dm.columnInfo.inputOutput.count("input"),
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=dm.neuralNet.layers,
-        outputDim=dm.columnInfo.inputOutput.count("output"),
     ).pkupdate(_OUTPUT_FILE)
     v.columnTypes = (
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
-    v.image_data = _is_image_data(v.dataFile, v)
+    v.image_data = pkio.has_file_extension(v.dataFile, "h5")
     if v.image_data:
         res += template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
     else:
