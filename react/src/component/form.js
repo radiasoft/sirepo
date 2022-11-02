@@ -10,17 +10,16 @@ import React, {
     useEffect
 } from "react";
 import {
-    ContextSchema,
-    ContextModelsWrapper,
-    ContextRelativeFormState
+    ContextSchema
 } from "../context";
-import { FormStateWrapper } from "../data/form";
+import { ContextRelativeFormState, FormStateWrapper } from "../data/form";
 import {
     formActions,
     formSelectors
 } from "../store/formState";
 import { formStateFromModel } from "../data/form";
 import { useStore } from "react-redux";
+import { ContextModelsWrapper } from "../data/model";
 
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
