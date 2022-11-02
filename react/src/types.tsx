@@ -10,8 +10,16 @@ import { downloadAs } from "./utility/download";
 import { useInterpolatedString } from "./hook/string";
 import { SchemaView } from "./utility/schema";
 import { ContextLayouts } from "./layout/layouts";
-import { ContextModelsWrapper } from "./data/model";
+import { ContextModelsWrapper } from "./data/wrapper";
+import { Dependency } from "./data/dependency";
 
+export type InputComponentProps = {
+    valid: boolean,
+    value: unknown,
+    touched: boolean,
+    onChange: (event: any) => void,
+    dependency: Dependency
+}
 
 export interface rsAbstrType { 
     isRequired: boolean,
@@ -49,7 +57,7 @@ export abstract class rsType implements rsAbstrType {
         )
     }
 
-    abstract inputComponent: React.FunctionComponent<any>;
+    abstract inputComponent: React.FunctionComponent<InputComponentProps>;
 
     dbValue = (value) => {
         return value;

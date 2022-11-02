@@ -1,7 +1,7 @@
 import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarContainerId } from "../component/navbar";
-import { ContextSimulationInfoPromise } from "../context";
+import { ContextSchema, ContextSimulationInfoPromise } from "../context";
 import { useInterpolatedString } from "../hook/string";
 import { useContext, useState } from "react";
 import { View } from "./layout";
@@ -12,8 +12,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { ContextRelativeRouterHelper, RouteHelper } from "../hook/route";
 import React from "react";
-import { ContextModelsWrapper } from "../data/model";
-import { ContextRelativeFormController } from "../data/form";
+import { ContextRelativeFormController } from "../data/formController";
+import { ContextModelsWrapper } from "../data/wrapper";
 
 export class NavBarModalButton extends View {
     getChildLayouts = (config) => {
@@ -33,15 +33,18 @@ export class NavBarModalButton extends View {
     component = (props) => {
         let { config } = props;
 
-        let models = useContext(ContextModelsWrapper);
-        let title = useInterpolatedString(models, config.title);
-        let modalTitle = useInterpolatedString(models, config.modal.title);
-
-        let [modalShown, updateModalShown] = useState(false);
-
         let formController = useContext(ContextRelativeFormController);
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
         let modelsWrapper = useContext(ContextModelsWrapper);
+
+        let title = useInterpolatedString(modelsWrapper, config.title);
+        let modalTitle = useInterpolatedString(modelsWrapper, config.modal.title);
+
+        let [modalShown, updateModalShown] = useState(false);
+
+        let schema = useContext(ContextSchema);
+
+        
         
         let store = useStore();
 
@@ -53,7 +56,7 @@ export class NavBarModalButton extends View {
         let _submit = () => {
             formController.saveToModels();
             simulationInfoPromise.then(simulationInfo => {
-                modelsWrapper.saveToServer(simulationInfo, store.getState());
+                modelsWrapper.saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
             })
         }
 

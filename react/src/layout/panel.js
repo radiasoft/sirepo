@@ -1,4 +1,5 @@
 import {
+    ContextSchema,
     ContextSimulationInfoPromise
 } from "../context";
 import { useContext } from "react";
@@ -9,8 +10,8 @@ import { EditorPanel } from "../component/panel";
 import "./panel.scss";
 import { Col } from "react-bootstrap";
 import React from "react";
-import { ContextRelativeFormController } from "../data/form";
-import { ContextModelsWrapper } from "../data/model";
+import { ContextRelativeFormController } from "../data/formController";
+import { ContextModelsWrapper } from "../data/wrapper";
 
 export class PanelLayout extends View {
     getChildLayoutByConfig = (layoutConfig) => {
@@ -40,6 +41,7 @@ export class PanelLayout extends View {
         let modelsWrapper = useContext(ContextModelsWrapper);
         let formController = useContext(ContextRelativeFormController);
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
+        let schema = useContext(ContextSchema);
 
         let store = useStore();
 
@@ -56,7 +58,7 @@ export class PanelLayout extends View {
         let submit = () => {
             formController.saveToModels();
             simulationInfoPromise.then(simulationInfo => {
-                modelsWrapper.saveToServer(simulationInfo, store.getState());
+                modelsWrapper.saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
             })
 
         }

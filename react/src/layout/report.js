@@ -1,7 +1,6 @@
 import { useContext, useState, useRef, useEffect } from "react";
-import { Dependency, HookedDependencyGroup } from "../data/dependency";
-import { ContextSimulationInfoPromise, ContextAppName, ContextRelativeFormDependencies, ContextSchema } from "../context";
-import { useDependentValues } from "../hook/dependency";
+import { Dependency } from "../data/dependency";
+import { ContextSimulationInfoPromise, ContextAppName, ContextSchema } from "../context";
 import { View } from "./layout";
 import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
@@ -12,10 +11,12 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useStopwatch } from "../hook/stopwatch";
 import { AnimationReader, ContextReportEventManager } from "../data/report";
 import { useShown, ValueSelector } from "../hook/shown";
-import { ContextModelsWrapper } from "../data/model";
 import React from "react";
 import { ContextPanelController } from "../data/panel";
 import { ContextLayouts } from "./layouts";
+import { ContextModelsWrapper, getModelValues } from "../data/wrapper";
+import { ModelsAccessor } from "../data/accessor";
+import { ContextRelativeFormController } from "../data/formController";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
@@ -31,11 +32,12 @@ export class AutoRunReportLayout extends View {
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
         let appName = useContext(ContextAppName);
         let modelsWrapper = useContext(ContextModelsWrapper);
+        let formController = useContext(ContextRelativeFormController);
 
-        let formDependencies = useContext(ContextRelativeFormDependencies);
         let reportDependencies = dependencies.map(dependencyString => new Dependency(dependencyString));
 
-        let dependentValues = useDependentValues(modelsWrapper, [...formDependencies, ...reportDependencies]);
+        let dependentValuesAccessor = new ModelsAccessor(modelsWrapper, [...formController.getDependencies(), ...reportDependencies]);
+        let dependentValues = dependentValuesAccessor.getValues().map(dv => dv.value);
 
         let [simulationData, updateSimulationData] = useState(undefined);
 
@@ -104,13 +106,7 @@ export class ManualRunReportLayout extends View {
 
         let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
 
-        let frameIdDependencyGroup = new HookedDependencyGroup({ 
-            dependencies: frameIdDependencies,
-            modelsWrapper,
-            schemaModels: schema.models
-        })
-
-        let hookedFrameIdDependencies = frameIdDependencies.map(frameIdDependencyGroup.getHookedDependency);
+        let frameIdAccessor = new ModelsAccessor(modelsWrapper, frameIdDependencies);
 
         let [animationReader, updateAnimationReader] = useState(undefined);
 
@@ -138,7 +134,7 @@ export class ManualRunReportLayout extends View {
                             appName,
                             computeJobSerial,
                             computeJobHash,
-                            hookedFrameIdFields: hookedFrameIdDependencies,
+                            frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
                             frameCount
                         })
                         updateAnimationReader(animationReader);
@@ -245,10 +241,11 @@ export class SimulationStartLayout extends View {
         let appName = useContext(ContextAppName);
         let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
         let modelsWrapper = useContext(ContextModelsWrapper);
+        let schema = useContext(ContextSchema);
+        let modelNames = Object.keys(schema.models);
 
         let store = useStore();
 
-        
 
         let [lastSimulationData, updateLastSimulationData] = useState(undefined);
         let stopwatch = useStopwatch();
@@ -272,7 +269,7 @@ export class SimulationStartLayout extends View {
             simulationInfoPromise.then(({simulationId}) => {
                 reportEventManager.startReport({
                     appName,
-                    models: modelsWrapper.getModels(store.getState()),
+                    models: getModelValues(modelNames, modelsWrapper, store.getState()),
                     simulationId,
                     report: reportGroupName
                 })
@@ -288,7 +285,7 @@ export class SimulationStartLayout extends View {
             simulationInfoPromise.then(({simulationId}) => {
                 cancelReport({
                     appName,
-                    models: modelsWrapper.getModels(store.getState()),
+                    models: getModelValues(modelNames, modelsWrapper, store.getState()),
                     simulationId,
                     report: reportGroupName
                 })

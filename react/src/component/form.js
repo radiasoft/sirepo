@@ -12,14 +12,13 @@ import React, {
 import {
     ContextSchema
 } from "../context";
-import { ContextRelativeFormState, FormStateWrapper } from "../data/form";
 import {
     formActions,
     formSelectors
 } from "../store/formState";
-import { formStateFromModel } from "../data/form";
+import { formStateFromModel } from "../data/formController";
 import { useStore } from "react-redux";
-import { ContextModelsWrapper } from "../data/model";
+import { ContextModelsWrapper, ContextRelativeFormState, FormStateWrapper } from "../data/wrapper";
 
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
@@ -59,12 +58,19 @@ export function FormStateInitializer(props) {
         formSelectors
     })
 
+    let modelNames = Object.keys(schema.models);
+
     useEffect(() => {
-        Object.entries(models.getModels(store.getState())).forEach(([modelName, model]) => {
-            if (modelName in schema.models) { // TODO non-model data should not be stored with models in store
-                formState.updateModel(modelName, formStateFromModel(model, schema.models[modelName]))
+        let state = store.getState();
+        modelNames.map(mn => {
+            return {
+                modelName: mn,
+                value: models.getModel(mn, state)
             }
-        })
+        }).forEach(({ modelName, value }) => {
+            formState.updateModel(modelName, formStateFromModel(value, schema.models[modelName]))
+        });
+        
         updateHasInit(true);
     }, [])
 

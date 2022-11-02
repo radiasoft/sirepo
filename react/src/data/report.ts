@@ -1,6 +1,7 @@
 import { getSimulationFrame, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import React from "react";
+import { ModelStates } from "../store/models";
 
 export const ContextReportEventManager = React.createContext<ReportEventManager>(undefined);
 
@@ -23,6 +24,11 @@ export class ReportEventManager {
         models,
         simulationId,
         report
+    }: {
+        appName: string,
+        models: ModelStates,
+        simulationId: string,
+        report: string
     }) => {
         pollRunReport({
             appName,
@@ -48,7 +54,7 @@ function getFrameId({
     appName,
     computeJobHash,
     computeJobSerial,
-    hookedDependencies
+    extraValues
 }) {
     let frameIdElements = [
         frameIndex,
@@ -57,7 +63,7 @@ function getFrameId({
         appName,
         computeJobHash,
         computeJobSerial,
-        ...((hookedDependencies || []).map(v => v.value))
+        ...(extraValues || [])
     ]
 
     return frameIdElements.join('*');
@@ -77,7 +83,7 @@ export class AnimationReader {
         appName,
         computeJobHash,
         computeJobSerial,
-        hookedFrameIdFields,
+        frameIdValues,
         frameCount
     }) {
         this.frameCount = frameCount;
@@ -89,7 +95,7 @@ export class AnimationReader {
             appName,
             computeJobHash,
             computeJobSerial,
-            hookedDependencies: hookedFrameIdFields
+            extraValues: frameIdValues
         })
 
         this.presentationVersionNum = uuidv4();

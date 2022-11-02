@@ -6,16 +6,16 @@ import {
     Form,
     Container
 } from "react-bootstrap";
-import { 
-    ContextRelativeFormDependencies,
+import {
     ContextSchema
 } from "../context";
-import { ContextRelativeHookedDependencyGroup, Dependency, HookedDependencyGroup } from "../data/dependency";
+import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/input";
-import { ContextRelativeFormController, ContextRelativeFormState, FormController } from "../data/form";
+import { ContextRelativeFormController, fieldStateFromValue, FormController } from "../data/formController";
 import "./form.scss";
 import { useShown, ValueSelector } from "../hook/shown";
-import { ContextModelsWrapper } from "../data/model";
+import { ContextModelsWrapper, ContextRelativeFormState } from "../data/wrapper";
+import { useStore } from "react-redux";
 
 export function LayoutWithFormController(subLayout) {
     return class extends subLayout {
@@ -45,20 +45,12 @@ export function LayoutWithFormController(subLayout) {
     
             let dependencies = this.getFormDependencies(config);
     
-            let hookedDependencyGroup = new HookedDependencyGroup({ schemaModels: schema.models, modelsWrapper, dependencies });
-    
-            let hookedDependencies = dependencies.map(hookedDependencyGroup.getHookedDependency);
-    
-            let formController = new FormController({ formState, hookedDependencies });
+            let formController = new FormController(formState, modelsWrapper, dependencies, schema);
     
             return (
-                <ContextRelativeFormDependencies.Provider value={hookedDependencies}>
-                    <ContextRelativeHookedDependencyGroup.Provider value={hookedDependencyGroup}>
-                        <ContextRelativeFormController.Provider value={formController}>
-                            { props.children }
-                        </ContextRelativeFormController.Provider>
-                    </ContextRelativeHookedDependencyGroup.Provider>
-                </ContextRelativeFormDependencies.Provider>
+                <ContextRelativeFormController.Provider value={formController}>
+                    { props.children }
+                </ContextRelativeFormController.Provider>
             )
         }
     }
@@ -78,6 +70,8 @@ export class FieldGridLayout extends View {
 
         let formController = useContext(ContextRelativeFormController);
         let formState = useContext(ContextRelativeFormState);
+        let schema = useContext(ContextSchema);
+        let store = useStore();
 
         let columns = config.columns;
         let rows = config.rows;
@@ -104,9 +98,22 @@ export class FieldGridLayout extends View {
                 <Row className="sr-form-row" key={idx}>
                     {labelElement ? <Col>{labelElement}</Col> : undefined}
                     {columns.map((_, index) => {
-                        let field = fields[index];
-                        let hookedField = formController.getHookedField(new Dependency(field));
-                        return <FieldInput key={index} field={hookedField}></FieldInput>
+                        let fieldDepString = fields[index];
+                        let fieldDependency = new Dependency(fieldDepString);
+                        let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDependency);
+                        let fieldType = schema.models[fieldDependency.modelName][fieldDependency.fieldName].type;
+                        return <FieldInput 
+                            key={index} 
+                            value={fieldValue} 
+                            updateField={(value: unknown): void => {
+                                formState.updateField(
+                                    fieldDependency.fieldName, 
+                                    fieldDependency.modelName, 
+                                    store.getState(), 
+                                    fieldStateFromValue(value, fieldValue, fieldType));
+                            }}
+                            dependency={fieldDependency} 
+                            inputComponent={fieldType.component}/>
                     })}
                 </Row>
             ) : undefined;
@@ -126,13 +133,36 @@ export class FieldListLayout extends View {
         let { config } = props;
 
         let formController = useContext(ContextRelativeFormController);
+        let formState = useContext(ContextRelativeFormState);
+        let schema = useContext(ContextSchema);
+        let store = useStore();
 
         let fields = config.fields;
 
         return <Container>
-            {fields.map((field, idx) => {
-                let hookedField = formController.getHookedField(new Dependency(field))
-                if(hookedField.value.active) return <LabeledFieldInput key={idx} field={hookedField}></LabeledFieldInput>
+            {fields.map((fieldDepString, idx) => {
+                let fieldDep = new Dependency(fieldDepString);
+                let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDep);
+                let fieldSchema = schema.models[fieldDep.modelName][fieldDep.fieldName];
+
+                if(fieldValue.active) {
+                    return <LabeledFieldInput 
+                    key={idx} 
+                    value={fieldValue} 
+                    dependency={fieldDep} 
+                    displayName={fieldSchema.displayName} 
+                    description={fieldSchema.description} 
+                    updateField={(value: unknown): void => {
+                        formState.updateField(
+                            fieldDep.fieldName, 
+                            fieldDep.modelName, 
+                            store.getState(), 
+                            fieldStateFromValue(value, fieldValue, fieldSchema.type));
+                    }}
+                    inputComponent={fieldSchema.type.component}/>
+                }
+
+                return undefined;
             })} 
         </Container>
     }

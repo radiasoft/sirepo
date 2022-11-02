@@ -36,6 +36,7 @@ export type SchemaField<T> = {
     displayName: string,
     type: rsAbstrType,
     defaultValue?: T,
+    description?: string,
     shown?: string,
     min?: number,
     max?: number
