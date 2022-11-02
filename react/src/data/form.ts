@@ -102,7 +102,7 @@ export type FormHookedField<T> = {
 
 export class FormController {
     formState: FormStateWrapper;
-    hookedModels: {[modelName: string]: FormHookedModel}
+    hookedModels: {[modelName: string]: FormHookedModel} = {}
     hookedFields: FormHookedField<unknown>[];
     constructor({ formState, hookedDependencies }: { formState: FormStateWrapper, hookedDependencies: HookedDependency<unknown>[] }) {
         this.formState = formState;
