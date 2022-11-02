@@ -11,7 +11,7 @@ import { useSetup } from "../hook/setup";
 import { compileSchemaFromJson, mergeSchemaJson } from "../utility/schema";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "../component/simbrowser";
-import { ContextLayouts, Layouts } from "../layout/layouts";
+import { ContextLayouts, LayoutsWrapper } from "../layout/layouts";
 import "./app.scss";
 
 function SimulationListInitializer(props) {
@@ -97,7 +97,7 @@ export const AppRoot = (props) => {
         return (
             <Provider store={formStateStore}>
                 <ContextSchema.Provider value={schema}>
-                    <ContextLayouts.Provider value={new Layouts()}>
+                    <ContextLayouts.Provider value={new LayoutsWrapper()}>
                         <SimulationListInitializer>
                             <SimulationBrowserRoot></SimulationBrowserRoot>
                         </SimulationListInitializer>

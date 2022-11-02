@@ -1,13 +1,13 @@
 import React from "react";
 import { Dependency } from "../data/dependency";
 import { SchemaView } from "../utility/schema";
-import { Layouts } from "./layouts";
+import { LayoutsWrapper } from "./layouts";
 
 export abstract class View {
-    layoutsWrapper: Layouts;
+    layoutsWrapper: LayoutsWrapper;
     name: string;
 
-    constructor(layoutsWrapper: Layouts) {
+    constructor(layoutsWrapper: LayoutsWrapper) {
         this.layoutsWrapper = layoutsWrapper;
 
         this.name = this.constructor.name; // this probably will always return 'View' with typescript

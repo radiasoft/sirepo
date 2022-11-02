@@ -11,10 +11,10 @@ import { TableFromApi } from "./table";
 import { LayoutWithDownloadButton } from "./download";
 import React from "react";
 
-export const ContextLayouts = React.createContext<Layouts>(undefined);
+export const ContextLayouts = React.createContext<LayoutsWrapper>(undefined);
 
 // TODO rename to LayoutsWrapper
-export class Layouts {
+export class LayoutsWrapper {
     layouts = {
         tabs: new TabLayout(this),
         fieldList: new (LayoutWithSpacing(FieldListLayout))(this),
