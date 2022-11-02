@@ -416,6 +416,14 @@ def _subprocess_start(request, fc_args):
                 f"/job-supervisor-ping",
                 PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT),
             )
+        from sirepo import feature_config, template
+        from pykern import pkio
+
+        if template.is_sim_type("srw"):
+            pkio.unchecked_remove(
+                "~/src/radiasoft/sirepo/sirepo/package_data/template/srw/predefined.json"
+            )
+            template.import_module("srw").get_predefined_beams()
         yield c
     finally:
         for x in p:
