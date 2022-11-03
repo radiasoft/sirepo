@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import html2canvas from 'html2canvas';
 import { downloadAs } from "../utility/download";
-import { ContextPanelController } from "../data/panel";
+import { CPanelController } from "../data/panel";
 
 export function LayoutWithDownloadButton(subLayout) {
     return class extends subLayout {
@@ -30,7 +30,7 @@ export function LayoutWithDownloadButton(subLayout) {
             let contextFn = useContext;
             let refFn = useRef;
 
-            let panelController = contextFn(ContextPanelController);
+            let panelController = contextFn(CPanelController);
 
             if(panelController) {
                 let contentRef = refFn();

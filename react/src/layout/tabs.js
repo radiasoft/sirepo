@@ -3,7 +3,7 @@ import { View } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
 import { useShown, ValueSelector } from "../hook/shown";
 import React from "react";
-import { ContextModelsWrapper } from "../data/wrapper";
+import { CModelsWrapper } from "../data/wrapper";
 
 export class TabLayout extends View {
     getFormDependencies = (config) => {
@@ -28,7 +28,7 @@ export class TabLayout extends View {
 
         let firstTabKey = undefined;
 
-        let modelsWrapper = useContext(ContextModelsWrapper);
+        let modelsWrapper = useContext(CModelsWrapper);
 
         let shownFn = useShown;
 

@@ -10,7 +10,7 @@ import React, {
     useEffect
 } from "react";
 import {
-    ContextSchema
+    CSchema
 } from "../context";
 import {
     formActions,
@@ -18,7 +18,7 @@ import {
 } from "../store/formState";
 import { formStateFromModel } from "../data/formController";
 import { useStore } from "react-redux";
-import { ContextModelsWrapper, ContextRelativeFormState, FormStateWrapper } from "../data/wrapper";
+import { CModelsWrapper, CFormStateWrapper, FormStateWrapper } from "../data/wrapper";
 
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
@@ -48,11 +48,11 @@ export function EditorForm(props) {
 export function FormStateInitializer(props) {
     let [hasInit, updateHasInit] = useState(undefined);
 
-    let schema = useContext(ContextSchema);
+    let schema = useContext(CSchema);
 
     let store = useStore();
 
-    let models = useContext(ContextModelsWrapper);
+    let models = useContext(CModelsWrapper);
     let formState = new FormStateWrapper({
         formActions,
         formSelectors
@@ -70,13 +70,13 @@ export function FormStateInitializer(props) {
         }).forEach(({ modelName, value }) => {
             formState.updateModel(modelName, formStateFromModel(value, schema.models[modelName]))
         });
-        
+
         updateHasInit(true);
     }, [])
 
     return hasInit && (
-        <ContextRelativeFormState.Provider value={formState}>
+        <CFormStateWrapper.Provider value={formState}>
             {props.children}
-        </ContextRelativeFormState.Provider>
+        </CFormStateWrapper.Provider>
     );
 }

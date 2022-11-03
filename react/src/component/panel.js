@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { EditorForm } from "./form";
 import { v4 as uuidv4 } from 'uuid';
-import { ContextPanelController } from "../data/panel"
+import { CPanelController } from "../data/panel"
 import { PanelController } from "../data/panel";
 
 export function Panel(props) {
@@ -28,7 +28,7 @@ export function Panel(props) {
     })
 
     return (
-        <ContextPanelController.Provider value={panelController}>
+        <CPanelController.Provider value={panelController}>
             <Card style={{ display: shown ? undefined: 'none' }}>
                 <Card.Header className="lead bg-info bg-opacity-25">
                     {title}
@@ -43,7 +43,7 @@ export function Panel(props) {
                     </Card.Body>
                 }
             </Card>
-        </ContextPanelController.Provider>
+        </CPanelController.Provider>
     );
 }
 

@@ -2,7 +2,7 @@ import React from "react";
 import { Path } from "react-router-dom";
 import { joinPath } from "../utility/path";
 
-export const ContextRelativeRouterHelper = React.createContext<RouteHelper>(undefined);
+export const CRelativeRouterHelper = React.createContext<RouteHelper>(undefined);
 /**
  * This exists to provide a point of reference to use
  * while linking to new routes. Used to create

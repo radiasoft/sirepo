@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import {
-    ContextAppName,
-    ContextSimulationListPromise,
-    ContextSchema
+    CAppName,
+    CSimulationListPromise,
+    CSchema
 } from "../context"
 import { configureStore } from "@reduxjs/toolkit"
 import { modelsSlice } from "../store/models";
@@ -11,7 +11,7 @@ import { useSetup } from "../hook/setup";
 import { compileSchemaFromJson, mergeSchemaJson } from "../utility/schema";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "../component/simbrowser";
-import { ContextLayouts, LayoutWrapper } from "../layout/layouts";
+import { CLayouts, LayoutWrapper } from "../layout/layouts";
 import "./app.scss";
 
 function SimulationListInitializer(props) {
@@ -20,7 +20,7 @@ function SimulationListInitializer(props) {
     let contextFn = useContext;
 
     let [simulationListPromise, updateSimulationListPromise] = stateFn(undefined)
-    let appName = contextFn(ContextAppName);
+    let appName = contextFn(CAppName);
 
     effectFn(() => {
         updateSimulationListPromise(new Promise((resolve, reject) => {
@@ -40,9 +40,9 @@ function SimulationListInitializer(props) {
     }, [])
 
     return simulationListPromise && (
-        <ContextSimulationListPromise.Provider value={simulationListPromise}>
+        <CSimulationListPromise.Provider value={simulationListPromise}>
             {props.children}
-        </ContextSimulationListPromise.Provider>
+        </CSimulationListPromise.Provider>
     )
 }
 
@@ -55,7 +55,7 @@ export const AppRoot = (props) => {
         },
     });
 
-    let appName = useContext(ContextAppName);
+    let appName = useContext(CAppName);
 
     
 
@@ -96,13 +96,13 @@ export const AppRoot = (props) => {
         //let AppChild = buildAppComponentsRoot(schema);
         return (
             <Provider store={formStateStore}>
-                <ContextSchema.Provider value={schema}>
-                    <ContextLayouts.Provider value={new LayoutWrapper()}>
+                <CSchema.Provider value={schema}>
+                    <CLayouts.Provider value={new LayoutWrapper()}>
                         <SimulationListInitializer>
                             <SimulationBrowserRoot></SimulationBrowserRoot>
                         </SimulationListInitializer>
-                    </ContextLayouts.Provider>
-                </ContextSchema.Provider>
+                    </CLayouts.Provider>
+                </CSchema.Provider>
             </Provider>
         )
     }

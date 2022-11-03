@@ -11,7 +11,7 @@ import { TableFromApi } from "./table";
 import { LayoutWithDownloadButton } from "./download";
 import React from "react";
 
-export const ContextLayouts = React.createContext<LayoutWrapper>(undefined);
+export const CLayouts = React.createContext<LayoutWrapper>(undefined);
 
 // TODO rename to LayoutsWrapper
 export class LayoutWrapper {

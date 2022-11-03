@@ -1,7 +1,7 @@
 //import { React }
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Button, Col, Form, Modal } from "react-bootstrap";
-import { ContextAppName, ContextSimulationInfoPromise } from "./context";
+import { CAppName, CSimulationInfoPromise } from "./context";
 import { pollStatefulCompute } from "./utility/compute";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
@@ -9,8 +9,8 @@ import "./types.scss"
 import { downloadAs } from "./utility/download";
 import { useInterpolatedString } from "./hook/string";
 import { SchemaView } from "./utility/schema";
-import { ContextLayouts } from "./layout/layouts";
-import { ContextModelsWrapper } from "./data/wrapper";
+import { CLayouts } from "./layout/layouts";
+import { CModelsWrapper } from "./data/wrapper";
 import { Dependency } from "./data/dependency";
 
 export type InputComponentProps = {
@@ -176,10 +176,10 @@ export class rsFile extends rsType {
 
         let [dummyState, updateDummyState] = stateFn({})
 
-        let appName = contextFn(ContextAppName);
-        let simulationInfoPromise = contextFn(ContextSimulationInfoPromise);
-        let layoutsWrapper = contextFn(ContextLayouts);
-        let models = contextFn(ContextModelsWrapper);
+        let appName = contextFn(CAppName);
+        let simulationInfoPromise = contextFn(CSimulationInfoPromise);
+        let layoutsWrapper = contextFn(CLayouts);
+        let models = contextFn(CModelsWrapper);
 
         let [modalShown, updateModalShown] = stateFn(false);
         let modal = this.inspectModal ? {
@@ -307,8 +307,8 @@ export class rsPartEnumStatefulComputeResult extends rsType {
         let stateFn = useState;
         let effectFn = useEffect;
 
-        let appName = contextFn(ContextAppName);
-        let simulationInfoPromise = contextFn(ContextSimulationInfoPromise);
+        let appName = contextFn(CAppName);
+        let simulationInfoPromise = contextFn(CSimulationInfoPromise);
 
         let [optionList, updateOptionList] = stateFn(undefined);
 

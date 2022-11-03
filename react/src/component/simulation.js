@@ -7,9 +7,9 @@ import React, {
     useContext
 } from "react";
 import {
-    ContextAppName,
-    ContextSchema,
-    ContextSimulationInfoPromise
+    CAppName,
+    CSchema,
+    CSimulationInfoPromise
 } from "../context";
 import {
     modelSelectors,
@@ -17,19 +17,19 @@ import {
 } from "../store/models";
 import { FormStateInitializer } from "../component/form";
 import { useResolvedPath } from "react-router-dom";
-import { ContextRelativeRouterHelper, RouteHelper } from "../hook/route";
+import { CRelativeRouterHelper, RouteHelper } from "../hook/route";
 import { ReportEventManager } from "../data/report";
 import { SrNavbar } from "./navbar";
-import { ContextReportEventManager } from "../data/report"; 
-import { ContextLayouts } from "../layout/layouts";
-import { ContextModelsWrapper, ModelsWrapper } from "../data/wrapper";
+import { CReportEventManager } from "../data/report"; 
+import { CLayouts } from "../layout/layouts";
+import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;
 
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
-    let appName = useContext(ContextAppName);
+    let appName = useContext(CAppName);
 
     let modelsWrapper = new ModelsWrapper({
         modelActions,
@@ -55,24 +55,24 @@ function SimulationInfoInitializer(props) {
     }, [])
 
     return hasInit && simulationInfoPromise && (
-        <ContextModelsWrapper.Provider value={modelsWrapper}>
-            <ContextSimulationInfoPromise.Provider value={simulationInfoPromise}>
+        <CModelsWrapper.Provider value={modelsWrapper}>
+            <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
                 {props.children}
-            </ContextSimulationInfoPromise.Provider>
-        </ContextModelsWrapper.Provider>
+            </CSimulationInfoPromise.Provider>
+        </CModelsWrapper.Provider>
     )
 }
 
 function ReportEventManagerInitializer(props) {
-    return <ContextReportEventManager.Provider value={new ReportEventManager()}>
+    return <CReportEventManager.Provider value={new ReportEventManager()}>
         {props.children}
-    </ContextReportEventManager.Provider>
+    </CReportEventManager.Provider>
 }
 
 export function SimulationOuter(props) {
-    let appName = useContext(ContextAppName);
+    let appName = useContext(CAppName);
 
-    let simBrowerRelativeRouter = useContext(ContextRelativeRouterHelper);
+    let simBrowerRelativeRouter = useContext(CRelativeRouterHelper);
 
     let pathPrefix = useResolvedPath('');
     let currentRelativeRouter = new RouteHelper(pathPrefix);
@@ -83,9 +83,9 @@ export function SimulationOuter(props) {
         <Container fluid>
             <SrNavbar title={appName.toUpperCase()} titleHref={simBrowerRelativeRouter.getCurrentPath()}>
             </SrNavbar>
-            <ContextRelativeRouterHelper.Provider value={currentRelativeRouter}>
+            <CRelativeRouterHelper.Provider value={currentRelativeRouter}>
                 {props.children}
-            </ContextRelativeRouterHelper.Provider>
+            </CRelativeRouterHelper.Provider>
         </Container>
 
     )
@@ -95,9 +95,9 @@ export function SimulationOuter(props) {
 export function SimulationRoot(props) {
     let { simulation } = props;
 
-    let layouts = useContext(ContextLayouts);
+    let layouts = useContext(CLayouts);
 
-    let schema = useContext(ContextSchema);
+    let schema = useContext(CSchema);
 
     let viewComponents = schema.views.map((view, index) => {
         let layout = layouts.getLayoutForConfig(view);

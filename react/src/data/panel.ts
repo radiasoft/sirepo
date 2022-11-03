@@ -1,6 +1,6 @@
 import React from "react";
 
-export const ContextPanelController = React.createContext<PanelController>(undefined);
+export const CPanelController = React.createContext<PanelController>(undefined);
 
 export class PanelController {
     buttonPortalId: string;

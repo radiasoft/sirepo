@@ -20,7 +20,7 @@ export let formStateFromModel = (model, modelSchema) => mapProperties(modelSchem
     }
 })
 
-export const ContextRelativeFormController = React.createContext<FormController>(undefined);
+export const CFormController = React.createContext<FormController>(undefined);
 
 export function fieldStateFromValue<T>(value: any, lastState: FormFieldState<T>, type: rsAbstrType): FormFieldState<T> {
     return {

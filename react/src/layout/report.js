@@ -1,6 +1,6 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
-import { ContextSimulationInfoPromise, ContextAppName, ContextSchema } from "../context";
+import { CSimulationInfoPromise, CAppName, CSchema } from "../context";
 import { View } from "./layout";
 import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
@@ -9,14 +9,14 @@ import { ProgressBar, Stack, Button } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useStopwatch } from "../hook/stopwatch";
-import { AnimationReader, ContextReportEventManager } from "../data/report";
+import { AnimationReader, CReportEventManager } from "../data/report";
 import { useShown, ValueSelector } from "../hook/shown";
 import React from "react";
-import { ContextPanelController } from "../data/panel";
-import { ContextLayouts } from "./layouts";
-import { ContextModelsWrapper, getModelValues } from "../data/wrapper";
+import { CPanelController } from "../data/panel";
+import { CLayouts } from "./layouts";
+import { CModelsWrapper, getModelValues } from "../data/wrapper";
 import { ModelsAccessor } from "../data/accessor";
-import { ContextRelativeFormController } from "../data/formController";
+import { CFormController } from "../data/formController";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
@@ -29,10 +29,10 @@ export class AutoRunReportLayout extends View {
         let { config } = props;
         let { report, reportLayout, dependencies } = config;
 
-        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
-        let appName = useContext(ContextAppName);
-        let modelsWrapper = useContext(ContextModelsWrapper);
-        let formController = useContext(ContextRelativeFormController);
+        let simulationInfoPromise = useContext(CSimulationInfoPromise);
+        let appName = useContext(CAppName);
+        let modelsWrapper = useContext(CModelsWrapper);
+        let formController = useContext(CFormController);
 
         let reportDependencies = dependencies.map(dependencyString => new Dependency(dependencyString));
 
@@ -93,12 +93,12 @@ export class ManualRunReportLayout extends View {
         let { config } = props;
         let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig, frameCountFieldName } = config;
         
-        let reportEventManager = useContext(ContextReportEventManager);
-        let schema = useContext(ContextSchema);
-        let modelsWrapper = useContext(ContextModelsWrapper);
-        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
-        let appName = useContext(ContextAppName);
-        let panelController = useContext(ContextPanelController);
+        let reportEventManager = useContext(CReportEventManager);
+        let schema = useContext(CSchema);
+        let modelsWrapper = useContext(CModelsWrapper);
+        let simulationInfoPromise = useContext(CSimulationInfoPromise);
+        let appName = useContext(CAppName);
+        let panelController = useContext(CPanelController);
 
         let reportEventsVersionRef = useRef(uuidv4())
 
@@ -154,10 +154,10 @@ export class ManualRunReportLayout extends View {
 
 export function ReportAnimationController(props) {
     let { animationReader, reportLayoutConfig, shown } = props;
-    let layoutsWrapper = useContext(ContextLayouts);
+    let layoutsWrapper = useContext(CLayouts);
     let layoutElement = layoutsWrapper.getLayoutForConfig(reportLayoutConfig);
 
-    let panelController = useContext(ContextPanelController);
+    let panelController = useContext(CPanelController);
 
     let [currentReportData, updateCurrentReportData] = useState(undefined);
 
@@ -237,11 +237,11 @@ export class SimulationStartLayout extends View {
         let { config } = props;
         let { reportGroupName } = config;
 
-        let reportEventManager = useContext(ContextReportEventManager);
-        let appName = useContext(ContextAppName);
-        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
-        let modelsWrapper = useContext(ContextModelsWrapper);
-        let schema = useContext(ContextSchema);
+        let reportEventManager = useContext(CReportEventManager);
+        let appName = useContext(CAppName);
+        let simulationInfoPromise = useContext(CSimulationInfoPromise);
+        let modelsWrapper = useContext(CModelsWrapper);
+        let schema = useContext(CSchema);
         let modelNames = Object.keys(schema.models);
 
         let store = useStore();

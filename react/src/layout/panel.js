@@ -1,6 +1,6 @@
 import {
-    ContextSchema,
-    ContextSimulationInfoPromise
+    CSchema,
+    CSimulationInfoPromise
 } from "../context";
 import { useContext } from "react";
 import { useInterpolatedString } from "../hook/string";
@@ -10,8 +10,8 @@ import { EditorPanel } from "../component/panel";
 import "./panel.scss";
 import { Col } from "react-bootstrap";
 import React from "react";
-import { ContextRelativeFormController } from "../data/formController";
-import { ContextModelsWrapper } from "../data/wrapper";
+import { CFormController } from "../data/formController";
+import { CModelsWrapper } from "../data/wrapper";
 
 export class PanelLayout extends View {
     getChildLayoutByConfig = (layoutConfig) => {
@@ -38,10 +38,10 @@ export class PanelLayout extends View {
             throw new Error("view missing config: " + config.name);
         }
 
-        let modelsWrapper = useContext(ContextModelsWrapper);
-        let formController = useContext(ContextRelativeFormController);
-        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
-        let schema = useContext(ContextSchema);
+        let modelsWrapper = useContext(CModelsWrapper);
+        let formController = useContext(CFormController);
+        let simulationInfoPromise = useContext(CSimulationInfoPromise);
+        let schema = useContext(CSchema);
 
         let store = useStore();
 

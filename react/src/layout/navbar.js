@@ -1,7 +1,7 @@
 import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarContainerId } from "../component/navbar";
-import { ContextSchema, ContextSimulationInfoPromise } from "../context";
+import { CSchema, CSimulationInfoPromise } from "../context";
 import { useInterpolatedString } from "../hook/string";
 import { useContext, useState } from "react";
 import { View } from "./layout";
@@ -10,10 +10,10 @@ import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/panel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { ContextRelativeRouterHelper, RouteHelper } from "../hook/route";
+import { CRelativeRouterHelper, RouteHelper } from "../hook/route";
 import React from "react";
-import { ContextRelativeFormController } from "../data/formController";
-import { ContextModelsWrapper } from "../data/wrapper";
+import { CFormController } from "../data/formController";
+import { CModelsWrapper } from "../data/wrapper";
 
 export class NavBarModalButton extends View {
     getChildLayouts = (config) => {
@@ -33,16 +33,16 @@ export class NavBarModalButton extends View {
     component = (props) => {
         let { config } = props;
 
-        let formController = useContext(ContextRelativeFormController);
-        let simulationInfoPromise = useContext(ContextSimulationInfoPromise);
-        let modelsWrapper = useContext(ContextModelsWrapper);
+        let formController = useContext(CFormController);
+        let simulationInfoPromise = useContext(CSimulationInfoPromise);
+        let modelsWrapper = useContext(CModelsWrapper);
 
         let title = useInterpolatedString(modelsWrapper, config.title);
         let modalTitle = useInterpolatedString(modelsWrapper, config.modal.title);
 
         let [modalShown, updateModalShown] = useState(false);
 
-        let schema = useContext(ContextSchema);
+        let schema = useContext(CSchema);
 
         
         
@@ -139,8 +139,8 @@ export class NavTabsLayout extends View {
 
         let { tabName: selectedTabName } = useParams();
 
-        let modelsWrapper = useContext(ContextModelsWrapper);
-        let routerHelper = useContext(ContextRelativeRouterHelper);
+        let modelsWrapper = useContext(CModelsWrapper);
+        let routerHelper = useContext(CRelativeRouterHelper);
 
         let { Portal: NavbarPortal, portalRef } = usePortal({
             bindTo: document && document.getElementById(NavbarContainerId)
@@ -202,9 +202,9 @@ export class NavTabsLayout extends View {
         ])
 
         return (
-            <ContextRelativeRouterHelper.Provider value={routeHelper}>
+            <CRelativeRouterHelper.Provider value={routeHelper}>
                 {routedElement}
-            </ContextRelativeRouterHelper.Provider> 
+            </CRelativeRouterHelper.Provider> 
         )
     }
 }

@@ -35,6 +35,6 @@ export type ModelSelectors = {
 }
 export let modelSelectors: ModelSelectors = {
     selectModel: (name: string) => {
-        return (state: any) => state[modelsSlice.name].models[name];
+        return (state: any) => state[modelsSlice.name][name];
     }
 }

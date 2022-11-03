@@ -19,8 +19,8 @@ export abstract class AbstractModelsWrapper<M, F> {
     }
 }
 
-export const ContextRelativeFormState = React.createContext<FormStateWrapper>(undefined);
-export const ContextModelsWrapper = React.createContext<ModelsWrapper>(undefined);
+export const CFormStateWrapper = React.createContext<FormStateWrapper>(undefined);
+export const CModelsWrapper = React.createContext<ModelsWrapper>(undefined);
 
 export function getModelValues<M, F>(modelNames: string[], modelsWrapper: AbstractModelsWrapper<M, F>, state: any): {[modelName: string]: M} {
     return Object.fromEntries(modelNames.map(mn => [mn, modelsWrapper.getModel(mn, state)]));

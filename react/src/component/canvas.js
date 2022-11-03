@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { CanvasContext } from "./canvascontext";
+import { CCanvas } from "./canvascontext";
 
 //TODO(pjm): use visx canvas when available
 // code from https://codesandbox.io/s/xorr68vzqz?file=/src/Canvas.js
@@ -22,9 +22,9 @@ export function Canvas({ width, height, children, ...restProps }) {
     );
     return (
         <canvas ref={canvasRef} width={width} height={height} {...restProps}>
-            <CanvasContext.Provider value={state}>
+            <CCanvas.Provider value={state}>
                 {state.ref.current && children}
-            </CanvasContext.Provider>
+            </CCanvas.Provider>
         </canvas>
     );
 }

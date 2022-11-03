@@ -7,14 +7,14 @@ import {
     Container
 } from "react-bootstrap";
 import {
-    ContextSchema
+    CSchema
 } from "../context";
 import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/input";
-import { ContextRelativeFormController, fieldStateFromValue, FormController } from "../data/formController";
+import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
 import "./form.scss";
 import { useShown, ValueSelector } from "../hook/shown";
-import { ContextModelsWrapper, ContextRelativeFormState } from "../data/wrapper";
+import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
 import { useStore } from "react-redux";
 
 export function LayoutWithFormController(subLayout) {
@@ -39,18 +39,18 @@ export function LayoutWithFormController(subLayout) {
             let { config } = props;
 
             let contextFn = useContext;
-            let formState = contextFn(ContextRelativeFormState);
-            let schema = contextFn(ContextSchema);
-            let modelsWrapper = contextFn(ContextModelsWrapper);
+            let formState = contextFn(CFormStateWrapper);
+            let schema = contextFn(CSchema);
+            let modelsWrapper = contextFn(CModelsWrapper);
     
             let dependencies = this.getFormDependencies(config);
     
             let formController = new FormController(formState, modelsWrapper, dependencies, schema);
     
             return (
-                <ContextRelativeFormController.Provider value={formController}>
+                <CFormController.Provider value={formController}>
                     { props.children }
-                </ContextRelativeFormController.Provider>
+                </CFormController.Provider>
             )
         }
     }
@@ -68,9 +68,9 @@ export class FieldGridLayout extends View {
     component = (props) => {
         let { config } = props;
 
-        let formController = useContext(ContextRelativeFormController);
-        let formState = useContext(ContextRelativeFormState);
-        let schema = useContext(ContextSchema);
+        let formController = useContext(CFormController);
+        let formState = useContext(CFormStateWrapper);
+        let schema = useContext(CSchema);
         let store = useStore();
 
         let columns = config.columns;
@@ -132,9 +132,9 @@ export class FieldListLayout extends View {
     component = (props) => {
         let { config } = props;
 
-        let formController = useContext(ContextRelativeFormController);
-        let formState = useContext(ContextRelativeFormState);
-        let schema = useContext(ContextSchema);
+        let formController = useContext(CFormController);
+        let formState = useContext(CFormStateWrapper);
+        let schema = useContext(CSchema);
         let store = useStore();
 
         let fields = config.fields;
