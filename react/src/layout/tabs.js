@@ -1,9 +1,10 @@
 import { useContext } from "react";
 import { View } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
-import { useShown, ValueSelector } from "../hook/shown";
+import { useShown } from "../hook/shown";
 import React from "react";
 import { CModelsWrapper } from "../data/wrapper";
+import { ValueSelector } from "../hook/string";
 
 export class TabLayout extends View {
     getFormDependencies = (config) => {

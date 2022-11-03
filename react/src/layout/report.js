@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useStopwatch } from "../hook/stopwatch";
 import { AnimationReader, CReportEventManager } from "../data/report";
-import { useShown, ValueSelector } from "../hook/shown";
+import { useShown } from "../hook/shown";
 import React from "react";
 import { CPanelController } from "../data/panel";
 import { CLayouts } from "./layouts";
@@ -17,6 +17,7 @@ import { CModelsWrapper, getModelValues } from "../data/wrapper";
 import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { ValueSelector } from "../hook/string";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {

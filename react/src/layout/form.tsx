@@ -10,10 +10,11 @@ import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
 import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
 import "./form.scss";
-import { useShown, ValueSelector } from "../hook/shown";
+import { useShown } from "../hook/shown";
 import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
 import { useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
+import { ValueSelector } from "../hook/string";
 
 export function LayoutWithFormController(subLayout) {
     return class extends subLayout {

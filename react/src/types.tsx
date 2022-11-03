@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./types.scss"
 import { downloadAs } from "./utility/download";
-import { useInterpolatedString } from "./hook/string";
+import { useInterpolatedString, ValueSelector } from "./hook/string";
 import { SchemaView } from "./utility/schema";
 import { CLayouts } from "./layout/layouts";
 import { CModelsWrapper } from "./data/wrapper";
@@ -179,7 +179,7 @@ export class rsFile extends rsType {
         let appName = contextFn(CAppName);
         let simulationInfoPromise = contextFn(CSimulationInfoPromise);
         let layoutsWrapper = contextFn(CLayouts);
-        let models = contextFn(CModelsWrapper);
+        let modelsWrapper = contextFn(CModelsWrapper);
 
         let [modalShown, updateModalShown] = stateFn(false);
         let modal = this.inspectModal ? {
@@ -188,7 +188,7 @@ export class rsFile extends rsType {
                 let Component = layout.component;
                 return <Component key={idx} config={config}/>
             }),
-            title: interpStrFn(models, this.inspectModal.title)
+            title: interpStrFn(modelsWrapper, this.inspectModal.title, ValueSelector.Models)
         } : undefined;
 
         let [fileNameList, updateFileNameList] = stateFn(undefined);
