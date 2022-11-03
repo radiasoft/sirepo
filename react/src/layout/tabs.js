@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { View } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
-import { useShown } from "../hook/shown";
+import { useShown, ValueSelector } from "../hook/shown";
 import React from "react";
 import { CModelsWrapper } from "../data/wrapper";
 
@@ -35,7 +35,7 @@ export class TabLayout extends View {
         for (let tabConfig of tabs) {
             let { name, items: layoutConfigs, shown: shownConfig } = tabConfig;
 
-            let shown = shownFn(shownConfig, true, modelsWrapper);
+            let shown = shownFn(shownConfig, true, modelsWrapper, ValueSelector.Models);
 
             let layoutElements = layoutConfigs.map((layoutConfig, idx) => {
                 let ele = this.layoutsWrapper.getLayoutForConfig(layoutConfig)

@@ -10,7 +10,7 @@ import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
 import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
 import "./form.scss";
-import { useShown } from "../hook/shown";
+import { useShown, ValueSelector } from "../hook/shown";
 import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
 import { useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
@@ -89,7 +89,7 @@ export class FieldGridLayout extends View {
 
         for(let idx = 0; idx < rows.length; idx++) {
             let row = rows[idx];
-            let shown = shownFn(row.shown, true, formState);
+            let shown = shownFn(row.shown, true, formState, ValueSelector.Fields);
             let fields = row.fields;
             let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
             let rowElement = shown ? (

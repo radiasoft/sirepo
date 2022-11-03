@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useStopwatch } from "../hook/stopwatch";
 import { AnimationReader, CReportEventManager } from "../data/report";
-import { useShown } from "../hook/shown";
+import { useShown, ValueSelector } from "../hook/shown";
 import React from "react";
 import { CPanelController } from "../data/panel";
 import { CLayouts } from "./layouts";
@@ -102,7 +102,7 @@ export class ManualRunReportLayout extends View {
 
         let reportEventsVersionRef = useRef(uuidv4())
 
-        let shown = useShown(shownConfig, true, modelsWrapper);
+        let shown = useShown(shownConfig, true, modelsWrapper, ValueSelector.Models);
 
         let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
 
