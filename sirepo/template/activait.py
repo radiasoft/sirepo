@@ -12,8 +12,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
-from urllib import parse
-from urllib import request
 import csv
 import h5py
 import numpy as np
@@ -302,7 +300,6 @@ def stateful_compute_compute_column_info(data):
 def stateful_compute_sample_images(data):
     import matplotlib.pyplot as plt
     from base64 import b64encode
-    from pykern import pkcompat
 
     def _data_url(filename):
         f = open(filename, "rb")
