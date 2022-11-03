@@ -578,11 +578,21 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
     return _update_geom_from_undulator(geom_objs, model, **kwargs)
 
 
+def _is_binary(file_path):
+    textchars = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
+    is_binary_string = lambda bytes: bool(bytes.translate(None, textchars))
+    return is_binary_string(open(file_path, 'rb').read(1024))
+
+
 def _create_stl_trimesh(file_path):
-    with open(file_path, "r") as f:
-        # TODO(BG) figure out why throws excpetion when decoding specific byte (create more binary files for testing)
-        m = trimesh.exchange.stl.load_stl(file_obj=f)
-        return trimesh.Trimesh(vertices=m['vertices'], faces=m['faces'], process=True)
+    if(_is_binary(file_path)):
+        with open(file_path, "rb") as f:
+            m = trimesh.exchange.stl.load_stl(file_obj=f)
+            return trimesh.Trimesh(vertices=m['vertices'], faces=m['faces'], process=True)
+    else:
+        with open(file_path, "r") as f:
+            m = trimesh.exchange.stl.load_stl(file_obj=f)
+            return trimesh.Trimesh(vertices=m['vertices'], faces=m['faces'], process=True)
 
 
 # deep copy of an object, but with a new id
