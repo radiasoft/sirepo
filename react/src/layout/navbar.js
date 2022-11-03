@@ -10,7 +10,7 @@ import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/panel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { CRelativeRouterHelper, RouteHelper } from "../hook/route";
+import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";

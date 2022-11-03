@@ -11,7 +11,7 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { CAppName, CSimulationListPromise } from "../context";
 import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react-router-dom";
 import { SimulationRoot } from "./simulation";
-import { CRelativeRouterHelper, RouteHelper } from "../hook/route";
+import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
 import { SrNavbar, NavbarContainerId } from "./navbar";
 import { titleCaseString } from "../utility/string";

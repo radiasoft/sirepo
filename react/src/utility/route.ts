@@ -1,6 +1,6 @@
 import React from "react";
 import { Path } from "react-router-dom";
-import { joinPath } from "../utility/path";
+import { joinPath } from "./path";
 
 export const CRelativeRouterHelper = React.createContext<RouteHelper>(undefined);
 /**
