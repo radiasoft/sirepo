@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./types.scss"
 import { downloadAs } from "./utility/download";
-import { useInterpolatedString, ValueSelector } from "./hook/string";
+import { useInterpolatedString, ValueSelectors } from "./hook/string";
 import { SchemaView } from "./utility/schema";
 import { CLayouts } from "./layout/layouts";
 import { CModelsWrapper } from "./data/wrapper";
@@ -188,7 +188,7 @@ export class rsFile extends rsType {
                 let Component = layout.component;
                 return <Component key={idx} config={config}/>
             }),
-            title: interpStrFn(modelsWrapper, this.inspectModal.title, ValueSelector.Models)
+            title: interpStrFn(modelsWrapper, this.inspectModal.title, ValueSelectors.Models)
         } : undefined;
 
         let [fileNameList, updateFileNameList] = stateFn(undefined);

@@ -17,7 +17,7 @@ import { CModelsWrapper, getModelValues } from "../data/wrapper";
 import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
-import { ValueSelector } from "../hook/string";
+import { ValueSelectors } from "../hook/string";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
@@ -103,7 +103,7 @@ export class ManualRunReportLayout extends View {
 
         let reportEventsVersionRef = useRef(uuidv4())
 
-        let shown = useShown(shownConfig, true, modelsWrapper, ValueSelector.Models);
+        let shown = useShown(shownConfig, true, modelsWrapper, ValueSelectors.Models);
 
         let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
 

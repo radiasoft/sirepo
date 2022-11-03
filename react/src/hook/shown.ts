@@ -1,8 +1,7 @@
 import { AbstractModelsWrapper } from "../data/wrapper";
-import { FormFieldState } from "../store/formState";
-import { useEvaluatedInterpString } from "./string"
+import { useEvaluatedInterpString, ValueSelector } from "./string"
 
-export function useShown<M, F>(shownStr: string, defaultValue: boolean, modelsWrapper: AbstractModelsWrapper<M, F>, valueSelector: (v: F) => any) {
+export function useShown<M, F>(shownStr: string, defaultValue: boolean, modelsWrapper: AbstractModelsWrapper<M, F>, valueSelector: ValueSelector<F>) {
     let evalInterpStrFn = useEvaluatedInterpString;
     if(shownStr) {
         let shown = evalInterpStrFn(modelsWrapper, shownStr, valueSelector);
