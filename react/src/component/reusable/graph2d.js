@@ -6,7 +6,7 @@ import { Zoom } from '@visx/zoom';
 import { ClipPath, Scale, Shape } from '@visx/visx';
 import { LegendOrdinal } from "@visx/legend";
 import { DynamicAxis } from "./axis";
-import { constrainZoom, useGraphContentBounds } from "../utility/component";
+import { constrainZoom, useGraphContentBounds } from "../../utility/component";
 
 /**
  *

@@ -12,7 +12,7 @@ import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react
 import { SimulationRoot } from "./simulation";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
-import { SrNavbar, NavbarContainerId } from "./navbar";
+import { SrNavbar, NavbarContainerId } from "./reusable/navbar";
 import { titleCaseString } from "../utility/string";
 import { CAppName, CSimulationList } from "../data/appwrapper";
 

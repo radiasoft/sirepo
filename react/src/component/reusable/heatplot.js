@@ -5,7 +5,7 @@ import React, { useRef, useLayoutEffect } from 'react';
 import { useCanvas, useCanvasContext } from "./canvascontext";
 import { Canvas } from "./canvas";
 import { DynamicAxis } from "./axis";
-import { constrainZoom, useGraphContentBounds } from "../utility/component";
+import { constrainZoom, useGraphContentBounds } from "../../utility/component";
 import { Zoom } from '@visx/zoom';
 import { Scale } from '@visx/visx';
 

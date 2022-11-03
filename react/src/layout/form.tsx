@@ -7,7 +7,7 @@ import {
     Container
 } from "react-bootstrap";
 import { Dependency } from "../data/dependency";
-import { FieldInput, LabeledFieldInput } from "../component/input";
+import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
 import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
 import "./form.scss";
 import { useShown, ValueSelector } from "../hook/shown";

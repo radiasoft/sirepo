@@ -1,5 +1,5 @@
 import React from "react";
-import { Table } from "../component/table";
+import { Table } from "../component/reusable/table";
 import { View }from "./layout";
 
 function apiResponseToTableConfig(apiResponse, attributeName) {

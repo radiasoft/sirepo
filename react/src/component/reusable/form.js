@@ -3,7 +3,7 @@ import {
     Row,
     Col
 } from "react-bootstrap";
-import { LabelTooltip } from "../component/label";
+import { LabelTooltip } from "./label";
 import React, {
     useState,
     useContext,
@@ -12,11 +12,11 @@ import React, {
 import {
     formActions,
     formSelectors
-} from "../store/formState";
-import { formStateFromModel } from "../data/formController";
+} from "../../store/formState";
+import { formStateFromModel } from "../../data/formController";
 import { useStore } from "react-redux";
-import { CModelsWrapper, CFormStateWrapper, FormStateWrapper } from "../data/wrapper";
-import { CSchema } from "../data/appwrapper";
+import { CModelsWrapper, CFormStateWrapper, FormStateWrapper } from "../../data/wrapper";
+import { CSchema } from "../../data/appwrapper";
 
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;

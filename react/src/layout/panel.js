@@ -2,7 +2,7 @@ import { useContext } from "react";
 import { useInterpolatedString } from "../hook/string";
 import { View } from "./layout";
 import { useStore } from "react-redux";
-import { EditorPanel } from "../component/panel";
+import { EditorPanel } from "../component/reusable/panel";
 import "./panel.scss";
 import { Col } from "react-bootstrap";
 import React from "react";

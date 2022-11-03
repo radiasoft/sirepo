@@ -9,8 +9,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { EditorForm } from "./form";
 import { v4 as uuidv4 } from 'uuid';
-import { CPanelController } from "../data/panel"
-import { PanelController } from "../data/panel";
+import { CPanelController } from "../../data/panel"
+import { PanelController } from "../../data/panel";
 
 export function Panel(props) {
     let { title, buttons, panelBodyShown, ...otherProps } = props;

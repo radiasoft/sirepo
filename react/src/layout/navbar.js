@@ -1,12 +1,12 @@
 import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useParams } from "react-router-dom";
-import { NavbarContainerId } from "../component/navbar";
+import { NavbarContainerId } from "../component/reusable/navbar";
 import { useInterpolatedString } from "../hook/string";
 import { useContext, useState } from "react";
 import { View } from "./layout";
 import usePortal from "react-useportal"; 
 import { useStore } from "react-redux";
-import { ViewPanelActionButtons } from "../component/panel";
+import { ViewPanelActionButtons } from "../component/reusable/panel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";

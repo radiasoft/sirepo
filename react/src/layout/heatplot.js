@@ -1,7 +1,7 @@
 // import { React }
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
-import { Heatplot } from "../component/heatplot";
+import { Heatplot } from "../component/reusable/heatplot";
 import { View } from "./layout";
 import React from "react";
 

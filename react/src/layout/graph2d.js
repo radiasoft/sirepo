@@ -1,5 +1,5 @@
 import React from "react";
-import { Graph2d } from "../component/graph2d";
+import { Graph2d } from "../component/reusable/graph2d";
 import { View } from "./layout";
 
 export function apiResponseToGraph2dConfig(apiResponse) {

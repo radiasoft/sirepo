@@ -10,11 +10,11 @@ import {
     modelSelectors,
     modelActions
 } from "../store/models";
-import { FormStateInitializer } from "../component/form";
+import { FormStateInitializer } from "./reusable/form";
 import { useResolvedPath } from "react-router-dom";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";
-import { SrNavbar } from "./navbar";
+import { SrNavbar } from "./reusable/navbar";
 import { CReportEventManager } from "../data/report"; 
 import { CLayouts } from "../layout/layouts";
 import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
