@@ -25,7 +25,6 @@ export const AppRoot = (props) => {
     const [hasSimulationList, simulationList] = useSetup(hasMadeHomepageRequest, appWrapper.getSimulationList());
 
     if(hasAppSchema && hasMadeHomepageRequest && hasSimulationList) {
-        //let AppChild = buildAppComponentsRoot(schema);
         return (
             <Provider store={formStateStore}>
                 <CSchema.Provider value={schema}>
