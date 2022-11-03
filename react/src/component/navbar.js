@@ -1,4 +1,5 @@
 import { Navbar, Container } from "react-bootstrap";
+import React from "react";
 
 export const NavbarContainerId = "nav-tabs-container";
 

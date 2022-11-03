@@ -7,11 +7,6 @@ import React, {
     useContext
 } from "react";
 import {
-    CAppName,
-    CSchema,
-    CSimulationInfoPromise
-} from "../context";
-import {
     modelSelectors,
     modelActions
 } from "../store/models";
@@ -23,6 +18,7 @@ import { SrNavbar } from "./navbar";
 import { CReportEventManager } from "../data/report"; 
 import { CLayouts } from "../layout/layouts";
 import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
+import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;

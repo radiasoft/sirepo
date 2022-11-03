@@ -1,3 +1,4 @@
+import React from "react";
 import { Table } from "../component/table";
 import { View }from "./layout";
 

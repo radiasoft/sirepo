@@ -1,7 +1,6 @@
 import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarContainerId } from "../component/navbar";
-import { CSchema, CSimulationInfoPromise } from "../context";
 import { useInterpolatedString } from "../hook/string";
 import { useContext, useState } from "react";
 import { View } from "./layout";
@@ -14,6 +13,7 @@ import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
+import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 
 export class NavBarModalButton extends View {
     getChildLayouts = (config) => {

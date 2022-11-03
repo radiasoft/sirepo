@@ -1,6 +1,7 @@
 import { Tooltip, OverlayTrigger } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
+import React from "react";
 
 export function LabelTooltip(props) {
     let renderTooltip = (childProps) => (

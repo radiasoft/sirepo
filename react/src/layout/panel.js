@@ -1,7 +1,3 @@
-import {
-    CSchema,
-    CSimulationInfoPromise
-} from "../context";
 import { useContext } from "react";
 import { useInterpolatedString } from "../hook/string";
 import { View } from "./layout";
@@ -12,6 +8,7 @@ import { Col } from "react-bootstrap";
 import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
+import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 
 export class PanelLayout extends View {
     getChildLayoutByConfig = (layoutConfig) => {

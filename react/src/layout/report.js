@@ -1,6 +1,5 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
-import { CSimulationInfoPromise, CAppName, CSchema } from "../context";
 import { View } from "./layout";
 import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +16,7 @@ import { CLayouts } from "./layouts";
 import { CModelsWrapper, getModelValues } from "../data/wrapper";
 import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
+import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {

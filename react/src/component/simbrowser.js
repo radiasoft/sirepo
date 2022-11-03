@@ -8,13 +8,13 @@ import {
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { CAppName, CSimulationListPromise } from "../context";
 import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react-router-dom";
 import { SimulationRoot } from "./simulation";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
 import { SrNavbar, NavbarContainerId } from "./navbar";
 import { titleCaseString } from "../utility/string";
+import { CAppName, CSimulationList } from "../data/appwrapper";
 
 function buildSimulationsTree(simulations) {
     let root = {
@@ -35,7 +35,7 @@ function buildSimulationsTree(simulations) {
     }
 
     let placeItemIntoFolder = (simulation) => {
-        simulation.folder = trimPathSeparators(simulation.folder, { start: true, end: true });
+        simulation.folder = trimPathSeparators(simulation.folder, { front: true, end: true });
         let paths = simulation.folder.split('/');
 
         let tree = root;
@@ -183,7 +183,7 @@ function SimulationFolderRouter(props) {
     // TODO: this calls childFn even if route is not a match
     return (
         <Routes>
-            <Route path="/" exact element={
+            <Route path="/" element={
                 <>{el}</>
             }/>
             <Route path="/:simulationFolder/*" element={
@@ -267,41 +267,25 @@ function SimulationRootWrapper(props) {
 }
 
 export function SimulationBrowserRoot(props) {
-    let simulationListPromise = useContext(CSimulationListPromise);
-    let [simInfo, updateSimInfo] = useState(undefined);
+    let simulationList = useContext(CSimulationList);
+    let simulationTree = buildSimulationsTree(simulationList);
     let pathPrefix = useResolvedPath('');
-    useEffect(() => {
-        simulationListPromise.then(simulationList => {
-            let tree = buildSimulationsTree(simulationList);
-            // cause render on promise finish to hopefully recalculate routing
-            updateSimInfo({
-                simulationList,
-                simulationTree: tree
-            })
-        })
-    }, [simulationListPromise]); // TODO: eval dep
 
     let routeHelper = new RouteHelper(pathPrefix);
-    let child = undefined;
-
-    if(simInfo) {
-        child = (
-            <CRelativeRouterHelper.Provider value={routeHelper}>
-                <Routes>
-                    <Route path="/" exact element={
-                        <Navigate to={`simulations`}></Navigate>
-                    }/>
-                    <Route path="/simulations" element={<SimulationBrowser tree={simInfo.simulationTree} />}/>
-                    <Route path="/simulations/:simulationFolder/*" element={<SimulationBrowser tree={simInfo.simulationTree} />}/>
-                    <Route path="/source/:id/*" element={
-                        <SimulationRootWrapper simulationList={simInfo.simulationList}/>
-                    }/>
-                </Routes>
-            </CRelativeRouterHelper.Provider>
-        )
-    } else {
-        child = <>Loading...</>
-    }
+    let child = (
+        <CRelativeRouterHelper.Provider value={routeHelper}>
+            <Routes>
+                <Route path="/" element={
+                    <Navigate to={`simulations`}></Navigate>
+                }/>
+                <Route path="/simulations" element={<SimulationBrowser tree={simulationTree} />}/>
+                <Route path="/simulations/:simulationFolder/*" element={<SimulationBrowser tree={simulationTree} />}/>
+                <Route path="/source/:id/*" element={
+                    <SimulationRootWrapper simulationList={simulationList}/>
+                }/>
+            </Routes>
+        </CRelativeRouterHelper.Provider>
+    )
 
     return (
         <>

@@ -1,7 +1,6 @@
 //import { React }
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Button, Col, Form, Modal } from "react-bootstrap";
-import { CAppName, CSimulationInfoPromise } from "./context";
 import { pollStatefulCompute } from "./utility/compute";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
@@ -12,6 +11,7 @@ import { SchemaView } from "./utility/schema";
 import { CLayouts } from "./layout/layouts";
 import { CModelsWrapper } from "./data/wrapper";
 import { Dependency } from "./data/dependency";
+import { CAppName, CSimulationInfoPromise } from "./data/appwrapper";
 
 export type InputComponentProps = {
     valid: boolean,
