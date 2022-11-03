@@ -145,7 +145,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.axisIndex = axis => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
 
     self.buildShapePoints = (o, callback) => {
-        requestSender.sendStatefulCompute(
+        requestSender.sendStatelessCompute(
             appState,
             callback,
             {
