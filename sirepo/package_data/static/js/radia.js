@@ -319,14 +319,22 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         appState.saveChanges(POST_SIM_REPORTS);
     };
 
-    self.updateExtruded = o => {
+    self.updateExtruded = (o, callback) => {
+        o.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis(o.extrusionAxis);
+        o.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis(o.widthAxis);
         if (o.referencePoints && o.referencePoints.length) {
             self.updateExtrudedSize(o);
             self.centerExtrudedPoints(o);
+            if (callback) {
+                callback(o);
+            }
             return;
         }
-        self.buildShapePoints(o, data => {
-            o.points = data.points;
+        self.buildShapePoints(o, d => {
+            o.points = d.points;
+            if (callback) {
+                callback(d);
+            }
         });
     };
 
@@ -577,21 +585,28 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.saveObject = function(id, callback) {
+
+        function save() {
+            appState.saveChanges('geomObject', d => {
+                transformShapesForObjects();
+                self.selectedObject = null;
+                radiaService.setSelectedObject(null);
+                if (callback) {
+                    callback(d);
+                }
+            });
+        }
+
         const o = self.selectObjectWithId(id);
         if (! o) {
             return;
         }
         if (o.layoutShape === 'polygon') {
-            radiaService.updateExtruded(o);
+            radiaService.updateExtruded(o, save);
         }
-        appState.saveChanges('geomObject', function (d) {
-            transformShapesForObjects();
-            self.selectedObject = null;
-            radiaService.setSelectedObject(null);
-            if (callback) {
-                callback(d);
-            }
-        });
+        else {
+            save();
+        }
     };
 
     self.selectObject = function(o) {
@@ -3957,9 +3972,10 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     function setPoints(data) {
         $scope.modelData.referencePoints = data.points;
-        radiaService.updateExtruded($scope.modelData);
-        appState.saveChanges(editedModels);
-        updateShapeEditor();
+        radiaService.updateExtruded($scope.modelData, () => {
+            appState.saveChanges(editedModels);
+            updateShapeEditor();
+        });
     }
 
     function loadPoints() {
@@ -4032,7 +4048,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     $scope.$on('geomObject.changed', () => {
         if (editedModels.includes('extrudedPoly')) {
-            radiaService.buildShapePoints($scope.modelData, setPoints);
+            radiaService.updateExtruded($scope.modelData);
         }
         editedModels = [];
     });
@@ -4065,17 +4081,9 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         );
     }
 
-    function setPoints(data) {
-        $scope.modelData.points = data.points;
-        $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
-        $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
-        appState.saveChanges($scope.modelName);
-    }
 
     const self = {};
-
     self.getBaseObject = () => $scope.modelData;
-
 
     return self;
 });
