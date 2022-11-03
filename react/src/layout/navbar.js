@@ -1,7 +1,7 @@
 import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
 import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarContainerId } from "../component/reusable/navbar";
-import { useInterpolatedString } from "../hook/string";
+import { useInterpolatedString, ValueSelectors } from "../hook/string";
 import { useContext, useState } from "react";
 import { View } from "./layout";
 import usePortal from "react-useportal"; 
@@ -37,8 +37,8 @@ export class NavBarModalButton extends View {
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let modelsWrapper = useContext(CModelsWrapper);
 
-        let title = useInterpolatedString(modelsWrapper, config.title);
-        let modalTitle = useInterpolatedString(modelsWrapper, config.modal.title);
+        let title = useInterpolatedString(modelsWrapper, config.title, ValueSelectors.Models);
+        let modalTitle = useInterpolatedString(modelsWrapper, config.modal.title, ValueSelectors.Models);
 
         let [modalShown, updateModalShown] = useState(false);
 
