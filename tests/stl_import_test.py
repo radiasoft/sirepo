@@ -8,29 +8,34 @@
 _RAW_VERTICES = [[0, 0, 0], [1, 1, 0], [0, 1, 0], [0.5, 0.5, 1]]
 _RAW_FACES = [[1, 2, 3], [1, 2, 4], [1, 4, 3], [4, 2, 3]]
 
-_RAW_EXPECTED = [[0.0, 1.0, 0.0],
- [1.0, 1.0, 0.0],
- [0.0, 0.0, 0.0],
- [0.0, 0.0, 0.0],
- [1.0, 1.0, 0.0],
- [0.5, 0.5, 1.0],
- [0.0, 0.0, 0.0],
- [0.5, 0.5, 1.0],
- [0.0, 1.0, 0.0],
- [0.5, 0.5, 1.0],
- [1.0, 1.0, 0.0],
- [0.0, 1.0, 0.0]]
+_RAW_EXPECTED = [
+    [0.0, 1.0, 0.0],
+    [1.0, 1.0, 0.0],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
+    [1.0, 1.0, 0.0],
+    [0.5, 0.5, 1.0],
+    [0.0, 0.0, 0.0],
+    [0.5, 0.5, 1.0],
+    [0.0, 1.0, 0.0],
+    [0.5, 0.5, 1.0],
+    [1.0, 1.0, 0.0],
+    [0.0, 1.0, 0.0],
+]
+
 
 def _create_mesh(file_path):
     import trimesh
-    
+
     with open(file_path) as f:
         return trimesh.load(f, file_type="stl", force="mesh", process=True)
 
+
 def _convex_check(mesh):
     import trimesh
-    
+
     return trimesh.convex.is_convex(mesh)
+
 
 def test_raw():
     import radia
@@ -38,19 +43,20 @@ def test_raw():
     from pykern.pkunit import pkeq
 
     d = radia.ObjDrwVTK(radia.ObjPolyhdr(_RAW_VERTICES, _RAW_FACES), "Axes->No")
-    actual = numpy.array([round(x, 6) for x in d["polygons"]["vertices"]]).reshape(-1, 3).tolist()
+    actual = (
+        numpy.array([round(x, 6) for x in d["polygons"]["vertices"]])
+        .reshape(-1, 3)
+        .tolist()
+    )
     pkeq(_RAW_EXPECTED, actual)
-    
+
+
 def test_import():
     from pykern import pkunit
     from pykern.pkunit import pkeq
-    
+
     actual = []
     for d in pkunit.case_dirs():
         with pkunit.ExceptToFile():
-            actual.append(
-                _convex_check(
-                    _create_mesh(d.join("in.stl"))
-                )
-            )
+            actual.append(_convex_check(_create_mesh(d.join("in.stl"))))
     pkeq([True, False], actual)
