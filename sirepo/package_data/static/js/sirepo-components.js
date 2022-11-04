@@ -2068,7 +2068,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
             <span class="sr-panel-heading">{{ simpleHeading }}</span>
             <div class="sr-panel-options pull-right">
               <a href data-ng-class="{\'sr-disabled-link\': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
-              <a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
+              <a href data-ng-click="panelState.toggleHiddenAndNotify(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
             </div>
             <div class="sr-panel-options pull-right" data-ng-transclude="" ></div>
         `,
@@ -2077,7 +2077,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
             $scope.utilities = utilities;
             $scope.toggleHidden = function() {
                 if(! utilities.isFullscreen()) {
-                    panelState.toggleHidden($scope.modelKey);
+                    panelState.toggleHiddenAndNotify($scope.modelKey);
                 }
             };
         },
