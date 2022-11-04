@@ -186,9 +186,13 @@ export class rsFile extends rsType {
         let fileInputRef = useRef();
         let formSelectRef = useRef();
 
-        let options = (fileNameList || []).map(fileName => (
-            <option key={fileName} value={fileName}>{fileName}</option>
-        ))
+        let options = [
+            <option hidden>No file selected...</option>,
+            ...(fileNameList || []).map(fileName => (
+                <option key={fileName} value={fileName}>{fileName}</option>
+            ))
+        ]
+        
 
         let uploadFile = (event) => {
             let file = event.target.files[0];
