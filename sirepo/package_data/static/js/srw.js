@@ -2507,7 +2507,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             </form>
         `,
         controller: function($scope, appState, authState, stringsService) {
-            const coreMinimum = 3;
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
