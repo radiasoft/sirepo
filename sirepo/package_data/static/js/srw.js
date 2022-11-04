@@ -2534,28 +2534,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return $scope.model == 'coherentModesAnimation';
             }
 
-            function coherentModesCoresError(cores, minCores) {
-                if (cores < minCores) {
-                    throw new Error(`${cores} cores found, should be > 3 for coherent modes`);
-                }
-            }
-
-            function coherentModesEnoughCores() {
-                var c = appState.models.coherentModesAnimation;
-                if (c.jobRunMode == 'sequential') {
-                    throw new Error('Coherent modes should not be run sequentially');
-                }
-                else if (c.jobRunMode == 'parallel') {
-                    coherentModesCoresError(
-                        // Using enumDescription to obtain cores count from UI
-                        Number(appState.enumDescription('JobRunMode', c.jobRunMode).split(" ")[0]),
-                        coreMinimum,
-                    );
-                    return;
-                }
-                coherentModesCoresError(c.sbatchCores, coreMinimum);
-            }
-
             function setActiveAnimation() {
                 //TODO(pjm):multiple independent animation models on the same page will confuse the
                 // plots because the frameCache is global. hide opposite report on the source page
@@ -2680,9 +2658,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 $scope.particleCount = 0;
                 // The available jobRunModes can change. Default to parallel if
                 // the current jobRunMode doesn't exist
-                if (isCoherentModes()) {
-                    coherentModesEnoughCores();
-                }
                 var j = appState.models[$scope.simState.model];
                 if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
                     j.jobRunMode = 'parallel';
