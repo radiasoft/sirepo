@@ -11,3 +11,24 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.sr-path-subtree {
+  padding-left: 20px;
+}
+
+.sr-path-tree {
+  width: 300px;
+}
+
+.sr-simulation-browser-thumbnail {
+  width: 100px;
+  height: 100px;
+}
+
+.sr-simulation-browser-thumbnails {
+
+  flex-grow: 1;
+}
+
+.sr-simulation-browser {
+}

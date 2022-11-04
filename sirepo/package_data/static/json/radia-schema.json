@@ -157,21 +157,21 @@
                     },
                     {
                         "isButton": false,
-                        "layoutShape": "rect",
+                        "layoutShape": "polygon",
                         "model": "ell",
                         "title": "L-Bend",
                         "type": "ell"
                     },
                     {
                         "isButton": false,
-                        "layoutShape": "rect",
+                        "layoutShape": "polygon",
                         "model": "cee",
                         "title": "C-Bend",
                         "type": "cee"
                     },
                     {
                         "isButton": false,
-                        "layoutShape": "rect",
+                        "layoutShape": "polygon",
                         "model": "jay",
                         "title": "J-Bend",
                         "type": "jay"
@@ -956,7 +956,6 @@
             "file": ["STL File", "InputFile", ""]
         },
         "fieldLineoutAnimation": {
-            "fieldPath": ["_", "model.fieldPath", {}],
             "fieldPaths": ["Path", "FieldPaths", []],
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"],

@@ -15,6 +15,9 @@ radia_run redhat-docker
             echo "$docker_image docker image not found. Pulling..."
             docker image pull "$docker_image"
         fi
+        # POSIT: run-server.sh
+        export SIREPO_SRDB_ROOT=$HOME/tmp/sirepo-run
+        mkdir -p "$SIREPO_SRDB_ROOT"
         export SIREPO_JOB_DRIVER_MODULES=docker
         ;;
     local)

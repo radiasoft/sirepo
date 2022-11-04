@@ -143,7 +143,6 @@
         "getApplicationData": "/get-application-data/?<filename>",
         "getModerationRequestRows": "/get-moderation-request-rows",
         "homePage": "/en/*<path_info>",
-        "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
         "jupyterHub": "/jupyter",

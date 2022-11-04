@@ -17,7 +17,7 @@ import os
 import re
 import shutil
 import signal
-import sirepo.auth
+import sirepo.modules
 import sirepo.tornado
 import socket
 import subprocess
@@ -72,6 +72,7 @@ def start():
         ),
     )
     pkdlog("{}", cfg)
+    sirepo.modules.import_and_init("sirepo.pkcli.job_agent")
     if pkconfig.channel_in_internal_test() and cfg.start_delay:
         pkdlog("start_delay={}", cfg.start_delay)
         time.sleep(cfg.start_delay)
@@ -203,8 +204,7 @@ class _Dispatcher(PKDict):
                             s,
                         )
                         raise tornado.iostream.StreamClosedError()
-                    with sirepo.quest.start():
-                        s = await self._op(r)
+                    s = await self._op(r)
             except Exception as e:
                 pkdlog("error={} stack={}", e, pkdexc())
                 # TODO(e-carlin): exponential backoff?

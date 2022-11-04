@@ -54,10 +54,9 @@ def _do_beamline(template, data):
                 i.tvx = i.tvy = 0
                 _SIM_DATA.srw_compute_crystal_grazing_angle(i)
         _SIM_DATA.update_model_defaults(i, t)
-        if t in {"crystal"}:
+        if t == "crystal":
             template._compute_crystal_orientation(i)
-        if t in {"grating"}:
-            i.energyAvg = dm.simulation.photonEnergy
+        if t == "grating":
             template._compute_PGM_value(i)
 
 

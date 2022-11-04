@@ -109,11 +109,12 @@ def init_for_flask(app):
     app.add_url_rule("/", "_dispatch_empty", _dispatch_empty, methods=("GET", "POST"))
 
 
-def init_module(**imports):
+def init_module(want_apis, **imports):
     """Convert route map to dispatchable callables
 
     Initializes `_uri_to_route`
     """
+    global _uri_to_route
 
     def _api_modules():
         m = (
@@ -124,10 +125,13 @@ def init_module(**imports):
             return m + ("auth_role_moderation",)
         return m
 
-    if _uri_to_route:
+    if _uri_to_route is not None:
         return
     # import simulation_db
     sirepo.util.setattr_imports(imports)
+    if not want_apis:
+        _uri_to_route = PKDict()
+        return
     for n in _api_modules():
         register_api_module("sirepo." + n)
     _register_sim_api_modules()
@@ -170,7 +174,8 @@ def register_api_module(module):
     if not hasattr(m, "API"):
         if pkinspect.module_functions("api_", module=m):
             raise AssertionError(f"module={m.__name__} has old interface")
-        pkdlog("module={} does not have API class; no apis", m)
+        if pkconfig.channel_in("dev"):
+            pkdlog(f"api_module={m.__name__} does not have API class (no apis)")
         # some modules (ex: sirepo.auth.basic) don't have any APIs
         return
     c = m.API

@@ -1,0 +1,131 @@
+{
+    "type": {
+        "Gender": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["male", "Male"],
+                    ["female", "Female"]
+                ]
+            }
+        },
+        "DogDisposition": {
+            "base": "Enum",
+            "settings": {
+                "allowedValues": [
+                    ["aggressive", "Aggressive"],
+                    ["friendly", "Friendly"],
+                    ["submissive", "Submissive"]
+                ]
+            }
+        }
+    },
+    "model": {
+        "dog": {
+            "breed": {
+                "displayName": "Breed",
+                "type": "String"
+            },
+            "gender": {
+                "displayName": "Gender",
+                "type": "Gender",
+                "defaultValue": "male"
+            },
+            "height": {
+                "displayName": "Height [cm]",
+                "type": "Float",
+                "defaultValue": 50,
+                "description": "Distance from front paws to withers"
+            },
+            "weight": {
+                "displayName": "Weight [lbs]",
+                "type": "Float",
+                "defaultValue": 60.5
+            },
+            "disposition": {
+                "displayName": "Disposition",
+                "type": "DogDisposition",
+                "defaultValue": "friendly"
+            },
+            "favoriteTreat": {
+                "displayName": "Favorite Treat",
+                "type": "OptionalString",
+                "defaultValue": ""
+            }
+        }
+    },
+    "view": [
+        {
+            "layout": "panel",
+            "title": "Dog",
+            "basic": [
+                {
+                    "layout": "tabs",
+                    "tabs": [
+                        {
+                            "name": "Physical Characteristics",
+                            "items": [
+                                {
+                                    "layout": "fieldTable",
+                                    "columns": ["Height", "Weight"],
+                                    "rows": [
+                                        {
+                                            "label": "Size/Shape",
+                                            "fields": [
+                                                "dog.height",
+                                                "dog.weight"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "layout": "fieldList",
+                                    "fields": ["dog.breed"]
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Personality",
+                            "items": [
+                                {
+                                    "layout": "fieldList",
+                                    "fields": [
+                                        "dog.disposition",
+                                        "dog.favoriteTreat"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "advanced": [
+                {
+                    "layout": "fieldList",
+                    "fields": [
+                        "dog.breed",
+                        "dog.gender",
+                        "dog.weight",
+                        "dog.height"
+                    ]
+                }
+            ]
+        },
+        {
+            "layout": "panel",
+            "title": "Physical Characteristics",
+            "basic": [
+                {
+                    "layout": "autoRunReport",
+                    "report": "heightWeightReport",
+                    "dependencies": [
+                        "dog.*"
+                    ],
+                    "reportLayout": {
+                        "layout": "graph2d"
+                    }
+                }
+            ]
+        }
+    ]
+}

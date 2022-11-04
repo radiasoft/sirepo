@@ -38,6 +38,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 PARSED_DATA_ATTR = "srwParsedData"
 
 _CANVAS_MAX_SIZE = 65535
+_MIN_CORES = 3
 
 _OUTPUT_FOR_MODEL = PKDict(
     coherenceXAnimation=PKDict(
@@ -430,45 +431,6 @@ def extract_report_data(sim_in):
     if out.dimensions == 3:
         res = _remap_3d(res, allrange, out, dm[r])
     return res
-
-
-def export_rsopt_config(data, filename):
-    v = _rsopt_jinja_context(data.models.exportRsOpt)
-
-    fz = pkio.py_path(filename)
-    f = re.sub(r"[^\w.]+", "-", fz.purebasename).strip("-")
-    v.runDir = f"{f}_scan"
-    v.fileBase = f
-    tf = {k: PKDict(file=f"{f}.{k}") for k in ["py", "sh", "yml"]}
-    for t in tf:
-        v[f"{t}FileName"] = tf[t].file
-    v.outFileName = f"{f}.out"
-    v.readmeFileName = "README.txt"
-    v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
-    v.hasLibFiles = len(v.libFiles) > 0
-    v.randomSeed = (
-        data.models.exportRsOpt.randomSeed
-        if data.models.exportRsOpt.randomSeed is not None
-        else ""
-    )
-
-    # do this in a second loop so v is fully updated
-    # note that the rsopt context is regenerated in python_source_for_model()
-    for t in tf:
-        tf[t].content = (
-            python_source_for_model(data, "rsoptExport", plot_reports=False)
-            if t == "py"
-            else template_common.render_jinja(SIM_TYPE, v, f"rsoptExport.{t}")
-        )
-    readme = template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
-
-    with sirepo.util.write_zip(fz) as z:
-        for t in tf:
-            z.writestr(tf[t].file, tf[t].content)
-        z.writestr(v.readmeFileName, readme)
-        for d in _SIM_DATA.lib_files_for_export(data):
-            z.write(d, d.basename)
-    return fz
 
 
 def get_application_data(data, **kwargs):
@@ -1203,14 +1165,18 @@ def _compute_PGM_value(model):
                 _grDen3=model.grooveDensity3,
                 _grDen4=model.grooveDensity4,
                 _e_avg=model.energyAvg,
-                _cff=1.5,  # model['cff'],
-                _ang_graz=model.grazingAngle,
+                _cff=None,
+                _ang_graz=model.grazingAngle / 1000.0,
                 _ang_roll=model.rollAngle,
             )
             cff, defAng = opGr.ang2cff(
                 _en=model.energyAvg, _ang_graz=model.grazingAngle / 1000.0
             )
             model.cff = cff
+        else:
+            raise AssertionError(
+                "invalid computeParametersFrom: {}", model.computeParametersFrom
+            )
         angroll = model.rollAngle
         if abs(angroll) < np.pi / 4 or abs(angroll - np.pi) < np.pi / 4:
             model.orientation = "y"
@@ -1255,6 +1221,12 @@ def _compute_grating_orientation(model):
             _x=model.horizontalOffset,
             _y=model.verticalOffset,
         )
+        cff = model.cff
+        grazingAngle = model.grazingAngle / 1000
+        if model.computeParametersFrom == "1":
+            grazingAngle = 0
+        elif model.computeParametersFrom == "2":
+            cff = None
         opGr = srwlib.SRWLOptG(
             _mirSub=mirror,
             _m=model.diffractionOrder,
@@ -1264,8 +1236,8 @@ def _compute_grating_orientation(model):
             _grDen3=model.grooveDensity3,
             _grDen4=model.grooveDensity4,
             _e_avg=model.energyAvg,
-            _cff=model.cff,
-            _ang_graz=model.grazingAngle,
+            _cff=cff,
+            _ang_graz=grazingAngle,
             _ang_roll=model.rollAngle,
         )
         pkdc(
@@ -2341,11 +2313,20 @@ def _set_parameters(v, data, plot_reports, run_dir):
                     raise AssertionError("No Coherent Modes File selected")
                 v.coherentModesFile = dm.multiElectronAnimation.coherentModesFile
         elif report == "coherentModesAnimation":
+            c = data.models.coherentModesAnimation
+            if sirepo.mpi.cfg.cores < _MIN_CORES and not sirepo.mpi.cfg.in_slurm:
+                _core_error(sirepo.mpi.cfg.cores)
+            if sirepo.mpi.cfg.in_slurm and c.sbatchCores < _MIN_CORES:
+                _core_error(c.sbatchCores)
             v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
             v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = "h5"
             v.multiElectronAnimationFilename = _OUTPUT_FOR_MODEL[report].basename
+
+
+def _core_error(cores):
+    raise sirepo.util.UserAlert(f"cores={cores} when cores must be >= {_MIN_CORES}")
 
 
 def _superscript(val):
