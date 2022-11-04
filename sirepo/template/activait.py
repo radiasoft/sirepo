@@ -470,7 +470,7 @@ input_args = Input(shape=input_shape)
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
 
-model.save("saved_model_with_more_layers")
+model.save("saved_model_with_more_layers.h5")
 """
 
 
@@ -1157,10 +1157,16 @@ def _set_children(neural_net):
 
 
 def _set_fields_by_layer_type(l, new_layer):
-    # TODO (gurhar1133): needs more layer type support in the future including:
-    # AlphaDropout
-    # GaussianNoise
-    # GaussianDropout
+    # TODO (gurhar1133): still needs:
+    # GlobalAveragePooling2D
+    # UpSampling2D
+    # ZeroPadding2D
+    # AveragePooling2D
+    # SeparableConv2D
+
+    def _dropout(layer):
+        return PKDict(dropoutRate=layer.rate)
+
     if "input" not in l.name:
         return new_layer.pkmerge(
             PKDict(
@@ -1173,7 +1179,10 @@ def _set_fields_by_layer_type(l, new_layer):
                     dimensionality=l.units,
                     activation=l.activation.__name__,
                 ),
-                Dropout=lambda l: PKDict(dropoutRate=l.rate),
+                GaussianNoise=lambda l: PKDict(stddev=l.stddev),
+                GaussianDropout=lambda l: _dropout(l),
+                AlphaDropout=lambda l: _dropout(l),
+                Dropout=lambda l: _dropout(l),
                 Flatten=lambda l: PKDict(),
                 MaxPooling2D=lambda l: PKDict(
                     strides=l.strides[0],
