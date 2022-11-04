@@ -469,6 +469,8 @@ input_args = Input(shape=input_shape)
 {_build_layers(net)}
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
+
+model.save("saved_model_with_more_layers")
 """
 
 
@@ -1155,7 +1157,10 @@ def _set_children(neural_net):
 
 
 def _set_fields_by_layer_type(l, new_layer):
-    # TODO (gurhar1133): needs more layer type support in the future
+    # TODO (gurhar1133): needs more layer type support in the future including:
+    # AlphaDropout
+    # GaussianNoise
+    # GaussianDropout
     if "input" not in l.name:
         return new_layer.pkmerge(
             PKDict(
