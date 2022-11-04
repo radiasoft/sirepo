@@ -13,6 +13,12 @@ import sirepo.pkcli.madx
 import sirepo.template.controls as template
 
 
+def madx_device_server(sim_id):
+    import sirepo.pkcli.madx_device_server
+
+    sirepo.pkcli.madx_device_server.run(sim_id)
+
+
 def run(cfg_dir):
     cfg_dir = pkio.py_path(cfg_dir)
     _create_particle_file_for_external_lattice(cfg_dir)
