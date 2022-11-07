@@ -469,8 +469,6 @@ input_args = Input(shape=input_shape)
 {_build_layers(net)}
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
-
-model.save("saved_model_with_more_layers.h5")
 """
 
 
