@@ -7,15 +7,11 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
-from pykern import pkcompat
-from pykern import pkjinja
 from pykern import pkjson
 from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import template
-from sirepo import uri_router
-import base64
 import sirepo.util
 
 
@@ -32,55 +28,24 @@ def create_archive(sim, qcall):
         res = sim.template.create_archive(sim, qcall)
         if res:
             return res
-    if not pkio.has_file_extension(sim.filename, ("zip", "html")):
+    if not pkio.has_file_extension(sim.filename, "zip"):
         raise sirepo.util.NotFound(
-            "unknown file type={}; expecting html or zip".format(sim.filename)
+            "unknown file type={}; expecting zip".format(sim.filename)
         )
     with simulation_db.tmp_dir() as d:
-        want_zip = sim.filename.endswith("zip")
-        f, c = _create_zip(sim, want_python=want_zip, out_dir=d)
-        if want_zip:
-            t = "application/zip"
-        else:
-            f, t = _create_html(f, c, qcall)
+        f, c = _create_zip(sim, out_dir=d)
         return qcall.reply_attachment(
             f,
-            content_type=t,
+            content_type="application/zip",
             filename=sim.filename,
         )
 
 
-def _create_html(zip_path, data, qcall):
-    """Convert zip to html data
-
-    Args:
-        zip_path (py.path): what to embed
-        data (dict): simulation db
-    Returns:
-        py.path, str: file and mime type
-    """
-    # Use same tmp directory
-    fp = zip_path.new(ext=".html")
-    values = pkcollections.Dict(data=data)
-    values.uri = qcall.absolute_uri(qcall.uri_for_api("importArchive"))
-    values.server = qcall.sreq.http_server_uri
-    sc = simulation_db.SCHEMA_COMMON
-    values.appLongName = sc.appInfo[data.simulationType].longName
-    values.appShortName = sc.appInfo[data.simulationType].shortName
-    values.productLongName = sc.productInfo.longName
-    values.productShortName = sc.productInfo.shortName
-    values.zip = pkcompat.from_bytes(base64.b64encode(zip_path.read_binary()))
-    with open(str(fp), "wb") as f:
-        fp.write(pkjinja.render_resource("archive.html", values))
-    return fp, "text/html"
-
-
-def _create_zip(sim, want_python, out_dir):
+def _create_zip(sim, out_dir):
     """Zip up the json file and its dependencies
 
     Args:
         sim (req): simulation
-        want_python (bool): include template's python source?
         out_dir (py.path): where to write to
 
     Returns:
@@ -91,9 +56,8 @@ def _create_zip(sim, want_python, out_dir):
     simulation_db.update_rsmanifest(data)
     data.pkdel("report")
     files = sim_data.get_class(data).lib_files_for_export(data)
-    if want_python:
-        for f in _python(data, sim):
-            files.append(f)
+    for f in _python(data, sim):
+        files.append(f)
     with sirepo.util.write_zip(str(path)) as z:
         for f in files:
             z.write(str(f), f.basename)

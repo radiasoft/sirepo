@@ -92,3 +92,6 @@ scaled, in_idx, out_idx = scale_file(
     {{ dataFile_outputsScaler }},
 {% endif %}
 )
+
+input_shape = (len(in_idx),)
+output_shape = len(out_idx)
