@@ -1164,6 +1164,13 @@ def _set_fields_by_layer_type(l, new_layer):
     # AveragePooling2D
     # SeparableConv2D
 
+    # f"""{layer.dimensionality},
+    # activation="{layer.activation}",
+    # kernel_size=({layer.kernel}, {layer.kernel}),
+    # strides={layer.strides},
+    # padding="{layer.padding}"
+    # """
+
     def _dropout(layer):
         return PKDict(dropoutRate=layer.rate)
 
@@ -1184,6 +1191,7 @@ def _set_fields_by_layer_type(l, new_layer):
                 AlphaDropout=lambda l: _dropout(l),
                 Dropout=lambda l: _dropout(l),
                 Flatten=lambda l: PKDict(),
+                SeparableConv2D=lambda l: _conv(l),
                 MaxPooling2D=lambda l: PKDict(
                     strides=l.strides[0],
                     padding=l.padding,
