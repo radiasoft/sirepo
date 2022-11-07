@@ -312,6 +312,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
+    def is_for_rsopt(cls, report):
+        return report in (cls.EXPORT_RSOPT, "machineLearningAnimation")
+
+    @classmethod
     def is_run_mpi(cls, data):
         return cls.is_parallel(data) and data.report != "beamlineAnimation"
 
@@ -368,7 +372,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             or cls.is_watchpoint(report)
             or report in ("multiElectronAnimation", cls.SRW_RUN_ALL_MODEL)
             or report == "beamline3DReport"
-            or report == "exportRsOpt"
+            or report in ("exportRsOpt", "machineLearningAnimation")
         )
 
     @classmethod

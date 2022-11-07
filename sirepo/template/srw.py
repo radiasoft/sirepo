@@ -1013,7 +1013,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if data.report in (_SIM_DATA.EXPORT_RSOPT, "machineLearningAnimation"):
+    if _SIM_DATA.is_for_rsopt(data.report):
         p = ""
         _export_rsopt_config(data, run_dir=run_dir)
     else:
@@ -1814,7 +1814,7 @@ def _generate_beamline_optics(report, data):
 
 def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
     # do this before validation or arrays get turned into strings
     if is_for_rsopt:
@@ -1851,7 +1851,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 
 def _generate_srw_main(data, plot_reports, beamline_info):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     source_type = data.models.simulation.sourceType
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
     vp_var = "vp" if is_for_rsopt else "varParam"
@@ -1983,10 +1983,6 @@ def _intensity_units(sim_in):
             i = sim_in.models.simulation.fieldUnits
         return SCHEMA.enum.FieldUnits[int(i)][1]
     return "ph/s/.1%bw/mm^2"
-
-
-def _is_for_rsopt(report):
-    return report in (_SIM_DATA.EXPORT_RSOPT, "machineLearningAnimation")
 
 
 def _load_user_model_list(model_name):
@@ -2296,7 +2292,7 @@ def _set_magnetic_measurement_parameters(run_dir, v):
 
 def _set_parameters(v, data, plot_reports, run_dir):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
     (
         v.beamlineOptics,
