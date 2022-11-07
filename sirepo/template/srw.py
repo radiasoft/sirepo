@@ -38,6 +38,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 PARSED_DATA_ATTR = "srwParsedData"
 
 _CANVAS_MAX_SIZE = 65535
+_MIN_CORES = 3
 
 _OUTPUT_FOR_MODEL = PKDict(
     coherenceXAnimation=PKDict(
@@ -2312,11 +2313,20 @@ def _set_parameters(v, data, plot_reports, run_dir):
                     raise AssertionError("No Coherent Modes File selected")
                 v.coherentModesFile = dm.multiElectronAnimation.coherentModesFile
         elif report == "coherentModesAnimation":
+            c = data.models.coherentModesAnimation
+            if sirepo.mpi.cfg.cores < _MIN_CORES and not sirepo.mpi.cfg.in_slurm:
+                _core_error(sirepo.mpi.cfg.cores)
+            if sirepo.mpi.cfg.in_slurm and c.sbatchCores < _MIN_CORES:
+                _core_error(c.sbatchCores)
             v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
             v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = "h5"
             v.multiElectronAnimationFilename = _OUTPUT_FOR_MODEL[report].basename
+
+
+def _core_error(cores):
+    raise sirepo.util.UserAlert(f"cores={cores} when cores must be >= {_MIN_CORES}")
 
 
 def _superscript(val):

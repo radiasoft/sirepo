@@ -107,7 +107,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.selectedObject = null;
 
     self.addOrModifyPath = function(type) {
-        var p = appState.models[self.pathTypeModel(type)];
+        const p = appState.models[self.pathTypeModel(type)];
         if (! appState.models.fieldPaths.paths) {
             appState.models.fieldPaths.paths = [];
         }
@@ -124,9 +124,9 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.alphaDelegate = function() {
-        var m = 'magnetDisplay';
-        var f = 'alpha';
-        var d = panelState.getFieldDelegate(m, f);
+        const m = 'magnetDisplay';
+        const f = 'alpha';
+        const d = panelState.getFieldDelegate(m, f);
         d.range = function() {
             return {
                 min: appState.fieldProperties(m, f).min,
@@ -175,8 +175,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.createPathModel = function(type) {
-        var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
-        var model = {};
+        const t = type || self.pathTypeModel(appState.models.fieldPaths.path);
+        const model = {};
         appState.models[t] = appState.setModelDefaults(model, t);
 
         // set to fill bounds if any actors exist
@@ -371,19 +371,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     function findPath(path) {
-        for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
-            var p = appState.models.fieldPaths.paths[i];
+        for (const p of (appState.models.fieldPaths.paths || [])) {
             if (p.type === path.type && p.id === path.id) {
                 return path;
             }
         }
         return null;
-    }
-
-    function numPathsOfType(type) {
-        return (appState.models.fieldPaths.paths || []).filter(function (p) {
-            return p.type === type;
-        }).length;
     }
 
     function removeFromGroup(o) {
@@ -456,7 +449,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     });
 
 
-    self.copyObject = function(o) {
+    self.copyObject = o => {
         const copy = appState.clone(o);
         copy.name = newObjectName(copy);
         copy.id = radiaService.generateId();
@@ -465,14 +458,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         self.editObject(copy);
     };
 
-    self.editTool = function(tool) {
+    self.editTool = tool => {
         if (tool.isInactive) {
             return;
         }
         panelState.showModalEditor(tool.model);
     };
 
-    self.deleteObject = function(o) {
+    self.deleteObject = o => {
         deleteShapesForObject(o);
         radiaService.deleteObject(o);
     };
@@ -485,59 +478,55 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }[self.getDipoleType()] || '') + ' Dipole';
     };
 
-    self.editItem = function(o) {
+    self.editItem = o => {
         self.editObject(o);
     };
 
-    self.editObjectWithId = function(id) {
-        var o = self.getObject(id);
+    self.editObjectWithId = id => {
+        const o = self.getObject(id);
         if (! o) {
             return;
         }
         self.editObject(o);
     };
 
-    self.editObject = function(o) {
+    self.editObject = o => {
         self.selectObject(o);
         panelState.showModalEditor(o.type);
     };
 
-    self.showDesigner = function() {
+    self.showDesigner = () => {
         return appState.models.simulation.magnetType === 'freehand';
     };
 
-    self.showParams = function() {
+    self.showParams = () => {
         return appState.models.simulation.magnetType !== 'freehand';
     };
 
-    self.getDipoleType = function() {
+    self.getDipoleType = () => {
         if (self.getMagnetType() !== 'dipole') {
             return null;
         }
         return appState.models.simulation.dipoleType;
     };
 
-    self.getMagnetType = function() {
+    self.getMagnetType = () => {
         return appState.models.simulation.magnetType;
     };
 
-    self.getObject = function(id) {
+    self.getObject = id => {
         return radiaService.getObject(id);
     };
 
-    self.getObjects = function() {
+    self.getObjects = () => {
         return radiaService.getObjects();
     };
 
-    self.getShape = function(id) {
-        return self.shapes.filter(function (s) {
-            return s.id === id;
-        })[0];
+    self.getShape = id => {
+        return self.shapes.filter( s => s.id === id)[0];
     };
 
-    self.getShapes = function() {
-        return self.shapes;
-    };
+    self.getShapes = () => self.shapes;
 
     self.getUndulatorType = () => {
         if (self.getMagnetType() !== 'undulator') {
@@ -546,42 +535,22 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.undulatorType;
     };
 
-    self.getView = () => {
-        return `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
-    };
+    self.getView = () => `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
 
-    self.isDropEnabled = function() {
-        return self.dropEnabled;
-    };
+    self.isDropEnabled = () => self.dropEnabled;
 
-    self.isEditable = function() {
-        return true;
-    };
+    self.objectBounds = () => groupBounds();
 
-    self.objectBounds = function() {
-        return groupBounds();
-    };
+    self.objectsOfType = type => appState.models.geometryReport.objects.filter(o => o.type === type);
 
-    self.objectsOfType = function(type) {
-        return appState.models.geometryReport.objects.filter(function (o) {
-            return o.type === type;
-        });
-    };
-
-    self.objectTypes = function() {
-        var t = [];
-        appState.models.geometryReport.objects.forEach(function (o) {
-            if (t.indexOf(o.type) < 0) {
+    self.objectTypes = () => {
+        const t = [];
+        appState.models.geometryReport.objects.forEach(o =>  {
+            if (! t.includes(o.type)) {
                 t.push(o.type);
             }
         });
         return t.sort();
-    };
-
-    self.pass = function() {
-        return function(item) {
-            return true;
-        };
     };
 
     self.saveObject = function(id, callback) {
@@ -609,7 +578,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
     };
 
-    self.selectObject = function(o) {
+    self.selectObject = o => {
         if (o) {
             self.selectedObject = o;
             radiaService.setSelectedObject(o);
@@ -618,16 +587,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return o;
     };
 
-    self.selectObjectWithId = function(id) {
-        return self.selectObject(self.getObject(id));
-    };
+    self.selectObjectWithId = id => self.selectObject(self.getObject(id));
 
-    self.shapeBounds = function() {
-        return shapesBounds(self.shapes);
-    };
+    self.shapeBounds = () => shapesBounds(self.shapes);
 
     // seems like a lot of this shape stuff can be refactored out to a common area
-    self.shapeForObject = function(o) {
+    self.shapeForObject = o => {
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
         let center = radiaService.scaledArray(o.center || SIREPO.ZERO_ARR, scale);
         let size =   radiaService.scaledArray(o.size || SIREPO.ZERO_ARR, scale);
@@ -696,7 +661,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (p.indexOf(axis) < 0) {
                 continue;
             }
-            //let dim = p.replace(axis, '');
             let p1 = geometry.point();
             p1[axis] = -1;
             let p2 = geometry.point();
@@ -808,7 +772,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (cpl.equals(spl) || ! spl.intersection(cpl)) {
                 continue;
             }
-            var pl = vtkPlotting.plotLine(
+            const pl = vtkPlotting.plotLine(
                 virtualShapeId(baseShape), baseShape.name, spl.intersection(cpl),
                 baseShape.color, 1.0, 'dashed', "8,8,4,8"
             );
@@ -833,7 +797,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function composeFn(fnArr) {
         return function(shape1, shape2) {
-            var prevShape = shape1;
+            let prevShape = shape1;
             fnArr.forEach(function (tx) {
                 prevShape = tx(prevShape, shape2);
             });
@@ -1052,7 +1016,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function txShape(shape, tx) {
-        var sh = vtkPlotting.plotShape(
+        const sh = vtkPlotting.plotShape(
             virtualShapeId(shape),
             shape.name,
             SIREPO.ZERO_ARR,
@@ -1314,12 +1278,12 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                 return $scope.items.indexOf(data);
             }
 
-            $scope.addItem = function() {
+            $scope.addItem = () => {
                 let b = appState.setModelDefaults({}, itemModel);
                 $scope.editItem(b, true);
             };
 
-            $scope.bevelEdge = (index) => {
+            $scope.bevelEdge = index => {
                 for (const e of SIREPO.APP_SCHEMA.enum.BevelEdge) {
                     if (e[SIREPO.ENUM_INDEX_VALUE] === index) {
                         return e[SIREPO.ENUM_INDEX_LABEL];
@@ -1328,8 +1292,8 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                 return '';
             };
 
-            $scope.deleteItem = function(item) {
-                var index = itemIndex(item);
+            $scope.deleteItem = item => {
+                const index = itemIndex(item);
                 if (index < 0) {
                     return;
                 }
@@ -1337,26 +1301,24 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                 radiaService.saveGeometry(true);
             };
 
-            $scope.editItem = function(item, isNew) {
+            $scope.editItem = (item, isNew) => {
                 isEditing = ! isNew;
                 $scope.selectedItem = item;
                 appState.models[itemModel] = item;
                 panelState.showModalEditor(itemModel);
             };
 
-            $scope.getSelected = function() {
-                return $scope.selectedItem;
-            };
+            $scope.getSelected = () => $scope.selectedItem;
 
-            $scope.loadItems = function() {
+            $scope.loadItems = () => {
                 $scope.items = $scope.field;
                 return $scope.items;
             };
 
-            appState.whenModelsLoaded($scope, function() {
+            appState.whenModelsLoaded($scope, () => {
 
-                $scope.$on('modelChanged', function(e, modelName) {
-                    if (watchedModels.indexOf(modelName) < 0) {
+                $scope.$on('modelChanged', (e, modelName) => {
+                    if (! watchedModels.includes(modelName)) {
                         return;
                     }
                     $scope.selectedItem = null;
@@ -1378,8 +1340,8 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                     });
                 });
 
-                $scope.$on('cancelChanges', function(e, name) {
-                    if (watchedModels.indexOf(name) < 0) {
+                $scope.$on('cancelChanges', (e, name) => {
+                    if (! watchedModels.includes(name)) {
                         return;
                     }
                     appState.removeModel(name);
@@ -1465,7 +1427,7 @@ SIREPO.app.directive('filletTable', function(appState, panelState, radiaService)
             };
 
             $scope.deleteItem = function(item) {
-                var index = itemIndex(item);
+                const index = itemIndex(item);
                 if (index < 0) {
                     return;
                 }
@@ -1528,7 +1490,6 @@ SIREPO.app.directive('filletTable', function(appState, panelState, radiaService)
 
 SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUpload, requestSender) {
 
-    //const RADIA_IMPORT_FORMATS = ['.dat', '.stl'];
     const RADIA_IMPORT_FORMATS = ['.dat',];
     const IMPORT_FORMATS = RADIA_IMPORT_FORMATS.concat(['.zip',]);
 
@@ -1941,14 +1902,13 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
-                $scope.pathTypes.forEach(function (t) {
-                    var pt = radiaService.pathTypeModel(t);
-                    $scope.$on(pt + '.changed', function () {
+                $scope.pathTypes.forEach(t => {
+                    $scope.$on(`${radiaService.pathTypeModel(t)}.changed`, () => {
                         radiaService.addOrModifyPath(t);
                     });
                 });
 
-                let el = $('#sr-fieldpaths-editor');
+                const el = $('#sr-fieldpaths-editor');
                 el.on('hidden.bs.modal', function() {
                     appState.cancelChanges(radiaService.pathTypeModel($scope.getPathType()));
                     $scope.$apply();
@@ -1962,7 +1922,7 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
                     radiaService.showPathPicker(false);
                 });
                 $scope.$watch('model.path', function (m) {
-                    var o = $($element).find('.modal').css('opacity');
+                    const o = $($element).find('.modal').css('opacity');
                     if (o == 1 && ! radiaService.isEditing) {
                         // displaying editor but not editing, must be new
                         radiaService.createPathModel();
@@ -2023,9 +1983,9 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             $scope.integrals = {};
             $scope.model = appState.models[$scope.modelName];
 
-            $scope.download = function() {
-                var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
-                var data = [$scope.CSV_HEADING];
+            $scope.download = () => {
+                const fileName = panelState.fileNameFromText('Field Integrals', 'csv');
+                const data = [$scope.CSV_HEADING];
                 $scope.linePaths().forEach(p => {
                     let row = [];
                     row.push(
@@ -2043,32 +2003,24 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
             };
 
-            $scope.hasPaths = function() {
-                return $scope.linePaths().length;
-            };
+            $scope.hasPaths = () => $scope.linePaths().length;
 
-            $scope.format = function(vals) {
+            $scope.format = vals => {
                 if (! vals) {
                     return [];
                 }
-                return vals.map(function (v, i) {
-                    return utilities.roundToPlaces(v, 4);
-                });
+                return vals.map(v => utilities.roundToPlaces(v, 4));
             };
 
-            $scope.isLine = function(p) {
-                return p.type === 'line' || p.type === 'axis';
-            };
+            $scope.isLine = p => p.type === 'line' || p.type === 'axis';
 
-            $scope.linePaths = function () {
-                return (($scope.model || {}).paths || []).filter($scope.isLine);
-            };
+            $scope.linePaths =  () => (($scope.model || {}).paths || []).filter($scope.isLine);
 
             function updateTable() {
                 appState.models.fieldIntegralReport.lastCalculated = Date.now();
                 appState.saveQuietly('fieldIntegralReport');
                 panelState.clear('fieldIntegralReport');
-                panelState.requestData('fieldIntegralReport', (data) => {
+                panelState.requestData('fieldIntegralReport', data => {
                     $scope.integrals = data;
                 }, true);
             }
@@ -2131,39 +2083,35 @@ SIREPO.app.directive('fieldPathTable', function(appState, geometry, panelState, 
             $scope.paths = appState.models.fieldPaths.paths;
             $scope.svc = radiaService;
 
-            $scope.hasPaths = function() {
-                return $scope.paths && $scope.paths.length;
-            };
+            $scope.hasPaths = () => $scope.paths && $scope.paths.length;
 
-            $scope.copyPath = function(path) {
-                let copy = appState.clone(path);
+            $scope.copyPath = path => {
+                const copy = appState.clone(path);
                 copy.name = newPathName(copy);
                 copy.id = radiaService.generateId();
                 $scope.paths.push(copy);
-                appState.saveChanges(['fieldPaths', radiaService.pathTypeModel(copy.type)], function () {
+                appState.saveChanges(['fieldPaths', radiaService.pathTypeModel(copy.type)], () => {
                     $scope.editPath(copy);
                 });
             };
 
-           $scope.deletePath = function(path, index) {
+           $scope.deletePath = (path, index) => {
                 $scope.paths.splice(index, 1);
                 appState.saveChanges('fieldPaths');
            };
 
-           $scope.editPath = function(path) {
+           $scope.editPath = path => {
                appState.models[radiaService.pathTypeModel(path.type)] = path;
                appState.models.fieldPaths.path = path.type;
                radiaService.showPathPicker(true, false);
            };
 
-           $scope.pathDetails = function(path) {
-               var res = '';
-               var pt = radiaService.pathTypeModel(path.type);
-               var info = appState.modelInfo(pt);
-               var d = SIREPO.APP_SCHEMA.constants.detailFields.fieldPath[pt];
-               d.forEach(function (f, i) {
-                   var fi = info[f];
-                   res += (fi[0] + ': ' + path[f] + (i < d.length - 1 ? '; ' : ''));
+           $scope.pathDetails = path => {
+               let res = '';
+               const pt = radiaService.pathTypeModel(path.type);
+               const d = SIREPO.APP_SCHEMA.constants.detailFields.fieldPath[pt];
+               d.forEach((f, i) => {
+                   res += (appState.modelInfo(pt)[f][0] + ': ' + path[f] + (i < d.length - 1 ? '; ' : ''));
                });
                return res;
            };
@@ -2173,7 +2121,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, geometry, panelState, 
            }
 
            $scope.$on('axisPath.changed', (e, d) => {
-               let m = appState.models.axisPath;
+               const m = appState.models.axisPath;
                m.name = `${m.axis.toUpperCase()}-Axis`;
                m.begin = geometry.basisVectors[m.axis].map(x => m.start * x);
                m.end = geometry.basisVectors[m.axis].map(x => m.stop * x);
@@ -2219,36 +2167,30 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 $scope.field = [];
             }
 
-            $scope.addObject = function(oId) {
+            $scope.addObject = oId => {
                 let o = $scope.getObject(oId);
                 o.groupId = $scope.model.id;
                 $scope.field.push(o.id);
             };
 
-            $scope.getIds = function() {
-                return $scope.objects.map(function (o) {
-                    return o.id;
-                });
-            };
+            $scope.getIds = () => $scope.objects.map(o => o.id);
 
-            $scope.getObject = function(oId) {
-                return radiaService.getObject(oId);
-            };
+            $scope.getObject = oId => radiaService.getObject(oId);
 
-            $scope.hasNoGroup = function(oId) {
-                if ($scope.field.indexOf(oId) >= 0) {
+            $scope.hasNoGroup = oId => {
+                if ($scope.field.includes(oId)) {
                     return false;
                 }
                 if (groupedObjects(oId).indexOf($scope.model.id) >= 0) {
                     return false;
                 }
-                let o = $scope.getObject(oId);
+                const o = $scope.getObject(oId);
                 return oId !== $scope.model.id && (! o.groupId || o.groupId === '');
             };
 
-            $scope.ungroupObject = function(oId) {
+            $scope.ungroupObject = oId => {
                 $scope.getObject(oId).groupId = '';
-                let oIdx = $scope.field.indexOf(oId);
+                const oIdx = $scope.field.indexOf(oId);
                 if (oIdx < 0) {
                     return;
                 }
@@ -2256,7 +2198,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             };
 
             function groupedObjects(oId) {
-                let o = $scope.getObject(oId);
+                const o = $scope.getObject(oId);
                 if (! o) {
                     return [];
                 }
@@ -2361,14 +2303,14 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 return $scope.field.indexOf(data);
             }
 
-            $scope.addItem = function() {
+            $scope.addItem = () => {
                 const item = appState.setModelDefaults({}, itemModel);
                 item.object.id = radiaService.generateId();
                 item.object.groupId = $scope.model[groupModel].id;
                 $scope.editItem(item, true);
             };
 
-            $scope.deleteItem = function(item) {
+            $scope.deleteItem = item => {
                 radiaService.deleteObject(radiaService.getObject(item.object.id));
                 const i = itemIndex(item);
                 $scope.field.splice(i, 1);
@@ -2376,7 +2318,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 appState.saveChanges([$scope.modelName, 'geometryReport']);
             };
 
-            $scope.editItem = function(item, isNew) {
+            $scope.editItem = (item, isNew) => {
                 isEditing = ! isNew;
                 selectedItem = item;
                 appState.models[itemModel] = item;
@@ -2384,7 +2326,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 panelState.showModalEditor(itemModel);
             };
 
-            $scope.$on('modelChanged', function(e, modelName) {
+            $scope.$on('modelChanged', (e, modelName) => {
                 if (! watchedModels.includes(modelName)) {
                     return;
                 }
@@ -2407,14 +2349,14 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 appState.saveChanges('geometryReport');
             });
 
-            $scope.$on('cancelChanges', function(e, name) {
+            $scope.$on('cancelChanges', (e, name) => {
                 if (! watchedModels.includes(name)) {
                     return;
                 }
                 appState.removeModel(name);
             });
 
-            appState.watchModelFields($scope, editorFields, function(d) {
+            appState.watchModelFields($scope, editorFields, () => {
                 if (! selectedItem) {
                     return;
                 }
@@ -2461,44 +2403,40 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             </div>
         `,
         controller: function($scope, $element) {
-            var expanded = {};
-            var isEditing = false;
-            var spatialTransforms = [
+            const expanded = {};
+            let isEditing = false;
+            const spatialTransforms = [
                 'rotate',
                 'translate'
             ];
-            var watchedModels;
+            let watchedModels;
 
             $scope.items = [];
             $scope.radiaService = radiaService;
             $scope.selectedItem = null;
             $scope.toolbarItems = [];
-            $scope.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (section) {
+            $scope.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(section => {
                 return $scope.modelName === 'cloneTransform' ?
                     section.name === 'Transforms (clone)' :
                     section.name === 'Transforms';
             });
 
-            $scope.toolbarSections.forEach(function (s) {
-                s.contents.forEach(function (c) {
-                    $scope.toolbarItems.push(c);
-                });
+            $scope.toolbarSections.forEach(s => {
+                $scope.toolbarItems.push(...s.contents);
             });
 
-            watchedModels = $scope.toolbarItems.map(function (item) {
-                return item.model;
-            });
+            watchedModels = $scope.toolbarItems.map(item => item.model);
 
             function itemIndex(data) {
                 return $scope.items.indexOf(data);
             }
 
-            $scope.addItem = function(item) {
+            $scope.addItem = item => {
                 $scope.editItem(item, true);
             };
 
-            $scope.deleteItem = function(item) {
-                var index = itemIndex(item);
+            $scope.deleteItem = item => {
+                const index = itemIndex(item);
                 if (index < 0) {
                     return;
                 }
@@ -2506,7 +2444,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 radiaService.saveGeometry(true);
             };
 
-            $scope.editItem = function(item, isNew) {
+            $scope.editItem = (item, isNew) => {
                 isEditing = ! isNew;
                 $scope.selectedItem = item;
                 if (isNew) {
@@ -2519,11 +2457,11 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 panelState.showModalEditor(item.model);
             };
 
-            $scope.dropItem = function(index, data) {
+            $scope.dropItem = (index, data) => {
                 if (! data) {
                     return;
                 }
-                var i = $scope.items.indexOf(data);
+                const i = $scope.items.indexOf(data);
                 if (i < 0) {
                     $scope.addItem(data);
                     return;
@@ -2535,56 +2473,50 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 $scope.items.splice(index, 0, data);
             };
 
-            $scope.dropLast = function(item) {
+            $scope.dropLast = item => {
                 if (! item) {
                     return;
                 }
                 $scope.addItem(item);
             };
 
-            $scope.getSelected = function() {
-                return $scope.selectedItem;
-            };
+            $scope.getSelected = () => $scope.selectedItem;
 
-            $scope.itemDetails = function(item) {
-                var res = '';
-                var info = appState.modelInfo(item.model);
-                var d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
-                d.forEach(function (f, i) {
-                    var fi = info[f];
-                    var val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
-                    res += (fi[0] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
+            $scope.itemDetails = item => {
+                let res = '';
+                const d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
+                d.forEach((f, i) => {
+                    const val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
+                    res += (appState.modelInfo(item.model)[f][0] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
                 });
                 return res;
             };
 
-            $scope.isExpanded = function(item) {
-                return expanded[itemIndex(item)];
-            };
+            $scope.isExpanded = item => expanded[itemIndex(item)];
 
-            $scope.loadItems = function() {
+            $scope.loadItems = () => {
                 $scope.items = $scope.field;
                 return $scope.items;
             };
 
-            $scope.moveItem = function(direction, item) {
-                var d = direction == 0 ? 0 : (direction > 0 ? 1 : -1);
-                var currentIndex = itemIndex(item);
-                var newIndex = currentIndex + d;
+            $scope.moveItem = (direction, item) => {
+                const d = direction == 0 ? 0 : (direction > 0 ? 1 : -1);
+                const currentIndex = itemIndex(item);
+                const newIndex = currentIndex + d;
                 if (newIndex >= 0 && newIndex < $scope.items.length) {
-                    var tmp = $scope.items[newIndex];
+                    const tmp = $scope.items[newIndex];
                     $scope.items[newIndex] = item;
                     $scope.items[currentIndex] = tmp;
                 }
             };
 
-            $scope.toggleExpand = function(item) {
+            $scope.toggleExpand = item => {
                 expanded[itemIndex(item)] = ! expanded[itemIndex(item)];
             };
 
-            $scope.itemFilter = function(item) {
-                var iIdx = -1;
-                for (var sIdx in $scope.toolbarSections) {
+            $scope.itemFilter = item => {
+                let iIdx = -1;
+                for (const sIdx in $scope.toolbarSections) {
                     iIdx = $scope.toolbarSections[sIdx].contents.indexOf(item);
                     if (iIdx < 0) {
                         continue;
@@ -2601,14 +2533,14 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 }
                 if ($scope.modelName === 'cloneTransform') {
                     // don't include clone or symmetry if we are editing a clone already
-                    return spatialTransforms.indexOf(item.type) >= 0;
+                    return spatialTransforms.includes(item.type);
                 }
                 return true;
             };
 
-            appState.whenModelsLoaded($scope, function() {
+            appState.whenModelsLoaded($scope, () => {
 
-                $scope.$on('modelChanged', function(e, modelName) {
+                $scope.$on('modelChanged', (e, modelName) => {
                     if (watchedModels.indexOf(modelName) < 0) {
                         return;
                     }
@@ -2623,24 +2555,16 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     });
                 });
 
-                $scope.$on('cancelChanges', function(e, name) {
+                $scope.$on('cancelChanges', (e, name) => {
                     $scope.$emit('drop.target.enabled', true);
-                    if (watchedModels.indexOf(name) < 0) {
+                    if (! watchedModels.includes(name)) {
                         return;
                     }
                     appState.removeModel(name);
                 });
 
-                $scope.$on('$destroy', function () {
+                $scope.$on('$destroy', () => {
                     $scope.$emit('drop.target.enabled', true);
-                });
-
-                $scope.$watch($scope.modelName, function () {
-                    //srdbg('watch saw', $scope.modelName);
-                });
-
-                $scope.$watch('items', function () {
-                    //srdbg('watch saw', $scope.items);
                 });
 
                 $scope.loadItems();
@@ -2671,55 +2595,32 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
             </div>
             <div data-confirmation-modal="" data-id="sr-clear-paths-confirmation" data-title="Clear All Paths?" data-ok-text="OK" data-ok-clicked="clearPaths()">Clear All Paths?</div>
         `,
-        controller: function($scope, $element) {
+        controller: function($scope) {
             $scope.modelsLoaded = false;
             $scope.pathTypes = appState.enumVals('PathType');
             $scope.radiaService = radiaService;
 
-            $scope.getPathType = function() {
-                return ($scope.model || {}).path;
-            };
+            $scope.getPathType = () => ($scope.model || {}).path;
 
-            $scope.clearPaths = function() {
+            $scope.clearPaths = () => {
                 $scope.model.paths = [];
                 appState.saveChanges($scope.modelName);
             };
 
-            $scope.confirmClear = function() {
+            $scope.confirmClear = () => {
                 $('#sr-clear-paths-confirmation').modal('show');
             };
 
-            $scope.hasPaths = function() {
+            $scope.hasPaths = () => {
                 if (! $scope.modelsLoaded) {
                     return false;
                 }
                 return $scope.model.paths && $scope.model.paths.length;
             };
 
-            appState.whenModelsLoaded($scope, function () {
+            appState.whenModelsLoaded($scope, () => {
                 $scope.model = appState.models[$scope.modelName];
                 $scope.modelsLoaded = true;
-            });
-        },
-    };
-});
-
-SIREPO.app.directive('radiaGeomObjInfo', function(appState, panelState, radiaService) {
-
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-        },
-        template: `
-            <div class="col-md-6">
-                <div data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ model.name }}" data-tooltip=""></div>
-                <div data-field-editor="\'color\'" data-model-name="geomObject" data-model="model"></div>
-            </div>
-        `,
-        controller: function($scope, $element) {
-            $scope.radiaService = radiaService;
-            appState.whenModelsLoaded($scope, function () {
             });
         },
     };
@@ -2752,12 +2653,12 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                 </div>
             </div>
         `,
-        controller: function($scope, $element) {
+        controller: function($scope) {
 
             $scope.model = appState.models[$scope.modelName];
 
-            $scope.solution = function() {
-                var s = $scope.viz.solution;
+            $scope.solution = () => {
+                const s = $scope.viz.solution;
                 return {
                     time: s ? utilities.roundToPlaces(1000 * s.time, 3) : '',
                     steps: s ? s.steps : '',
@@ -2766,22 +2667,9 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                 };
             };
 
-            $scope.reset = function() {
+            $scope.reset = () => {
                 $scope.viz.resetSimulation();
-                /*
-                $scope.viz.solution = null;
-                panelState.clear('geometryReport');
-                panelState.requestData('reset', function (d) {
-                    frameCache.setFrameCount(0);
-                }, true);
-
-                 */
             };
-
-            appState.whenModelsLoaded($scope, function () {
-            });
-
-
         },
     };
 });
@@ -2820,64 +2708,59 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.mode = null;
             $scope.modelKey = 'magnetDisplay';
 
-            $scope.isViewTypeFields = function () {
-                return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;
-            };
+            $scope.isViewTypeFields = () =>
+                (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;
 
-            $scope.isViewTypeObjects = function () {
-                return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeObjects;
-            };
+            $scope.isViewTypeObjects = () =>
+                (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeObjects;
 
-            var LINEAR_SCALE_ARRAY = 'linear';
-            var LOG_SCALE_ARRAY = 'log';
-            var ORIENTATION_ARRAY = 'orientation';
-            var FIELD_ATTR_ARRAYS = [LINEAR_SCALE_ARRAY, LOG_SCALE_ARRAY, ORIENTATION_ARRAY];
+            const LINEAR_SCALE_ARRAY = 'linear';
+            const LOG_SCALE_ARRAY = 'log';
+            const ORIENTATION_ARRAY = 'orientation';
+            const FIELD_ATTR_ARRAYS = [LINEAR_SCALE_ARRAY, LOG_SCALE_ARRAY, ORIENTATION_ARRAY];
 
-            var PICKABLE_TYPES = [
+            const PICKABLE_TYPES = [
                 SIREPO.APP_SCHEMA.constants.geomTypePolys,
                 SIREPO.APP_SCHEMA.constants.geomTypeVectors
             ];
 
-            var SCALAR_ARRAY = 'scalars';
+            const SCALAR_ARRAY = 'scalars';
 
-            var actorInfo = {};
-            var alphaDelegate = radiaService.alphaDelegate();
+            let actorInfo = {};
+            const alphaDelegate = radiaService.alphaDelegate();
             alphaDelegate.update = setAlpha;
-            var beamAxis = [[-1, 0, 0], [1, 0, 0]];
-            var cm = new SIREPO.VTK.CoordMapper();
-            var colorbar = null;
-            var colorbarPtr = null;
-            var colorScale = null;
-            var cPicker = null;
-            var displayFields = [
+            let cm = new SIREPO.VTK.CoordMapper();
+            let colorbar = null;
+            let colorbarPtr = null;
+            let colorScale = null;
+            let cPicker = null;
+            const displayFields = [
                  'magnetDisplay.viewType',
                  'magnetDisplay.fieldType',
             ];
             let displayVals = getDisplayVals();
-            var fieldDisplayModelFields = {
+            const fieldDisplayModelFields = {
                 'fieldDisplay': ['colorMap', 'scaling'],
             };
-            var fieldDisplayFields = fieldDisplayModelFields.fieldDisplay.map(function (f) {
-                return 'fieldDisplay.' + f;
-            });
+            const fieldDisplayFields = fieldDisplayModelFields.fieldDisplay.map(f => `fieldDisplay.${f}`);
 
-            var initDone = false;
-            var ptPicker = null;
-            var renderer = null;
+            let initDone = false;
+            let ptPicker = null;
+            let renderer = null;
             let savedObj = null;
-            var selectedColor = [];
-            var selectedInfo = null;
-            var selectedObj = null;
-            var selectedOutline = null;
-            var selectedPointId = -1;
-            var sceneData = {};
+            let selectedColor = [];
+            let selectedInfo = null;
+            let selectedObj = null;
+            let selectedOutline = null;
+            let selectedPointId = -1;
+            let sceneData = {};
 
-            // these objects are used to set various vector properties
-            var vectInArrays = [{
+
+            const vectInArrays = [{
                 location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.COORDINATE,
             }];
 
-            var vectOutArrays = [{
+            const vectOutArrays = [{
                     location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
                     name: SCALAR_ARRAY,
                     dataType: 'Uint8Array',
@@ -2885,17 +2768,16 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     numberOfComponents: 3,
                 },
             ];
-            var vectArrays = {
+
+            // these objects are used to set various vector properties
+            const vectArrays = {
                 input: vectInArrays,
                 output: vectOutArrays,
             };
+            let vtkSelection = {};
+            const watchFields = displayFields.concat(fieldDisplayFields);
 
-            var vtkAPI = {};
-            var vtkSelection = {};
-
-            var watchFields = displayFields.concat(fieldDisplayFields);
-
-            FIELD_ATTR_ARRAYS.forEach(function (n) {
+            FIELD_ATTR_ARRAYS.forEach(n => {
                 vectOutArrays.push({
                     location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
                     name: n,
@@ -2906,9 +2788,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             // stash the actor and associated info to avoid recalculation
             function addActor(id, group, actor, geomType, pickable) {
-                //srdbg('addActor', 'id', id, 'grp', group, 'geomType', geomType, 'pick', pickable);
-                var pData = actor.getMapper().getInputData();
-                var info = {
+                const pData = actor.getMapper().getInputData();
+                const info = {
                     actor: actor,
                     colorIndices: [],
                     group: group || 0,
@@ -2919,17 +2800,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 };
 
                 if (info.scalars) {
-                    info.colorIndices = utilities.indexArray(numColors(pData, geomType))
-                        .map(function (i) {
-                            return 4 * i;
-                        });
+                    info.colorIndices = utilities.indexArray(numColors(pData, geomType)).map(i => 4 * i);
                 }
                 actorInfo[id] = info;
 
                 $scope.vtkScene.addActor(actor);
                 if (pickable) {
                     ptPicker.addPickList(actor);
-                    //cPicker.addPickList(actor);
                 }
                 return info;
             }
@@ -2943,53 +2820,49 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                //srdbg('buildScene', sceneData);
                 // scene -> multiple data -> multiple actors
                 let name = sceneData.name;
                 let data = sceneData.data;
 
                 $scope.vtkScene.removeActors();
-                var didModifyGeom = false;
-                for (var i = 0; i < data.length; ++i) {
+                let didModifyGeom = false;
+                for (let i = 0; i < data.length; ++i) {
 
                     // gName is for selection display purposes
-                    var gName = `${name}.${i}`;
+                    const gName = `${name}.${i}`;
                     let sceneDatum = data[i];
                     let radiaId = sceneDatum.id;
                     let objId = (sceneData.idMap || {})[radiaId] || radiaId;
-                    //srdbg(`radia id ${radiaId} maps to obj id ${objId}`);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
                     for (const t of radiaVtkUtils.GEOM_TYPES) {
-                        var d = sceneDatum[t];
+                        const d = sceneDatum[t];
                         if (! d || ! d.vertices || ! d.vertices.length) {
                             continue;
                         }
-                        var isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
+                        const isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
                         let gObj = radiaService.getObject(objId) || {};
-                        //srdbg('gobj', gObj);
-                        var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
+                        let gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
                         // use colors from Radia for groups
                         if (gObj.members) {
                             gColor = null;
                         }
-                        var pdti = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor);
-                        var pData = pdti.data;
-                        var bundle;
-                        if (radiaVtkUtils.GEOM_OBJ_TYPES.indexOf(t) >= 0) {
+                        const pData = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor).data;
+                        let bundle = null;
+                        if (radiaVtkUtils.GEOM_OBJ_TYPES.includes(t)) {
                             bundle = cm.buildActorBundle();
                             bundle.mapper.setInputData(pData);
                         }
                         else {
-                            var vectorCalc = vtk.Filters.General.vtkCalculator.newInstance();
+                            const vectorCalc = vtk.Filters.General.vtkCalculator.newInstance();
                             vectorCalc.setFormula(getVectFormula(d, appState.models.fieldDisplay.colorMap));
                             vectorCalc.setInputData(pData);
 
-                            var mapper = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
+                            const mapper = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
                             mapper.setInputConnection(vectorCalc.getOutputPort(), 0);
-
-                            var s = vtk.Filters.Sources.vtkArrowSource.newInstance();
-                            mapper.setInputConnection(s.getOutputPort(), 1);
+                            mapper.setInputConnection(
+                                vtk.Filters.Sources.vtkArrowSource.newInstance().getOutputPort(), 1
+                            );
                             mapper.setOrientationArray(ORIENTATION_ARRAY);
 
                             // this scales by a constant - the default is to use scalar data
@@ -3001,17 +2874,17 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
-                        let info = addActor(objId, gName, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
+                        let info = addActor(objId, gName, bundle.actor, t, PICKABLE_TYPES.includes(t));
                         gColor = getColor(info);
                         if (! gObj.center || ! gObj.size) {
-                            var b = bundle.actor.getBounds();
+                            const b = bundle.actor.getBounds();
                             gObj.center = [0.5 * (b[1] + b[0]), 0.5 * (b[3] + b[2]), 0.5 * (b[5] + b[4])];
                             gObj.size = [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])];
                             didModifyGeom = true;
                         }
                         if (
                             t === SIREPO.APP_SCHEMA.constants.geomTypeLines &&
-                            appState.models.magnetDisplay.viewType == SIREPO.APP_SCHEMA.constants.viewTypeFields
+                            appState.models.magnetDisplay.viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields
                         ) {
                             setEdgeColor(info, [216, 216, 216]);
                         }
@@ -3025,7 +2898,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                 radiaService.objBounds = bounds;
 
-                var acfg = {};
+                const acfg = {};
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
@@ -3037,22 +2910,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     acfg[dim].showCentral = true;
                 });
                 $scope.axisCfg = acfg;
-
-                // visual rep of paths?
-                /*
-                appState.models.fieldPaths.paths.forEach(function (p) {
-                    if (p.type == 'line') {
-                        var s = vtk.Filters.Sources.vtkLineSource.newInstance({
-                            point1: [p.beginX, p.beginY, p.beginZ],
-                            point2: [p.endX, p.endY, p.endZ],
-                            resolution: 2,
-                        });
-                        var b = cm.buildFromSource(s);
-                        b.actor.getProperty().setColor(255, 0, 0);
-                        renderer.addActor(b.actor);
-                    }
-                });
-                */
 
                 if (didModifyGeom) {
                     appState.saveQuietly('geometryReport');
@@ -3067,7 +2924,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             function didDisplayValsChange() {
                 const v = getDisplayVals();
                 for (let i = 0; i < v.length; ++i) {
-                    if (v[i] != displayVals[i]) {
+                    if (v[i] !== displayVals[i]) {
                         return true;
                     }
                 }
@@ -3075,14 +2932,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function enableWatchFields(doEnable) {
-                watchFields.forEach(function (wf) {
-                    var mf = appState.parseModelField(wf);
+                watchFields.forEach(wf=> {
+                    const mf = appState.parseModelField(wf);
                     panelState.enableField(mf[0], mf[1], doEnable);
                 });
             }
 
             function getDisplayVals() {
-                return displayFields.map((f) => {
+                return displayFields.map(f => {
                     const m = appState.parseModelField(f);
                     return appState.models[m[0]][m[1]];
                 });
@@ -3098,26 +2955,20 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function getActorInfoOfType(typeName) {
                 return Object.keys(actorInfo)
-                    .filter(function (id) {
-                        return getActorInfo(id).type === typeName;
-                    })
-                    .map(function (id) {
-                        return getActorInfo(id);
-                    });
+                    .filter(id => getActorInfo(id).type === typeName)
+                    .map(id => getActorInfo(id));
             }
 
             function getActorsOfType(typeName) {
-                return getActorInfoOfType(typeName).map(function (info) {
-                    return info.actor;
-                });
+                return getActorInfoOfType(typeName).map(info => info.actor);
             }
 
             function getColor(info) {
-                var s = info.scalars;
+                const s = info.scalars;
                 if (! s) {
                     return null;
                 }
-                var inds = info.colorIndices;
+                const inds = info.colorIndices;
                 if (! inds) {
                     return null;
                 }
@@ -3125,7 +2976,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function getInfoForActor(actor) {
-                for (var n in actorInfo) {
+                for (const n in actorInfo) {
                     if (getActor(n) === actor) {
                         return getActorInfo(n);
                     }
@@ -3135,67 +2986,54 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             // used to create array of arrows (or other objects) for vector fields
             // change to use magnitudes and color locally
             function getVectFormula(vectors, colorMapName) {
-
-                //srdbg('getVectFormula', colorMapName);
-                var cmap = plotting.colorMapOrDefault(
+                const cmap = plotting.colorMapOrDefault(
                     colorMapName,
                     appState.fieldProperties('fieldDisplay', 'colorMap').default
                 );
-                //srdbg('v', vectors);
-                //srdbg('cm', cmap);
-                var norms = utilities.normalize(vectors.magnitudes);
-                var logMags = vectors.magnitudes.map(function (n) {
+                const norms = utilities.normalize(vectors.magnitudes);
+                let logMags = vectors.magnitudes.map(function (n) {
                     return Math.log(n);
                 });
 
                 // get log values back into the original range, so that the extremes have the same
                 // size as a linear scale
-                var minLogMag = Math.min.apply(null, logMags);
-                var maxLogMag = Math.max.apply(null, logMags);
-                var minMag = Math.min.apply(null, vectors.magnitudes);
-                var maxMag = Math.max.apply(null, vectors.magnitudes);
+                const minLogMag = Math.min.apply(null, logMags);
+                const maxLogMag = Math.max.apply(null, logMags);
+                const minMag = Math.min.apply(null, vectors.magnitudes);
+                const maxMag = Math.max.apply(null, vectors.magnitudes);
                 colorScale = plotting.colorScale(minMag, maxMag, cmap);
 
-                logMags = logMags.map(function (n) {
-                    return minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag);
-                });
+                logMags = logMags.map(n => minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag));
 
                 return {
-                    getArrays: function(inputDataSets) {
-                        return vectArrays;
-                    },
-                    evaluate: function (arraysIn, arraysOut) {
-                        var coords = arraysIn.map(function (d) {
-                            return d.getData();
-                        })[0];
-                        var o = arraysOut.map(function (d) {
-                            return d.getData();
-                        });
+                    getArrays: inputDataSets => vectArrays,
+                    evaluate: (arraysIn, arraysOut) => {
+                        const coords = arraysIn.map(d => d.getData())[0];
+                        const o = arraysOut.map(d => d.getData());
                         // note these arrays already have the correct length, so we need to set elements, not append
-                        var orientation = o[getVectOutIndex(ORIENTATION_ARRAY)];
-                        var linScale = o[getVectOutIndex(LINEAR_SCALE_ARRAY)].fill(1.0);
-                        var logScale = o[getVectOutIndex(LOG_SCALE_ARRAY)].fill(1.0);
-                        var scalars = o[getVectOutIndex(SCALAR_ARRAY)];
+                        const orientation = o[getVectOutIndex(ORIENTATION_ARRAY)];
+                        const linScale = o[getVectOutIndex(LINEAR_SCALE_ARRAY)].fill(1.0);
+                        const logScale = o[getVectOutIndex(LOG_SCALE_ARRAY)].fill(1.0);
+                        const scalars = o[getVectOutIndex(SCALAR_ARRAY)];
 
-                        for (var i = 0; i < coords.length / 3; i += 1) {
-                            var c = [0, 0, 0];
+                        for (let i = 0; i < coords.length / 3; ++i) {
+                            let c = [0, 0, 0];
                             if (cmap.length) {
-                                var rgb = d3.rgb(colorScale(norms[i]));
+                                const rgb = d3.rgb(colorScale(norms[i]));
                                 c = [rgb.r, rgb.g, rgb.b];
                             }
                             // scale arrow length (object-local x-direction) only
                             // this can stretch/squish the arrowhead though so the actor may have to adjust the ratio
                             linScale[3 * i] = vectors.magnitudes[i];
                             logScale[3 * i] = logMags[i];
-                            for (var j = 0; j < 3; ++j) {
-                                var k = 3 * i + j;
+                            for (let j = 0; j < 3; ++j) {
+                                const k = 3 * i + j;
                                 orientation[k] = vectors.directions[k];
                                 scalars[k] = c[j];
                             }
                         }
 
-                        // Mark the output vtkDataArray as modified
-                        arraysOut.forEach(function (x) {
+                        arraysOut.forEach(x => {
                             x.modified();
                         });
                     },
@@ -3203,7 +3041,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function getVectOutIndex(name) {
-                for (var vIdx in vectArrays.output) {
+                for (const vIdx in vectArrays.output) {
                     if (vectArrays.output[vIdx].name === name) {
                         return vIdx;
                     }
@@ -3212,13 +3050,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function getVectorInfo(point, vect, units) {
-                var pt = [];
-                point.forEach(function (c) {
+                const pt = [];
+                point.forEach(c => {
                     pt.push(utilities.roundToPlaces(c, 2));
                 });
-                var val = Math.hypot(vect[0], vect[1], vect[2]);
-                var theta = 180 * Math.acos(vect[2] / (val || 1)) / Math.PI;
-                var phi = 180 * Math.atan2(vect[1], vect[0]) / Math.PI;
+                const val = Math.hypot(vect[0], vect[1], vect[2]);
+                const theta = 180 * Math.acos(vect[2] / (val || 1)) / Math.PI;
+                const phi = 180 * Math.atan2(vect[1], vect[0]) / Math.PI;
                 return isNaN(val) ?
                     '--' :
                     utilities.roundToPlaces(val, 4) + units +
@@ -3228,33 +3066,29 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function handlePick(callData) {
-                //srdbg('handle', callData);
                 if (renderer !== callData.pokedRenderer) {
                     return;
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                var iMode = $scope.vtkScene.interactionMode;
+                const iMode = $scope.vtkScene.interactionMode;
                 if (iMode === vtkUtils.INTERACTION_MODE_MOVE ||
                     (iMode === vtkUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
                 ) {
                     return;
                 }
 
-                var pos = callData.position;
-                var point = [pos.x, pos.y, 0.0];
+                const pos = callData.position;
+                const point = [pos.x, pos.y, 0.0];
                 ptPicker.pick(point, renderer);
                 cPicker.pick(point, renderer);
-                var pid = ptPicker.getPointId();
+                const pid = ptPicker.getPointId();
 
                 // cell id is "closest cell within tolerance", meaning a single value, though
                 // we may get multiple actors
-                var cid = cPicker.getCellId();
-                //srdbg('Picked pt', point);
-                //srdbg('Picked pid', pid);
-                //srdbg('Picked cid', cid);
+                const cid = cPicker.getCellId();
 
-                var picker;
+                let picker = null;
                 if (appState.models.magnetDisplay.viewType === SIREPO.APP_SCHEMA.constants.viewTypeObjects && cid >= 0) {
                     picker = cPicker;
                 }
@@ -3262,55 +3096,45 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     picker = ptPicker;
                 }
                 if (! picker) {
-                    //srdbg('Pick failed');
                     return;
                 }
 
-                var pas = picker.getActors();
-                //var posArr = view.cPicker.getPickedPositions();
-                //srdbg('pas', pas, 'positions', posArr);
+                const pas = picker.getActors();
 
-                var selectedValue = Number.NaN;
-                var highlightVectColor = [255, 0, 0];
-                // it seems the 1st actor in the array is the closest to the viewer
-                var actor = pas[0];
+                let selectedValue = Number.NaN;
+                let highlightVectColor = [255, 0, 0];
+                // the 1st actor in the array is the closest to the viewer
+                const actor = pas[0];
                 vtkSelection = {};
-                //var pos = posArr[aIdx];
-                var info = getInfoForActor(actor);
+                const info = getInfoForActor(actor);
                 selectedInfo = info;
-                //srdbg('actor', actor, 'info', info);
                 if (! info || ! info.pData) {
                     return;
                 }
 
-                var pts = info.pData.getPoints();
+                const pts = info.pData.getPoints();
 
                 // TODO(mvk): attach pick functions to actor info?
                 // vectors
                 if (info.type === SIREPO.APP_SCHEMA.constants.geomTypeVectors) {
-                    var n = pts.getNumberOfComponents();
-                    var coords = pts.getData().slice(n * pid, n * (pid + 1));
-                    var f = actor.getMapper().getInputConnection(0).filter;
-                    var linArr = f.getOutputData().getPointData().getArrayByName(LINEAR_SCALE_ARRAY);
+                    const n = pts.getNumberOfComponents();
+                    const f = actor.getMapper().getInputConnection(0).filter;
+                    const linArr = f.getOutputData().getPointData().getArrayByName(LINEAR_SCALE_ARRAY);
                     if (! linArr) {
                         return;
                     }
                     selectedValue = linArr.getData()[pid * linArr.getNumberOfComponents()];
 
-                    var oArr = f.getOutputData().getPointData().getArrayByName(ORIENTATION_ARRAY);
-                    var oid = pid * oArr.getNumberOfComponents();
-                    var o = oArr.getData().slice(oid, oid + oArr.getNumberOfComponents());
-                    var v = o.map(function (dir) {
-                        return selectedValue * dir;
-                    });
+                    const oArr = f.getOutputData().getPointData().getArrayByName(ORIENTATION_ARRAY);
+                    const oid = pid * oArr.getNumberOfComponents();
+                    const o = oArr.getData().slice(oid, oid + oArr.getNumberOfComponents());
+                    let v = o.map(dir => selectedValue * dir);
 
-                    var sArr = f.getOutputData().getPointData().getArrayByName(SCALAR_ARRAY);
-                    var ns = sArr.getNumberOfComponents();
-                    var sid = pid * ns;
-                    var sc = sArr.getData().slice(sid, sid + ns);
+                    const sArr = f.getOutputData().getPointData().getArrayByName(SCALAR_ARRAY);
+                    const ns = sArr.getNumberOfComponents();
+                    const sid = pid * ns;
+                    const sc = sArr.getData().slice(sid, sid + ns);
 
-                    //srdbg('SEL C', sc, selectedColor, 'AT', sid);
-                    //srdbg('SET OLD V COLOR');
                     selectedColor.forEach(function (c, i) {
                         sArr.getData()[selectedPointId * ns + i] = c;
                     });
@@ -3321,8 +3145,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         v = [];
                     }
                     else {
-                        //srdbg('SET NEW V COLOR', pid);
-                        //srdbg(sArr.getData().slice(sid, sid + 3), '->', highlightVectColor);
                         highlightVectColor.forEach(function (c, i) {
                             sArr.getData()[sid + i] = c;
                         });
@@ -3331,7 +3153,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     }
                     info.pData.modified();
 
-                    //srdbg(info.id, 'coords', coords, 'mag', selectedValue, 'orientation', o, 'color', sc);
                     vtkSelection = {
                         info: getVectorInfo(point, v, sceneData.data[0].vectors.units),
                     };
@@ -3340,10 +3161,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                 // objects
                 else if (info.type === SIREPO.APP_SCHEMA.constants.geomTypePolys) {
-                    var j = info.colorIndices[cid];
-                    selectedColor = info.scalars.getData().slice(j, j + 3);  // 4 to get alpha
+                    const j = info.colorIndices[cid];
+                    selectedColor = info.scalars.getData().slice(j, j + 3);
 
-                    let g = radiaService.getObject(info.id);
+                    const g = radiaService.getObject(info.id);
                     if (selectedObj === g) {
                         selectedObj = null;
                         savedObj = null;
@@ -3368,7 +3189,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             getData: function () {
                                 return selectedObj;
                             },
-                            // just color etc here?
                             modelKey: 'radiaObject',
                         } : null,
                     };
@@ -3389,7 +3209,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     throw new Error('No renderer!');
                 }
 
-                var t = 30;
+                const t = 30;
                 colorbar = Colorbar()
                     .margin({top: 5, right: t + 10, bottom: 0, left: 0})
                     .thickness(t)
@@ -3397,9 +3217,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     .barlength($('.vtk-canvas-holder').height())
                     .origin([0, 0]);
 
-                var ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
+                const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
-                var df = ca.getDefaultStyle();
+                const df = ca.getDefaultStyle();
                 df.fontFamily = 'Arial';
                 df.faceRotation = 45;
                 ca.setDefaultStyle(df);
@@ -3430,8 +3250,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             // lines and poly data arrays look like:
             //    [<num vertices for obj 0>, <vertex 0, 0>, ...,]
             function numDataColors(data) {
-                var i = 0;
-                var j = 0;
+                let i = 0;
+                let j = 0;
                 while (i < data.length) {
                     i += (data[i] + 1);
                     ++j;
@@ -3468,20 +3288,20 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (angular.isUndefined(alpha)) {
                     alpha = 255;
                 }
-                var s = info.scalars;
+                const s = info.scalars;
                 if (! s) {
                     return;
                 }
                 if (type !== info.type) {
                     return;
                 }
-                var colors = s.getData();
-                var nc = s.getNumberOfComponents();
-                var i = 0;
-                var inds = info.colorIndices || [];
-                for (var j = 0; j < inds.length && i < s.getNumberOfValues(); ++j) {
+                const colors = s.getData();
+                const nc = s.getNumberOfComponents();
+                let i = 0;
+                const inds = info.colorIndices || [];
+                for (let j = 0; j < inds.length && i < s.getNumberOfValues(); ++j) {
                     if (color) {
-                        for (var k = 0; k < nc - 1; ++k) {
+                        for (let k = 0; k < nc - 1; ++k) {
                             colors[inds[j] + k] = color[k];
                         }
                     }
@@ -3492,12 +3312,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setColorMap() {
-                getActorsOfType(SIREPO.APP_SCHEMA.constants.geomTypeVectors).forEach(function (actor) {
+                getActorsOfType(SIREPO.APP_SCHEMA.constants.geomTypeVectors).forEach(actor => {
                     actor.getMapper().getInputConnection(0).filter
                         .setFormula(getVectFormula(
                             sceneData.data[0].vectors,
                             appState.models.fieldDisplay.colorMap
-                        ));  // which data? all? at what index?
+                        ));
                 });
                 if (colorScale) {
                     colorbar.scale(colorScale);
@@ -3519,10 +3339,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setScaling() {
-                getActorsOfType(SIREPO.APP_SCHEMA.constants.geomTypeVectors).forEach(function (actor) {
-                    var mapper = actor.getMapper();
+                getActorsOfType(SIREPO.APP_SCHEMA.constants.geomTypeVectors).forEach(actor => {
+                    const mapper = actor.getMapper();
                     mapper.setScaleFactor(vectorScaleFactor(renderer.computeVisiblePropBounds()));
-                    var vs = appState.models.fieldDisplay.scaling;
+                    const vs = appState.models.fieldDisplay.scaling;
                     if (vs === 'uniform') {
                         mapper.setScaleModeToScaleByConstant();
                     }
@@ -3574,11 +3394,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     'alpha',
                     $scope.isViewTypeObjects()
                 );
-                radiaService.pointFieldTypes.forEach(function (ft) {
+                radiaService.pointFieldTypes.forEach(ft => {
                     panelState.showEnum('magnetDisplay', 'fieldType', ft, hasPaths());
                 });
                 fieldDisplayFields.forEach(function (f) {
-                    var mf = appState.parseModelField(f);
+                    const mf = appState.parseModelField(f);
                     panelState.showField(mf[0], mf[1], $scope.isViewTypeFields());
                 });
             }
@@ -3608,13 +3428,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 panelState.enableField('geometryReport', 'name', ! appState.models.simulation.isExample);
             });
 
-            // or keep stuff on vtk viewer scope?
-            // start using custom javascript events to break away from angular?
-            $scope.$on('vtk-init', function (e, d) {
+            $scope.$on('vtk-init', (e, d) => {
                 $scope.vtkScene = d;
                 renderer = $scope.vtkScene.renderer;
-
-                // move pickers to vtkdisplay?
                 cPicker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 cPicker.setPickFromList(false);
                 ptPicker = vtk.Rendering.Core.vtkPointPicker.newInstance();
@@ -3623,10 +3439,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 init();
                 plotToPNG.initVTK($element, $scope.vtkScene.renderer);
-            });
-
-            $scope.$on('modelChanged', function(e, name) {
-                //srdbg('modelChanged', name);
             });
 
             $scope.$on('vtkScene.interactionMode', (e, d) => {
@@ -3685,9 +3497,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
             });
 
-            $scope.$on('magnetDisplay.changed', function (e, d) {
+            $scope.$on('magnetDisplay.changed',  (e, d) => {
                 // does not seem the best way...
-                var interval = null;
+                let interval = null;
                 interval = $interval(function() {
                     if (interval) {
                         $interval.cancel(interval);
@@ -3701,17 +3513,15 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             });
 
-            $scope.$on('framesCleared', function () {
-                updateViewer();
-            });
-            $scope.$on('framesLoaded', function (e, d) {
+            $scope.$on('framesCleared', updateViewer);
+            $scope.$on('framesLoaded', (e, d) => {
                 if (! initDone) {
                     return;
                 }
                 updateViewer();
             });
 
-            $scope.$on('$destroy', function () {
+            $scope.$on('$destroy', () => {
                 $element.off();
             });
 
@@ -3721,7 +3531,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
 SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
-    var self = {};
+    const self = {};
 
     self.GEOM_OBJ_TYPES = [
         SIREPO.APP_SCHEMA.constants.geomTypeLines,
@@ -3733,25 +3543,22 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
         SIREPO.APP_SCHEMA.constants.geomTypeVectors,
     ];
 
-    self.objBounds = function(json) {
-        var mins = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
-        var maxs = [-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE];
+    self.objBounds = json => {
+        const mins = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
+        const maxs = [-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE];
 
-        self.GEOM_TYPES.forEach(function (type) {
+        self.GEOM_TYPES.forEach(type => {
             if (! json[type]) {
                 return;
             }
-            var pts = json[type].vertices;
+            const pts = json[type].vertices;
+
             function modf(j) {
-                return function(p, i) {
-                    return i % 3 === j;
-                };
+                return (p, i) => i % 3 === j;
             }
-            for (var j = 0; j < 3; ++j) {
-                //var c = pts.filter(function (p, i) {
-                //    return i % 3 === j;
-                //});
-                var c = pts.filter(modf(j));
+
+            for (let j = 0; j < 3; ++j) {
+                const c = pts.filter(modf(j));
                 mins[j] =  Math.min(mins[j], Math.min.apply(null, c));
                 maxs[j] =  Math.max(maxs[j], Math.max.apply(null, c));
             }
@@ -3760,33 +3567,31 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
         return [mins[0], maxs[0], mins[1], maxs[1], mins[2], maxs[2]];
     };
 
-    self.objToPolyData = function(json, includeTypes, color) {
+    self.objToPolyData = (json, includeTypes, color) => {
 
-        var colors = [];
-        var points = [];
-        var tData = {};
+        const colors = [];
+        let points = [];
+        const tData = {};
 
         if (! includeTypes || includeTypes.length === 0) {
             includeTypes = self.GEOM_TYPES;
         }
 
-        var typeInfo = {};
-        self.GEOM_TYPES.forEach(function (type, tIdx) {
+        const typeInfo = {};
+        self.GEOM_TYPES.forEach(type => {
             typeInfo[type] = {};
-            if (includeTypes.indexOf(type) < 0) {
-                //srdbg('Ignoring data for type', type);
+            if (! includeTypes.includes(type)) {
                 return;
             }
 
-            var t = json[type];
+            const t = json[type];
             if (! t || json[type].vertices.length === 0) {
-                //srdbg('No data for requested type', type);
                 return;
             }
 
             // may not always be colors in the data
-            var c = t.colors || [];
-            for (var i = 0; i < c.length; i++) {
+            const c = t.colors || [];
+            for (let i = 0; i < c.length; ++i) {
                 let cc = (color || [])[i % 3];
                 if (! cc && cc !== 0) {
                     cc = c[i];
@@ -3797,17 +3602,15 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
                 }
             }
 
-            var tArr = [];
-            var tOffset = points.length / 3;
+            const tArr = [];
+            const tOffset = points.length / 3;
             typeInfo[type].offset = tOffset;
-            t.vertices.forEach(function (v) {
-                points.push(v);
-            });
-            var tInd = 0;
-            var tInds = utilities.indexArray(t.vertices.length / 3);
-            t.lengths.forEach(function (len) {
+            points.push(...t.vertices);
+            let tInd = 0;
+            const tInds = utilities.indexArray(t.vertices.length / 3);
+            t.lengths.forEach(len => {
                 tArr.push(len);
-                for (var j = 0; j < len; j++) {
+                for (let j = 0; j < len; ++j) {
                     tArr.push(tInds[tInd++] + tOffset);
                 }
             });
@@ -3819,10 +3622,9 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
         points = new window.Float32Array(points);
 
-        var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+        const pd = vtk.Common.DataModel.vtkPolyData.newInstance();
         pd.getPoints().setData(points, 3);
 
-        //srdbg('setting polydata from', tData);
         if (tData.lines) {
             pd.getLines().setData(tData.lines);
         }
@@ -3841,10 +3643,9 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
         return {data: pd, typeInfo: typeInfo};
     };
 
-    self.vectorsToPolyData = function(json) {
-        var points = new window.Float32Array(json.vectors.vertices);
-        var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
-        pd.getPoints().setData(points, 3);
+    self.vectorsToPolyData = json => {
+        const pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+        pd.getPoints().setData(new window.Float32Array(json.vectors.vertices), 3);
         return pd;
     };
 
@@ -3882,7 +3683,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
         controller: function($scope, $element) {
             plotting.setupSelector($scope, $element);
 
-            $scope.editShape = function() {
+            $scope.editShape = () => {
                 panelState.showModalEditor('objectShape');
             };
 
@@ -3904,9 +3705,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
                 return s;
             }
 
-            $scope.$on(`${$scope.modelName}.changed`, () => {
-                loadImage();
-            });
+            $scope.$on(`${$scope.modelName}.changed`, loadImage);
 
             loadImage();
         },
@@ -3916,7 +3715,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
 SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, radiaService, utilities) {
 
     const availableShapes = ['cuboid', 'cylinder', 'ell', 'cee', 'jay', 'extrudedPoints',];
-    let sel = new SIREPO.DOM.UISelect('', [
+    const sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'field'),
     ]);
     sel.addClasses('form-control');
@@ -3961,7 +3760,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         ], updateShapeEditor,
     ];
 
-    $scope.whenSelected = function() {
+    $scope.whenSelected = () => {
         modelType = appState.models.geomObject.type;
         $scope.modelData = appState.models[$scope.modelName];
         editedModels = radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
@@ -4015,7 +3814,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         modelType = appState.models.geomObject.type;
         parent.activePage.items.forEach((f) => {
             const m = modelField(f);
-            let hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;
+            const hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;
             panelState.showField(
                 m[0],
                 m[1],
@@ -4084,7 +3883,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     const self = {};
     self.getBaseObject = () => $scope.modelData;
-
     return self;
 });
 
