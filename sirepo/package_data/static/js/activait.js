@@ -1556,7 +1556,7 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     appState.whenModelsLoaded($scope, loadReports);
 });
 
-SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, stringsService) {
+SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, requestSender, stringsService) {
     return {
         restrict: 'A',
         scope: {
@@ -1625,6 +1625,8 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </td>
                         </tr>
                     </table>
+                    <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">download model</a>
+                    <br>
                 </div>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
@@ -1683,6 +1685,21 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
 
             function branchingLayer(layer) {
                 return (layer == 'Add') || (layer == 'Concatenate');
+            }
+
+            $scope.logFileURL = () => {
+                return logFileRequest(".h5");
+            }
+
+            function logFileRequest(logKind) {
+                srdbg("logkind={}", logKind);
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': "model",
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<suffix>': logKind,
+                });
             }
 
             $scope.addChild = layer => {
