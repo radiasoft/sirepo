@@ -1738,8 +1738,8 @@ SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) 
 
             function setPanelHidden(doHide) {
                 appState.models[$scope.modelName].hidePanel = doHide;
-                srdbg('sett', appState.models[$scope.modelName].hidePanel);
                 appState.saveQuietly($scope.modelName);
+                appState.autoSave();
             }
 
             if (appState.models[$scope.modelName].hidePanel === undefined) {
@@ -1748,7 +1748,6 @@ SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) 
 
             $scope.$on('radiaViewer.loaded', () => {
                 $scope.dataCleared = false;
-                srdbg('init hide', appState.models[$scope.modelName].hidePanel);
                 panelState.setHidden($scope.modelName, appState.models[$scope.modelName].hidePanel);
             });
 
