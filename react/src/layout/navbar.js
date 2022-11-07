@@ -20,8 +20,8 @@ export class NavBarModalButton extends View {
         let { modal } = config;
         return modal.items.map(layoutConfig => {
             return {
-                layout: this.layoutsWrapper.getLayoutForConfig(layoutConfig),
-                config: layoutConfig
+                layout: this.layoutsWrapper.getLayoutForName(layoutConfig.layout),
+                config: layoutConfig.config
             }
         });
     }
@@ -62,7 +62,7 @@ export class NavBarModalButton extends View {
 
         let children = this.getChildLayouts(config).map((child, idx) => {
             let LayoutElement = child.layout.component;
-            return <LayoutElement key={idx} config={child.config}></LayoutElement>
+            return <LayoutElement key={idx} config={child.config.config}></LayoutElement>
         })
 
         let isDirty = formController.isFormStateDirty();
@@ -119,9 +119,9 @@ export class NavTabsLayout extends View {
         let { tab, ...otherProps } = props;
 
         let children = tab.items.map((layoutConfig, idx) => {
-            let layout = this.layoutsWrapper.getLayoutForConfig(layoutConfig);
+            let layout = this.layoutsWrapper.getLayoutForName(layoutConfig);
             let LayoutComponent = layout.component;
-            return <LayoutComponent key={idx} config={layoutConfig} {...otherProps}/>
+            return <LayoutComponent key={idx} config={layoutConfig.config} {...otherProps}/>
         })
 
         return (
@@ -156,7 +156,7 @@ export class NavTabsLayout extends View {
                                 return (
                                     <Nav.Item key={tab.name}>
                                         <Nav.Link eventKey={`${tab.name}`} as={Link} href={`${tab.name}`} to={`${route}`}>
-                                            {useInterpolatedString(modelsWrapper, tab.title)}
+                                            {useInterpolatedString(modelsWrapper, tab.title, ValueSelectors.Models)}
                                         </Nav.Link>
                                     </Nav.Item>
                                 )

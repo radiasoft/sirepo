@@ -12,7 +12,7 @@ export class TabLayout extends View {
 
         for (let tab of config.tabs) {
             for (let layoutConfig of tab.items) {
-                let ele = this.layoutsWrapper.getLayoutForConfig(layoutConfig);
+                let ele = this.layoutsWrapper.getLayoutForName(layoutConfig.layout);
                 fields.push(...ele.getFormDependencies(layoutConfig, this.layoutsWrapper));
             }
         }
@@ -39,9 +39,9 @@ export class TabLayout extends View {
             let shown = shownFn(shownConfig, true, modelsWrapper, ValueSelectors.Models);
 
             let layoutElements = layoutConfigs.map((layoutConfig, idx) => {
-                let ele = this.layoutsWrapper.getLayoutForConfig(layoutConfig)
+                let ele = this.layoutsWrapper.getLayoutForName(layoutConfig.layout)
                 let LayoutElement = ele.component;
-                return <LayoutElement key={idx} config={layoutConfig}></LayoutElement>
+                return <LayoutElement key={idx} config={layoutConfig.config}></LayoutElement>
             })
             firstTabKey = firstTabKey || name;
             tabEls.push(

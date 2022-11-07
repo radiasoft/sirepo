@@ -96,10 +96,10 @@ export function SimulationRoot(props) {
     let schema = useContext(CSchema);
 
     let viewComponents = schema.views.map((view, index) => {
-        let layout = layouts.getLayoutForConfig(view);
+        let layout = layouts.getLayoutForName(view.layout);
         let Component = layout.component;
         return (
-            <Component config={view} key={index}></Component>
+            <Component config={view.config} key={index}></Component>
         )
     });
 

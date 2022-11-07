@@ -10,40 +10,37 @@ import { NavBarModalButton, NavTabsLayout } from "./navbar";
 import { TableFromApi } from "./table";
 import { LayoutWithDownloadButton } from "./download";
 import React from "react";
+import { SchemaView } from "../utility/schema";
 
 export const CLayouts = React.createContext<LayoutWrapper>(undefined);
 
 // TODO rename to LayoutsWrapper
 export class LayoutWrapper {
     layouts = {
-        tabs: new TabLayout(this),
+        tabs: new TabLayout(),
         fieldList: new (LayoutWithSpacing(FieldListLayout))(this),
         fieldTable: new (LayoutWithSpacing(FieldGridLayout))(this),
-        panel: new (LayoutWithFormController(PanelLayout))(this),
-        navbarModalButton: new (LayoutWithFormController(NavBarModalButton))(this),
-        autoRunReport: new AutoRunReportLayout(this),
-        manualRunReport: new ManualRunReportLayout(this),
-        graph2d: new (LayoutWithDownloadButton(Graph2dFromApi))(this),
-        heatplot: new (LayoutWithDownloadButton(HeatplotFromApi))(this),
-        navTabs: new NavTabsLayout(this),
-        table: new TableFromApi(this),
-        startSimulation: new SimulationStartLayout(this)
+        panel: new (LayoutWithFormController(PanelLayout))(),
+        navbarModalButton: new (LayoutWithFormController(NavBarModalButton))(),
+        autoRunReport: new AutoRunReportLayout(),
+        manualRunReport: new ManualRunReportLayout(),
+        graph2d: new (LayoutWithDownloadButton(Graph2dFromApi))(),
+        heatplot: new (LayoutWithDownloadButton(HeatplotFromApi))(),
+        navTabs: new NavTabsLayout(),
+        table: new TableFromApi(),
+        startSimulation: new SimulationStartLayout()
     }
 
     constructor () {
         
     }
 
-    getLayoutForConfig = (config) => {
-        if(!config.layout) {
-            throw new Error(`layout not present in config: ${JSON.stringify(config)}`);
-        }
-
-        let layout = this.layouts[config.layout];
+    getLayoutForName = (layoutName: string) => {
+        let layout = this.layouts[layoutName];
 
         if(!layout) {
-            console.error("missing layout definition for view: " + config.layout)
-            return new MissingLayout(this);
+            console.error("missing layout definition for view: " + layoutName)
+            return new MissingLayout();
         }
 
         return layout;

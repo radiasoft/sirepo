@@ -16,27 +16,17 @@ import { useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
 
-export function LayoutWithFormController(subLayout) {
-    return class extends subLayout {
-        constructor(layoutsWrapper) {
-            super(layoutsWrapper);
+export function LayoutWithFormController<P>(Child: new() => View<P>): (new() => View<P>) {
+    let child = new Child();
 
-            let oldComponent = this.component;
-
-            this.component = (props) => {
-                let ChildComponent = oldComponent;
-                let FormComponent = this.formComponent;
-                return (
-                    <FormComponent {...props}>
-                        <ChildComponent {...props}/>
-                    </FormComponent>
-                )
-            }
+    return new class extends View<P> {
+        getFormDependencies(config: P): Dependency[] {
+            return child.getFormDependencies(config);
         }
 
         formComponent = (props) => {
             let { config } = props;
-
+    
             let contextFn = useContext;
             let formState = contextFn(CFormStateWrapper);
             let schema = contextFn(CSchema);
@@ -51,11 +41,37 @@ export function LayoutWithFormController(subLayout) {
                     { props.children }
                 </CFormController.Provider>
             )
-        }
-    }
+        };
+
+        component: React.FunctionComponent<{ config: P; }> = (props) => {
+            let ChildComponent = child.component;
+            let FormComponent = this.formComponent;
+            return (
+                <FormComponent {...props}>
+                    <ChildComponent {...props}/>
+                </FormComponent>
+            )
+        };
+    } as unknown as (new() => View<P>);
 }
 
-export class FieldGridLayout extends View {
+export type FieldGridRow = {
+    label?: string,
+    description?: string,
+    fields: string[],
+    shown?: string
+}
+
+export type FieldGridConfig = {
+    columns: string[],
+    rows: FieldGridRow[]
+}
+
+export type FieldGridProps = {
+    config: FieldGridConfig
+}
+
+export class FieldGridLayout extends View<FieldGridConfig> {
     getFormDependencies = (config) => {
         let fields = [];
         for(let row of config.rows) {
@@ -64,7 +80,7 @@ export class FieldGridLayout extends View {
         return fields.map(f => new Dependency(f));
     }
 
-    component = (props) => {
+    component = (props: FieldGridProps) => {
         let { config } = props;
 
         let formController = useContext(CFormController);
@@ -77,7 +93,7 @@ export class FieldGridLayout extends View {
 
         let els = [];
 
-        let someRowHasLabel = rows.reduce((prev, cur) => prev || !!cur.label);
+        let someRowHasLabel = rows.reduce<boolean>((prev: boolean, cur: FieldGridRow) => prev || !!cur.label, false);
         
         els.push( // header row
             <Row className="sr-form-row" key={"header"}>
@@ -123,12 +139,20 @@ export class FieldGridLayout extends View {
     }
 }
 
-export class FieldListLayout extends View {
+export type FieldListConfig = {
+    fields: string[]
+}
+
+export type FieldListProps = {
+    config: FieldListConfig
+}
+
+export class FieldListLayout extends View<FieldListConfig> {
     getFormDependencies = (config) => {
         return (config.fields || []).map(f => new Dependency(f));
     }
 
-    component = (props) => {
+    component = (props: FieldListProps) => {
         let { config } = props;
 
         let formController = useContext(CFormController);

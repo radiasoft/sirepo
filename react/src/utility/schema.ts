@@ -2,8 +2,9 @@ import { globalTypes, partialTypes, rsAbstrType } from "../types";
 import { mapProperties } from "./object";
 
 export type SchemaViewJson = {
-    layout: string
-} & {[propName: string]: any}
+    layout: string,
+    config: any
+} 
 
 export type ScheamFieldJson<T> = {
     displayName: string,

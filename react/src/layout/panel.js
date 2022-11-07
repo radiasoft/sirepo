@@ -13,8 +13,8 @@ import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 export class PanelLayout extends View {
     getChildLayoutByConfig = (layoutConfig) => {
         return {
-            layout: this.layoutsWrapper.getLayoutForConfig(layoutConfig),
-            config: layoutConfig
+            layout: this.layoutsWrapper.getLayoutForName(layoutConfig.layout),
+            config: layoutConfig.config
         }
     }
 
@@ -46,7 +46,7 @@ export class PanelLayout extends View {
 
         let mapLayoutConfigsToElements = (layoutConfigs) => layoutConfigs.map(this.getChildLayoutByConfig).map((child, idx) => {
             let LayoutComponent = child.layout.component;
-            return <LayoutComponent key={idx} config={child.config}></LayoutComponent>;
+            return <LayoutComponent key={idx} config={child.config.config}></LayoutComponent>;
         });
 
         let mainChildren = (!!basic) ? mapLayoutConfigsToElements(basic) : undefined;

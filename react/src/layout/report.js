@@ -22,7 +22,7 @@ import { ValueSelectors } from "../hook/string";
 export class AutoRunReportLayout extends View {
     getFormDependencies = (config) => {
         let { reportLayout } = config;
-        let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
+        let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
         return layoutElement.getFormDependencies();
     }
 
@@ -68,7 +68,7 @@ export class AutoRunReportLayout extends View {
             })
         }, dependentValues)    
 
-        let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
+        let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
 
         let VisualComponent = simulationData ? layoutElement.component : undefined;
         let inProgress = !simulationData || !simulationData.state || simulationData.state !== 'completed'
@@ -76,7 +76,7 @@ export class AutoRunReportLayout extends View {
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {VisualComponent && <VisualComponent key={simulationPollingVersionRef.current} config={reportLayout} simulationData={simulationData}/>}
+                {VisualComponent && <VisualComponent key={simulationPollingVersionRef.current} config={reportLayout.config} simulationData={simulationData}/>}
                 {inProgress && <ProgressBar animated now={100}/>}
             </>
         )
@@ -86,7 +86,7 @@ export class AutoRunReportLayout extends View {
 export class ManualRunReportLayout extends View {
     getFormDependencies = (config) => {
         let { reportLayout } = config;
-        let layoutElement = this.layoutsWrapper.getLayoutForConfig(reportLayout);
+        let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
         return layoutElement.getFormDependencies();
     }
 
@@ -156,7 +156,7 @@ export class ManualRunReportLayout extends View {
 export function ReportAnimationController(props) {
     let { animationReader, reportLayoutConfig, shown } = props;
     let layoutsWrapper = useContext(CLayouts);
-    let layoutElement = layoutsWrapper.getLayoutForConfig(reportLayoutConfig);
+    let layoutElement = layoutsWrapper.getLayoutForName(reportLayoutConfig.layout);
 
     let panelController = useContext(CPanelController);
 
@@ -220,7 +220,7 @@ export function ReportAnimationController(props) {
             {
                 LayoutComponent && shown && currentReportData && (
                     <>
-                        <LayoutComponent config={reportLayoutConfig} simulationData={currentReportData}/>
+                        <LayoutComponent config={reportLayoutConfig.config} simulationData={currentReportData}/>
                         {animationReader.getFrameCount() > 1 && animationControlButtons}
                     </>
                 )

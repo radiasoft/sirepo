@@ -8,20 +8,32 @@ import { LegendOrdinal } from "@visx/legend";
 import { DynamicAxis } from "./axis";
 import { constrainZoom, useGraphContentBounds } from "../../utility/component";
 
-/**
- *
- * @param {{
- *  plots: [
- *      { color, label, points: [{ x: number, y: number }] }
- *  ],
- *  xRange,
- *  yRange,
- *  xLabel,
- *  yLabel
- * }} props
- * @returns
- */
-export function Graph2d(props) {
+export type Range = {
+    min: number,
+    max: number
+}
+
+export type Point2d = {
+    x: number,
+    y: number
+}
+
+export type Graph2dPlot = {
+    color: string,
+    label: string,
+    points: Point2d[]
+}
+
+export type Graph2dConfig = {
+    title?: string,
+    plots: Graph2dPlot[],
+    xLabel: string,
+    yLabel: string,
+    xRange: Range,
+    yRange: Range
+}
+
+export function Graph2d(props: Graph2dConfig) {
     let {plots, xRange, yRange, xLabel, yLabel } = props;
     const ref = useRef(null);
     //TODO(pjm): use props.aspectRatio if present
@@ -38,7 +50,7 @@ export function Graph2d(props) {
 
     return (
         <div ref={ref}>
-            <Zoom
+            <Zoom<SVGRectElement>
                 width={gc.width}
                 height={gc.height}
                 constrain={constrain}
@@ -69,9 +81,7 @@ export function Graph2d(props) {
 
                 let toPath = (plot, index) => {
                     return (
-                        <Shape.LinePath key={index} data={plot.points} x={d => xScale(d.x)} y={d => yScale(d.y)} stroke={plot.color} strokeWidth={strokeWidth}>
-
-                        </Shape.LinePath>
+                        <Shape.LinePath key={index} data={plot.points} x={(d: Point2d) => xScale(d.x)} y={(d: Point2d) => yScale(d.y)} stroke={plot.color} strokeWidth={strokeWidth}/>
                     )
                 }
 
@@ -97,6 +107,7 @@ export function Graph2d(props) {
                                     scale={yScale}
                                     label={yLabel}
                                     graphSize={gc.height}
+                                    top={0}
                                 />
                                 <g clipPath="url(#graph-clip)">
                                     <g transform={zoom.toString()} >
