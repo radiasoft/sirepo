@@ -131,6 +131,9 @@ _OUTPUT_FOR_MODEL = PKDict(
 _OUTPUT_FOR_MODEL[f"{_SIM_DATA.EXPORT_RSOPT}"] = PKDict(
     filename=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
 )
+_OUTPUT_FOR_MODEL.machineLearningAnimation = PKDict(
+    filename=f"{_SIM_DATA.EXPORT_RSOPT}/README.txt",
+)
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation.filename = "res_int_pr_se{watchpoint_id}.dat"
@@ -1982,7 +1985,7 @@ def _intensity_units(sim_in):
 
 
 def _is_for_rsopt(report):
-    return report == _SIM_DATA.EXPORT_RSOPT
+    return report in (_SIM_DATA.EXPORT_RSOPT, "machineLearningAnimation")
 
 
 def _load_user_model_list(model_name):
@@ -2573,7 +2576,7 @@ def _write_rsopt_zip(data, ctx):
     def _write(zip_file, path):
         zip_file.writestr(
             path,
-            python_source_for_model(data, ctx.fileBase, plot_reports=False)
+            python_source_for_model(data, data.report, plot_reports=False)
             if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
             else template_common.render_jinja(SIM_TYPE, ctx, path),
         )
