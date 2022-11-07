@@ -681,16 +681,6 @@ def _continue_building_level(cur_node, merge_continue):
     return True
 
 
-def _conv(l):
-    return PKDict(
-        strides=l.strides[0],
-        padding=l.padding,
-        kernel=l.kernel_size[0],
-        dimensionality=l._trainable_weights[0].shape[-1],
-        activation=l.activation.__name__,
-    )
-
-
 def _error_rate_report(frame_args, filename, x_label):
     v = np.load(str(frame_args.run_dir.join(filename)))
     return _report_info(
@@ -1158,21 +1148,26 @@ def _set_children(neural_net):
 
 def _set_fields_by_layer_type(l, new_layer):
     # TODO (gurhar1133): still needs:
-    # GlobalAveragePooling2D
     # UpSampling2D
-    # ZeroPadding2D
-    # AveragePooling2D
-    # SeparableConv2D
 
-    # f"""{layer.dimensionality},
-    # activation="{layer.activation}",
-    # kernel_size=({layer.kernel}, {layer.kernel}),
-    # strides={layer.strides},
-    # padding="{layer.padding}"
-    # """
+    def _conv(l):
+        return PKDict(
+            strides=l.strides[0],
+            padding=l.padding,
+            kernel=l.kernel_size[0],
+            dimensionality=l._trainable_weights[0].shape[-1],
+            activation=l.activation.__name__,
+        )
 
     def _dropout(layer):
         return PKDict(dropoutRate=layer.rate)
+
+    def _pool(layer):
+        return PKDict(
+                    strides=layer.strides[0],
+                    padding=layer.padding,
+                    size=layer.pool_size[0],
+                )
 
     if "input" not in l.name:
         return new_layer.pkmerge(
@@ -1186,18 +1181,17 @@ def _set_fields_by_layer_type(l, new_layer):
                     dimensionality=l.units,
                     activation=l.activation.__name__,
                 ),
+                GlobalAveragePooling2D=lambda l:PKDict(),
                 GaussianNoise=lambda l: PKDict(stddev=l.stddev),
                 GaussianDropout=lambda l: _dropout(l),
                 AlphaDropout=lambda l: _dropout(l),
                 Dropout=lambda l: _dropout(l),
                 Flatten=lambda l: PKDict(),
                 SeparableConv2D=lambda l: _conv(l),
-                MaxPooling2D=lambda l: PKDict(
-                    strides=l.strides[0],
-                    padding=l.padding,
-                    size=l.pool_size[0],
-                ),
+                MaxPooling2D=lambda l: _pool(l),
+                AveragePooling2D=lambda l: _pool(l),
                 Conv2DTranspose=lambda l: _conv(l),
+                ZeroPadding2D=lambda l: PKDict(padding=l.padding[0][0]),
             )[new_layer.layer](l)
         )
     return new_layer
