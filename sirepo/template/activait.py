@@ -1147,9 +1147,6 @@ def _set_children(neural_net):
 
 
 def _set_fields_by_layer_type(l, new_layer):
-    # TODO (gurhar1133): still needs:
-    # UpSampling2D
-
     def _conv(l):
         return PKDict(
             strides=l.strides[0],
@@ -1164,10 +1161,10 @@ def _set_fields_by_layer_type(l, new_layer):
 
     def _pool(layer):
         return PKDict(
-                    strides=layer.strides[0],
-                    padding=layer.padding,
-                    size=layer.pool_size[0],
-                )
+            strides=layer.strides[0],
+            padding=layer.padding,
+            size=layer.pool_size[0],
+        )
 
     if "input" not in l.name:
         return new_layer.pkmerge(
@@ -1181,7 +1178,7 @@ def _set_fields_by_layer_type(l, new_layer):
                     dimensionality=l.units,
                     activation=l.activation.__name__,
                 ),
-                GlobalAveragePooling2D=lambda l:PKDict(),
+                GlobalAveragePooling2D=lambda l: PKDict(),
                 GaussianNoise=lambda l: PKDict(stddev=l.stddev),
                 GaussianDropout=lambda l: _dropout(l),
                 AlphaDropout=lambda l: _dropout(l),
@@ -1191,6 +1188,9 @@ def _set_fields_by_layer_type(l, new_layer):
                 MaxPooling2D=lambda l: _pool(l),
                 AveragePooling2D=lambda l: _pool(l),
                 Conv2DTranspose=lambda l: _conv(l),
+                UpSampling2D=lambda l: PKDict(
+                    size=l.size[0], interpolation=l.interpolation
+                ),
                 ZeroPadding2D=lambda l: PKDict(padding=l.padding[0][0]),
             )[new_layer.layer](l)
         )
