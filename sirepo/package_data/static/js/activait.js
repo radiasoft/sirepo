@@ -1558,16 +1558,15 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
 });
 
 SIREPO.app.directive('modelDownloadLink', function(appState, mlService, requestSender) {
-    // TODO (gurhar1133): generalize so that this component is invoked in
-    // neuralNetLayersForm directive
     return {
         restrict: 'A',
         scope: {
             filename: '@',
         },
         template: `
-            <a data-ng-if="mlService.hasFrames('epochAnimation')" style="position: relative;" href="{{ logFileURL() }}" target="_blank">  download weighted model</a>
-            <br>
+            <div class="container-fluid">
+              <a data-ng-if="mlService.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  download weighted model</a>
+            </div>
         `,
         controller: function($scope) {
             $scope.mlService = mlService;

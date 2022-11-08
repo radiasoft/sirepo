@@ -123,9 +123,6 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
-   # TODO (gurhar1133): make a get_data_file function for activait
-   # and have parameters.py gen both weighted and unweighted.
-    pkdp("\n\n\n options.suffix={}", options.suffix)
     return PKDict(
         filename=run_dir.join(options.suffix, abs=1),
         uri=options.suffix,
