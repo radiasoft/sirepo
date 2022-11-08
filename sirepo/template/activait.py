@@ -125,8 +125,11 @@ def get_analysis_report(run_dir, data):
 def get_data_file(run_dir, model, frame, options):
    # TODO (gurhar1133): make a get_data_file function for activait
    # and have parameters.py gen both weighted and unweighted.
-   pkdp("\n\n\n options.suffix={}", options.suffix)
-   return None
+    pkdp("\n\n\n options.suffix={}", options.suffix)
+    return PKDict(
+        filename=run_dir.join(options.suffix, abs=1),
+        uri=options.suffix,
+    )
 
 
 # TODO(MVK): 2d fft (?)
@@ -476,6 +479,7 @@ input_args = Input(shape=input_shape)
 {_build_layers(net)}
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
+model.save('unweighted.h5')
 """
 
 

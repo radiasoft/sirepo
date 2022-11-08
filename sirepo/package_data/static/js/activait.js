@@ -1688,17 +1688,17 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             }
 
             $scope.logFileURL = () => {
-                return logFileRequest(".h5");
+                return logFileRequest("unweighted");
             }
 
-            function logFileRequest(logKind) {
-                srdbg("logkind={}", logKind);
+            function logFileRequest(filename) {
+                // srdbg("logkind={}", logKind);
                 return  requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': "model",
+                    '<model>': 'animation',
                     '<frame>': SIREPO.nonDataFileFrame,
-                    '<suffix>': logKind,
+                    '<suffix>': filename + '.h5',
                 });
             }
 
