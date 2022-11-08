@@ -605,7 +605,11 @@ def _create_stl_trimesh(file_path):
     with open(file_path, readParam) as f:
         m = trimesh.exchange.stl.load_stl(file_obj=f)
         if "geometry" in m:
-            return trimesh.Trimesh(vertices=m["geometry"][keyType]["vertices"], faces=m["geometry"][keyType]["faces"], process=True)
+            return trimesh.Trimesh(
+                vertices=m["geometry"][keyType]["vertices"],
+                faces=m["geometry"][keyType]["faces"],
+                process=True,
+            )
         return trimesh.Trimesh(vertices=m["vertices"], faces=m["faces"], process=True)
 
 
