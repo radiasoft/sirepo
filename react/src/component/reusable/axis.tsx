@@ -6,18 +6,11 @@ import { Axis } from '@visx/visx';
 import { format } from "d3-format";
 import "./axis.scss";
 
-/**
- *
- * @param {{
- *  orientation,
- *  graphSize,
- *  scale,
- *  top,
- *  label,
- * }} props
- * @returns
- */
-export function DynamicAxis({ orientation, graphSize, ...props }) {
+export type DynamicAxisProps = {
+    graphSize: number
+} & Axis.SharedAxisProps<Axis.AxisScale>
+
+export function DynamicAxis({ orientation, graphSize, ...props }: DynamicAxisProps) {
     const isX = orientation == 'bottom';
     const AxisType = isX ? Axis.AxisBottom : Axis.AxisLeft;
     const [ticks, setTicks] = useState(0);
