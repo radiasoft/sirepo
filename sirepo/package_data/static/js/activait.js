@@ -1658,8 +1658,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </td>
                         </tr>
                     </table>
-                    <a data-ng-if="mlService.hasFrames('epochAnimation')" style="position: relative;" href="{{ logFileURL() }}" target="_blank">  download unweighted model</a>
-                    <br>
+                    <div data-model-download-link="" data-filename="unweighted"></div>
                 </div>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
@@ -1679,7 +1678,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             };
-            $scope.mlService = mlService;
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
                     return;
@@ -1721,20 +1719,20 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 return (layer == 'Add') || (layer == 'Concatenate');
             }
 
-            $scope.logFileURL = () => {
-                return logFileRequest("unweighted");
-            }
+            // $scope.logFileURL = () => {
+            //     return logFileRequest("unweighted");
+            // }
 
-            function logFileRequest(filename) {
-                // srdbg("logkind={}", logKind);
-                return  requestSender.formatUrl('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': 'animation',
-                    '<frame>': SIREPO.nonDataFileFrame,
-                    '<suffix>': filename + '.h5',
-                });
-            }
+            // function logFileRequest(filename) {
+            //     // srdbg("logkind={}", logKind);
+            //     return  requestSender.formatUrl('downloadDataFile', {
+            //         '<simulation_id>': appState.models.simulation.simulationId,
+            //         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            //         '<model>': 'animation',
+            //         '<frame>': SIREPO.nonDataFileFrame,
+            //         '<suffix>': filename + '.h5',
+            //     });
+            // }
 
             $scope.addChild = layer => {
                 layer.children.push(newChild());
