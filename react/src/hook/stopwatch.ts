@@ -1,7 +1,14 @@
-import { useRef } from 'react';
+import { RefObject, useRef } from 'react';
+
+export type StopwatchData = {
+    startTime: number,
+    endTime: number
+}
 
 class Stopwatch {
-    constructor(stopwatchDataRef) {
+    times: StopwatchData;
+
+    constructor(stopwatchDataRef: RefObject<StopwatchData>) {
         this.times = stopwatchDataRef.current;
     }
 
@@ -22,7 +29,7 @@ class Stopwatch {
             throw new Error("connect start stopwatch that has already been started, reset it first");
         }
 
-        this.times.startTime = new Date();
+        this.times.startTime = new Date().valueOf();
     }
 
     stop() {
@@ -30,7 +37,7 @@ class Stopwatch {
             throw new Error("cannot stop stopwatch before it has been started");
         }
 
-        this.times.endTime = new Date();
+        this.times.endTime = new Date().valueOf();
     }
 
     reset() {

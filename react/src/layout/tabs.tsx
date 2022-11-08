@@ -1,13 +1,24 @@
 import { useContext } from "react";
-import { View } from "./layout";
+import { LayoutProps, View } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
 import { useShown } from "../hook/shown";
 import React from "react";
 import { CModelsWrapper } from "../data/wrapper";
 import { ValueSelectors } from "../hook/string";
+import { SchemaView } from "../utility/schema";
 
-export class TabLayout extends View {
-    getFormDependencies = (config) => {
+export type TabConfig = {
+    items: SchemaView[],
+    name: string,
+    shown: string
+}
+
+export type TabsConfig = {
+    tabs: TabConfig[]
+}
+
+export class TabLayout extends View<TabsConfig> {
+    getFormDependencies = (config: TabsConfig) => {
         let fields = [];
 
         for (let tab of config.tabs) {
@@ -20,7 +31,7 @@ export class TabLayout extends View {
         return fields;
     }
 
-    component = (props) => {
+    component = (props: LayoutProps<TabsConfig>) => {
         let { config } = props;
 
         let tabs = config.tabs;

@@ -1,9 +1,13 @@
 import React from "react";
 import { Table } from "../component/reusable/table";
-import { View }from "./layout";
+import { LayoutProps, View }from "./layout";
 
-function apiResponseToTableConfig(apiResponse, attributeName) {
-    let data = apiResponse[attributeName || 'data'];
+export type TableConfigApi = [
+    [string, number[]]
+]
+
+function apiResponseToTableConfig(apiResponse: any, attributeName: string) {
+    let data = apiResponse[attributeName || 'data'] as TableConfigApi;
 
     if(!data) {
         return undefined;
@@ -25,12 +29,16 @@ function apiResponseToTableConfig(apiResponse, attributeName) {
     }
 }
 
-export class TableFromApi extends View {
-    getFormDependencies = (config) => {
+export type TableFromApiConfig = {
+    dataAttributeName: string
+}
+
+export class TableFromApi extends View<TableFromApiConfig> {
+    getFormDependencies = (config: TableFromApiConfig) => {
         return [];
     }
 
-    component = (props) => {
+    component = (props: LayoutProps<TableFromApiConfig> & { simulationData: any }) => {
         let { simulationData, config } = props;
 
         let { dataAttributeName } = config;
