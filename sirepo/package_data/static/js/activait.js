@@ -1718,21 +1718,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                 return (layer == 'Add') || (layer == 'Concatenate');
             }
 
-            // $scope.logFileURL = () => {
-            //     return logFileRequest("unweighted");
-            // }
-
-            // function logFileRequest(filename) {
-            //     // srdbg("logkind={}", logKind);
-            //     return  requestSender.formatUrl('downloadDataFile', {
-            //         '<simulation_id>': appState.models.simulation.simulationId,
-            //         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            //         '<model>': 'animation',
-            //         '<frame>': SIREPO.nonDataFileFrame,
-            //         '<suffix>': filename + '.h5',
-            //     });
-            // }
-
             $scope.addChild = layer => {
                 layer.children.push(newChild());
                 $scope.form.$setDirty();

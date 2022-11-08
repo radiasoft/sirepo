@@ -2551,7 +2551,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (! appState.isLoaded()) {
                     return '';
                 }
-                return srdbg(logFileRequest('run.log'));
+                return logFileRequest('run.log');
             };
 
             $scope.progressLogURL = () => {
@@ -2606,7 +2606,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             }
 
             function logFileRequest(logKind) {
-                srdbg("logkind={}", logKind);
                 return  requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
