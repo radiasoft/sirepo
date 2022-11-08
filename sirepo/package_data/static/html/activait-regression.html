@@ -26,7 +26,9 @@
     <div class="clearfix"></div>
     <div data-ng-repeat="report in regression.reports track by report.columnNumber">
       <div class="col-sm-3">
-        <div data-report-panel="heatmap" data-model-name="fitAnimation" data-model-data="report.data" data-panel-title="{{ report.title }}"></div>
+        <div data-report-panel="heatmap" data-model-name="fitAnimation" data-model-data="report.data" data-panel-title="{{ report.title }}">
+          <div data-model-download-link="" data-filename="weighted"></div>
+        </div>
       </div>
       <div data-ng-if="$index % 4 == 3" class="clearfix"></div>
     </div>

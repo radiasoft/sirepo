@@ -57,7 +57,7 @@ SIREPO.app.config(function() {
     `;
 });
 
-SIREPO.app.factory('mlService', function(appState, panelState) {
+SIREPO.app.factory('mlService', function(appState, panelState, frameCache) {
     var self = {};
     var parameterCache = {
         analysisParameters: null,
@@ -65,6 +65,7 @@ SIREPO.app.factory('mlService', function(appState, panelState) {
         optionalParameterValues: null,
     };
 
+    self.hasFrames = frameCache.hasFrames;
     self.devMode = false;
     self.addSubreport = function(parent, action) {
         let report = appState.clone(parent);
@@ -1556,6 +1557,38 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     appState.whenModelsLoaded($scope, loadReports);
 });
 
+SIREPO.app.directive('modelDownloadLink', function(appState, mlService, requestSender) {
+    // TODO (gurhar1133): generalize so that this component is invoked in
+    // neuralNetLayersForm directive
+    return {
+        restrict: 'A',
+        scope: {
+            filename: '@',
+        },
+        template: `
+            <a data-ng-if="mlService.hasFrames('epochAnimation')" style="position: relative;" href="{{ logFileURL() }}" target="_blank">  download weighted model</a>
+            <br>
+        `,
+        controller: function($scope) {
+            $scope.mlService = mlService;
+
+            $scope.logFileURL = () => {
+                return logFileRequest($scope.filename);
+            }
+
+            function logFileRequest(filename) {
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': 'animation',
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<suffix>': filename + '.h5',
+                });
+            }
+        },
+    }
+})
+
 SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, requestSender, stringsService) {
     return {
         restrict: 'A',
@@ -1625,7 +1658,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </td>
                         </tr>
                     </table>
-                    <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">download model</a>
+                    <a data-ng-if="mlService.hasFrames('epochAnimation')" style="position: relative;" href="{{ logFileURL() }}" target="_blank">  download unweighted model</a>
                     <br>
                 </div>
               </div>
@@ -1646,6 +1679,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
             $scope.root = () => {
                 return ! Boolean($scope.layerTarget);
             };
+            $scope.mlService = mlService;
             $scope.addLayer = function() {
                 if (! $scope.selectedLayer) {
                     return;
