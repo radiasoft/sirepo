@@ -1565,7 +1565,7 @@ SIREPO.app.directive('modelDownloadLink', function(appState, mlService, requestS
         },
         template: `
             <div class="container-fluid">
-              <a data-ng-if="mlService.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  download weighted model</a>
+              <a data-ng-if="mlService.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  Download {{ filename }} model</a>
             </div>
         `,
         controller: function($scope) {
@@ -1573,7 +1573,7 @@ SIREPO.app.directive('modelDownloadLink', function(appState, mlService, requestS
 
             $scope.logFileURL = () => {
                 return logFileRequest($scope.filename);
-            }
+            };
 
             function logFileRequest(filename) {
                 return  requestSender.formatUrl('downloadDataFile', {
@@ -1585,8 +1585,8 @@ SIREPO.app.directive('modelDownloadLink', function(appState, mlService, requestS
                 });
             }
         },
-    }
-})
+    };
+});
 
 SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, requestSender, stringsService) {
     return {
