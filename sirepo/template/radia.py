@@ -352,6 +352,8 @@ def validate_file(file_path, path):
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
             return f"not convex model: {path.basename}"
+        elif len(mesh.faces) > 600:
+            return f"too many faces({len(mesh.faces)}): {path.basename}"
     else:
         return f"invalid file type: {path.ext}"
     return None
@@ -596,10 +598,14 @@ def _is_binary(file_path):
 
 def _create_stl_trimesh(file_path):
     readParam = "r"
+    keyType = "ascii"
     if _is_binary(file_path):
         readParam = "rb"
+        keyType = "binary"
     with open(file_path, readParam) as f:
         m = trimesh.exchange.stl.load_stl(file_obj=f)
+        if "geometry" in m:
+            return trimesh.Trimesh(vertices=m["geometry"][keyType]["vertices"], faces=m["geometry"][keyType]["faces"], process=True)
         return trimesh.Trimesh(vertices=m["vertices"], faces=m["faces"], process=True)
 
 
