@@ -7,16 +7,7 @@ import { ClipPath, Scale, Shape } from '@visx/visx';
 import { LegendOrdinal } from "@visx/legend";
 import { DynamicAxis } from "./axis";
 import { constrainZoom, useGraphContentBounds } from "../../utility/component";
-
-export type Range = {
-    min: number,
-    max: number
-}
-
-export type Point2d = {
-    x: number,
-    y: number
-}
+import { Point2d, Range1d } from '../../type/graphing';
 
 export type Graph2dPlot = {
     color: string,
@@ -29,8 +20,8 @@ export type Graph2dConfig = {
     plots: Graph2dPlot[],
     xLabel: string,
     yLabel: string,
-    xRange: Range,
-    yRange: Range
+    xRange: Range1d,
+    yRange: Range1d
 }
 
 export function Graph2d(props: Graph2dConfig) {

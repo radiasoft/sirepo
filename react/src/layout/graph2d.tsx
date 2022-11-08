@@ -1,6 +1,6 @@
 import React from "react";
 import { Graph2d, Graph2dConfig } from "../component/reusable/graph2d";
-import { View } from "./layout";
+import { LayoutProps, View } from "./layout";
 
 export type Graph2dPlotApi = {
     color: string,
@@ -20,11 +20,6 @@ export type Graph2dConfigApi = {
     y_label: string,
     y_range: [number, number]
 
-}
-
-export type Graph2dProps = {
-    simulationData: Graph2dConfigApi,
-    config: undefined
 }
 
 export function apiResponseToGraph2dConfig(cfg: Graph2dConfigApi): Graph2dConfig {
@@ -76,7 +71,7 @@ export class Graph2dFromApi extends View<undefined> {
         return [];
     }
 
-    component = (props: Graph2dProps) => {
+    component = (props: LayoutProps<undefined> & { simulationData: Graph2dConfigApi }) => {
         let { simulationData } = props;
 
         let config = apiResponseToGraph2dConfig(simulationData);

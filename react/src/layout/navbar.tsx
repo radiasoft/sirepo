@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useP
 import { NavbarContainerId } from "../component/reusable/navbar";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
 import { useContext, useState } from "react";
-import { View } from "./layout";
+import { LayoutProps, View } from "./layout";
 import usePortal from "react-useportal"; 
 import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/reusable/panel";
@@ -14,9 +14,19 @@ import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { SchemaView } from "../utility/schema";
 
-export class NavBarModalButton extends View {
-    getChildLayouts = (config) => {
+export type NavBarModalButtonConfig = {
+    modal: {
+        title: string,
+        items: SchemaView[]
+    },
+    title: string,
+    icon: string
+}
+
+export class NavBarModalButton extends View<NavBarModalButtonConfig> {
+    getChildLayouts = (config: NavBarModalButtonConfig) => {
         let { modal } = config;
         return modal.items.map(layoutConfig => {
             return {
@@ -30,7 +40,7 @@ export class NavBarModalButton extends View {
         return this.getChildLayouts(config).map(child => child.layout.getFormDependencies(child.config)).flat();
     }
 
-    component = (props) => {
+    component = (props: LayoutProps<NavBarModalButtonConfig>) => {
         let { config } = props;
 
         let formController = useContext(CFormController);
@@ -109,17 +119,27 @@ export class NavBarModalButton extends View {
     }
 }
 
-export class NavTabsLayout extends View {
+export type NavTab = {
+    name: string,
+    title: string,
+    items: SchemaView[]
+}
+
+export type NavTabsConfig = {
+    tabs: NavTab[];
+}
+
+export class NavTabsLayout extends View<NavTabsConfig> {
     getFormDependencies = (config) => {
         // TODO
         return [];
     }
 
-    TabsContent = (props) => {
+    TabsContent = (props: { tab: NavTab }) => {
         let { tab, ...otherProps } = props;
 
         let children = tab.items.map((layoutConfig, idx) => {
-            let layout = this.layoutsWrapper.getLayoutForName(layoutConfig);
+            let layout = this.layoutsWrapper.getLayoutForName(layoutConfig.layout);
             let LayoutComponent = layout.component;
             return <LayoutComponent key={idx} config={layoutConfig.config} {...otherProps}/>
         })
@@ -133,7 +153,7 @@ export class NavTabsLayout extends View {
         );
     }
 
-    TabsSwitcher = (props) => {
+    TabsSwitcher = (props: LayoutProps<NavTabsConfig>) => {
         let { config } = props;
         let { tabs } = config;
 
@@ -175,7 +195,7 @@ export class NavTabsLayout extends View {
         )
     }
 
-    component = (props) => {
+    component = (props: LayoutProps<NavTabsConfig>) => {
         let { config } = props;
         let { tabs } = config;
 

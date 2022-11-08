@@ -1,6 +1,6 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
-import { View } from "./layout";
+import { LayoutProps, View } from "./layout";
 import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from "react-redux";
@@ -18,15 +18,22 @@ import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
+import { SchemaView } from "../utility/schema";
 
-export class AutoRunReportLayout extends View {
-    getFormDependencies = (config) => {
+export type AutoRunReportConfig = {
+    reportLayout: SchemaView,
+    report: string,
+    dependencies: string[]
+}
+
+export class AutoRunReportLayout extends View<AutoRunReportConfig> {
+    getFormDependencies = (config: AutoRunReportConfig) => {
         let { reportLayout } = config;
         let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
         return layoutElement.getFormDependencies();
     }
 
-    component = (props) => {
+    component = (props: LayoutProps<AutoRunReportConfig>) => {
         let { config } = props;
         let { report, reportLayout, dependencies } = config;
 
@@ -83,14 +90,23 @@ export class AutoRunReportLayout extends View {
     }
 }
 
-export class ManualRunReportLayout extends View {
-    getFormDependencies = (config) => {
+export type ManualRunReportConfig = {
+    reportLayout: SchemaView,
+    reportName: string,
+    reportGroupName: string,
+    frameIdFields: string[],
+    shown: string,
+    frameCountFieldName: string
+}
+
+export class ManualRunReportLayout extends View<ManualRunReportConfig> {
+    getFormDependencies = (config: ManualRunReportConfig) => {
         let { reportLayout } = config;
         let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
         return layoutElement.getFormDependencies();
     }
 
-    component = (props) => {
+    component = (props: LayoutProps<ManualRunReportConfig>) => {
         let { config } = props;
         let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig, frameCountFieldName } = config;
         
@@ -229,12 +245,16 @@ export function ReportAnimationController(props) {
     )
 }
 
-export class SimulationStartLayout extends View {
-    getFormDependencies = (config) => {
+export type SimulationStartConfig = {
+    reportGroupName: string
+}
+
+export class SimulationStartLayout extends View<SimulationStartConfig> {
+    getFormDependencies = (config: SimulationStartConfig) => {
         return [];
     }
 
-    component = (props) => {
+    component = (props: LayoutProps<SimulationStartConfig>) => {
         let { config } = props;
         let { reportGroupName } = config;
 
@@ -334,6 +354,7 @@ export class SimulationStartLayout extends View {
                             </Stack>
                         )
                 }
+                throw new Error("state was not handled for run-status: " + state);
             }
 
             return (

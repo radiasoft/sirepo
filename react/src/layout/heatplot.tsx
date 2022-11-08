@@ -1,11 +1,20 @@
 // import { React }
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
-import { Heatplot } from "../component/reusable/heatplot";
-import { View } from "./layout";
+import { Heatplot, HeatPlotConfig } from "../component/reusable/heatplot";
+import { LayoutProps, View } from "./layout";
 import React from "react";
 
-function apiResponseToHeatplotConfig(apiResponse) {
+export type HeatplotConfigApi = {
+    title: string,
+    x_label: string,
+    x_range: [number, number],
+    y_label: string,
+    y_range: [number, number],
+    z_matrix: number[][]
+}
+
+function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotConfig {
     let {
         title,
         x_label: xLabel,
@@ -36,12 +45,12 @@ function apiResponseToHeatplotConfig(apiResponse) {
     }
 }
 
-export class HeatplotFromApi extends View {
-    getFormDependencies = (config) => {
+export class HeatplotFromApi extends View<undefined> {
+    getFormDependencies = (config: undefined) => {
         return [];
     }
 
-    component = (props) => {
+    component = (props: { simulationData: HeatplotConfigApi } & LayoutProps<undefined>) => {
         let { simulationData } = props;
 
         let config = apiResponseToHeatplotConfig(simulationData);

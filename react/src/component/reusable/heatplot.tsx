@@ -2,12 +2,22 @@
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
 import React, { useRef, useLayoutEffect } from 'react';
-import { useCanvas, useCanvasContext } from "./canvascontext";
+import { useCanvasContext } from "./canvascontext";
 import { Canvas } from "./canvas";
 import { DynamicAxis } from "./axis";
 import { constrainZoom, useGraphContentBounds } from "../../utility/component";
 import { Zoom } from '@visx/zoom';
 import { Scale } from '@visx/visx';
+import { Range1d } from '../../type/graphing';
+
+export type HeatPlotConfig = {
+    title: string,
+    zMatrix: number[][],
+    xLabel: string,
+    yLabel: string,
+    xRange: Range1d,
+    yRange: Range1d
+}
 
 function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix }) {
     const ctx = useCanvasContext();
@@ -47,7 +57,7 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
     }
     cacheCanvas.getContext('2d').putImageData(img, 0, 0);
     // need to draw image before rendering
-    useLayoutEffect(_ => {
+    useLayoutEffect(() => {
         ctx.imageSmoothingEnabled = false;
         ctx.msImageSmoothingEnabled = false;
         ctx.drawImage(
@@ -61,19 +71,7 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
     return null;
 }
 
-/**
- *
- * @param {{
- *  title,
- *  xRange,
- *  yRange,
- *  xLabel,
- *  yLabel,
- *  zMatrix
- * }} props
- * @returns
- */
-export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}) {
+export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}: HeatPlotConfig) {
     const ref = useRef(null);
     //TODO(pjm): use props.aspectRatio if present
     const gc = useGraphContentBounds(ref, 1);
@@ -90,7 +88,7 @@ export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}) {
 
     return (
         <div ref={ref}>
-            <Zoom
+            <Zoom<SVGRectElement>
                 width={gc.width}
                 height={gc.height}
                 constrain={constrain}
@@ -171,6 +169,7 @@ export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}) {
                                             scale={yScale}
                                             label={yLabel}
                                             graphSize={gc.height}
+                                            top={0}
                                         />
                                         <svg width={gc.width} height={gc.height}>
                                             <rect

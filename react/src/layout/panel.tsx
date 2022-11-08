@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
-import { View } from "./layout";
+import { LayoutProps, View } from "./layout";
 import { useStore } from "react-redux";
 import { EditorPanel } from "../component/reusable/panel";
 import "./panel.scss";
@@ -9,8 +9,15 @@ import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { SchemaView } from "../utility/schema";
 
-export class PanelLayout extends View {
+export type PanelConfig = {
+    basic: SchemaView[],
+    advanced: SchemaView[],
+    title: string
+}
+
+export class PanelLayout extends View<PanelConfig> {
     getChildLayoutByConfig = (layoutConfig) => {
         return {
             layout: this.layoutsWrapper.getLayoutForName(layoutConfig.layout),
@@ -27,12 +34,12 @@ export class PanelLayout extends View {
         return this.getChildLayouts(config).map(childLayout => childLayout.layout.getFormDependencies(childLayout.config)).flat();
     }
 
-    component = (props) => {
+    component = (props: LayoutProps<PanelConfig>) => {
         let { config } = props;
         let { basic, advanced } = config;
 
         if(!config) {
-            throw new Error("view missing config: " + config.name);
+            throw new Error("view missing config: " + this.name);
         }
 
         let modelsWrapper = useContext(CModelsWrapper);
@@ -67,8 +74,8 @@ export class PanelLayout extends View {
             formValid: formController.isFormStateValid(),
             mainChildren,
             modalChildren,
-            title: title || config.name,
-            id: config.name
+            title: title || this.name,
+            id: this.name
         }
 
         return (
