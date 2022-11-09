@@ -1560,27 +1560,28 @@ SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, request
     return {
         restrict: 'A',
         scope: {
-            model: '=',
+            modelName: '@',
         },
         template: `
             <div class="container-fluid">
-              <a data-ng-if="frameCache.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  Download {{ filename }} model</a>
+              <a data-ng-if="frameCache.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  Download {{ modelType }} model</a>
             </div>
         `,
         controller: function($scope) {
             $scope.frameCache = frameCache;
+            $scope.modelType = $scope.modelName == "neuralNetLayers" ? "unweighted" : "weighted";
 
             $scope.logFileURL = () => {
-                return logFileRequest($scope.filename);
+                return logFileRequest();
             };
 
-            function logFileRequest(filename) {
+            function logFileRequest() {
                 return  requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': 'animation',
+                    '<model>': "animation",
                     '<frame>': SIREPO.nonDataFileFrame,
-                    '<suffix>': filename + '.h5',
+                    '<suffix>': $scope.modelName,
                 });
             }
         },
@@ -1656,7 +1657,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </td>
                         </tr>
                     </table>
-                    <div data-model-download-link="" data-filename="unweighted"></div>
+                   <div data-model-download-link="" data-model-name="neuralNetLayers"></div>
                 </div>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">

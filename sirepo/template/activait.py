@@ -51,6 +51,8 @@ _OUTPUT_FILE = PKDict(
     fitCSVFile="fit.csv",
     predictFile="predict.npy",
     scaledFile="scaled.npy",
+    mlModel="weighted.h5",
+    neuralNetLayers="unweighted.h5",
     testFile="test.npy",
     trainFile="train.npy",
     validateFile="validate.npy",
@@ -124,8 +126,8 @@ def get_analysis_report(run_dir, data):
 
 def get_data_file(run_dir, model, frame, options):
     return PKDict(
-        filename=run_dir.join(options.suffix, abs=1),
-        uri=options.suffix,
+        filename=run_dir.join(_OUTPUT_FILE[options.suffix], abs=1),
+        uri=_OUTPUT_FILE[options.suffix],
     )
 
 
@@ -476,7 +478,7 @@ input_args = Input(shape=input_shape)
 {_build_layers(net)}
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
-model.save('unweighted.h5')
+model.save('{_OUTPUT_FILE.unweightedFile}')
 """
 
 
@@ -816,6 +818,7 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
+    v.weightedFile = _OUTPUT_FILE.weightedFile
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
