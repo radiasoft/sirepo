@@ -94,5 +94,5 @@ function placeConfigInField(fileName) {
     fs.writeFileSync('new-' + fileName, JSON.stringify({ view: recur(fileJson.view) }));
 }
 
-placeConfigInField("genesis-schema.json");
+placeConfigInField("jspec-schema.json");
 //convertModels("myapp.json");
