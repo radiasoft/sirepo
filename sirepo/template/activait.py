@@ -746,19 +746,19 @@ def _extract_file_column_report(run_dir, sim_in):
         return
     if "x" in m and m.x is not None and m.x >= 0:
         _, x = _extract_column(run_dir, m.x)
-
-    # TODO (gurhar1133): make common funciton for below
-    pandas.DataFrame(
-        PKDict(
-            x=x,
-            y=y,
-        )
-    ).to_csv(f"fit_column_report{idx}.csv", index=False)
+    _write_csv_for_download(
+        PKDict(x=x, y=y),
+        f"fit_column_report{idx}.csv",
+    )
     _write_report(
         x,
         [_plot_info(y, style="scatter")],
         sim_in.models.columnInfo.header[idx],
     )
+
+
+def _write_csv_for_download(columns_dict, csv_name):
+    pandas.DataFrame(columns_dict).to_csv(csv_name, index=False)
 
 
 def _extract_fft_report(run_dir, sim_in):
@@ -785,12 +785,10 @@ def _extract_partition_report(run_dir, sim_in):
         x, y = _histogram_plot(d[name], r)
         c[name] = y
         plots.append(_plot_info(y, name))
-    pandas.DataFrame(
-        PKDict(
-            x=x,
-            **c,
-        )
-    ).to_csv(f"partition_column_report{idx}.csv", index=False)
+    _write_csv_for_download(
+        PKDict(x=x, **c),
+        f"partition_column_report{idx}.csv",
+    )
     _write_report(
         x,
         plots,
@@ -834,12 +832,10 @@ def _fit_animation(frame_args):
         _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx],
         _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx],
     ]
-    pandas.DataFrame(
-        PKDict(
-            predict=f[0],
-            test=f[1],
-        )
-    ).to_csv("test_pred.csv")
+    _write_csv_for_download(
+        PKDict(predict=f[0], test=f[1]),
+        "test_pred.csv",
+    )
     return template_common.heatmap(
         f,
         frame_args,
