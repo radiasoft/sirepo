@@ -478,7 +478,7 @@ input_args = Input(shape=input_shape)
 {_build_layers(net)}
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
-model.save('{_OUTPUT_FILE.unweightedFile}')
+model.save('{_OUTPUT_FILE.neuralNetLayers}')
 """
 
 
@@ -818,7 +818,7 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
-    v.weightedFile = _OUTPUT_FILE.weightedFile
+    v.weightedFile = _OUTPUT_FILE.mlModel
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
