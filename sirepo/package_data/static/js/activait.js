@@ -65,7 +65,6 @@ SIREPO.app.factory('mlService', function(appState, panelState, frameCache) {
         optionalParameterValues: null,
     };
 
-    self.hasFrames = frameCache.hasFrames;
     self.devMode = false;
     self.addSubreport = function(parent, action) {
         let report = appState.clone(parent);
@@ -1557,19 +1556,19 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     appState.whenModelsLoaded($scope, loadReports);
 });
 
-SIREPO.app.directive('modelDownloadLink', function(appState, mlService, requestSender) {
+SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, requestSender) {
     return {
         restrict: 'A',
         scope: {
-            filename: '@',
+            model: '=',
         },
         template: `
             <div class="container-fluid">
-              <a data-ng-if="mlService.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  Download {{ filename }} model</a>
+              <a data-ng-if="frameCache.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  Download {{ filename }} model</a>
             </div>
         `,
         controller: function($scope) {
-            $scope.mlService = mlService;
+            $scope.frameCache = frameCache;
 
             $scope.logFileURL = () => {
                 return logFileRequest($scope.filename);
