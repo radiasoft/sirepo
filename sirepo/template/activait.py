@@ -746,6 +746,8 @@ def _extract_file_column_report(run_dir, sim_in):
         return
     if "x" in m and m.x is not None and m.x >= 0:
         _, x = _extract_column(run_dir, m.x)
+
+    # TODO (gurhar1133): make common funciton for below
     pandas.DataFrame(
         PKDict(
             x=x,
