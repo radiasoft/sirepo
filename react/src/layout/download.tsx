@@ -33,15 +33,11 @@ export function LayoutWithDownloadButton<C, P>(Child: LayoutType<C, P>): LayoutT
         }
 
         downloadWrapper = (props: LayoutProps<C, P> & { children: any }) => {
-            let portalFn = usePortal;
-            let contextFn = useContext;
-            let refFn = useRef;
-
-            let panelController = contextFn(CPanelController);
-
+            let panelController = useContext(CPanelController);
+            
             if(panelController) {
-                let contentRef = refFn();
-                let { Portal: ButtonPortal, portalRef } = portalFn({
+                let contentRef = useRef();
+                let { Portal: ButtonPortal, portalRef } = usePortal({
                     bindTo: document && document.getElementById(panelController.buttonPortalId)
                 })
 

@@ -149,9 +149,9 @@ export class rsBoolean extends rsType {
 
 export class rsFile extends rsType {
     pattern: RegExp;
-    inspectModal: SchemaView;
+    inspectModal: any;
 
-    constructor({ isRequired, pattern, inspectModal }: rsTypeParamsBase & { pattern?: string, inspectModal?: SchemaView }) {
+    constructor({ isRequired, pattern, inspectModal }: rsTypeParamsBase & { pattern?: string, inspectModal?: any }) {
         super({ isRequired })
         this.pattern = (pattern && new RegExp(pattern)) || undefined;
         this.inspectModal = inspectModal;
@@ -169,31 +169,26 @@ export class rsFile extends rsType {
     inputComponent = (props) => {
         let { dependency, ...otherProps } = props;
 
-        let contextFn = useContext;
-        let stateFn = useState;
-        let effectFn = useEffect;
-        let interpStrFn = useInterpolatedString;
+        let [dummyState, updateDummyState] = useState({})
 
-        let [dummyState, updateDummyState] = stateFn({})
+        let appName = useContext(CAppName);
+        let simulationInfoPromise = useContext(CSimulationInfoPromise);
+        let layoutsWrapper = useContext(CLayouts);
+        let modelsWrapper = useContext(CModelsWrapper);
 
-        let appName = contextFn(CAppName);
-        let simulationInfoPromise = contextFn(CSimulationInfoPromise);
-        let layoutsWrapper = contextFn(CLayouts);
-        let modelsWrapper = contextFn(CModelsWrapper);
-
-        let [modalShown, updateModalShown] = stateFn(false);
+        let [modalShown, updateModalShown] = useState(false);
         let modal = this.inspectModal ? {
-            items: this.inspectModal.config.items.map((schemaView: SchemaView, idx: number) => {
+            items: this.inspectModal.items.map((schemaView: SchemaView, idx: number) => {
                 let layout = layoutsWrapper.getLayoutForName(schemaView.layout);
                 let Component = layout.component;
                 return <Component key={idx} config={schemaView.config}/>
             }),
-            title: interpStrFn(modelsWrapper, this.inspectModal.config.title, ValueSelectors.Models)
+            title: useInterpolatedString(modelsWrapper, this.inspectModal.title, ValueSelectors.Models)
         } : undefined;
 
-        let [fileNameList, updateFileNameList] = stateFn(undefined);
+        let [fileNameList, updateFileNameList] = useState(undefined);
 
-        effectFn(() => {
+        useEffect(() => {
             let fileListPromise = new Promise((resolve, reject) => {
                 simulationInfoPromise.then(({ simulationId, version }) => {
                     //TODO, how should this be generated
@@ -303,16 +298,12 @@ export class rsPartEnumStatefulComputeResult extends rsType {
     }
 
     inputComponent = (props) => {
-        let contextFn = useContext;
-        let stateFn = useState;
-        let effectFn = useEffect;
+        let appName = useContext(CAppName);
+        let simulationInfoPromise = useContext(CSimulationInfoPromise);
 
-        let appName = contextFn(CAppName);
-        let simulationInfoPromise = contextFn(CSimulationInfoPromise);
+        let [optionList, updateOptionList] = useState(undefined);
 
-        let [optionList, updateOptionList] = stateFn(undefined);
-
-        effectFn(() => {
+        useEffect(() => {
             let enumOptionsPromise = new Promise((resolve, reject) => {
                 simulationInfoPromise.then(({simulationId, version}) => {
                     pollStatefulCompute({

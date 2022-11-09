@@ -42,12 +42,10 @@ export class TabLayout extends View<TabsConfig, {}> {
 
         let modelsWrapper = useContext(CModelsWrapper);
 
-        let shownFn = useShown;
-
         for (let tabConfig of tabs) {
             let { name, items: schemaViews, shown: shownConfig } = tabConfig;
 
-            let shown = shownFn(shownConfig, true, modelsWrapper, ValueSelectors.Models);
+            let shown = useShown(shownConfig, true, modelsWrapper, ValueSelectors.Models);
 
             let layoutElements = schemaViews.map((schemaView, idx) => {
                 let ele = this.layoutsWrapper.getLayoutForName(schemaView.layout)

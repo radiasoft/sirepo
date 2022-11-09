@@ -33,10 +33,9 @@ export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutT
         formComponent = (props: LayoutProps<C, P>) => {
             let { config } = props;
     
-            let contextFn = useContext;
-            let formState = contextFn(CFormStateWrapper);
-            let schema = contextFn(CSchema);
-            let modelsWrapper = contextFn(CModelsWrapper);
+            let formState = useContext(CFormStateWrapper);
+            let schema = useContext(CSchema);
+            let modelsWrapper = useContext(CModelsWrapper);
     
             let dependencies = this.getFormDependencies(config);
     
@@ -104,11 +103,9 @@ export class FieldGridLayout extends View<FieldGridConfig, {}> {
             </Row>
         )
 
-        let shownFn = useShown;
-
         for(let idx = 0; idx < rows.length; idx++) {
             let row = rows[idx];
-            let shown = shownFn(row.shown, true, formState, ValueSelectors.Fields);
+            let shown = useShown(row.shown, true, formState, ValueSelectors.Fields);
             let fields = row.fields;
             let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
             let rowElement = shown ? (
