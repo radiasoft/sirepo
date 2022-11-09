@@ -347,6 +347,7 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data, False, for_export=True)
 
 
+#TODO(BG): Write a test for throwing a max face count error
 def validate_file(file_path, path):
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
