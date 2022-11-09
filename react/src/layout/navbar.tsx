@@ -25,22 +25,22 @@ export type NavBarModalButtonConfig = {
     icon: string
 }
 
-export class NavBarModalButton extends View<NavBarModalButtonConfig> {
+export class NavBarModalButton extends View<NavBarModalButtonConfig, {}> {
     getChildLayouts = (config: NavBarModalButtonConfig) => {
         let { modal } = config;
-        return modal.items.map(layoutConfig => {
+        return modal.items.map(schemaView => {
             return {
-                layout: this.layoutsWrapper.getLayoutForName(layoutConfig.layout),
-                config: layoutConfig.config
+                layout: this.layoutsWrapper.getLayoutForName(schemaView.layout),
+                config: schemaView.config
             }
         });
     }
 
-    getFormDependencies = (config) => {
+    getFormDependencies = (config: NavBarModalButtonConfig) => {
         return this.getChildLayouts(config).map(child => child.layout.getFormDependencies(child.config)).flat();
     }
 
-    component = (props: LayoutProps<NavBarModalButtonConfig>) => {
+    component = (props: LayoutProps<NavBarModalButtonConfig, {}>) => {
         let { config } = props;
 
         let formController = useContext(CFormController);
@@ -72,7 +72,7 @@ export class NavBarModalButton extends View<NavBarModalButtonConfig> {
 
         let children = this.getChildLayouts(config).map((child, idx) => {
             let LayoutElement = child.layout.component;
-            return <LayoutElement key={idx} config={child.config.config}></LayoutElement>
+            return <LayoutElement key={idx} config={child.config}></LayoutElement>
         })
 
         let isDirty = formController.isFormStateDirty();
@@ -129,7 +129,7 @@ export type NavTabsConfig = {
     tabs: NavTab[];
 }
 
-export class NavTabsLayout extends View<NavTabsConfig> {
+export class NavTabsLayout extends View<NavTabsConfig, {}> {
     getFormDependencies = (config) => {
         // TODO
         return [];
@@ -138,10 +138,10 @@ export class NavTabsLayout extends View<NavTabsConfig> {
     TabsContent = (props: { tab: NavTab }) => {
         let { tab, ...otherProps } = props;
 
-        let children = tab.items.map((layoutConfig, idx) => {
-            let layout = this.layoutsWrapper.getLayoutForName(layoutConfig.layout);
+        let children = tab.items.map((schemaView, idx) => {
+            let layout = this.layoutsWrapper.getLayoutForName(schemaView.layout);
             let LayoutComponent = layout.component;
-            return <LayoutComponent key={idx} config={layoutConfig.config} {...otherProps}/>
+            return <LayoutComponent key={idx} config={schemaView.config} {...otherProps}/>
         })
 
         return (
@@ -153,7 +153,7 @@ export class NavTabsLayout extends View<NavTabsConfig> {
         );
     }
 
-    TabsSwitcher = (props: LayoutProps<NavTabsConfig>) => {
+    TabsSwitcher = (props: LayoutProps<NavTabsConfig, {}>) => {
         let { config } = props;
         let { tabs } = config;
 
@@ -195,7 +195,7 @@ export class NavTabsLayout extends View<NavTabsConfig> {
         )
     }
 
-    component = (props: LayoutProps<NavTabsConfig>) => {
+    component = (props: LayoutProps<NavTabsConfig, {}>) => {
         let { config } = props;
         let { tabs } = config;
 

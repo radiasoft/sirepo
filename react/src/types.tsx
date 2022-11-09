@@ -183,10 +183,10 @@ export class rsFile extends rsType {
 
         let [modalShown, updateModalShown] = stateFn(false);
         let modal = this.inspectModal ? {
-            items: this.inspectModal.config.items.map((config, idx) => {
-                let layout = layoutsWrapper.getLayoutForName(config.layout);
+            items: this.inspectModal.config.items.map((schemaView: SchemaView, idx: number) => {
+                let layout = layoutsWrapper.getLayoutForName(schemaView.layout);
                 let Component = layout.component;
-                return <Component key={idx} config={config.config}/>
+                return <Component key={idx} config={schemaView.config}/>
             }),
             title: interpStrFn(modelsWrapper, this.inspectModal.config.title, ValueSelectors.Models)
         } : undefined;

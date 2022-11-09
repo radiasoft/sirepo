@@ -66,12 +66,15 @@ export function apiResponseToGraph2dConfig(cfg: Graph2dConfigApi): Graph2dConfig
     }
 }
 
-export class Graph2dFromApi extends View<undefined> {
-    getFormDependencies = (config) => {
+export type Graph2dExtraProps = {
+    simulationData: Graph2dConfigApi
+}
+export class Graph2dFromApi extends View<undefined, Graph2dExtraProps> {
+    getFormDependencies = (config: undefined) => {
         return [];
     }
 
-    component = (props: LayoutProps<undefined> & { simulationData: Graph2dConfigApi }) => {
+    component = (props: LayoutProps<undefined, Graph2dExtraProps>) => {
         let { simulationData } = props;
 
         let config = apiResponseToGraph2dConfig(simulationData);

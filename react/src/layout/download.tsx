@@ -9,20 +9,20 @@ import { CPanelController } from "../data/panel";
 import { LayoutProps, LayoutType, View } from "./layout";
 import { LayoutWrapper } from "./layouts";
 
-export function LayoutWithDownloadButton<P>(Child: LayoutType<P>): LayoutType<P> {
-    return class extends View<P> {
-        child: View<P>;
+export function LayoutWithDownloadButton<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
+    return class extends View<C, P> {
+        child: View<C, P>;
 
         constructor(layoutWrapper: LayoutWrapper) {
             super(layoutWrapper);
             this.child = new Child(layoutWrapper);
         }
 
-        getFormDependencies(config: P) {
+        getFormDependencies(config: C) {
             return this.child.getFormDependencies(config);
         }
 
-        component = (props: LayoutProps<P>) => {
+        component = (props: LayoutProps<C, P>) => {
             let ChildComponent = this.child.component;
             let DownloadWrapper = this.downloadWrapper;
             return (
@@ -32,7 +32,7 @@ export function LayoutWithDownloadButton<P>(Child: LayoutType<P>): LayoutType<P>
             )
         }
 
-        downloadWrapper = (props) => {
+        downloadWrapper = (props: LayoutProps<C, P> & { children: any }) => {
             let portalFn = usePortal;
             let contextFn = useContext;
             let refFn = useRef;

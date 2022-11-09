@@ -1,21 +1,21 @@
 import React from "react";
 import { Dependency } from "../data/dependency";
-import { LayoutType, View } from "./layout";
+import { LayoutProps, LayoutType, View } from "./layout";
 
-export function LayoutWithSpacing<P>(Child: LayoutType<P>): LayoutType<P> {
-    return class extends View<P> {
-        child: View<P>;
+export function LayoutWithSpacing<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
+    return class extends View<C, P> {
+        child: View<C, P>;
         constructor(layoutsWrapper) {
             super(layoutsWrapper);
             this.child = new Child(layoutsWrapper);
         }
 
 
-        getFormDependencies(config: P): Dependency[] {
+        getFormDependencies(config: C): Dependency[] {
             return this.child.getFormDependencies(config);
         }
 
-        component = (props) => {
+        component = (props: LayoutProps<C, P>) => {
             let ChildComponent = this.child.component;
             return (
                 <div className="sr-form-layout">

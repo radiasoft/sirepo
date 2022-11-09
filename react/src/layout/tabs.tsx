@@ -17,21 +17,21 @@ export type TabsConfig = {
     tabs: TabConfig[]
 }
 
-export class TabLayout extends View<TabsConfig> {
+export class TabLayout extends View<TabsConfig, {}> {
     getFormDependencies = (config: TabsConfig) => {
         let fields = [];
 
         for (let tab of config.tabs) {
-            for (let layoutConfig of tab.items) {
-                let ele = this.layoutsWrapper.getLayoutForName(layoutConfig.layout);
-                fields.push(...ele.getFormDependencies(layoutConfig, this.layoutsWrapper));
+            for (let schemaView of tab.items) {
+                let ele = this.layoutsWrapper.getLayoutForName(schemaView.layout);
+                fields.push(...ele.getFormDependencies(schemaView.config));
             }
         }
 
         return fields;
     }
 
-    component = (props: LayoutProps<TabsConfig>) => {
+    component = (props: LayoutProps<TabsConfig, {}>) => {
         let { config } = props;
 
         let tabs = config.tabs;
@@ -45,14 +45,14 @@ export class TabLayout extends View<TabsConfig> {
         let shownFn = useShown;
 
         for (let tabConfig of tabs) {
-            let { name, items: layoutConfigs, shown: shownConfig } = tabConfig;
+            let { name, items: schemaViews, shown: shownConfig } = tabConfig;
 
             let shown = shownFn(shownConfig, true, modelsWrapper, ValueSelectors.Models);
 
-            let layoutElements = layoutConfigs.map((layoutConfig, idx) => {
-                let ele = this.layoutsWrapper.getLayoutForName(layoutConfig.layout)
+            let layoutElements = schemaViews.map((schemaView, idx) => {
+                let ele = this.layoutsWrapper.getLayoutForName(schemaView.layout)
                 let LayoutElement = ele.component;
-                return <LayoutElement key={idx} config={layoutConfig.config}></LayoutElement>
+                return <LayoutElement key={idx} config={schemaView.config}></LayoutElement>
             })
             firstTabKey = firstTabKey || name;
             tabEls.push(

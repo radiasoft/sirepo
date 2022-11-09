@@ -33,12 +33,16 @@ export type TableFromApiConfig = {
     dataAttributeName: string
 }
 
-export class TableFromApi extends View<TableFromApiConfig> {
+export type TableFromApiExtraProps = {
+    simulationData: any
+}
+
+export class TableFromApi extends View<TableFromApiConfig, TableFromApiExtraProps> {
     getFormDependencies = (config: TableFromApiConfig) => {
         return [];
     }
 
-    component = (props: LayoutProps<TableFromApiConfig> & { simulationData: any }) => {
+    component = (props: LayoutProps<TableFromApiConfig, TableFromApiExtraProps>) => {
         let { simulationData, config } = props;
 
         let { dataAttributeName } = config;

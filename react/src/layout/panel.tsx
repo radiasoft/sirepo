@@ -17,24 +17,24 @@ export type PanelConfig = {
     title: string
 }
 
-export class PanelLayout extends View<PanelConfig> {
-    getChildLayoutByConfig = (layoutConfig) => {
+export class PanelLayout extends View<PanelConfig, {}> {
+    getChildLayoutByConfig = (schemaView: SchemaView) => {
         return {
-            layout: this.layoutsWrapper.getLayoutForName(layoutConfig.layout),
-            config: layoutConfig.config
+            layout: this.layoutsWrapper.getLayoutForName(schemaView.layout),
+            config: schemaView.config
         }
     }
 
-    getChildLayouts = (config) => {
+    getChildLayouts = (config: PanelConfig): any[] => {
         let { basic, advanced } = config;
         return [...(basic || []), ...(advanced || [])].map(this.getChildLayoutByConfig);
     }
 
-    getFormDependencies = (config) => {
+    getFormDependencies = (config: PanelConfig) => {
         return this.getChildLayouts(config).map(childLayout => childLayout.layout.getFormDependencies(childLayout.config)).flat();
     }
 
-    component = (props: LayoutProps<PanelConfig>) => {
+    component = (props: LayoutProps<PanelConfig, {}>) => {
         let { config } = props;
         let { basic, advanced } = config;
 
@@ -51,9 +51,9 @@ export class PanelLayout extends View<PanelConfig> {
 
         let title = useInterpolatedString(modelsWrapper, config.title, ValueSelectors.Models);
 
-        let mapLayoutConfigsToElements = (layoutConfigs) => layoutConfigs.map(this.getChildLayoutByConfig).map((child, idx) => {
+        let mapLayoutConfigsToElements = (schemaViews: SchemaView[]) => schemaViews.map(this.getChildLayoutByConfig).map((child, idx) => {
             let LayoutComponent = child.layout.component;
-            return <LayoutComponent key={idx} config={child.config.config}></LayoutComponent>;
+            return <LayoutComponent key={idx} config={child.config}></LayoutComponent>;
         });
 
         let mainChildren = (!!basic) ? mapLayoutConfigsToElements(basic) : undefined;

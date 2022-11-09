@@ -10,6 +10,7 @@ import { NavBarModalButton, NavTabsLayout } from "./navbar";
 import { TableFromApi } from "./table";
 import { LayoutWithDownloadButton } from "./download";
 import React from "react";
+import { View } from "./layout";
 
 export const CLayouts = React.createContext<LayoutWrapper>(undefined);
 
@@ -34,7 +35,7 @@ export class LayoutWrapper {
         
     }
 
-    getLayoutForName = (layoutName: string) => {
+    getLayoutForName = <C, P>(layoutName: string): View<C, P> => {
         let layout = this.layouts[layoutName];
 
         if(!layout) {

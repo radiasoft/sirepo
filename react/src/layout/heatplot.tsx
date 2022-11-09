@@ -45,12 +45,16 @@ function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotCo
     }
 }
 
-export class HeatplotFromApi extends View<undefined> {
+export type HeatplotExtraProps = {
+    simulationData: HeatplotConfigApi
+}
+
+export class HeatplotFromApi extends View<undefined, HeatplotExtraProps> {
     getFormDependencies = (config: undefined) => {
         return [];
     }
 
-    component = (props: { simulationData: HeatplotConfigApi } & LayoutProps<undefined>) => {
+    component = (props: LayoutProps<undefined, HeatplotExtraProps>) => {
         let { simulationData } = props;
 
         let config = apiResponseToHeatplotConfig(simulationData);

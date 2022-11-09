@@ -26,14 +26,14 @@ export type AutoRunReportConfig = {
     dependencies: string[]
 }
 
-export class AutoRunReportLayout extends View<AutoRunReportConfig> {
+export class AutoRunReportLayout extends View<AutoRunReportConfig, {}> {
     getFormDependencies = (config: AutoRunReportConfig) => {
-        let { reportLayout } = config;
-        let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
-        return layoutElement.getFormDependencies();
+        let { reportLayout: schemaView } = config;
+        let layoutElement = this.layoutsWrapper.getLayoutForName(schemaView.layout);
+        return layoutElement.getFormDependencies(schemaView.config);
     }
 
-    component = (props: LayoutProps<AutoRunReportConfig>) => {
+    component = (props: LayoutProps<AutoRunReportConfig, {}>) => {
         let { config } = props;
         let { report, reportLayout, dependencies } = config;
 
@@ -99,14 +99,14 @@ export type ManualRunReportConfig = {
     frameCountFieldName: string
 }
 
-export class ManualRunReportLayout extends View<ManualRunReportConfig> {
+export class ManualRunReportLayout extends View<ManualRunReportConfig, {}> {
     getFormDependencies = (config: ManualRunReportConfig) => {
         let { reportLayout } = config;
         let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
-        return layoutElement.getFormDependencies();
+        return layoutElement.getFormDependencies(reportLayout.config);
     }
 
-    component = (props: LayoutProps<ManualRunReportConfig>) => {
+    component = (props: LayoutProps<ManualRunReportConfig, {}>) => {
         let { config } = props;
         let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig, frameCountFieldName } = config;
         
@@ -169,7 +169,7 @@ export class ManualRunReportLayout extends View<ManualRunReportConfig> {
     }
 }
 
-export function ReportAnimationController(props) {
+export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayoutConfig: SchemaView, shown: boolean}) {
     let { animationReader, reportLayoutConfig, shown } = props;
     let layoutsWrapper = useContext(CLayouts);
     let layoutElement = layoutsWrapper.getLayoutForName(reportLayoutConfig.layout);
@@ -249,12 +249,12 @@ export type SimulationStartConfig = {
     reportGroupName: string
 }
 
-export class SimulationStartLayout extends View<SimulationStartConfig> {
+export class SimulationStartLayout extends View<SimulationStartConfig, {}> {
     getFormDependencies = (config: SimulationStartConfig) => {
         return [];
     }
 
-    component = (props: LayoutProps<SimulationStartConfig>) => {
+    component = (props: LayoutProps<SimulationStartConfig, {}>) => {
         let { config } = props;
         let { reportGroupName } = config;
 

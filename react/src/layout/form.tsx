@@ -17,20 +17,20 @@ import { CSchema } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
 import { LayoutWrapper } from "./layouts";
 
-export function LayoutWithFormController<P>(Child: LayoutType<P>): LayoutType<P> {
-    return class extends View<P> {
-        child: View<P>;
+export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
+    return class extends View<C, P> {
+        child: View<C, P>;
 
         constructor(layoutWrapper: LayoutWrapper) {
             super(layoutWrapper);
             this.child = new Child(layoutWrapper);
         }
 
-        getFormDependencies(config: P): Dependency[] {
+        getFormDependencies(config: C): Dependency[] {
             return this.child.getFormDependencies(config);
         }
 
-        formComponent = (props) => {
+        formComponent = (props: LayoutProps<C, P>) => {
             let { config } = props;
     
             let contextFn = useContext;
@@ -49,7 +49,7 @@ export function LayoutWithFormController<P>(Child: LayoutType<P>): LayoutType<P>
             )
         };
 
-        component: React.FunctionComponent<{ config: P; }> = (props) => {
+        component: React.FunctionComponent<LayoutProps<C, P>> = (props) => {
             let ChildComponent = this.child.component;
             let FormComponent = this.formComponent;
             return (
@@ -73,8 +73,8 @@ export type FieldGridConfig = {
     rows: FieldGridRow[]
 }
 
-export class FieldGridLayout extends View<FieldGridConfig> {
-    getFormDependencies = (config) => {
+export class FieldGridLayout extends View<FieldGridConfig, {}> {
+    getFormDependencies = (config: FieldGridConfig) => {
         let fields = [];
         for(let row of config.rows) {
             fields.push(...(row.fields));
@@ -82,7 +82,7 @@ export class FieldGridLayout extends View<FieldGridConfig> {
         return fields.map(f => new Dependency(f));
     }
 
-    component = (props: LayoutProps<FieldGridConfig>) => {
+    component = (props: LayoutProps<FieldGridConfig, {}>) => {
         let { config } = props;
 
         let formController = useContext(CFormController);
@@ -145,12 +145,12 @@ export type FieldListConfig = {
     fields: string[]
 }
 
-export class FieldListLayout extends View<FieldListConfig> {
-    getFormDependencies = (config) => {
+export class FieldListLayout extends View<FieldListConfig, {}> {
+    getFormDependencies = (config: FieldListConfig) => {
         return (config.fields || []).map(f => new Dependency(f));
     }
 
-    component = (props: LayoutProps<FieldListConfig>) => {
+    component = (props: LayoutProps<FieldListConfig, {}>) => {
         let { config } = props;
 
         let formController = useContext(CFormController);
