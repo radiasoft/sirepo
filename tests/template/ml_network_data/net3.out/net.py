@@ -42,3 +42,4 @@ x = Conv2D(10,
 
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
+model.save('unweighted.h5')

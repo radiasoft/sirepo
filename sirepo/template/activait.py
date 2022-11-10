@@ -51,6 +51,8 @@ _OUTPUT_FILE = PKDict(
     fitCSVFile="fit.csv",
     predictFile="predict.npy",
     scaledFile="scaled.npy",
+    mlModel="weighted.h5",
+    neuralNetLayer="unweighted.h5",
     testFile="test.npy",
     trainFile="train.npy",
     validateFile="validate.npy",
@@ -120,6 +122,12 @@ def get_analysis_report(run_dir, data):
         elif report.action == "cluster":
             fields.clusters = _compute_clusters(report, plot_data)
     return x, plots, f"{x_label} vs {y_label}", fields, summary_data
+
+
+def get_data_file(run_dir, model, frame, options):
+    if model == "animation":
+        return _OUTPUT_FILE[options.suffix]
+    raise AssertionError(f"Unknown model={model}")
 
 
 # TODO(MVK): 2d fft (?)
@@ -469,6 +477,7 @@ input_args = Input(shape=input_shape)
 {_build_layers(net)}
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
+model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
 
 
@@ -808,6 +817,7 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
+    v.weightedFile = _OUTPUT_FILE.mlModel
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
