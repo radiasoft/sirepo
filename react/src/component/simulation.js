@@ -15,10 +15,10 @@ import { useResolvedPath } from "react-router-dom";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";
 import { SrNavbar } from "./reusable/navbar";
-import { CReportEventManager } from "../data/report"; 
-import { CLayouts } from "../layout/layouts";
+import { CReportEventManager } from "../data/report";
 import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { LAYOUTS } from "../layout/layouts";
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;
@@ -91,15 +91,13 @@ export function SimulationOuter(props) {
 export function SimulationRoot(props) {
     let { simulation } = props;
 
-    let layouts = useContext(CLayouts);
-
     let schema = useContext(CSchema);
 
     let viewComponents = schema.views.map((schemaView, index) => {
-        let layout = layouts.getLayoutForName(schemaView.layout);
+        let layout = LAYOUTS.getLayoutForSchemaView(schemaView);
         let Component = layout.component;
         return (
-            <Component config={schemaView.config} key={index}></Component>
+            <Component key={index}></Component>
         )
     });
 

@@ -15,29 +15,31 @@ import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
 import { useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
-import { LayoutWrapper } from "./layouts";
 
 export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
-    return class extends View<C, P> {
-        child: View<C, P>;
+    return class extends Child {
+        constructor(config: C) {
+            super(config);
 
-        constructor(layoutWrapper: LayoutWrapper) {
-            super(layoutWrapper);
-            this.child = new Child(layoutWrapper);
+            let childComponent = this.component;
+
+            this.component = (props) => {
+                let ChildComponent = childComponent;
+                let FormComponent = this.formComponent;
+                return (
+                    <FormComponent {...props}>
+                        <ChildComponent {...props}/>
+                    </FormComponent>
+                )
+            };
         }
 
-        getFormDependencies(config: C): Dependency[] {
-            return this.child.getFormDependencies(config);
-        }
-
-        formComponent = (props: LayoutProps<C, P>) => {
-            let { config } = props;
-    
+        formComponent = (props: LayoutProps<P>) => {
             let formState = useContext(CFormStateWrapper);
             let schema = useContext(CSchema);
             let modelsWrapper = useContext(CModelsWrapper);
     
-            let dependencies = this.getFormDependencies(config);
+            let dependencies = this.getFormDependencies();
     
             let formController = new FormController(formState, modelsWrapper, dependencies, schema);
     
@@ -46,17 +48,7 @@ export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutT
                     { props.children }
                 </CFormController.Provider>
             )
-        };
-
-        component: React.FunctionComponent<LayoutProps<C, P>> = (props) => {
-            let ChildComponent = this.child.component;
-            let FormComponent = this.formComponent;
-            return (
-                <FormComponent {...props}>
-                    <ChildComponent {...props}/>
-                </FormComponent>
-            )
-        };
+        };        
     };
 }
 
@@ -73,24 +65,22 @@ export type FieldGridConfig = {
 }
 
 export class FieldGridLayout extends View<FieldGridConfig, {}> {
-    getFormDependencies = (config: FieldGridConfig) => {
+    getFormDependencies = () => {
         let fields = [];
-        for(let row of config.rows) {
+        for(let row of this.config.rows) {
             fields.push(...(row.fields));
         }
         return fields.map(f => new Dependency(f));
     }
 
-    component = (props: LayoutProps<FieldGridConfig, {}>) => {
-        let { config } = props;
-
+    component = (props: LayoutProps<{}>) => {
         let formController = useContext(CFormController);
         let formState = useContext(CFormStateWrapper);
         let schema = useContext(CSchema);
         let store = useStore();
 
-        let columns = config.columns;
-        let rows = config.rows;
+        let columns = this.config.columns;
+        let rows = this.config.rows;
 
         let els = [];
 
@@ -143,19 +133,17 @@ export type FieldListConfig = {
 }
 
 export class FieldListLayout extends View<FieldListConfig, {}> {
-    getFormDependencies = (config: FieldListConfig) => {
-        return (config.fields || []).map(f => new Dependency(f));
+    getFormDependencies = () => {
+        return (this.config.fields || []).map(f => new Dependency(f));
     }
 
-    component = (props: LayoutProps<FieldListConfig, {}>) => {
-        let { config } = props;
-
+    component = (props: LayoutProps<{}>) => {
         let formController = useContext(CFormController);
         let formState = useContext(CFormStateWrapper);
         let schema = useContext(CSchema);
         let store = useStore();
 
-        let fields = config.fields;
+        let fields = this.config.fields;
 
         return <Container>
             {fields.map((fieldDepString, idx) => {

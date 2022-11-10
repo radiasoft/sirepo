@@ -8,10 +8,10 @@ import "./types.scss"
 import { downloadAs } from "./utility/download";
 import { useInterpolatedString, ValueSelectors } from "./hook/string";
 import { SchemaView } from "./utility/schema";
-import { CLayouts } from "./layout/layouts";
 import { CModelsWrapper } from "./data/wrapper";
 import { Dependency } from "./data/dependency";
 import { CAppName, CSimulationInfoPromise } from "./data/appwrapper";
+import { LAYOUTS } from "./layout/layouts";
 
 export type InputComponentProps = {
     valid: boolean,
@@ -173,15 +173,14 @@ export class rsFile extends rsType {
 
         let appName = useContext(CAppName);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
-        let layoutsWrapper = useContext(CLayouts);
         let modelsWrapper = useContext(CModelsWrapper);
 
         let [modalShown, updateModalShown] = useState(false);
         let modal = this.inspectModal ? {
             items: this.inspectModal.items.map((schemaView: SchemaView, idx: number) => {
-                let layout = layoutsWrapper.getLayoutForName(schemaView.layout);
+                let layout = LAYOUTS.getLayoutForSchemaView(schemaView);
                 let Component = layout.component;
-                return <Component key={idx} config={schemaView.config}/>
+                return <Component key={idx}/>
             }),
             title: useInterpolatedString(modelsWrapper, this.inspectModal.title, ValueSelectors.Models)
         } : undefined;

@@ -5,7 +5,6 @@ import { formStatesSlice } from "../store/formState";
 import { useSetup } from "../hook/setup";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "../component/simbrowser";
-import { CLayouts, LayoutWrapper } from "../layout/layouts";
 import "./app.scss";
 import { AppWrapper, CAppName, CSchema, CSimulationList } from "../data/appwrapper";
 
@@ -28,11 +27,9 @@ export const AppRoot = (props) => {
         return (
             <Provider store={formStateStore}>
                 <CSchema.Provider value={schema}>
-                    <CLayouts.Provider value={new LayoutWrapper()}>
-                        <CSimulationList.Provider value={simulationList}>
-                            <SimulationBrowserRoot></SimulationBrowserRoot>
-                        </CSimulationList.Provider>
-                    </CLayouts.Provider>
+                    <CSimulationList.Provider value={simulationList}>
+                        <SimulationBrowserRoot></SimulationBrowserRoot>
+                    </CSimulationList.Provider>
                 </CSchema.Provider>
             </Provider>
         )

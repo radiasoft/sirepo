@@ -1,7 +1,13 @@
 import "./table.scss";
 import React from "react";
 
-export function Table(props) {
+export type TableConfig = {
+    rows: number[][],
+    columnNames: string[],
+    rowNames: string[]
+}
+
+export function Table(props: TableConfig) {
     let { rows, columnNames, rowNames } = props;
 
     let hasRowNames = rowNames && rowNames.length > 0;

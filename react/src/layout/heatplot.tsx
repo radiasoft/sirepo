@@ -4,6 +4,7 @@
 import { Heatplot, HeatPlotConfig } from "../component/reusable/heatplot";
 import { LayoutProps, View } from "./layout";
 import React from "react";
+import { ReportVisual, ReportVisualProps } from "./report";
 
 export type HeatplotConfigApi = {
     title: string,
@@ -15,6 +16,8 @@ export type HeatplotConfigApi = {
 }
 
 function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotConfig {
+    if(!apiResponse) return undefined;
+
     let {
         title,
         x_label: xLabel,
@@ -45,22 +48,24 @@ function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotCo
     }
 }
 
-export type HeatplotExtraProps = {
-    simulationData: HeatplotConfigApi
-}
+export class HeatplotFromApi extends ReportVisual<undefined, {}, HeatplotConfigApi, HeatPlotConfig> {
+    getConfigFromApiResponse(apiReponse: HeatplotConfigApi): HeatPlotConfig {
+        return apiResponseToHeatplotConfig(apiReponse);
+    }
 
-export class HeatplotFromApi extends View<undefined, HeatplotExtraProps> {
-    getFormDependencies = (config: undefined) => {
+    canShow(apiResponse: HeatplotConfigApi): boolean {
+        return !!this.getConfigFromApiResponse(apiResponse);
+    }
+
+    getFormDependencies = () => {
         return [];
     }
 
-    component = (props: LayoutProps<undefined, HeatplotExtraProps>) => {
-        let { simulationData } = props;
-
-        let config = apiResponseToHeatplotConfig(simulationData);
+    component = (props: LayoutProps<{}> & ReportVisualProps<HeatPlotConfig>) => {
+        let { data } = props;
 
         return (
-            <>{config && <Heatplot {...config} {...props}/>}</>
+            <>{data && <Heatplot {...data} {...props}/>}</>
         )
     }
 }

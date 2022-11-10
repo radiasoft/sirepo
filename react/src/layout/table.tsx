@@ -1,12 +1,15 @@
 import React from "react";
-import { Table } from "../component/reusable/table";
+import { Table, TableConfig } from "../component/reusable/table";
 import { LayoutProps, View }from "./layout";
+import { ReportVisual, ReportVisualProps } from "./report";
 
 export type TableConfigApi = [
     [string, number[]]
 ]
 
-function apiResponseToTableConfig(apiResponse: any, attributeName: string) {
+function apiResponseToTableConfig(apiResponse: any, attributeName: string): TableConfig {
+    if(!apiResponse) return undefined;
+
     let data = apiResponse[attributeName || 'data'] as TableConfigApi;
 
     if(!data) {
@@ -33,19 +36,23 @@ export type TableFromApiConfig = {
     dataAttributeName: string
 }
 
-export type TableFromApiExtraProps = {
-    simulationData: any
-}
+export class TableFromApi extends ReportVisual<TableFromApiConfig, {}, TableConfigApi, TableConfig> {
+    getConfigFromApiResponse(apiReponse: TableConfigApi): TableConfig {
+        return apiResponseToTableConfig(apiReponse, this.config.dataAttributeName);
+    }
 
-export class TableFromApi extends View<TableFromApiConfig, TableFromApiExtraProps> {
-    getFormDependencies = (config: TableFromApiConfig) => {
+    canShow(apiResponse: TableConfigApi): boolean {
+        return !!this.getConfigFromApiResponse(apiResponse);
+    }
+
+    getFormDependencies = () => {
         return [];
     }
 
-    component = (props: LayoutProps<TableFromApiConfig, TableFromApiExtraProps>) => {
-        let { simulationData, config } = props;
+    component = (props: LayoutProps<{}> & ReportVisualProps<TableConfig>) => {
+        let { simulationData } = props;
 
-        let { dataAttributeName } = config;
+        let { dataAttributeName } = this.config;
 
         let tableConfig = apiResponseToTableConfig(simulationData, dataAttributeName);
 

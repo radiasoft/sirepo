@@ -1,4 +1,3 @@
-import { Button } from "react-bootstrap";
 import usePortal from "react-useportal";
 import React, { useContext, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -6,35 +5,28 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import html2canvas from 'html2canvas';
 import { downloadAs } from "../utility/download";
 import { CPanelController } from "../data/panel";
-import { LayoutProps, LayoutType, View } from "./layout";
-import { LayoutWrapper } from "./layouts";
+import { LayoutProps, LayoutType } from "./layout";
 
-export function LayoutWithDownloadButton<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
-    return class extends View<C, P> {
-        child: View<C, P>;
+export function LayoutWithDownloadButton<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {    
+    return class extends Child {
+        constructor(config: C) {
+            super(config);
 
-        constructor(layoutWrapper: LayoutWrapper) {
-            super(layoutWrapper);
-            this.child = new Child(layoutWrapper);
+            let childComponent = this.component;
+            this.component = (props: LayoutProps<P>) => {
+                let ChildComponent = childComponent;
+                let DownloadWrapper = this.downloadWrapper;
+                return (
+                    <DownloadWrapper {...props}>
+                        <ChildComponent {...props}/>
+                    </DownloadWrapper>
+                )
+            }
         }
 
-        getFormDependencies(config: C) {
-            return this.child.getFormDependencies(config);
-        }
-
-        component = (props: LayoutProps<C, P>) => {
-            let ChildComponent = this.child.component;
-            let DownloadWrapper = this.downloadWrapper;
-            return (
-                <DownloadWrapper {...props}>
-                    <ChildComponent {...props}/>
-                </DownloadWrapper>
-            )
-        }
-
-        downloadWrapper = (props: LayoutProps<C, P> & { children: any }) => {
+        downloadWrapper = (props: LayoutProps<P> & { children: any }) => {
             let panelController = useContext(CPanelController);
-            
+
             if(panelController) {
                 let contentRef = useRef();
                 let { Portal: ButtonPortal, portalRef } = usePortal({

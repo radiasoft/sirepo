@@ -1,19 +1,18 @@
 import React from "react";
 import { Dependency } from "../data/dependency";
-import { LayoutWrapper } from "./layouts";
 
-export type LayoutType<C, P> = new(layoutWrapper: LayoutWrapper) => View<C, P>
+export type LayoutType<C = unknown, P = unknown, V extends View<C, P> = any> = new(config: C) => V
 
-export type LayoutProps<C, P> = { config: C } & P & { [key: string]: any };
+export type LayoutProps<P> = P & { [key: string]: any };
 
-export abstract class View<C, P> {
+export abstract class View<C = unknown, P = unknown> {
     name: string;
 
-    constructor(public layoutsWrapper: LayoutWrapper) {
+    constructor(protected config: C) {
         this.name = this.constructor.name; // this probably will always return 'View' with typescript
     }
 
-    abstract getFormDependencies(config: C): Dependency[];
+    abstract getFormDependencies(): Dependency[];
 
-    component: React.FunctionComponent<LayoutProps<C, P>>;
+    component: React.FunctionComponent<LayoutProps<P>>;
 }

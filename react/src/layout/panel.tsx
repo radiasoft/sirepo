@@ -10,6 +10,7 @@ import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaView } from "../utility/schema";
+import { LAYOUTS } from "./layouts";
 
 export type PanelConfig = {
     basic: SchemaView[],
@@ -18,29 +19,17 @@ export type PanelConfig = {
 }
 
 export class PanelLayout extends View<PanelConfig, {}> {
-    getChildLayoutByConfig = (schemaView: SchemaView) => {
-        return {
-            layout: this.layoutsWrapper.getLayoutForName(schemaView.layout),
-            config: schemaView.config
-        }
+    getChildLayouts = (): View<unknown, unknown>[] => {
+        let { basic, advanced } = this.config;
+        return [...(basic || []), ...(advanced || [])].map(LAYOUTS.getLayoutForSchemaView);
     }
 
-    getChildLayouts = (config: PanelConfig): any[] => {
-        let { basic, advanced } = config;
-        return [...(basic || []), ...(advanced || [])].map(this.getChildLayoutByConfig);
+    getFormDependencies = () => {
+        return this.getChildLayouts().map(childLayout => childLayout.getFormDependencies()).flat();
     }
 
-    getFormDependencies = (config: PanelConfig) => {
-        return this.getChildLayouts(config).map(childLayout => childLayout.layout.getFormDependencies(childLayout.config)).flat();
-    }
-
-    component = (props: LayoutProps<PanelConfig, {}>) => {
-        let { config } = props;
-        let { basic, advanced } = config;
-
-        if(!config) {
-            throw new Error("view missing config: " + this.name);
-        }
+    component = (props: LayoutProps<{}>) => {
+        let { basic, advanced } = this.config;
 
         let modelsWrapper = useContext(CModelsWrapper);
         let formController = useContext(CFormController);
@@ -49,11 +38,11 @@ export class PanelLayout extends View<PanelConfig, {}> {
 
         let store = useStore();
 
-        let title = useInterpolatedString(modelsWrapper, config.title, ValueSelectors.Models);
+        let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
 
-        let mapLayoutConfigsToElements = (schemaViews: SchemaView[]) => schemaViews.map(this.getChildLayoutByConfig).map((child, idx) => {
-            let LayoutComponent = child.layout.component;
-            return <LayoutComponent key={idx} config={child.config}></LayoutComponent>;
+        let mapLayoutConfigsToElements = (schemaViews: SchemaView[]) => schemaViews.map(LAYOUTS.getLayoutForSchemaView).map((child, idx) => {
+            let LayoutComponent = child.component;
+            return <LayoutComponent key={idx}></LayoutComponent>;
         });
 
         let mainChildren = (!!basic) ? mapLayoutConfigsToElements(basic) : undefined;

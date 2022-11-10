@@ -15,6 +15,7 @@ import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaView } from "../utility/schema";
+import { LAYOUTS } from "./layouts";
 
 export type NavBarModalButtonConfig = {
     modal: {
@@ -26,29 +27,23 @@ export type NavBarModalButtonConfig = {
 }
 
 export class NavBarModalButton extends View<NavBarModalButtonConfig, {}> {
-    getChildLayouts = (config: NavBarModalButtonConfig) => {
-        let { modal } = config;
-        return modal.items.map(schemaView => {
-            return {
-                layout: this.layoutsWrapper.getLayoutForName(schemaView.layout),
-                config: schemaView.config
-            }
+    getChildLayouts = () => {
+        return this.config.modal.items.map(schemaView => {
+            return LAYOUTS.getLayoutForSchemaView(schemaView);
         });
     }
 
-    getFormDependencies = (config: NavBarModalButtonConfig) => {
-        return this.getChildLayouts(config).map(child => child.layout.getFormDependencies(child.config)).flat();
+    getFormDependencies = () => {
+        return this.getChildLayouts().map(child => child.getFormDependencies()).flat();
     }
 
-    component = (props: LayoutProps<NavBarModalButtonConfig, {}>) => {
-        let { config } = props;
-
+    component = (props: LayoutProps<{}>) => {
         let formController = useContext(CFormController);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let modelsWrapper = useContext(CModelsWrapper);
 
-        let title = useInterpolatedString(modelsWrapper, config.title, ValueSelectors.Models);
-        let modalTitle = useInterpolatedString(modelsWrapper, config.modal.title, ValueSelectors.Models);
+        let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
+        let modalTitle = useInterpolatedString(modelsWrapper, this.config.modal.title, ValueSelectors.Models);
 
         let [modalShown, updateModalShown] = useState(false);
 
@@ -70,9 +65,9 @@ export class NavBarModalButton extends View<NavBarModalButtonConfig, {}> {
             })
         }
 
-        let children = this.getChildLayouts(config).map((child, idx) => {
-            let LayoutElement = child.layout.component;
-            return <LayoutElement key={idx} config={child.config}></LayoutElement>
+        let children = this.getChildLayouts().map((child, idx) => {
+            let LayoutElement = child.component;
+            return <LayoutElement key={idx}></LayoutElement>
         })
 
         let isDirty = formController.isFormStateDirty();
@@ -88,7 +83,7 @@ export class NavBarModalButton extends View<NavBarModalButtonConfig, {}> {
             portalRef.current.classList.add("col");
         }
 
-        let { icon } = config;
+        let { icon } = this.config;
         let iconElement = undefined;
         if(icon && icon != "") {
             iconElement = <FontAwesomeIcon fixedWidth icon={Icon[icon]}></FontAwesomeIcon>;
@@ -130,7 +125,7 @@ export type NavTabsConfig = {
 }
 
 export class NavTabsLayout extends View<NavTabsConfig, {}> {
-    getFormDependencies = (config) => {
+    getFormDependencies = () => {
         // TODO
         return [];
     }
@@ -139,9 +134,9 @@ export class NavTabsLayout extends View<NavTabsConfig, {}> {
         let { tab, ...otherProps } = props;
 
         let children = tab.items.map((schemaView, idx) => {
-            let layout = this.layoutsWrapper.getLayoutForName(schemaView.layout);
+            let layout = LAYOUTS.getLayoutForSchemaView(schemaView);
             let LayoutComponent = layout.component;
-            return <LayoutComponent key={idx} config={schemaView.config} {...otherProps}/>
+            return <LayoutComponent key={idx} {...otherProps}/>
         })
 
         return (
@@ -153,10 +148,7 @@ export class NavTabsLayout extends View<NavTabsConfig, {}> {
         );
     }
 
-    TabsSwitcher = (props: LayoutProps<NavTabsConfig, {}>) => {
-        let { config } = props;
-        let { tabs } = config;
-
+    TabsSwitcher = (props: LayoutProps<{}>) => {
         let { tabName: selectedTabName } = useParams();
 
         let modelsWrapper = useContext(CModelsWrapper);
@@ -171,7 +163,7 @@ export class NavTabsLayout extends View<NavTabsConfig, {}> {
                 <NavbarPortal>
                     <Nav variant="tabs" defaultActiveKey={selectedTabName}>
                         {
-                            tabs.map(tab => {
+                            this.config.tabs.map(tab => {
                                 let route = routerHelper.getRelativePath(tab.name);
                                 return (
                                     <Nav.Item key={tab.name}>
@@ -185,7 +177,7 @@ export class NavTabsLayout extends View<NavTabsConfig, {}> {
                     </Nav>
                 </NavbarPortal>
                 {
-                    tabs.map(tab => (
+                    this.config.tabs.map(tab => (
                         <div key={tab.name} style={tab.name !== selectedTabName ? { display: 'none' } : undefined}>
                             <this.TabsContent key={tab.name} tab={tab}/>
                         </div>
@@ -195,16 +187,12 @@ export class NavTabsLayout extends View<NavTabsConfig, {}> {
         )
     }
 
-    component = (props: LayoutProps<NavTabsConfig, {}>) => {
-        let { config } = props;
-        let { tabs } = config;
-
-        
-        if(tabs.length == 0) {
+    component = (props: LayoutProps<{}>) => {
+        if(this.config.tabs.length == 0) {
             throw new Error("navtabs component contained no tabs");
         }
 
-        let firstTabName = tabs[0].name;
+        let firstTabName = this.config.tabs[0].name;
 
         let location = useResolvedPath('');
 
@@ -217,7 +205,7 @@ export class NavTabsLayout extends View<NavTabsConfig, {}> {
             },
             {
                 path: '/:tabName/*',
-                element: <this.TabsSwitcher config={config}/>
+                element: <this.TabsSwitcher/>
             }
         ])
 

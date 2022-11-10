@@ -12,13 +12,20 @@ import { AnimationReader, CReportEventManager } from "../data/report";
 import { useShown } from "../hook/shown";
 import React from "react";
 import { CPanelController } from "../data/panel";
-import { CLayouts } from "./layouts";
+import { LAYOUTS } from "./layouts";
 import { CModelsWrapper, getModelValues } from "../data/wrapper";
 import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
 import { SchemaView } from "../utility/schema";
+
+
+export type ReportVisualProps<L> = { data: L };
+export abstract class ReportVisual<C = unknown, P = unknown, A = unknown, L = unknown> extends View<C, P & ReportVisualProps<L>> {
+    abstract getConfigFromApiResponse(apiReponse: A): L;
+    abstract canShow(apiResponse: A): boolean;
+}
 
 export type AutoRunReportConfig = {
     reportLayout: SchemaView,
@@ -27,15 +34,13 @@ export type AutoRunReportConfig = {
 }
 
 export class AutoRunReportLayout extends View<AutoRunReportConfig, {}> {
-    getFormDependencies = (config: AutoRunReportConfig) => {
-        let { reportLayout: schemaView } = config;
-        let layoutElement = this.layoutsWrapper.getLayoutForName(schemaView.layout);
-        return layoutElement.getFormDependencies(schemaView.config);
+    getFormDependencies = () => {
+        let { reportLayout: schemaView } = this.config;
+        return LAYOUTS.getLayoutForSchemaView(schemaView).getFormDependencies();
     }
 
-    component = (props: LayoutProps<AutoRunReportConfig, {}>) => {
-        let { config } = props;
-        let { report, reportLayout, dependencies } = config;
+    component = (props: LayoutProps<{}>) => {
+        let { report, reportLayout, dependencies } = this.config;
 
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
@@ -75,16 +80,17 @@ export class AutoRunReportLayout extends View<AutoRunReportConfig, {}> {
             })
         }, dependentValues)    
 
-        let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
+        let LayoutElement = LAYOUTS.getLayoutForSchemaView(reportLayout) as ReportVisual;
+        console.log("Layout Element: " + LayoutElement.constructor.name);
 
-        let VisualComponent = simulationData ? layoutElement.component : undefined;
-        let inProgress = !simulationData || !simulationData.state || simulationData.state !== 'completed'
+        let reportVisualConfig = LayoutElement.getConfigFromApiResponse(simulationData);
+        let canShow = LayoutElement.canShow(simulationData);
 
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {VisualComponent && <VisualComponent key={simulationPollingVersionRef.current} config={reportLayout.config} simulationData={simulationData}/>}
-                {inProgress && <ProgressBar animated now={100}/>}
+                {canShow && <LayoutElement.component key={simulationPollingVersionRef.current} data={reportVisualConfig}/>}
+                {!canShow && <ProgressBar animated now={100}/>}
             </>
         )
     }
@@ -100,18 +106,14 @@ export type ManualRunReportConfig = {
 }
 
 export class ManualRunReportLayout extends View<ManualRunReportConfig, {}> {
-    getFormDependencies = (config: ManualRunReportConfig) => {
-        let { reportLayout } = config;
-        let layoutElement = this.layoutsWrapper.getLayoutForName(reportLayout.layout);
-        return layoutElement.getFormDependencies(reportLayout.config);
+    getFormDependencies = () => {
+        return LAYOUTS.getLayoutForSchemaView(this.config.reportLayout).getFormDependencies();
     }
 
-    component = (props: LayoutProps<ManualRunReportConfig, {}>) => {
-        let { config } = props;
-        let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig, frameCountFieldName } = config;
+    component = (props: LayoutProps<{}>) => {
+        let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig, frameCountFieldName } = this.config;
         
         let reportEventManager = useContext(CReportEventManager);
-        let schema = useContext(CSchema);
         let modelsWrapper = useContext(CModelsWrapper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
@@ -160,19 +162,19 @@ export class ManualRunReportLayout extends View<ManualRunReportConfig, {}> {
             })
         })
 
+        let report = LAYOUTS.getLayoutForSchemaView(reportLayout) as ReportVisual;
+
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayoutConfig={reportLayout} animationReader={animationReader}></ReportAnimationController>}
+                {reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={report} animationReader={animationReader}></ReportAnimationController>}
             </>
         )
     }
 }
 
-export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayoutConfig: SchemaView, shown: boolean}) {
-    let { animationReader, reportLayoutConfig, shown } = props;
-    let layoutsWrapper = useContext(CLayouts);
-    let layoutElement = layoutsWrapper.getLayoutForName(reportLayoutConfig.layout);
+export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayout: ReportVisual, shown: boolean}) {
+    let { animationReader, reportLayout, shown } = props;
 
     let panelController = useContext(CPanelController);
 
@@ -188,7 +190,7 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
     }, [0])
 
     useEffect(() => {
-        let s = shown && !!currentReportData;
+        let s = shown && !!currentReportData && reportLayout.canShow(currentReportData);
         panelController.setShown(s);
     }, [shown, !!currentReportData])
 
@@ -228,15 +230,17 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
             </Button>
         </div>
     )
-    
-    let LayoutComponent = layoutElement ? layoutElement.component : undefined;
+
+    let LayoutComponent = reportLayout.component;
+    let canShowReport = reportLayout.canShow(currentReportData);
+    let reportLayoutConfig = reportLayout.getConfigFromApiResponse(currentReportData);
 
     return (
         <>
             {
-                LayoutComponent && shown && currentReportData && (
+                canShowReport && shown && currentReportData && (
                     <>
-                        <LayoutComponent config={reportLayoutConfig.config} simulationData={currentReportData}/>
+                        <LayoutComponent data={reportLayoutConfig}/>
                         {animationReader.getFrameCount() > 1 && animationControlButtons}
                     </>
                 )
@@ -250,13 +254,12 @@ export type SimulationStartConfig = {
 }
 
 export class SimulationStartLayout extends View<SimulationStartConfig, {}> {
-    getFormDependencies = (config: SimulationStartConfig) => {
+    getFormDependencies = () => {
         return [];
     }
 
-    component = (props: LayoutProps<SimulationStartConfig, {}>) => {
-        let { config } = props;
-        let { reportGroupName } = config;
+    component = (props: LayoutProps<{}>) => {
+        let { reportGroupName } = this.config;
 
         let reportEventManager = useContext(CReportEventManager);
         let appName = useContext(CAppName);

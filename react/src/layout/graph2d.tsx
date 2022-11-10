@@ -1,6 +1,7 @@
 import React from "react";
 import { Graph2d, Graph2dConfig } from "../component/reusable/graph2d";
 import { LayoutProps, View } from "./layout";
+import { ReportVisual, ReportVisualProps } from "./report";
 
 export type Graph2dPlotApi = {
     color: string,
@@ -23,6 +24,8 @@ export type Graph2dConfigApi = {
 }
 
 export function apiResponseToGraph2dConfig(cfg: Graph2dConfigApi): Graph2dConfig {
+    if(!cfg) return undefined;
+    
     let {
         plots,
         title,
@@ -66,21 +69,26 @@ export function apiResponseToGraph2dConfig(cfg: Graph2dConfigApi): Graph2dConfig
     }
 }
 
-export type Graph2dExtraProps = {
-    simulationData: Graph2dConfigApi
-}
-export class Graph2dFromApi extends View<undefined, Graph2dExtraProps> {
-    getFormDependencies = (config: undefined) => {
+export class Graph2dFromApi extends ReportVisual<undefined, {}, Graph2dConfigApi, Graph2dConfig> {
+    getConfigFromApiResponse(apiReponse: Graph2dConfigApi): Graph2dConfig {
+        return apiResponseToGraph2dConfig(apiReponse);
+    }
+    canShow(apiResponse: Graph2dConfigApi): boolean {
+        return !!this.getConfigFromApiResponse(apiResponse);
+    }
+
+    getFormDependencies = () => {
         return [];
     }
 
-    component = (props: LayoutProps<undefined, Graph2dExtraProps>) => {
-        let { simulationData } = props;
-
-        let config = apiResponseToGraph2dConfig(simulationData);
+    component = (props: LayoutProps<{}> & ReportVisualProps<Graph2dConfig>) => {
+        let { data } = props;
+        if(!data) {
+            throw new Error("graph2d received falsy data prop");
+        }
 
         return (
-            <>{config && <Graph2d {...config}/>}</>
+            <Graph2d {...data}/>
         )
     }
 }

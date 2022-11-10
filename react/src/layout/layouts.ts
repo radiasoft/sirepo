@@ -9,40 +9,46 @@ import { LayoutWithSpacing } from "./spaced";
 import { NavBarModalButton, NavTabsLayout } from "./navbar";
 import { TableFromApi } from "./table";
 import { LayoutWithDownloadButton } from "./download";
-import React from "react";
-import { View } from "./layout";
+import { LayoutType, View } from "./layout";
+import { SchemaView } from "../utility/schema";
 
-export const CLayouts = React.createContext<LayoutWrapper>(undefined);
 
 // TODO rename to LayoutsWrapper
-export class LayoutWrapper {
-    layouts = {
-        tabs: new TabLayout(this),
-        fieldList: new (LayoutWithSpacing(FieldListLayout))(this),
-        fieldTable: new (LayoutWithSpacing(FieldGridLayout))(this),
-        panel: new (LayoutWithFormController(PanelLayout))(this),
-        navbarModalButton: new (LayoutWithFormController(NavBarModalButton))(this),
-        autoRunReport: new AutoRunReportLayout(this),
-        manualRunReport: new ManualRunReportLayout(this),
-        graph2d: new (LayoutWithDownloadButton(Graph2dFromApi))(this),
-        heatplot: new (LayoutWithDownloadButton(HeatplotFromApi))(this),
-        navTabs: new NavTabsLayout(this),
-        table: new TableFromApi(this),
-        startSimulation: new SimulationStartLayout(this)
+class LayoutWrapper {
+    layouts: {[key:string]: LayoutType<unknown, unknown>} = {
+        tabs: TabLayout,
+        fieldList: LayoutWithSpacing(FieldListLayout),
+        fieldTable: LayoutWithSpacing(FieldGridLayout),
+        panel: LayoutWithFormController(PanelLayout),
+        navbarModalButton: LayoutWithFormController(NavBarModalButton),
+        autoRunReport: AutoRunReportLayout,
+        manualRunReport: ManualRunReportLayout,
+        graph2d: LayoutWithDownloadButton(Graph2dFromApi),
+        heatplot: LayoutWithDownloadButton(HeatplotFromApi),
+        navTabs: NavTabsLayout,
+        table: TableFromApi,
+        startSimulation: SimulationStartLayout
     }
 
     constructor () {
         
     }
 
-    getLayoutForName = <C, P>(layoutName: string): View<C, P> => {
+    getLayoutTypeForName = <C, P>(layoutName: string): LayoutType<C, P> => {
         let layout = this.layouts[layoutName];
 
         if(!layout) {
             console.error("missing layout definition for view: " + layoutName)
-            return new MissingLayout(this);
+            return MissingLayout;
         }
 
-        return layout;
+        return layout as LayoutType<C, P>;
+    }
+
+    getLayoutForSchemaView = <C, P>(schemaView: SchemaView): View<C, P> => {
+        let layout = this.getLayoutTypeForName(schemaView.layout) as LayoutType<C, P>;
+        return new layout(schemaView.config);
     }
 }
+
+export const LAYOUTS = new LayoutWrapper();
