@@ -125,7 +125,6 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
-    pkdp("\n\n\nMODEL={}, run_dir={}", model, run_dir)
     if "fitAnimation" in model:
         return "test_pred.csv"
     if "fileColumnReport" in model:
