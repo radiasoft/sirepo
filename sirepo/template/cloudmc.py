@@ -104,20 +104,24 @@ def _tally_report_plot(run_dir, sim_in):
     scale = 0.01
     n = _AXES.index(t.axis)
     l, m = next_axis_indices(t.axis)
+    pkdp("L {} M {} N {}", l, m, n)
     tally = _get_tally(run_dir, sim_in)
     all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
         :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
-    ].tolist()
-    pkdp("SCORE {} ASPECT {} MIN {} MAX {}", sim_in.models.openmcAnimation.score, sim_in.models.openmcAnimation.aspect, numpy.min(all_data), numpy.max(all_data))
+    ]
     mesh = _get_mesh(tally)
     dims = mesh.dimension
     ranges = scale * numpy.array([[x, mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left)])
-    p = min(dims[n], max(0, math.floor(
+    p = min(dims[n] - 1, max(0, math.floor(
         dims[n] * (scale * t.planePos - ranges[n][0]) /
         (ranges[n][1] - ranges[n][0])
     )))
     r = [[p, p + 1] if i == n else [0, dims[i]] for i in range(3)]
+    ad = all_data.reshape(-1, dims[1], dims[0])
+    print("AD {}".format(ad))
     f = [0] * (dims[l] * dims[m])
+    pkdp("RANGES {} {} {} POS {} DIMS {}", ranges, r, t.axis, scale * t.planePos, dims)
+
 
     i = 0
     for zi in range(r[2][0], r[2][1]):
@@ -126,9 +130,8 @@ def _tally_report_plot(run_dir, sim_in):
                 f[i] = all_data[zi * dims[0] * dims[1] + yi * dims[0] + xi][0]
                 i += 1
 
-    score = []
-    for j in range(dims[m]):
-        score.append(f[j * dims[l]:(j + 1) * dims[l]])
+    score = numpy.array(f).reshape(r[m][1], -1).tolist()
+    print("SCORE {}".format(score))
 
     return PKDict(
         aspectRatio=abs(ranges[l][1] - ranges[l][0]) / abs(ranges[m][1] - ranges[m][0]),
