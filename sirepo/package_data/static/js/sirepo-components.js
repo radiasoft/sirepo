@@ -1796,7 +1796,6 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 if ($scope.simState.isStatePurged()) {
                     return $sce.trustAsHtml([
                         `<div>Data purged on ${appState.formatDate($scope.simState.getDbUpdateTime())}.</div>`,
-                        `<div>Upgrade to ${authState.upgradePlanLink()} for persistent data storage.</div>`,
                     ].join(''));
                 }
 
