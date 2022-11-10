@@ -52,7 +52,7 @@ _OUTPUT_FILE = PKDict(
     predictFile="predict.npy",
     scaledFile="scaled.npy",
     mlModel="weighted.h5",
-    neuralNetLayers="unweighted.h5",
+    neuralNetForm="unweighted.h5",
     testFile="test.npy",
     trainFile="train.npy",
     validateFile="validate.npy",
@@ -478,7 +478,7 @@ input_args = Input(shape=input_shape)
 {_build_layers(net)}
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
-model.save('{_OUTPUT_FILE.neuralNetLayers}')
+model.save('{_OUTPUT_FILE.neuralNetForm}')
 """
 
 
