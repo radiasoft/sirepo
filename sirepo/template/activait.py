@@ -125,17 +125,13 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if "fitAnimation" in model:
-        return "test_pred.csv"
-    if "fileColumnReport" in model:
-        return f"fit_column_report{model[-1]}.csv"
-    if "partitionColumnReport" in model:
-        return f"partition_column_report{model[-1]}.csv"
+    if _numbered_model_file(model):
+        return model + ".csv"
     if model == "epochAnimation":
         return _OUTPUT_FILE.fitCSVFile
     if model == "animation":
         return _OUTPUT_FILE[options.suffix]
-    raise AssertionError(f"Unknown model={model}")
+    raise AssertionError(f"model={model} is unknown")
 
 
 # TODO(MVK): 2d fft (?)
@@ -738,7 +734,7 @@ def _extract_file_column_report(run_dir, sim_in):
         _, x = _extract_column(run_dir, m.x)
     _write_csv_for_download(
         PKDict(x=x, y=y),
-        f"fit_column_report{idx}.csv",
+        f"fileColumnReport{idx}.csv",
     )
     _write_report(
         x,
@@ -777,7 +773,7 @@ def _extract_partition_report(run_dir, sim_in):
         plots.append(_plot_info(y, name))
     _write_csv_for_download(
         PKDict(x=x, **c),
-        f"partition_column_report{idx}.csv",
+        f"partitionColumnReport{idx}.csv",
     )
     _write_report(
         x,
@@ -824,7 +820,7 @@ def _fit_animation(frame_args):
     ]
     _write_csv_for_download(
         PKDict(predict=f[0], test=f[1]),
-        "test_pred.csv",
+        f"fitAnimation{idx}.csv",
     )
     return template_common.heatmap(
         f,
@@ -1103,6 +1099,13 @@ def _move_children_in_add(neural_net):
             _get_children_from_list(l, neural_net, i)
             n.layers.append(_clean_layer(l))
     return n
+
+
+def _numbered_model_file(model):
+    for m in ("fitAnimation", "fileColumnReport", "partitionColumnReport"):
+        if m in model:
+            return True
+    return False
 
 
 def _parent_is_complete(node, parent_sum):
