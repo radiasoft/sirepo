@@ -1560,6 +1560,7 @@ SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, request
     return {
         restrict: 'A',
         scope: {
+            // TODO (gurhar1133): right now just passing string not model?
             modelName: '@',
         },
         template: `
