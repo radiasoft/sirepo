@@ -1579,7 +1579,7 @@ SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, request
                 return  requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': "animation",
+                    '<model>': 'animation',
                     '<frame>': SIREPO.nonDataFileFrame,
                     '<suffix>': $scope.modelName,
                 });

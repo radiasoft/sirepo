@@ -125,10 +125,9 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
-    return PKDict(
-        filename=run_dir.join(_OUTPUT_FILE[options.suffix], abs=1),
-        uri=_OUTPUT_FILE[options.suffix],
-    )
+    if model == "animation":
+        return _OUTPUT_FILE[options.suffix]
+    raise AssertionError(f"Unknown model={model}")
 
 
 # TODO(MVK): 2d fft (?)
