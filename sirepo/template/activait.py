@@ -128,6 +128,19 @@ def get_data_file(run_dir, model, frame, options):
     if model == "animation":
         return _OUTPUT_FILE[options.suffix]
     raise AssertionError(f"Unknown model={model}")
+    pkdp("\n\n\nMODEL={}, run_dir={}", model, run_dir)
+    if "fitAnimation" in model:
+        options.suffix = "test_pred.csv"
+    if model == "epochAnimation":
+        options.suffix = _OUTPUT_FILE.fitCSVFile
+    if "fileColumnReport" in model:
+        options.suffix = f"fit_column_report{int(model[-1])}.csv"
+    if "partitionColumnReport" in model:
+        pass
+    return PKDict(
+            filename=run_dir.join(options.suffix, abs=1),
+            uri=options.suffix,
+        )
 
 # def get_filename_for_model(model):
 #     if _SIM_DATA.is_watchpoint(model):
@@ -733,6 +746,10 @@ def _extract_file_column_report(run_dir, sim_in):
         return
     if "x" in m and m.x is not None and m.x >= 0:
         _, x = _extract_column(run_dir, m.x)
+    pandas.DataFrame({
+        "x": x,
+        "y": y,
+    }).to_csv(f"fit_column_report{idx}.csv", index=False)
     _write_report(
         x,
         [_plot_info(y, style="scatter")],
@@ -801,11 +818,16 @@ def _fit_animation(frame_args):
     for i in range(len(info.inputOutput)):
         if info.inputOutput[i] == "output":
             header.append(info.header[i])
-    return template_common.heatmap(
-        [
+    f = [
             _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx],
             _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx],
-        ],
+    ]
+    pandas.DataFrame({
+        "predict": f[0],
+        "test": f[1],
+    }).to_csv("test_pred.csv")
+    return template_common.heatmap(
+        f,
         frame_args,
         PKDict(
             x_label="",
