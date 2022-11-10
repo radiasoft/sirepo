@@ -125,28 +125,19 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
+    pkdp("\n\n\nMODEL={}, run_dir={}", model, run_dir)
+    if "fitAnimation" in model:
+        return "test_pred.csv"
+    if "fileColumnReport" in model:
+        return f"fit_column_report{model[-1]}.csv"
+    if "partitionColumnReport" in model:
+        return f"partition_column_report{model[-1]}.csv"
+    if model == "epochAnimation":
+        return _OUTPUT_FILE.fitCSVFile
     if model == "animation":
         return _OUTPUT_FILE[options.suffix]
     raise AssertionError(f"Unknown model={model}")
-    pkdp("\n\n\nMODEL={}, run_dir={}", model, run_dir)
-    if "fitAnimation" in model:
-        options.suffix = "test_pred.csv"
-    if model == "epochAnimation":
-        options.suffix = _OUTPUT_FILE.fitCSVFile
-    if "fileColumnReport" in model:
-        options.suffix = f"fit_column_report{model[-1]}.csv"
-    if "partitionColumnReport" in model:
-        options.suffix = f"partition_column_report{model[-1]}.csv"
-    return PKDict(
-        filename=run_dir.join(options.suffix, abs=1),
-        uri=options.suffix,
-    )
 
-# def get_filename_for_model(model):
-#     if _SIM_DATA.is_watchpoint(model):
-#         model = _SIM_DATA.WATCHPOINT_REPORT
-#     if model == "beamlineAnimation0":
-#         model = "initialIntensityReport"
 
 # TODO(MVK): 2d fft (?)
 def get_fft_report(run_dir, data):
