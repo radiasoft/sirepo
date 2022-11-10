@@ -1560,7 +1560,6 @@ SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, request
     return {
         restrict: 'A',
         scope: {
-            // TODO (gurhar1133): right now just passing string not model?
             modelName: '@',
         },
         template: `
@@ -1570,7 +1569,7 @@ SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, request
         `,
         controller: function($scope) {
             $scope.frameCache = frameCache;
-            $scope.modelType = $scope.modelName == "neuralNetForm" ? "unweighted" : "weighted";
+            $scope.modelType = $scope.modelName == "neuralNetLayer" ? "unweighted" : "weighted";
 
             $scope.logFileURL = () => {
                 return logFileRequest();
@@ -1658,7 +1657,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </td>
                         </tr>
                     </table>
-                   <div data-model-download-link="" data-model-name="neuralNetForm"></div>
+                   <div data-model-download-link="" data-model-name="neuralNetLayer"></div>
                 </div>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
