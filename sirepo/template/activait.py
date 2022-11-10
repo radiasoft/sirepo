@@ -125,21 +125,9 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
-<<<<<<< HEAD
     if model == "animation":
         return _OUTPUT_FILE[options.suffix]
     raise AssertionError(f"Unknown model={model}")
-=======
-    # if ".h5" in options.suffix:
-    if model == "epochAnimation":
-        options.suffix = _OUTPUT_FILE.fitCSVFile
-    return PKDict(
-            filename=run_dir.join(options.suffix, abs=1),
-            uri=options.suffix,
-        )
-#     return get_filename_for_model(model)
-
->>>>>>> d54cf16b4... Fix #3434: epochAnimation file dwnld
 
 # def get_filename_for_model(model):
 #     if _SIM_DATA.is_watchpoint(model):
