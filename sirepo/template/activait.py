@@ -125,9 +125,13 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if _numbered_model_file(model):
+        return model + ".csv"
+    if model == "epochAnimation":
+        return _OUTPUT_FILE.fitCSVFile
     if model == "animation":
         return _OUTPUT_FILE[options.suffix]
-    raise AssertionError(f"Unknown model={model}")
+    raise AssertionError(f"model={model} is unknown")
 
 
 # TODO(MVK): 2d fft (?)
@@ -728,11 +732,19 @@ def _extract_file_column_report(run_dir, sim_in):
         return
     if "x" in m and m.x is not None and m.x >= 0:
         _, x = _extract_column(run_dir, m.x)
+    _write_csv_for_download(
+        PKDict(x=x, y=y),
+        f"fileColumnReport{idx}.csv",
+    )
     _write_report(
         x,
         [_plot_info(y, style="scatter")],
         sim_in.models.columnInfo.header[idx],
     )
+
+
+def _write_csv_for_download(columns_dict, csv_name):
+    pandas.DataFrame(columns_dict).to_csv(csv_name, index=False)
 
 
 def _extract_fft_report(run_dir, sim_in):
@@ -754,9 +766,15 @@ def _extract_partition_report(run_dir, sim_in):
     for name in d:
         _update_range(r, d[name])
     plots = []
+    c = PKDict()
     for name in d:
         x, y = _histogram_plot(d[name], r)
+        c[name] = y
         plots.append(_plot_info(y, name))
+    _write_csv_for_download(
+        PKDict(x=x, **c),
+        f"partitionColumnReport{idx}.csv",
+    )
     _write_report(
         x,
         plots,
@@ -796,11 +814,16 @@ def _fit_animation(frame_args):
     for i in range(len(info.inputOutput)):
         if info.inputOutput[i] == "output":
             header.append(info.header[i])
+    f = [
+        _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx],
+        _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx],
+    ]
+    _write_csv_for_download(
+        PKDict(predict=f[0], test=f[1]),
+        f"fitAnimation{idx}.csv",
+    )
     return template_common.heatmap(
-        [
-            _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx],
-            _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx],
-        ],
+        f,
         frame_args,
         PKDict(
             x_label="",
@@ -1076,6 +1099,13 @@ def _move_children_in_add(neural_net):
             _get_children_from_list(l, neural_net, i)
             n.layers.append(_clean_layer(l))
     return n
+
+
+def _numbered_model_file(model):
+    for m in ("fitAnimation", "fileColumnReport", "partitionColumnReport"):
+        if m in model:
+            return True
+    return False
 
 
 def _parent_is_complete(node, parent_sum):
