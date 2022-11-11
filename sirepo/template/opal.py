@@ -699,8 +699,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 class _Generate(sirepo.lib.GenerateBase):
-    def __init__(self, data):
+    def __init__(self, data, qcall=None):
         self.data = data
+        self.qcall = qcall
         self._schema = SCHEMA
 
     def sim(self):
@@ -883,8 +884,8 @@ def _compute_3d_bounds(run_dir):
     return bounds
 
 
-def _generate_parameters_file(data):
-    return _Generate(data).sim()
+def _generate_parameters_file(data, qcall=None):
+    return _Generate(data, qcall=qcall).sim()
 
 
 def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
