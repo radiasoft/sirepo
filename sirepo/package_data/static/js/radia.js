@@ -946,18 +946,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function rotateFn(xform, i) {
-        return function(shape1, shape2) {
+        return (shape1, shape2) => {
             const scale = SIREPO.APP_SCHEMA.constants.objectScale;
-            const ctr =  radiaService.scaledArray(xform.center, scale);
-            const axis =  radiaService.scaledArray(xform.axis, scale);
-            // need a 4-vector to account for translation
-            const shapeCtr4 = shape1.getCenterCoords();
-            shapeCtr4.push(0);
-            const angle = Math.PI * parseFloat(xform.angle) / 180.0;
-            const a = i * angle;
-            const m = geometry.rotationMatrix(ctr, axis, a);
-            shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
-            shape2.rotationAngle = -180.0 * a / Math.PI;
+            shape2.rotationMatrix = new SIREPO.GEOMETRY.RotationMatrix(
+                radiaService.scaledArray(xform.axis, scale),
+                radiaService.scaledArray(xform.center, scale),
+                i * Math.PI * parseFloat(xform.angle) / 180.0
+            );
             return shape2;
         };
     }
