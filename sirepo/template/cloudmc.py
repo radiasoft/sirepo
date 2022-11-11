@@ -100,17 +100,19 @@ def _tally_report_plot(run_dir, sim_in):
     import math
     import openmc
 
-    t = sim_in.models.tallyReport
+    #t = sim_in.models.tallyReport
+    t = PKDict(axis='y')
     scale = 0.01
     n = _AXES.index(t.axis)
     l, m = next_axis_indices(t.axis)
     pkdp("L {} M {} N {}", l, m, n)
     tally = _get_tally(run_dir, sim_in)
-    all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
-        :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
-    ]
+    #all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
+    #    :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
+    #]
     mesh = _get_mesh(tally)
-    dims = mesh.dimension
+    dims = numpy.array([2, 3, 4]) #mesh.dimension
+    all_data = numpy.arange(numpy.product(dims))
     ranges = scale * numpy.array([[x, mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left)])
     p = min(dims[n] - 1, max(0, math.floor(
         dims[n] * (scale * t.planePos - ranges[n][0]) /
@@ -124,25 +126,71 @@ def _tally_report_plot(run_dir, sim_in):
 
 
     i = 0
-    for zi in range(r[2][0], r[2][1]):
-        for yi in range(r[1][0], r[1][1]):
-            for xi in range(r[0][0], r[0][1]):
-                f[i] = all_data[zi * dims[0] * dims[1] + yi * dims[0] + xi][0]
-                i += 1
+#    for zi in range(r[2][0], r[2][1]):
+#        for yi in range(r[1][0], r[1][1]):
+#            for xi in range(r[0][0], r[0][1]):
+#                pkdp("ZI {} YI {} XI {} Z {} Y {}", zi, yi, xi, zi * dims[0] * dims[1], yi * dims[0])
+#                f[i] = all_data[zi * dims[0] * dims[1] + yi * dims[0] + xi]
+#                i += 1
+
+    ni = r[n][0]
+    for mi in range(r[m][0], r[m][1]):
+        for li in range(r[l][0], r[l][1]):
+            pkdp("NI {} MI {} LI {} Z {} Y {}", ni, mi, li, ni * dims[l] * dims[m], li * dims[l])
+            f[i] = all_data[ni * dims[l] * dims[m] + mi * dims[l] + li]
+            i += 1
 
     score = numpy.array(f).reshape(r[m][1], -1).tolist()
-    print("SCORE {}".format(score))
+    print("ALL {} F {} SCORE {}".format(all_data, f, score))
 
     return PKDict(
-        aspectRatio=abs(ranges[l][1] - ranges[l][0]) / abs(ranges[m][1] - ranges[m][0]),
+        aspectRatio=abs(ranges[m][1] - ranges[m][0]) / abs(ranges[l][1] - ranges[l][0]),
         title=f"Score at {t.axis} = {scale * t.planePos}m",
-        x_label=f"{_AXES[m]} [m]",
-        x_range=[ranges[m][0], ranges[m][1], int(dims[m])],
-        y_label=f"{_AXES[l]} [m]",
-        y_range=[ranges[l][0], ranges[l][1], int(dims[l])],
+        x_label=f"{_AXES[l]} [m]",
+        x_range=[ranges[l][0], ranges[l][1], int(dims[l])],
+        y_label=f"{_AXES[m]} [m]",
+        y_range=[ranges[m][0], ranges[m][1], int(dims[m])],
         z_matrix=score,
         z_range=[ranges[n][0], ranges[n][1], int(dims[n])],
     )
+
+
+def reorder(axis, dims, ind):
+    n = _AXES.index(axis)
+    l, m = next_axis_indices(axis)
+    pkdp("L {} M {} N {}", l, m, n)
+    all_data = numpy.arange(numpy.product(dims))
+    pkdp("ALL {}", all_data)
+    #r = [[ind, ind + 1] if i == n else [0, dims[i]] for i in range(3)]
+    r = [[0, dims[i]] for i in range(3)]
+    ad = all_data.reshape(-1, dims[m], dims[l])
+    print("AD {}".format(ad))
+    #f = [0] * (dims[l] * dims[m])
+    f = [0] * (dims[l] * dims[m] * dims[n])
+    pkdp("RANGES {} AXIS {} AXIS IND {} DIMS {}", r, axis, ind, dims)
+    i = 0
+    #ni = r[n][0]
+    N = []
+    for ni in range(r[n][0], r[n][1]):
+        pkdp("NI {}", ni)
+        M = []
+        for mi in range(r[m][0], r[m][1]):
+            L = []
+            pkdp("MI {}", mi)
+            for li in range(r[l][0], r[l][1]):
+                pkdp("LI {}", li)
+                pkdp("IND {}", ni * dims[m] * dims[l] + mi * dims[l] + li)
+                f[i] = all_data[ni * dims[m] * dims[l] + mi * dims[l] + li]
+                L.append(f[i])
+                #f[i] = ad[ni][mi][li]
+                i += 1
+            M.append(L)
+        N.append(M)
+
+    score = numpy.array(f).reshape(-1, dims[l]).tolist()
+    pkdp("F {} SCORE {} N {}", f, score, N)
+    return score
+
 
 
 def get_data_file(run_dir, model, frame, options):
