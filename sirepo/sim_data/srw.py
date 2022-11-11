@@ -307,6 +307,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 file_type,
                 lambda f: cls.srw_is_valid_file(file_type, f) and f.basename,
                 want_user_lib_dir=True,
+                qcall=qcall,
             ),
         )
 
