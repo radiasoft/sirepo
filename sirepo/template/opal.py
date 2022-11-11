@@ -245,8 +245,8 @@ class OpalMadxConverter(MadxConverter):
         ],
     ]
 
-    def __init__(self):
-        super().__init__(SIM_TYPE, self._FIELD_MAP)
+    def __init__(self, qcall, **kwargs):
+        super().__init__(SIM_TYPE, self._FIELD_MAP, qcall=qcall, **kwargs)
 
     def to_madx(self, data):
         def _get_len_by_id(data, id):
@@ -487,7 +487,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
         data, input_files = opal_parser.parse_file(text, filename=req.filename)
         missing_files = []
         for infile in input_files:
-            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
+            if not _SIM_DATA.lib_file_exists(infile.lib_filename, qcall=req.qcall):
                 missing_files.append(infile)
         if missing_files:
             return PKDict(
@@ -495,7 +495,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
                 missingFiles=missing_files,
             )
     elif re.search(r"\.madx$", req.filename, re.IGNORECASE):
-        data = OpalMadxConverter().from_madx_text(text)
+        data = OpalMadxConverter(qcall=qcall).from_madx_text(text)
         data.models.simulation.name = re.sub(
             r"\.madx$", "", req.filename, flags=re.IGNORECASE
         )
@@ -538,8 +538,8 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     if model == "madx":
-        return OpalMadxConverter().to_madx_text(data)
-    return _generate_parameters_file(data)
+        return OpalMadxConverter(qcall=qcall).to_madx_text(data)
+    return _generate_parameters_file(data, qcall=qcall)
 
 
 def save_sequential_report_data(data, run_dir):

@@ -409,7 +409,8 @@ class API(sirepo.quest.API):
             if not f:
                 sirepo.util.raise_not_found(f"API not supported for tempate={req.type}")
             return f(
-                simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
+                simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self),
+                qcall=self,
             )
 
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)

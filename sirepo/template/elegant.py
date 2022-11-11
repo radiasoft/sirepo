@@ -448,8 +448,14 @@ class ElegantMadxConverter(MadxConverter):
         ),
     )
 
-    def __init__(self):
-        super().__init__(SIM_TYPE, self._FIELD_MAP, downcase_variables=True)
+    def __init__(self, qcall=None, **kwargs):
+        super().__init__(
+            SIM_TYPE,
+            self._FIELD_MAP,
+            downcase_variables=True,
+            qcall=qcall,
+            **kwargs,
+        )
 
     def from_madx(self, madx):
         data = self.fill_in_missing_constants(
@@ -652,8 +658,8 @@ def copy_related_files(data, source_path, target_path):
             f.copy(t)
 
 
-def generate_parameters_file(data, is_parallel=False):
-    return _Generate(data).sim(full=is_parallel)
+def generate_parameters_file(data, is_parallel=False, qcall=None):
+    return _Generate(data, qcall=qcall).sim(full=is_parallel)
 
 
 def generate_variables(data):
@@ -707,6 +713,7 @@ def import_file(req, test_data=None, **kwargs):
         p,
         pkcompat.from_bytes(req.file_stream.read()),
         d,
+        qcall=req.qcall,
     )
     res.models.simulation.name = p.purebasename
     if d and not test_data:
@@ -718,7 +725,9 @@ def import_file(req, test_data=None, **kwargs):
     return res
 
 
-def parse_input_text(path, text=None, input_data=None, update_filenames=True):
+def parse_input_text(
+    path, text=None, input_data=None, update_filenames=True, qcall=None
+):
     def _map(data):
         for cmd in data.models.commands:
             if cmd._type == "run_setup":
@@ -743,7 +752,7 @@ def parse_input_text(path, text=None, input_data=None, update_filenames=True):
             _map(data)
         return data
     if e == ".madx":
-        return ElegantMadxConverter().from_madx_text(text)
+        return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
     raise IOError(
         f"{path.basename}: invalid file format; expecting .madx, .ele, or .lte"
     )
@@ -772,9 +781,9 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     if model == "madx":
-        return ElegantMadxConverter().to_madx_text(data)
+        return ElegantMadxConverter(qcall=qcall).to_madx_text(data)
     return (
-        generate_parameters_file(data, is_parallel=True)
+        generate_parameters_file(data, is_parallel=True, qcall=qcall)
         + """
 with open('elegant.lte', 'w') as f:
     f.write(lattice_file)
@@ -792,8 +801,8 @@ def remove_last_frame(run_dir):
     pass
 
 
-def rcscon_generate_lattice(data):
-    return _Generate(data, validate=False).sim()
+def rcscon_generate_lattice(data, qcall=None):
+    return _Generate(data, validate=False, qcall=qcall).sim()
 
 
 def save_sequential_report_data(data, run_dir):
@@ -858,8 +867,8 @@ def validate_file(file_type, path):
     return err
 
 
-def webcon_generate_lattice(data):
-    return _Generate(data, validate=False).lattice_only()
+def webcon_generate_lattice(data, qcall):
+    return _Generate(data, validate=False, qcall=qcall).lattice_only()
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -883,8 +892,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 class _Generate(sirepo.lib.GenerateBase):
-    def __init__(self, data, validate=True, update_output_filenames=True):
+    def __init__(self, data, validate=True, update_output_filenames=True, qcall=None):
         self.data = data
+        self.qcall = qcall
         self._filename_map = None
         self._schema = SCHEMA
         self._update_output_filenames = update_output_filenames
@@ -916,7 +926,7 @@ class _Generate(sirepo.lib.GenerateBase):
         return r + self._bunch_simulation()
 
     def _abspath(self, basename):
-        return _SIM_DATA.lib_file_abspath(basename)
+        return _SIM_DATA.lib_file_abspath(basename, qcall=self.qcall)
 
     def _bunch_simulation(self):
         d = self.data

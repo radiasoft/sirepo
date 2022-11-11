@@ -346,7 +346,7 @@ def get_settings_report(run_dir, data):
 #    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def export_jupyter_notebook(data):
+def export_jupyter_notebook(data, qcall, **kwargs):
     import sirepo.jupyter
 
     nb = sirepo.jupyter.Notebook(data)
@@ -366,7 +366,8 @@ def export_jupyter_notebook(data):
     nb.add_markdown_cell("Exported Data", header_level=2)
     nb.add_code_cell(
         _data_cell(
-            str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))), data_var
+            str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data), qcall=qcall)),
+            data_var,
         ),
         hide=True,
     )
@@ -464,7 +465,7 @@ def export_jupyter_notebook(data):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    return _generate_parameters_file(None, data)
+    return _generate_parameters_file(None, data, qcall=qcall)
 
 
 def read_epics_values(server_address, fields):
@@ -1011,7 +1012,7 @@ def _fit_to_equation(x, y, equation, var, params):
     )
 
 
-def _generate_parameters_file(run_dir, data):
+def _generate_parameters_file(run_dir, data, qcall=None):
     report = data.get("report", None)
     if report and report != "epicsServerAnimation":
         return ""
@@ -1042,7 +1043,7 @@ def _generate_parameters_file(run_dir, data):
     # TODO(pjm): calling private template.elegant._build_beamline_map()
     data.models.commands = []
     v["currentFile"] = CURRENT_FILE
-    v["fodoLattice"] = elegant.webcon_generate_lattice(data)
+    v["fodoLattice"] = elegant.webcon_generate_lattice(data, qcall=qcall)
     v["BPM_FIELDS"] = BPM_FIELDS
     v["CURRENT_FIELDS"] = CURRENT_FIELDS
     return res + template_common.render_jinja(SIM_TYPE, v)
