@@ -1776,6 +1776,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function resetDrag() {
                 [dragX, dragY] = [0, 0];
                 draggedShape = null;
+                selectedObject = null;
             }
 
             function d3DragEndShape(shape) {
@@ -1794,7 +1795,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         $scope.source.saveObject(shape.id, function () {
                             resetDrag();
                             //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
-                            refresh();
+                            d3.select(`.plot-viewport ${shapeSelectionId(shape, true)}`).call(updateShapeAttributes);
                         });
                     }
                     else {
@@ -2088,13 +2089,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 );
             }
 
-            function stringToFloatArray(str) {
-                return str.split(/\s*,\s*/)
-                    .map(function (v) {
-                        return objectScale * parseFloat(v);
-                    });
-            }
-
             function formatObjectLength(val) {
                 return utilities.roundToPlaces(invObjScale * val, 4);
             }
@@ -2137,6 +2131,25 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 var labDim = shape.elev[dim].axis;
                 return axes[dim].scale(shape.center[labDim]);
             }
+
+            function shapeRotation(shape) {
+                const e = shape.rotationMatrix.toEuler(true);
+                const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev.axis)];
+                const c = shape.getCenterCoords();
+                const rc = shape.rotationMatrix.multiply(
+                    new SIREPO.GEOMETRY.Matrix([...c, 0])
+                ).val;
+                const t = {x: 0, y: 0};
+                for (const dim in t) {
+                    const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev[dim].axis);
+                    t[dim] = axes[dim].scale(rc[i]) - axes[dim].scale(c[i]);
+                }
+                return `
+                    rotate(${-angle},${shapeCenter(shape, 'x')},${shapeCenter(shape, 'y')}) 
+                    translate(${t.x},${t.y})
+                `;
+            }
+
 
             function linePoints(shape) {
                 if (! shape.line || shape.elev.coordPlane !== shape.coordPlane) {
@@ -2245,8 +2258,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         return d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "";
                     })
                     .attr('transform', function (d) {
-                        if (d.rotationAngle !== 0 && d.rotationAngle) {
-                            return `rotate(${d.rotationAngle},${shapeCenter(d, 'x')},${shapeCenter(d, 'y')})`;
+                        if (d.rotationMatrix) {
+                            return shapeRotation(d);
                         }
                         return '';
                     });

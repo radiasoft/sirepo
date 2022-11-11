@@ -57,7 +57,7 @@ SIREPO.app.config(function() {
     `;
 });
 
-SIREPO.app.factory('mlService', function(appState, panelState) {
+SIREPO.app.factory('mlService', function(appState, panelState, frameCache) {
     var self = {};
     var parameterCache = {
         analysisParameters: null,
@@ -1556,7 +1556,39 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, $sco
     appState.whenModelsLoaded($scope, loadReports);
 });
 
-SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, stringsService) {
+SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: `
+            <div class="container-fluid">
+              <a data-ng-if="frameCache.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  Download {{ modelType }} model</a>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.frameCache = frameCache;
+            $scope.modelType = $scope.modelName == "neuralNetLayer" ? "unweighted" : "weighted";
+
+            $scope.logFileURL = () => {
+                return logFileRequest();
+            };
+
+            function logFileRequest() {
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': 'animation',
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<suffix>': $scope.modelName,
+                });
+            }
+        },
+    };
+});
+
+SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelState, requestSender, stringsService) {
     return {
         restrict: 'A',
         scope: {
@@ -1625,6 +1657,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, mlService, panelS
                         </td>
                         </tr>
                     </table>
+                   <div data-model-download-link="" data-model-name="neuralNetLayer"></div>
                 </div>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">

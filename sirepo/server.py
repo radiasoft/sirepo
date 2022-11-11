@@ -296,25 +296,6 @@ class API(sirepo.quest.API):
             return self.reply_json(res)
 
     @sirepo.quest.Spec(
-        "allow_cookieless_require_user", sim_data="SimData", zip="ImportArchiveZip"
-    )
-    def api_importArchive(self):
-        """
-        Params:
-            data: what to import
-        """
-        from sirepo import importer
-
-        # special request parsing here
-        data = importer.do_form(self.sreq.internal_req.request.form, self)
-        m = simulation_db.get_schema(data.simulationType).appModes.default
-        return self.reply_redirect_for_local_route(
-            data.simulationType,
-            m.localRoute,
-            PKDict(simulationId=data.models.simulation.simulationId),
-        )
-
-    @sirepo.quest.Spec(
         "require_user",
         file="ImportFile",
         folder="SimFolderPath",

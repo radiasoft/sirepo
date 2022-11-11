@@ -12,8 +12,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
-from urllib import parse
-from urllib import request
 import csv
 import h5py
 import numpy as np
@@ -53,6 +51,8 @@ _OUTPUT_FILE = PKDict(
     fitCSVFile="fit.csv",
     predictFile="predict.npy",
     scaledFile="scaled.npy",
+    mlModel="weighted.h5",
+    neuralNetLayer="unweighted.h5",
     testFile="test.npy",
     trainFile="train.npy",
     validateFile="validate.npy",
@@ -122,6 +122,16 @@ def get_analysis_report(run_dir, data):
         elif report.action == "cluster":
             fields.clusters = _compute_clusters(report, plot_data)
     return x, plots, f"{x_label} vs {y_label}", fields, summary_data
+
+
+def get_data_file(run_dir, model, frame, options):
+    if _numbered_model_file(model):
+        return model + ".csv"
+    if model == "epochAnimation":
+        return _OUTPUT_FILE.fitCSVFile
+    if model == "animation":
+        return _OUTPUT_FILE[options.suffix]
+    raise AssertionError(f"model={model} is unknown")
 
 
 # TODO(MVK): 2d fft (?)
@@ -302,7 +312,6 @@ def stateful_compute_compute_column_info(data):
 def stateful_compute_sample_images(data):
     import matplotlib.pyplot as plt
     from base64 import b64encode
-    from pykern import pkcompat
 
     def _data_url(filename):
         f = open(filename, "rb")
@@ -311,6 +320,7 @@ def stateful_compute_sample_images(data):
         return u
 
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
+        # TODO(pjm): these need to come from dataPathInfo models
         x = f["images"]
         y = f["metadata/image_types"]
         u = []
@@ -467,10 +477,11 @@ def _build_model_py(v):
     return f"""
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
-input_args = Input(shape=({v.inputDim},))
+input_args = Input(shape=input_shape)
 {_build_layers(net)}
-x = Dense({v.outputDim}, activation="linear")(x)
+x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
+model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
 
 
@@ -681,16 +692,6 @@ def _continue_building_level(cur_node, merge_continue):
     return True
 
 
-def _conv(l):
-    return PKDict(
-        strides=l.strides[0],
-        padding=l.padding,
-        kernel=l.kernel_size[0],
-        dimensionality=l._trainable_weights[0].shape[-1],
-        activation=l.activation.__name__,
-    )
-
-
 def _error_rate_report(frame_args, filename, x_label):
     v = np.load(str(frame_args.run_dir.join(filename)))
     return _report_info(
@@ -731,11 +732,19 @@ def _extract_file_column_report(run_dir, sim_in):
         return
     if "x" in m and m.x is not None and m.x >= 0:
         _, x = _extract_column(run_dir, m.x)
+    _write_csv_for_download(
+        PKDict(x=x, y=y),
+        f"fileColumnReport{idx}.csv",
+    )
     _write_report(
         x,
         [_plot_info(y, style="scatter")],
         sim_in.models.columnInfo.header[idx],
     )
+
+
+def _write_csv_for_download(columns_dict, csv_name):
+    pandas.DataFrame(columns_dict).to_csv(csv_name, index=False)
 
 
 def _extract_fft_report(run_dir, sim_in):
@@ -757,9 +766,15 @@ def _extract_partition_report(run_dir, sim_in):
     for name in d:
         _update_range(r, d[name])
     plots = []
+    c = PKDict()
     for name in d:
         x, y = _histogram_plot(d[name], r)
+        c[name] = y
         plots.append(_plot_info(y, name))
+    _write_csv_for_download(
+        PKDict(x=x, **c),
+        f"partitionColumnReport{idx}.csv",
+    )
     _write_report(
         x,
         plots,
@@ -799,11 +814,16 @@ def _fit_animation(frame_args):
     for i in range(len(info.inputOutput)):
         if info.inputOutput[i] == "output":
             header.append(info.header[i])
+    f = [
+        _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx],
+        _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx],
+    ]
+    _write_csv_for_download(
+        PKDict(predict=f[0], test=f[1]),
+        f"fitAnimation{idx}.csv",
+    )
     return template_common.heatmap(
-        [
-            _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx],
-            _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx],
-        ],
+        f,
         frame_args,
         PKDict(
             x_label="",
@@ -814,41 +834,22 @@ def _fit_animation(frame_args):
     )
 
 
-def _is_image_data(data_file, v):
-    # POSIT (gurhar1133): assumes only .h5 input data_files
-    if not re.compile(r".h5$").search(data_file):
-        return False
-    with h5py.File(data_file, "r") as f:
-        if "images" not in f.keys():
-            return False
-        s = f["metadata/labels"].shape
-        if len(s) > 1:
-            # POSIT (gurhar1133): assumes output wont be tuples
-            raise AssertionError(
-                f"shape of labels={s}, should not be multi-dimensional outputs"
-            )
-        v.outputDim = s[0]
-        v.inputDim = ",".join([str(x) for x in f["images"].shape[1:]])
-    return True
-
-
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.dataPath = dm.dataFile.selectedData
+    v.weightedFile = _OUTPUT_FILE.mlModel
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
-        inputDim=dm.columnInfo.inputOutput.count("input"),
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=dm.neuralNet.layers,
-        outputDim=dm.columnInfo.inputOutput.count("output"),
     ).pkupdate(_OUTPUT_FILE)
     v.columnTypes = (
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
-    v.image_data = _is_image_data(v.dataFile, v)
+    v.image_data = pkio.has_file_extension(v.dataFile, "h5")
     if v.image_data:
         res += template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
     else:
@@ -1100,6 +1101,13 @@ def _move_children_in_add(neural_net):
     return n
 
 
+def _numbered_model_file(model):
+    for m in ("fitAnimation", "fileColumnReport", "partitionColumnReport"):
+        if m in model:
+            return True
+    return False
+
+
 def _parent_is_complete(node, parent_sum):
     return len(node.outbound) == parent_sum
 
@@ -1177,7 +1185,25 @@ def _set_children(neural_net):
 
 
 def _set_fields_by_layer_type(l, new_layer):
-    # TODO (gurhar1133): needs more layer type support in the future
+    def _conv(l):
+        return PKDict(
+            strides=l.strides[0],
+            padding=l.padding,
+            kernel=l.kernel_size[0],
+            dimensionality=l._trainable_weights[0].shape[-1],
+            activation=l.activation.__name__,
+        )
+
+    def _dropout(layer):
+        return PKDict(dropoutRate=layer.rate)
+
+    def _pool(layer):
+        return PKDict(
+            strides=layer.strides[0],
+            padding=layer.padding,
+            size=layer.pool_size[0],
+        )
+
     if "input" not in l.name:
         return new_layer.pkmerge(
             PKDict(
@@ -1190,14 +1216,20 @@ def _set_fields_by_layer_type(l, new_layer):
                     dimensionality=l.units,
                     activation=l.activation.__name__,
                 ),
-                Dropout=lambda l: PKDict(dropoutRate=l.rate),
+                GlobalAveragePooling2D=lambda l: PKDict(),
+                GaussianNoise=lambda l: PKDict(stddev=l.stddev),
+                GaussianDropout=lambda l: _dropout(l),
+                AlphaDropout=lambda l: _dropout(l),
+                Dropout=lambda l: _dropout(l),
                 Flatten=lambda l: PKDict(),
-                MaxPooling2D=lambda l: PKDict(
-                    strides=l.strides[0],
-                    padding=l.padding,
-                    size=l.pool_size[0],
-                ),
+                SeparableConv2D=lambda l: _conv(l),
+                MaxPooling2D=lambda l: _pool(l),
+                AveragePooling2D=lambda l: _pool(l),
                 Conv2DTranspose=lambda l: _conv(l),
+                UpSampling2D=lambda l: PKDict(
+                    size=l.size[0], interpolation=l.interpolation
+                ),
+                ZeroPadding2D=lambda l: PKDict(padding=l.padding[0][0]),
             )[new_layer.layer](l)
         )
     return new_layer
