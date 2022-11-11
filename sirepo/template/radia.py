@@ -318,7 +318,7 @@ def sim_frame_fieldLineoutAnimation(frame_args):
     )
 
 
-def stateful_compute_build_shape_points(data):
+def stateless_compute_build_shape_points(data):
     pts = []
     o = data.args.object
     if not o.get("pointsFile"):

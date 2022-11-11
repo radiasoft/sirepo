@@ -1776,6 +1776,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function resetDrag() {
                 [dragX, dragY] = [0, 0];
                 draggedShape = null;
+                selectedObject = null;
             }
 
             function d3DragEndShape(shape) {
@@ -1794,7 +1795,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         $scope.source.saveObject(shape.id, function () {
                             resetDrag();
                             //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
-                            refresh();
+                            d3.select(`.plot-viewport ${shapeSelectionId(shape, true)}`).call(updateShapeAttributes);
                         });
                     }
                     else {
