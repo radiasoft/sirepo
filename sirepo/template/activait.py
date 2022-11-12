@@ -14,7 +14,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import h5py
-import numpy as np
+import numpy
 import os
 import re
 import pandas
@@ -171,7 +171,6 @@ def python_source_for_model(data, model):
 
 
 def save_sequential_report_data(run_dir, sim_in):
-    assert _is_valid_report(sim_in.report), "unknown report: {}".format(sim_in.report)
     if "fileColumnReport" in sim_in.report:
         _extract_file_column_report(run_dir, sim_in)
     elif "partitionColumnReport" in sim_in.report:
@@ -182,6 +181,8 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_analysis_report(run_dir, sim_in)
     elif "fftReport" in sim_in.report:
         _extract_fft_report(run_dir, sim_in)
+    else:
+        raise AssertionError("unknown report: {}".format(sim_in.report))
 
 
 def sim_frame(frame_args):
@@ -254,7 +255,7 @@ def sim_frame_linearSvcConfusionMatrixAnimation(frame_args):
 
 
 def sim_frame_linearSvcErrorRateAnimation(frame_args):
-    v = np.load(str(frame_args.run_dir.join(_OUTPUT_FILE.linearSvcErrorFile)))
+    v = numpy.load(str(frame_args.run_dir.join(_OUTPUT_FILE.linearSvcErrorFile)))
     return _report_info(
         v[:, 0],
         [
@@ -294,7 +295,12 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
 
 
 def stateful_compute_compute_column_info(data):
-    return _compute_column_info(data.args.dataFile)
+    f = data.args.dataFile.file
+    if pkio.has_file_extension(f, "csv"):
+        return _compute_csv_info(f)
+    elif pkio.has_file_extension(f, "h5"):
+        return _compute_h5_info(f)
+    raise AssertionError("Unsupported file type: {}".format(f))
 
 
 def stateful_compute_sample_images(data):
@@ -307,23 +313,61 @@ def stateful_compute_sample_images(data):
         f.close()
         return u
 
+    # go through columnInfo, find first multidimensional col
+    # take first dimension size and look for other columns with that single dimension
+    io = PKDict()
+    info = data.args.columnInfo
+    for idx in range(len(info.header)):
+        if len(info.shape[idx]) >= 3:
+            io.input = PKDict(
+                path=info.header[idx],
+                kind=info.dtypeKind[idx],
+                count=info.shape[idx][0],
+            )
+            break
+    if "input" not in io:
+        raise AssertionError("No multidimensional data found in dataset")
+    for idx in range(len(info.header)):
+        if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
+            io.output = PKDict(path=info.header[idx])
+            break
+    if "output" not in io:
+        raise AssertionError(f"No matching dimension found output size: {output_size}")
+    # look for a string column for labels
+    for idx in range(len(info.header)):
+        if info.dtypeKind[idx] in {"U", "S"}:
+            io.output.label_path = info.header[idx]
+            break
+
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
-        # TODO(pjm): these need to come from dataPathInfo models
-        x = f["images"]
-        y = f["metadata/image_types"]
+        x = f[io.input.path]
+        y = f[io.output.path]
         u = []
         for i in range(0, 125, 25):
             plt.figure(figsize=[10, 10])
             for j in range(25):
+                v = x[i + j]
+                if io.input.kind == "f":
+                    v = v.astype(float)
                 plt.subplot(5, 5, j + 1)
                 plt.xticks([])
                 plt.yticks([])
-                plt.imshow(x[i + j])
-                plt.xlabel(pkcompat.from_bytes(f["metadata/labels"][y[i + j]]))
+                plt.imshow(v)
+
+                if len(f[io.output.path].shape) == 1:
+                    if "label_path" in io.output:
+                        plt.xlabel(
+                            pkcompat.from_bytes(f[io.output.label_path][y[i + j]])
+                        )
+                    else:
+                        plt.xlabel(y[i + j])
+                else:
+                    plt.xlabel("\n".join([str(l) for l in y[i + j]]))
             p = (
                 _SIM_DATA.lib_file_write_path(data.args.imageFilename)
                 + f"_{int(i/25)}.png"
             )
+            plt.tight_layout()
             plt.savefig(p)
             u.append(_data_url(p))
         return PKDict(uris=u)
@@ -543,34 +587,54 @@ def _close_completed_branch(level, cur_node, neural_net):
     )
 
 
-def _cols_with_non_unique_values(data_reader, has_header_row, header):
-    # TODO(e-carlin): support npy
-    assert not re.search(
-        r"\.npy$", str(data_reader.path.basename)
-    ), f"numpy files are not supported path={data_reader.path.basename}"
-    v = sirepo.numpy.ndarray_from_generator(data_reader.csv_generator(), has_header_row)
+def _cols_with_non_unique_values(filename, has_header_row, header):
+    v = sirepo.numpy.ndarray_from_csv(_filepath(filename), has_header_row)
     res = PKDict()
-    for i, c in enumerate(np.all(v == v[0, :], axis=0)):
+    for i, c in enumerate(numpy.all(v == v[0, :], axis=0)):
         if c:
             res[header[i]] = True
     return res
 
 
-def _compute_column_info(dataFile):
-    f = dataFile.file
-    if re.search(r"\.npy$", f):
-        return _compute_numpy_info(f)
-    return _compute_csv_info(f, dataFile.selectedData)
+def _compute_h5_info(filename):
+    res = PKDict(
+        colsWithNonUniqueValues=PKDict(),
+        header=[],
+        shape=[],
+        inputOutput=[],
+        outputShape=[],
+        dtypeKind=[],
+    )
+
+    def _visit(name, node):
+        if isinstance(node, h5py.Dataset):
+            res.header.append(name)
+            res.shape.append([*node.shape])
+            res.inputOutput.append("none")
+            res.dtypeKind.append(node.dtype.kind)
+            n = 0
+            if len(node.shape) == 1:
+                if node.dtype.kind == "f":
+                    n = 1
+                else:
+                    n = len(numpy.unique(node))
+            elif len(node.shape) == 2:
+                n = node.shape[1]
+            res.outputShape.append(n)
+
+    with h5py.File(_filepath(filename), "r") as f:
+        f.visititems(_visit)
+    return res
 
 
-def _compute_csv_info(filename, data_path):
+def _compute_csv_info(filename):
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,
     )
     row = None
-    a = sirepo.sim_data.activait.DataReaderFactory.build(_filepath(filename), data_path)
-    with a.data_context_manager() as f:
+
+    with open(_filepath(filename)) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -583,7 +647,7 @@ def _compute_csv_info(filename, data_path):
         row = ["column {}".format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
     res.colsWithNonUniqueValues = _cols_with_non_unique_values(
-        a,
+        filename,
         res.hasHeaderRow,
         row,
     )
@@ -644,18 +708,13 @@ def _compute_clusters(report, plot_data):
     )
 
 
-def _compute_numpy_info(filename):
-    # TODO(pjm): compute column info from numpy file
-    raise NotImplementedError()
-
-
 def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
     r = pkjson.load_any(frame_args.run_dir.join(filename))
     a = None
     for y, _ in enumerate(r.matrix):
         for x, v in enumerate(r.matrix[y]):
-            t = np.repeat([[x, y]], v, axis=0)
-            a = t if a is None else np.vstack([t, a])
+            t = numpy.repeat([[x, y]], v, axis=0)
+            a = t if a is None else numpy.vstack([t, a])
     labels = _get_classification_output_col_encoding(frame_args)
     if labels:
         labels = list(labels.values())
@@ -690,7 +749,7 @@ def _conv(l):
 
 
 def _error_rate_report(frame_args, filename, x_label):
-    v = np.load(str(frame_args.run_dir.join(filename)))
+    v = numpy.load(str(frame_args.run_dir.join(filename)))
     return _report_info(
         v[:, 0],
         [
@@ -713,14 +772,14 @@ def _extract_analysis_report(run_dir, sim_in):
 
 def _extract_column(run_dir, idx):
     y = _read_file_column(run_dir, "scaledFile", idx)
-    return np.arange(0, len(y)), y
+    return numpy.arange(0, len(y)), y
 
 
 def _extract_file_column_report(run_dir, sim_in):
     m = sim_in.models[sim_in.report]
     idx = m.columnNumber
     x, y = _extract_column(run_dir, idx)
-    if np.isnan(y).any():
+    if numpy.isnan(y).any():
         template_common.write_sequential_result(
             PKDict(
                 error="Column values are not numeric",
@@ -796,12 +855,15 @@ def _fit_animation(frame_args):
     header = []
     for i in range(len(info.inputOutput)):
         if info.inputOutput[i] == "output":
-            header.append(info.header[i])
+            if "outputShape" in info:
+                header += [info.header[i] for _ in range(info.outputShape[i])]
+            else:
+                header.append(info.header[i])
+    x = _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx]
+    y = _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx]
+    # TODO(pjm): for a classification-like regression, set heatmap resolution to domain size
     return template_common.heatmap(
-        [
-            _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx],
-            _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx],
-        ],
+        [x, y],
         frame_args,
         PKDict(
             x_label="",
@@ -817,7 +879,6 @@ def _generate_parameters_file(data):
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
-    v.dataPath = dm.dataFile.selectedData
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
@@ -828,6 +889,20 @@ def _generate_parameters_file(data):
     )
     v.image_data = pkio.has_file_extension(v.dataFile, "h5")
     if v.image_data:
+        v.inPath = None
+        v.outPath = None
+        for idx in range(len(dm.columnInfo.header)):
+            if dm.columnInfo.inputOutput[idx] == "input":
+                assert not v.inPath, "Only one input allow for h5 data"
+                v.inPath = dm.columnInfo.header[idx]
+                v.inScaling = dm.columnInfo.dtypeKind[idx] == "f"
+            elif dm.columnInfo.inputOutput[idx] == "output":
+                assert not v.outPath, "Only one output allow for h5 data"
+                v.outPath = dm.columnInfo.header[idx]
+                v.outputShape = dm.columnInfo.outputShape[idx]
+                v.outScaling = dm.columnInfo.dtypeKind[idx] == "f"
+        assert v.inPath, "Missing input data path"
+        assert v.outPath, "Missing output data path"
         res += template_common.render_jinja(SIM_TYPE, v, "loadImages.py")
     else:
         res += template_common.render_jinja(SIM_TYPE, v, "scale.py")
@@ -980,7 +1055,7 @@ def _header_str_to_dict(h):
 
 
 def _histogram_plot(values, vrange):
-    hist = np.histogram(values, bins=20, range=vrange)
+    hist = numpy.histogram(values, bins=20, range=vrange)
     x = []
     y = []
     for i in range(len(hist[0])):
@@ -1004,15 +1079,6 @@ def _is_merge_node(node):
 def _is_sim_report(report):
     # return 'analysisReport' in report or report in _SIM_REPORTS
     return any([r in report for r in _SIM_REPORTS])
-
-
-def _is_valid_report(report):
-    return (
-        "fileColumnReport" in report
-        or "partitionColumnReport" in report
-        or _is_sim_report(report)
-        or report in _REPORTS
-    )
 
 
 def _layer_implementation_list(data):
@@ -1087,7 +1153,7 @@ def _plot_info(y, label="", style=None):
 
 
 def _read_file(run_dir, filename):
-    res = np.load(str(run_dir.join(filename)))
+    res = numpy.load(str(run_dir.join(filename)))
     if len(res.shape) == 1:
         res.shape = (res.shape[0], 1)
     return res
@@ -1114,7 +1180,7 @@ def _read_file_with_history(run_dir, filename, report=None):
                 report2 = copy.deepcopy(report)
                 report2.update(action)
                 clusters = _compute_clusters(report2, res)
-                labels = np.array(clusters.group)
+                labels = numpy.array(clusters.group)
                 res = res[labels == action.clusterIndex, :]
     return res
 
