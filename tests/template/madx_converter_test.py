@@ -31,7 +31,7 @@ def test_from_elegant_to_madx_and_back():
                     name.lower().replace(" ", "-") + ".lte",
                     actual=elegant.python_source_for_model(
                         ElegantMadxConverter(qcall=qcall).from_madx_text(actual),
-                        None,
+                        model=None,
                         qcall=qcall,
                     ),
                 )
@@ -73,7 +73,7 @@ def test_elegant_from_madx():
         actual = ElegantMadxConverter(qcall=qcall).from_madx(data)
         file_eq(
             "test_ele_from_madx.txt",
-            actual=elegant.python_source_for_model(actual, None, qcall=qcall),
+            actual=elegant.python_source_for_model(actual, model=None, qcall=qcall),
         )
 
 

@@ -89,7 +89,7 @@ def _python(data, sim, qcall):
     res = pkio.py_path("run.py")
     d = copy.deepcopy(data)
     d.file_ext = ".zip"
-    t = template.python_source_for_model(d, None, qcall=qcall)
+    t = template.python_source_for_model(d, model=None, qcall=qcall)
     if type(t) == pkcollections.PKDict:
         return _write_multiple_export_files(t)
     res.write(t)

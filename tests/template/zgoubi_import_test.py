@@ -4,20 +4,19 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern import pkio
-from pykern import pkunit
-from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
-from sirepo import srunit
 
 
 def test_importer(import_req):
     from pykern import pkcollections
+    from pykern import pkio
     from pykern import pkjson
+    from pykern import pkunit
+    from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
     from pykern.pkunit import pkeq
+    from sirepo import srunit
     from sirepo.template import zgoubi
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     with pkunit.save_chdir_work() as w:
         for fn in pkio.sorted_glob(pkunit.data_dir().join("*.dat")):
@@ -25,7 +24,7 @@ def test_importer(import_req):
             req = import_req(fn)
             try:
                 data = zgoubi.import_file(req, unit_test_mode=True)
-                sirepo.sim_data.get_class("zgoubi").fixup_old_data(
+                sim_data.get_class("zgoubi").fixup_old_data(
                     data,
                     qcall=req.qcall,
                 )

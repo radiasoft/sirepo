@@ -72,5 +72,5 @@ def _run_test(sim, report, expect_file):
         )
     pkunit.file_eq(
         pkunit.data_dir().join(expect_file),
-        actual=controls.python_source_for_model(sim, report, qcall=None),
+        actual=controls.python_source_for_model(sim, model=report, qcall=None),
     )

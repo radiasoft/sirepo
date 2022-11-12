@@ -75,7 +75,11 @@ class MadxConverter:
     def to_madx_text(self, data):
         from sirepo.template import madx
 
-        return madx.python_source_for_model(self.to_madx(data), None, qcall=self.qcall)
+        return madx.python_source_for_model(
+            self.to_madx(data),
+            model=None,
+            qcall=self.qcall,
+        )
 
     def _build_field_map(self, field_map):
         res = PKDict(

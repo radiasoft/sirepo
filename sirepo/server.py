@@ -453,7 +453,7 @@ class API(sirepo.quest.API):
             simulation_type
         ).constants.simulationSourceExtension
         return self.reply_attachment(
-            req.template.python_source_for_model(d, m, qcall=self),
+            req.template.python_source_for_model(d, model=m, qcall=self),
             "{}.{}".format(
                 d.models.simulation.name + ("-" + title if title else ""),
                 "madx" if m == "madx" else suffix,
