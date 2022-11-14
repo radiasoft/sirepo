@@ -12,3 +12,4 @@ x = Add()([x_1, x_5])
 
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
+model.save('unweighted.h5')

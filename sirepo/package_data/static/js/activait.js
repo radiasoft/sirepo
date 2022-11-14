@@ -385,7 +385,7 @@ SIREPO.app.controller('ClassificationController', function(appState, frameCache,
     });
 });
 
-SIREPO.app.controller('RegressionController', function (appState, frameCache, activaitService, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('RegressionController', function (appState, frameCache, activaitService, persistentSimulation, $scope) {
     const self = this;
     self.simScope = $scope;
     self.simAnalysisModel = 'fitAnimation';
@@ -854,7 +854,7 @@ SIREPO.app.directive('clusterFields', function(appState, activaitService) {
     };
 });
 
-SIREPO.app.directive('columnSelector', function(appState, activaitService, panelState, utilities) {
+SIREPO.app.directive('columnSelector', function(appState, activaitService, panelState) {
     return {
         restrict: 'A',
         scope: {},
@@ -1453,7 +1453,39 @@ SIREPO.app.controller('PartitionController', function (appState, activaitService
     appState.whenModelsLoaded($scope, loadReports);
 });
 
-SIREPO.app.directive('neuralNetLayersForm', function(appState, activaitService, panelState, stringsService) {
+SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: `
+            <div class="container-fluid">
+              <a data-ng-if="frameCache.hasFrames('epochAnimation')" style="position: relative; text-align: center;" href="{{ logFileURL() }}" target="_blank">  Download {{ modelType }} model</a>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.frameCache = frameCache;
+            $scope.modelType = $scope.modelName == "neuralNetLayer" ? "unweighted" : "weighted";
+
+            $scope.logFileURL = () => {
+                return logFileRequest();
+            };
+
+            function logFileRequest() {
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': 'animation',
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<suffix>': $scope.modelName,
+                });
+            }
+        },
+    };
+});
+
+SIREPO.app.directive('neuralNetLayersForm', function(appState, stringsService) {
     return {
         restrict: 'A',
         scope: {
@@ -1522,6 +1554,7 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, activaitService, 
                         </td>
                         </tr>
                     </table>
+                   <div data-model-download-link="" data-model-name="neuralNetLayer"></div>
                 </div>
               </div>
               <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
@@ -2076,7 +2109,7 @@ SIREPO.viewLogic('partitionView', function(activaitService, appState, panelState
     ];
 });
 
-SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState, persistentSimulation, requestSender, validationService, $rootScope, $scope) {
+SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState, requestSender, validationService, $scope) {
 
     const modelName = $scope.modelName;
     const self = this;

@@ -18,7 +18,9 @@
     </div>
     <div class="clearfix"></div>
     <div class="col-md-6" data-ng-if="regression.hasFrames('epochAnimation')">
-      <div data-report-panel="parameter" data-model-name="epochAnimation"></div>
+      <div data-report-panel="parameter" data-model-name="epochAnimation">
+        <div data-model-download-link="" data-model-name="mlModel"></div>
+      </div>
     </div>
     <div data-ng-repeat="report in regression.reports track by report.columnNumber">
       <div class="col-sm-3">
