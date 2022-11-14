@@ -1,0 +1,306 @@
+{
+    "models": {
+        "activation": {
+            "activation": "relu",
+            "layer": "Activation"
+        },
+        "add": {
+            "layer": "Add"
+        },
+        "alphaDropout": {
+            "_super": "dropout",
+            "dropoutRate": 0.5,
+            "layer": "AlphaDropout"
+        },
+        "analysisCluster": {
+            "basic": "clusterCount",
+            "model": "a"
+        },
+        "analysisData": {
+            "title": "c"
+        },
+        "analysisFFT": {
+            "model": "a"
+        },
+        "analysisFit": {
+            "basic": "fitVariable",
+            "model": "a"
+        },
+        "analysisNone": {
+            "model": "a"
+        },
+        "analysisReport": {
+            "action": "fft",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterKmeansInit": 2,
+            "clusterMethod": "kmeans",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "a * x + b",
+            "fitParameters": "a,b",
+            "fitVariable": "x",
+            "history": [],
+            "notes": "",
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisReport1": {
+            "action": "fit",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterKmeansInit": 2,
+            "clusterMethod": "kmeans",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "20 * a * sin(14 * b * x + c) + d",
+            "fitParameters": "a,b,c,d",
+            "fitVariable": "x",
+            "history": [
+                {
+                    "action": "trim",
+                    "trimField": "0",
+                    "trimMax": 2.6,
+                    "trimMin": 0
+                }
+            ],
+            "id": 1,
+            "notes": "",
+            "trimField": "0",
+            "trimMax": 2.6,
+            "trimMin": 0,
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisTrim": {
+            "basic": "trimMax",
+            "model": "a"
+        },
+        "averagePooling2D": {
+            "_super": "poolingLayer",
+            "layer": "MaxPooling2D",
+            "padding": "valid",
+            "size": 2,
+            "strides": 1
+        },
+        "batchNormalization": {
+            "layer": "BatchNormalization",
+            "momentum": 0.99
+        },
+        "classificationAnimation": {
+            "classifier": "knn"
+        },
+        "columnInfo": {
+            "colsWithNonUniqueValues": {},
+            "hasHeaderRow": false,
+            "header": [
+                "column 1",
+                "column 2"
+            ],
+            "inputOutput": [
+                "none",
+                "none"
+            ],
+            "rowCount": 235,
+            "state": "completed"
+        },
+        "columnReports": [
+            0,
+            1
+        ],
+        "concatenate": {
+            "layer": "Concatenate"
+        },
+        "conv2D": {
+            "_super": "neuralNetLayer",
+            "activation": "relu",
+            "dimensionality": 32,
+            "kernel": 3,
+            "layer": "Conv2D",
+            "padding": "valid",
+            "strides": 1
+        },
+        "conv2DTranspose": {
+            "_super": "conv2D",
+            "activation": "relu",
+            "dimensionality": 32,
+            "kernel": 3,
+            "layer": "Conv2DTranspose",
+            "padding": "valid",
+            "strides": 1
+        },
+        "dataFile": {
+            "appMode": "analysis",
+            "dataOrigin": "file",
+            "file": "fft-data.csv",
+            "inputsScaler": "RobustScaler",
+            "oldFile": "fft-data.csv",
+            "outputsScaler": "RobustScaler",
+            "url": ""
+        },
+        "dataFileCache": {},
+        "dense": {
+            "_super": "neuralNetLayer",
+            "activation": "relu",
+            "dimensionality": 10,
+            "layer": "Dense"
+        },
+        "dropout": {
+            "dropoutRate": 0.5,
+            "layer": "Dropout"
+        },
+        "dtClassifierClassificationMetricsAnimation": {},
+        "dtClassifierConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "epochAnimation": {
+            "plotScale": "linear"
+        },
+        "fftReport": {
+            "column": "1"
+        },
+        "fftReport1": {
+            "analysisReport": "analysisReport1"
+        },
+        "fileColumnReport": {
+            "x": -1
+        },
+        "fileColumnReport0": {
+            "columnNumber": 0,
+            "x": -1
+        },
+        "fileColumnReport1": {
+            "columnNumber": 1,
+            "x": -1
+        },
+        "fitAnimation": {
+            "colorMap": "viridis",
+            "columnNumber": 0,
+            "histogramBins": 30
+        },
+        "fitReport": {},
+        "flatten": {
+            "layer": "Flatten"
+        },
+        "gaussianDropout": {
+            "_super": "dropout",
+            "dropoutRate": 0.5,
+            "layer": "GaussianDropout"
+        },
+        "gaussianNoise": {
+            "layer": "GaussianNoise",
+            "stddev": 0.01
+        },
+        "globalAveragePooling2D": {
+            "layer": "GlobalAveragePooling2D"
+        },
+        "hiddenReport": {
+            "subreports": [
+                1
+            ]
+        },
+        "knnClassification": {
+            "kmax": 50,
+            "kmin": 1
+        },
+        "knnClassificationMetricsAnimation": {},
+        "knnConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "knnErrorRateAnimation": {},
+        "linearSvcClassification": {
+            "toleranceMax": 0.15,
+            "toleranceMin": 0.001,
+            "totalNumValues": 20
+        },
+        "linearSvcConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "linearSvcErrorRateAnimation": {},
+        "logisticRegressionClassification": {
+            "toleranceMax": 25,
+            "toleranceMin": 1,
+            "totalNumValues": 20
+        },
+        "logisticRegressionClassificationMetricsAnimation": {},
+        "logisticRegressionConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "logisticRegressionErrorRateAnimation": {},
+        "maxPooling2D": {
+            "_super": "poolingLayer",
+            "layer": "MaxPooling2D",
+            "padding": "valid",
+            "size": 2,
+            "strides": 1
+        },
+        "mlModel": {
+            "mlModule": "neuralnet",
+            "modelFile": ""
+        },
+        "neuralNet": {
+            "batch_size": 50,
+            "epochs": 500,
+            "layers": [],
+            "losses": "mean_squared_error",
+            "optimizer": "adam",
+            "shuffle": "1"
+        },
+        "neuralNetLayer": {
+            "activation": "relu",
+            "dimensionality": 10,
+            "layer": "Dense"
+        },
+        "partition": {
+            "cutoff0": 29,
+            "cutoff1": 205,
+            "method": "random",
+            "random_state": 42,
+            "section0": "validate",
+            "section1": "train_and_test",
+            "section2": "validate",
+            "testing": 12.5,
+            "trainTestPercent": 75,
+            "training": 75,
+            "validation": 12.5
+        },
+        "partitionColumnReport": {},
+        "partitionSelectionReport": {},
+        "poolingLayer": {
+            "padding": "valid",
+            "size": 2,
+            "strides": 1
+        },
+        "separableConv2D": {
+            "_super": "conv2D",
+            "activation": "relu",
+            "dimensionality": 32,
+            "kernel": 3,
+            "layer": "SeparableConv2D",
+            "padding": "valid",
+            "strides": 1
+        },
+        "simFolder": {},
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Match Sine"
+        },
+        "upSampling2D": {
+            "interpolation": "nearest",
+            "layer": "UpSampling2D",
+            "size": 2
+        },
+        "urlCache": {},
+        "zeroPadding2D": {
+            "layer": "ZeroPadding2D",
+            "padding": 1
+        }
+    },
+    "simulationType": "activait"
+}
