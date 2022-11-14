@@ -9,14 +9,21 @@ model.compile(
     metrics=['accuracy'],
 )
 
-history = model.fit(
-    x=trainx,
-    y=trainy,
+history = model.fit_generator(
+    train_generator,
+    validation_data=train_generator,
+    use_multiprocessing=True,
     epochs={{ neuralNet_epochs }},
-    validation_data=(valx, valy),
-    batch_size={{ neuralNet_batch_size }},
-    callbacks=[CSVLogger('{{ fitCSVFile }}')],
-)
+    callbacks=[CSVLogger('fit.csv')])
+
+#history = model.fit(
+#    x=trainx,
+#    y=trainy,
+#    epochs={{ neuralNet_epochs }},
+#    validation_data=(valx, valy),
+#    batch_size={{ neuralNet_batch_size }},
+#    callbacks=[CSVLogger('{{ fitCSVFile }}')],
+#)
 
 {% else %}
 

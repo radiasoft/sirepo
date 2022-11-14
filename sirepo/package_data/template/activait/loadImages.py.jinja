@@ -1,6 +1,7 @@
 import h5py
 import numpy
 from sklearn.model_selection import train_test_split
+from h5imagegenerator import HDF5ImageGenerator
 
 
 def _scale(values):
@@ -19,7 +20,7 @@ with h5py.File("{{ dataFile }}", "r") as f:
     {% if outScaling %}
     y_values = _scale(y_values)
     {% endif %}
-    
+
     trainx, tvx, trainy, tvy = train_test_split(
         x_values, y_values, test_size=test_and_validate, random_state=42, shuffle=False
     )
@@ -30,3 +31,14 @@ with h5py.File("{{ dataFile }}", "r") as f:
     if len(input_shape) < 3:
         input_shape += (1,)
     output_shape = {{outputShape}}
+
+
+train_generator = HDF5ImageGenerator(
+        src='{{ dataFile }}',
+        X_key='images',
+        y_key='metadata/image_types',
+        labels_encoding="smooth",
+        scaler=False,
+        num_classes=4,
+        batch_size={{ neuralNet_batch_size }},
+    )
