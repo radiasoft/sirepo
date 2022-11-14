@@ -92,7 +92,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 cls._fixup_box_to_cuboid(o, f)
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         import sirepo.util
 
         sch = cls.schema()

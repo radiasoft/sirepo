@@ -146,7 +146,7 @@ def is_viewing_log_file(data):
     )
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 

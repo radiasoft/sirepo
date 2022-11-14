@@ -22,8 +22,8 @@ def add(uid_or_email, *roles):
         *roles: The roles to assign to the user
     """
 
-    with _parse_args(uid_or_email, roles) as (qcall, u):
-        sirepo.auth_db.UserRole.add_roles(u, roles)
+    with _parse_args(uid_or_email, roles) as qcall:
+        sirepo.auth_db.UserRole.add_roles(qcall, roles)
 
 
 def add_roles(*args):
@@ -38,8 +38,8 @@ def delete(uid_or_email, *roles):
         *roles (args): The roles to delete
     """
 
-    with _parse_args(uid_or_email, roles) as (qcall, u):
-        sirepo.auth_db.UserRole.delete_roles(u, roles)
+    with _parse_args(uid_or_email, roles) as qcall:
+        sirepo.auth_db.UserRole.delete_roles(qcall, roles)
 
 
 def delete_roles(*args):
@@ -53,8 +53,8 @@ def list(uid_or_email):
         uid_or_email (str): Uid or email of the user
     """
 
-    with _parse_args(uid_or_email, []) as (qcall, u):
-        return sirepo.auth_db.UserRole.get_roles(u)
+    with _parse_args(uid_or_email, []) as qcall:
+        return sirepo.auth_db.UserRole.get_roles(qcall)
 
 
 def list_roles(*args):
@@ -81,5 +81,5 @@ def _parse_args(uid_or_email, roles):
             assert set(roles).issubset(
                 a
             ), "roles={} not a subset of all_roles={}".format(roles, a)
-        qcall.auth.logged_in_user_set(u)
-        yield qcall, u
+        with qcall.auth.logged_in_user_set(u):
+            yield qcall

@@ -31,7 +31,7 @@ def get_data_file(run_dir, model, frame, options):
     return OUTPUT_NAME
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 

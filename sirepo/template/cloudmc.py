@@ -78,7 +78,7 @@ def post_execution_processing(
     return _parse_run_log(run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 

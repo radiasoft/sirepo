@@ -36,7 +36,5 @@ def _cfg_uid(value):
 
     if value and value == "dev-no-validate" and pkconfig.channel_in_internal_test():
         return value
-    assert simulation_db.user_path(value).check(
-        dir=True
-    ), "uid={} does not exist".format(value)
+    simulation_db.user_path(uid=value, check=True)
     return value

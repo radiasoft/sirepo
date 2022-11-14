@@ -24,7 +24,8 @@ def test_srw_1(qcall):
             "exported_undulator_radiation": ("exported_undulator_radiation", None),
             "lcls_simplified": ("lcls_simplified", None),
             "lcls_sxr": ("lcls_sxr", None),
-        }
+        },
+        qcall,
     )
 
 
@@ -42,11 +43,13 @@ def test_srw_2(qcall):
             "srx_bl2": ("srx", "--op_BL=2"),
             "srx_bl3": ("srx", "--op_BL=3"),
             "srx_bl4": ("srx", "--op_BL=4"),
-        }
+        },
+        qcall,
     )
 
 
-def _t(tests):
+def _t(tests, qcall):
+    from sirepo import quest
     from sirepo.template.srw_importer import import_python
     from pykern import pkio, pkjson
     from pykern import pkunit
@@ -63,6 +66,7 @@ def _t(tests):
                 tmp_dir=".",
                 user_filename=r"c:\anything\{}.anysuffix".format(tests[b][0]),
                 arguments=tests[b][1],
+                qcall=qcall,
             )
             actual["version"] = "IGNORE-VALUE"
             pkunit.assert_object_with_json(b, actual)

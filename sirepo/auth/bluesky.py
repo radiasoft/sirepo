@@ -53,7 +53,7 @@ class API(sirepo.quest.API):
         )
         return self.reply_ok(
             PKDict(
-                data=simulation_db.open_json_file(req.type, sid=req.id),
+                data=simulation_db.open_json_file(req.type, sid=req.id, qcall=self),
                 schema=simulation_db.get_schema(req.type),
             ),
         )

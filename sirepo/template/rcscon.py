@@ -126,8 +126,8 @@ def prepare_sequential_output_file(run_dir, sim_in):
         extract_report_data(run_dir, sim_in)
 
 
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(data, qcall=qcall)
 
 
 def sim_frame(frame_args):
@@ -232,7 +232,7 @@ def _fit_animation(frame_args):
     )
 
 
-def _generate_elegant_simulation(data):
+def _generate_elegant_simulation(data, qcall):
     vars_by_name = PKDict({x.name: x.value for x in data.models.rpnVariables})
     for m in ("elegantAnimation", "latticeSettings", "rfcSettings"):
         for f in data.models[m]:
@@ -245,13 +245,13 @@ def _generate_elegant_simulation(data):
     )
     from sirepo.template import elegant
 
-    return elegant.rcscon_generate_lattice(data)
+    return elegant.rcscon_generate_lattice(data, qcall=qcall)
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, qcall=None):
     report = data.get("report", "")
     if report == "elegantAnimation":
-        return _generate_elegant_simulation(data)
+        return _generate_elegant_simulation(data, qcall=qcall)
     res, v = template_common.generate_parameters_file(data)
     res += "from __future__ import absolute_import, division, print_function\n"
     infile = _SIM_DATA.rcscon_filename(data, "files", "inputs")

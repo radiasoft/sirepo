@@ -32,7 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return analysis_model
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         dm.pksetdefault(
             "dicomEditorState",

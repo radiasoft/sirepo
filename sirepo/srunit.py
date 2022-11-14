@@ -41,7 +41,7 @@ def quest_start():
         yield qcall
 
 
-def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=False):
+def flask_client(cfg=None, sim_types=None, job_run_mode=None, empty_work_dir=True):
     """Return FlaskClient with easy access methods.
 
     Creates a new run directory every test file so can assume
@@ -52,8 +52,7 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=Fals
     Args:
         cfg (dict): extra configuration for reset_state_for_testing
         sim_types (str): value for SIREPO_FEATURE_CONFIG_SIM_TYPES [CONFTEST_DEFAULT_CODES]
-        no_chdir_work (bool): If True do not save and chdir to the work dir.
-                              The caller is expected to do it before calling this function.
+        empty_work_dir (bool): delete and create work_dir [True]
 
     Returns:
         FlaskClient: for local requests to Flask server
@@ -75,9 +74,11 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=Fals
         pkconfig.reset_state_for_testing(cfg)
 
         from pykern import pkunit
+        from pykern import pkio
 
-        with contextlib.nullcontext() if no_chdir_work else pkunit.save_chdir_work():
-            from pykern import pkio
+        with pkunit.save_chdir_work() if empty_work_dir else pkio.save_chdir(
+            pkunit.work_dir(),
+        ):
             from sirepo import modules
 
             setup_srdb_root(cfg=cfg)

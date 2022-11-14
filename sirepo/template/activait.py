@@ -178,7 +178,7 @@ def stateless_compute_load_keras_model(data):
     return _build_ui_nn(keras.models.load_model(l))
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 

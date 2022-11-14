@@ -160,7 +160,7 @@ def get_data_file(run_dir, model, frame, options):
     return files[int(frame)]
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
     source = new_simulation_data["sourceType"]
     if not source:
         source = "laserPulse"
@@ -215,7 +215,7 @@ def open_data_file(run_dir, file_index=None):
     return res
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return generate_parameters_file(data, is_parallel=True)
 
 
