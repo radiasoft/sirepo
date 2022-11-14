@@ -11,8 +11,6 @@ import requests
 import requests.exceptions
 import sirepo.feature_config
 import sirepo.sim_data
-import sirepo.simulation_db
-import sirepo.srdb
 import sirepo.util
 
 

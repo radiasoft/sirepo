@@ -148,7 +148,9 @@ def create_archive(sim, qcall):
 
     if sim.filename.endswith("dat"):
         return qcall.reply_attachment(
-            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
+            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(
+                _DMP_FILE
+            ),
             content_type="application/octet-stream",
             filename=sim.filename,
         )
@@ -283,7 +285,7 @@ def import_file(req, tmp_dir=None, **kwargs):
     return data
 
 
-def new_simulation(data, new_sim_data):
+def new_simulation(data, new_sim_data, qcall, **kwargs):
     _prep_new_sim(data, new_sim_data=new_sim_data)
     dirs = _geom_directions(new_sim_data.beamAxis, new_sim_data.heightAxis)
     t = new_sim_data.get("magnetType", "freehand")
@@ -343,8 +345,8 @@ def stateless_compute_build_shape_points(data):
     return PKDict(points=pts)
 
 
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data, False, for_export=True)
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
 
 
 def validate_file(file_path, path):
@@ -362,7 +364,7 @@ def validate_file(file_path, path):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, is_parallel, run_dir=run_dir),
+        _generate_parameters_file(data, is_parallel, run_dir=run_dir, qcall=None),
     )
     if is_parallel:
         return template_common.get_exec_parameters_cmd(is_mpi=True)
@@ -825,7 +827,7 @@ def _generate_obj_data(g_id, name):
     return radia_util.geom_to_data(g_id, name=name)
 
 
-def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None):
+def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_dir=None):
     import jinja2
 
     report = data.get("report", "")
@@ -878,7 +880,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         v.dmpImportFile = (
             data.models.simulation.dmpImportFile
             if for_export
-            else simulation_db.simulation_lib_dir(SIM_TYPE).join(
+            else simulation_db.simulation_lib_dir(SIM_TYPE, qcall=qcall).join(
                 f"{SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}"
             )
         )

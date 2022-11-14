@@ -39,7 +39,7 @@ class API(sirepo.quest.API):
     def api_admModerate(self):
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
-                recipient=self.auth.user_name(info.uid, self.auth.METHOD_EMAIL),
+                recipient=info.user_name,
                 subject=_STATUS_TO_SUBJECT[info.status].format(info.app_name),
                 body=pkjinja.render_resource(
                     f"auth_role_moderation/{info.status}_email",
@@ -57,12 +57,12 @@ class API(sirepo.quest.API):
 
         def _set_moderation_status(info):
             if info.status == "approve":
-                sirepo.auth_db.UserRole.add_roles(info.uid, [info.role])
+                sirepo.auth_db.UserRole.add_roles(qcall=self, roles=[info.role])
             sirepo.auth_db.UserRoleInvite.set_status(
-                info.uid,
-                info.role,
-                info.status,
-                moderator_uid=self.auth.logged_in_user(),
+                qcall=self,
+                role=info.role,
+                status=info.status,
+                moderator_uid=info.moderator_uid,
             )
 
         req = self.parse_post(type=False)
@@ -77,14 +77,18 @@ class API(sirepo.quest.API):
             app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
                 sirepo.auth_role.sim_type(i.role)
             ].longName,
-            display_name=self.auth.user_display_name(i.uid),
             role=i.role,
             status=req.req_data.status,
-            uid=i.uid,
+            moderator_uid=self.auth.logged_in_user(),
         )
-        _set_moderation_status(p)
         pkdlog("status={} uid={} role={} token={}", p.status, i.uid, i.role, i.token)
-        _send_moderation_status_email(p)
+        with self.auth.logged_in_user_set(uid=i.uid, method=self.auth.METHOD_EMAIL):
+            p.pkupdate(
+                display_name=self.auth.user_display_name(i.uid),
+                user_name=self.auth.logged_in_user_name(),
+            )
+            _set_moderation_status(p)
+            _send_moderation_status_email(p)
         return self.reply_ok()
 
     @sirepo.quest.Spec("require_adm")
@@ -125,7 +129,7 @@ class API(sirepo.quest.API):
         u = self.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(req.type)
         with sirepo.util.THREAD_LOCK:
-            if sirepo.auth_db.UserRole.has_role(u, r):
+            if sirepo.auth_db.UserRole.has_role(qcall=self, role=r):
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
             try:
                 sirepo.auth_db.UserRoleInvite(
@@ -162,7 +166,7 @@ class API(sirepo.quest.API):
 
 
 def raise_control_for_user(qcall, uid, role, sim_type):
-    s = sirepo.auth_db.UserRoleInvite.get_status(uid, role)
+    s = sirepo.auth_db.UserRoleInvite.get_status(qcall=qcall, role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", PKDict(sim_type=sim_type))
     if s == sirepo.auth_role.ModerationStatus.DENY:

@@ -267,7 +267,7 @@ class Convert:
         )[res.models.simulation.sourceType](data, res.models)
         self.__beamline_to_srw(data, res.models)
         res.models.beamline = self.beamline
-        _SRW.fixup_old_data(res)
+        _SRW.fixup_old_data(res, qcall=None)
         return res
 
     def to_shadow(self, models):
@@ -283,7 +283,7 @@ class Convert:
         self.__beamline_to_shadow(models, res.models)
         if res.models.simulation.sourceType == "undulator":
             self.__fix_undulator_gratings(res.models)
-        _SHADOW.fixup_old_data(res)
+        _SHADOW.fixup_old_data(res, qcall=None)
         return res
 
     def __beam_to_shadow(self, srw, shadow):

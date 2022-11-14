@@ -38,7 +38,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_adm")
     def api_admJobs(self):
         return self.request(
-            _request_content=PKDict(**self.parse_post()),
+            _request_content=PKDict(**self._parse_post_just_data()),
         )
 
     @sirepo.quest.Spec("require_user")
@@ -51,7 +51,7 @@ class API(sirepo.quest.API):
         return self.request(
             _request_content=PKDict(
                 uid=u,
-                userDir=str(sirepo.simulation_db.user_path(u)),
+                userDir=str(sirepo.simulation_db.user_path(qcall=self)),
             ),
         )
 
@@ -74,7 +74,7 @@ class API(sirepo.quest.API):
         )
         s = suffix and sirepo.srschema.parse_name(suffix)
         t = None
-        with simulation_db.tmp_dir() as d:
+        with simulation_db.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
             t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
@@ -133,7 +133,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     def api_ownJobs(self):
         return self.request(
-            _request_content=self.parse_post().pkupdate(
+            _request_content=self._parse_post_just_data().pkupdate(
                 uid=self.auth.logged_in_user(),
             ),
         )
@@ -246,6 +246,13 @@ class API(sirepo.quest.API):
         r.raise_for_status()
         return pkjson.load_any(r.content)
 
+    def _parse_post_just_data(self):
+        """Remove computed objects"""
+        r = self.parse_post()
+        r.pkdel("qcall")
+        r.pkdel("template")
+        return r
+
     def _request_compute(self):
         return self.request(
             jobRunMode=sirepo.job.SEQUENTIAL,
@@ -274,11 +281,12 @@ class API(sirepo.quest.API):
         # TODO(e-carlin): some of these fields are only used for some type of reqs
         b.pksetdefault(
             analysisModel=lambda: s.parse_model(d),
-            computeJobHash=lambda: d.get("computeJobHash") or s.compute_job_hash(d),
+            computeJobHash=lambda: d.get("computeJobHash")
+            or s.compute_job_hash(d, qcall=self),
             computeJobSerial=lambda: d.get("computeJobSerial", 0),
             computeModel=lambda: s.compute_model(d),
             isParallel=lambda: s.is_parallel(d),
-            runDir=lambda: str(simulation_db.simulation_run_dir(d)),
+            runDir=lambda: str(simulation_db.simulation_run_dir(d, qcall=self)),
             # TODO(robnagler) relative to srdb root
             simulationId=lambda: s.parse_sid(d),
             simulationType=lambda: d.simulationType,
@@ -287,7 +295,7 @@ class API(sirepo.quest.API):
             uid=self.auth.logged_in_user(),
         ).pkupdate(
             computeJid=s.parse_jid(d, uid=b.uid),
-            userDir=str(sirepo.simulation_db.user_path(b.uid)),
+            userDir=str(sirepo.simulation_db.user_path(qcall=self)),
         )
         return self._run_mode(b)
 

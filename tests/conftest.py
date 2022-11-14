@@ -50,8 +50,13 @@ def fc(request, fc_module):
 
 
 @pytest.fixture(scope="module")
-def fc_module(request, cfg=None):
-    with _subprocess_start(request) as c:
+def fc_module(request):
+    from pykern.pkcollections import PKDict
+
+    a = _sirepo_args(request, "fc_module", PKDict())
+    if "setup_func" in a:
+        a.setup_func()
+    with _subprocess_start(request, fc_args=a) as c:
         yield c
 
 
@@ -170,6 +175,7 @@ def pytest_configure(config):
         config.option,
         namespace=config.option,
     )
+    config.addinivalue_line("markers", "sirepo_args: pass parameters to fixtures")
 
 
 @pytest.fixture
@@ -206,7 +212,7 @@ def _auth_client_module(request, uwsgi=False):
 
     pkconfig.reset_state_for_testing(cfg)
 
-    with _subprocess_start(request, cfg=cfg, uwsgi=uwsgi) as c:
+    with _subprocess_start(request, fc_args=PKDict(cfg=cfg, uwsgi=uwsgi)) as c:
         yield c
 
 
@@ -301,15 +307,22 @@ def _slurm_not_installed():
     return False
 
 
-def _subprocess_setup(request, cfg=None, uwsgi=False):
+def _sirepo_args(request, name, default):
+    m = request.node.get_closest_marker("sirepo_args")
+    res = None
+    if m and m.kwargs and name in m.kwargs:
+        res = m.kwargs.get(name)
+    return default if res is None else res
+
+
+def _subprocess_setup(request, fc_args):
     """setup the supervisor"""
     import os
     from pykern.pkcollections import PKDict
 
     sbatch_module = "sbatch" in request.module.__name__
     env = PKDict(os.environ)
-    if not cfg:
-        cfg = PKDict()
+    cfg = fc_args.cfg
     from pykern import pkunit
     from pykern import pkio
 
@@ -321,7 +334,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         SIREPO_PKCLI_SERVICE_IP=_LOCALHOST,
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
-    if uwsgi:
+    if fc_args.uwsgi:
         cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port()
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
@@ -336,13 +349,15 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
 
     c = None
     u = [env["SIREPO_PKCLI_JOB_SUPERVISOR_PORT"]]
-    if uwsgi:
+    if fc_args.uwsgi:
         c = sirepo.srunit.UwsgiClient(env)
         u.append(env["SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT"])
     else:
         c = sirepo.srunit.flask_client(
             cfg=cfg,
+            empty_work_dir=fc_args.empty_work_dir,
             job_run_mode="sbatch" if sbatch_module else None,
+            sim_types=fc_args.sim_types,
         )
 
     for i in u:
@@ -357,11 +372,19 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
 
 
 @contextlib.contextmanager
-def _subprocess_start(request, cfg=None, uwsgi=False):
+def _subprocess_start(request, fc_args):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     import sirepo.srunit
     import time
+
+    fc_args.pksetdefault(
+        uwsgi=False,
+        cfg=PKDict,
+        sim_types=None,
+        append_package=None,
+        empty_work_dir=True,
+    )
 
     def _post(uri, data):
         for _ in range(30):
@@ -376,7 +399,7 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))
 
-    env, c = _subprocess_setup(request, cfg, uwsgi)
+    env, c = _subprocess_setup(request, fc_args)
     wd = pkunit.work_dir()
     p = []
     try:
@@ -385,7 +408,7 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
             env["SIREPO_JOB_API_SUPERVISOR_URI"] + "/job-api-ping",
             PKDict(ping="echoedValue"),
         )
-        if uwsgi:
+        if fc_args.uwsgi:
             for s in ("nginx-proxy", "uwsgi"):
                 _subprocess(("sirepo", "service", s))
             _post(
@@ -393,6 +416,14 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
                 f"/job-supervisor-ping",
                 PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT),
             )
+        from sirepo import feature_config, template
+        from pykern import pkio
+
+        if template.is_sim_type("srw"):
+            pkio.unchecked_remove(
+                "~/src/radiasoft/sirepo/sirepo/package_data/template/srw/predefined.json"
+            )
+            template.import_module("srw").get_predefined_beams()
         yield c
     finally:
         for x in p:

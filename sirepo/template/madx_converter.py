@@ -24,10 +24,11 @@ class MadxConverter:
         degrad="pi / 180",
     )
 
-    def __init__(self, sim_type, field_map, downcase_variables=False):
+    def __init__(self, sim_type, field_map, downcase_variables=False, qcall=None):
         self.sim_type = sim_type
         self.downcase_variables = downcase_variables
         self.full_field_map = self._build_field_map(field_map)
+        self.qcall = qcall
 
     def fill_in_missing_constants(self, data, constants):
         import sirepo.template.madx
@@ -74,7 +75,11 @@ class MadxConverter:
     def to_madx_text(self, data):
         from sirepo.template import madx
 
-        return madx.python_source_for_model(self.to_madx(data), None)
+        return madx.python_source_for_model(
+            self.to_madx(data),
+            model=None,
+            qcall=self.qcall,
+        )
 
     def _build_field_map(self, field_map):
         res = PKDict(
