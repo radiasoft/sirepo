@@ -1169,8 +1169,8 @@ def _stl_polygon_file(filename):
     return _SIM_DATA.lib_file_name_with_model_field("stl", filename, _STL_POLY_FILE)
 
 
-def _save_stl_polys(data):
-    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file))
+def _save_stl_polys(data, qcall=None):
+    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file), qcall=qcall)
     # write once
     if p.exists():
         return
