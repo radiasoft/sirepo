@@ -1170,12 +1170,12 @@ def _stl_polygon_file(filename):
 
 
 def _save_stl_polys(data, qcall=None):
-    try:
-        template_common.write_dict_to_h5(
-            data,
-            _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file), qcall=qcall),
-            h5_path="/",
-        )
-    except Exception as e:
-        pkdlog("save_stl_polys error={}", e)
-        pass
+    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file), qcall=qcall)
+    # write once
+    if p.exists():
+        return
+    template_common.write_dict_to_h5(
+        data,
+        p,
+        h5_path="/",
+    )
