@@ -90,7 +90,7 @@ def _add_object(o, radia_objs, id_map):
         g_id = radia_util.build_stl(
             filename = o.get('file'),
             #TODO(BG) Not currently reflective
-            center=ctr,
+            center=o.center,
             #TODO(BG) Not currently reflective
             size=sz,
             vertices=o.stlVertices,
@@ -98,9 +98,11 @@ def _add_object(o, radia_objs, id_map):
             magnetization=m,
             material=o.material,
             rem_mag=o.remanentMag,
-            segments=segs, #TODO: Not implemented
+            #TODO: Not implemented
+            segments=segs,
             h_m_curve=o.h_m_curve,
-            #slices=o.stlSlices TODO: Not implemented
+            #TODO: Not implemented
+            #slices=o.stlSlices
         )
     if t in _OBJ_MODELS:
         for b in o.get('bevels', []):
