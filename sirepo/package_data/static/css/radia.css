@@ -1,9 +1,16 @@
-.table-hover > tbody > tr {
-  border-style: solid;
-  border-width: thin;
-  border-color: #00a2c5;
+.radia-table-hover > tbody > tr {
+  outline-style: solid;
+  outline-width: 1px;
+  outline-color: lightgray;
+  outline-offset: -1px;
 }
 
-.table-hover > tbody > tr:hover {
-  border-width: 2px;
+.radia-table-hover > tbody > tr:hover {
+  outline-width: 2px;
+  outline-offset: -2px;
+  outline-color: #00a2c5;
+}
+
+.radia-table-hover > tbody tr:nth-child(even) td{
+    background-color: lightcyan;
 }
