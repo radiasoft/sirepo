@@ -2,21 +2,16 @@
   <div class="row">
     <div>
       <div class="col-md-10 col-lg-6" data-basic-editor-panel="" data-view-name="dataFile"></div>
-      <div class="col-md-10 col-lg-6" data-ng-if="data.hasDataFile() && ! data.isTextData()">
-        <div data-basic-editor-panel="" data-view-name="pathChooser">
-          <div data-data-path-selector=""></div>
-        </div>
-      </div>
-      <div class="col-md-10 col-lg-6" data-ng-show="data.hasDataFile() && data.isTextData()">
+      <div class="col-md-10 col-lg-6" data-ng-show="data.activaitService.hasDataFile()">
         <div data-basic-editor-panel="" data-view-name="columnChooser">
           <div data-column-selector=""></div>
         </div>
       </div>
-      <div class="col-md-10 col-lg-6" data-ng-if="data.isImageData()" data-basic-editor-panel="" data-view-name="imageViewer">
+      <div class="col-md-10 col-lg-6" data-ng-if="data.showImageViewer()" data-basic-editor-panel="" data-view-name="imageViewer">
         <div data-image-preview-panel="">
         </div>
       </div>
     </div>
-    <div data-ng-if="data.isTextData()" data-column-reports=""></div>
+    <div data-ng-if="data.activaitService.isTextData()" data-column-reports=""></div>
   </div>
 </div>

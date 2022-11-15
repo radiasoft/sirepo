@@ -370,7 +370,7 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
     return _parse_madx_log(run_dir)
 
 
-def prepare_for_client(data):
+def prepare_for_client(data, qcall, **kwargs):
     code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
 
@@ -393,7 +393,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 # TODO(e-carlin): fixme - I don't return python
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return generate_parameters_file(data)
 
 

@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdlog
 from pykern.pkcollections import PKDict
@@ -23,27 +22,27 @@ _AUTH_HEADER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# TODO(robnagler) figure out how to do in tornado, e.g. get path_info
+_URI_RE = re.compile(f"^{sirepo.job.SIM_DB_FILE_URI}/(.+)")
 _TOKEN_TO_UID = PKDict()
+_UID_TO_TOKEN = PKDict()
 
 
 class FileReq(tornado.web.RequestHandler):
     def delete(self, path):
-        self.__validate_req()
-        for f in pkio.sorted_glob(sirepo.srdb.root().join(path + "*")):
+        for f in pkio.sorted_glob(f"{self.__authenticated_path()}*"):
             pkio.unchecked_remove(f)
 
     def get(self, path):
-        self.__validate_req()
-        p = sirepo.srdb.root().join(path)
+        p = self.__authenticated_path()
         if not p.exists():
             raise sirepo.tornado.error_not_found()
         self.write(pkio.read_binary(p))
 
     def put(self, path):
-        self.__validate_req()
-        sirepo.srdb.root().join(path).write_binary(self.request.body)
+        self.__authenticated_path().write_binary(self.request.body)
 
-    def __validate_req(self):
+    def __authenticate(self):
         t = self.request.headers.get(sirepo.util.AUTH_HEADER)
         if not t:
             raise sirepo.tornado.error_forbidden()
@@ -58,13 +57,29 @@ class FileReq(tornado.web.RequestHandler):
         if not u:
             pkdlog("token={} not found", m.group(1))
             raise sirepo.tornado.error_forbidden()
-        sirepo.simulation_db.validate_sim_db_file_path(self.request.path, u)
+        return u
+
+    def __authenticated_path(self):
+        u = self.__authenticate()
+        m = _URI_RE.search(self.request.path)
+        if not m:
+            pkdlog(
+                "uri={} missing {sirepo.job.SIM_DB_FILE_URI} prefix", self.request.path
+            )
+            raise sirepo.tornado.error_forbidden()
+        return sirepo.simulation_db.sim_db_file_uri_to_path(
+            path=m.group(1),
+            expect_uid=u,
+        )
 
 
 def token_for_user(uid):
-    for u, k in _TOKEN_TO_UID.items():
-        if u == uid:
-            return k
-    k = sirepo.job.unique_key()
-    _TOKEN_TO_UID[k] = uid
-    return k
+    def _token():
+        for _ in range(10):
+            t = sirepo.job.unique_key()
+            if t not in _TOKEN_TO_UID:
+                _TOKEN_TO_UID[t] = uid
+                return t
+        raise AssertionError("should not happen: too many token collisions")
+
+    return _UID_TO_TOKEN.pksetdefault(uid, _token)[uid]

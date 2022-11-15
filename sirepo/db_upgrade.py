@@ -48,12 +48,12 @@ def _20210211_add_flash_proprietary_lib_files(qcall, force=False):
 
     if not sirepo.template.is_sim_type("flash"):
         return
-    for u in sirepo.auth_db.all_uids():
+    for u in sirepo.auth_db.all_uids(qcall):
         # Remove the existing rpm
         pkio.unchecked_remove(
             sirepo.simulation_db.simulation_lib_dir(
                 "flash",
-                uid=u,
+                qcall=qcall,
             ).join("flash.rpm"),
         )
         # Add's the flash proprietary lib files (unpacks flash.tar.gz)
@@ -95,23 +95,21 @@ def _20210211_upgrade_runner_to_job_db(qcall):
                 return
             raise
         u = sirepo.simulation_db.uid_from_dir_name(run_dir)
-        qcall.auth.logged_in_user_set(u)
         c = sirepo.sim_data.get_class(i.simulationType)
-        d = PKDict(
-            computeJid=c.parse_jid(i, u),
-            computeJobHash=c.compute_job_hash(
-                i
-            ),  # TODO(e-carlin): Another user cookie problem
-            computeJobSerial=t,
-            computeJobStart=t,
-            computeModel=c.compute_model(i),
-            error=None,
-            history=[],
-            isParallel=c.is_parallel(i),
-            simulationId=i.simulationId,
-            simulationType=i.simulationType,
-            uid=u,
-        )
+        with qcall.auth.logged_in_user_set(u):
+            d = PKDict(
+                computeJid=c.parse_jid(i, u),
+                computeJobHash=c.compute_job_hash(i, qcall=qcall),
+                computeJobSerial=t,
+                computeJobStart=t,
+                computeModel=c.compute_model(i),
+                error=None,
+                history=[],
+                isParallel=c.is_parallel(i),
+                simulationId=i.simulationId,
+                simulationType=i.simulationType,
+                uid=u,
+            )
         d.pkupdate(
             jobRunMode=sirepo.job.PARALLEL if d.isParallel else sirepo.job.SEQUENTIAL,
             nextRequestSeconds=c.poll_seconds(i),
@@ -175,7 +173,7 @@ def _20210301_migrate_role_jupyterhub(qcall):
         or r in sirepo.auth_db.UserRole.all_roles()
     ):
         return
-    for u in sirepo.auth_db.all_uids():
+    for u in sirepo.auth_db.all_uids(qcall):
         sirepo.auth_db.UserRole.add_roles(u, r)
 
 
@@ -188,8 +186,9 @@ def _20220609_add_expiration_column_to_user_role_t(qcall):
 
 
 def _20220901_migrate_ml_to_activait(qcall):
-    for u in sirepo.auth_db.all_uids():
-        _migrate_sim_type("ml", "activait", u, qcall)
+    for u in sirepo.auth_db.all_uids(qcall):
+        with qcall.auth.logged_in_user_set(u):
+            _migrate_sim_type("ml", "activait", qcall)
 
 
 @contextlib.contextmanager
@@ -205,14 +204,13 @@ def _backup_db_and_prevent_upgrade_on_error():
         raise
 
 
-def _migrate_sim_type(old_sim_type, new_sim_type, qcall, uid):
-    assert uid
+def _migrate_sim_type(old_sim_type, new_sim_type, qcall):
     # can't use simulation_dir (or simulation_lib_dir) because the old sim doesn't exist
-    old_sim_dir = sirepo.simulation_db.user_path(uid).join(old_sim_type)
+    old_sim_dir = sirepo.simulation_db.user_path(qcall=qcall).join(old_sim_type)
     if not old_sim_dir.exists():
         return
-    new_sim_dir = sirepo.simulation_db.simulation_dir(new_sim_type, uid=uid)
-    new_lib_dir = sirepo.simulation_db.simulation_lib_dir(new_sim_type, uid=uid)
+    new_sim_dir = sirepo.simulation_db.simulation_dir(new_sim_type, qcall=qcall)
+    new_lib_dir = sirepo.simulation_db.simulation_lib_dir(new_sim_type, qcall=qcall)
     for p in pkio.sorted_glob(old_sim_dir.join("lib").join("*")):
         shutil.copy2(p, new_lib_dir.join(p.basename))
     for p in pkio.sorted_glob(

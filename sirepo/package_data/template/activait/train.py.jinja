@@ -38,6 +38,6 @@ testy = test[:, out_idx]
 testx = test[:, in_idx]
 
 {% endif %}
-
+model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', testy)
 np.save('{{ predictFile }}', model.predict(x=testx))

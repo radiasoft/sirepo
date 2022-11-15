@@ -1817,6 +1817,13 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             .text(text);
     };
 
+    self.setHidden = (name, doHide=true) => {
+        if ((self.isHidden(name) && doHide) || (! self.isHidden(name) && ! doHide) ) {
+            return;
+        }
+        self.toggleHidden(name);
+    };
+
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
 
     self.showEnum = function(model, field, value, isShown) {
@@ -1925,6 +1932,11 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (appState.isReportModelName(name)) {
             windowResize();
         }
+    };
+    
+    self.toggleHiddenAndNotify = name => {
+        self.toggleHidden(name);
+        $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
     };
 
     self.waitForUI = function(callback) {

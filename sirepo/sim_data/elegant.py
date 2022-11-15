@@ -15,7 +15,7 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         s = cls.schema()
         dm = data.models
         cls._init_models(

@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 
 
@@ -17,10 +16,6 @@ def test_import_json(fc):
 def test_import_python(fc):
     from sirepo import srunit
 
-    # TODO(pjm): this is now needed to create predefined.json before the import occurs
-    import sirepo.template.srw
-
-    sirepo.template.srw.get_predefined_beams()
     _do(fc, "py", lambda f: f.read(mode="rb"))
 
 

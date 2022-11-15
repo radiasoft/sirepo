@@ -90,7 +90,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return analysis_model
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         """Fixup data to match the most recent schema."""
         dm = data.models
         has_electron_beam_position = "electronBeamPosition" in dm
@@ -186,8 +186,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             ):
                 if f in e:
                     del e[f]
-        cls.__fixup_old_data_beamline(data)
-        cls.__fixup_old_data_by_template(data)
+        cls.__fixup_old_data_beamline(data, qcall)
+        cls.__fixup_old_data_by_template(data, qcall)
         hv = (
             "horizontalPosition",
             "horizontalRange",
@@ -301,12 +301,13 @@ class SimData(sirepo.sim_data.SimDataBase):
         return filename
 
     @classmethod
-    def lib_file_names_for_type(cls, file_type):
+    def lib_file_names_for_type(cls, file_type, qcall=None):
         return sorted(
             cls.srw_lib_file_paths_for_type(
                 file_type,
                 lambda f: cls.srw_is_valid_file(file_type, f) and f.basename,
                 want_user_lib_dir=True,
+                qcall=qcall,
             ),
         )
 
@@ -422,12 +423,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         return path.ext[1:] in cls.SRW_FILE_TYPE_EXTENSIONS.get(file_type, tuple())
 
     @classmethod
-    def srw_lib_file_paths_for_type(cls, file_type, op, want_user_lib_dir):
+    def srw_lib_file_paths_for_type(cls, file_type, op, want_user_lib_dir, qcall=None):
         """Search for files of type"""
         res = []
         for e in cls.SRW_FILE_TYPE_EXTENSIONS[file_type]:
             for f in cls._lib_file_list(
-                "*.{}".format(e), want_user_lib_dir=want_user_lib_dir
+                f"*.{e}",
+                want_user_lib_dir=want_user_lib_dir,
+                qcall=qcall,
             ):
                 x = op(f)
                 if x:
@@ -570,14 +573,14 @@ class SimData(sirepo.sim_data.SimDataBase):
             beam.rmsDivergenceY = convert_gb_size("rmsSizeY", beam.photonEnergy)
 
     @classmethod
-    def __fixup_old_data_by_template(cls, data):
+    def __fixup_old_data_by_template(cls, data, qcall):
         import sirepo.template.srw_fixup
         import sirepo.template.srw
 
-        sirepo.template.srw_fixup.do(sirepo.template.srw, data)
+        sirepo.template.srw_fixup.do(sirepo.template.srw, data, qcall=qcall)
 
     @classmethod
-    def __fixup_old_data_beamline(cls, data):
+    def __fixup_old_data_beamline(cls, data, qcall):
         dm = data.models
         for i in dm.beamline:
             t = i.type

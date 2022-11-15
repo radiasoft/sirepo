@@ -138,7 +138,11 @@ UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
 _cfg = None
 
 
-def agent_cmd_stdin_env(cmd, env, cwd=".", source_bashrc=""):
+#: use to separate components of job_id
+_JOB_ID_SEP = "-"
+
+
+def agent_cmd_stdin_env(cmd, env, uid, cwd=".", source_bashrc=""):
     """Convert `cmd` with `env` to script and cmd
 
     Uses tempfile so the file can be closed after the subprocess
@@ -149,8 +153,8 @@ def agent_cmd_stdin_env(cmd, env, cwd=".", source_bashrc=""):
     Args:
         cmd (iter): list of words to be quoted
         env (str): empty or result of `agent_env`
-        cwd (str): directory for the agent to run in (will be created if it doesn't exist)
         uid (str): which user should be logged in
+        cwd (str): directory for the agent to run in (will be created if it doesn't exist)
 
     Returns:
         tuple: new cmd (tuple), stdin (file), env (PKDict)
@@ -172,7 +176,7 @@ cd '{}'
             source_bashrc,
             cwd,
             cwd,
-            env or agent_env(),
+            env or agent_env(uid=uid),
             c,
         ).encode()
     )
@@ -183,7 +187,16 @@ cd '{}'
     return ("/bin/bash", "-l"), t, PKDict(HOME=os.environ["HOME"])
 
 
-def agent_env(env=None, uid=None):
+def agent_env(uid, env=None):
+    """Convert to bash environment
+
+    Args:
+        uid (str): which user is running this agent process
+        env (str): empty or base environment
+
+    Returns:
+        str: bash environment ``export`` commands
+    """
     x = pkconfig.to_environ(
         (
             "pykern.*",
@@ -200,15 +213,15 @@ def agent_env(env=None, uid=None):
             PYTHONPATH="",
             PYTHONSTARTUP="",
             PYTHONUNBUFFERED="1",
-            SIREPO_AUTH_LOGGED_IN_USER=lambda: uid or sirepo.auth.hack_logged_in_user(),
-            SIREPO_JOB_VERIFY_TLS=_cfg.verify_tls,
+            SIREPO_AUTH_LOGGED_IN_USER=uid,
             SIREPO_JOB_MAX_MESSAGE_BYTES=_cfg.max_message_bytes,
             SIREPO_JOB_PING_INTERVAL_SECS=_cfg.ping_interval_secs,
             SIREPO_JOB_PING_TIMEOUT_SECS=_cfg.ping_timeout_secs,
+            SIREPO_JOB_VERIFY_TLS=_cfg.verify_tls,
+            SIREPO_SIMULATION_DB_LOGGED_IN_USER=uid,
             SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
         )
     )
-    env.SIREPO_SIMULATION_DB_LOGGED_IN_USER = env.SIREPO_AUTH_LOGGED_IN_USER
     for k in env.keys():
         assert not pykern.pkdebug.SECRETS_RE.search(
             k
@@ -261,6 +274,37 @@ def init_module():
     LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
     DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
     return _cfg
+
+
+def join_jid(uid, sid, compute_model):
+    """A Job is a tuple of user, sid, and compute_model.
+
+    A jid is words and dashes.
+
+    Args:
+        uid (str): user id
+        sid (str): simulation id
+        compute_model (str): model name
+    Returns:
+        str: unique name (treat opaquely)
+    """
+    return _JOB_ID_SEP.join((uid, sid, compute_model))
+
+
+def split_jid(jid):
+    """Split jid into named parts
+
+    Args:
+        jid (str): properly formed job identifier
+    Returns:
+        PKDict: parts named uid, sid, compute_model.
+    """
+    return PKDict(
+        zip(
+            ("uid", "sid", "compute_model"),
+            jid.split(_JOB_ID_SEP),
+        )
+    )
 
 
 def supervisor_file_uri(supervisor_uri, *args):

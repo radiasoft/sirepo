@@ -20,4 +20,7 @@ def test_importer(import_req):
             pkio.read_text(d.join("opal.in")), filename=d.join("opal.in")
         )
         data["report"] = "animation"
-        pkio.write_text(d.join("opal.txt"), opal.python_source_for_model(data, None))
+        pkio.write_text(
+            d.join("opal.txt"),
+            opal.python_source_for_model(data, model=None, qcall=None),
+        )
