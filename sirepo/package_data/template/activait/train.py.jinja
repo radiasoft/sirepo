@@ -9,7 +9,7 @@ model.compile(
     metrics=['accuracy'],
 )
 
-history = model.fit_generator(
+history = model.fit(
     train_generator,
     validation_data=train_generator,
     use_multiprocessing=True,
