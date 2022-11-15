@@ -2332,9 +2332,9 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
                 v.coherentModesFile = dm.multiElectronAnimation.coherentModesFile
         elif report == "coherentModesAnimation":
             c = data.models.coherentModesAnimation
-            if sirepo.mpi.cfg.cores < _MIN_CORES and not sirepo.mpi.cfg.in_slurm:
-                _core_error(sirepo.mpi.cfg.cores)
-            if sirepo.mpi.cfg.in_slurm and c.sbatchCores < _MIN_CORES:
+            if sirepo.mpi.cfg().cores < _MIN_CORES and not sirepo.mpi.cfg().in_slurm:
+                _core_error(sirepo.mpi.cfg().cores)
+            if sirepo.mpi.cfg().in_slurm and c.sbatchCores < _MIN_CORES:
                 _core_error(c.sbatchCores)
             v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
