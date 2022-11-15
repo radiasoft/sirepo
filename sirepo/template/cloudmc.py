@@ -133,12 +133,13 @@ def _tally_report_plot(run_dir, sim_in):
 #                f[i] = all_data[zi * dims[0] * dims[1] + yi * dims[0] + xi]
 #                i += 1
 
-    ni = r[n][0]
-    for mi in range(r[m][0], r[m][1]):
-        for li in range(r[l][0], r[l][1]):
-            pkdp("NI {} MI {} LI {} Z {} Y {}", ni, mi, li, ni * dims[l] * dims[m], li * dims[l])
-            f[i] = all_data[ni * dims[l] * dims[m] + mi * dims[l] + li]
-            i += 1
+    #ni = r[n][0]
+    #for mi in range(r[m][0], r[m][1]):
+    #    for li in range(r[l][0], r[l][1]):
+    #        pkdp("NI {} MI {} LI {} Z {} Y {}", ni, mi, li, ni * dims[l] * dims[m], li * dims[l])
+    #        f[i] = all_data[ni * dims[l] * dims[m] + mi * dims[l] + li]
+    #        i += 1
+
 
     score = numpy.array(f).reshape(r[m][1], -1).tolist()
     print("ALL {} F {} SCORE {}".format(all_data, f, score))
@@ -155,42 +156,28 @@ def _tally_report_plot(run_dir, sim_in):
     )
 
 
-def reorder(axis, dims, ind):
-    n = _AXES.index(axis)
-    l, m = next_axis_indices(axis)
-    pkdp("L {} M {} N {}", l, m, n)
-    all_data = numpy.arange(numpy.product(dims))
-    pkdp("ALL {}", all_data)
-    #r = [[ind, ind + 1] if i == n else [0, dims[i]] for i in range(3)]
-    r = [[0, dims[i]] for i in range(3)]
-    ad = all_data.reshape(-1, dims[m], dims[l])
-    print("AD {}".format(ad))
-    #f = [0] * (dims[l] * dims[m])
-    f = [0] * (dims[l] * dims[m] * dims[n])
-    pkdp("RANGES {} AXIS {} AXIS IND {} DIMS {}", r, axis, ind, dims)
-    i = 0
-    #ni = r[n][0]
-    N = []
-    for ni in range(r[n][0], r[n][1]):
-        pkdp("NI {}", ni)
-        M = []
-        for mi in range(r[m][0], r[m][1]):
-            L = []
-            pkdp("MI {}", mi)
-            for li in range(r[l][0], r[l][1]):
-                pkdp("LI {}", li)
-                pkdp("IND {}", ni * dims[m] * dims[l] + mi * dims[l] + li)
-                f[i] = all_data[ni * dims[m] * dims[l] + mi * dims[l] + li]
-                L.append(f[i])
-                #f[i] = ad[ni][mi][li]
-                i += 1
-            M.append(L)
-        N.append(M)
+# assumes the original flat data is ordered by x then y then z
+# returns data ordered by x (y, z) then y (z, x) then z (x, y)
+def reorder(data, outer_axis, dims):
+    # already in the desired order
+    if outer_axis == 'z':
+        return data
+    d = [1, dims[0], dims[0] * dims[1]]
+    n = _AXES.index(outer_axis)
+    l, m = next_axis_indices(outer_axis)
 
-    score = numpy.array(f).reshape(-1, dims[l]).tolist()
-    pkdp("F {} SCORE {} N {}", f, score, N)
-    return score
-
+    pkdp("indices slow {} {} middle {} {} fast {} {} dims [slow, middle, fast] = {}", _AXES[n], n, _AXES[m], m, _AXES[l], l, [dims[n], dims[m], dims[l]])
+    f = []
+    for k in range(dims[n]):
+        #pkdp("slow {} {}", _AXES[n], k)
+        for j in range(d[1]):
+            #pkdp("middle {} {}", _AXES[m], j)
+            for i in range(d[2]):
+                #pkdp("fast {} {}", _AXES[l], i)
+                idx = i * dims[n]
+                #pkdp("i {} j * dims[l] {} k * dims[l] * dims[m] {} idx {}", i, j * dims[l], k * dims[l] * dims[m], idx)
+                f.append(data[idx])
+    return f
 
 
 def get_data_file(run_dir, model, frame, options):
