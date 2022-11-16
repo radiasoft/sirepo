@@ -12,6 +12,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+from h5imagegenerator import HDF5ImageGenerator
 import csv
 import h5py
 import numpy
@@ -64,6 +65,37 @@ _REPORTS = [
     "partitionColumnReport",
     "partitionSelectionReport",
 ] + _SIM_REPORTS
+
+
+class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
+    def __init__(
+        self,
+        indices=None,
+        scale_x=False,
+        scale_y=False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        if indices is not None:
+            self._indices = indices
+
+    def __get_dataset_items(
+        self,
+        indices,
+        dataset=None,
+    ):
+        x = file[self.X_key][indices]
+        y = file[self.y_key][indices]
+        if self.scale_x:
+            x = _scale(x)
+        if self.scale_y:
+            y = _scale(y)
+        with h5.File(self.src, "r", libver="latest", swmr=True) as file:
+            if dataset is not None:
+                return file[dataset][indices]
+            else:
+                return (x, y)
 
 
 def background_percent_complete(report, run_dir, is_running):

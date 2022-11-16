@@ -37,7 +37,5 @@ testx = test[:, in_idx]
 
 {% endif %}
 model.save('{{ weightedFile }}')
-
-#TODO (gurhar1133): need to use test_generator here
 np.save('{{ testFile }}', testy)
 np.save('{{ predictFile }}', model.predict(x=testx))
