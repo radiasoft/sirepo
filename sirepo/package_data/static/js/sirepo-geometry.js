@@ -39,19 +39,7 @@ class GeometryUtils {
             z: [0, 0, 1]
         };
     }
-
-    /**
-     * Coordinate planes keyed by basis direction
-     * @returns {{}} - mapping of basis direction to the plane perpendicular to that direction
-     */
-    static COORDINATE_PLANES() {
-        return {
-            x: 'yz',
-            y: 'zx',
-            z: 'xy',
-        };
-    }
-
+    
     /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
