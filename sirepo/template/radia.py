@@ -361,19 +361,6 @@ def validate_file(file_path, path):
     return None
 
 
-# TODO(BG): Write a test for throwing a max face count error
-def validate_file(file_path, path):
-    if path.ext == ".stl":
-        mesh = _create_stl_trimesh(path)
-        if trimesh.convex.is_convex(mesh) == False:
-            return f"not convex model: {path.basename}"
-        elif len(mesh.faces) > 600:
-            return f"too many faces({len(mesh.faces)}): {path.basename}"
-    else:
-        return f"invalid file type: {path.ext}"
-    return None
-
-
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -1673,6 +1660,7 @@ def _update_geom_obj(o, **kwargs):
         size=[1.0, 1.0, 1.0],
         stlVertices=[],
         stlFaces=[],
+        stlCentroid=[],
         # TODO(BG) Not implemented
         # stlSlices = [],
     )
@@ -1713,6 +1701,7 @@ def _update_geom_obj(o, **kwargs):
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
         o.size = list(mesh.bounding_box.primitive.extents)
+        o.stlCentroid = mesh.centroid.tolist()
 
         # TODO(BG) Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
         """

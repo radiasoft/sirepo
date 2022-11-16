@@ -89,9 +89,8 @@ def _add_object(o, radia_objs, id_map):
     if t == _MODEL_STL:
         g_id = radia_util.build_stl(
             filename = o.get('file'),
-            #TODO(BG) Not currently reflective
             center=o.center,
-            #TODO(BG) Not currently reflective
+            centroid=o.stlCentroid,
             size=sz,
             vertices=o.stlVertices,
             faces=o.stlFaces,
