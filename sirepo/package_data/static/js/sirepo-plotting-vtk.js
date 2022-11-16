@@ -2196,84 +2196,64 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function updateShapeAttributes(selection) {
                 selection
                     .attr('class', 'vtk-object-layout-shape')
-                    .classed('vtk-object-layout-shape-selected', function (d) {
-                        return d.id === (selectedObject || {}).id;
-                    })
-                    .classed('vtk-object-layout-shape-undraggable', function (d) {
-                        return ! d.draggable;
-                    })
-                    .attr('id', function (d) {
-                        return shapeSelectionId(d);
-                    })
-                    .attr('href', function (d) {
-                        return d.href ? `#${d.href}` : '';
-                    })
-                    .attr('points', function(d) {
-                        return $.isEmptyObject(d.points || {}) ? null : shapePoints(d);
-                    })
-                    .attr('x', function(d) {
-                        return shapeOrigin(d, 'x') - (d.outlineOffset || 0);
-                    })
-                    .attr('y', function(d) {
-                        return shapeOrigin(d, 'y') - (d.outlineOffset || 0);
-                    })
-                    .attr('x1', function (d) {
+                    .classed('vtk-object-layout-shape-selected', d => d.id === (selectedObject || {}).id)
+                    .classed('vtk-object-layout-shape-undraggable', d => ! d.draggable)
+                    .attr('id', d =>  shapeSelectionId(d))
+                    .attr('href', d => d.href ? `#${d.href}` : '')
+                    .attr('points', d => $.isEmptyObject(d.points || {}) ? null : shapePoints(d))
+                    .attr('x', d => shapeOrigin(d, 'x') - (d.outlineOffset || 0))
+                    .attr('y', d => shapeOrigin(d, 'y') - (d.outlineOffset || 0))
+                    .attr('x1', d => {
                         const pts = linePoints(d);
                         return pts ? (pts[0] ? pts[0].coords()[0] : 0) : 0;
                     })
-                    .attr('x2', function (d) {
+                    .attr('x2', d => {
                         const pts = linePoints(d);
                         return pts ? (pts[1] ? pts[1].coords()[0] : 0) : 0;
                     })
-                    .attr('y1', function (d) {
+                    .attr('y1', d => {
                         const pts = linePoints(d);
                         return pts ? (pts[0] ? pts[0].coords()[1] : 0) : 0;
                     })
-                    .attr('y2', function(d) {
+                    .attr('y2', d => {
                         const pts = linePoints(d);
                         return pts ? (pts[1] ? pts[1].coords()[1] : 0) : 0;
                     })
-                    .attr('marker-end', function(d) {
+                    .attr('marker-end', d => {
                         if (d.endMark && d.endMark.length) {
                             return `url(#${d.endMark})`;
                         }
                     })
-                    .attr('marker-start', function(d) {
+                    .attr('marker-start', d => {
                         if (d.endMark && d.endMark.length) {
                             return `url(#${d.endMark})`;
                         }
                     })
-                    .attr('width', function(d) {
-                        return shapeSize(d, 'x') + 2 * (d.outlineOffset || 0);
-                    })
-                    .attr('height', function(d) {
-                        return shapeSize(d, 'y') + 2 * (d.outlineOffset || 0);
-                    })
-                    .attr('style', function(d) {
+                    .attr('width', d => shapeSize(d, 'x') + 2 * (d.outlineOffset || 0))
+                    .attr('height', d => shapeSize(d, 'y') + 2 * (d.outlineOffset || 0))
+                    .attr('style', d => {
                         if (d.color) {
                             const a = d.alpha === 0 ? 0 : (d.alpha || 1.0);
                             const fill = `fill:${(d.fillStyle ? shapeColor(d.color, a) : 'none')}`;
                             return `${fill}; stroke: ${shapeColor(d.color)}; stroke-width: ${d.strokeWidth || 1.0}`;
                         }
                     })
-                    .attr('stroke-dasharray', function (d) {
-                        return d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "";
-                    })
-                    .attr('transform', function (d) {
+                    .attr('stroke-dasharray', d => d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "")
+                    .attr('transform', d => {
                         if (d.rotationMatrix) {
                             return shapeRotation(d);
                         }
                         return '';
                     });
-                var tooltip = selection.select('title');
+                let tooltip = selection.select('title');
                 if (tooltip.empty()) {
                     tooltip = selection.append('title');
                 }
                 tooltip.text(function(d) {
-                    var ctr = d.getCenterCoords().map(function (c) {
+                    const ctr = d.getCenterCoords().map(function (c) {
                         return utilities.roundToPlaces(c * invObjScale, 2);
                     });
-                    var sz = d.getSizeCoords().map(function (c) {
+                    const sz = d.getSizeCoords().map(function (c) {
                         return utilities.roundToPlaces(c * invObjScale, 2);
                     });
                     return `${d.id} ${d.name} center : ${ctr} size: ${sz}`;

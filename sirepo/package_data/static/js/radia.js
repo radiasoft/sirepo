@@ -701,14 +701,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (xform.model === 'symmetryTransform') {
                 plIds.push(...addSymmetryPlane(baseShape, xform));
             }
-            if (xform.model === 'rotate') {
-                plIds.push(...addRotationLines(baseShape, xform));
-            }
             // each successive transform must be applied to all previous shapes
             [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
                 // these transforms do not copy the object
                 if (xform.model === 'rotate') {
-                    txArr.push(rotateFn(xform, 1, xform.useObjectCenter));
+                    txArr.push(rotateFn(xform, 1));
                     return;
                 }
                 if (xform.model === 'translate') {
@@ -729,7 +726,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 cloneTx.push(offsetFn(cloneXform, i));
                             }
                             if (cloneXform.model === 'rotateClone') {
-                                cloneTx.push(rotateFn(cloneXform, i, cloneXform.useObjectCenter));
+                                cloneTx.push(rotateFn(cloneXform, i));
                             }
                         }
                         addTxShape(xShape, xform, linkTx);
@@ -760,38 +757,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             fit(baseShape, gShape);
             baseShape.addLink(gShape, fit);
         }
-    }
-
-    function addRotationLines(baseShape, xform) {
-        if (xform.useObjectCenter === '1') {
-            return [];
-        }
-        let plIds = [];
-        const z = new SIREPO.GEOMETRY.Line(
-            new SIREPO.GEOMETRY.Point(xform.center[0], xform.center[1]),
-            new SIREPO.GEOMETRY.Point(baseShape.center.x, baseShape.center.y)
-        );
-        const pl = vtkPlotting.plotLine(
-            virtualShapeId(baseShape), `${baseShape.name}-rotation-${xform.id}`, z,
-            baseShape.color, 1.0, 'dashed', "8,8,4,8"
-        );
-
-        const origin = vtkPlotting.plotShape(
-            virtualShapeId(baseShape),
-            `${baseShape.name}-rotation-${xform.id}-${xform.center}`,
-            xform.axis,
-            [5, 5],
-            baseShape.color, 1.0, null, 'solid', null,
-            'circle'
-        );
-        pl.coordPlane = SIREPO.GEOMETRY.GeometryUtils.COORDINATE_PLANES().z;
-        origin.coordPlane = SIREPO.GEOMETRY.GeometryUtils.COORDINATE_PLANES().z;
-        srdbg('origin', origin);
-        self.shapes.push(pl);
-        plIds.push(pl.id);
-        self.shapes.push(origin);
-        plIds.push(origin.id);
-        return plIds;
     }
 
     function addSymmetryPlane(baseShape, xform) {
@@ -980,7 +945,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
-    function rotateFn(xform, i, useObjCtr) {
+    function rotateFn(xform, i) {
         return (shape1, shape2) => {
             const scale = SIREPO.APP_SCHEMA.constants.objectScale;
             shape2.rotationMatrix = new SIREPO.GEOMETRY.RotationMatrix(
@@ -988,7 +953,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 radiaService.scaledArray(xform.center, scale),
                 i * Math.PI * parseFloat(xform.angle) / 180.0
             );
-            shape2.rotateAroundShapeCenter = useObjCtr === "1";
+            shape2.rotateAroundShapeCenter = xform.useObjectCenter === "1";
             return shape2;
         };
     }
