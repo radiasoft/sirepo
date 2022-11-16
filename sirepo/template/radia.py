@@ -350,14 +350,14 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def validate_file(file_path, path):
+    if path.ext not in (".csv", ".stl", ".txt"):
+        return f"invalid file type: {path.ext}"
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
             return f"not convex model: {path.basename}"
         elif len(mesh.faces) > 600:
             return f"too many faces({len(mesh.faces)}): {path.basename}"
-    else:
-        return f"invalid file type: {path.ext}"
     return None
 
 
