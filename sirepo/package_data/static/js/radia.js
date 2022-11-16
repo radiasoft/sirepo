@@ -3999,23 +3999,15 @@ SIREPO.viewLogic('rotateView', function(appState, panelState, radiaService, requ
     };
 
     function updateObjectEditor() {
-        const o = $scope.modelData;
-        if (! o) {
+        if (! $scope.modelData) {
             return;
         }
-
-        const c = $scope.modelData.useObjectCenter == "1";
         panelState.showField(
             'rotate',
             'center',
-            ! c
+            $scope.modelData.useObjectCenter !== "1"
         );
     }
-
-
-    const self = {};
-    self.getBaseObject = () => $scope.modelData;
-    return self;
 });
 
 SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, radiaService, $scope) {
