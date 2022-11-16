@@ -32,6 +32,7 @@ with h5py.File("{{ dataFile }}", "r") as f:
         input_shape += (1,)
     output_shape = {{outputShape}}
 
+
 # TODO (gurhar1133): make subclass that takes
 # the train, val, test split as input and
 # creates three HDF5ImageGenerators with shuffled
@@ -40,24 +41,37 @@ with h5py.File("{{ dataFile }}", "r") as f:
 class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
     def __init__(
         self,
+        indices=None,
         *args,
         **kwargs,
-        indices=None,
     ):
         super().__init__(*args, **kwargs)
-        if indices:
+        if indices is not None:
             self._indices = indices
 
 
 def _split_indices(indices_all):
-    pass
+    test_and_validate = (100 - {{partition_training}}) / 100
+    validation_size = ((test_and_validate * 100) - {{partition_testing}}) / 100
+
+    print("partitioning: ", test_and_validate, validation_size)
+    print("val partitioning", validation_size/test_and_validate)
+    numpy.random.shuffle(indices_all)
+    train_indices, tvx, _, tvy = train_test_split(
+        indices_all, indices_all, test_size=test_and_validate, random_state=42, shuffle=False
+    )
+    print("len tvx", len(tvx))
+    test_indices, val_indices, _, _ = train_test_split(
+        tvx, tvy, test_size=validation_size/test_and_validate, random_state=42, shuffle=False
+    )
+    print("len train", len(train_indices))
+    print("len test", len(test_indices))
+    print("len val", len(val_indices))
+    return train_indices, val_indices, test_indices
 
 
 def image_train_val_test_split(
     src,
-    train_split,
-    validation_split,
-    test_split
     X_key="images",
     y_key="labels",
     classes_key=None,
@@ -70,8 +84,8 @@ def image_train_val_test_split(
     augmenter=False,
 ):
 
-    with h5.File(self.src, "r", libver="latest", swmr=True) as file:
-        indices_all = np.arange(file[X_key].shape[0])
+    with h5py.File(src, "r", libver="latest", swmr=True) as file:
+        indices_all = numpy.arange(file[X_key].shape[0])
     train_indices, validation_indices, test_indices = _split_indices(indices_all)
     train_generator = SirepoHDF5ImageGenerator(
         src=src,
@@ -84,7 +98,6 @@ def image_train_val_test_split(
         indices=train_indices,
         smooth_factor=smooth_factor,
         augmenter=augmenter,
-        scalar=scalar,
         classes_key=classes_key,
     )
     val_generator = SirepoHDF5ImageGenerator(
@@ -98,7 +111,6 @@ def image_train_val_test_split(
         indices=validation_indices,
         smooth_factor=smooth_factor,
         augmenter=augmenter,
-        scalar=scalar,
         classes_key=classes_key,
     )
     test_generator = SirepoHDF5ImageGenerator(
@@ -112,20 +124,31 @@ def image_train_val_test_split(
         indices=test_indices,
         smooth_factor=smooth_factor,
         augmenter=augmenter,
-        scalar=scalar,
         classes_key=classes_key,
         mode="test",
     )
+    return train_generator, val_generator, test_generator
 
 
-train_generator = SirepoHDF5ImageGenerator(
-        src='{{ dataFile }}',
-        X_key='images',
-        y_key='metadata/image_types',
-        labels_encoding=False,
-        scaler=False,
-        num_classes=4,
-        batch_size={{ neuralNet_batch_size }},
-    )
-numpy.random.shuffle(train_generator._indices)
-print("indices: ", train_generator._indices)
+#train_generator = SirepoHDF5ImageGenerator(
+#       src='{{ dataFile }}',
+#        X_key='images',
+#        y_key='metadata/image_types',
+#        labels_encoding=False,
+#       scaler=False,
+#        num_classes=4,
+#        batch_size={{ neuralNet_batch_size }},
+#    )
+
+train_generator, val_generator, tsg = image_train_val_test_split(
+    '{{ dataFile }}',
+    X_key='images',
+    y_key='metadata/image_types',
+    labels_encoding=False,
+    scaler=False,
+    num_classes=4,
+    batch_size={{ neuralNet_batch_size }},
+)
+print(train_generator._indices)
+print(val_generator._indices)
+print(tsg._indices)

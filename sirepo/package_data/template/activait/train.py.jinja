@@ -11,7 +11,7 @@ model.compile(
 
 history = model.fit(
     train_generator,
-    validation_data=train_generator,
+    validation_data=val_generator,
     use_multiprocessing=True,
     epochs={{ neuralNet_epochs }},
     callbacks=[CSVLogger('fit.csv')])
