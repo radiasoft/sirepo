@@ -10,20 +10,11 @@ model.compile(
 )
 
 history = model.fit(
-    train_generator,
-    validation_data=val_generator,
+    split.train_generator,
+    validation_data=split.val_generator,
     use_multiprocessing=True,
     epochs={{ neuralNet_epochs }},
     callbacks=[CSVLogger('fit.csv')])
-
-#history = model.fit(
-#    x=trainx,
-#    y=trainy,
-#    epochs={{ neuralNet_epochs }},
-#    validation_data=(valx, valy),
-#    batch_size={{ neuralNet_batch_size }},
-#    callbacks=[CSVLogger('{{ fitCSVFile }}')],
-#)
 
 {% else %}
 
@@ -46,5 +37,7 @@ testx = test[:, in_idx]
 
 {% endif %}
 model.save('{{ weightedFile }}')
+
+#TODO (gurhar1133): need to use test_generator here
 np.save('{{ testFile }}', testy)
 np.save('{{ predictFile }}', model.predict(x=testx))

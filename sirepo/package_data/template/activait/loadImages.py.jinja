@@ -1,6 +1,7 @@
 import h5py
 import numpy
 from sklearn.model_selection import train_test_split
+from pykern.pkcollections import PKDict
 from h5imagegenerator import HDF5ImageGenerator
 
 
@@ -30,13 +31,8 @@ with h5py.File("{{ dataFile }}", "r") as f:
     input_shape = trainx.shape[1:]
     if len(input_shape) < 3:
         input_shape += (1,)
+    print("input shape = ", input_shape)
     output_shape = {{outputShape}}
-
-
-# TODO (gurhar1133): make subclass that takes
-# the train, val, test split as input and
-# creates three HDF5ImageGenerators with shuffled
-# indices.
 
 class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
     def __init__(
@@ -60,6 +56,7 @@ def _split_indices(indices_all):
     train_indices, tvx, _, tvy = train_test_split(
         indices_all, indices_all, test_size=test_and_validate, random_state=42, shuffle=False
     )
+    print("input indices shape: ", train_indices.shape[1:])
     print("len tvx", len(tvx))
     test_indices, val_indices, _, _ = train_test_split(
         tvx, tvy, test_size=validation_size/test_and_validate, random_state=42, shuffle=False
@@ -67,88 +64,46 @@ def _split_indices(indices_all):
     print("len train", len(train_indices))
     print("len test", len(test_indices))
     print("len val", len(val_indices))
-    return train_indices, val_indices, test_indices
+    return PKDict(
+        train_indices=train_indices,
+        validation_indices=val_indices,
+        test_indices=test_indices,
+    )
 
 
 def image_train_val_test_split(
-    src,
-    X_key="images",
-    y_key="labels",
-    classes_key=None,
-    batch_size=32,
-    shuffle=True,
-    scaler=True,
-    num_classes=None,
-    labels_encoding=False,
-    smooth_factor=0.1,
-    augmenter=False,
+    **kwargs
 ):
+    print("kwargs:", kwargs)
+    with h5py.File(kwargs.get("src"), "r", libver="latest", swmr=True) as file:
+        indices_all = numpy.arange(file[kwargs.get("X_key")].shape[0])
+    s = _split_indices(indices_all)
 
-    with h5py.File(src, "r", libver="latest", swmr=True) as file:
-        indices_all = numpy.arange(file[X_key].shape[0])
-    train_indices, validation_indices, test_indices = _split_indices(indices_all)
-    train_generator = SirepoHDF5ImageGenerator(
-        src=src,
-        X_key=X_key,
-        y_key=y_key,
-        labels_encoding=labels_encoding,
-        scaler=scaler,
-        num_classes=num_classes,
-        batch_size=batch_size,
-        indices=train_indices,
-        smooth_factor=smooth_factor,
-        augmenter=augmenter,
-        classes_key=classes_key,
+    return PKDict(
+        train_generator=SirepoHDF5ImageGenerator(
+            indices=s.train_indices,
+            **kwargs,
+        ),
+        val_generator=SirepoHDF5ImageGenerator(
+            indices=s.validation_indices,
+            **kwargs,
+        ),
+        test_generator=SirepoHDF5ImageGenerator(
+            mode="test",
+            indices=s.test_indices,
+            **kwargs,
+        )
     )
-    val_generator = SirepoHDF5ImageGenerator(
-        src=src,
-        X_key=X_key,
-        y_key=y_key,
-        labels_encoding=labels_encoding,
-        scaler=scaler,
-        num_classes=num_classes,
-        batch_size=batch_size,
-        indices=validation_indices,
-        smooth_factor=smooth_factor,
-        augmenter=augmenter,
-        classes_key=classes_key,
-    )
-    test_generator = SirepoHDF5ImageGenerator(
-        src=src,
-        X_key=X_key,
-        y_key=y_key,
-        labels_encoding=labels_encoding,
-        scaler=scaler,
-        num_classes=num_classes,
-        batch_size=batch_size,
-        indices=test_indices,
-        smooth_factor=smooth_factor,
-        augmenter=augmenter,
-        classes_key=classes_key,
-        mode="test",
-    )
-    return train_generator, val_generator, test_generator
 
-
-#train_generator = SirepoHDF5ImageGenerator(
-#       src='{{ dataFile }}',
-#        X_key='images',
-#        y_key='metadata/image_types',
-#        labels_encoding=False,
-#       scaler=False,
-#        num_classes=4,
-#        batch_size={{ neuralNet_batch_size }},
-#    )
-
-train_generator, val_generator, tsg = image_train_val_test_split(
-    '{{ dataFile }}',
+split = image_train_val_test_split(
+    src='{{ dataFile }}',
     X_key='images',
     y_key='metadata/image_types',
     labels_encoding=False,
     scaler=False,
-    num_classes=4,
+    num_classes=output_shape,
     batch_size={{ neuralNet_batch_size }},
 )
-print(train_generator._indices)
-print(val_generator._indices)
-print(tsg._indices)
+print(split.train_generator._indices)
+print(split.val_generator._indices)
+print(split.test_generator._indices)
