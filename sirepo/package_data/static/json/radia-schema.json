@@ -218,13 +218,6 @@
                     {
                         "isButton": false,
                         "layoutShape": "rect",
-                        "model": "translate",
-                        "title": "Translate",
-                        "type": "translate"
-                    },
-                    {
-                        "isButton": false,
-                        "layoutShape": "rect",
                         "model": "rotate",
                         "title": "Rotate",
                         "type": "rotate"
