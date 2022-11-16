@@ -2163,7 +2163,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 //    return null;
                 //}
 
-                var lp = shape.line.points();
+                var lp = shape.line.points;
                 var labX = shape.elev.x.axis;
                 var labY = shape.elev.y.axis;
 

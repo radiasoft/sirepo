@@ -661,14 +661,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (p.indexOf(axis) < 0) {
                 continue;
             }
-            let p1 = geometry.point();
+            let p1 = new SIREPO.GEOMETRY.Point();
             p1[axis] = -1;
-            let p2 = geometry.point();
+            let p2 = new SIREPO.GEOMETRY.Point();
             p2[axis] = 1;
             let pl = vtkPlotting.plotLine(
                 `beamAxis-${appState.models.simulation.beamAxis}-${p}`,
                 `beamAxis-${appState.models.simulation.beamAxis}`,
-                geometry.line(p1, p2),
+                new SIREPO.GEOMETRY.Line(p1, p2),
                 '#000000', 1.0, 'dashed', "4,4"
             );
             pl.coordPlane = p;
@@ -700,6 +700,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             // draw the shapes for symmetry planes once
             if (xform.model === 'symmetryTransform') {
                 plIds.push(...addSymmetryPlane(baseShape, xform));
+            }
+            if (xform.model === 'rotate') {
+                plIds.push(...addRotationLines(baseShape, xform));
             }
             // each successive transform must be applied to all previous shapes
             [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
@@ -757,6 +760,38 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             fit(baseShape, gShape);
             baseShape.addLink(gShape, fit);
         }
+    }
+
+    function addRotationLines(baseShape, xform) {
+        if (xform.useObjectCenter === '1') {
+            return [];
+        }
+        let plIds = [];
+        const z = new SIREPO.GEOMETRY.Line(
+            new SIREPO.GEOMETRY.Point(xform.center[0], xform.center[1]),
+            new SIREPO.GEOMETRY.Point(baseShape.center.x, baseShape.center.y)
+        );
+        const pl = vtkPlotting.plotLine(
+            virtualShapeId(baseShape), `${baseShape.name}-rotation-${xform.id}`, z,
+            baseShape.color, 1.0, 'dashed', "8,8,4,8"
+        );
+
+        const origin = vtkPlotting.plotShape(
+            virtualShapeId(baseShape),
+            `${baseShape.name}-rotation-${xform.id}-${xform.center}`,
+            xform.axis,
+            [5, 5],
+            baseShape.color, 1.0, null, 'solid', null,
+            'circle'
+        );
+        pl.coordPlane = SIREPO.GEOMETRY.GeometryUtils.COORDINATE_PLANES().z;
+        origin.coordPlane = SIREPO.GEOMETRY.GeometryUtils.COORDINATE_PLANES().z;
+        srdbg('origin', origin);
+        self.shapes.push(pl);
+        plIds.push(pl.id);
+        self.shapes.push(origin);
+        plIds.push(origin.id);
+        return plIds;
     }
 
     function addSymmetryPlane(baseShape, xform) {
