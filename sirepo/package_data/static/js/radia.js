@@ -705,7 +705,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
                 // these transforms do not copy the object
                 if (xform.model === 'rotate') {
-                    txArr.push(rotateFn(xform, 1));
+                    txArr.push(rotateFn(xform, 1, xform.useObjectCenter));
                     return;
                 }
                 if (xform.model === 'translate') {
@@ -726,7 +726,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 cloneTx.push(offsetFn(cloneXform, i));
                             }
                             if (cloneXform.model === 'rotateClone') {
-                                cloneTx.push(rotateFn(cloneXform, i));
+                                cloneTx.push(rotateFn(cloneXform, i, cloneXform.useObjectCenter));
                             }
                         }
                         addTxShape(xShape, xform, linkTx);
@@ -945,7 +945,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
-    function rotateFn(xform, i) {
+    function rotateFn(xform, i, useObjCtr) {
         return (shape1, shape2) => {
             const scale = SIREPO.APP_SCHEMA.constants.objectScale;
             shape2.rotationMatrix = new SIREPO.GEOMETRY.RotationMatrix(
@@ -953,6 +953,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 radiaService.scaledArray(xform.center, scale),
                 i * Math.PI * parseFloat(xform.angle) / 180.0
             );
+            shape2.rotateAroundShapeCenter = useObjCtr === "1";
             return shape2;
         };
     }
@@ -2379,7 +2380,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
 
 
 // this kind of thing should be generic
-SIREPO.app.directive('transformTable', function(appState, panelState, radiaService) {
+SIREPO.app.directive('transformTable', function(appState, panelState, radiaService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -2565,7 +2566,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 });
 
                 $scope.$on('cancelChanges', (e, name) => {
-                    $scope.$emit('drop.target.enabled', true);
+                    $rootScope.$broadcast('drop.target.enabled', true);
                     if (! watchedModels.includes(name)) {
                         return;
                     }
@@ -2573,13 +2574,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 });
 
                 $scope.$on('$destroy', () => {
-                    $scope.$emit('drop.target.enabled', true);
+                    $rootScope.$broadcast('drop.target.enabled', true);
                 });
 
                 $scope.loadItems();
             });
 
-            $scope.$emit('drop.target.enabled', false);
+            $rootScope.$broadcast('drop.target.enabled', false);
         },
     };
 });
@@ -3979,6 +3980,39 @@ for(const m of ['Dipole', 'Undulator']) {
         });
     }
 }
+
+SIREPO.viewLogic('rotateView', function(appState, panelState, radiaService, requestSender, $scope) {
+
+    $scope.watchFields = [
+        [
+            'rotate.useObjectCenter',
+        ], updateObjectEditor
+    ];
+
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+        updateObjectEditor();
+    };
+
+    function updateObjectEditor() {
+        const o = $scope.modelData;
+        if (! o) {
+            return;
+        }
+
+        const c = $scope.modelData.useObjectCenter == "1";
+        panelState.showField(
+            'rotate',
+            'center',
+            ! c
+        );
+    }
+
+
+    const self = {};
+    self.getBaseObject = () => $scope.modelData;
+    return self;
+});
 
 SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, radiaService, $scope) {
 

@@ -914,17 +914,19 @@
         "reset": {
         },
         "rotate": {
-            "angle": ["Angle (deg)", "Float", "0.0"],
+            "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "name": ["Name", "String", "Rotate"]
+            "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "name": ["Name", "String", "Rotate"],
+            "useObjectCenter": ["Use object center as origin", "Boolean", "1"]
         },
         "rotateClone": {
             "id": ["_", "RandomId", ""],
-            "angle": ["Angle (deg)", "Float", "0.0"],
+            "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "name": ["Name", "String", "Rotate"]
+            "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "name": ["Name", "String", "Rotate"],
+            "useObjectCenter": ["use clone center as origin", "Boolean", "1"]
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
@@ -1462,13 +1464,10 @@
         },
         "rotate": {
             "title": "Rotate",
-            "basic": [
-                "axis",
-                "center",
-                "angle"
-            ],
+            "basic": [],
             "advanced": [
                 "axis",
+                "useObjectCenter",
                 "center",
                 "angle"
             ]

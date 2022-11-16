@@ -2140,9 +2140,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     new SIREPO.GEOMETRY.Matrix([...c, 0])
                 ).val;
                 const t = {x: 0, y: 0};
-                for (const dim in t) {
-                    const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev[dim].axis);
-                    t[dim] = axes[dim].scale(rc[i]) - axes[dim].scale(c[i]);
+                if (! shape.rotateAroundShapeCenter) {
+                    for (const dim in t) {
+                        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev[dim].axis);
+                        t[dim] = axes[dim].scale(rc[i]) - axes[dim].scale(c[i]);
+                    }
                 }
                 return `
                     rotate(${-angle},${shapeCenter(shape, 'x')},${shapeCenter(shape, 'y')}) 
