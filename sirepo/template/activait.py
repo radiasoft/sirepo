@@ -73,6 +73,7 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         indices=None,
         scale_x=False,
         scale_y=False,
+        scale_fn=None,
         *args,
         **kwargs,
     ):
@@ -85,13 +86,13 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         indices,
         dataset=None,
     ):
-        x = file[self.X_key][indices]
-        y = file[self.y_key][indices]
-        if self.scale_x:
-            x = _scale(x)
-        if self.scale_y:
-            y = _scale(y)
-        with h5.File(self.src, "r", libver="latest", swmr=True) as file:
+        with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
+            x = file[self.X_key][indices]
+            y = file[self.y_key][indices]
+            if self.scale_x:
+                x = self.scale_fn(x)
+            if self.scale_y:
+                y = self.scale_fn(y)
             if dataset is not None:
                 return file[dataset][indices]
             else:
