@@ -304,7 +304,7 @@ def build_stl(**kwargs):
     g_id = radia.ObjPolyhdr(
         d.vertices, (numpy.array(d.faces) + 1).tolist(), d.magnetization
     )
-    g_id = radia.TrfOrnt(g_id, radia.TrfTrsl([d.center[0],d.center[1],d.center[2]]))
+    g_id = radia.TrfOrnt(g_id, radia.TrfTrsl([d.center[0], d.center[1], d.center[2]]))
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
 

@@ -361,7 +361,7 @@ def validate_file(file_path, path):
     return None
 
 
-#TODO(BG): Write a test for throwing a max face count error
+# TODO(BG): Write a test for throwing a max face count error
 def validate_file(file_path, path):
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
