@@ -32,8 +32,93 @@ with h5py.File("{{ dataFile }}", "r") as f:
         input_shape += (1,)
     output_shape = {{outputShape}}
 
+# TODO (gurhar1133): make subclass that takes
+# the train, val, test split as input and
+# creates three HDF5ImageGenerators with shuffled
+# indices.
 
-train_generator = HDF5ImageGenerator(
+class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+        indices=None,
+    ):
+        super().__init__(*args, **kwargs)
+        if indices:
+            self._indices = indices
+
+
+def _split_indices(indices_all):
+    pass
+
+
+def image_train_val_test_split(
+    src,
+    train_split,
+    validation_split,
+    test_split
+    X_key="images",
+    y_key="labels",
+    classes_key=None,
+    batch_size=32,
+    shuffle=True,
+    scaler=True,
+    num_classes=None,
+    labels_encoding=False,
+    smooth_factor=0.1,
+    augmenter=False,
+):
+
+    with h5.File(self.src, "r", libver="latest", swmr=True) as file:
+        indices_all = np.arange(file[X_key].shape[0])
+    train_indices, validation_indices, test_indices = _split_indices(indices_all)
+    train_generator = SirepoHDF5ImageGenerator(
+        src=src,
+        X_key=X_key,
+        y_key=y_key,
+        labels_encoding=labels_encoding,
+        scaler=scaler,
+        num_classes=num_classes,
+        batch_size=batch_size,
+        indices=train_indices,
+        smooth_factor=smooth_factor,
+        augmenter=augmenter,
+        scalar=scalar,
+        classes_key=classes_key,
+    )
+    val_generator = SirepoHDF5ImageGenerator(
+        src=src,
+        X_key=X_key,
+        y_key=y_key,
+        labels_encoding=labels_encoding,
+        scaler=scaler,
+        num_classes=num_classes,
+        batch_size=batch_size,
+        indices=validation_indices,
+        smooth_factor=smooth_factor,
+        augmenter=augmenter,
+        scalar=scalar,
+        classes_key=classes_key,
+    )
+    test_generator = SirepoHDF5ImageGenerator(
+        src=src,
+        X_key=X_key,
+        y_key=y_key,
+        labels_encoding=labels_encoding,
+        scaler=scaler,
+        num_classes=num_classes,
+        batch_size=batch_size,
+        indices=test_indices,
+        smooth_factor=smooth_factor,
+        augmenter=augmenter,
+        scalar=scalar,
+        classes_key=classes_key,
+        mode="test",
+    )
+
+
+train_generator = SirepoHDF5ImageGenerator(
         src='{{ dataFile }}',
         X_key='images',
         y_key='metadata/image_types',
@@ -42,3 +127,5 @@ train_generator = HDF5ImageGenerator(
         num_classes=4,
         batch_size={{ neuralNet_batch_size }},
     )
+numpy.random.shuffle(train_generator._indices)
+print("indices: ", train_generator._indices)
