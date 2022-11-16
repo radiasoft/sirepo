@@ -102,7 +102,11 @@ def _apply_rotation(g_id, xform):
     radia.TrfOrnt(
         g_id,
         radia.TrfRot(
-            (_geom_bounds(g_id) if xform.get("useObjectCenter", "0") == "1" else xform).center,
+            (
+                _geom_bounds(g_id)
+                if xform.get("useObjectCenter", "0") == "1"
+                else xform
+            ).center,
             xform.axis,
             numpy.pi * float(xform.angle) / 180.0,
         ),
