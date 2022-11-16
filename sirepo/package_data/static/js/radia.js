@@ -2495,9 +2495,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             $scope.itemDetails = item => {
                 let res = '';
                 const d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
+                const info = appState.modelInfo(item.model);
                 d.forEach((f, i) => {
-                    const val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
-                    res += (appState.modelInfo(item.model)[f][0] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
+                    let val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
+                    if (info[f][SIREPO.INFO_INDEX_TYPE] === 'Boolean') {
+                        val = val === '1';
+                    }
+                    res += (info[f][SIREPO.INFO_INDEX_LABEL] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
                 });
                 return res;
             };

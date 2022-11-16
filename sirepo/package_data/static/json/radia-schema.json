@@ -43,9 +43,9 @@
                 "cloneTransform": ["name","numCopies", "transforms", "alternateFields"],
                 "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"],
                 "translate": ["name","distance"],
-                "rotate": ["name", "angle", "axis", "center"],
+                "rotate": ["name", "angle", "axis", "center", "useObjectCenter"],
                 "translateClone": ["name","distance"],
-                "rotateClone": ["name", "angle", "axis", "center"]
+                "rotateClone": ["name", "angle", "axis", "center", "useObjectCenter"]
             }
         },
         "geomObjShapes": {
