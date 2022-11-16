@@ -24,15 +24,15 @@ _SIM_TYPE = "flash"
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     def api_simOauthFlashAuthorized(self):
-        o, _ = sirepo.oauth.check_authorized_callback(qcall)
+        o, _ = sirepo.oauth.check_authorized_callback(self)
         i = PKDict(o.get(cfg.info_url).json())
         # TODO(robnagler) should this not raise forbidden?
         assert (
             i.status == cfg.info_valid_user
         ), f"unexpected status in info={i} expect={cfg.info_valid_user}"
         sirepo.auth_db.UserRole.add_role_or_update_expiration(
-            self.auth.logged_in_user(),
-            sirepo.auth_role.for_sim_type(_SIM_TYPE),
+            qcall=self,
+            role=sirepo.auth_role.for_sim_type(_SIM_TYPE),
             expiration=datetime.datetime.fromtimestamp(PKDict(o.token).expires_at),
         )
         raise sirepo.util.Redirect(_SIM_TYPE)

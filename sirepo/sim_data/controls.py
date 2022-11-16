@@ -73,7 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return opts
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         cls._init_models(
             dm,
@@ -89,7 +89,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             ),
         )
         if "externalLattice" in dm:
-            sirepo.sim_data.get_class("madx").fixup_old_data(dm.externalLattice)
+            sirepo.sim_data.get_class("madx").fixup_old_data(
+                dm.externalLattice, qcall=qcall
+            )
             if "optimizerSettings" not in dm:
                 dm.optimizerSettings = cls.default_optimizer_settings(
                     dm.externalLattice.models

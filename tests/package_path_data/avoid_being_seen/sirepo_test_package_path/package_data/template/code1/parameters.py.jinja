@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+import subprocess
+params = '''---
+color: "{{ sauce.color  }}"
+scoville : "{{ sauce.scoville  }}"
+'''
+
+with open('out.txt', 'w') as f:
+    f.write(params)
+
+subprocess.check_call(
+    ['sleep', '1'],
+)

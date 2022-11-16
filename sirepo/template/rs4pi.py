@@ -151,11 +151,11 @@ def generate_rtdose_file(data, run_dir):
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
     if data["method"] == "roi_points":
-        return _read_roi_file(data["simulationId"])
+        return _read_roi_file(data["simulationId"], qcall)
     elif data["method"] == "update_roi_points":
-        return _update_roi_file(data["simulationId"], data["editedContours"])
+        return _update_roi_file(data["simulationId"], data["editedContours"], qcall)
     else:
         raise RuntimeError("{}: unknown application data method".format(data["method"]))
 
@@ -182,7 +182,9 @@ def import_file(req, tmp_dir=None, **kwargs):
     if not pkio.has_file_extension(req.filename, "zip"):
         raise sirepo.util.UserAlert("unsupported import filename: {}".format(filename))
     # TODO(pjm): writing to simulation lib for now, tmp_dir will get removed after this request
-    filepath = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(_ZIP_FILE_NAME))
+    filepath = str(
+        simulation_db.simulation_lib_dir(SIM_TYPE, qcall=req.qcall).join(_ZIP_FILE_NAME)
+    )
     pkio.mkdir_parent_only(filepath)
     with open(filepath, "wb") as f:
         f.write(req.file_stream.read())
@@ -194,9 +196,9 @@ def import_file(req, tmp_dir=None, **kwargs):
     return data
 
 
-def prepare_for_client(data):
+def prepare_for_client(data, qcall, **kwargs):
     if _TMP_INPUT_FILE_FIELD in data["models"]["simulation"]:
-        _move_import_file(data)
+        _move_import_file(data, qcall)
     return data
 
 
@@ -250,7 +252,9 @@ def write_parameters(data, run_dir, is_parallel):
                 {
                     "prescription": prescription,
                     "beamlist": run_dir.join(_SIM_DATA.RS4PI_BEAMLIST_FILENAME),
-                    "dicom_zip": _sim_file(data["simulationId"], _ZIP_FILE_NAME),
+                    "dicom_zip": _sim_file(
+                        data["simulationId"], _ZIP_FILE_NAME, qcall=None
+                    ),
                 },
                 output=run_dir.join(DOSE_CALC_SH),
                 strict_undefined=True,
@@ -275,14 +279,14 @@ def _calculate_domain(frame):
     ]
 
 
-def _compute_histogram(simulation, frames):
+def _compute_histogram(simulation, frames, qcall):
     pixels = []
     for frame in frames:
         pixels.append(frame["pixels"])
     histogram = _histogram_from_pixels(pixels)
-    filename = _roi_file(simulation["simulationId"])
+    filename = _roi_file(simulation["simulationId"], qcall)
     if os.path.exists(filename):
-        roi_data = _read_roi_file(simulation["simulationId"])
+        roi_data = _read_roi_file(simulation["simulationId"], qcall)
     else:
         roi_data = {
             "models": {
@@ -330,18 +334,18 @@ def _create_dicom_dataset(study_uid, dicom_class, modality):
 
 def _dicom_path(simulation, plane, idx):
     return str(
-        py.path.local(_sim_file(simulation["simulationId"], _DICOM_DIR)).join(
+        py.path.local(_sim_file(simulation["simulationId"], _DICOM_DIR, qcall)).join(
             _frame_file_name(plane, idx)
         )
     )
 
 
 def _dose_dicom_filename(simulation):
-    return _sim_file(simulation["simulationId"], _DOSE_DICOM_FILE)
+    return _sim_file(simulation["simulationId"], _DOSE_DICOM_FILE, qcall)
 
 
 def _dose_filename(simulation):
-    return _sim_file(simulation["simulationId"], _DOSE_FILE)
+    return _sim_file(simulation["simulationId"], _DOSE_FILE, qcall)
 
 
 def _extract_series_frames(simulation, dicom_dir):
@@ -537,18 +541,18 @@ def _histogram_from_pixels(pixels):
     }
 
 
-def _move_import_file(data):
+def _move_import_file(data, qcall):
     sim = data["models"]["simulation"]
     path = sim[_TMP_INPUT_FILE_FIELD]
     del sim[_TMP_INPUT_FILE_FIELD]
     if os.path.exists(path):
-        zip_path = _sim_file(sim["simulationId"], _ZIP_FILE_NAME)
+        zip_path = _sim_file(sim["simulationId"], _ZIP_FILE_NAME, qcall)
         os.rename(path, zip_path)
-        tmp_dir = _sim_file(sim["simulationId"], _TMP_ZIP_DIR)
+        tmp_dir = _sim_file(sim["simulationId"], _TMP_ZIP_DIR, qcall)
         zipfile.ZipFile(zip_path).extractall(tmp_dir)
-        _summarize_dicom_files(data, tmp_dir)
+        _summarize_dicom_files(data, tmp_dir, qcall)
         pkio.unchecked_remove(tmp_dir)
-        simulation_db.save_simulation_json(data)
+        simulation_db.save_simulation_json(data, qcall=qcall)
 
 
 def _parent_dir(child_dir):
@@ -560,7 +564,7 @@ def _parent_file(child_dir, filename):
 
 
 def _pixel_filename(simulation):
-    return _sim_file(simulation["simulationId"], _PIXEL_FILE)
+    return _sim_file(simulation["simulationId"], _PIXEL_FILE, qcall)
 
 
 def _read_dose_frame(idx, data):
@@ -625,12 +629,12 @@ def _read_pixel_plane(plane, idx, data):
     return frame
 
 
-def _read_roi_file(sim_id):
-    return simulation_db.read_json(_roi_file(sim_id))
+def _read_roi_file(sim_id, qcall):
+    return simulation_db.read_json(_roi_file(sim_id, qcall))
 
 
-def _roi_file(sim_id):
-    return _sim_file(sim_id, _ROI_FILE_NAME)
+def _roi_file(sim_id, qcall):
+    return _sim_file(sim_id, _ROI_FILE_NAME, qcall)
 
 
 def _scale_pixel_data(plan, pixels):
@@ -648,19 +652,21 @@ def _scale_pixel_data(plan, pixels):
         pixels += float(offset)
 
 
-def _sim_file(sim_id, filename):
-    return str(simulation_db.simulation_dir(SIM_TYPE, sim_id).join(filename))
+def _sim_file(sim_id, filename, qcall):
+    return str(
+        simulation_db.simulation_dir(SIM_TYPE, sim_id, qcall=qcall).join(filename)
+    )
 
 
 def _string_list(ar):
     return [str(x) for x in ar]
 
 
-def _summarize_dicom_files(data, dicom_dir):
+def _summarize_dicom_files(data, dicom_dir, qcall):
     simulation = data["models"]["simulation"]
     info = _extract_series_frames(simulation, dicom_dir)
     frames = info["frames"]
-    info["pixelSpacing"] = _summarize_dicom_series(simulation, frames)
+    info["pixelSpacing"] = _summarize_dicom_series(simulation, frames, qcall)
     with open(_pixel_filename(simulation), "wb") as f:
         for frame in frames:
             frame["pixels"].tofile(f)
@@ -696,16 +702,16 @@ def _summarize_dicom_files(data, dicom_dir):
             data["models"]["dvhReport"]["roiNumbers"] = [selectedPTV]
     if "dicom_dose" in info:
         data["models"]["dicomDose"] = info["dicom_dose"]
-    _compute_histogram(simulation, frames)
+    _compute_histogram(simulation, frames, qcall)
 
 
-def _summarize_dicom_series(simulation, frames):
+def _summarize_dicom_series(simulation, frames, qcall):
     idx = 0
     z_space = abs(
         float(frames[0]["ImagePositionPatient"][2])
         - float(frames[1]["ImagePositionPatient"][2])
     )
-    os.mkdir(_sim_file(simulation["simulationId"], _DICOM_DIR))
+    os.mkdir(_sim_file(simulation["simulationId"], _DICOM_DIR, qcall))
     for frame in frames:
         res = {
             "shape": frame["shape"],
@@ -848,8 +854,8 @@ def _summarize_rt_structure(simulation, plan, frame_ids):
     return res
 
 
-def _update_roi_file(sim_id, contours):
-    data = _read_roi_file(sim_id)
+def _update_roi_file(sim_id, contours, qcall):
+    data = _read_roi_file(sim_id, qcall)
     rois = data["models"]["regionsOfInterest"]
     for roi_number in contours:
         if roi_number not in rois:
@@ -859,5 +865,5 @@ def _update_roi_file(sim_id, contours):
                 points = contours[roi_number][frame_id]
                 rois[roi_number]["contour"][frame_id] = points
     # TODO(pjm): file locking or atomic update
-    simulation_db.write_json(_roi_file(sim_id), data)
-    return {}
+    simulation_db.write_json(_roi_file(sim_id, qcall), data)
+    return PKDict()

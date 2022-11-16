@@ -53,7 +53,7 @@ def run_elegant(with_mpi=False):
         "env": elegant_common.subprocess_env(),
     }
     # TODO(robnagler) Need to handle this specially, b/c different binary
-    if r.execution_mode == "parallel" and with_mpi and mpi.cfg.cores > 1:
+    if r.execution_mode == "parallel" and with_mpi and mpi.cfg().cores > 1:
         mpi.run_program(["Pelegant", ele], **kwargs)
     else:
         pksubprocess.check_call_with_signals(["elegant", ele], msg=pkdlog, **kwargs)

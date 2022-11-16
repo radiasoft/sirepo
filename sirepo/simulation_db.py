@@ -88,8 +88,7 @@ _cfg = None
 #: version for development
 _dev_version = None
 
-#: overridden by sirepo.auth
-hook_auth_user = lambda: _cfg.logged_in_user
+_SIM_DB_FILE_PATH_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
 
 
 def app_version():
@@ -125,21 +124,20 @@ def default_data(sim_type):
 
     return open_json_file(
         sim_type,
-        path=sim_data.get_class(sim_type,).resource_path(
+        path=sim_data.get_class(sim_type).resource_path(
             f"default-data{sirepo.const.JSON_SUFFIX}",
         ),
     )
 
 
-def delete_simulation(simulation_type, sid, uid=None):
+def delete_simulation(simulation_type, sid, qcall=None):
     """Deletes the simulation's directory."""
-    pkio.unchecked_remove(simulation_dir(simulation_type, sid, uid=uid))
+    pkio.unchecked_remove(simulation_dir(simulation_type, sid, qcall=qcall))
 
 
-def delete_user(uid):
+def delete_user(qcall):
     """Deletes a user's directory."""
-    assert uid is not None
-    pkio.unchecked_remove(user_path(uid=uid))
+    pkio.unchecked_remove(user_path(qcall=qcall))
 
 
 def examples(app):
@@ -155,13 +153,13 @@ def examples(app):
     ]
 
 
-def find_user_simulation_copy(sim_type, sid, uid):
+def find_user_simulation_copy(sim_type, sid, qcall):
     """ONLY USED BY api_simulationData"""
     rows = iterate_simulation_datafiles(
         sim_type,
         process_simulation_list,
         PKDict({"simulation.outOfSessionSimulationId": sid}),
-        uid=uid,
+        qcall=qcall,
     )
     if len(rows):
         return rows[0]["simulationId"]
@@ -188,7 +186,7 @@ def find_global_simulation(sim_type, sid, checked=False):
     )
 
 
-def fixup_old_data(data, force=False, path=None):
+def fixup_old_data(data, force=False, path=None, qcall=None):
     """Upgrade data to latest schema and updates version.
 
     Args:
@@ -254,7 +252,7 @@ def fixup_old_data(data, force=False, path=None):
             data.models.simulation.lastModified = _last_modified(data, path)
         from sirepo import sim_data
 
-        sim_data.get_class(data.simulationType).fixup_old_data(data)
+        sim_data.get_class(data.simulationType).fixup_old_data(data, qcall=qcall)
         data.pkdel("fixup_old_version")
         return data, True
     except Exception as e:
@@ -300,13 +298,13 @@ def init_module():
     pass
 
 
-def iterate_simulation_datafiles(simulation_type, op, search=None, uid=None):
+def iterate_simulation_datafiles(simulation_type, op, search=None, qcall=None):
     res = []
-    sim_dir = simulation_dir(simulation_type, uid=uid)
+    sim_dir = simulation_dir(simulation_type, qcall=qcall)
     for p in pkio.sorted_glob(sim_dir.join("*", SIMULATION_DATA_FILE)):
         try:
             data = open_json_file(
-                simulation_type, path=p, fixup=True, uid=uid, save=True
+                simulation_type, path=p, fixup=True, qcall=qcall, save=True
             )
             if search and not _search_data(data, search):
                 continue
@@ -349,15 +347,6 @@ def lib_dir_from_sim_dir(sim_dir):
     return _sim_from_path(sim_dir)[1].join(_REL_LIB_DIR)
 
 
-def logged_in_user_path():
-    """Get logged in user's simulation directory
-
-    Returns:
-        py.path: user is valid and so is directory
-    """
-    return user_path(hook_auth_user(), check=True)
-
-
 def migrate_guest_to_persistent_user(guest_uid, to_uid):
     """Moves all non-example simulations `guest_uid` into `to_uid`.
 
@@ -370,7 +359,7 @@ def migrate_guest_to_persistent_user(guest_uid, to_uid):
     """
     with util.THREAD_LOCK:
         for path in glob.glob(
-            str(user_path(guest_uid).join("*", "*", SIMULATION_DATA_FILE)),
+            str(user_path(uid=guest_uid).join("*", "*", SIMULATION_DATA_FILE)),
         ):
             data = read_json(path)
             sim = data["models"]["simulation"]
@@ -383,7 +372,7 @@ def migrate_guest_to_persistent_user(guest_uid, to_uid):
             os.rename(dir_path, new_dir_path)
 
 
-def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None, save=False):
+def open_json_file(sim_type, path=None, sid=None, fixup=True, save=False, qcall=None):
     """Read a db file and return result
 
     Args:
@@ -391,16 +380,15 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None, save=Fal
         path (py.path.local): where to read the file
         sid (str): simulation id
         fixup (bool): run fixup_old_data [True]
-        uid (uid): user id
         save (bool): save_simulation_json if data changed [False]
     Returns:
         dict: data
     """
-    p = path or sim_data_file(sim_type, sid, uid=uid)
+    p = path or sim_data_file(sim_type, sid, qcall=qcall)
     if not p.exists():
         if path:
             util.raise_not_found("path={} not found", path)
-        raise util.SPathNotFound(sim_type=sim_type, sid=sid, uid=uid)
+        raise util.SPathNotFound(sim_type=sim_type, sid=sid, uid=_uid_arg(qcall))
     data = None
     try:
         with p.open() as f:
@@ -413,9 +401,9 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None, save=Fal
         raise
     if not fixup:
         return data
-    d, c = fixup_old_data(data, path=p)
+    d, c = fixup_old_data(data, path=p, qcall=qcall)
     if c and save:
-        return save_simulation_json(d, fixup=False, do_validate=False, uid=uid)
+        return save_simulation_json(d, fixup=False, do_validate=False, qcall=qcall)
     return d
 
 
@@ -501,37 +489,48 @@ def read_json(filename):
     return json_load(json_filename(filename))
 
 
-def read_simulation_json(sim_type, *args, **kwargs):
+def read_simulation_json(sim_type, sid, qcall):
     """Calls `open_json_file` and fixes up data, possibly saving
 
     Args:
         sim_type (str): simulation type
+        sid (str): simulation id
 
     Returns:
         data (dict): simulation data
     """
-    return open_json_file(sim_type, fixup=True, save=True, *args, **kwargs)
+    return open_json_file(
+        sim_type=sim_type,
+        fixup=True,
+        save=True,
+        sid=sid,
+        qcall=qcall,
+    )
 
 
-def save_new_example(data, uid=None):
+def save_new_example(data, qcall=None):
     data.models.simulation.isExample = True
-    return save_new_simulation(data, do_validate=False, uid=uid)
+    return save_new_simulation(
+        data,
+        do_validate=False,
+        qcall=qcall,
+    )
 
 
-def save_new_simulation(data, do_validate=True, uid=None):
-    d = simulation_dir(data.simulationType, uid=uid)
+def save_new_simulation(data, do_validate=True, qcall=None):
+    d = simulation_dir(data.simulationType, qcall=qcall)
     sid = _random_id(d, data.simulationType).id
     data.models.simulation.simulationId = sid
     return save_simulation_json(
         data,
         do_validate=do_validate,
-        uid=uid,
+        qcall=qcall,
         fixup=True,
         modified=True,
     )
 
 
-def save_simulation_json(data, fixup, do_validate=True, uid=None, modified=False):
+def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=False):
     """Prepare data and save to json db
 
     Args:
@@ -542,19 +541,19 @@ def save_simulation_json(data, fixup, do_validate=True, uid=None, modified=False
         modified (bool): call prepare_for_save and update lastModified [False]
     """
     if fixup:
-        data = fixup_old_data(data)[0]
+        data = fixup_old_data(data, qcall=qcall)[0]
         # we cannot change the logged in user so we need to
         # not run these fixups here, or we'll get recursion as
         # prepare_for_save may ask for the logged in user
         if modified:
             t = sirepo.template.import_module(data.simulationType)
             if hasattr(t, "prepare_for_save"):
-                data = t.prepare_for_save(data)
+                data = t.prepare_for_save(data, qcall=qcall)
     # old implementation value
     data.pkdel("computeJobHash")
     s = data.models.simulation
     sim_type = data.simulationType
-    fn = sim_data_file(sim_type, s.simulationId, uid=uid)
+    fn = sim_data_file(sim_type, s.simulationId, qcall=qcall)
     with util.THREAD_LOCK:
         need_validate = True
         try:
@@ -570,7 +569,7 @@ def save_simulation_json(data, fixup, do_validate=True, uid=None, modified=False
                     sim_type,
                     lambda res, _, d: res.append(d),
                     PKDict({"simulation.folder": s.folder}),
-                    uid=uid,
+                    qcall=qcall,
                 ),
                 SCHEMA_COMMON.common.constants.maxSimCopies,
             )
@@ -598,7 +597,7 @@ def sid_from_compute_file(path):
     return _sim_from_path(path)[0]
 
 
-def sim_data_file(sim_type, sim_id, uid=None):
+def sim_data_file(sim_type, sim_id, qcall=None):
     """Simulation data file name
 
     Args:
@@ -609,56 +608,65 @@ def sim_data_file(sim_type, sim_id, uid=None):
     Returns:
         py.path.local: simulation path
     """
-    return simulation_dir(sim_type, sim_id, uid=uid).join(SIMULATION_DATA_FILE)
+    return simulation_dir(sim_type, sim_id, qcall=qcall).join(SIMULATION_DATA_FILE)
+
+
+def sim_db_file_uri(simulation_type, sid, basename):
+    return "/".join(
+        [
+            sirepo.template.assert_sim_type(simulation_type),
+            assert_sid(sid),
+            _assert_sim_db_file_path(basename),
+        ]
+    )
+
+
+def sim_db_file_uri_to_path(path, expect_uid):
+    p = path.split("/")
+    assert len(p) == 4, f"path={p} has too many parts"
+    assert p[0] == expect_uid, f"uid={p[0]} is not expect_uid={expect_uid}"
+    sirepo.template.assert_sim_type(p[1]),
+    assert_sid(p[2]),
+    _assert_sim_db_file_path(p[3]),
+    return user_path_root().join(*p)
 
 
 def sim_from_path(path):
     return _sim_from_path(path)
 
 
-def simulation_dir(simulation_type, sid=None, uid=None):
+def simulation_dir(simulation_type, sid=None, qcall=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
         simulation_type (str): srw, warppba, ...
         sid (str): simulation id (optional)
-        uid (str): user id [logged_in_user]
+        uid (str): user id
     """
-    p = user_path(uid) if uid else logged_in_user_path()
+    p = user_path(qcall=qcall)
     d = p.join(sirepo.template.assert_sim_type(simulation_type))
     with util.THREAD_LOCK:
         if not d.exists():
-            _create_lib_and_examples(p, d.basename)
+            _create_lib_and_examples(p, d.basename, qcall=qcall)
     if not sid:
         return d
     return d.join(assert_sid(sid))
 
 
-def simulation_file_uri(simulation_type, sid, basename):
-    return "/".join(
-        [
-            sirepo.template.assert_sim_type(simulation_type),
-            assert_sid(sid),
-            basename,
-        ]
-    )
-
-
-def simulation_lib_dir(simulation_type, uid=None):
+def simulation_lib_dir(simulation_type, qcall=None):
     """String name for user library dir
 
     Args:
         simulation_type: which app is this for
-        uid (str): user id [logged_in_user]
 
     Return:
         py.path: directory name
     """
     # POSIT: _create_lib_and_examples
-    return simulation_dir(simulation_type, uid=uid).join(_LIB_DIR)
+    return simulation_dir(simulation_type, qcall=qcall).join(_LIB_DIR)
 
 
-def simulation_run_dir(req_or_data, remove_dir=False, uid=None):
+def simulation_run_dir(req_or_data, remove_dir=False, qcall=None):
     """Where to run the simulation
 
     Args:
@@ -675,7 +683,7 @@ def simulation_run_dir(req_or_data, remove_dir=False, uid=None):
     d = simulation_dir(
         t,
         s.parse_sid(req_or_data),
-        uid=uid,
+        qcall=qcall,
     ).join(s.compute_model(req_or_data))
     if remove_dir:
         pkio.unchecked_remove(d)
@@ -687,18 +695,21 @@ def static_libs():
 
 
 @contextlib.contextmanager
-def tmp_dir(chdir=False, uid=None):
+def tmp_dir(chdir=False, qcall=None):
     """Generates new, temporary directory
+
+    `uid` or `qcall` must be supplied.
 
     Args:
         chdir (bool): if true, will save_chdir
         uid (str): user id
+        qcall (sirepo.quest.API): request state
     Returns:
         py.path: directory to use for temporary work
     """
     d = None
     try:
-        p = user_path(uid, check=True) if uid else logged_in_user_path()
+        p = user_path(qcall=qcall, check=True)
         d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR))["path"]
         pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
@@ -753,16 +764,17 @@ def user_create():
     return _random_id(user_path_root())["id"]
 
 
-def user_path(uid, check=False):
+def user_path(uid=None, qcall=None, check=False):
     """Path for uid or root of all users
 
     Args:
-        uid (str): user id
+        uid (str): user id (qcall is preferred)
+        qcall (quest.API): logged in user
         check (bool): assert directory exists
     Return:
         py.path: root user's directory
     """
-    assert uid
+    uid = _uid_arg(uid, qcall)
     d = user_path_root().join(uid)
     if check and not d.check():
         raise util.UserDirNotFound(user_dir=d, uid=uid)
@@ -778,24 +790,7 @@ def user_path_root():
     return sirepo.srdb.root().join(USER_ROOT_DIR)
 
 
-def validate_sim_db_file_path(path, uid):
-    from sirepo import job
-
-    assert re.search(
-        re.compile(
-            r"^{}/{}/{}/({})/{}/[a-zA-Z0-9-_\.]{{1,128}}$".format(
-                job.SIM_DB_FILE_URI,
-                USER_ROOT_DIR,
-                uid,
-                "|".join(feature_config.cfg().sim_types),
-                _ID_PARTIAL_RE_STR,
-            )
-        ),
-        path,
-    ), f"invalid path={path} or uid={uid}"
-
-
-def validate_serial(req_data):
+def validate_serial(req_data, qcall):
     """Verify serial in data validates
 
     Args:
@@ -810,7 +805,7 @@ def validate_serial(req_data):
         sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
         sid = req_data.models.simulation.simulationId
         req_ser = req_data.models.simulation.simulationSerial
-        curr = read_simulation_json(sim_type, sid=sid)
+        curr = read_simulation_json(sim_type, sid=sid, qcall=qcall)
         curr_ser = curr.models.simulation.simulationSerial
         if not req_ser is None:
             if req_ser == curr_ser:
@@ -841,13 +836,18 @@ def write_json(filename, data):
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
-def _create_lib_and_examples(user_dir, sim_type):
+def _assert_sim_db_file_path(basename):
+    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
+    return basename
+
+
+def _create_lib_and_examples(user_dir, sim_type, qcall=None):
     # POSIT: simulation_lib_dir
     pkio.mkdir_parent(user_dir.join(sim_type).join(_LIB_DIR))
     # POSIT: user_dir structure
-    u = user_dir.basename
+    uid = user_dir.basename
     for s in examples(sim_type):
-        save_new_example(s, uid=u)
+        save_new_example(s, qcall=qcall)
 
 
 def _files_in_schema(schema):
@@ -874,8 +874,6 @@ def _init():
     global _cfg, JOB_RUN_MODE_MAP
 
     _cfg = pkconfig.init(
-        nfs_tries=(10, int, "How many times to poll in hack_nfs_write_status"),
-        nfs_sleep=(0.5, float, "Seconds sleep per hack_nfs_write_status poll"),
         sbatch_display=(None, str, "how to display sbatch cluster to user"),
         tmp_dir=(None, pkio.py_path, "Used by utilities (not regular config)"),
         logged_in_user=(None, str, "Used in agents"),
@@ -1092,6 +1090,17 @@ def _timestamp(time=None):
     elif not isinstance(time, datetime.datetime):
         time = datetime.datetime.fromtimestamp(time)
     return time.strftime("%Y%m%d.%H%M%S")
+
+
+def _uid_arg(uid=None, qcall=None):
+    if uid:
+        return uid
+    if qcall:
+        # Avoid recursion to user_path with check_path=False
+        return qcall.auth.logged_in_user(check_path=False)
+    uid = _cfg.logged_in_user
+    assert uid, "uid not supplied and no logged_in_user config"
+    return uid
 
 
 _init()

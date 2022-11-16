@@ -251,7 +251,7 @@ def analysis_job_dispatch(data):
     )(data, simulation_db.simulation_run_dir(data))
 
 
-def compute_field_range(args, compute_range):
+def compute_field_range(args, compute_range, qcall=None):
     """Computes the fieldRange values for all parameters across all animation files.
     Caches the value on the animation input file. compute_range() is called to
     read the simulation specific datafiles and extract the ranges by field.
@@ -264,7 +264,8 @@ def compute_field_range(args, compute_range):
             simulationId=args["simulationId"],
             # TODO(pjm): pass animation model name in, default to "animation"
             report="animation",
-        )
+        ),
+        qcall=qcall,
     )
     data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
     res = None
@@ -656,15 +657,12 @@ def sim_frame_dispatch(frame_args):
 def stateful_compute_dispatch(data):
     t = sirepo.template.import_module(data.simulationType)
     m = _validate_method(t, data)
+    k = PKDict(data=data)
     if re.search(r"(?:^rpn|_rpn)_", m):
-        assert getattr(t, "code_var")(data.variables).get_application_data(
-            data, getattr(t, "SCHEMA"), getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True)
-        ), f"unexpected false return data={data}"
-        return data
-    return getattr(
-        t,
-        f"stateful_compute_{m}",
-    )(data)
+        k.schema = getattr(t, "SCHEMA")
+        t = getattr(t, "code_var")(data.variables)
+        k.ignore_array_values = getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True)
+    return getattr(t, f"stateful_compute_{m}")(**k)
 
 
 def stateless_compute_dispatch(data):

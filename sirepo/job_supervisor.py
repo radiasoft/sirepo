@@ -343,7 +343,7 @@ class _Supervisor(PKDict):
                         lastUpdateTime=i.db.lastUpdateTime,
                         elapsedTime=i.elapsed_time(),
                         statusMessage=i.db.get("jobStatusMessage", ""),
-                        computeModel=sirepo.sim_data.split_jid(
+                        computeModel=sirepo.job.split_jid(
                             i.db.computeJid
                         ).compute_model,
                     )
@@ -477,7 +477,7 @@ class _ComputeJob(_Supervisor):
                     )
                 )
             ):
-                n = sirepo.sim_data.split_jid(jid=f.purebasename).uid
+                n = sirepo.job.split_jid(jid=f.purebasename).uid
                 if (
                     n in p
                     or f.mtime() > _too_old
@@ -495,14 +495,14 @@ class _ComputeJob(_Supervisor):
             if r:
                 yield u, r
 
-        def _purge_sim(jid):
+        def _purge_sim(jid, qcall):
             d = cls.__db_load(jid)
             if d.lastUpdateTime > _too_old:
                 return
             cls._purged_jids_cache.add(jid)
             if d.status == job.JOB_RUN_PURGED:
                 return
-            p = sirepo.simulation_db.simulation_run_dir(d)
+            p = sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
             pkio.unchecked_remove(p)
             n = cls.__db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
@@ -519,9 +519,9 @@ class _ComputeJob(_Supervisor):
             )
             with sirepo.quest.start() as qcall:
                 for u, v in _get_uids_and_files():
-                    qcall.auth.logged_in_user_set(u)
-                    for f in v:
-                        _purge_sim(jid=f.purebasename)
+                    with qcall.auth.logged_in_user_set(u):
+                        for f in v:
+                            _purge_sim(jid=f.purebasename, qcall=qcall)
                     await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())
@@ -628,7 +628,7 @@ class _ComputeJob(_Supervisor):
             for h in d.history:
                 h.setdefault(k, v)
         d.pksetdefault(
-            computeModel=lambda: sirepo.sim_data.split_jid(compute_jid).compute_model,
+            computeModel=lambda: sirepo.job.split_jid(compute_jid).compute_model,
             dbUpdateTime=lambda: f.mtime(),
         )
         if "cancelledAfterSecs" in d:

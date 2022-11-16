@@ -311,11 +311,11 @@ def compute_crl_focus(model):
     return model
 
 
-def compute_undulator_length(model):
+def compute_undulator_length(model, qcall=None):
     if model.undulatorType == "u_i":
         return PKDict()
-    if _SIM_DATA.lib_file_exists(model.magneticFile):
-        z = _SIM_DATA.lib_file_abspath(model.magneticFile)
+    if qcall and _SIM_DATA.lib_file_exists(model.magneticFile, qcall=qcall):
+        z = _SIM_DATA.lib_file_abspath(model.magneticFile, qcall=qcall)
         return PKDict(
             length=_SIM_DATA.srw_format_float(
                 MagnMeasZip(str(z)).find_closest_gap(model.gap),
@@ -433,13 +433,13 @@ def extract_report_data(sim_in):
     return res
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
     if data.method == "model_list":
         res = []
         model_name = data.model_name
         if model_name == "electronBeam":
             res.extend(get_predefined_beams())
-        res.extend(_load_user_model_list(model_name))
+        res.extend(_load_user_model_list(model_name, qcall=qcall))
         if model_name == "electronBeam":
             for beam in res:
                 srw_common.process_beam_parameters(beam)
@@ -449,12 +449,19 @@ def get_application_data(data, **kwargs):
 
         return Convert().to_shadow(data)
     if data.method == "delete_user_models":
-        return _delete_user_models(data.electron_beam, data.tabulated_undulator)
+        return _delete_user_models(
+            data.electron_beam,
+            data.tabulated_undulator,
+            qcall=qcall,
+        )
     elif data.method == "compute_undulator_length":
-        return compute_undulator_length(data.tabulated_undulator)
+        return compute_undulator_length(
+            data.tabulated_undulator,
+            qcall=qcall,
+        )
     elif data.method == "processedImage":
         try:
-            return _process_image(data, kwargs["tmp_dir"])
+            return _process_image(data, kwargs["tmp_dir"], qcall=qcall)
         except Exception as e:
             pkdlog("exception during processedImage: {}", pkdexc())
             return PKDict(
@@ -620,13 +627,15 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             )
         r = r.get(PARSED_DATA_ATTR)
         r.models.simulation.simulationId = i
-        r = simulation_db.save_simulation_json(r, do_validate=True, fixup=True)
+        r = simulation_db.save_simulation_json(
+            r, do_validate=True, fixup=True, qcall=qcall
+        )
     except Exception:
         # TODO(robnagler) need to clean up simulations except in dev
         raise
         if i:
             try:
-                simulation_db.delete_simulation(req.type, i)
+                simulation_db.delete_simulation(req.type, i, qcall=qcall)
             except Exception:
                 pass
         raise
@@ -638,7 +647,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
     )
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
     sim = data.models.simulation
     sim.sourceType = new_simulation_data.sourceType
     if _SIM_DATA.srw_is_gaussian_source(sim):
@@ -649,7 +658,8 @@ def new_simulation(data, new_simulation_data):
         data.models.sourceIntensityReport.method = "2"
     elif _SIM_DATA.srw_is_tabulated_undulator_source(sim):
         data.models.undulator.length = compute_undulator_length(
-            data.models.tabulatedUndulator
+            data.models.tabulatedUndulator,
+            qcall=qcall,
         ).length
         data.models.electronBeamPosition.driftCalculationMethod = "manual"
 
@@ -662,7 +672,7 @@ def post_execution_processing(
     return _parse_srw_log(run_dir)
 
 
-def prepare_for_client(data):
+def prepare_for_client(data, qcall, **kwargs):
     save = False
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         if (
@@ -673,7 +683,7 @@ def prepare_for_client(data):
             continue
         model = data.models[model_name]
         if _SIM_DATA.srw_is_user_defined_model(model):
-            user_model_list = _load_user_model_list(model_name)
+            user_model_list = _load_user_model_list(model_name, qcall=qcall)
             search_model = None
             models_by_id = _user_model_map(user_model_list, "id")
             if "id" in model and model.id in models_by_id:
@@ -698,18 +708,18 @@ def prepare_for_client(data):
                     user_model_list, "id", data.models.simulation.simulationId + " {}"
                 )
                 user_model_list.append(_create_user_model(data, model_name))
-                _save_user_model_list(model_name, user_model_list)
+                _save_user_model_list(model_name, user_model_list, qcall=qcall)
                 save = True
     if save:
         pkdc(
             "save simulation json with sim_data_template_fixup={}",
             data.get("sim_data_template_fixup", None),
         )
-        simulation_db.save_simulation_json(data, fixup=True)
+        simulation_db.save_simulation_json(data, fixup=True, qcall=qcall)
     return data
 
 
-def prepare_for_save(data):
+def prepare_for_save(data, qcall):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         if (
             model_name == "tabulatedUndulator"
@@ -719,20 +729,20 @@ def prepare_for_save(data):
             continue
         model = data.models[model_name]
         if _SIM_DATA.srw_is_user_defined_model(model):
-            user_model_list = _load_user_model_list(model_name)
+            user_model_list = _load_user_model_list(model_name, qcall=qcall)
             models_by_id = _user_model_map(user_model_list, "id")
 
             if model.id not in models_by_id:
                 pkdc("adding new model: {}", model.name)
                 user_model_list.append(_create_user_model(data, model_name))
-                _save_user_model_list(model_name, user_model_list)
+                _save_user_model_list(model_name, user_model_list, qcall=qcall)
             elif models_by_id[model.id] != model:
                 pkdc("replacing beam: {}: {}", model.id, model.name)
                 for i, m in enumerate(user_model_list):
                     if m.id == model.id:
                         pkdc("found replace beam, id: {}, i: {}", m.id, i)
                         user_model_list[i] = _create_user_model(data, model_name)
-                        _save_user_model_list(model_name, user_model_list)
+                        _save_user_model_list(model_name, user_model_list, qcall=qcall)
                         break
     return data
 
@@ -772,20 +782,16 @@ def process_undulator_definition(model):
         return model
 
 
-def python_source_for_model(data, model, plot_reports=True):
+def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
     data.report = model or _SIM_DATA.SRW_RUN_ALL_MODEL
     data.report = re.sub("beamlineAnimation0", "initialIntensityReport", data.report)
     data.report = re.sub("beamlineAnimation", "watchpointReport", data.report)
-    return _generate_parameters_file(data, plot_reports=plot_reports)
+    return _generate_parameters_file(data, plot_reports=plot_reports, qcall=qcall)
 
 
 def run_epilogue():
     # POSIT: only called from template.run_epilogue
     def _op():
-        from pykern import pkio
-        from sirepo import simulation_db
-        from sirepo.template import template_common
-
         sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         if sim_in.report == "coherentModesAnimation":
             # this sim creates _really_ large intermediate files which should get removed
@@ -1175,7 +1181,7 @@ def _compute_PGM_value(model):
             model.cff = cff
         else:
             raise AssertionError(
-                "invalid computeParametersFrom: {}", model.computeParametersFrom
+                f"invalid computeParametersFrom: {model.computeParametersFrom}",
             )
         angroll = model.rollAngle
         if abs(angroll) < np.pi / 4 or abs(angroll - np.pi) < np.pi / 4:
@@ -1405,17 +1411,17 @@ def _create_user_model(data, model_name):
     return model
 
 
-def _delete_user_models(electron_beam, tabulated_undulator):
+def _delete_user_models(electron_beam, tabulated_undulator, qcall=None):
     """Remove the beam and undulator user model list files"""
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         model = electron_beam if model_name == "electronBeam" else tabulated_undulator
         if not model or "id" not in model:
             continue
-        user_model_list = _load_user_model_list(model_name)
+        user_model_list = _load_user_model_list(model_name, qcall=qcall)
         for i, m in enumerate(user_model_list):
             if m.id == model.id:
                 del user_model_list[i]
-                _save_user_model_list(model_name, user_model_list)
+                _save_user_model_list(model_name, user_model_list, qcall=qcall)
                 break
     return PKDict()
 
@@ -1639,7 +1645,7 @@ def _flux_units(model):
     return "ph/s/.1%bw" if int(model.fluxType) == 1 else "ph/s/.1%bw/mm^2"
 
 
-def _generate_beamline_optics(report, data):
+def _generate_beamline_optics(report, data, qcall=None):
     res = PKDict(names=[], last_id=None, watches=PKDict())
     models = data.models
     if len(models.beamline) == 0 or not (
@@ -1699,7 +1705,9 @@ def _generate_beamline_optics(report, data):
                 )
                 res.names.append(items[-1].name)
             if "heightProfileFile" in item:
-                item.heightProfileDimension = _height_profile_dimension(item, data)
+                item.heightProfileDimension = _height_profile_dimension(
+                    item, data, qcall=qcall
+                )
             items.append(item)
             res.names.append(name)
             if item.type == "watch":
@@ -1798,7 +1806,7 @@ def _generate_beamline_optics(report, data):
     return optics, prop, res
 
 
-def _generate_parameters_file(data, plot_reports=False, run_dir=None):
+def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None):
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
@@ -1830,7 +1838,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.python_file = run_dir.join("user_python.py")
         pkio.write_text(v.python_file, dm.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, "import.py")
-    _set_parameters(v, data, plot_reports, run_dir)
+    _set_parameters(v, data, plot_reports, run_dir, qcall=qcall)
     v.in_server = run_dir is not None
     return _trim(res + template_common.render_jinja(SIM_TYPE, v))
 
@@ -1942,15 +1950,15 @@ def _get_first_element_position(report, data):
     return template_common.DEFAULT_INTENSITY_DISTANCE
 
 
-def _height_profile_dimension(item, data):
+def _height_profile_dimension(item, data, qcall=None):
     """Find the dimension of the provided height profile .dat file.
     1D files have 2 columns, 2D - 8 columns.
     """
     dimension = 0
     if item.heightProfileFile and item.heightProfileFile != "None":
-        with _SIM_DATA.lib_file_abspath(item.heightProfileFile, data=data).open(
-            "r"
-        ) as f:
+        with _SIM_DATA.lib_file_abspath(
+            item.heightProfileFile, data=data, qcall=qcall
+        ).open("r") as f:
             header = f.readline().strip().split()
             dimension = 1 if len(header) == 2 else 2
     return dimension
@@ -1975,15 +1983,17 @@ def _is_for_rsopt(report):
     return report == _SIM_DATA.EXPORT_RSOPT
 
 
-def _load_user_model_list(model_name):
-    f = _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name])
+def _load_user_model_list(model_name, qcall=None):
+    f = _SIM_DATA.lib_file_write_path(
+        _USER_MODEL_LIST_FILENAME[model_name], qcall=qcall
+    )
     try:
         if f.exists():
             return simulation_db.read_json(f)
     except Exception:
         pkdlog("user list read failed, resetting contents: {}", f)
-    _save_user_model_list(model_name, [])
-    return _load_user_model_list(model_name)
+    _save_user_model_list(model_name, [], qcall=qcall)
+    return _load_user_model_list(model_name, qcall=qcall)
 
 
 def _parse_srw_log(run_dir):
@@ -2001,7 +2011,7 @@ def _parse_srw_log(run_dir):
     return "An unknown error occurred"
 
 
-def _process_image(data, tmp_dir):
+def _process_image(data, tmp_dir, qcall=None):
     """Process image and return
 
     Args:
@@ -2013,7 +2023,11 @@ def _process_image(data, tmp_dir):
     # This should just be a basename, but this ensures it.
     import srwl_uti_smp
 
-    path = str(_SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)))
+    path = str(
+        _SIM_DATA.lib_file_abspath(
+            sirepo.util.secure_filename(data.baseImage), qcall=qcall
+        )
+    )
     m = data.model
     with pkio.save_chdir(tmp_dir):
         if m.sampleSource == "file":
@@ -2252,19 +2266,23 @@ def _safe_beamline_item_name(name, names):
     return current
 
 
-def _save_user_model_list(model_name, beam_list):
+def _save_user_model_list(model_name, beam_list, qcall):
     pkdc("saving {} list", model_name)
     simulation_db.write_json(
-        _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name]),
+        _SIM_DATA.lib_file_write_path(
+            _USER_MODEL_LIST_FILENAME[model_name], qcall=qcall
+        ),
         beam_list,
     )
 
 
-def _set_magnetic_measurement_parameters(run_dir, v):
+def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
     src_zip = (
         str(run_dir.join(v.tabulatedUndulator_magneticFile))
         if run_dir
-        else str(_SIM_DATA.lib_file_abspath(v.tabulatedUndulator_magneticFile))
+        else str(
+            _SIM_DATA.lib_file_abspath(v.tabulatedUndulator_magneticFile, qcall=qcall)
+        )
     )
     target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
     # The MagnMeasZip class defined above has convenient properties we can use here
@@ -2279,7 +2297,7 @@ def _set_magnetic_measurement_parameters(run_dir, v):
     v.magneticMeasurementsIndexFile = mmz.index_file
 
 
-def _set_parameters(v, data, plot_reports, run_dir):
+def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
@@ -2287,7 +2305,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
         v.beamlineOptics,
         v.beamlineOpticsParameters,
         beamline_info,
-    ) = _generate_beamline_optics(report, data)
+    ) = _generate_beamline_optics(report, data, qcall=qcall)
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
     # 1: auto-undulator 2: auto-wiggler
     v.energyCalculationMethod = (
@@ -2301,7 +2319,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
-        _set_magnetic_measurement_parameters(run_dir or "", v)
+        _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
     if _SIM_DATA.srw_is_background_report(report) and "beamlineAnimation" not in report:
         if sirepo.mpi.cfg().in_slurm:
             v.sbatchBackup = "1"
@@ -2314,9 +2332,9 @@ def _set_parameters(v, data, plot_reports, run_dir):
                 v.coherentModesFile = dm.multiElectronAnimation.coherentModesFile
         elif report == "coherentModesAnimation":
             c = data.models.coherentModesAnimation
-            if sirepo.mpi.cfg.cores < _MIN_CORES and not sirepo.mpi.cfg.in_slurm:
-                _core_error(sirepo.mpi.cfg.cores)
-            if sirepo.mpi.cfg.in_slurm and c.sbatchCores < _MIN_CORES:
+            if sirepo.mpi.cfg().cores < _MIN_CORES and not sirepo.mpi.cfg().in_slurm:
+                _core_error(sirepo.mpi.cfg().cores)
+            if sirepo.mpi.cfg().in_slurm and c.sbatchCores < _MIN_CORES:
                 _core_error(c.sbatchCores)
             v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
@@ -2571,7 +2589,7 @@ def _write_rsopt_zip(data, ctx):
     def _write(zip_file, path):
         zip_file.writestr(
             path,
-            python_source_for_model(data, ctx.fileBase, plot_reports=False)
+            python_source_for_model(data, model=ctx.fileBase, plot_reports=False)
             if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
             else template_common.render_jinja(SIM_TYPE, ctx, path),
         )

@@ -32,8 +32,13 @@ def create_archive(sim, qcall):
         raise sirepo.util.NotFound(
             "unknown file type={}; expecting zip".format(sim.filename)
         )
-    with simulation_db.tmp_dir() as d:
-        f, c = _create_zip(sim, out_dir=d)
+    with simulation_db.tmp_dir(qcall=qcall) as d:
+        want_zip = sim.filename.endswith("zip")
+        f, c = _create_zip(sim, out_dir=d, qcall=qcall)
+        if want_zip:
+            t = "application/zip"
+        else:
+            f, t = _create_html(f, c, qcall)
         return qcall.reply_attachment(
             f,
             content_type="application/zip",
@@ -41,7 +46,7 @@ def create_archive(sim, qcall):
         )
 
 
-def _create_zip(sim, out_dir):
+def _create_zip(sim, out_dir, qcall):
     """Zip up the json file and its dependencies
 
     Args:
@@ -52,11 +57,11 @@ def _create_zip(sim, out_dir):
         py.path.Local: zip file name
     """
     path = out_dir.join(sim.id + ".zip")
-    data = simulation_db.open_json_file(sim.type, sid=sim.id)
+    data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
     simulation_db.update_rsmanifest(data)
     data.pkdel("report")
-    files = sim_data.get_class(data).lib_files_for_export(data)
-    for f in _python(data, sim):
+    files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
+    for f in _python(data, sim, qcall):
         files.append(f)
     with sirepo.util.write_zip(str(path)) as z:
         for f in files:
@@ -68,7 +73,7 @@ def _create_zip(sim, out_dir):
     return path, data
 
 
-def _python(data, sim):
+def _python(data, sim, qcall):
     """Generate python in current directory
 
     Args:
@@ -84,7 +89,7 @@ def _python(data, sim):
     res = pkio.py_path("run.py")
     d = copy.deepcopy(data)
     d.file_ext = ".zip"
-    t = template.python_source_for_model(d, None)
+    t = template.python_source_for_model(d, model=None, qcall=qcall)
     if type(t) == pkcollections.PKDict:
         return _write_multiple_export_files(t)
     res.write(t)
