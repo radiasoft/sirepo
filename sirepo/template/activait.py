@@ -71,17 +71,21 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
     def __init__(
         self,
         indices=None,
-        scale_x=False,
-        scale_y=False,
-        scale_fn=None,
+        scale_fn_x=False,
+        scale_fn_y=False,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         if indices is not None:
             self._indices = indices
-        if scale_fn is not None:
-            self.scale_fn = scale_fn
+        if scale_fn_x is not None:
+            with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
+                self.scale_tfm_x = scale_fn_x().fit(file[self.X_key])
+        if scale_fn_y is not None:
+            with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
+                self.scale_tfm_y = scale_fn_y().fit(file[self.y_key])
+
 
     def __get_dataset_items(
         self,
@@ -92,9 +96,9 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
             x = file[self.X_key][indices]
             y = file[self.y_key][indices]
             if self.scale_x:
-                x = self.scale_fn(x)
+                x = self.scale_tfm_x.transform(x)
             if self.scale_y:
-                y = self.scale_fn(y)
+                y = self.scale_tfm_y.transform(y)
             if dataset is not None:
                 return file[dataset][indices]
             else:
