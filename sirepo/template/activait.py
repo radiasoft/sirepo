@@ -80,6 +80,8 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         super().__init__(*args, **kwargs)
         if indices is not None:
             self._indices = indices
+        if scale_fn is not None:
+            self.scale_fn = scale_fn
 
     def __get_dataset_items(
         self,
