@@ -2018,33 +2018,32 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function replot() {
-                let bnds = $scope.source.shapeBounds();
-                //srdbg('bnds', bnds);
-                let newDomain = $scope.cfg.initDomian;
-                SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
-                    let labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
-                    let axis = axes[dim];
+                const b = $scope.source.shapeBounds();
+                const newDomain = $scope.cfg.initDomian;
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    const labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                    const axis = axes[dim];
                     axis.domain = newDomain[labDim];
                     if ($scope.cfg.fitToObjects) {
-                        if (bnds[labDim][0] < axis.domain[0]) {
-                            newDomain[labDim][0] = fitDomainPct * bnds[labDim][0];
-                        }
-                        if (bnds[labDim][1] > axis.domain[1]) {
-                            newDomain[labDim][1] = fitDomainPct * bnds[labDim][1];
-                        }
+                        //if (b[labDim][0] < axis.domain[0]) {
+                            newDomain[labDim][0] = fitDomainPct * b[labDim][0];
+                        //}
+                        //if (b[labDim][1] > axis.domain[1]) {
+                            newDomain[labDim][1] = fitDomainPct * b[labDim][1];
+                        //}
                     }
                     axis.scale.domain(newDomain[labDim]);
                 });
                 // keep the size of the domains in each direction equal, in order to preserve
                 // the shapes (squares stay square, etc.(
                 if ($scope.cfg.preserveShape) {
-                    let newDomSpan = Math.max(
+                    const newDomSpan = Math.max(
                         Math.abs(newDomain.x[1] - newDomain.x[0]),
                         Math.abs(newDomain.y[1] - newDomain.y[0])
                     );
-                    SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
-                        let labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
-                        let domDiff = (
+                    SIREPO.SCREEN_DIMS.forEach(dim => {
+                        const labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                        const domDiff = (
                             newDomSpan - Math.abs(newDomain[labDim][1] - newDomain[labDim][0])
                         ) / 2;
                         newDomain[labDim][0] = newDomain[labDim][0] - domDiff;
@@ -2056,7 +2055,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function resetZoom() {
-                zoom = axes.x.createZoom($scope).y(axes.y.scale);
+                zoom = axes.x.createZoom().y(axes.y.scale);
             }
 
             function select(selector) {
@@ -2324,6 +2323,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     $scope.$emit('layout.object.dropped', obj);
                 }
             };
+
+            $scope.fitToShapes = replot;
 
             $scope.init = function() {
                 $scope.objects = (appState.models[$scope.modelName] || {}).objects;
