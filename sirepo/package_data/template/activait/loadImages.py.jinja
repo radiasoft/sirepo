@@ -43,6 +43,7 @@ def image_train_val_test_split(
             **kwargs,
         ),
         test_generator=SirepoHDF5ImageGenerator(
+            mode="test",
             indices=s.test_indices,
             **kwargs,
         )
@@ -56,6 +57,7 @@ split = image_train_val_test_split(
     y_key='metadata/image_types',
     labels_encoding=False,
     scaler=False,
+    shuffle={{ shuffleEachEpoch }},
     scale_x={{ inScaling }},
     scale_y={{ outScaling }},
     num_classes=output_shape,
