@@ -70,6 +70,8 @@ split = image_train_val_test_split(
     {% endif %}
     {% if dataFile_outputsScaler != 'None' and dataFile_outputsScaler != dataFile_inputsScaler %}
     scale_fn_y=out_scaler_fn,
+    {% elif dataFile_outputsScaler != 'None' and dataFile_outputsScaler == dataFile_inputsScaler %}
+    scale_fn_y=in_scaler_fn,
     {% endif %}
     num_classes=output_shape,
     batch_size={{ neuralNet_batch_size }},

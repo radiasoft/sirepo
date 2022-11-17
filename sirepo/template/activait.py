@@ -79,6 +79,9 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         super().__init__(*args, **kwargs)
         if indices is not None:
             self._indices = indices
+
+        # TODO (gurhar1133): might make more sense to get the stdev and then
+        # apply a scale to each batch based off of that.
         if scale_fn_x is not None:
             with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
                 self.scale_tfm_x = scale_fn_x().fit(file[self.X_key])
