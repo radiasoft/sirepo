@@ -1723,7 +1723,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             // svg shapes
-            var LAYOUT_SHAPES = ['circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'];
+            const LAYOUT_SHAPES = ['circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'];
 
             var SCREEN_INFO = {
                 x: {
@@ -1734,7 +1734,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 },
             };
 
-            //var elevation = elevationInfo[$scope.elevation || elevationInfo.front];
             var fitDomainPct = 1.01;
 
             // pixels around the group shape
@@ -2023,19 +2022,16 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     const labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
                     const axis = axes[dim];
-                    axis.domain = newDomain[labDim];
-                    if ($scope.cfg.fitToObjects) {
-                        //if (b[labDim][0] < axis.domain[0]) {
-                            newDomain[labDim][0] = fitDomainPct * b[labDim][0];
-                        //}
-                        //if (b[labDim][1] > axis.domain[1]) {
-                            newDomain[labDim][1] = fitDomainPct * b[labDim][1];
-                        //}
+                    const bd = b[labDim];
+                    axis.domain = $scope.cfg.fullZoom ? [-Infinity, Infinity] : newDomain[labDim];
+                    if ($scope.cfg.fitToObjects && bd[0] !== bd[1]) {
+                        newDomain[labDim][0] = fitDomainPct * bd[0];
+                        newDomain[labDim][1] = fitDomainPct * bd[1];
                     }
                     axis.scale.domain(newDomain[labDim]);
                 });
                 // keep the size of the domains in each direction equal, in order to preserve
-                // the shapes (squares stay square, etc.(
+                // the shapes (squares stay square, etc.)
                 if ($scope.cfg.preserveShape) {
                     const newDomSpan = Math.max(
                         Math.abs(newDomain.x[1] - newDomain.x[0]),
@@ -2051,6 +2047,15 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         axes[dim].scale.domain(newDomain[labDim]);
                     });
                 }
+                // now center the objects
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    const labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                    const d = (newDomain[labDim][1] - newDomain[labDim][0]) / 2 - (b[labDim][1] - b[labDim][0]) / 2;
+                    newDomain[labDim][0] -= d;
+                    newDomain[labDim][1] -= d;
+                    axes[dim].scale.domain(newDomain[labDim]);
+                });
+
                 $scope.resize();
             }
 
@@ -2072,6 +2077,15 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     selectedObject = null;
                 }
                 //drawObjects(ELEVATION_INFO[$scope.elevation]);
+            }
+
+            function shapesBounds() {
+                for (const shape of $scope.source.getShapes()) {
+                    if (! shape.layoutShape || shape.layoutShape === '') {
+                        continue;
+                    }
+
+                }
             }
 
             function shapeColor(hexColor, alpha) {
