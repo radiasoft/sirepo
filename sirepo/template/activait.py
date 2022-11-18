@@ -71,8 +71,8 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
     def __init__(
         self,
         indices=None,
-        scale_fn_x=False,
-        scale_fn_y=False,
+        scale_fn_x=None,
+        scale_fn_y=None,
         *args,
         **kwargs,
     ):
@@ -82,12 +82,16 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
 
         # TODO (gurhar1133): might make more sense to get the stdev and then
         # apply a scale to each batch based off of that.
+        pkdp("\n\n\n hello \n\n\n")
         if scale_fn_x is not None:
             with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
-                self.scale_tfm_x = scale_fn_x().fit(file[self.X_key])
+                self.scale_tfm_x = scale_fn_x().fit(numpy.array(file[self.X_key]).reshape(-1, file[self.X_key].shape[-1]))
+                # t = scaler.fit_transform(ascolumns)
+                # transformed = t.reshape(original.shape)
+                # self.scale_tfm_x = scale_fn_x().fit(file[self.X_key])
         if scale_fn_y is not None:
             with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
-                self.scale_tfm_y = scale_fn_y().fit(file[self.y_key])
+                self.scale_tfm_y = scale_fn_y().fit(numpy.array(file[self.y_key]).reshape(-1, 1))
 
 
     def __get_dataset_items(
@@ -95,17 +99,26 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         indices,
         dataset=None,
     ):
+        pkdp("Getting batch")
+        assert 0, "GETTING BATCH"
         with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
             x = file[self.X_key][indices]
             y = file[self.y_key][indices]
-            if self.scale_x:
-                x = self.scale_tfm_x.transform(x)
-            if self.scale_y:
-                y = self.scale_tfm_y.transform(y)
-            if dataset is not None:
-                return file[dataset][indices]
-            else:
-                return (x, y)
+            self.channels = file[self.X_key].shape[-1]
+            self.original_shape_x = file[self.X_key].shape
+            self.original_shape_y = file[self.y_key].shape
+            if self.scale_fn_x is not None:
+                # t = scaler.fit_transform(ascolumns)
+                # transformed = t.reshape(original.shape)
+                x = self.scale_tfm_x.transform(numpy.array(x).reshape(-1, self.channels))
+                # x = x.reshape(self.original_shape_x)
+            if self.scale_fn_y is not None:
+                y = self.scale_tfm_y.transform(numpy.array(y).reshape(-1, 1))
+                # y = y.reshape(self.original_shape_y)
+            # if dataset is not None:
+            #     return file[dataset][indices]
+            # else:
+            return (x, y)
 
 
 def background_percent_complete(report, run_dir, is_running):
