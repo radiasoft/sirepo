@@ -1736,8 +1736,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             const fitDomainPct = 1.01;
 
-            let isDragging = false;
-            let isPointerUp = true;
             let screenRect = null;
             let selectedObject = null;
             const objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
@@ -2011,9 +2009,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function selectObject(d) {
-                if (isDragging) {
-                    return;
-                }
                 //TODO(mvk): allow using shift to select more than one (for alignment etc.)
                 if (! selectedObject || selectedObject.id !== d.id ) {
                     selectedObject = d;
