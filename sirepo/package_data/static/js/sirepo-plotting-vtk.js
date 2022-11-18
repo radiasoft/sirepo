@@ -1948,15 +1948,12 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
                 if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
-                    //select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-zoom');
                     axes.y.scale.domain(axes.y.domain);
                 }
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
-                    //select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-move-ew');
                 }
 
-                axes.y.grid.tickValues(plotting.linearlySpacedArray(-1.0 / 2, 1.0 / 2, 10));
                 resetZoom();
                 select('.plot-viewport').call(zoom);
                 $.each(axes, function(dim, axis) {
@@ -1999,6 +1996,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
                 // keep the size of the domains in each direction equal, in order to preserve
                 // the shapes (squares stay square, etc.)
+                /*
                 if ($scope.cfg.preserveShape) {
                     const newDomSpan = Math.max(
                         Math.abs(newDomain.x[1] - newDomain.x[0]),
@@ -2014,6 +2012,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         axes[dim].scale.domain(newDomain[labDim]);
                     });
                 }
+
+                 */
                 // now center around the objects
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     const labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
