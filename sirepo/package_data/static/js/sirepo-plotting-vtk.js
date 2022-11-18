@@ -1807,23 +1807,23 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
                 [dragX, dragY] = [d3.event.x, d3.event.y];
                 draggedShape = shape;
-                SIREPO.SCREEN_DIMS.forEach(function(dim) {
-                    var labDim = shape.elev[dim].axis;
-                    var dom = axes[dim].scale.domain();
-                    var pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    const labDim = shape.elev[dim].axis;
+                    const dom = axes[dim].scale.domain();
+                    const pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
                     shape.center[labDim] = dragStart.center[labDim] +
                         SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
                     shape[dim] = dragStart[dim] +
                         SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
                 });
-                d3.select(this).call(updateShapeAttributes);
+                d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
                 shape.runLinks().forEach(function (linkedShape) {
-                    d3.select(shapeSelectionId(linkedShape, true)).call(updateShapeAttributes);
+                    d3.select(shapeSelectionId(linkedShape)).call(updateShapeAttributes);
                 });
             }
 
-            function shapeSelectionId(shape, includeHash) {
+            function shapeSelectionId(shape, includeHash=true) {
                 return `${(includeHash ? '#' : '')}shape-${shape.id}`;
             }
 
@@ -2149,7 +2149,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         return ! d.draggable;
                     })
                     .attr('id', function (d) {
-                        return shapeSelectionId(d);
+                        return shapeSelectionId(d, false);
                     })
                     .attr('href', function (d) {
                         return d.href ? `#${d.href}` : '';
