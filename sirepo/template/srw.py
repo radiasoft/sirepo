@@ -246,8 +246,8 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if report == "beamlineAnimation":
         return _beamline_animation_percent_complete(run_dir, res)
-    if report == "machineLearningAnimation":
-        return _machine_learning_percent_complete(run_dir, res)
+    #if report == "machineLearningAnimation":
+    #    return _machine_learning_percent_complete(run_dir, res)
     status = PKDict(
         progress=0,
         particle_number=0,
@@ -1440,7 +1440,7 @@ def _enum_text(name, model, field):
 def _export_rsopt_config(data, run_dir):
     ctx = _rsopt_jinja_context(data)
     f = _write_rsopt_zip(data, ctx)
-    if data.report == "machineLearningAnimation":
+    if data.report == _SIM_DATA.ML_REPORT:
         s = f"{_SIM_DATA.EXPORT_RSOPT}_run.sh"
         pkio.write_text(
             s,
@@ -1841,6 +1841,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         v.rs_type = "u"
     if is_for_rsopt:
         v.update(rsopt_ctx)
+        v.runInSirepo = report == "machineLearningAnimation"
     # rsopt uses this as a lookup param so want it in one place
     v.ws_fni_desc = "file name for saving propagated single-e intensity distribution vs horizontal and vertical position"
     if report == "mirrorReport":
@@ -2260,6 +2261,7 @@ def _rsopt_jinja_context(data):
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRotation=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName="scan_results",
+        runInSirepo=data.report == _SIM_DATA.ML_REPORT,
         scanType=model.scanType,
         totalSamples=model.totalSamples,
         zipFileName=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
@@ -2636,8 +2638,9 @@ def _write_rsopt_zip(data, ctx):
             ctx.readmeFileName,
             template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName),
         )
-        for f in ctx.libFiles:
-            z.write(f, f)
+        if data.report != _SIM_DATA.ML_REPORT:
+            for f in ctx.libFiles:
+                z.write(f, f)
     return PKDict(
         content_type="application/zip",
         filename=filename,
