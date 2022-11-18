@@ -431,7 +431,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.axes = ['x', 'y', 'z'];
     self.builderCfg = {
-        fitToObjects: true,
         fixedDomain: false,
         fullZoom: true,
         initDomian: {
