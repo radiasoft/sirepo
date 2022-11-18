@@ -2254,10 +2254,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
             };
 
-            $scope.editObject = function(o) {
-                $scope.source.editObject(o);
-            };
-
             // called when dropping new objects, not existing
             $scope.dropSuccess = function(obj, evt) {
                 var p = isMouseInBounds(evt);
@@ -2273,9 +2269,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
             };
 
+            $scope.editObject = function(o) {
+                $scope.source.editObject(o);
+            };
+
             $scope.fitToShapes = () => {
                 replot(true);
-            }
+            };
 
             $scope.init = function() {
                 $scope.objects = (appState.models[$scope.modelName] || {}).objects;
