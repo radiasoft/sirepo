@@ -79,45 +79,35 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         super().__init__(*args, **kwargs)
         if indices is not None:
             self._indices = indices
-
-        # TODO (gurhar1133): might make more sense to get the stdev and then
-        # apply a scale to each batch based off of that.
-        pkdp("\n\n\n hello \n\n\n")
-        if scale_fn_x is not None:
-            with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
-                self.scale_tfm_x = scale_fn_x().fit(numpy.array(file[self.X_key]).reshape(-1, file[self.X_key].shape[-1]))
-                # t = scaler.fit_transform(ascolumns)
-                # transformed = t.reshape(original.shape)
-                # self.scale_tfm_x = scale_fn_x().fit(file[self.X_key])
-        if scale_fn_y is not None:
-            with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
-                self.scale_tfm_y = scale_fn_y().fit(numpy.array(file[self.y_key]).reshape(-1, 1))
+        self.scale_fn_x = scale_fn_x
+        self.scale_fn_y  = scale_fn_y
+        with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
+            self.original_shape_x = file[self.X_key].shape
+            self.channels = self.original_shape_x[-1]
+            self.original_shape_y = file[self.y_key].shape
+            if scale_fn_x is not None:
+                    self.scale_tfm_x = scale_fn_x().fit(numpy.array(file[self.X_key]).reshape(-1, self.channels))
+            if scale_fn_y is not None:
+                    self.scale_tfm_y = scale_fn_y().fit(numpy.array(file[self.y_key]).reshape(-1, 1))
 
 
-    def __get_dataset_items(
+    def _HDF5ImageGenerator__get_dataset_items(
         self,
         indices,
         dataset=None,
     ):
-        pkdp("Getting batch")
-        assert 0, "GETTING BATCH"
         with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
             x = file[self.X_key][indices]
             y = file[self.y_key][indices]
-            self.channels = file[self.X_key].shape[-1]
-            self.original_shape_x = file[self.X_key].shape
-            self.original_shape_y = file[self.y_key].shape
+            if not x.any():
+                # TODO (gurhar1133): why empty x and y?
+                return (x, y)
             if self.scale_fn_x is not None:
-                # t = scaler.fit_transform(ascolumns)
-                # transformed = t.reshape(original.shape)
                 x = self.scale_tfm_x.transform(numpy.array(x).reshape(-1, self.channels))
-                # x = x.reshape(self.original_shape_x)
+                x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.scale_fn_y is not None:
-                y = self.scale_tfm_y.transform(numpy.array(y).reshape(-1, 1))
-                # y = y.reshape(self.original_shape_y)
-            # if dataset is not None:
-            #     return file[dataset][indices]
-            # else:
+                # TODO (gurhar1133): handle tfm y
+                y = self.scale_tfm_y.transform(y)
             return (x, y)
 
 
