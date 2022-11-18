@@ -11,6 +11,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="executed"></div>
         </div>
+        <div data-ng-switch-when="HistoryScansTable" class="col-sm-12">
+          <div data-scans-table="" data-model-name="modelName" data-analysis-status="history"></div>
+        </div>
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="queued"></div>
         </div>

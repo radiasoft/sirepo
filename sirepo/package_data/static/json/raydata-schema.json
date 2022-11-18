@@ -50,6 +50,9 @@
             "searchStopTime":["Stop", "DateTimePicker", null],
             "scans": ["", "ExecutedScansTable", ""]
         },
+        "historyScans": {
+            "scans": ["", "HistoryScansTable", ""]
+        },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
@@ -86,6 +89,13 @@
                 "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
+                "scans"
+            ],
+            "advanced": []
+        },
+        "historyScans": {
+            "title": "Recently Executed",
+            "basic": [
                 "scans"
             ],
             "advanced": []
