@@ -30,9 +30,6 @@ _ANIMATION_NAME = "animation"
 #: prefix for auth header of sim_db_file requests
 _AUTH_HEADER_PREFIX = f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} "
 
-#: use to separate components of job_id
-_JOB_ID_SEP = "-"
-
 _MODEL_RE = re.compile(r"^[\w-]+$")
 
 _IS_PARALLEL_RE = re.compile("animation", re.IGNORECASE)
@@ -124,7 +121,7 @@ class SimDataBase(object):
     _LIB_RESOURCE_DIR = "lib"
 
     @classmethod
-    def compute_job_hash(cls, data):
+    def compute_job_hash(cls, data, qcall):
         """Hash fields related to data and set computeJobHash
 
         Only needs to be unique relative to the report, not globally unique
@@ -167,7 +164,7 @@ class SimDataBase(object):
         res.update(
             "".join(
                 (
-                    str(cls.lib_file_abspath(b, data=data).mtime())
+                    str(cls.lib_file_abspath(b, data=data, qcall=qcall).mtime())
                     for b in sorted(cls.lib_file_basenames(data))
                 ),
             ).encode()
@@ -202,7 +199,7 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         """Update model data to latest schema
 
         Modifies `data` in place.
@@ -270,7 +267,7 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
-    def lib_file_abspath(cls, basename, data=None):
+    def lib_file_abspath(cls, basename, data=None, qcall=None):
         """Returns full, unique paths of simulation files
 
         Args:
@@ -278,16 +275,15 @@ class SimDataBase(object):
         Returns:
             object: py.path.local to files (duplicates removed) OR py.path.local
         """
-        p = cls._lib_file_abspath(basename, data=data)
+        p = cls._lib_file_abspath(basename, data=data, qcall=qcall)
         if p:
             return p
         from sirepo import auth
 
         raise sirepo.util.UserAlert(
             'Simulation library file "{}" does not exist'.format(basename),
-            "basename={} not in lib or resource directories uid={}",
+            "basename={} not in lib or resource directories",
             basename,
-            sirepo.auth.hack_logged_in_user(),
         )
 
     @classmethod
@@ -303,9 +299,9 @@ class SimDataBase(object):
         return sorted(set(cls._lib_file_basenames(data)))
 
     @classmethod
-    def lib_file_exists(cls, basename):
+    def lib_file_exists(cls, basename, qcall=None):
         cls._assert_server_side()
-        return bool(cls._lib_file_abspath(basename))
+        return bool(cls._lib_file_abspath(basename, qcall=qcall))
 
     @classmethod
     def lib_file_in_use(cls, data, basename):
@@ -320,7 +316,7 @@ class SimDataBase(object):
         return any(f for f in cls.lib_file_basenames(data) if f == basename)
 
     @classmethod
-    def lib_file_names_for_type(cls, file_type):
+    def lib_file_names_for_type(cls, file_type, qcall=None):
         """Return sorted list of files which match `file_type`
 
         Args:
@@ -331,7 +327,7 @@ class SimDataBase(object):
         return sorted(
             (
                 cls.lib_file_name_without_type(f.basename)
-                for f in cls._lib_file_list("{}.*".format(file_type))
+                for f in cls._lib_file_list("{}.*".format(file_type), qcall=qcall)
             )
         )
 
@@ -366,24 +362,26 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def lib_file_write_path(cls, basename):
+    def lib_file_write_path(cls, basename, qcall=None):
         cls._assert_server_side()
         from sirepo import simulation_db
 
-        return simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
+        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
+            basename
+        )
 
     @classmethod
-    def lib_files_for_export(cls, data):
+    def lib_files_for_export(cls, data, qcall=None):
         cls._assert_server_side()
         res = []
         for b in cls.lib_file_basenames(data):
-            f = cls.lib_file_abspath(b, data=data)
+            f = cls.lib_file_abspath(b, data=data, qcall=qcall)
             if f.exists():
                 res.append(f)
         return res
 
     @classmethod
-    def lib_files_from_other_user(cls, data, other_lib_dir):
+    def lib_files_from_other_user(cls, data, other_lib_dir, qcall):
         """Copy auxiliary files to other user
 
         Does not copy resource files. Only works locally.
@@ -395,7 +393,7 @@ class SimDataBase(object):
         cls._assert_server_side()
         from sirepo import simulation_db
 
-        t = simulation_db.simulation_lib_dir(cls.sim_type())
+        t = simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall)
         for f in cls._lib_file_basenames(data):
             s = other_lib_dir.join(f)
             if s.exists():
@@ -462,13 +460,7 @@ class SimDataBase(object):
         Returns:
             str: unique name (treat opaquely)
         """
-        return _JOB_ID_SEP.join(
-            (
-                uid,
-                cls.parse_sid(data),
-                cls.compute_model(data),
-            )
-        )
+        return sirepo.job.join_jid(uid, cls.parse_sid(data), cls.compute_model(data))
 
     @classmethod
     def parse_model(cls, obj):
@@ -659,7 +651,7 @@ class SimDataBase(object):
             )
 
     @classmethod
-    def _lib_file_abspath(cls, basename, data=None):
+    def _lib_file_abspath(cls, basename, data=None, qcall=None):
         import sirepo.simulation_db
 
         if _cfg.lib_file_uri:
@@ -673,7 +665,10 @@ class SimDataBase(object):
                 return p
         elif not _cfg.lib_file_resource_only:
             # Command line utility or server
-            f = sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
+            f = sirepo.simulation_db.simulation_lib_dir(
+                cls.sim_type(),
+                qcall=qcall,
+            ).join(basename)
             if f.check(file=True):
                 return f
         try:
@@ -687,7 +682,7 @@ class SimDataBase(object):
         return None
 
     @classmethod
-    def _lib_file_list(cls, pat, want_user_lib_dir=True):
+    def _lib_file_list(cls, pat, want_user_lib_dir=True, qcall=None):
         """Unsorted list of absolute paths matching glob pat
 
         Only works locally.
@@ -711,7 +706,9 @@ class SimDataBase(object):
             res.update(
                 (f.basename, f)
                 for f in pkio.sorted_glob(
-                    simulation_db.simulation_lib_dir(cls.sim_type()).join(pat),
+                    simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
+                        pat
+                    ),
                 )
             )
         return res.values()
@@ -806,7 +803,7 @@ class SimDataBase(object):
     def _sim_file_uri(cls, sim_id, basename):
         from sirepo import simulation_db
 
-        return simulation_db.simulation_file_uri(
+        return simulation_db.sim_db_file_uri(
             cls.sim_type(),
             sim_id,
             basename,
@@ -817,22 +814,6 @@ class SimDbFileNotFound(Exception):
     """A sim db file could not be found"""
 
     pass
-
-
-def split_jid(jid):
-    """Split jid into named parts
-
-    Args:
-        jid (str): properly formed job identifier
-    Returns:
-        PKDict: parts named uid, sid, compute_model.
-    """
-    return PKDict(
-        zip(
-            ("uid", "sid", "compute_model"),
-            jid.split(_JOB_ID_SEP),
-        )
-    )
 
 
 def _request(method, uri, data=None):

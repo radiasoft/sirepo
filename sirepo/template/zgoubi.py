@@ -433,9 +433,11 @@ def extract_tunes_report(run_dir, data):
     )
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
     if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_frames)
+        return template_common.compute_field_range(
+            data, _compute_range_across_frames, qcall=qcall
+        )
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -487,7 +489,7 @@ def prepare_sequential_output_file(run_dir, data):
             save_sequential_report_data(data, run_dir)
 
 
-def python_source_for_model(data, model=None):
+def python_source_for_model(data, qcall, model=None, **kwargs):
     return _generate_parameters_file(data)
 
 

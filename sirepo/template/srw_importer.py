@@ -24,8 +24,16 @@ import sirepo.sim_data
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("srw")
 
 
-class SRWParser(object):
-    def __init__(self, script, user_filename, arguments, optics_func_name="set_optics"):
+class SRWParser:
+    def __init__(
+        self,
+        script,
+        user_filename,
+        arguments,
+        optics_func_name="set_optics",
+        qcall=None,
+    ):
+        self.qcall = qcall
         m = pkrunpy.run_path_as_module(script)
         if arguments:
             import shlex
@@ -57,7 +65,7 @@ class SRWParser(object):
                     and getattr(self.var_param, key) != "None"
                 ):
                     self.var_param.__dict__[key] = str(
-                        _SIM_DATA.lib_file_abspath(mirror_file)
+                        _SIM_DATA.lib_file_abspath(mirror_file, qcall=self.qcall)
                     )
 
     def replace_image_files(self, image_file="sample.tif"):
@@ -65,7 +73,7 @@ class SRWParser(object):
             if key.find("op_sample") >= 0:
                 if getattr(self.var_param, key) != "":
                     self.var_param.__dict__[key] = str(
-                        _SIM_DATA.lib_file_abspath(image_file)
+                        _SIM_DATA.lib_file_abspath(image_file, qcall=self.qcall)
                     )
 
 
@@ -74,7 +82,7 @@ class Struct(object):
         self.__dict__.update(entries)
 
 
-def import_python(code, tmp_dir, user_filename=None, arguments=None):
+def import_python(code, tmp_dir, user_filename=None, arguments=None, qcall=None):
     """Converts script_text into json and stores as new simulation.
 
     Avoids too much data back to the user in the event of an error.
@@ -86,6 +94,7 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None):
         code (str): Python code that runs SRW
         user_filename (str): uploaded file name for log
         arguments (str): argv to be passed to script
+        qcall (quest.API): only used for testing
 
     Returns:
         dict: simulation data
@@ -93,7 +102,7 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None):
     script = None
 
     # Patch for the mirror profile for the exported .py file from Sirepo:
-    code = _patch_mirror_profile(code)
+    code = _patch_mirror_profile(code, qcall=qcall)
 
     try:
         with pkio.save_chdir(tmp_dir):
@@ -106,6 +115,7 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None):
                 script,
                 user_filename=user_filename,
                 arguments=arguments,
+                qcall=qcall,
             )
             return o.data
     except Exception as e:
@@ -896,7 +906,7 @@ def _parsed_dict(v, op):
     return python_dict
 
 
-def _patch_mirror_profile(code, mirror_file="mirror_1d.dat"):
+def _patch_mirror_profile(code, mirror_file="mirror_1d.dat", qcall=None):
     """Patch for the mirror profile for the exported .py file from Sirepo"""
     import sirepo.template.srw
 
@@ -905,7 +915,9 @@ def _patch_mirror_profile(code, mirror_file="mirror_1d.dat"):
     code_list = code.split("\n")
     for var_name in var_names:
         if var_name in ["Mirror"]:
-            final_mirror_file = '"{}"'.format(_SIM_DATA.lib_file_abspath(mirror_file))
+            final_mirror_file = '"{}"'.format(
+                _SIM_DATA.lib_file_abspath(mirror_file, qcall=qcall)
+            )
         else:
             final_mirror_file = None
         var_name = "ifn" + var_name

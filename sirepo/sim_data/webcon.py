@@ -12,7 +12,7 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         for m in cls.schema().model:
             # don't include beamline element models (all uppercase)

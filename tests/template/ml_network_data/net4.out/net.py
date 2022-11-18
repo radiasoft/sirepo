@@ -18,3 +18,4 @@ x = Dense(10, activation="relu")(x)
 
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
+model.save('unweighted.h5')

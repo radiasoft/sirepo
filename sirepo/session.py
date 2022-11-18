@@ -1,5 +1,9 @@
-"""Manage user sessions"""
+# -*- coding: utf-8 -*-
+"""Manage user sessions
 
+:copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from pykern.pkcollections import PKDict
 import contextlib

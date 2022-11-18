@@ -70,7 +70,7 @@ class _Cookie(sirepo.quest.Attr):
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=_cfg.is_secure,
-            samesite="Strict",
+            samesite="Lax",
         )
 
     def set_sentinel(self):

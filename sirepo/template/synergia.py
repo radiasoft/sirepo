@@ -129,9 +129,13 @@ def format_float(v):
     return float(format(v, ".10f"))
 
 
-def get_application_data(data, **kwargs):
+def get_application_data(data, qcall, **kwargs):
     if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_files)
+        return template_common.compute_field_range(
+            data,
+            _compute_range_across_files,
+            qcall=qcall,
+        )
     assert False, "unknown application data method: {}".format(data.method)
 
 
@@ -208,7 +212,7 @@ def prepare_sequential_output_file(run_dir, data):
             save_sequential_report_data(data, run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 

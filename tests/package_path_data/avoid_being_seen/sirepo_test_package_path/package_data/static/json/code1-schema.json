@@ -1,0 +1,112 @@
+{
+    "appInfo": {
+       "code1": {
+           "longName": "Code 1",
+            "shortName": "code1"
+       }
+    },
+    "appModes": {},
+    "enum": {},
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "code1.js",
+                "sirepo-command.js",
+                "sirepo-lattice.js"
+            ],
+            "css": [
+                "command.css",
+                "lattice.css",
+                "code1.css"
+            ]
+        }
+    },
+    "frameIdFields": {},
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/code1-source.html"
+            }
+        },
+        "control": {
+            "route": "/control/:simulationId",
+            "config": {
+              "controller": "CommandController as control",
+              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        }
+    },
+    "model": {
+        "beamline": {
+            "name": ["Name", "ValidatedString"]
+        },
+        "sauce": {
+            "color": ["Color", "String", "", ""],
+            "scoville": ["Scoville", "Integer", 0]
+        },
+        "spiceReport": {},
+        "_ELEMENT": {
+            "l": ["L [m]", "RPNValue", 0, "The element length"]
+        },
+        "SOLENOID": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""]
+        },
+        "command_distribution": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "type": ["TYPE", "DistributionType", "", "Distribution type: FROMFILE, GAUSS, BINOMIAL, FLATTOP, GUNGAUSSFLATTOPTH, ASTRAFLATTOPTH"]
+        }
+    },
+    "strings": {
+        "simulationSource": "Code 1 Source (*.in)"
+    },
+    "view": {
+        "sauce": {
+            "title": "Sauce characteristics",
+            "basic": [
+                "color",
+                "scoville"
+            ],
+            "advanced": []
+        },
+        "spiceReport": {
+            "title": "How hot is too hot?",
+            "advanced": []
+        },
+        "beamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "description": "A solenoid",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name"
+            ]
+        },
+        "command_distribution": {
+            "title": "Distribution",
+            "description": "The DISTRIBUTION statement defines data for the 6D particle distribution.",
+            "basic": [
+                "type"
+            ],
+            "advanced": []
+        }
+    }
+}
