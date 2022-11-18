@@ -246,6 +246,8 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if report == "beamlineAnimation":
         return _beamline_animation_percent_complete(run_dir, res)
+    if report == "machineLearningAnimation":
+        return _machine_learning_percent_complete(run_dir, res)
     status = PKDict(
         progress=0,
         particle_number=0,
@@ -2008,6 +2010,17 @@ def _load_user_model_list(model_name, qcall=None):
         pkdlog("user list read failed, resetting contents: {}", f)
     _save_user_model_list(model_name, [], qcall=qcall)
     return _load_user_model_list(model_name, qcall=qcall)
+
+
+def _machine_learning_percent_complete(run_dir, res):
+    res.outputInfo = []
+    # look at rsopt output files?
+    count = 0
+    for info in res.outputInfo:
+        pass
+    res.frameCount = count
+    res.percentComplete = 100 * count / len(res.outputInfo)
+    return res
 
 
 def _parse_srw_log(run_dir):
