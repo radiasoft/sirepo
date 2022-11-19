@@ -21,7 +21,8 @@ class AuthEmailUser(sirepo.auth_db.UserDbBase):
     EMAIL_SIZE = 255
     __tablename__ = "auth_email_user_t"
     unverified_email = sqlalchemy.Column(
-        sqlalchemy.String(EMAIL_SIZE), primary_key=True
+        sqlalchemy.String(EMAIL_SIZE),
+        primary_key=True,
     )
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, unique=True)
     user_name = sqlalchemy.Column(sqlalchemy.String(EMAIL_SIZE), unique=True)

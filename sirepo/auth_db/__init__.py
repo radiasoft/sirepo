@@ -31,6 +31,8 @@ _engine = None
 STRING_ID = sqlalchemy.String(8)
 STRING_NAME = sqlalchemy.String(100)
 
+_models = None
+
 
 @sqlalchemy.ext.declarative.as_declarative()
 class UserDbBase:
@@ -73,9 +75,8 @@ class UserDbBase:
 
     @classmethod
     def delete_user(cls, uid):
-        """Delete user from all tables"""
-        for t in cls.TABLES:
-            m = cls._unchecked_model_from_tablename(t)
+        """Delete user from all models"""
+        for m in _models:
             # Exlicit None check because sqlalchemy overrides __bool__ to
             # raise TypeError
             if m is None or "uid" not in m.columns:
@@ -135,12 +136,6 @@ class UserDbBase:
     @classmethod
     def _session(cls):
         return sirepo.quest.hack_current().auth_db._orm_session
-
-    @classmethod
-    def _unchecked_model_from_tablename(cls, tablename):
-        for k, v in cls.metadata.tables.items():
-            if k == tablename:
-                return v
 
 
 class DbUpgrade(UserDbBase):
@@ -232,17 +227,22 @@ def init_module():
                             f"class={n} in module={q} also found in module={res[n].module_name}",
                         )
                     res[n] = PKDict(module_name=q, cls=c)
+        return res
 
-    global _engine
+    def _export(classes):
+        m = pkinspect.this_module()
+        res = []
+        for n, x in _classes:
+            assert not hasattr(m, n), f"class={n} already exists"
+            setattr(m, n, x.cls)
+            res.append(x.cls)
+        return res
+
+    global _engine, _models
 
     if _engine:
         return
-
-    k = set(UserDbBase.metadata.tables.keys())
-
-    assert k.issubset(
-        set(_TABLES)
-    ), f"sqlalchemy tables={k} not a subset of known tables={_TABLES}"
+    _models = _export(_classes())
     _engine = sqlalchemy.create_engine(
         f"sqlite:///{db_filename()}",
         # We ensure single threaded access through locking
