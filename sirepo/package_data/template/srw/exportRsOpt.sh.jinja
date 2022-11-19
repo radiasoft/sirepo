@@ -21,7 +21,7 @@ if [ $? -eq 0 ]
 then
     echo Collecting data
     "${run_post[@]}"
-    echo Results are in "$run_dir"/results.h5
+    echo Results are in "$run_dir"/"{{ resultsFileName }}"
 else
     echo "ERROR: rsopt failed with return code $?, see {{ outFileName }}"
     exit 99

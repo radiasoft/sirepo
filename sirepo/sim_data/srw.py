@@ -43,6 +43,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     EXPORT_RSOPT = "exportRsOpt"
     ML_REPORT = "machineLearningAnimation"
+    ML_OUTPUT = "results.h5"
 
     SRW_RUN_ALL_MODEL = "simulation"
 

@@ -7,6 +7,7 @@
     <div class="col-md-4">
         <div data-basic-editor-panel="" data-view-name="machineLearningAnimation">
             <div data-sim-status-panel="ml.simState"></div>
+            <div data-ng-show="ml.simState.isStateCompleted()"><a style="position: relative;" href="{{ ml.resultsFileURL() }}" target="_blank">{{ ml.resultsFile }}</a></div>
         </div>
     </div>
     </div>

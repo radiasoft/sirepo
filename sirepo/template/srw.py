@@ -133,7 +133,7 @@ _OUTPUT_FOR_MODEL[f"{_SIM_DATA.EXPORT_RSOPT}"] = PKDict(
     filename=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
 )
 _OUTPUT_FOR_MODEL.machineLearningAnimation = PKDict(
-    filename=f"{_SIM_DATA.EXPORT_RSOPT}/README.txt",
+    filename=_SIM_DATA.ML_OUTPUT,
 )
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
@@ -246,8 +246,8 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if report == "beamlineAnimation":
         return _beamline_animation_percent_complete(run_dir, res)
-    #if report == "machineLearningAnimation":
-    #    return _machine_learning_percent_complete(run_dir, res)
+    if report == "machineLearningAnimation":
+        return _machine_learning_percent_complete(run_dir, res)
     status = PKDict(
         progress=0,
         particle_number=0,
@@ -2014,13 +2014,18 @@ def _load_user_model_list(model_name, qcall=None):
 
 
 def _machine_learning_percent_complete(run_dir, res):
+    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    n = dm.exportRsOpt.totalSamples
     res.outputInfo = []
-    # look at rsopt output files?
     count = 0
-    for info in res.outputInfo:
-        pass
+    d = pkio.sorted_glob(
+        run_dir.join('ensemble').join('worker*').join('sim*').join('values.npy')
+    )
+    count = len(d)
     res.frameCount = count
-    res.percentComplete = 100 * count / len(res.outputInfo)
+    res.percentComplete = 100 * count / n
+    if res.percentComplete >= 100:
+        res.resultsFile = _SIM_DATA.ML_OUTPUT
     return res
 
 
@@ -2256,6 +2261,7 @@ def _rsopt_jinja_context(data):
         outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
         randomSeed=model.randomSeed if model.randomSeed is not None else "",
         readmeFileName="README.txt",
+        resultsFileName=_SIM_DATA.ML_OUTPUT,
         rsOptCharacteristic=model.characteristic,
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
@@ -2639,6 +2645,7 @@ def _write_rsopt_zip(data, ctx):
             template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName),
         )
         if data.report != _SIM_DATA.ML_REPORT:
+            # lib files are already in the run_dir
             for f in ctx.libFiles:
                 z.write(f, f)
     return PKDict(

@@ -7,7 +7,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
     SIREPO.SHOW_HELP_BUTTONS = true;
     SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-    SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'coherentModesAnimation', 'fluxAnimation', 'machineLearningAnimation', 'multiElectronAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'coherentModesAnimation', 'fluxAnimation', 'multiElectronAnimation'];
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appReportTypes = `
@@ -816,27 +816,40 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
     });
 });
 
-SIREPO.app.controller('MLController', function (appState, panelState, persistentSimulation, srwService, $scope) {
+SIREPO.app.controller('MLController', function (appState, panelState, persistentSimulation, requestSender, srwService, $scope) {
     const self = this;
     self.appState = appState;
     self.srwService = srwService;
     self.simScope = $scope;
+    self.resultsFile = null;
+    self.simComputeModel = 'machineLearningAnimation';
+    self.simState = persistentSimulation.initSimulationState(self);
 
-    self.simHandleStatus = function(data) {
+    self.simHandleStatus = data => {
         if (data.error) {
         }
         if ('percentComplete' in data && ! data.error) {
-            if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
+            if (self.simState.isStateCompleted()) {
+                self.resultsFile = data.resultsFile;
             }
         }
     };
 
-    self.startSimulation = function(model) {
+    self.startSimulation = model => {
+        self.resultsFile = null;
         self.simState.saveAndRunSimulation([model, 'simulation']);
     };
 
-    self.simComputeModel = 'machineLearningAnimation';
-    self.simState = persistentSimulation.initSimulationState(self);
+    self.resultsFileURL = () => {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simComputeModel,
+            '<frame>': SIREPO.nonDataFileFrame,
+            '<suffix>': 'h5',
+        });
+    }
+
 
 });
 
