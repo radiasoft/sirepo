@@ -51,6 +51,7 @@
         },
         "simFolder": {},
         "simulation": {
+            "applicationMode": "imported",
             "beamAxis": "y",
             "documentationUrl": "",
             "enableKickMaps": "0",

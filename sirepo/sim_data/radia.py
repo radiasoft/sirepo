@@ -50,14 +50,17 @@ class SimData(sirepo.sim_data.SimDataBase):
             model[field] = "cuboid"
 
     @classmethod
-    def _fixup_example(cls, models):
-        if not models.simulation.get("exampleName"):
-            models.simulation.exampleName = models.simulation.name
-        if models.simulation.name == "Dipole":
-            models.simulation.beamAxis = "x"
-            models.simulation.heightAxis = "z"
-            models.simulation.widthAxis = "y"
-        if models.simulation.name == "Wiggler":
+    def _fixup_examples(cls, models):
+        sim = models.simulation
+        if not sim.get("exampleName"):
+            sim.exampleName = sim.name
+        if sim.name == "Dipole":
+            sim.applicationMode = "imported"
+            sim.beamAxis = "x"
+            sim.heightAxis = "z"
+            sim.widthAxis = "y"
+        if sim.name == "Wiggler":
+            sim.applicationMode = "imported"
             models.geometryReport.isSolvable = "0"
             if not len(models.fieldPaths.paths):
                 models.fieldPaths.paths.append(
@@ -206,7 +209,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not dm.fieldPaths.get("paths"):
             dm.fieldPaths.paths = []
         if dm.simulation.get("isExample"):
-            cls._fixup_example(dm)
+            cls._fixup_examples(dm)
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)

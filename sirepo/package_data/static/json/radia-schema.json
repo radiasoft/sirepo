@@ -1,6 +1,9 @@
 {
     "appModes": {
        "default": {
+            "localRoute": "source"
+        },
+       "imported": {
             "localRoute": "visualization"
         }
     },
