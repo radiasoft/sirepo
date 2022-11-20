@@ -345,6 +345,11 @@ def stateless_compute_build_shape_points(data):
     return PKDict(points=pts)
 
 
+def stateless_compute_stl_size(data):
+    mesh = _create_stl_trimesh(data.args.file)
+    return PKDict(size=[1,1,1])
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
 
@@ -593,9 +598,12 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
 
 
 def _is_binary(file_path):
-    textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F})
-    is_binary_string = lambda bytes: bool(bytes.translate(None, textchars))
-    return is_binary_string(open(file_path, "rb").read(1024))
+    return bool(
+        open(file_path, "rb").read(1024).translate(
+            None,
+            bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F})
+        )
+    )
 
 
 def _create_stl_trimesh(file_path):

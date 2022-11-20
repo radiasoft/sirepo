@@ -3777,6 +3777,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     };
 
     $scope.$on('extrudedPoly.changed', loadPoints);
+    $scope.$on('stl.changed', loadSTLSize);
 
     function setPoints(data) {
         $scope.modelData.referencePoints = data.points;
@@ -3784,6 +3785,24 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             appState.saveChanges(editedModels);
             updateShapeEditor();
         });
+    }
+
+    function setSTLSize(data) {
+        $scope.modelData.size = data.size;
+        appState.saveChanges(editedModels);
+    }
+
+    function loadSTLSize()  {
+        requestSender.sendStatelessCompute(
+            appState,
+            setSTLSize,
+            {
+                method: 'stl_size',
+                args: {
+                    file: $scope.modelData.file,
+                }
+            }
+        );
     }
 
     function loadPoints() {
