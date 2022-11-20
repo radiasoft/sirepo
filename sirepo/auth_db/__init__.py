@@ -45,9 +45,10 @@ class UserDbBase:
 
     @classmethod
     def add_column_if_not_exists(cls, table, column, column_type):
+        """Must not be called with user data"""
         column_type = column_type.upper()
         t = table.__table__.name
-        r = cls._execute_raw_sql(f"PRAGMA table_info({t})")
+        r = cls._execute_sql("PRAGMA table_info(:t)", t=t)
         for c in r.all():
             if not c[1] == column:
                 continue
@@ -56,7 +57,7 @@ class UserDbBase:
                 f" type={column_type} to table={table}",
             )
             return
-        cls._execute_raw_sql(f"ALTER TABLE {t} ADD {column} {column_type}")
+        cls._execute_sql("ALTER TABLE :t ADD :col :ct", t=t, col=column, ct=column_type)
         cls._session().commit()
 
     @classmethod
@@ -111,7 +112,7 @@ class UserDbBase:
 
     @classmethod
     def rename_table(cls, old, new):
-        cls._execute_raw_sql(f"ALTER TABLE {old} RENAME TO {new}")
+        cls._execute_sql(f"ALTER TABLE :old RENAME TO :new", old=old, new=new)
         cls._session().commit()
 
     def save(self):
@@ -138,8 +139,8 @@ class UserDbBase:
             ]
 
     @classmethod
-    def _execute_raw_sql(cls, text):
-        return cls.execute(sqlalchemy.text(text + ";"))
+    def _execute_sql(cls, text, **kwargs):
+        return cls.execute(sqlalchemy.text(text + ";"), **kwargs)
 
     @classmethod
     def _session(cls):
