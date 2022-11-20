@@ -6,6 +6,7 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import datetime
 import sirepo.auth_db
 import sirepo.srtime
 import sirepo.util
@@ -16,9 +17,18 @@ import sqlalchemy
 # New user: (unverified_email, uid, token, expires) -> auth -> (unverified_email, uid, email)
 # Existing user: (unverified_email, token, expires) -> auth -> (unverified_email, uid, email)
 
+#: how long before token expires
+_EXPIRES_MINUTES = 8 * 60
+
+#: for adding to now
+_EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
+
+
 # display_name is prompted after first login
 class AuthEmailUser(sirepo.auth_db.UserDbBase):
     EMAIL_SIZE = 255
+    EXPIRES_MINUTES = _EXPIRES_MINUTES
+
     __tablename__ = "auth_email_user_t"
     unverified_email = sqlalchemy.Column(
         sqlalchemy.String(EMAIL_SIZE),

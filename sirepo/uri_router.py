@@ -393,14 +393,14 @@ def _register_sim_api_modules():
 
 
 def _register_sim_modules_from_package(package, valid_sim_types=None):
-    p = pkinspect.module_name_join("sirepo", package)
+    p = pkinspect.module_name_join(("sirepo", package))
     for n in pkinspect.package_module_names(p):
         if not sirepo.template.is_sim_type(n) or (
             valid_sim_types is not None and n not in valid_sim_types
         ):
             pkdc(f"not adding apis for unknown sim_type={n}")
             continue
-        register_api_module(pkinspect.module_name_join(p, n))
+        register_api_module(pkinspect.module_name_join((p, n)))
 
 
 def _register_sim_oauth_modules(oauth_sim_types):

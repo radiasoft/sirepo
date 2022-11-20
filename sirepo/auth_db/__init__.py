@@ -7,8 +7,11 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
+import importlib
+import inspect
 import pykern.pkconfig
 import pykern.pkio
+import pykern.pkinspect
 import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.quest
@@ -138,12 +141,6 @@ class UserDbBase:
         return sirepo.quest.hack_current().auth_db._orm_session
 
 
-class DbUpgrade(UserDbBase):
-    __tablename__ = "db_upgrade_t"
-    name = sqlalchemy.Column(STRING_NAME, primary_key=True)
-    created = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
-
-
 def all_uids(qcall):
     return UserRegistration.search_all_for_column("uid")
 
@@ -216,12 +213,16 @@ def db_filename():
 def init_module():
     def _classes():
         res = PKDict()
-        for r in feature_config.cfg().package_path:
-            p = pkinspect.module_name_join(r, "auth_db")
-            for n in pkinspect.package_module_names(p):
-                q = pkinspect.module_name_join(p, n)
-                m = importlib.import_module(n)
-                for n, c in inspect.getmembers(m, predicate=inspect.isclass):
+        for r in sirepo.feature_config.cfg().package_path:
+            p = pykern.pkinspect.module_name_join((r, "auth_db"))
+            for x in pykern.pkinspect.package_module_names(p):
+                q = pykern.pkinspect.module_name_join((p, x))
+                m = importlib.import_module(q)
+                for n, c in inspect.getmembers(
+                    m,
+                    predicate=lambda z: inspect.isclass(z)
+                    and issubclass(z, UserDbBase),
+                ):
                     if n in res:
                         raise AssertionError(
                             f"class={n} in module={q} also found in module={res[n].module_name}",
@@ -229,10 +230,10 @@ def init_module():
                     res[n] = PKDict(module_name=q, cls=c)
         return res
 
-    def _export(classes):
-        m = pkinspect.this_module()
+    def _export_models():
+        m = pykern.pkinspect.this_module()
         res = []
-        for n, x in _classes:
+        for n, x in _classes().items():
             assert not hasattr(m, n), f"class={n} already exists"
             setattr(m, n, x.cls)
             res.append(x.cls)
@@ -242,7 +243,7 @@ def init_module():
 
     if _engine:
         return
-    _models = _export(_classes())
+    _models = _export_models()
     _engine = sqlalchemy.create_engine(
         f"sqlite:///{db_filename()}",
         # We ensure single threaded access through locking

@@ -7,13 +7,17 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.auth_db
+import sirepo.auth_role
+import sirepo.srtime
+import sirepo.util
+import sqlalchemy
 
 
 class UserRegistration(sirepo.auth_db.UserDbBase):
     __tablename__ = "user_registration_t"
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
     created = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
-    display_name = sqlalchemy.Column(sirepo.UserDbBase.STRING_NAME)
+    display_name = sqlalchemy.Column(sirepo.auth_db.STRING_NAME)
 
 
 class UserRole(sirepo.auth_db.UserDbBase):
@@ -40,7 +44,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
                     ).save()
                 except sqlalchemy.exc.IntegrityError:
                     pass
-            audit_proprietary_lib_files(qcall=qcall)
+            sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
 
     @classmethod
     def add_role_or_update_expiration(cls, qcall, role, expiration):
@@ -65,7 +69,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
                 )
             )
             cls._session().commit()
-            audit_proprietary_lib_files(qcall=qcall)
+            sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
 
     @classmethod
     def get_roles(cls, qcall):

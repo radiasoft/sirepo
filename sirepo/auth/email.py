@@ -9,7 +9,6 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import datetime
 import hashlib
 import pyisemail
 import pykern.pkcompat
@@ -29,16 +28,10 @@ AUTH_METHOD = sirepo.auth.METHOD_EMAIL
 AUTH_METHOD_VISIBLE = True
 
 #: Well known alias for auth
-UserModel = sirepo.auth_db.email.AuthEmailUser
+UserModel = sirepo.auth_db.AuthEmailUser
 
 #: module handle
 this_module = pkinspect.this_module()
-
-#: how long before token expires
-_EXPIRES_MINUTES = 8 * 60
-
-#: for adding to now
-_EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
 class API(sirepo.quest.API):
@@ -127,7 +120,7 @@ class API(sirepo.quest.API):
 
     {}
     """.format(
-                login_text, _EXPIRES_MINUTES / 60, uri
+                login_text, UserModel.EXPIRES_MINUTES / 60, uri
             ),
         )
         if not r:

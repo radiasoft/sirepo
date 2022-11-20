@@ -21,11 +21,8 @@ AUTH_METHOD = "github"
 
 this_module = pkinspect.this_module()
 
-#: Used by auth_db
-AuthGithubUser = None
-
 #: Well known alias for auth
-UserModel = None
+UserModel = sirepo.auth_db.AuthGithubUser
 
 
 class API(sirepo.quest.API):
@@ -72,18 +69,6 @@ def avatar_uri(qcall, model, size):
 
 
 def _init():
-    def _init_model(base):
-        """Creates User class bound to dynamic `db` variable"""
-        global AuthGithubUser, UserModel
-
-        class AuthGithubUser(base):
-            __tablename__ = "auth_github_user_t"
-            oauth_id = sqlalchemy.Column(base.STRING_NAME, primary_key=True)
-            user_name = sqlalchemy.Column(base.STRING_NAME, unique=True, nullable=False)
-            uid = sqlalchemy.Column(base.STRING_ID, unique=True)
-
-        UserModel = AuthGithubUser
-
     global cfg, AUTH_METHOD_VISIBLE
     cfg = pkconfig.init(
         authorize_url=(
@@ -113,7 +98,6 @@ def _init():
     cfg.callback_api = "authGithubAuthorized"
 
     AUTH_METHOD_VISIBLE = cfg.method_visible
-    sirepo.auth_db.init_model(_init_model)
 
 
 _init()
