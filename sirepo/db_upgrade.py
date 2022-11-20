@@ -193,9 +193,9 @@ def _20220901_migrate_ml_to_activait(qcall):
             _migrate_sim_type("ml", "activait", qcall)
 
 
-def _20221120_rename_session_to_user_agent_session(qcall):
+def _20221120_rename_session_to_spa_session(qcall):
     if "session_t" in sirepo.auth_db.UserDbBase.metadata.tables:
-        sirepo.auth_db.UserDbBase.rename_table("session_t", "user_agent_session_t")
+        sirepo.auth_db.UserDbBase.rename_table("session_t", "spa_session_t")
 
 
 @contextlib.contextmanager

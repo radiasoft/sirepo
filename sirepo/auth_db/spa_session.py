@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""user agent session
+"""single page app (spa) session
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,8 +10,8 @@ import sirepo.auth_db
 import sqlalchemy
 
 
-class UserAgentSession(sirepo.auth_db.UserDbBase):
-    __tablename__ = "user_agent_session_t"
+class SPASession(sirepo.auth_db.UserDbBase):
+    __tablename__ = "spa_session_t"
     user_agent_id = sqlalchemy.Column(
         sirepo.auth_db.STRING_ID,
         unique=True,

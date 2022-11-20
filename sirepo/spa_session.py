@@ -37,7 +37,7 @@ def init_quest(qcall):
         l = qcall.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
         i = sirepo.util.random_base62()
-        sirepo.auth_db.UserAgentSession(
+        sirepo.auth_db.SPASession(
             user_agent_id=i,
             login_state=l,
             uid=qcall.auth.logged_in_user(check_path=False) if l else None,
@@ -49,7 +49,7 @@ def init_quest(qcall):
         return i
 
     def _update_session(user_agent_id):
-        s = sirepo.auth_db.UserAgentSession.search_by(user_agent_id=user_agent_id)
+        s = sirepo.auth_db.SPASession.search_by(user_agent_id=user_agent_id)
         if not s:
             pkdlog("Restarting session for user_agent_id={}", user_agent_id)
             return _new_session()
