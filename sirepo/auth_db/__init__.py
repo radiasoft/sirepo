@@ -56,7 +56,7 @@ class UserDbBase:
                 f" type={column_type} to table={table}",
             )
             return
-        r = cls._execute_raw_sql(f"ALTER TABLE {t} ADD {column} {column_type}")
+        cls._execute_raw_sql(f"ALTER TABLE {t} ADD {column} {column_type}")
         cls._session().commit()
 
     @classmethod
@@ -77,14 +77,30 @@ class UserDbBase:
             self._session().commit()
 
     @classmethod
+    def delete_all(cls):
+        with sirepo.util.THREAD_LOCK:
+            cls._session().query(cls).delete()
+            cls._session().commit()
+
+    @classmethod
+    def delete_all_for_column_by_values(cls, column, values):
+        with sirepo.util.THREAD_LOCK:
+            cls.execute(
+                sqlalchemy.delete(cls).where(
+                    getattr(cls, column).in_(values),
+                )
+            )
+            cls._session().commit()
+
+    @classmethod
     def delete_user(cls, uid):
         """Delete user from all models"""
         for m in _models:
             # Exlicit None check because sqlalchemy overrides __bool__ to
             # raise TypeError
-            if m is None or "uid" not in m.columns:
+            if m is None or "uid" not in m.__table__.columns:
                 continue
-            cls.execute(sqlalchemy.delete(m).where(m.c.uid == uid))
+            cls.execute(sqlalchemy.delete(m).where(m.uid == uid))
         cls._session().commit()
 
     @classmethod
@@ -94,10 +110,9 @@ class UserDbBase:
         )
 
     @classmethod
-    def delete_all(cls):
-        with sirepo.util.THREAD_LOCK:
-            cls._session().query(cls).delete()
-            cls._session().commit()
+    def rename_table(cls, old, new):
+        cls._execute_raw_sql(f"ALTER TABLE {old} RENAME TO {new}")
+        cls._session().commit()
 
     def save(self):
         with sirepo.util.THREAD_LOCK:
@@ -121,16 +136,6 @@ class UserDbBase:
                 getattr(r, column)
                 for r in cls._session().query(cls).filter_by(**filter_by)
             ]
-
-    @classmethod
-    def delete_all_for_column_by_values(cls, column, values):
-        with sirepo.util.THREAD_LOCK:
-            cls.execute(
-                sqlalchemy.delete(cls).where(
-                    getattr(cls, column).in_(values),
-                )
-            )
-            cls._session().commit()
 
     @classmethod
     def _execute_raw_sql(cls, text):
@@ -206,6 +211,13 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
         pykern.pkio.unchecked_remove(simulation_db.simulation_dir(t, qcall=qcall))
 
 
+def create_or_upgrade(qcall):
+    from sirepo import db_upgrade
+
+    UserDbBase.metadata.create_all(bind=_engine)
+    db_upgrade.do_all(qcall)
+
+
 def db_filename():
     return sirepo.srdb.root().join(_SQLITE3_BASENAME)
 
@@ -249,7 +261,6 @@ def init_module():
         # We ensure single threaded access through locking
         connect_args={"check_same_thread": False},
     )
-    UserDbBase.metadata.create_all(_engine)
 
 
 def init_quest(qcall):

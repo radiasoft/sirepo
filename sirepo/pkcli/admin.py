@@ -42,6 +42,11 @@ def audit_proprietary_lib_files(*uid):
                 sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
 
 
+def db_upgrade():
+    with sirepo.quest.start() as qcall:
+        sirepo.auth_db.create_or_upgrade(qcall=qcall)
+
+
 def create_examples():
     """Adds missing app examples to all users"""
     with sirepo.quest.start() as qcall:

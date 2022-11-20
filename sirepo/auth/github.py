@@ -36,12 +36,12 @@ class API(sirepo.quest.API):
         d = oc.get("https://api.github.com/user").json()
         sirepo.events.emit(self, "github_authorized", PKDict(user_name=d["login"]))
         with sirepo.util.THREAD_LOCK:
-            u = AuthGithubUser.search_by(oauth_id=d["id"])
+            u = UserModel.search_by(oauth_id=d["id"])
             if u:
                 # always update user_name
                 u.user_name = d["login"]
             else:
-                u = AuthGithubUser(oauth_id=d["id"], user_name=d["login"])
+                u = UserModel(oauth_id=d["id"], user_name=d["login"])
             u.save()
             self.auth.login(this_module, model=u, sim_type=t, want_redirect=True)
             raise AssertionError("auth.login returned unexpectedly")
