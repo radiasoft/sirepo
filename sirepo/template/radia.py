@@ -347,9 +347,7 @@ def stateless_compute_build_shape_points(data):
 
 def stateless_compute_stl_size(data):
     f = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_type(
-            data.args.file, SCHEMA.constants.fileTypeSTL
-        )
+        _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
     )
     return PKDict(size=_create_stl_trimesh(f).bounding_box.primitive.extents.tolist())
 
@@ -603,9 +601,11 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
 
 def _is_binary(file_path):
     return bool(
-        open(file_path, "rb").read(1024).translate(
+        open(file_path, "rb")
+        .read(1024)
+        .translate(
             None,
-            bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F})
+            bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F}),
         )
     )
 
