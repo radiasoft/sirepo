@@ -48,7 +48,7 @@ class UserDbBase:
         """Must not be called with user data"""
         column_type = column_type.upper()
         t = table.__table__.name
-        r = cls._execute_sql("PRAGMA table_info(:t)", t=t)
+        r = cls._execute_sql(f"PRAGMA table_info({t})")
         for c in r.all():
             if not c[1] == column:
                 continue
@@ -226,21 +226,19 @@ def db_filename():
 def init_module():
     def _classes():
         res = PKDict()
-        for r in sirepo.feature_config.cfg().package_path:
-            p = pykern.pkinspect.module_name_join((r, "auth_db"))
-            for x in pykern.pkinspect.package_module_names(p):
-                q = pykern.pkinspect.module_name_join((p, x))
-                m = importlib.import_module(q)
-                for n, c in inspect.getmembers(
-                    m,
-                    predicate=lambda z: inspect.isclass(z)
-                    and issubclass(z, UserDbBase),
-                ):
-                    if n in res:
-                        raise AssertionError(
-                            f"class={n} in module={q} also found in module={res[n].module_name}",
-                        )
-                    res[n] = PKDict(module_name=q, cls=c)
+        p = pykern.pkinspect.this_module().__name__
+        for x in pykern.pkinspect.package_module_names(p):
+            q = pykern.pkinspect.module_name_join((p, x))
+            m = importlib.import_module(q)
+            for n, c in inspect.getmembers(
+                m,
+                predicate=lambda z: inspect.isclass(z) and issubclass(z, UserDbBase),
+            ):
+                if n in res:
+                    raise AssertionError(
+                        f"class={n} in module={q} also found in module={res[n].module_name}",
+                    )
+                res[n] = PKDict(module_name=q, cls=c)
         return res
 
     def _export_models():

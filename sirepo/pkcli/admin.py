@@ -180,6 +180,7 @@ def _get_named_example_sims(qcall, all_sim_types):
                         t,
                         simulation_db.process_simulation_list,
                         {"simulation.isExample": True},
+                        qcall=qcall,
                     )
                 }
             )
