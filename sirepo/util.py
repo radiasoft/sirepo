@@ -225,7 +225,7 @@ def files_to_watch_for_reload(*extensions):
     if not pkconfig.channel_in("dev"):
         return []
     for e in extensions:
-        for p in set(["sirepo", *feature_config.cfg().package_path]):
+        for p in sorted(set(["sirepo", *feature_config.cfg().package_path])):
             d = pykern.pkio.py_path(
                 getattr(importlib.import_module(p), "__file__"),
             ).dirname

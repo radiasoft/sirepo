@@ -11,10 +11,9 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 import re
-import sirepo.quest
-import sirepo.db_upgrade
 import sirepo.feature_config
 import sirepo.flask
+import sirepo.quest
 import sirepo.resource
 import sirepo.sim_data
 import sirepo.srschema
@@ -777,12 +776,16 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     sirepo.flask.app_set(_app)
     if is_server:
         global _google_tag_manager
+        from sirepo import auth_db
+
+        with sirepo.quest.start() as qcall:
+            auth_db.create_or_upgrade(qcall=qcall)
 
         if cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>
         (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
         </script>"""
-        sirepo.db_upgrade.do_all()
+
         # Avoid unnecessary logging
         sirepo.flask.is_server = True
     return _app
