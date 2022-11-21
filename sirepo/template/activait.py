@@ -106,6 +106,7 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
             y = file[self.y_key][indices]
             if not x.any():
                 # TODO (gurhar1133): why empty x and y?
+                assert not y.any(), f"if x is empty y should be too, got y={y}"
                 return (x, y)
             if self.scale_fn_x is not None:
                 pkdp("\n\nSCALING\n\n")
