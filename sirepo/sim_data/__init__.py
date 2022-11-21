@@ -419,7 +419,7 @@ class SimDataBase(object):
 
         Some special cases:
             if the data type is "UUID" and the default value is empty, set the
-            value to a new UUUID string
+            value to a new UUID string
 
             if the data type is "RandomId" and the default value is empty, set the
             value to a new Base62 string
