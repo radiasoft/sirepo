@@ -203,6 +203,6 @@ def _iterate_sims_by_users(qcall, all_sim_types):
                 yield (t, s)
 
 
-def _revert(ops, examples):
+def _revert(qcall, ops, examples):
     for n, t in ops.revert:
-        _create_example(_get_example_by_name(n, t, examples))
+        _create_example(qcall, _get_example_by_name(n, t, examples))
