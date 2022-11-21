@@ -98,9 +98,6 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         indices,
         dataset=None,
     ):
-        # TODO (gurhar1133): scaling for test loader?
-        if self.mode == "test":
-            pkdp("\n\n\n IN TEST MODE")
         with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
             x = file[self.X_key][indices]
             y = file[self.y_key][indices]
@@ -109,12 +106,11 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
                 assert not y.any(), f"if x is empty y should be too, got y={y}"
                 return (x, y)
             if self.scale_fn_x is not None:
-                pkdp("\n\nSCALING\n\n")
                 x = self.scale_tfm_x.transform(numpy.array(x).reshape(-1, self.channels))
                 x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.scale_fn_y is not None:
                 # TODO (gurhar1133): handle tfm y
-                y = self.scale_tfm_y.transform(y)
+                y = self.scale_tfm_y.transform(y.reshape(-1, 1))
             return (x, y)
 
 
