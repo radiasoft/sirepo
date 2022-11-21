@@ -390,7 +390,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         appState.saveQuietly('geomGroup');
     }
 
-    function upload(inputFile, type=SIREPO.APP_SCHEMA.constants.pathPtsFileType) {
+    function upload(inputFile, type=SIREPO.APP_SCHEMA.constants.fileTypePathPts) {
         fileUpload.uploadFileToUrl(
             inputFile,
             {},
@@ -1070,7 +1070,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             if (o.materialFile) {
                 o.hmFileName = o.materialFile.name;
-                radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
+                radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.fileTypeHM);
             }
         }
         radiaService.saveGeometry(true, false, () => {
@@ -1608,7 +1608,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                         {
                             '<simulation_id>': simId,
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                            '<file_type>': SIREPO.APP_SCHEMA.constants.radiaDmpFileType,
+                            '<file_type>': SIREPO.APP_SCHEMA.constants.fileTypeRadiaDmp,
                         }),
                     function(d) {
                         cleanup(simId);
@@ -3789,7 +3789,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     function setSTLSize(data) {
         $scope.modelData.size = data.size;
-        appState.saveChanges(editedModels);
+        appState.saveQuietly(editedModels);
     }
 
     function loadSTLSize()  {

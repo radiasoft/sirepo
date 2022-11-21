@@ -346,8 +346,12 @@ def stateless_compute_build_shape_points(data):
 
 
 def stateless_compute_stl_size(data):
-    mesh = _create_stl_trimesh(data.args.file)
-    return PKDict(size=[1,1,1])
+    f = _SIM_DATA.lib_file_abspath(
+        _SIM_DATA.lib_file_name_with_type(
+            data.args.file, SCHEMA.constants.fileTypeSTL
+        )
+    )
+    return PKDict(size=_create_stl_trimesh(f).bounding_box.primitive.extents.tolist())
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -431,7 +435,7 @@ def _build_field_axis(length, axis):
 def _build_field_file_pts(f_path):
     pts_file = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(
-            f_path.fileName, SCHEMA.constants.pathPtsFileType
+            f_path.fileName, SCHEMA.constants.fileTypePathPts
         )
     )
     lines = [float(l.strip()) for l in pkio.read_text(pts_file).split(",")]
@@ -889,7 +893,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
             data.models.simulation.dmpImportFile
             if for_export
             else simulation_db.simulation_lib_dir(SIM_TYPE, qcall=qcall).join(
-                f"{SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}"
+                f"{SCHEMA.constants.fileTypeRadiaDmp}.{data.models.simulation.dmpImportFile}"
             )
         )
     v.isExample = (
@@ -1238,7 +1242,7 @@ def _read_h5_path(filename, h5path):
 
 def _read_h_m_file(file_name):
     h_m_file = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_type(file_name, "h-m")
+        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM)
     )
     lines = [r for r in sirepo.csv.open_csv(h_m_file)]
     f_lines = []
@@ -1697,7 +1701,7 @@ def _update_geom_obj(o, **kwargs):
     if o.type == "stl":
         path = str(
             _SIM_DATA.lib_file_abspath(
-                _SIM_DATA.lib_file_name_with_type(o.file, "stl-file")
+                _SIM_DATA.lib_file_name_with_type(o.file, SCHEMA.constants.fileTypeSTL)
             )
         )
         mesh = _create_stl_trimesh(path)
