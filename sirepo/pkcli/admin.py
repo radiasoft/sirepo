@@ -42,6 +42,11 @@ def audit_proprietary_lib_files(*uid):
                 sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
 
 
+def db_upgrade():
+    with sirepo.quest.start() as qcall:
+        sirepo.auth_db.create_or_upgrade(qcall=qcall)
+
+
 def create_examples():
     """Adds missing app examples to all users"""
     with sirepo.quest.start() as qcall:
@@ -175,6 +180,7 @@ def _get_named_example_sims(qcall, all_sim_types):
                         t,
                         simulation_db.process_simulation_list,
                         {"simulation.isExample": True},
+                        qcall=qcall,
                     )
                 }
             )
@@ -197,6 +203,6 @@ def _iterate_sims_by_users(qcall, all_sim_types):
                 yield (t, s)
 
 
-def _revert(ops, examples):
+def _revert(qcall, ops, examples):
     for n, t in ops.revert:
-        _create_example(_get_example_by_name(n, t, examples))
+        _create_example(qcall, _get_example_by_name(n, t, examples))

@@ -33,7 +33,7 @@ def test_delete_user():
         pkunit.pkeq(_UID_IN_DB, qcall.auth.unchecked_get_user(_UID_IN_DB))
     admin.delete_user(_UID_IN_DB)
     with srunit.quest_start() as qcall:
-        _is_empty_table(jupyterhublogin.JupyterhubUser)
+        _is_empty_table(auth_db.JupyterhubUser)
         _is_empty_table(auth_db.UserRegistration)
         _is_empty_table(auth_db.UserRoleInvite)
     _is_empty_dir(jupyterhublogin.cfg().user_db_root_d)

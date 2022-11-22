@@ -25,22 +25,24 @@ import sirepo.util
 _PREVENT_DB_UPGRADE_FILE = "prevent-db-upgrade"
 
 
-def do_all():
+def do_all(qcall):
+    def _new_functions():
+        x = sirepo.auth_db.DbUpgrade.search_all_for_column("name")
+        y = pkinspect.module_functions("_2")
+        return ((n, y[n]) for n in sorted(set(y.keys()) - set(x)))
+
     assert (
         not _prevent_db_upgrade_file().exists()
     ), f"prevent_db_upgrade_file={_prevent_db_upgrade_file()} found"
 
-    with sirepo.quest.start() as qcall:
-        a = sirepo.auth_db.DbUpgrade.search_all_for_column("name")
-        f = pkinspect.module_functions("_2")
-        for n in sorted(set(f.keys()) - set(a)):
-            with _backup_db_and_prevent_upgrade_on_error():
-                pkdlog("running upgrade {}", n)
-                f[n](qcall=qcall)
-                sirepo.auth_db.DbUpgrade(
-                    name=n,
-                    created=sirepo.srtime.utc_now(),
-                ).save()
+    for n, f in _new_functions():
+        with _backup_db_and_prevent_upgrade_on_error():
+            pkdlog("running upgrade {}", n)
+            f(qcall=qcall)
+            sirepo.auth_db.DbUpgrade(
+                name=n,
+                created=sirepo.srtime.utc_now(),
+            ).save()
 
 
 def _20210211_add_flash_proprietary_lib_files(qcall, force=False):
@@ -189,6 +191,11 @@ def _20220901_migrate_ml_to_activait(qcall):
     for u in sirepo.auth_db.all_uids(qcall):
         with qcall.auth.logged_in_user_set(u):
             _migrate_sim_type("ml", "activait", qcall)
+
+
+def _20221120_rename_session_to_spa_session(qcall):
+    if "session_t" in sirepo.auth_db.UserDbBase.metadata.tables:
+        sirepo.auth_db.UserDbBase.rename_table("session_t", "spa_session_t")
 
 
 @contextlib.contextmanager
