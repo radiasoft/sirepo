@@ -27,14 +27,18 @@ export type NavBarModalButtonConfig = {
 }
 
 export class NavBarModalButton extends View<NavBarModalButtonConfig, {}> {
-    getChildLayouts = () => {
-        return this.config.modal.items.map(schemaView => {
+    children: View[];
+
+    constructor(config: NavBarModalButtonConfig) {
+        super(config);
+
+        this.children = config.modal.items.map(schemaView => {
             return LAYOUTS.getLayoutForSchemaView(schemaView);
         });
     }
 
     getFormDependencies = () => {
-        return this.getChildLayouts().map(child => child.getFormDependencies()).flat();
+        return this.children.map(child => child.getFormDependencies()).flat();
     }
 
     component = (props: LayoutProps<{}>) => {
@@ -65,7 +69,7 @@ export class NavBarModalButton extends View<NavBarModalButtonConfig, {}> {
             })
         }
 
-        let children = this.getChildLayouts().map((child, idx) => {
+        let children = this.children.map((child, idx) => {
             let LayoutElement = child.component;
             return <LayoutElement key={idx}></LayoutElement>
         })
@@ -124,17 +128,34 @@ export type NavTabsConfig = {
     tabs: NavTab[];
 }
 
+export type NavTabWithLayouts = {
+    layouts: View[]
+} & NavTab
+
 export class NavTabsLayout extends View<NavTabsConfig, {}> {
+    tabs: NavTabWithLayouts[]
+
+    constructor(config: NavTabsConfig) {
+        super(config);
+
+        this.tabs = config.tabs.map(t => {
+            return {
+                ...t,
+                layouts: t.items.map(LAYOUTS.getLayoutForSchemaView)
+            };
+
+        })
+    }
+
     getFormDependencies = () => {
         // TODO
         return [];
     }
 
-    TabsContent = (props: { tab: NavTab }) => {
+    TabsContent = (props: { tab: NavTabWithLayouts }) => {
         let { tab, ...otherProps } = props;
 
-        let children = tab.items.map((schemaView, idx) => {
-            let layout = LAYOUTS.getLayoutForSchemaView(schemaView);
+        let children = tab.layouts.map((layout, idx) => {
             let LayoutComponent = layout.component;
             return <LayoutComponent key={idx} {...otherProps}/>
         })
@@ -163,7 +184,7 @@ export class NavTabsLayout extends View<NavTabsConfig, {}> {
                 <NavbarPortal>
                     <Nav variant="tabs" defaultActiveKey={selectedTabName}>
                         {
-                            this.config.tabs.map(tab => {
+                            this.tabs.map(tab => {
                                 let route = routerHelper.getRelativePath(tab.name);
                                 return (
                                     <Nav.Item key={tab.name}>
@@ -177,7 +198,7 @@ export class NavTabsLayout extends View<NavTabsConfig, {}> {
                     </Nav>
                 </NavbarPortal>
                 {
-                    this.config.tabs.map(tab => (
+                    this.tabs.map(tab => (
                         <div key={tab.name} style={tab.name !== selectedTabName ? { display: 'none' } : undefined}>
                             <this.TabsContent key={tab.name} tab={tab}/>
                         </div>

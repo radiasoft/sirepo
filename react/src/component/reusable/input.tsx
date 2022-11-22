@@ -20,8 +20,6 @@ export type LabeledFieldProps<T> = {
 export function FieldInput(props: FieldProps<unknown>) {
     let { value, updateField, inputComponent, dependency } = props;
 
-    useRenderCount("FieldInput");
-
     const onChange = (event) => {
         console.log("field input onChange");
         let nextValue = event.target.value;
@@ -46,8 +44,6 @@ export function FieldInput(props: FieldProps<unknown>) {
 
 export function LabeledFieldInput(props: LabeledFieldProps<unknown>) {
     let { value, updateField, dependency, inputComponent, displayName, description, ...passedProps } = props;
-
-    useRenderCount("LabeledFieldInput");
 
     return (
         <FormField {...passedProps} label={displayName} tooltip={description} key={dependency.fieldName}>

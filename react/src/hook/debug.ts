@@ -9,7 +9,7 @@ export function useRenderCount(name) {
     ++renderCount.current;
     useEffect(() => {
         ++domRenderCount.current;
-        //console.log(`DOM render ${name} ${domRenderCount.current} (${renderCount.current})`);
+        console.log(`DOM render ${name} ${domRenderCount.current} (${renderCount.current})`);
     })
-    //console.log(`Render ${name} ${(++renderCount.current)}`);
+    console.log(`Render ${name} ${(++renderCount.current)}`);
 }

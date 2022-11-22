@@ -19,18 +19,20 @@ export type PanelConfig = {
 }
 
 export class PanelLayout extends View<PanelConfig, {}> {
-    getChildLayouts = (): View<unknown, unknown>[] => {
-        let { basic, advanced } = this.config;
-        return [...(basic || []), ...(advanced || [])].map(LAYOUTS.getLayoutForSchemaView);
+    basic?: View[];
+    advanced?: View[];
+
+    constructor(config: PanelConfig) {
+        super(config);
+        this.basic = (!!config.basic) ? config.basic.map(LAYOUTS.getLayoutForSchemaView) : undefined;
+        this.advanced = (!!config.advanced) ? config.advanced.map(LAYOUTS.getLayoutForSchemaView) : undefined;
     }
 
     getFormDependencies = () => {
-        return this.getChildLayouts().map(childLayout => childLayout.getFormDependencies()).flat();
+        return [...(this.basic || []), ...(this.advanced || [])].map(childLayout => childLayout.getFormDependencies()).flat();
     }
 
     component = (props: LayoutProps<{}>) => {
-        let { basic, advanced } = this.config;
-
         let modelsWrapper = useContext(CModelsWrapper);
         let formController = useContext(CFormController);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
@@ -40,13 +42,13 @@ export class PanelLayout extends View<PanelConfig, {}> {
 
         let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
 
-        let mapLayoutConfigsToElements = (schemaViews: SchemaView[]) => schemaViews.map(LAYOUTS.getLayoutForSchemaView).map((child, idx) => {
+        let mapViewsToElements = (views: View[]) => views.map((child, idx) => {
             let LayoutComponent = child.component;
             return <LayoutComponent key={idx}></LayoutComponent>;
         });
 
-        let mainChildren = (!!basic) ? mapLayoutConfigsToElements(basic) : undefined;
-        let modalChildren = (!!advanced) ? mapLayoutConfigsToElements(advanced) : undefined;
+        let mainChildren = (!!this.basic) ? mapViewsToElements(this.basic) : undefined;
+        let modalChildren = (!!this.advanced) ? mapViewsToElements(this.advanced) : undefined;
 
         let submit = () => {
             formController.saveToModels();

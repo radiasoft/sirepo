@@ -94,6 +94,9 @@ export function SimulationRoot(props) {
     let schema = useContext(CSchema);
 
     let viewComponents = schema.views.map((schemaView, index) => {
+        // this should not be called here. it is dangerous to generate views on render
+        // this is an exception for now as no updates should occur above this element
+        // besides changing apps
         let layout = LAYOUTS.getLayoutForSchemaView(schemaView);
         let Component = layout.component;
         return (

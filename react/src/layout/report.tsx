@@ -34,9 +34,16 @@ export type AutoRunReportConfig = {
 }
 
 export class AutoRunReportLayout extends View<AutoRunReportConfig, {}> {
+    reportLayout: ReportVisual;
+    
+    constructor(config: AutoRunReportConfig) {
+        super(config);
+
+        this.reportLayout = LAYOUTS.getLayoutForSchemaView(config.reportLayout) as ReportVisual;
+    }
+
     getFormDependencies = () => {
-        let { reportLayout: schemaView } = this.config;
-        return LAYOUTS.getLayoutForSchemaView(schemaView).getFormDependencies();
+        return this.reportLayout.getFormDependencies();
     }
 
     component = (props: LayoutProps<{}>) => {
@@ -80,16 +87,14 @@ export class AutoRunReportLayout extends View<AutoRunReportConfig, {}> {
             })
         }, dependentValues)    
 
-        let LayoutElement = LAYOUTS.getLayoutForSchemaView(reportLayout) as ReportVisual;
-        console.log("Layout Element: " + LayoutElement.constructor.name);
-
-        let reportVisualConfig = LayoutElement.getConfigFromApiResponse(simulationData);
-        let canShow = LayoutElement.canShow(simulationData);
+        let reportVisualConfig = this.reportLayout.getConfigFromApiResponse(simulationData);
+        let canShow = this.reportLayout.canShow(simulationData);
+        let LayoutComponent = this.reportLayout.component;
 
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {canShow && <LayoutElement.component key={simulationPollingVersionRef.current} data={reportVisualConfig}/>}
+                {canShow && <LayoutComponent key={simulationPollingVersionRef.current} data={reportVisualConfig}/>}
                 {!canShow && <ProgressBar animated now={100}/>}
             </>
         )
@@ -106,12 +111,20 @@ export type ManualRunReportConfig = {
 }
 
 export class ManualRunReportLayout extends View<ManualRunReportConfig, {}> {
+    reportLayout: ReportVisual;
+    
+    constructor(config: ManualRunReportConfig) {
+        super(config);
+
+        this.reportLayout = LAYOUTS.getLayoutForSchemaView(config.reportLayout) as ReportVisual;
+    }
+
     getFormDependencies = () => {
-        return LAYOUTS.getLayoutForSchemaView(this.config.reportLayout).getFormDependencies();
+        return this.reportLayout.getFormDependencies();
     }
 
     component = (props: LayoutProps<{}>) => {
-        let { reportName, reportGroupName, reportLayout, frameIdFields, shown: shownConfig, frameCountFieldName } = this.config;
+        let { reportName, reportGroupName, frameIdFields, shown: shownConfig, frameCountFieldName } = this.config;
         
         let reportEventManager = useContext(CReportEventManager);
         let modelsWrapper = useContext(CModelsWrapper);
@@ -162,12 +175,10 @@ export class ManualRunReportLayout extends View<ManualRunReportConfig, {}> {
             })
         })
 
-        let report = LAYOUTS.getLayoutForSchemaView(reportLayout) as ReportVisual;
-
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={report} animationReader={animationReader}></ReportAnimationController>}
+                {this.reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={this.reportLayout} animationReader={animationReader}></ReportAnimationController>}
             </>
         )
     }
