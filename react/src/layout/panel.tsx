@@ -42,13 +42,13 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
 
         let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
 
-        let mapViewsToElements = (views: Layout[]) => views.map((child, idx) => {
+        let mapLayoutsToComponents = (views: Layout[]) => views.map((child, idx) => {
             let LayoutComponent = child.component;
             return <LayoutComponent key={idx}></LayoutComponent>;
         });
 
-        let mainChildren = (!!this.basic) ? mapViewsToElements(this.basic) : undefined;
-        let modalChildren = (!!this.advanced) ? mapViewsToElements(this.advanced) : undefined;
+        let mainChildren = (!!this.basic) ? mapLayoutsToComponents(this.basic) : undefined;
+        let modalChildren = (!!this.advanced) ? mapLayoutsToComponents(this.advanced) : undefined;
 
         let submit = () => {
             formController.saveToModels();

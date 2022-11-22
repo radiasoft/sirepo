@@ -38,16 +38,16 @@ class LayoutWrapper {
         let layout = this.layouts[layoutName];
 
         if(!layout) {
-            console.error("missing layout definition for view: " + layoutName)
+            console.error("missing layout definition for name: " + layoutName)
             return MissingLayout;
         }
 
         return layout as LayoutType<C, P>;
     }
 
-    getLayoutForSchema = <C, P>(schemaView: SchemaLayout): Layout<C, P> => {
-        let layout = this.getLayoutTypeForName(schemaView.layout) as LayoutType<C, P>;
-        return new layout(schemaView.config);
+    getLayoutForSchema = <C, P>(schemaLayout: SchemaLayout): Layout<C, P> => {
+        let layout = this.getLayoutTypeForName(schemaLayout.layout) as LayoutType<C, P>;
+        return new layout(schemaLayout.config);
     }
 }
 

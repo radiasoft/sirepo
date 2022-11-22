@@ -177,8 +177,8 @@ export class rsFile extends rsType {
 
         let [modalShown, updateModalShown] = useState(false);
         let modal = this.inspectModal ? {
-            items: this.inspectModal.items.map((schemaView: SchemaLayout, idx: number) => {
-                let layout = LAYOUTS.getLayoutForSchema(schemaView);
+            items: this.inspectModal.items.map((schemaLayout: SchemaLayout, idx: number) => {
+                let layout = LAYOUTS.getLayoutForSchema(schemaLayout);
                 let Component = layout.component;
                 return <Component key={idx}/>
             }),

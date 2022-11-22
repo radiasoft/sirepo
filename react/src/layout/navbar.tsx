@@ -32,8 +32,8 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
     constructor(config: NavBarModalButtonConfig) {
         super(config);
 
-        this.children = config.modal.items.map(schemaView => {
-            return LAYOUTS.getLayoutForSchema(schemaView);
+        this.children = config.modal.items.map(schemaLayout => {
+            return LAYOUTS.getLayoutForSchema(schemaLayout);
         });
     }
 

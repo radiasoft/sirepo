@@ -93,11 +93,11 @@ export function SimulationRoot(props) {
 
     let schema = useContext(CSchema);
 
-    let viewComponents = schema.views.map((schemaView, index) => {
-        // this should not be called here. it is dangerous to generate views on render
+    let layoutComponents = schema.views.map((schemaLayout, index) => {
+        // this should not be called here. it is dangerous to generate layouts on render
         // this is an exception for now as no updates should occur above this element
         // besides changing apps
-        let layout = LAYOUTS.getLayoutForSchema(schemaView);
+        let layout = LAYOUTS.getLayoutForSchema(schemaLayout);
         let Component = layout.component;
         return (
             <Component key={index}></Component>
@@ -110,7 +110,7 @@ export function SimulationRoot(props) {
             <ReportEventManagerInitializer>
                 <SimulationInfoInitializer simulation={simulation}>
                     <FormStateInitializer>
-                        {viewComponents}
+                        {layoutComponents}
                     </FormStateInitializer>
                 </SimulationInfoInitializer>
             </ReportEventManagerInitializer>

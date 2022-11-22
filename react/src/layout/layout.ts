@@ -9,7 +9,7 @@ export abstract class Layout<C = unknown, P = unknown> {
     name: string;
 
     constructor(protected config: C) {
-        this.name = this.constructor.name; // this probably will always return 'View' with typescript
+        this.name = this.constructor.name; // this probably will always return 'Layout' with typescript
     }
 
     abstract getFormDependencies(): Dependency[];

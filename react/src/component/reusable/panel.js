@@ -71,7 +71,7 @@ export function EditorPanel(props) {
     let [advancedModalShown, updateAdvancedModalShown] = useState(false);
     let [panelBodyShown, updatePanelBodyShown] = useState(true);
 
-    let hasModalChildren = !!modalChildren && modalChildren !== [];
+    let hasModalChildren = !!modalChildren && modalChildren.length !== 0;
 
     let headerButtons = (
         <Fragment>
