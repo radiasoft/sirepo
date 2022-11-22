@@ -825,6 +825,78 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
     self.simComputeModel = 'machineLearningAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
+    function createActvaitSimulation(data) {
+        srdbg('MAKE SIM FROM', data);
+        requestSender.sendRequest(
+            'newSimulation',
+            simData => {
+                srdbg('SMI DATA', simData);
+                requestSender.sendRequest(
+                    'saveSimulationData',
+                    requestSender.formatUrlLocal(
+                        'data',
+                        { 'simulationId': simData.models.simulation.simulationId},
+                        simData.simulationType
+                    ),
+                    simData
+                );
+            },
+            data
+        );
+    }
+
+    function openSim(data) {
+        requestSender.globalRedirect(
+            `activait#/data/${data.models.simulation.simulationId}`,
+        )
+    }
+
+    self.openResultsInActivait = () => {
+        /*
+        requestSender.sendStatelessCompute(
+            appState,
+            createActvaitSimulation,
+            {
+                method: 'build_activait_data',
+                args: {
+                    file: self.resultsFile,
+                    id: appState.models.simulation.simulationId,
+                    name: appState.models.simulation.name,
+                    serial: appState.models.simulation.simulationSerial,
+                }
+            }
+        );
+        */
+        requestSender.sendRequest(
+            'newSimulation',
+            simData => {
+                simData.models.dataFile.file = self.resultsFile;
+                requestSender.sendRequest(
+                    'saveSimulationData',
+                    openSim,
+                    simData
+                );
+            },
+            {
+                folder: '/',
+                name: appState.models.simulation.name,
+                simulationId: appState.models.simulation.simulationId,
+                simulationType: 'activait',
+            }
+        );
+    };
+
+
+    self.resultsFileURL = () => {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simComputeModel,
+            '<frame>': SIREPO.nonDataFileFrame,
+            '<suffix>': 'h5',
+        });
+    }
+
     self.simHandleStatus = data => {
         if (data.error) {
         }
@@ -839,16 +911,6 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
         self.resultsFile = null;
         self.simState.saveAndRunSimulation([model, 'simulation']);
     };
-
-    self.resultsFileURL = () => {
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': self.simComputeModel,
-            '<frame>': SIREPO.nonDataFileFrame,
-            '<suffix>': 'h5',
-        });
-    }
 
 
 });

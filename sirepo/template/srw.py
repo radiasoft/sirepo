@@ -810,6 +810,15 @@ def stateful_compute_compute_undulator_length(data):
     return compute_undulator_length(data.args["tabulated_undulator"])
 
 
+def stateless_compute_build_activait_data(data):
+    res = simulation_db.default_data(sirepo.sim_data.get_class("activait").sim_type())
+    res.models.simulation.simulationId = data.args.id
+    res.models.simulation.simulationSerial = data.args.serial
+    res.models.simulation.name = data.args.name
+    res.models.dataFile.file = data.args.file
+    return res
+
+
 def stateful_compute_create_shadow_simulation(data):
     from sirepo.template.srw_shadow import Convert
 
@@ -2015,17 +2024,20 @@ def _load_user_model_list(model_name, qcall=None):
 
 def _machine_learning_percent_complete(run_dir, res):
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
-    n = dm.exportRsOpt.totalSamples
-    res.outputInfo = []
-    count = 0
-    d = pkio.sorted_glob(
-        run_dir.join('ensemble').join('worker*').join('sim*').join('values.npy')
+    count = len(
+        pkio.sorted_glob(
+            run_dir.join('ensemble').join('worker*').join('sim*').join('values.npy')
+        )
     )
-    count = len(d)
     res.frameCount = count
-    res.percentComplete = 100 * count / n
+    res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
     if res.percentComplete >= 100:
         res.resultsFile = _SIM_DATA.ML_OUTPUT
+        _SIM_DATA.put_sim_file(
+            dm.simulation.simulationId,
+            run_dir.join(res.resultsFile),
+            res.resultsFile
+        )
     return res
 
 
