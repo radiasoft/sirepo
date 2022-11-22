@@ -2148,7 +2148,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             model: '=',
         },
         template: `
-            <div style="height: 100px; overflow-y: scroll; overflow-x: hidden;">
+            <div style="height: 200px; overflow-y: scroll; overflow-x: hidden;">
             <table style="table-layout: fixed;" class="table radia-table-hover">
                 <tr style="background-color: lightgray;" data-ng-show="field.length > 0">
                   <th>Members</th>

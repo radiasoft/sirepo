@@ -792,7 +792,8 @@
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
             "members": ["_", "Group", []],
-            "model": ["_", "String", "geomGroup"]
+            "model": ["_", "String", "geomGroup"],
+            "type": ["_", "String", "geomGroup"]
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
@@ -1256,17 +1257,16 @@
         },
         "geomGroup": {
             "title": "Group",
-            "basic": [
-                "name",
-                "transforms",
-                "color",
-                "members"
-            ],
+            "basic": [],
             "advanced": [
-                "name",
-                "transforms",
-                "color",
-                "members"
+                ["Main", [
+                    "name",
+                    "color",
+                    "members"
+                ]],
+                ["Transforms", [
+                    "transforms"
+                ]]
             ]
         },
         "geomObject": {
