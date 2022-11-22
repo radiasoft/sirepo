@@ -3895,7 +3895,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         panelState.enableField('geomObject', 'size', true);
 
-        if (o.type == 'stl') {
+        if (o.type === 'stl') {
             panelState.enableField('geomObject', 'size', false);
             //TODO(BG): Only disables 'size' field, need to build shape to get sizes to update values (likely will need to send request since python)
         }

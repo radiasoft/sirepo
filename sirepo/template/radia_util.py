@@ -310,7 +310,8 @@ def build_stl(**kwargs):
         d.vertices, (numpy.array(d.faces) + 1).tolist(), d.magnetization
     )
     center = [x - d.centroid[i] for i, x in enumerate(d.center)]
-    g_id = radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
+    radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
+    _apply_segments(g_id, d.segments)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
 
