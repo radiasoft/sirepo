@@ -2182,6 +2182,7 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
 
     function processAppMode() {
         const m = appState.models.dataFile.appMode;
+        srdbg('m', m);
         panelState.showField(
             modelName, 'inputsScaler', m === 'regression' || m === 'classification');
         panelState.showField(
