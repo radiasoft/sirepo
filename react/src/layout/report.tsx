@@ -39,7 +39,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
     constructor(config: AutoRunReportConfig) {
         super(config);
 
-        this.reportLayout = LAYOUTS.getLayoutForSchemaView(config.reportLayout) as ReportVisual;
+        this.reportLayout = LAYOUTS.getLayoutForSchema(config.reportLayout) as ReportVisual;
     }
 
     getFormDependencies = () => {
@@ -116,7 +116,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
     constructor(config: ManualRunReportConfig) {
         super(config);
 
-        this.reportLayout = LAYOUTS.getLayoutForSchemaView(config.reportLayout) as ReportVisual;
+        this.reportLayout = LAYOUTS.getLayoutForSchema(config.reportLayout) as ReportVisual;
     }
 
     getFormDependencies = () => {

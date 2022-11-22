@@ -45,7 +45,7 @@ class LayoutWrapper {
         return layout as LayoutType<C, P>;
     }
 
-    getLayoutForSchemaView = <C, P>(schemaView: SchemaLayout): Layout<C, P> => {
+    getLayoutForSchema = <C, P>(schemaView: SchemaLayout): Layout<C, P> => {
         let layout = this.getLayoutTypeForName(schemaView.layout) as LayoutType<C, P>;
         return new layout(schemaView.config);
     }

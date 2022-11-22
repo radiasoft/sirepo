@@ -33,7 +33,7 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
         super(config);
 
         this.children = config.modal.items.map(schemaView => {
-            return LAYOUTS.getLayoutForSchemaView(schemaView);
+            return LAYOUTS.getLayoutForSchema(schemaView);
         });
     }
 
@@ -141,7 +141,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         this.tabs = config.tabs.map(t => {
             return {
                 ...t,
-                layouts: t.items.map(LAYOUTS.getLayoutForSchemaView)
+                layouts: t.items.map(LAYOUTS.getLayoutForSchema)
             };
 
         })

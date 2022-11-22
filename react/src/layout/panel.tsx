@@ -24,8 +24,8 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
 
     constructor(config: PanelConfig) {
         super(config);
-        this.basic = (!!config.basic) ? config.basic.map(LAYOUTS.getLayoutForSchemaView) : undefined;
-        this.advanced = (!!config.advanced) ? config.advanced.map(LAYOUTS.getLayoutForSchemaView) : undefined;
+        this.basic = (!!config.basic) ? config.basic.map(LAYOUTS.getLayoutForSchema) : undefined;
+        this.advanced = (!!config.advanced) ? config.advanced.map(LAYOUTS.getLayoutForSchema) : undefined;
     }
 
     getFormDependencies = () => {

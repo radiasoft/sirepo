@@ -31,7 +31,7 @@ export class TabLayout extends Layout<TabsConfig, {}> {
         this.tabs = config.tabs.map(tab => {
             return {
                 ...tab,
-                layouts: tab.items.map(LAYOUTS.getLayoutForSchemaView)
+                layouts: tab.items.map(LAYOUTS.getLayoutForSchema)
             }
         })
     }

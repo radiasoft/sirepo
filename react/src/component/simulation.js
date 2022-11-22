@@ -97,7 +97,7 @@ export function SimulationRoot(props) {
         // this should not be called here. it is dangerous to generate views on render
         // this is an exception for now as no updates should occur above this element
         // besides changing apps
-        let layout = LAYOUTS.getLayoutForSchemaView(schemaView);
+        let layout = LAYOUTS.getLayoutForSchema(schemaView);
         let Component = layout.component;
         return (
             <Component key={index}></Component>
