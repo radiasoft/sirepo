@@ -79,22 +79,23 @@ class MPI:
 def _apply_clone(g_id, xform):
     xform = PKDict(xform)
     # start with 'identity'
-    xf = radia.TrfTrsl([0, 0, 0])
+    total_xform = radia.TrfTrsl([0, 0, 0])
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
         if cxf.model == "translateClone":
-            txf = radia.TrfTrsl(cxf.distance)
-            xf = radia.TrfCmbL(xf, txf)
+            total_xform = radia.TrfCmbL(total_xform, radia.TrfTrsl(cxf.distance))
         if cxf.model == "rotateClone":
-            rxf = radia.TrfRot(
-                xf.center,
-                cxf.axis,
-                numpy.pi * float(cxf.angle) / 180.0,
+            total_xform = radia.TrfCmbL(
+                total_xform,
+                radia.TrfRot(
+                    cxf.center,
+                    cxf.axis,
+                    numpy.pi * float(cxf.angle) / 180.0,
+                ),
             )
-            xf = radia.TrfCmbL(xf, rxf)
     if xform.alternateFields != "0":
-        xf = radia.TrfCmbL(xf, radia.TrfInv())
-    radia.TrfMlt(g_id, xf, xform.numCopies + 1)
+        total_xform = radia.TrfCmbL(total_xform, radia.TrfInv())
+    radia.TrfMlt(g_id, total_xform, xform.numCopies + 1)
 
 
 def _apply_rotation(g_id, xform):
@@ -102,7 +103,11 @@ def _apply_rotation(g_id, xform):
     radia.TrfOrnt(
         g_id,
         radia.TrfRot(
-            xform.center,
+            (
+                _geom_bounds(g_id)
+                if xform.get("useObjectCenter", "0") == "1"
+                else xform
+            ).center,
             xform.axis,
             numpy.pi * float(xform.angle) / 180.0,
         ),
@@ -304,6 +309,9 @@ def build_stl(**kwargs):
     g_id = radia.ObjPolyhdr(
         d.vertices, (numpy.array(d.faces) + 1).tolist(), d.magnetization
     )
+    center = [x - d.centroid[i] for i, x in enumerate(d.center)]
+    radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
+    _apply_segments(g_id, d.segments)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
 

@@ -1672,6 +1672,7 @@ def _update_geom_obj(o, **kwargs):
         size=[1.0, 1.0, 1.0],
         stlVertices=[],
         stlFaces=[],
+        stlCentroid=[],
         # TODO(BG) Not implemented
         # stlSlices = [],
     )
@@ -1711,6 +1712,8 @@ def _update_geom_obj(o, **kwargs):
             d.stlFaces.append(list(f))
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
+        o.size = list(mesh.bounding_box.primitive.extents)
+        o.stlCentroid = mesh.centroid.tolist()
 
         # TODO(BG) Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
         """

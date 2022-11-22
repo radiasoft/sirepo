@@ -431,8 +431,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.axes = ['x', 'y', 'z'];
     self.builderCfg = {
-        fitToObjects: true,
         fixedDomain: false,
+        fullZoom: true,
         initDomian: {
             x: [-0.025, 0.025],
             y: [-0.025, 0.025],
@@ -661,14 +661,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (p.indexOf(axis) < 0) {
                 continue;
             }
-            let p1 = geometry.point();
+            let p1 = new SIREPO.GEOMETRY.Point();
             p1[axis] = -1;
-            let p2 = geometry.point();
+            let p2 = new SIREPO.GEOMETRY.Point();
             p2[axis] = 1;
             let pl = vtkPlotting.plotLine(
                 `beamAxis-${appState.models.simulation.beamAxis}-${p}`,
                 `beamAxis-${appState.models.simulation.beamAxis}`,
-                geometry.line(p1, p2),
+                new SIREPO.GEOMETRY.Line(p1, p2),
                 '#000000', 1.0, 'dashed', "4,4"
             );
             pl.coordPlane = p;
@@ -953,6 +953,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 radiaService.scaledArray(xform.center, scale),
                 i * Math.PI * parseFloat(xform.angle) / 180.0
             );
+            shape2.rotateAroundShapeCenter = xform.useObjectCenter === "1";
             return shape2;
         };
     }
@@ -963,16 +964,35 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
             z: [Number.MAX_VALUE, -Number.MAX_VALUE]
         };
-        shapes.forEach(function (s) {
+        shapes.forEach(s => {
             let vs = getVirtualShapes(s);
             let sr = shapesBounds(vs);
             for (const dim in b) {
+                if (s.center[dim] === undefined) {
+                    continue;
+                }
                 b[dim] = [
                     Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2, sr[dim][0]),
                     Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2, sr[dim][1])
                 ];
             }
         });
+        for (const dim in b) {
+            if (b[dim].some(x => Math.abs(x) === Number.MAX_VALUE)) {
+                return b;
+            }
+        }
+        // use an enclosing sphere to take rotations into account
+        const r = Math.hypot(
+            (b.x[1] - b.x[0]) / 2,
+            (b.y[1] - b.y[0]) / 2,
+            (b.z[1] - b.z[0]) / 2,
+        );
+        for (const dim in b) {
+            const c = b[dim][0] + (b[dim][1] - b[dim][0]) / 2;
+            b[dim][0] = c - r;
+            b[dim][1] = c + r;
+        }
         return b;
     }
 
@@ -2148,7 +2168,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             model: '=',
         },
         template: `
-            <div style="height: 100px; overflow-y: scroll; overflow-x: hidden;">
+            <div style="height: 200px; overflow-y: scroll; overflow-x: hidden;">
             <table style="table-layout: fixed;" class="table radia-table-hover">
                 <tr style="background-color: lightgray;" data-ng-show="field.length > 0">
                   <th>Members</th>
@@ -2379,7 +2399,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
 
 
 // this kind of thing should be generic
-SIREPO.app.directive('transformTable', function(appState, panelState, radiaService) {
+SIREPO.app.directive('transformTable', function(appState, panelState, radiaService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -2494,9 +2514,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             $scope.itemDetails = item => {
                 let res = '';
                 const d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
+                const info = appState.modelInfo(item.model);
                 d.forEach((f, i) => {
-                    const val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
-                    res += (appState.modelInfo(item.model)[f][0] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
+                    let val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
+                    if (info[f][SIREPO.INFO_INDEX_TYPE] === 'Boolean') {
+                        val = val === '1';
+                    }
+                    res += (info[f][SIREPO.INFO_INDEX_LABEL] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
                 });
                 return res;
             };
@@ -2565,7 +2589,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 });
 
                 $scope.$on('cancelChanges', (e, name) => {
-                    $scope.$emit('drop.target.enabled', true);
+                    $rootScope.$broadcast('drop.target.enabled', true);
                     if (! watchedModels.includes(name)) {
                         return;
                     }
@@ -2573,13 +2597,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 });
 
                 $scope.$on('$destroy', () => {
-                    $scope.$emit('drop.target.enabled', true);
+                    $rootScope.$broadcast('drop.target.enabled', true);
                 });
 
                 $scope.loadItems();
             });
 
-            $scope.$emit('drop.target.enabled', false);
+            $rootScope.$broadcast('drop.target.enabled', false);
         },
     };
 });
@@ -3889,9 +3913,16 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
 
         panelState.enableField('geomObject', 'size', true);
+
+        if (o.type === 'stl') {
+            panelState.enableField('geomObject', 'size', false);
+            //TODO(BG): Only disables 'size' field, need to build shape to get sizes to update values (likely will need to send request since python)
+        }
+
         if (o.type !== 'extrudedPoints') {
             return;
         }
+
         for (const dim of [o.widthAxis, o.heightAxis]) {
             panelState.enableArrayField(
                 'geomObject',
@@ -3998,6 +4029,31 @@ for(const m of ['Dipole', 'Undulator']) {
         });
     }
 }
+
+SIREPO.viewLogic('rotateView', function(appState, panelState, radiaService, requestSender, $scope) {
+
+    $scope.watchFields = [
+        [
+            'rotate.useObjectCenter',
+        ], updateObjectEditor
+    ];
+
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+        updateObjectEditor();
+    };
+
+    function updateObjectEditor() {
+        if (! $scope.modelData) {
+            return;
+        }
+        panelState.showField(
+            'rotate',
+            'center',
+            $scope.modelData.useObjectCenter !== "1"
+        );
+    }
+});
 
 SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, radiaService, $scope) {
 
