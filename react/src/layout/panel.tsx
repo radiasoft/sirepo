@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
-import { LayoutProps, View } from "./layout";
+import { LayoutProps, Layout } from "./layout";
 import { useStore } from "react-redux";
 import { EditorPanel } from "../component/reusable/panel";
 import "./panel.scss";
@@ -18,9 +18,9 @@ export type PanelConfig = {
     title: string
 }
 
-export class PanelLayout extends View<PanelConfig, {}> {
-    basic?: View[];
-    advanced?: View[];
+export class PanelLayout extends Layout<PanelConfig, {}> {
+    basic?: Layout[];
+    advanced?: Layout[];
 
     constructor(config: PanelConfig) {
         super(config);
@@ -42,7 +42,7 @@ export class PanelLayout extends View<PanelConfig, {}> {
 
         let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
 
-        let mapViewsToElements = (views: View[]) => views.map((child, idx) => {
+        let mapViewsToElements = (views: Layout[]) => views.map((child, idx) => {
             let LayoutComponent = child.component;
             return <LayoutComponent key={idx}></LayoutComponent>;
         });

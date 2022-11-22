@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { LayoutProps, View } from "./layout";
+import { LayoutProps, Layout } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
 import { useShown } from "../hook/shown";
 import React from "react";
@@ -19,10 +19,10 @@ export type TabsConfig = {
 }
 
 export type TabConfigWithLayouts = {
-    layouts: View[]
+    layouts: Layout[]
 } & TabConfig
 
-export class TabLayout extends View<TabsConfig, {}> {
+export class TabLayout extends Layout<TabsConfig, {}> {
     tabs: TabConfigWithLayouts[];
 
     constructor(config: TabsConfig) {

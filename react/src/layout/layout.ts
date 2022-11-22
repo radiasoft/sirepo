@@ -1,11 +1,11 @@
 import React from "react";
 import { Dependency } from "../data/dependency";
 
-export type LayoutType<C = unknown, P = unknown, V extends View<C, P> = any> = new(config: C) => V
+export type LayoutType<C = unknown, P = unknown, V extends Layout<C, P> = any> = new(config: C) => V
 
 export type LayoutProps<P> = P & { [key: string]: any };
 
-export abstract class View<C = unknown, P = unknown> {
+export abstract class Layout<C = unknown, P = unknown> {
     name: string;
 
     constructor(protected config: C) {

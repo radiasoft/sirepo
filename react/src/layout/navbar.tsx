@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useP
 import { NavbarContainerId } from "../component/reusable/navbar";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
 import { useContext, useState } from "react";
-import { LayoutProps, View } from "./layout";
+import { LayoutProps, Layout } from "./layout";
 import usePortal from "react-useportal"; 
 import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/reusable/panel";
@@ -26,8 +26,8 @@ export type NavBarModalButtonConfig = {
     icon: string
 }
 
-export class NavBarModalButton extends View<NavBarModalButtonConfig, {}> {
-    children: View[];
+export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
+    children: Layout[];
 
     constructor(config: NavBarModalButtonConfig) {
         super(config);
@@ -129,10 +129,10 @@ export type NavTabsConfig = {
 }
 
 export type NavTabWithLayouts = {
-    layouts: View[]
+    layouts: Layout[]
 } & NavTab
 
-export class NavTabsLayout extends View<NavTabsConfig, {}> {
+export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
     tabs: NavTabWithLayouts[]
 
     constructor(config: NavTabsConfig) {

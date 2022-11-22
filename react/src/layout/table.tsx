@@ -1,6 +1,6 @@
 import React from "react";
 import { Table, TableConfig } from "../component/reusable/table";
-import { LayoutProps, View }from "./layout";
+import { LayoutProps, Layout }from "./layout";
 import { ReportVisual, ReportVisualProps } from "./report";
 
 export type TableConfigApi = [

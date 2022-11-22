@@ -1,6 +1,6 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
-import { LayoutProps, View } from "./layout";
+import { LayoutProps, Layout } from "./layout";
 import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from "react-redux";
@@ -22,7 +22,7 @@ import { SchemaView } from "../utility/schema";
 
 
 export type ReportVisualProps<L> = { data: L };
-export abstract class ReportVisual<C = unknown, P = unknown, A = unknown, L = unknown> extends View<C, P & ReportVisualProps<L>> {
+export abstract class ReportVisual<C = unknown, P = unknown, A = unknown, L = unknown> extends Layout<C, P & ReportVisualProps<L>> {
     abstract getConfigFromApiResponse(apiReponse: A): L;
     abstract canShow(apiResponse: A): boolean;
 }
@@ -33,7 +33,7 @@ export type AutoRunReportConfig = {
     dependencies: string[]
 }
 
-export class AutoRunReportLayout extends View<AutoRunReportConfig, {}> {
+export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
     reportLayout: ReportVisual;
     
     constructor(config: AutoRunReportConfig) {
@@ -110,7 +110,7 @@ export type ManualRunReportConfig = {
     frameCountFieldName: string
 }
 
-export class ManualRunReportLayout extends View<ManualRunReportConfig, {}> {
+export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
     reportLayout: ReportVisual;
     
     constructor(config: ManualRunReportConfig) {
@@ -264,7 +264,7 @@ export type SimulationStartConfig = {
     reportGroupName: string
 }
 
-export class SimulationStartLayout extends View<SimulationStartConfig, {}> {
+export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
     getFormDependencies = () => {
         return [];
     }

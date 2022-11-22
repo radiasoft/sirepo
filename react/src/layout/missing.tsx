@@ -1,7 +1,7 @@
 import React from "react";
-import { View } from "./layout";
+import { Layout } from "./layout";
 
-export class MissingLayout extends View<undefined, {}> {
+export class MissingLayout extends Layout<undefined, {}> {
     getFormDependencies = () => {
         return [];
     }

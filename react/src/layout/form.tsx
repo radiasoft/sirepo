@@ -1,4 +1,4 @@
-import { LayoutProps, LayoutType, View } from "./layout";
+import { LayoutProps, LayoutType, Layout } from "./layout";
 import React, { useContext } from "react";
 import { 
     Row,
@@ -64,7 +64,7 @@ export type FieldGridConfig = {
     rows: FieldGridRow[]
 }
 
-export class FieldGridLayout extends View<FieldGridConfig, {}> {
+export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
     getFormDependencies = () => {
         let fields = [];
         for(let row of this.config.rows) {
@@ -132,7 +132,7 @@ export type FieldListConfig = {
     fields: string[]
 }
 
-export class FieldListLayout extends View<FieldListConfig, {}> {
+export class FieldListLayout extends Layout<FieldListConfig, {}> {
     getFormDependencies = () => {
         return (this.config.fields || []).map(f => new Dependency(f));
     }
