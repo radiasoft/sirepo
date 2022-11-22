@@ -7,7 +7,7 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./types.scss"
 import { downloadAs } from "./utility/download";
 import { useInterpolatedString, ValueSelectors } from "./hook/string";
-import { SchemaView } from "./utility/schema";
+import { SchemaLayout } from "./utility/schema";
 import { CModelsWrapper } from "./data/wrapper";
 import { Dependency } from "./data/dependency";
 import { CAppName, CSimulationInfoPromise } from "./data/appwrapper";
@@ -177,7 +177,7 @@ export class rsFile extends rsType {
 
         let [modalShown, updateModalShown] = useState(false);
         let modal = this.inspectModal ? {
-            items: this.inspectModal.items.map((schemaView: SchemaView, idx: number) => {
+            items: this.inspectModal.items.map((schemaView: SchemaLayout, idx: number) => {
                 let layout = LAYOUTS.getLayoutForSchemaView(schemaView);
                 let Component = layout.component;
                 return <Component key={idx}/>

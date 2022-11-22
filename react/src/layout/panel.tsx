@@ -9,12 +9,12 @@ import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
-import { SchemaView } from "../utility/schema";
+import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
 
 export type PanelConfig = {
-    basic: SchemaView[],
-    advanced: SchemaView[],
+    basic: SchemaLayout[],
+    advanced: SchemaLayout[],
     title: string
 }
 

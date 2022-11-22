@@ -1,7 +1,7 @@
 import { globalTypes, partialTypes, rsAbstrType } from "../types";
 import { mapProperties } from "./object";
 
-export type SchemaViewJson = {
+export type SchemaLayoutJson = {
     layout: string,
     config: any
 } 
@@ -28,10 +28,10 @@ export type SchemaTypeJson = {
 export type SchemaJson = {
     type: {[typeName: string]: SchemaTypeJson},
     model: {[modelName: string]: SchemaModelJson},
-    view: SchemaViewJson[]
+    view: SchemaLayoutJson[]
 }
 
-export type SchemaView = SchemaViewJson;
+export type SchemaLayout = SchemaLayoutJson;
 
 export type SchemaField<T> = {
     displayName: string,
@@ -49,7 +49,7 @@ export type SchemaModel = {
 
 export type Schema = {
     models: {[modelName: string]: SchemaModel},
-    views: SchemaView[]
+    views: SchemaLayout[]
 }
 
 export function mergeSchemaJson(original, overrides) {

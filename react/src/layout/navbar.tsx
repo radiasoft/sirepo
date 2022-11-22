@@ -14,13 +14,13 @@ import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
-import { SchemaView } from "../utility/schema";
+import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
 
 export type NavBarModalButtonConfig = {
     modal: {
         title: string,
-        items: SchemaView[]
+        items: SchemaLayout[]
     },
     title: string,
     icon: string
@@ -121,7 +121,7 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
 export type NavTab = {
     name: string,
     title: string,
-    items: SchemaView[]
+    items: SchemaLayout[]
 }
 
 export type NavTabsConfig = {

@@ -10,7 +10,7 @@ import { NavBarModalButton, NavTabsLayout } from "./navbar";
 import { TableFromApi } from "./table";
 import { LayoutWithDownloadButton } from "./download";
 import { LayoutType, Layout } from "./layout";
-import { SchemaView } from "../utility/schema";
+import { SchemaLayout } from "../utility/schema";
 
 
 // TODO rename to LayoutsWrapper
@@ -45,7 +45,7 @@ class LayoutWrapper {
         return layout as LayoutType<C, P>;
     }
 
-    getLayoutForSchemaView = <C, P>(schemaView: SchemaView): Layout<C, P> => {
+    getLayoutForSchemaView = <C, P>(schemaView: SchemaLayout): Layout<C, P> => {
         let layout = this.getLayoutTypeForName(schemaView.layout) as LayoutType<C, P>;
         return new layout(schemaView.config);
     }

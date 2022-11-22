@@ -18,7 +18,7 @@ import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
-import { SchemaView } from "../utility/schema";
+import { SchemaLayout } from "../utility/schema";
 
 
 export type ReportVisualProps<L> = { data: L };
@@ -28,7 +28,7 @@ export abstract class ReportVisual<C = unknown, P = unknown, A = unknown, L = un
 }
 
 export type AutoRunReportConfig = {
-    reportLayout: SchemaView,
+    reportLayout: SchemaLayout,
     report: string,
     dependencies: string[]
 }
@@ -102,7 +102,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
 }
 
 export type ManualRunReportConfig = {
-    reportLayout: SchemaView,
+    reportLayout: SchemaLayout,
     reportName: string,
     reportGroupName: string,
     frameIdFields: string[],

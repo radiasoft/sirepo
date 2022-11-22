@@ -5,11 +5,11 @@ import { useShown } from "../hook/shown";
 import React from "react";
 import { CModelsWrapper } from "../data/wrapper";
 import { ValueSelectors } from "../hook/string";
-import { SchemaView } from "../utility/schema";
+import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
 
 export type TabConfig = {
-    items: SchemaView[],
+    items: SchemaLayout[],
     name: string,
     shown: string
 }
