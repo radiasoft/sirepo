@@ -1,4 +1,3 @@
-
 export type Range1d = {
     min: number,
     max: number

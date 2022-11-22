@@ -1,4 +1,4 @@
-import { globalTypes, partialTypes, rsAbstrType } from "../types";
+import { globalTypes, partialTypes, rsAbstrType } from "../type/types";
 import { mapProperties } from "./object";
 
 export type SchemaLayoutJson = {

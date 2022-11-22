@@ -1,17 +1,17 @@
 //import { React }
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Button, Col, Form, Modal } from "react-bootstrap";
-import { pollStatefulCompute } from "./utility/compute";
+import { pollStatefulCompute } from "../utility/compute";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./types.scss"
-import { downloadAs } from "./utility/download";
-import { useInterpolatedString, ValueSelectors } from "./hook/string";
-import { SchemaLayout } from "./utility/schema";
-import { CModelsWrapper } from "./data/wrapper";
-import { Dependency } from "./data/dependency";
-import { CAppName, CSimulationInfoPromise } from "./data/appwrapper";
-import { LAYOUTS } from "./layout/layouts";
+import { downloadAs } from "../utility/download";
+import { useInterpolatedString, ValueSelectors } from "../hook/string";
+import { SchemaLayout } from "../utility/schema";
+import { CModelsWrapper } from "../data/wrapper";
+import { Dependency } from "../data/dependency";
+import { CAppName, CSimulationInfoPromise } from "../data/appwrapper";
+import { LAYOUTS } from "../layout/layouts";
 
 export type InputComponentProps = {
     valid: boolean,

@@ -7,7 +7,7 @@ import { ClipPath, Scale, Shape } from '@visx/visx';
 import { LegendOrdinal } from "@visx/legend";
 import { DynamicAxis } from "./axis";
 import { constrainZoom, useGraphContentBounds } from "../../utility/component";
-import { Point2d, Range1d } from '../../type/graphing';
+import { Point2d, Range1d } from '../../types';
 
 export type Graph2dPlot = {
     color: string,

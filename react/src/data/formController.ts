@@ -6,7 +6,7 @@ import { ModelState } from "../store/models";
 import { Schema } from "../utility/schema";
 import { ModelsAccessor } from "./accessor";
 import { AbstractModelsWrapper } from "./wrapper";
-import { rsAbstrType } from "../types";
+import { rsAbstrType } from "../type/types";
 
 
 

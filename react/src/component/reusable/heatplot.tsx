@@ -8,7 +8,7 @@ import { DynamicAxis } from "./axis";
 import { constrainZoom, useGraphContentBounds } from "../../utility/component";
 import { Zoom } from '@visx/zoom';
 import { Scale } from '@visx/visx';
-import { Range1d } from '../../type/graphing';
+import { Range1d } from '../../types';
 
 export type HeatPlotConfig = {
     title: string,
