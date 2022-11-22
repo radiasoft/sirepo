@@ -193,8 +193,8 @@ def _corner_for_axes(edge_index, **kwargs):
 def _geom_bounds(g_id):
     bnds = radia.ObjGeoLim(g_id)
     return PKDict(
-        center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
-        size=[abs(bnds[i + 1] - bnds[i]) for i in range(3)],
+        center=[bnds[2 * i] + (bnds[2 * i + 1] - bnds[2 * i]) / 2 for i in range(3)],
+        size=[abs(bnds[2 * i + 1] - bnds[2 * i]) for i in range(3)],
     )
 
 
