@@ -4,8 +4,8 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkinspect
 from pykern import pkconfig
+from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
@@ -393,17 +393,14 @@ def _register_sim_api_modules():
 
 
 def _register_sim_modules_from_package(package, valid_sim_types=None):
-    for _, n, ispkg in pkgutil.iter_modules(
-        [os.path.dirname(importlib.import_module(f"sirepo.{package}").__file__)],
-    ):
-        if ispkg:
-            continue
+    p = pkinspect.module_name_join(("sirepo", package))
+    for n in pkinspect.package_module_names(p):
         if not sirepo.template.is_sim_type(n) or (
             valid_sim_types is not None and n not in valid_sim_types
         ):
             pkdc(f"not adding apis for unknown sim_type={n}")
             continue
-        register_api_module(f"sirepo.{package}.{n}")
+        register_api_module(pkinspect.module_name_join((p, n)))
 
 
 def _register_sim_oauth_modules(oauth_sim_types):
