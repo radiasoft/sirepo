@@ -39,7 +39,7 @@ class GeometryUtils {
             z: [0, 0, 1]
         };
     }
-
+    
     /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
@@ -2132,6 +2132,7 @@ SIREPO.GEOMETRY = {
     GeometricObject: GeometricObject,
     GeometryUtils: GeometryUtils,
     IdentityMatrix: IdentityMatrix,
+    Line: Line,
     LineSegment: LineSegment,
     Matrix: Matrix,
     Point: Point,
