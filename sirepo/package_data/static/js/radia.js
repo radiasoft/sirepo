@@ -3894,9 +3894,16 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
 
         panelState.enableField('geomObject', 'size', true);
+
+        if (o.type === 'stl') {
+            panelState.enableField('geomObject', 'size', false);
+            //TODO(BG): Only disables 'size' field, need to build shape to get sizes to update values (likely will need to send request since python)
+        }
+
         if (o.type !== 'extrudedPoints') {
             return;
         }
+
         for (const dim of [o.widthAxis, o.heightAxis]) {
             panelState.enableArrayField(
                 'geomObject',
