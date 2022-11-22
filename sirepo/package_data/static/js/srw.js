@@ -846,8 +846,18 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
     }
 
     function openSim(data) {
-        requestSender.globalRedirect(
-            `activait#/data/${data.models.simulation.simulationId}`,
+        requestSender.sendStatelessCompute(
+            appState,
+            d => {
+                requestSender.globalRedirect(`activait#/data/${data.models.simulation.simulationId}`,)
+            },
+            {
+                method: 'results_to_activait',
+                args: {
+                    file: self.resultsFile,
+                    id: appState.models.simulation.simulationId,
+                }
+            }
         )
     }
 
@@ -870,6 +880,9 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
         requestSender.sendRequest(
             'newSimulation',
             simData => {
+
+                simData.models.simulation.simulationId = appState.models.simulation.simulationId;
+                simData.version = data.version;
                 simData.models.dataFile.file = self.resultsFile;
                 requestSender.sendRequest(
                     'saveSimulationData',

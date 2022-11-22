@@ -810,13 +810,9 @@ def stateful_compute_compute_undulator_length(data):
     return compute_undulator_length(data.args["tabulated_undulator"])
 
 
-def stateless_compute_build_activait_data(data):
-    res = simulation_db.default_data(sirepo.sim_data.get_class("activait").sim_type())
-    res.models.simulation.simulationId = data.args.id
-    res.models.simulation.simulationSerial = data.args.serial
-    res.models.simulation.name = data.args.name
-    res.models.dataFile.file = data.args.file
-    return res
+def stateless_compute_results_to_activait(data):
+    _SIM_DATA.sim_file_to_other_sim_lib(data.args.file, "activait")
+    return PKDict()
 
 
 def stateful_compute_create_shadow_simulation(data):

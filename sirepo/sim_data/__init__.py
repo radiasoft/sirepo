@@ -400,6 +400,23 @@ class SimDataBase(object):
                 s.copy(t.join(f))
 
     @classmethod
+    def sim_file_to_other_sim_lib(cls, sim_id, basename, other_sim_type, qcall=None):
+        """Copy a sim file to this sim's lib dir - same user
+
+        Args:
+            data (dict): simulation db
+            other_lib_dir (py.path): source directory
+        """
+        cls._assert_server_side()
+        from sirepo import simulation_db
+
+        t = simulation_db.simulation_lib_dir(other_sim_type, qcall=qcall)
+        s = pkio.py_path(path=cls._sim_file_uri(sim_id, basename))
+        pkdp("COPY {} TO {}", s, t)
+        if s.exists():
+            s.copy(t.join(basename))
+
+    @classmethod
     def lib_files_to_run_dir(cls, data, run_dir):
         """Copy auxiliary files to run_dir
 
