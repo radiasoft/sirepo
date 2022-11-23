@@ -2160,8 +2160,26 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         }
     }
 
+    function scalerForDataType(dataFile) {
+        if (activaitService.isImageData()) {
+            if (dataFile.inputsScaler == 'RobustScaler' || dataFile.outputsScaler == 'RobustScaler') {
+                dataFile.inputsScaler = 'StandardScaler';
+                dataFile.outputsScaler = 'None';
+            };
+        };
+        ['inputsScaler', 'outputsScaler'].forEach((s) => {
+            panelState.showEnum(
+                'dataFile',
+                s,
+                'RobustScaler',
+                ! activaitService.isImageData()
+            );
+        });
+    }
+
     function dataFileChanged() {
         const dataFile = appState.models.dataFile;
+        scalerForDataType(dataFile);
         updateEditor();
         computeColumnInfo();
         const partition = appState.models.partition;
@@ -2182,7 +2200,6 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
 
     function processAppMode() {
         const m = appState.models.dataFile.appMode;
-        srdbg('m', m);
         panelState.showField(
             modelName, 'inputsScaler', m === 'regression' || m === 'classification');
         panelState.showField(
