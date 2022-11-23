@@ -79,8 +79,8 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         super().__init__(*args, **kwargs)
         if indices is not None:
             self._indices = indices
-        self.scale_fn_x = scale_fn_x
-        self.scale_fn_y  = scale_fn_y
+        self.scale_fn_x = scale_fn_x() if scale_fn_x is not None else None
+        self.scale_fn_y  = scale_fn_y() if scale_fn_y is not None else None
         with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
             self.original_shape_x = file[self.X_key].shape
             self.channels = self.original_shape_x[-1]
@@ -99,12 +99,12 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
                 assert not y.any(), f"if x is empty y should be too, got y={y}"
                 return (x, y)
             if self.scale_fn_x is not None:
-                self.scale_tfm_x = self.scale_fn_x().partial_fit(numpy.array(x).reshape(-1, self.channels))
-                x = self.scale_tfm_x.transform(numpy.array(x).reshape(-1, self.channels))
+                self.scale_fn_x.partial_fit(numpy.array(x).reshape(-1, self.channels))
+                x = self.scale_fn_x.transform(numpy.array(x).reshape(-1, self.channels))
                 x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.scale_fn_y is not None:
-                self.scale_tfm_y = self.scale_fn_y().partial_fit(numpy.array(y).reshape(-1, 1))
-                y = self.scale_tfm_y.transform(y.reshape(-1, 1))
+                self.scale_fn_y.partial_fit(numpy.array(y).reshape(-1, 1))
+                y = self.scale_fn_y.transform(y.reshape(-1, 1))
             return (x, y)
 
 
