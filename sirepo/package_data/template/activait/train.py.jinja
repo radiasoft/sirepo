@@ -1,5 +1,6 @@
 import numpy as np
 import keras.losses
+import tensorflow.python.framework.errors_impl
 from keras.callbacks import CSVLogger
 {% if image_data %}
 
@@ -8,14 +9,15 @@ model.compile(
     loss={{ neuralNet_losses }},
     metrics=['accuracy'],
 )
-
-history = model.fit(
-    split.train_generator,
-    validation_data=split.val_generator,
-    use_multiprocessing=True,
-    epochs={{ neuralNet_epochs }},
-    callbacks=[CSVLogger('fit.csv')])
-
+try:
+    history = model.fit(
+        split.train_generator,
+        validation_data=split.val_generator,
+        use_multiprocessing=True,
+        epochs={{ neuralNet_epochs }},
+        callbacks=[CSVLogger('fit.csv')])
+except tensorflow.python.framework.errors_impl.InvalidArgumentError as e:
+    raise AssertionError(f"Model training failed due to:\n{e.message}")
 {% else %}
 
 model.compile(
