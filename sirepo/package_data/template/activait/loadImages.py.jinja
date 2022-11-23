@@ -36,7 +36,6 @@ def _split_indices(indices_all):
 def image_train_val_test_split(
     **kwargs
 ):
-    print("kwargs:", kwargs)
     with h5py.File(kwargs.get("src"), "r", libver="latest", swmr=True) as file:
         indices_all = numpy.arange(file[kwargs.get("X_key")].shape[0])
     s = _split_indices(indices_all)

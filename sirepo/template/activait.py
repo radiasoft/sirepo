@@ -85,13 +85,6 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
             self.original_shape_x = file[self.X_key].shape
             self.channels = self.original_shape_x[-1]
             self.original_shape_y = file[self.y_key].shape
-            # TODO (gurhar): might use too much mem to set up tfm?
-            if scale_fn_x is not None:
-                    self.scale_tfm_x = scale_fn_x().partial_fit(numpy.array(file[self.X_key]).reshape(-1, self.channels))
-            # TODO (gurhar1133): handle tfm y
-            if scale_fn_y is not None:
-                    self.scale_tfm_y = scale_fn_y().partial_fit(numpy.array(file[self.y_key]).reshape(-1, 1))
-
 
     def _HDF5ImageGenerator__get_dataset_items(
         self,
@@ -106,10 +99,11 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
                 assert not y.any(), f"if x is empty y should be too, got y={y}"
                 return (x, y)
             if self.scale_fn_x is not None:
+                self.scale_tfm_x = self.scale_fn_x().partial_fit(numpy.array(x).reshape(-1, self.channels))
                 x = self.scale_tfm_x.transform(numpy.array(x).reshape(-1, self.channels))
                 x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.scale_fn_y is not None:
-                # TODO (gurhar1133): handle tfm y
+                self.scale_tfm_y = self.scale_fn_y().partial_fit(numpy.array(y).reshape(-1, 1))
                 y = self.scale_tfm_y.transform(y.reshape(-1, 1))
             return (x, y)
 
