@@ -3638,7 +3638,7 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
             const tArr = [];
             const tOffset = points.length / 3;
             typeInfo[type].offset = tOffset;
-            points.push(...t.vertices);
+            SIREPO.UTILS.largePush(points, t.vertices);
             let tInd = 0;
             const tInds = utilities.indexArray(t.vertices.length / 3);
             t.lengths.forEach(len => {
