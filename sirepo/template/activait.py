@@ -80,7 +80,7 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
         if indices is not None:
             self._indices = indices
         self.scale_fn_x = scale_fn_x() if scale_fn_x is not None else None
-        self.scale_fn_y  = scale_fn_y() if scale_fn_y is not None else None
+        self.scale_fn_y = scale_fn_y() if scale_fn_y is not None else None
         with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
             self.original_shape_x = file[self.X_key].shape
             self.channels = self.original_shape_x[-1]

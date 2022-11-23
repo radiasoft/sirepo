@@ -1,6 +1,5 @@
 import numpy as np
 import keras.losses
-import tensorflow.python.framework.errors_impl
 from keras.callbacks import CSVLogger
 {% if image_data %}
 
@@ -16,7 +15,7 @@ try:
         use_multiprocessing=True,
         epochs={{ neuralNet_epochs }},
         callbacks=[CSVLogger('fit.csv')])
-except tensorflow.python.framework.errors_impl.InvalidArgumentError as e:
+except Exception as e:
     raise AssertionError(f"Model training failed due to:\n{e.message}")
 {% else %}
 
