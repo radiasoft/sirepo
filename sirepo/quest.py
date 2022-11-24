@@ -25,18 +25,7 @@ _SIM_TYPE_ATTR = "sim_type"
 
 _SPEC_ATTR = "quest_spec"
 
-_hack_current = None
-
 _SPEC_SIM_TYPE_CONST = re.compile(r"\s*SimType\s+const=(\S+)")
-
-
-def hack_current():
-    if sirepo.flask.in_request():
-        return sirepo.flask.g().get("sirepo_quest", None)
-    else:
-        global _hack_current
-
-        return _hack_current
 
 
 @contextlib.contextmanager
@@ -58,21 +47,6 @@ class API(pykern.quest.API):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attr_set("_bucket", _Bucket())
-        if sirepo.flask.in_request():
-            sirepo.flask.g().sirepo_quest = self
-        else:
-            global _hack_current
-
-            _hack_current = self
-
-    # #TODO
-    #     def handle_api_destroy(): called on the API
-    #     call commit?
-    #     implemented by the objects added
-    #     order can be controlled eg auth, auth_db, cookie,
-
-    #     need a save request, too.
-    #     deferring to subrequests?
 
     def absolute_uri(self, uri):
         """Convert to an absolute uri
@@ -111,13 +85,6 @@ class API(pykern.quest.API):
         return uri_router.call_api(self, name, kwargs=kwargs, data=data)
 
     def destroy(self, commit=False):
-        if sirepo.flask.in_request():
-            sirepo.flask.g().pop("sirepo_quest")
-            sirepo.flask.g().sirepo_quest = self.bucket_uget(_PARENT_ATTR)
-        else:
-            global _hack_current
-
-            _hack_current = self.bucket_uget(_PARENT_ATTR)
         for k, v in reversed(list(self.items())):
             if hasattr(v, "destroy"):
                 try:
@@ -144,6 +111,12 @@ class API(pykern.quest.API):
         # must be right after initialization
         assert not self._bucket
         assert len(self.keys()) == 1
+        # TODO(robnagler): Consider nested transactions
+        #
+        # For now, we have to commit because we don't have nesting.
+        # Commit at the end of this child-qcall which shares auth_db.
+        # auth_db is robust here since it dynamically creates sessions.
+        qcall.auth_db.commit()
         for k, v in qcall.items():
             if k not in ("uri_route", "_bucket"):
                 assert k not in self

@@ -82,11 +82,11 @@ non_guest_methods = None
 _cfg = None
 
 
-def init_quest(qcall):
+def init_quest(qcall, top_level_call_api=False):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
     sirepo.auth_db.init_quest(qcall)
-    if not _cfg.logged_in_user and sirepo.flask.in_request():
+    if not _cfg.logged_in_user and in_call_api:
         sirepo.request.init_quest(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.

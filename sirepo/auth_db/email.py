@@ -39,15 +39,13 @@ class AuthEmailUser(sirepo.auth_db.UserDbBase):
     token = sqlalchemy.Column(sqlalchemy.String(sirepo.util.TOKEN_SIZE), unique=True)
     expires = sqlalchemy.Column(sqlalchemy.DateTime())
 
-    def create_token(self):
+    def create_token(self, qcall):
         self.expires = sirepo.srtime.utc_now() + _EXPIRES_DELTA
         self.token = sirepo.util.create_token(self.unverified_email)
 
     @classmethod
-    def delete_changed_email(cls, user):
-        with sirepo.util.THREAD_LOCK:
-            cls._session().query(cls).filter(
-                (cls.user_name == user.unverified_email),
-                cls.unverified_email != user.unverified_email,
-            ).delete()
-            cls._session().commit()
+    def delete_changed_email(cls, qcall, user):
+        qcall.auth_db.query(cls).filter(
+            (cls.user_name == user.unverified_email),
+            cls.unverified_email != user.unverified_email,
+        ).delete()

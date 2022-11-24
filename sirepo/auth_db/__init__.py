@@ -16,8 +16,6 @@ import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.quest
 import sirepo.srdb
-import sirepo.srtime
-import sirepo.util
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
@@ -68,22 +66,23 @@ _models = None
         qcall.auth_db.session().add(self, qcall)
 
     def search_by(cls, qcall, **kwargs):
+        assert kwargs
         return qcall.auth_db.query(cls).filter_by(**kwargs).first()
 
     @classmethod
     def search_all_for_column(cls, qcall, column, **filter_by):
-        with sirepo.util.THREAD_LOCK:
-            return [
-                getattr(r, column)
-                for r in qcall.auth_db.query(cls).filter_by(**filter_by)
-            ]
+        assert filter_by
+        return [
+            getattr(r, column)
+            for r in qcall.auth_db.query(cls).filter_by(**filter_by)
+        ]
 
 
 def all_uids(qcall):
     return UserRegistration.search_all_for_column("uid")
 
 
-def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
+def audit_proprietary_lib_files(self, force=False, sim_types=None):
     """Add/removes proprietary files based on a user's roles
 
     For example, add the Flash tarball if user has the flash role.
@@ -195,12 +194,12 @@ def init_module():
 
 
 def init_quest(qcall):
-    qcall.attr_set("auth_db", _AuthDb())
+    qcall.attr_set("auth_db", _AuthDb(qcall=qcall))
 
 
 class _AuthDb(sirepo.quest.Attr):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._orm_session = None
 
     def add_column_if_not_exists(self, table, column, column_type):
@@ -223,6 +222,9 @@ class _AuthDb(sirepo.quest.Attr):
             ct=column_type,
         )
 
+    def commit(self):
+        self._commit_or_rollback(commit=True)
+
     def delete_user(self, uid):
         """Delete user from all models"""
         for m in _models:
@@ -232,15 +234,8 @@ class _AuthDb(sirepo.quest.Attr):
                 continue
             self.execute(sqlalchemy.delete(m).where(m.uid == uid))
 
-    def destroy(self, commit=False):
-        if _orm_session is None:
-            return
-        s = self._orm_session
-        self._orm_session = None
-        if commit:
-            s.commit()
-        else:
-            s.rollback()
+    def destroy(self, commit=False, **kwargs):
+        self._commit_or_rollback(commit=commit)
 
     def execute(self, statement):
         return self.session().execute(
@@ -259,8 +254,21 @@ class _AuthDb(sirepo.quest.Attr):
 
     def session(self):
         if self._orm_session is None:
+            # New in sqlalchemy 2.0 autobegin, which we should set to False
             self._orm_session = sqlalchemy.orm.Session(bind=_engine)
+            self._orm_session.begin()
         return self._orm_session
+
+    def _commit_or_rollback(self, commit):
+        if _orm_session is None:
+            return
+        s = self._orm_session
+        self._orm_session = None
+        if commit:
+            s.commit()
+        else:
+            s.rollback()
+        s.close()
 
     def _execute_sql(self, text, **kwargs):
         return self.execute(sqlalchemy.text(text + ";"), **kwargs)

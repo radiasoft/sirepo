@@ -76,6 +76,9 @@ def init_quest(qcall):
     if qcall.sreq.method_is_post():
         i = _update_session(i) if i else _new_session()
     qcall.bucket_set(_ID_ATTR, i)
+    # TODO(robnagler): commit here is necessary because we want to log all
+    # accesses
+    qcall.auth_db.commit()
 
 
 def _end_api_call(qcall, kwargs):

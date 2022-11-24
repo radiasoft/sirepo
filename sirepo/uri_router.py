@@ -260,7 +260,7 @@ def _call_api(parent, route, kwargs, data=None):
         qcall.attr_set("uri_route", route)
         qcall.sim_type_set_from_spec(route.func)
         if not parent:
-            sirepo.auth.init_quest(qcall)
+            sirepo.auth.init_quest(qcall=qcall, top_level_call_api=True)
         if data:
             qcall.http_data_set(data)
         try:
@@ -286,7 +286,7 @@ def _call_api(parent, route, kwargs, data=None):
         if pkconfig.channel_in("dev"):
             r.headers.add("Access-Control-Allow-Origin", "*")
         return r
-    except Exception:
+    except:
         c = False
         raise
     finally:
