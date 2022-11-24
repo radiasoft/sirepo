@@ -78,78 +78,6 @@ _models = None
         ]
 
 
-def all_uids(qcall):
-    return UserRegistration.search_all_for_column("uid")
-
-
-def audit_proprietary_lib_files(self, force=False, sim_types=None):
-    """Add/removes proprietary files based on a user's roles
-
-    For example, add the Flash tarball if user has the flash role.
-
-    Args:
-      qcall (quest.API): logged in user
-      force (bool): Overwrite existing lib files with the same name as new ones
-      sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
-    """
-    from sirepo import sim_data, simulation_db
-
-    def _add(proprietary_code_dir, sim_type, sim_data_class):
-        p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
-        with simulation_db.tmp_dir(chdir=True, qcall=qcall) as t:
-            d = t.join(p.basename)
-            d.mksymlinkto(p, absolute=False)
-            subprocess.check_output(
-                [
-                    "tar",
-                    "--extract",
-                    "--gunzip",
-                    f"--file={d}",
-                ],
-                stderr=subprocess.STDOUT,
-            )
-            # lib_dir may not exist: git.radiasoft.org/ops/issues/645
-            l = pykern.pkio.mkdir_parent(
-                simulation_db.simulation_lib_dir(sim_type, qcall=qcall),
-            )
-            e = [f.basename for f in pykern.pkio.sorted_glob(l.join("*"))]
-            for f in sim_data_class.proprietary_code_lib_file_basenames():
-                if force or f not in e:
-                    t.join(f).rename(l.join(f))
-
-    s = sirepo.feature_config.proprietary_sim_types()
-    if sim_types:
-        assert sim_types.issubset(
-            s
-        ), f"sim_types={sim_types} not a subset of proprietary_sim_types={s}"
-        s = sim_types
-    u = qcall.auth.logged_in_user()
-    for t in s:
-        c = sim_data.get_class(t)
-        if not c.proprietary_code_tarball():
-            continue
-        d = sirepo.srdb.proprietary_code_dir(t)
-        assert d.exists(), f"{d} proprietary_code_dir must exist" + (
-            "; run: sirepo setup_dev" if pykern.pkconfig.channel_in("dev") else ""
-        )
-        r = UserRole.has_role(
-            qcall=qcall,
-            role=sirepo.auth_role.for_sim_type(t),
-        )
-        if r:
-            _add(d, t, c)
-            continue
-        # SECURITY: User no longer has access so remove all artifacts
-        pykern.pkio.unchecked_remove(simulation_db.simulation_dir(t, qcall=qcall))
-
-
-def create_or_upgrade(qcall):
-    from sirepo import db_upgrade
-
-    UserDbBase.metadata.create_all(bind=_engine)
-    db_upgrade.do_all(qcall)
-
-
 def db_filename():
     return sirepo.srdb.root().join(_SQLITE3_BASENAME)
 
@@ -201,6 +129,7 @@ class _AuthDb(sirepo.quest.Attr):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._orm_session = None
+        for
 
     def add_column_if_not_exists(self, table, column, column_type):
         """Must not be called with user data"""
@@ -222,8 +151,17 @@ class _AuthDb(sirepo.quest.Attr):
             ct=column_type,
         )
 
+    def all_uids(self):
+        return UserRegistration.search_all_for_column(qcall=self.qcall, "uid")
+
     def commit(self):
         self._commit_or_rollback(commit=True)
+
+    def create_or_upgrade(self):
+        from sirepo import db_upgrade
+
+        UserDbBase.metadata.create_all(bind=_engine)
+        db_upgrade.do_all(qcall=self.qcall)
 
     def delete_user(self, uid):
         """Delete user from all models"""
@@ -241,6 +179,9 @@ class _AuthDb(sirepo.quest.Attr):
         return self.session().execute(
             statement.execution_options(synchronize_session="fetch")
         )
+
+    def metadata(self):
+        return UserDbBase.metadata
 
     def query(self, model):
         return self.session().query(model)

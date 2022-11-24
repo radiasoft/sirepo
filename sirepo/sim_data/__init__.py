@@ -53,6 +53,66 @@ _FRAME_ID_KEYS = (
 _TEMPLATE_RESOURCE_DIR = "template"
 
 
+def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
+    """Add/removes proprietary files based on a user's roles
+
+    For example, add the Flash tarball if user has the flash role.
+
+    Args:
+      qcall (quest.API): logged in user
+      force (bool): Overwrite existing lib files with the same name as new ones
+      sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
+    """
+    from sirepo import sim_data, simulation_db
+
+    def _add(proprietary_code_dir, sim_type, sim_data_class):
+        p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
+        with simulation_db.tmp_dir(chdir=True, qcall=qcall) as t:
+            d = t.join(p.basename)
+            d.mksymlinkto(p, absolute=False)
+            subprocess.check_output(
+                [
+                    "tar",
+                    "--extract",
+                    "--gunzip",
+                    f"--file={d}",
+                ],
+                stderr=subprocess.STDOUT,
+            )
+            # lib_dir may not exist: git.radiasoft.org/ops/issues/645
+            l = pykern.pkio.mkdir_parent(
+                simulation_db.simulation_lib_dir(sim_type, qcall=qcall),
+            )
+            e = [f.basename for f in pykern.pkio.sorted_glob(l.join("*"))]
+            for f in sim_data_class.proprietary_code_lib_file_basenames():
+                if force or f not in e:
+                    t.join(f).rename(l.join(f))
+
+    s = sirepo.feature_config.proprietary_sim_types()
+    if sim_types:
+        assert sim_types.issubset(
+            s
+        ), f"sim_types={sim_types} not a subset of proprietary_sim_types={s}"
+        s = sim_types
+    for t in s:
+        c = sim_data.get_class(t)
+        if not c.proprietary_code_tarball():
+            continue
+        d = sirepo.srdb.proprietary_code_dir(t)
+        assert d.exists(), f"{d} proprietary_code_dir must exist" + (
+            "; run: sirepo setup_dev" if pykern.pkconfig.channel_in("dev") else ""
+        )
+        r = sirepo.auth_db.UserRole.has_role(
+            qcall=qcall,
+            role=sirepo.auth_role.for_sim_type(t),
+        )
+        if r:
+            _add(d, t, c)
+            continue
+        # SECURITY: User no longer has access so remove all artifacts
+        pykern.pkio.unchecked_remove(simulation_db.simulation_dir(t, qcall=qcall))
+
+
 def get_class(type_or_data):
     """Simulation data class
 

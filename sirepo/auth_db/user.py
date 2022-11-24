@@ -27,9 +27,8 @@ class UserRole(sirepo.auth_db.UserDbBase):
     expiration = sqlalchemy.Column(sqlalchemy.DateTime())
 
     @classmethod
-    def all_roles(cls):
-        with sirepo.util.THREAD_LOCK:
-            return [r[0] for r in cls._session().query(cls.role.distinct()).all()]
+    def all_roles(cls, qcall):
+        return [r[0] for r in qcall.auth_db.query(cls.role.distinct()).all()]
 
     @classmethod
     def add_roles(cls, qcall, roles, expiration=None):
@@ -44,7 +43,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
                     ).save()
                 except sqlalchemy.exc.IntegrityError:
                     pass
-            sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
+            qcall.auth_db.audit_proprietary_lib_files(qcall=qcall)
 
     @classmethod
     def add_role_or_update_expiration(cls, qcall, role, expiration):

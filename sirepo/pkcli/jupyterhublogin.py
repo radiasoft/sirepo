@@ -37,10 +37,10 @@ def create_user(email, display_name):
         if u:
             # Fully registered email user
             assert sirepo.auth_db.UserRegistration.search_by(
-                uid=u
+                qcall=qcall, uid=u
             ).display_name, f"uid={u} authorized AuthEmailUser record but no UserRegistration.display_name"
             return u
-        m = module.UserModel.search_by(unverified_email=email)
+        m = module.UserModel.search_by(qcall=qcall, unverified_email=email)
         if m:
             # Email user that needs to complete registration (no display_name but have unverified_email)
             assert qcall.auth.need_complete_registration(
@@ -57,7 +57,7 @@ def create_user(email, display_name):
             unverified_email=email,
             uid=u,
             user_name=email,
-        ).save()
+        ).save(qcall=qcall)
         return u
 
     if not pyisemail.is_email(email):
@@ -73,11 +73,11 @@ def create_user(email, display_name):
         )
         with qcall.auth.logged_in_user_set(u, method=m):
             n = sirepo.sim_api.jupyterhublogin.create_user(
-                qcall,
+                qcall=qcall,
                 check_dir=True,
             )
             sirepo.auth_db.UserRole.add_roles(
-                qcall,
-                [sirepo.auth_role.for_sim_type("jupyterhublogin")],
+                qcall=qcall,
+                roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],
             )
         return PKDict(email=email, jupyterhub_user_name=n)

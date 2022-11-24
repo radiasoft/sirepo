@@ -45,14 +45,14 @@ class API(sirepo.quest.API):
             sirepo.util.raise_forbidden("robots not allowed")
         req = self.parse_params(type=simulation_type)
         with sirepo.util.THREAD_LOCK:
-            u = UserModel.search_by(token=token)
+            u = UserModel.search_by(qcall=self, token=token)
             if u and u.expires >= sirepo.srtime.utc_now():
                 n = self._verify_confirm(
                     req.type,
                     token,
                     self.auth.need_complete_registration(u),
                 )
-                UserModel.delete_changed_email(u)
+                UserModel.delete_changed_email(qcall=self, user=u)
                 u.user_name = u.unverified_email
                 u.token = None
                 u.expires = None
@@ -86,11 +86,11 @@ class API(sirepo.quest.API):
         req = self.parse_post()
         email = self._parse_email(req.req_data)
         with sirepo.util.THREAD_LOCK:
-            u = UserModel.search_by(unverified_email=email)
+            u = UserModel.search_by(qcall=self, unverified_email=email)
             if not u:
                 u = UserModel(unverified_email=email)
-            u.create_token()
-            u.save()
+            u.create_token(qcall=self)
+            u.save(qcall=self)
         return self._send_login_email(
             u,
             self.absolute_uri(
@@ -164,8 +164,7 @@ def avatar_uri(qcall, model, size):
 
 
 def unchecked_user_by_user_name(qcall, user_name):
-    with sirepo.util.THREAD_LOCK:
-        u = UserModel.search_by(user_name=user_name)
-        if u:
-            return u.uid
-        return None
+    u = UserModel.search_by(qcall=qcall, user_name=user_name)
+    if u:
+        return u.uid
+    return None

@@ -779,7 +779,7 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
         from sirepo import auth_db
 
         with sirepo.quest.start() as qcall:
-            auth_db.create_or_upgrade(qcall=qcall)
+            qcall.auth_db.create_or_upgrade()
 
         if cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>
