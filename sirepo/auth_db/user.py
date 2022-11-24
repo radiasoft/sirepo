@@ -26,14 +26,12 @@ class UserRole(sirepo.auth_db.UserDbBase):
     role = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, primary_key=True)
     expiration = sqlalchemy.Column(sqlalchemy.DateTime())
 
-    @classmethod
-    def all_roles(cls, qcall):
-        return [r[0] for r in qcall.auth_db.query(cls.role.distinct()).all()]
+    def all_roles(self):
+        return [r[0] for r in self.auth_db.query(self.role.distinct()).all()]
 
-    @classmethod
-    def add_roles(cls, qcall, roles, expiration=None):
+    def add_roles(self, roles, expiration=None):
         with sirepo.util.THREAD_LOCK:
-            u = qcall.auth.logged_in_user()
+            u = self.auth_db.qcall.auth.logged_in_user()
             for r in roles:
                 try:
                     UserRole(
@@ -43,32 +41,31 @@ class UserRole(sirepo.auth_db.UserDbBase):
                     ).save()
                 except sqlalchemy.exc.IntegrityError:
                     pass
-            qcall.auth_db.audit_proprietary_lib_files(qcall=qcall)
+            self.auth_db.audit_proprietary_lib_files()
 
-    @classmethod
-    def add_role_or_update_expiration(cls, qcall, role, expiration):
+    def add_role_or_update_expiration(self, role, expiration):
         with sirepo.util.THREAD_LOCK:
-            if not cls.has_role(qcall, role):
-                cls.add_roles(qcall=qcall, roles=[role], expiration=expiration)
+            if not self.has_role(role):
+                self.add_roles(roles=[role], expiration=expiration)
                 return
-            r = cls.search_by(uid=qcall.auth.logged_in_user(), role=role)
+            r = self.search_by(uid=self.auth_db.qcall.auth.logged_in_user(), role=role)
             r.expiration = expiration
             r.save()
 
-    @classmethod
-    def delete_roles(cls, qcall, roles):
+    def delete_roles(self, roles):
+        from sirepo import sim_data
+
         with sirepo.util.THREAD_LOCK:
-            cls.execute(
-                sqlalchemy.delete(cls)
+            self.auth_db.execute(
+                sqlalchemy.delete(self)
                 .where(
-                    cls.uid == qcall.auth.logged_in_user(),
+                    self.uid == self.auth_db.qcall.auth.auth.logged_in_user(),
                 )
                 .where(
-                    cls.role.in_(roles),
+                    self.role.in_(roles),
                 )
             )
-            cls._session().commit()
-            sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
+            sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
 
     @classmethod
     def get_roles(cls, qcall):

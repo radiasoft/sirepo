@@ -36,45 +36,39 @@ _models = None
 
 
 @sqlalchemy.ext.declarative.as_declarative()
-    @classmethod
-    def all(cls, qcall):
-        return qcall.auth_db.query(cls).all()
+class UserDbBase:
+    def all(self):
+        return self.auth_db.query(self).all()
 
-    def as_pkdict(self, qcall):
+    def as_pkdict(self):
         return PKDict({c: getattr(self, c) for c in self.column_names()})
 
-    @classmethod
-    def column_names(cls, qcall):
-        return cls.__table__.columns.keys()
+    def column_names(self):
+        return self.__table__.columns.keys()
 
-    def delete(self, qcall):
-        qcall.auth_db.session().delete(self)
+    def delete(self):
+        self.auth_db.session().delete(self)
 
-    @classmethod
-    def delete_all(cls, qcall):
-        qcall.auth_db.query(cls).delete()
+    def delete_all(self):
+        self.auth_db.query(self).delete()
 
-    @classmethod
-    def delete_all_for_column_by_values(cls, qcall, column, values):
-        qcall.auth_db.execute(
-            sqlalchemy.delete(cls).where(
-                getattr(cls, column).in_(values),
+    def delete_all_for_column_by_values(self, column, values):
+        self.auth_db.execute(
+            sqlalchemy.delete(self).where(
+                getattr(self, column).in_(values),
             )
         )
 
-    def save(self, qcall):
-        qcall.auth_db.session().add(self, qcall)
+    def save(self):
+        self.auth_db.session().add(self)
 
-    def search_by(cls, qcall, **kwargs):
-        assert kwargs
-        return qcall.auth_db.query(cls).filter_by(**kwargs).first()
+    def search_by(self, **kwargs):
+        return self.auth_db.query(self).filter_by(**kwargs).first()
 
-    @classmethod
-    def search_all_for_column(cls, qcall, column, **filter_by):
-        assert filter_by
+    def search_all_for_column(self, column, **filter_by):
         return [
             getattr(r, column)
-            for r in qcall.auth_db.query(cls).filter_by(**filter_by)
+            for r in self.auth_db.query(self).filter_by(**filter_by)
         ]
 
 
@@ -102,11 +96,11 @@ def init_module():
 
     def _export_models():
         m = pykern.pkinspect.this_module()
-        res = []
+        res = PKDict()
         for n, x in _classes().items():
             assert not hasattr(m, n), f"class={n} already exists"
             setattr(m, n, x.cls)
-            res.append(x.cls)
+            res[n] = x.cls
         return res
 
     global _engine, _models
@@ -131,17 +125,17 @@ class _AuthDb(sirepo.quest.Attr):
         self._orm_session = None
         for
 
-    def add_column_if_not_exists(self, table, column, column_type):
+    def add_column_if_not_exists(self, model, column, column_type):
         """Must not be called with user data"""
         column_type = column_type.upper()
-        t = table.__table__.name
+        t = model.__table__.name
         r = self._execute_sql(f"PRAGMA table_info({t})")
         for c in r.all():
             if not c[1] == column:
                 continue
             assert c[2] == column_type, (
                 f"unexpected column={c} when adding column={column} of",
-                f" type={column_type} to table={table}",
+                f" type={column_type} to table={t}",
             )
             return
         self._execute_sql(
@@ -160,12 +154,12 @@ class _AuthDb(sirepo.quest.Attr):
     def create_or_upgrade(self):
         from sirepo import db_upgrade
 
-        UserDbBase.metadata.create_all(bind=_engine)
+        self.metadata().create_all(bind=_engine)
         db_upgrade.do_all(qcall=self.qcall)
 
     def delete_user(self, uid):
         """Delete user from all models"""
-        for m in _models:
+        for m in _models.values():
             # Exlicit None check because sqlalchemy overrides __bool__ to
             # raise TypeError
             if m is None or "uid" not in m.__table__.columns:
@@ -182,6 +176,11 @@ class _AuthDb(sirepo.quest.Attr):
 
     def metadata(self):
         return UserDbBase.metadata
+
+    def model(self, name, **kwargs):
+        x = _models[name](**kwargs)
+        x.auth_db = self
+        return x
 
     def query(self, model):
         return self.session().query(model)

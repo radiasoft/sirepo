@@ -63,10 +63,10 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
       force (bool): Overwrite existing lib files with the same name as new ones
       sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
     """
-    from sirepo import sim_data, simulation_db
+    from sirepo import simulation_db
 
-    def _add(proprietary_code_dir, sim_type, sim_data_class):
-        p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
+    def _add(proprietary_code_dir, sim_type, cls):
+        p = proprietary_code_dir.join(cls.proprietary_code_tarball())
         with simulation_db.tmp_dir(chdir=True, qcall=qcall) as t:
             d = t.join(p.basename)
             d.mksymlinkto(p, absolute=False)
@@ -84,7 +84,7 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
                 simulation_db.simulation_lib_dir(sim_type, qcall=qcall),
             )
             e = [f.basename for f in pykern.pkio.sorted_glob(l.join("*"))]
-            for f in sim_data_class.proprietary_code_lib_file_basenames():
+            for f in cls.proprietary_code_lib_file_basenames():
                 if force or f not in e:
                     t.join(f).rename(l.join(f))
 
@@ -95,14 +95,14 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
         ), f"sim_types={sim_types} not a subset of proprietary_sim_types={s}"
         s = sim_types
     for t in s:
-        c = sim_data.get_class(t)
+        c = get_class(t)
         if not c.proprietary_code_tarball():
             continue
         d = sirepo.srdb.proprietary_code_dir(t)
         assert d.exists(), f"{d} proprietary_code_dir must exist" + (
             "; run: sirepo setup_dev" if pykern.pkconfig.channel_in("dev") else ""
         )
-        r = sirepo.auth_db.UserRole.has_role(
+        r = qcall.auth_db.model("UserRole").has_role(
             qcall=qcall,
             role=sirepo.auth_role.for_sim_type(t),
         )

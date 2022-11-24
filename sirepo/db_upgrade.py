@@ -27,7 +27,7 @@ _PREVENT_DB_UPGRADE_FILE = "prevent-db-upgrade"
 
 def do_all(qcall):
     def _new_functions():
-        x = sirepo.auth_db.DbUpgrade.search_all_for_column("name")
+        x = qcall.auth_db.model("DbUpgrade").search_all_for_column("name")
         y = pkinspect.module_functions("_2")
         return ((n, y[n]) for n in sorted(set(y.keys()) - set(x)))
 
@@ -39,7 +39,8 @@ def do_all(qcall):
         with _backup_db_and_prevent_upgrade_on_error():
             pkdlog("running upgrade {}", n)
             f(qcall=qcall)
-            sirepo.auth_db.DbUpgrade(
+            qcall.auth_db.model(
+                "DbUpgrade",
                 name=n,
                 created=sirepo.srtime.utc_now(),
             ).save()
@@ -179,12 +180,12 @@ def _20210301_migrate_role_jupyterhub(qcall):
     ):
         return
     for u in qcall.auth_db.all_uids():
-        qcall.auth_db.new("UserRole").add_roles(u, r)
+        qcall.auth_db.model("UserRole").add_roles(u, r)
 
 
 def _20220609_add_expiration_column_to_user_role_t(qcall):
     qcall.auth_db.add_column_if_not_exists(
-        qcall.auth_db.UserRole,
+        qcall.auth_db.UserRole(),
         "expiration",
         "datetime",
     )
