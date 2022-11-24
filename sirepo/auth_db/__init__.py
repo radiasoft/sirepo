@@ -38,113 +38,45 @@ _models = None
 
 
 @sqlalchemy.ext.declarative.as_declarative()
-class UserDbBase:
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
     @classmethod
-    def add_column_if_not_exists(cls, table, column, column_type):
-        """Must not be called with user data"""
-        column_type = column_type.upper()
-        t = table.__table__.name
-        r = cls._execute_sql(f"PRAGMA table_info({t})")
-        for c in r.all():
-            if not c[1] == column:
-                continue
-            assert c[2] == column_type, (
-                f"unexpected column={c} when adding column={column} of",
-                f" type={column_type} to table={table}",
-            )
-            return
-        cls._execute_sql("ALTER TABLE :t ADD :col :ct", t=t, col=column, ct=column_type)
-        cls._session().commit()
+    def all(cls, qcall):
+        return qcall.auth_db.query(cls).all()
 
-    @classmethod
-    def all(cls):
-        with sirepo.util.THREAD_LOCK:
-            return cls._session().query(cls).all()
-
-    def as_pkdict(self):
+    def as_pkdict(self, qcall):
         return PKDict({c: getattr(self, c) for c in self.column_names()})
 
     @classmethod
-    def column_names(cls):
+    def column_names(cls, qcall):
         return cls.__table__.columns.keys()
 
-    def delete(self):
-        with sirepo.util.THREAD_LOCK:
-            self._session().delete(self)
-            self._session().commit()
+    def delete(self, qcall):
+        qcall.auth_db.session().delete(self)
 
     @classmethod
-    def delete_all(cls):
-        with sirepo.util.THREAD_LOCK:
-            cls._session().query(cls).delete()
-            cls._session().commit()
+    def delete_all(cls, qcall):
+        qcall.auth_db.query(cls).delete()
 
     @classmethod
-    def delete_all_for_column_by_values(cls, column, values):
-        with sirepo.util.THREAD_LOCK:
-            cls.execute(
-                sqlalchemy.delete(cls).where(
-                    getattr(cls, column).in_(values),
-                )
+    def delete_all_for_column_by_values(cls, qcall, column, values):
+        qcall.auth_db.execute(
+            sqlalchemy.delete(cls).where(
+                getattr(cls, column).in_(values),
             )
-            cls._session().commit()
-
-    @classmethod
-    def delete_user(cls, uid):
-        """Delete user from all models"""
-        for m in _models:
-            # Exlicit None check because sqlalchemy overrides __bool__ to
-            # raise TypeError
-            if m is None or "uid" not in m.__table__.columns:
-                continue
-            cls.execute(sqlalchemy.delete(m).where(m.uid == uid))
-        cls._session().commit()
-
-    @classmethod
-    def execute(cls, statement):
-        return cls._session().execute(
-            statement.execution_options(synchronize_session="fetch")
         )
 
-    @classmethod
-    def rename_table(cls, old, new):
-        cls._execute_sql(f"ALTER TABLE :old RENAME TO :new", old=old, new=new)
-        cls._session().commit()
+    def save(self, qcall):
+        qcall.auth_db.session().add(self, qcall)
 
-    def save(self):
-        with sirepo.util.THREAD_LOCK:
-            self._session().add(self)
-            self._session().commit()
+    def search_by(cls, qcall, **kwargs):
+        return qcall.auth_db.query(cls).filter_by(**kwargs).first()
 
     @classmethod
-    def search_all_by(cls, **kwargs):
-        with sirepo.util.THREAD_LOCK:
-            return cls._session().query(cls).filter_by(**kwargs).all()
-
-    @classmethod
-    def search_by(cls, **kwargs):
-        with sirepo.util.THREAD_LOCK:
-            return cls._session().query(cls).filter_by(**kwargs).first()
-
-    @classmethod
-    def search_all_for_column(cls, column, **filter_by):
+    def search_all_for_column(cls, qcall, column, **filter_by):
         with sirepo.util.THREAD_LOCK:
             return [
                 getattr(r, column)
-                for r in cls._session().query(cls).filter_by(**filter_by)
+                for r in qcall.auth_db.query(cls).filter_by(**filter_by)
             ]
-
-    @classmethod
-    def _execute_sql(cls, text, **kwargs):
-        return cls.execute(sqlalchemy.text(text + ";"), **kwargs)
-
-    @classmethod
-    def _session(cls):
-        return sirepo.quest.hack_current().auth_db._orm_session
 
 
 def all_uids(qcall):
@@ -266,28 +198,69 @@ def init_quest(qcall):
     qcall.attr_set("auth_db", _AuthDb())
 
 
-@contextlib.contextmanager
-def session():
-    qcall = sirepo.quest.API()
-    try:
-        init_quest(qcall)
-        yield
-    finally:
-        qcall.destroy()
-
-
-@contextlib.contextmanager
-def session_and_lock():
-    # TODO(e-carlin): Need locking across processes
-    # git.radiasoft.org/sirepo/issues/3516
-    with session():
-        yield
-
-
 class _AuthDb(sirepo.quest.Attr):
     def __init__(self):
         super().__init__()
-        self._orm_session = sqlalchemy.orm.Session(bind=_engine)
+        self._orm_session = None
 
-    def destroy(self):
-        self._orm_session.rollback()
+    def add_column_if_not_exists(self, table, column, column_type):
+        """Must not be called with user data"""
+        column_type = column_type.upper()
+        t = table.__table__.name
+        r = self._execute_sql(f"PRAGMA table_info({t})")
+        for c in r.all():
+            if not c[1] == column:
+                continue
+            assert c[2] == column_type, (
+                f"unexpected column={c} when adding column={column} of",
+                f" type={column_type} to table={table}",
+            )
+            return
+        self._execute_sql(
+            "ALTER TABLE :t ADD :col :ct",
+            t=t,
+            col=column,
+            ct=column_type,
+        )
+
+    def delete_user(self, uid):
+        """Delete user from all models"""
+        for m in _models:
+            # Exlicit None check because sqlalchemy overrides __bool__ to
+            # raise TypeError
+            if m is None or "uid" not in m.__table__.columns:
+                continue
+            self.execute(sqlalchemy.delete(m).where(m.uid == uid))
+
+    def destroy(self, commit=False):
+        if _orm_session is None:
+            return
+        s = self._orm_session
+        self._orm_session = None
+        if commit:
+            s.commit()
+        else:
+            s.rollback()
+
+    def execute(self, statement):
+        return self.session().execute(
+            statement.execution_options(synchronize_session="fetch")
+        )
+
+    def query(self, model):
+        return self.session().query(model)
+
+    def rename_table(self, old, new):
+        self._execute_sql(
+            f"ALTER TABLE :old RENAME TO :new",
+            old=old,
+            new=new,
+        )
+
+    def session(self):
+        if self._orm_session is None:
+            self._orm_session = sqlalchemy.orm.Session(bind=_engine)
+        return self._orm_session
+
+    def _execute_sql(self, text, **kwargs):
+        return self.execute(sqlalchemy.text(text + ";"), **kwargs)

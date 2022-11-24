@@ -43,11 +43,13 @@ def hack_current():
 def start():
     auth = sirepo.modules.import_and_init("sirepo.auth")
     qcall = API()
+    c = False
     try:
         auth.init_quest(qcall)
         yield qcall
+        c = True
     finally:
-        qcall.destroy()
+        qcall.destroy(commit=c)
 
 
 class API(pykern.quest.API):
@@ -108,7 +110,7 @@ class API(pykern.quest.API):
         """
         return uri_router.call_api(self, name, kwargs=kwargs, data=data)
 
-    def destroy(self):
+    def destroy(self, commit=False):
         if sirepo.flask.in_request():
             sirepo.flask.g().pop("sirepo_quest")
             sirepo.flask.g().sirepo_quest = self.bucket_uget(_PARENT_ATTR)
@@ -119,7 +121,7 @@ class API(pykern.quest.API):
         for k, v in reversed(list(self.items())):
             if hasattr(v, "destroy"):
                 try:
-                    v.destroy()
+                    v.destroy(commit=commit)
                 except Exception:
                     pkdlog("destroy failed attr={} stack={}", v, pkdexc())
             self.pkdel(k)
