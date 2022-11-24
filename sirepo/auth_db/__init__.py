@@ -53,9 +53,10 @@ class UserDbBase:
         self.auth_db.query(self).delete()
 
     def delete_all_for_column_by_values(self, column, values):
+        cls = self.__class__
         self.auth_db.execute(
-            sqlalchemy.delete(self).where(
-                getattr(self, column).in_(values),
+            sqlalchemy.delete(cls).where(
+                getattr(cls, column).in_(values),
             )
         )
 
