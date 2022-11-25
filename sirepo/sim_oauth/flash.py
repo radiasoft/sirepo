@@ -9,8 +9,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import datetime
 import sirepo.quest
-import sirepo.auth
-import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.oauth
 import sirepo.srtime

@@ -51,7 +51,7 @@ def _20210211_add_flash_proprietary_lib_files(qcall, force=False):
 
     if not sirepo.template.is_sim_type("flash"):
         return
-    for u in qcall.auth_db.all_uids(qcall):
+    for u in qcall.auth_db.all_uids():
         with qcall.auth.logged_in_user_set(u):
             # Remove the existing rpm
             pkio.unchecked_remove(
@@ -185,7 +185,7 @@ def _20210301_migrate_role_jupyterhub(qcall):
 
 def _20220609_add_expiration_column_to_user_role_t(qcall):
     qcall.auth_db.add_column_if_not_exists(
-        qcall.auth_db.UserRole(),
+        qcall.auth_db.model("UserRole"),
         "expiration",
         "datetime",
     )

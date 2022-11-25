@@ -20,7 +20,6 @@ import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import sqlalchemy.sql.expression
-import subprocess
 
 
 #: sqlite file located in sirepo_db_dir
@@ -38,7 +37,7 @@ _models = None
 @sqlalchemy.ext.declarative.as_declarative()
 class UserDbBase:
     def all(self):
-        return self.auth_db.query(self).all()
+        return self.query().all()
 
     def as_pkdict(self):
         return PKDict({c: getattr(self, c) for c in self.column_names()})
@@ -50,7 +49,7 @@ class UserDbBase:
         self.auth_db.session().delete(self)
 
     def delete_all(self):
-        self.auth_db.query(self).delete()
+        self.query().delete()
 
     def delete_all_for_column_by_values(self, column, values):
         cls = self.__class__
@@ -60,21 +59,40 @@ class UserDbBase:
             )
         )
 
+    def logged_in_user(self):
+        return self.auth_db.qcall.auth.logged_in_user()
+
+    def new(self, **fields):
+        return self.auth_db.model(self.__class__.__name__, **fields)
+
+    def query(self, *other):
+        return self.auth_db.query(self, *other)
+
     def save(self):
         self.auth_db.session().add(self)
 
-    def search_by(self, **kwargs):
-        return self.auth_db.query(self).filter_by(**kwargs).first()
+    def search_by(self, **filter_by):
+        return self._new(self, self.query().filter_by(**filter_by).one())
 
     def search_all_for_column(self, column, **filter_by):
-        return [
-            getattr(r, column)
-            for r in self.auth_db.query(self).filter_by(**filter_by)
-        ]
+        return [getattr(r, column) for r in self.query().filter_by(**filter_by)]
+
+    def unchecked_search_by(self, **filter_by):
+        return self._new(self.query().filter_by(**filter_by).one_or_none())
+
+    def _new(self, result):
+        if result is None:
+            return result
+        result.auth_db = self.auth_db
+        return result
 
 
 def db_filename():
     return sirepo.srdb.root().join(_SQLITE3_BASENAME)
+
+
+def get_class(name):
+    return _models[name].cls
 
 
 def init_module():
@@ -95,20 +113,11 @@ def init_module():
                 res[n] = PKDict(module_name=q, cls=c)
         return res
 
-    def _export_models():
-        m = pykern.pkinspect.this_module()
-        res = PKDict()
-        for n, x in _classes().items():
-            assert not hasattr(m, n), f"class={n} already exists"
-            setattr(m, n, x.cls)
-            res[n] = x.cls
-        return res
-
     global _engine, _models
 
     if _engine:
         return
-    _models = _export_models()
+    _models = _classes()
     _engine = sqlalchemy.create_engine(
         f"sqlite:///{db_filename()}",
         # We ensure single threaded access through locking
@@ -124,7 +133,6 @@ class _AuthDb(sirepo.quest.Attr):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._orm_session = None
-        for
 
     def add_column_if_not_exists(self, model, column, column_type):
         """Must not be called with user data"""
@@ -147,7 +155,7 @@ class _AuthDb(sirepo.quest.Attr):
         )
 
     def all_uids(self):
-        return UserRegistration.search_all_for_column(qcall=self.qcall, "uid")
+        return self.model("UserRegistration").search_all_for_column("uid")
 
     def commit(self):
         self._commit_or_rollback(commit=True)
@@ -161,11 +169,10 @@ class _AuthDb(sirepo.quest.Attr):
     def delete_user(self, uid):
         """Delete user from all models"""
         for m in _models.values():
-            # Exlicit None check because sqlalchemy overrides __bool__ to
-            # raise TypeError
-            if m is None or "uid" not in m.__table__.columns:
+            c = m.cls
+            if "uid" not in c.__table__.columns:
                 continue
-            self.execute(sqlalchemy.delete(m).where(m.uid == uid))
+            self.execute(sqlalchemy.delete(c).where(c.uid == uid))
 
     def destroy(self, commit=False, **kwargs):
         self._commit_or_rollback(commit=commit)
@@ -178,13 +185,22 @@ class _AuthDb(sirepo.quest.Attr):
     def metadata(self):
         return UserDbBase.metadata
 
-    def model(self, name, **kwargs):
-        x = _models[name](**kwargs)
+    def model(self, class_name_, **fields):
+        x = get_class(class_name_)(**fields)
         x.auth_db = self
         return x
 
-    def query(self, model):
-        return self.session().query(model)
+    def query(self, *models):
+        def _class(obj):
+            if isinstance(obj, UserDbBase):
+                return obj.__class__
+            if isinstance(obj, str):
+                return get_class(obj)
+            if inspect.isclass(obj) and issubclass(obj, UserDbBase):
+                return obj
+            raise AssertionError(f"invalid object={obj}")
+
+        return self.session().query(*(_class(m) for m in models))
 
     def rename_table(self, old, new):
         self._execute_sql(
@@ -201,7 +217,7 @@ class _AuthDb(sirepo.quest.Attr):
         return self._orm_session
 
     def _commit_or_rollback(self, commit):
-        if _orm_session is None:
+        if self._orm_session is None:
             return
         s = self._orm_session
         self._orm_session = None

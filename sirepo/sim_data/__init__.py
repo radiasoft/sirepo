@@ -18,8 +18,10 @@ import sirepo.const
 import sirepo.feature_config
 import sirepo.job
 import sirepo.resource
+import sirepo.srdb
 import sirepo.template
 import sirepo.util
+import subprocess
 import uuid
 
 _cfg = None
@@ -80,10 +82,10 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
                 stderr=subprocess.STDOUT,
             )
             # lib_dir may not exist: git.radiasoft.org/ops/issues/645
-            l = pykern.pkio.mkdir_parent(
+            l = pkio.mkdir_parent(
                 simulation_db.simulation_lib_dir(sim_type, qcall=qcall),
             )
-            e = [f.basename for f in pykern.pkio.sorted_glob(l.join("*"))]
+            e = [f.basename for f in pkio.sorted_glob(l.join("*"))]
             for f in cls.proprietary_code_lib_file_basenames():
                 if force or f not in e:
                     t.join(f).rename(l.join(f))
@@ -103,14 +105,13 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
             "; run: sirepo setup_dev" if pykern.pkconfig.channel_in("dev") else ""
         )
         r = qcall.auth_db.model("UserRole").has_role(
-            qcall=qcall,
             role=sirepo.auth_role.for_sim_type(t),
         )
         if r:
             _add(d, t, c)
             continue
         # SECURITY: User no longer has access so remove all artifacts
-        pykern.pkio.unchecked_remove(simulation_db.simulation_dir(t, qcall=qcall))
+        pkio.unchecked_remove(simulation_db.simulation_dir(t, qcall=qcall))
 
 
 def get_class(type_or_data):

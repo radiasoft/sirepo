@@ -22,7 +22,7 @@ AUTH_METHOD = "github"
 this_module = pkinspect.this_module()
 
 #: Well known alias for auth
-UserModel = sirepo.auth_db.AuthGithubUser
+UserModel = "AuthGithubUser"
 
 
 class API(sirepo.quest.API):
@@ -36,12 +36,13 @@ class API(sirepo.quest.API):
         d = oc.get("https://api.github.com/user").json()
         sirepo.events.emit(self, "github_authorized", PKDict(user_name=d["login"]))
         with sirepo.util.THREAD_LOCK:
-            u = UserModel.search_by(oauth_id=d["id"])
+            m = self.auth_db.model(UserModel)
+            u = m.unchecked_search_by(oauth_id=d["id"])
             if u:
                 # always update user_name
                 u.user_name = d["login"]
             else:
-                u = UserModel(oauth_id=d["id"], user_name=d["login"])
+                u = m.new(oauth_id=d["id"], user_name=d["login"])
             u.save()
             self.auth.login(this_module, model=u, sim_type=t, want_redirect=True)
             raise AssertionError("auth.login returned unexpectedly")

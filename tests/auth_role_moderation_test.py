@@ -22,15 +22,14 @@ def setup_module(module):
 def test_moderation(auth_fc):
     from pykern import pkunit
     from sirepo import srunit
-    import sirepo.auth_db
-    import sirepo.pkcli.roles
+    from sirepo.pkcli import roles
 
     fc = auth_fc
     fc.sr_email_register("x@x.x", sim_type="srw")
     fc.sr_sim_type = "myapp"
-    with srunit.quest_start():
-        sirepo.auth_db.UserRole.delete_all()
-        sirepo.auth_db.UserRoleInvite.delete_all()
+    with srunit.quest_start() as qcall:
+        qcall.auth_db.model("UserRole").delete_all()
+        qcall.auth_db.model("UserRoleInvite").delete_all()
     with pkunit.pkexcept("SRException.*moderationRequest"):
         fc.sr_sim_data()
     fc.sr_post(
@@ -46,7 +45,7 @@ def test_moderation(auth_fc):
         raw_response=True,
     )
     pkunit.pkeq(403, r.status_code)
-    sirepo.pkcli.roles.add_roles(
+    roles.add(
         fc.sr_auth_state().uid,
         sirepo.auth_role.ROLE_ADM,
     )

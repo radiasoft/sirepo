@@ -28,7 +28,7 @@ AUTH_METHOD = sirepo.auth.METHOD_EMAIL
 AUTH_METHOD_VISIBLE = True
 
 #: Well known alias for auth
-UserModel = sirepo.auth_db.AuthEmailUser
+UserModel = "AuthEmailUser"
 
 #: module handle
 this_module = pkinspect.this_module()
@@ -45,14 +45,15 @@ class API(sirepo.quest.API):
             sirepo.util.raise_forbidden("robots not allowed")
         req = self.parse_params(type=simulation_type)
         with sirepo.util.THREAD_LOCK:
-            u = UserModel.search_by(qcall=self, token=token)
+            m = self.auth_db.model(UserModel)
+            u = m.unchecked_search_by(token=token)
             if u and u.expires >= sirepo.srtime.utc_now():
                 n = self._verify_confirm(
                     req.type,
                     token,
                     self.auth.need_complete_registration(u),
                 )
-                UserModel.delete_changed_email(qcall=self, user=u)
+                m.delete_changed_email(user=u)
                 u.user_name = u.unverified_email
                 u.token = None
                 u.expires = None
@@ -86,11 +87,12 @@ class API(sirepo.quest.API):
         req = self.parse_post()
         email = self._parse_email(req.req_data)
         with sirepo.util.THREAD_LOCK:
-            u = UserModel.search_by(qcall=self, unverified_email=email)
+            m = self.auth_db.model(UserModel)
+            u = m.unchecked_search_by(unverified_email=email)
             if not u:
-                u = UserModel(unverified_email=email)
-            u.create_token(qcall=self)
-            u.save(qcall=self)
+                u = m.new(unverified_email=email)
+            u.create_token()
+            u.save()
         return self._send_login_email(
             u,
             self.absolute_uri(
@@ -120,7 +122,7 @@ class API(sirepo.quest.API):
 
     {}
     """.format(
-                login_text, UserModel.EXPIRES_MINUTES / 60, uri
+                login_text, self.auth_db.model(UserModel).EXPIRES_MINUTES / 60, uri
             ),
         )
         if not r:
@@ -161,10 +163,3 @@ def avatar_uri(qcall, model, size):
         hashlib.md5(pykern.pkcompat.to_bytes(model.user_name)).hexdigest(),
         size,
     )
-
-
-def unchecked_user_by_user_name(qcall, user_name):
-    u = UserModel.search_by(qcall=qcall, user_name=user_name)
-    if u:
-        return u.uid
-    return None
