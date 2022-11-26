@@ -33,7 +33,7 @@ def test_adm_jobs_forbidden(auth_fc):
     from sirepo import srunit
 
     def _op(fc, sim_type):
-        with srunit.quest_start() as qcall
+        with srunit.quest_start() as qcall:
             qcall.auth_db.model("UserRole").delete_all_for_column_by_values(
                 "uid",
                 [
