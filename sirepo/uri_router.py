@@ -276,6 +276,8 @@ def _call_api(parent, route, kwargs, data=None):
             c = True
         except Exception as e:
             if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+                if isinstance(e, sirepo.util.OKReply):
+                    c = True
                 pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
             else:
                 pkdlog(

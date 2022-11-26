@@ -72,7 +72,7 @@ class UserDbBase:
         self.auth_db.session().add(self)
 
     def search_by(self, **filter_by):
-        return self._new(self, self.query().filter_by(**filter_by).one())
+        return self._new(self.query().filter_by(**filter_by).one())
 
     def search_all_for_column(self, column, **filter_by):
         return [getattr(r, column) for r in self.query().filter_by(**filter_by)]
@@ -122,6 +122,8 @@ def init_module():
         f"sqlite:///{db_filename()}",
         # We ensure single threaded access through locking
         connect_args={"check_same_thread": False},
+        echo=True,
+        #        echo_pool=True,
     )
 
 
