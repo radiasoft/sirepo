@@ -28,7 +28,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
 
     def all_roles(self):
         cls = self.__class__
-        return [r[0] for r in self.query(cls.role.distinct()).all()]
+        return [r[0] for r in self.query().distinct(cls.role).all()]
 
     def add_roles(self, roles, expiration=None):
         from sirepo import sim_data

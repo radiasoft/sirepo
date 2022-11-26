@@ -8,6 +8,7 @@ from pykern import pkcli
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 import pyisemail
+import sirepo.auth
 import sirepo.auth_role
 import sirepo.quest
 import sirepo.sim_api.jupyterhublogin
@@ -43,7 +44,7 @@ def create_user(email, display_name):
         if u:
             pkcli.command_error("email={} is not verified", email)
         # Completely new Sirepo user
-        return qcall.auth.create_user_from_email(email=email display_name=display_name)
+        return qcall.auth.create_user_from_email(email=email, display_name=display_name)
 
     if not pyisemail.is_email(email):
         pkcli.command_error("invalid email={}", email)
@@ -54,12 +55,12 @@ def create_user(email, display_name):
             email,
             display_name,
         )
-        with qcall.auth.logged_in_user_set(u, method=m):
+        with qcall.auth.logged_in_user_set(u, method=sirepo.auth.METHOD_EMAIL):
             n = sirepo.sim_api.jupyterhublogin.create_user(
                 qcall=qcall,
                 check_dir=True,
             )
-            self.qcall.auth_db.model("UserRole").add_roles(
+            qcall.auth_db.model("UserRole").add_roles(
                 roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],
             )
         return PKDict(email=email, jupyterhub_user_name=n)

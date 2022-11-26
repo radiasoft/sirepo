@@ -69,4 +69,4 @@ def _is_empty_dir(path):
 
 
 def _is_empty_table(table):
-    _is_empty(table.search_all_by())
+    _is_empty(table.query().all())

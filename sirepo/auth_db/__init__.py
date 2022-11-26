@@ -36,9 +36,6 @@ _models = None
 
 @sqlalchemy.ext.declarative.as_declarative()
 class UserDbBase:
-    def all(self):
-        return self.query().all()
-
     def as_pkdict(self):
         return PKDict({c: getattr(self, c) for c in self.column_names()})
 

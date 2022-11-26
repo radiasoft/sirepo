@@ -174,13 +174,11 @@ def _20210218_add_flash_proprietary_lib_files_force(qcall):
 
 def _20210301_migrate_role_jupyterhub(qcall):
     r = sirepo.auth_role.for_sim_type("jupyterhublogin")
-    if (
-        not sirepo.template.is_sim_type("jupyterhublogin")
-        or r in qcall.auth_db.UserRole.all_roles()
-    ):
+    m = qcall.auth_db.model("UserRole")
+    if not sirepo.template.is_sim_type("jupyterhublogin") or r in m.all_roles():
         return
     for u in qcall.auth_db.all_uids():
-        qcall.auth_db.model("UserRole").add_roles(u, r)
+        m.add_roles(u, r)
 
 
 def _20220609_add_expiration_column_to_user_role_t(qcall):
