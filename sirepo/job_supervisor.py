@@ -467,7 +467,7 @@ class _ComputeJob(_Supervisor):
         def _get_uids_and_files(qcall):
             r = []
             u = None
-            p = qcall.model("UserRole").uids_of_paid_users()
+            p = qcall.auth_db.model("UserRole").uids_of_paid_users()
             for f in pkio.sorted_glob(
                 _DB_DIR.join(
                     "*{}".format(
