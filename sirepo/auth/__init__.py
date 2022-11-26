@@ -439,7 +439,7 @@ class _Auth(sirepo.quest.Attr):
         u = model_or_uid if isinstance(model_or_uid, str) else model_or_uid.uid
         if not u:
             return True
-        return bool(self.user_display_name(uid=u))
+        return not self.user_display_name(uid=u)
 
     def only_for_api_auth_state(self):
         return self._auth_state()
