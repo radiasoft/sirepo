@@ -122,8 +122,8 @@ def init_module():
         f"sqlite:///{db_filename()}",
         # We ensure single threaded access through locking
         connect_args={"check_same_thread": False},
-        echo=True,
-        #        echo_pool=True,
+        # echo=True,
+        # echo_pool=True,
     )
 
 
