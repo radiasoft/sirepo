@@ -21,7 +21,7 @@ def setup_module(module):
 
 def test_moderation(auth_fc):
     from pykern import pkunit
-    from sirepo import srunit
+    from sirepo import auth_role, srunit
     from sirepo.pkcli import roles
 
     fc = auth_fc
@@ -45,14 +45,8 @@ def test_moderation(auth_fc):
         raw_response=True,
     )
     pkunit.pkeq(403, r.status_code)
-    roles.add(
-        fc.sr_auth_state().uid,
-        sirepo.auth_role.ROLE_ADM,
-    )
-    r = fc.sr_post(
-        "getModerationRequestRows",
-        PKDict(),
-    )
+    roles.add(fc.sr_auth_state().uid, auth_role.ROLE_ADM)
+    r = fc.sr_post("getModerationRequestRows", PKDict())
     pkunit.pkeq(len(r.rows), 1)
     fc.sr_post(
         "admModerate",

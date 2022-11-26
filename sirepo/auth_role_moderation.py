@@ -165,7 +165,7 @@ class API(sirepo.quest.API):
 
 
 def raise_control_for_user(qcall, uid, role, sim_type):
-    s = self.auth_db.model("UserRoleInvite").get_status(role=role)
+    s = qcall.auth_db.model("UserRoleInvite").get_status(role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", PKDict(sim_type=sim_type))
     if s == sirepo.auth_role.ModerationStatus.DENY:

@@ -114,15 +114,15 @@ class UserRoleInvite(sirepo.auth_db.UserDbBase):
 
     def get_moderation_request_rows(self):
         cls = self.__class__
-        t = self.auth_db.model("AuthEmailUser")
+        e = self.auth_db.model("AuthEmailUser").__class__
         q = (
-            self.auth_db.query(t)
+            self.auth_db.query(e)
             .with_entities(
-                t.user_name.label("email"),
+                e.user_name.label("email"),
                 *cls.__table__.columns,
             )
             .filter(
-                t.uid == cls.uid,
+                e.uid == cls.uid,
                 sqlalchemy.sql.expression.or_(
                     cls.status == "pending", cls.status == "clarify"
                 ),
