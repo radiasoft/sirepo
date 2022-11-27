@@ -156,8 +156,6 @@ def get_application_data(data, qcall, **kwargs):
         return _read_roi_file(data["simulationId"], qcall)
     elif data["method"] == "update_roi_points":
         return _update_roi_file(data["simulationId"], data["editedContours"], qcall)
-    else:
-        raise RuntimeError("{}: unknown application data method".format(data["method"]))
 
 
 def get_data_file(run_dir, model, frame, options):

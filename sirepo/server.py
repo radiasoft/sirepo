@@ -280,8 +280,8 @@ class API(sirepo.quest.API):
             response: may be a file or JSON
         """
         req = self.parse_post(template=True, filename=filename or None)
+        assert "method" in req.req_data
         with simulation_db.tmp_dir(qcall=self) as d:
-            assert "method" in req.req_data
             res = req.template.get_application_data(req.req_data, qcall=self, tmp_dir=d)
             assert (
                 res != None

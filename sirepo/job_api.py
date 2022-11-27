@@ -29,7 +29,7 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("internal_test", days="TimeDeltaDays")
     def api_adjustSupervisorSrtime(self, days):
-        return self.request(
+        return self._request_api(
             api_name="not used",
             _request_content=PKDict(days=days),
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
@@ -37,18 +37,18 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_adm")
     def api_admJobs(self):
-        return self.request(
+        return self._request_api(
             _request_content=PKDict(**self._parse_post_just_data()),
         )
 
     @sirepo.quest.Spec("require_user")
     def api_analysisJob(self):
-        return self.request()
+        return self._request_api()
 
     @sirepo.quest.Spec("require_user")
     def api_beginSession(self):
         u = self.auth.logged_in_user()
-        return self.request(
+        return self._request_api(
             _request_content=PKDict(
                 uid=u,
                 userDir=str(sirepo.simulation_db.user_path(qcall=self)),
@@ -79,7 +79,7 @@ class API(sirepo.quest.API):
             t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
             try:
-                r = self.request(
+                r = self._request_api(
                     computeJobHash="unused",
                     dataFileKey=t.basename,
                     frame=int(frame),
@@ -109,7 +109,7 @@ class API(sirepo.quest.API):
         e = None
         try:
             k = sirepo.job.unique_key()
-            r = self.request(
+            r = self._request_api(
                 _request_content=PKDict(ping=k),
                 _request_uri=self._supervisor_uri(sirepo.job.SERVER_PING_URI),
             )
@@ -132,7 +132,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     def api_ownJobs(self):
-        return self.request(
+        return self._request_api(
             _request_content=self._parse_post_just_data().pkupdate(
                 uid=self.auth.logged_in_user(),
             ),
@@ -141,7 +141,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     def api_runCancel(self):
         try:
-            return self.request()
+            return self._request_api()
         except Exception as e:
             pkdlog("ignoring exception={} stack={}", e, pkdexc())
         # Always true from the client's perspective
@@ -164,7 +164,7 @@ class API(sirepo.quest.API):
             c = self._request_content(PKDict(req_data=m))
             c.data.pkupdate(api=_api(c.data.api), awaitReply=m.awaitReply)
             r.append(c)
-        return self.request(
+        return self._request_api(
             _request_content=PKDict(data=r),
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
         )
@@ -174,11 +174,11 @@ class API(sirepo.quest.API):
         r = self._request_content(PKDict(fixup_old_data=True))
         if r.isParallel:
             r.isPremiumUser = self.auth.is_premium_user()
-        return self.request(_request_content=r)
+        return self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user")
     def api_runStatus(self):
-        return self.request()
+        return self._request_api()
 
     @sirepo.quest.Spec("require_user")
     def api_sbatchLogin(self):
@@ -186,13 +186,13 @@ class API(sirepo.quest.API):
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
         )
         r.sbatchCredentials = r.pkdel("data")
-        return self.request(_request_content=r)
+        return self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user", frame_id="SimFrameId")
     def api_simulationFrame(self, frame_id):
         return template_common.sim_frame(
             frame_id,
-            lambda a: self.request(
+            lambda a: self._request_api(
                 analysisModel=a.frameReport,
                 # simulation frames are always sequential requests even though
                 # the report name has 'animation' in it.
@@ -210,7 +210,14 @@ class API(sirepo.quest.API):
     def api_statelessCompute(self):
         return self._request_compute()
 
-    def request(self, **kwargs):
+    def _parse_post_just_data(self):
+        """Remove computed objects"""
+        r = self.parse_post()
+        r.pkdel("qcall")
+        r.pkdel("template")
+        return r
+
+    def _request_api(self, **kwargs):
         def get_api_name():
             if "api_name" in kwargs:
                 return kwargs["api_name"]
@@ -246,15 +253,8 @@ class API(sirepo.quest.API):
         r.raise_for_status()
         return pkjson.load_any(r.content)
 
-    def _parse_post_just_data(self):
-        """Remove computed objects"""
-        r = self.parse_post()
-        r.pkdel("qcall")
-        r.pkdel("template")
-        return r
-
     def _request_compute(self):
-        return self.request(
+        return self._request_api(
             jobRunMode=sirepo.job.SEQUENTIAL,
             req_data=PKDict(**self.parse_post().req_data,).pkupdate(
                 computeJobHash="unused",
@@ -266,7 +266,7 @@ class API(sirepo.quest.API):
     def _request_content(self, kwargs):
         d = kwargs.pkdel("req_data")
         if not d:
-            # TODO(robnagler) need to use parsed values, ok for now, becasue none of
+            # TODO(robnagler) need to use parsed values, ok for now, because none of
             # of the used values are modified by parse_post. If we have files (e.g. file_type, filename),
             # we need to use those values from parse_post
             d = self.parse_post(

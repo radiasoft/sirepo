@@ -4631,12 +4631,8 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             controller.fieldRange = null;
             controller.isComputingRanges = true;
             setRunningState(name);
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_particle_ranges',
-                    simulationId: appState.models.simulation.simulationId,
-                    modelName: name,
-                },
+            requestSender.sendAnalysisJob(
+                appState,
                 function(data) {
                     controller.isComputingRanges = false;
                     if (appState.isLoaded() && data.fieldRange) {
@@ -4652,7 +4648,12 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
                         }
                         controller.fieldRange = data.fieldRange;
                     }
-                });
+                },
+                {
+                    method: 'compute_particle_ranges',
+                    modelName: name,
+                },
+            );
         }
     };
 

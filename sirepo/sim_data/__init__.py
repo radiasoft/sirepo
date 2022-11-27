@@ -477,7 +477,12 @@ class SimDataBase(object):
         if isinstance(obj, pkconfig.STRING_TYPES):
             res = obj
         elif isinstance(obj, dict):
-            res = obj.get("frameReport") or obj.get("report") or obj.get("computeModel")
+            for i in ("frameReport", "report", "computeModel", "modelName"):
+                if i in obj:
+                    res = obj.get(i)
+                    break
+            else:
+                res = None
         else:
             raise AssertionError("obj={} is unsupported type={}", obj, type(obj))
         assert res and _MODEL_RE.search(res), "invalid model={} from obj={}".format(

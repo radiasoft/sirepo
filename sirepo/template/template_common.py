@@ -251,32 +251,22 @@ def analysis_job_dispatch(data):
     )(data, simulation_db.simulation_run_dir(data))
 
 
-def compute_field_range(args, compute_range, qcall=None):
+def compute_field_range(args, compute_range, run_dir):
     """Computes the fieldRange values for all parameters across all animation files.
     Caches the value on the animation input file. compute_range() is called to
     read the simulation specific datafiles and extract the ranges by field.
     """
     from sirepo import simulation_db
 
-    run_dir = simulation_db.simulation_run_dir(
-        PKDict(
-            simulationType=args["simulationType"],
-            simulationId=args["simulationId"],
-            # TODO(pjm): pass animation model name in, default to "animation"
-            report="animation",
-        ),
-        qcall=qcall,
-    )
     data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
     res = None
-    model_name = args["modelName"]
-    if model_name in data.models:
-        if "fieldRange" in data.models[model_name]:
-            res = data.models[model_name].fieldRange
+    n = args.modelName
+    if n in data.models:
+        if "fieldRange" in data.models[n]:
+            res = data.models[n].fieldRange
         else:
-            # TODO(pjm): second arg was never used
-            res = compute_range(run_dir, None)
-            data.models[model_name].fieldRange = res
+            res = compute_range(run_dir)
+            data.models[n].fieldRange = res
             simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
     return PKDict(fieldRange=res)
 

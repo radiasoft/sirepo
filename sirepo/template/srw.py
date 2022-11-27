@@ -467,7 +467,6 @@ def get_application_data(data, qcall, **kwargs):
             return PKDict(
                 error=str(e),
             )
-    raise RuntimeError("unknown application data method: {}".format(data.method))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -2023,6 +2022,22 @@ def _process_image(data, tmp_dir, qcall=None):
     # This should just be a basename, but this ensures it.
     import srwl_uti_smp
 
+    def _obj_par1(m):
+        if m.obj_type in ("1", "2", "3"):
+            return m.obj_size_ratio
+        elif m.obj_type == "4":
+            return m.poly_sides
+        else:
+            return m.rand_shapes
+
+    def _obj_par2(m):
+        if m.obj_type in ("1", "2", "3"):
+            m.rand_obj_size == "1"
+        elif m.obj_type == "4":
+            m.rand_poly_side == "1"
+        else:
+            return None
+
     path = str(
         _SIM_DATA.lib_file_abspath(
             sirepo.util.secure_filename(data.baseImage), qcall=qcall
@@ -2066,16 +2081,8 @@ def _process_image(data, tmp_dir, qcall=None):
             _ang_max=m.ang_max,
             _ang_dist=int(m.ang_dist),
             _rand_alg=int(m.rand_alg),
-            _obj_par1=m.obj_size_ratio
-            if m.obj_type in ("1", "2", "3")
-            else m.poly_sides
-            if m.obj_type == "4"
-            else m.rand_shapes,
-            _obj_par2=m.rand_obj_size == "1"
-            if m.obj_type in ("1", "2", "3")
-            else m.rand_poly_side == "1"
-            if m.obj_type == "4"
-            else None,
+            _obj_par1=_obj_par1(m),
+            _obj_par2=_obj_par2(m),
             _ret="img",
         )
         filename = "sample_processed.{}".format(m.outputImageFormat)

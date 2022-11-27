@@ -198,7 +198,6 @@ def get_application_data(data, qcall, **kwargs):
     if data.method == "save_stl_polys" and "polys" in data:
         _save_stl_polys(data, qcall=qcall)
         return {}
-    raise RuntimeError("unknown application data method: {}".format(data["method"]))
 
 
 def get_data_file(run_dir, model, frame, options):

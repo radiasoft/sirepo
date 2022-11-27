@@ -173,7 +173,6 @@ def get_application_data(data, qcall, **kwargs):
         return _read_epics_kickers(data)
     if data["method"] == "enable_steering":
         return _enable_steering(data, qcall)
-    assert False, "unknown application_data method: {}".format(data["method"])
 
 
 def get_beam_pos_report(run_dir, data):
