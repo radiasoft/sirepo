@@ -322,7 +322,7 @@ SIREPO.app.directive('scansTable', function() {
                 </table>
                 <div style="height: 20px;">
                   <div ng-if="awaitingScans" data-dots-animation="" data-text="Checking for new scans"></div>
-                  <div ng-if="noScansReturned">No matching scans returned.</div>
+                  <div ng-if="noScansReturned">No scans found</div>
                 </div>
               </div>
             </div>
