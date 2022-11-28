@@ -1,4 +1,5 @@
-import { globalTypes, partialTypes, rsAbstrType } from "../type/types";
+import { InputLayout } from "../layout/input/input";
+import { TYPE_BASES } from "../layout/input/inputs";
 import { mapProperties } from "./object";
 
 export type SchemaLayoutJson = {
@@ -22,7 +23,7 @@ export type SchemaModelJson = {
 
 export type SchemaTypeJson = {
     base: string,
-    settings: {[key: string]: any}
+    config: {[key: string]: any}
 }
 
 export type SchemaJson = {
@@ -35,7 +36,7 @@ export type SchemaLayout = SchemaLayoutJson;
 
 export type SchemaField<T> = {
     displayName: string,
-    type: rsAbstrType,
+    type: InputLayout,
     defaultValue?: T,
     description?: string,
     shown?: string,
@@ -70,79 +71,21 @@ export function mergeSchemaJson(original, overrides) {
 }
 
 export function compileSchemaFromJson(schemaObj: SchemaJson) {
-    let enumTypes = {};
-    let additionalTypes = {};
+    let types: {[typeName: string]: InputLayout} = {};
 
     if(schemaObj.type) {
-        additionalTypes = mapProperties(schemaObj.type, (name, {base, settings}) => {
-            let partialTypeFactory = partialTypes[base];
-            let partialType = partialTypeFactory(settings);
-            return partialType;
+        types = mapProperties(schemaObj.type, (_, {base, config}) => {
+            return new (TYPE_BASES[base])(config);
         })
-    }
-
-    let types = {
-        ...globalTypes,
-        ...enumTypes,
-        ...additionalTypes
     }
 
     let models = {};
 
-    // TODO merge this from file
-    let simulationModel: SchemaModelJson = {
-        documentationUrl: {
-            displayName: "Documentation URL", 
-            type: "OptionalString", 
-            defaultValue: ""
-        },
-        folder: {
-            displayName: "Folder", 
-            type: "String", 
-            defaultValue: ""
-        },
-        isExample: {
-            displayName: "Is Example", 
-            type: "Boolean", 
-            defaultValue: true
-        },
-        lastModified: {
-            displayName: "Time Last Modified", 
-            type: "Integer", 
-            defaultValue: 0
-        }, // TODO: include this?
-        name: {
-            displayName: "Name", 
-            type: "String", 
-            defaultValue: ""
-        },
-        notes: {
-            displayName: "Notes", 
-            type: "OptionalString", 
-            defaultValue: ""
-        },
-        simulationId: {
-            displayName: "Simulation ID", 
-            type: "String", 
-            defaultValue: ""
-        }, // TODO: include this?
-        simulationSerial: {
-            displayName: "Simulation Serial", 
-            type: "String", 
-            defaultValue: ""
-        } // TODO: include this?
-    }
-
     if(schemaObj.model) {
         let missingTypeNames = [];
 
-        let allModels: {[modelName: string]: SchemaModelJson} = {
-            ...schemaObj.model,
-            "simulation": simulationModel
-        }
-
-        models = mapProperties(allModels, (modelName, modelObj) => {
-            return mapProperties(modelObj, (fieldName, field) => {
+        models = mapProperties(schemaObj.model, (_, modelObj) => {
+            return mapProperties(modelObj, (_, field) => {
                 let { displayName, type: typeName, defaultValue, description, shown, min, max } = field;
                 let type = types[typeName];
                 if(!type) {

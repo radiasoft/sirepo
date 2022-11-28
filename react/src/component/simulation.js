@@ -10,7 +10,7 @@ import {
     modelSelectors,
     modelActions
 } from "../store/models";
-import { FormStateInitializer } from "./reusable/form";
+import { FormStateInitializer } from "./reusable/form.tsx";
 import { useResolvedPath } from "react-router-dom";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";

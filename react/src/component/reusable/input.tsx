@@ -1,15 +1,15 @@
 import React, { FunctionComponent } from "react";
 import { Dependency } from "../../data/dependency";
 import { useRenderCount } from "../../hook/debug";
+import { InputComponentProps } from "../../layout/input/input";
 import { FormFieldState } from "../../store/formState";
-import { InputComponentProps } from "../../type/types";
 import { FormField } from "./form";
 
 export type FieldProps<T> = {
     value: FormFieldState<T>,
     updateField: (value: T | string | undefined) => void,
     dependency: Dependency,
-    inputComponent: FunctionComponent<InputComponentProps>
+    inputComponent: FunctionComponent<InputComponentProps<T>>
 }
 
 export type LabeledFieldProps<T> = {

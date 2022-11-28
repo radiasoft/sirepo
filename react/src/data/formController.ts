@@ -6,7 +6,7 @@ import { ModelState } from "../store/models";
 import { Schema } from "../utility/schema";
 import { ModelsAccessor } from "./accessor";
 import { AbstractModelsWrapper } from "./wrapper";
-import { rsAbstrType } from "../type/types";
+import { InputLayout } from "../layout/input/input";
 
 
 
@@ -22,7 +22,7 @@ export let formStateFromModel = (model, modelSchema) => mapProperties(modelSchem
 
 export const CFormController = React.createContext<FormController>(undefined);
 
-export function fieldStateFromValue<T>(value: any, lastState: FormFieldState<T>, type: rsAbstrType): FormFieldState<T> {
+export function fieldStateFromValue<T>(value: any, lastState: FormFieldState<T>, type: InputLayout): FormFieldState<T> {
     return {
         valid: type.validate(value),
         value,
@@ -51,11 +51,11 @@ export class FormController {
             return {
                 modelName: mn,
                 changes: Object.fromEntries(modelValues.map(mv => {
-                    let modelSchema = this.schema.models[mn];
-                    let v = modelSchema[mv.dependency.fieldName].type.dbValue(mv.value.value);
+                    //let modelSchema = this.schema.models[mn];
+                    //let v = modelSchema[mv.dependency.fieldName].type.toModelValue(mv.value.value);
                     return [
                         mv.dependency.fieldName,
-                        v
+                        mv.value.value
                     ]
                 }))
             }

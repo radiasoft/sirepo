@@ -1,10 +1,10 @@
 // import { React }
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
-import { Heatplot, HeatPlotConfig } from "../component/reusable/heatplot";
-import { LayoutProps, Layout } from "./layout";
+import { Heatplot, HeatPlotConfig } from "../../component/reusable/heatplot";
+import { LayoutProps } from "../layout";
 import React from "react";
-import { ReportVisual, ReportVisualProps } from "./report";
+import { ReportVisual, ReportVisualProps } from "../report";
 
 export type HeatplotConfigApi = {
     title: string,

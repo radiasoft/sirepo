@@ -1,6 +1,6 @@
 import { FieldGridLayout, FieldListLayout, LayoutWithFormController } from "./form";
-import { Graph2dFromApi } from "./graph2d";
-import { HeatplotFromApi } from "./heatplot";
+import { Graph2dFromApi } from "./report/graph2d";
+import { HeatplotFromApi } from "./report/heatplot";
 import { MissingLayout } from "./missing";
 import { PanelLayout } from "./panel";
 import { AutoRunReportLayout, ManualRunReportLayout, SimulationStartLayout } from "./report";
