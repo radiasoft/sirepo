@@ -324,7 +324,7 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
             }
             polys.push(polyVerts);
         }
-        requestSender.sendAnalysisJob(
+        requestSender.sendStatefulCompute(
             appState,
             function(d) {},
             {

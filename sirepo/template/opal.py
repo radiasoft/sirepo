@@ -460,13 +460,6 @@ def code_var(variables):
     )
 
 
-def get_application_data(data, qcall, **kwargs):
-    if code_var(data.variables).get_application_data(
-        data, SCHEMA, ignore_array_values=True
-    ):
-        return data
-
-
 def get_data_file(run_dir, model, frame, options):
     if frame < 0:
         return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)

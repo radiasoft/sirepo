@@ -906,6 +906,7 @@
             "enabled": ["Enabled", "Boolean", "0"],
             "title": ["_", "String", ""]
         },
+        "samplePreviewReport": {},
         "sample": {
             "title": ["Element Name", "String", "Sample"],
             "position": ["Position along Optical Path [m]", "Float"],

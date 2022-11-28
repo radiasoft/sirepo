@@ -144,6 +144,12 @@ class NoH5PathError(KeyError):
     pass
 
 
+class FileResponse(PKDict):
+    """ """
+
+    pass
+
+
 class ParticleEnergy:
     """Computes the energy related fields for a particle from one field.
     Units:

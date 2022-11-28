@@ -57,14 +57,6 @@ def analysis_job_compute_simulation_steps(data, run_dir, **kwargs):
     return PKDict()
 
 
-def analysis_job_save_stl_polys(data, run_dir, **kwargs):
-    assert "polys" in data
-    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.filename))
-    # write once
-    if not p.exists():
-        template_common.write_dict_to_h5(data, p, h5_path="/")
-
-
 def background_percent_complete(report, run_dir, is_running):
     if report == "optimizerAnimation":
         return _optimizer_percent_complete(run_dir, is_running)
@@ -295,6 +287,15 @@ def remove_last_frame(run_dir):
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
+
+
+def stateful_compute_save_stl_polys(data, **kwargs):
+    assert "polys" in data
+    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.filename))
+    # write once
+    if not p.exists():
+        template_common.write_dict_to_h5(data, p, h5_path="/")
+    return PKDict()
 
 
 def write_parameters(data, run_dir, is_parallel):
