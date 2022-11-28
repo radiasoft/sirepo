@@ -959,6 +959,13 @@ class _ComputeJob(_Supervisor):
             op.destroy(cancel=False)
 
     async def _send_op_analysis(self, req, jobCmd):
+        pkdlog(
+            "{} api={} method={}",
+            req,
+            jobCmd,
+            req.content.data.get("method"),
+        )
+
         return await self._send_with_single_reply(job.OP_ANALYSIS, req, jobCmd=jobCmd)
 
     async def _send_with_single_reply(self, opName, req, **kwargs):

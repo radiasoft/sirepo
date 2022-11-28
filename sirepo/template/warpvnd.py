@@ -4,8 +4,6 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
@@ -44,6 +42,27 @@ _PARTICLE_FILE = "particles.h5"
 _PARTICLE_PERIOD = 100
 _POTENTIAL_FILE = "potential.h5"
 _STL_POLY_FILE = "polygons.h5"
+
+
+def analysis_job_compute_simulation_steps(data, run_dir, **kwargs):
+    f = run_dir.join(_FIELD_ESTIMATE_FILE)
+    if f.exists():
+        res = simulation_db.read_json(f)
+        if res and "tof_expected" in res:
+            return PKDict(
+                timeOfFlight=res["tof_expected"],
+                steps=res["steps_expected"],
+                electronFraction=res["e_cross"] if "e_cross" in res else 0,
+            )
+    return PKDict()
+
+
+def analysis_job_save_stl_polys(data, run_dir, **kwargs):
+    assert "polys" in data
+    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.filename))
+    # write once
+    if not p.exists():
+        template_common.write_dict_to_h5(data, p, h5_path="/")
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -177,27 +196,6 @@ def generate_field_report(data, run_dir, args=None):
     res.global_max = np.max(potential) if vals_equal else None
     res.frequency_title = "Volts"
     return res
-
-
-def get_application_data(data, qcall, **kwargs):
-    if data.method == "compute_simulation_steps":
-        field_file = (
-            simulation_db.simulation_dir(SIM_TYPE, data["simulationId"], qcall=qcall)
-            .join("fieldCalculationAnimation")
-            .join(_FIELD_ESTIMATE_FILE)
-        )
-        if field_file.exists():
-            res = simulation_db.read_json(field_file)
-            if res and "tof_expected" in res:
-                return {
-                    "timeOfFlight": res["tof_expected"],
-                    "steps": res["steps_expected"],
-                    "electronFraction": res["e_cross"] if "e_cross" in res else 0,
-                }
-        return {}
-    if data.method == "save_stl_polys" and "polys" in data:
-        _save_stl_polys(data, qcall=qcall)
-        return {}
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -1166,15 +1164,3 @@ def _stl_file(conductor_type):
 
 def _stl_polygon_file(filename):
     return _SIM_DATA.lib_file_name_with_model_field("stl", filename, _STL_POLY_FILE)
-
-
-def _save_stl_polys(data, qcall=None):
-    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file), qcall=qcall)
-    # write once
-    if p.exists():
-        return
-    template_common.write_dict_to_h5(
-        data,
-        p,
-        h5_path="/",
-    )

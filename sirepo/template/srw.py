@@ -434,32 +434,7 @@ def extract_report_data(sim_in):
 
 
 def get_application_data(data, qcall, **kwargs):
-    if data.method == "model_list":
-        res = []
-        model_name = data.model_name
-        if model_name == "electronBeam":
-            res.extend(get_predefined_beams())
-        res.extend(_load_user_model_list(model_name, qcall=qcall))
-        if model_name == "electronBeam":
-            for beam in res:
-                srw_common.process_beam_parameters(beam)
-        return PKDict(modelList=res)
-    if data.method == "create_shadow_simulation":
-        from sirepo.template.srw_shadow import Convert
-
-        return Convert().to_shadow(data)
-    if data.method == "delete_user_models":
-        return _delete_user_models(
-            data.electron_beam,
-            data.tabulated_undulator,
-            qcall=qcall,
-        )
-    elif data.method == "compute_undulator_length":
-        return compute_undulator_length(
-            data.tabulated_undulator,
-            qcall=qcall,
-        )
-    elif data.method == "processedImage":
+    if data.method == "processedImage":
         try:
             return _process_image(data, kwargs["tmp_dir"], qcall=qcall)
         except Exception as e:
@@ -811,9 +786,20 @@ def stateful_compute_create_shadow_simulation(data):
 
 
 def stateful_compute_delete_user_models(data):
-    return _delete_user_models(
-        data.args["electron_beam"], data.args["tabulated_undulator"]
-    )
+    """Remove the beam and undulator user model list files"""
+    electron_beam = data.args.electron_beam
+    tabulated_undulator = data.args.tabulated_undulator
+    for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        model = electron_beam if model_name == "electronBeam" else tabulated_undulator
+        if not model or "id" not in model:
+            continue
+        user_model_list = _load_user_model_list(model_name, qcall=qcall)
+        for i, m in enumerate(user_model_list):
+            if m.id == model.id:
+                del user_model_list[i]
+                _save_user_model_list(model_name, user_model_list, qcall=qcall)
+                break
+    return PKDict()
 
 
 def stateful_compute_model_list(data):
@@ -1408,21 +1394,6 @@ def _create_user_model(data, model_name):
         model = model.copy()
         model.undulator = data.models.undulator
     return model
-
-
-def _delete_user_models(electron_beam, tabulated_undulator, qcall=None):
-    """Remove the beam and undulator user model list files"""
-    for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        model = electron_beam if model_name == "electronBeam" else tabulated_undulator
-        if not model or "id" not in model:
-            continue
-        user_model_list = _load_user_model_list(model_name, qcall=qcall)
-        for i, m in enumerate(user_model_list):
-            if m.id == model.id:
-                del user_model_list[i]
-                _save_user_model_list(model_name, user_model_list, qcall=qcall)
-                break
-    return PKDict()
 
 
 def _enum_text(name, model, field):

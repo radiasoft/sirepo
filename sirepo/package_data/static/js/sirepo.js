@@ -1933,7 +1933,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             windowResize();
         }
     };
-    
+
     self.toggleHiddenAndNotify = name => {
         self.toggleHidden(name);
         $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
@@ -1971,7 +1971,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
     var auxillaryData = {};
-    var getApplicationDataTimeout = {};
     var globalMap = {_name: 'global'};
     var localMap = {_name: 'local'};
 
@@ -2150,31 +2149,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
 
     self.formatUrl = function(routeName, params) {
         return formatUrl(globalMap, routeName, params);
-    };
-
-    self.getApplicationData = function(data, callback, fileName) {
-        // debounce the method so server calls don't go on every keystroke
-        // track method calls by methodSignature (for shared methods) or method name (for unique methods)
-        var signature = data.methodSignature || data.method;
-        if (getApplicationDataTimeout[signature]) {
-            $interval.cancel(getApplicationDataTimeout[signature]);
-        }
-        getApplicationDataTimeout[signature] = $interval(function() {
-            delete getApplicationDataTimeout[signature];
-            data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-            var r = fileName ? {
-                routeName: 'getApplicationData',
-                '<filename>': fileName
-            } : 'getApplicationData';
-            self.sendRequest(r, callback, data, function (data, status, respData) {
-                if (status === 200) {
-                    if (fileName) {
-                        // if filename, do a Blob saveAs() here?
-                        callback(respData, status);
-                    }
-                }
-            });
-        }, SIREPO.debounce_timeout, 1);
     };
 
     self.getAuxiliaryData = function(name) {
@@ -2425,12 +2399,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 }
                 var data = response.data;
                 if (! angular.isObject(data) || data.state === 'srException') {
-                    // properly handle file path returns from get_application_data, which do not live in json objects
-                    // (this is a placeholder)
-                    //if (response.status === 200) {
-                    //    successCallback(data, response.status);
-                    //    return;
-                    //}
                     thisErrorCallback(response);
                     return;
                 }
