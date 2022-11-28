@@ -20,9 +20,8 @@ export type LabeledFieldProps<T> = {
 export function FieldInput(props: FieldProps<unknown>) {
     let { value, updateField, inputComponent, dependency } = props;
 
-    const onChange = (event) => {
+    const onChange = (nextValue) => {
         console.log("field input onChange");
-        let nextValue = event.target.value;
         console.log("field.value.value", value.value);
         console.log("nextValue", nextValue);
         if (value.value !== nextValue) { // TODO fix field.value.value naming
