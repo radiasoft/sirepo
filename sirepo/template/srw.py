@@ -811,7 +811,7 @@ def stateful_compute_compute_undulator_length(data):
 
 
 def stateless_compute_results_to_activait(data):
-    _SIM_DATA.sim_file_to_other_sim_lib(data.args.file, "activait")
+    _SIM_DATA.sim_file_to_other_sim_lib(data.args.id, data.args.file, "activait")
     return PKDict()
 
 
