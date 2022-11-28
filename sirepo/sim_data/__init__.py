@@ -190,6 +190,10 @@ class SimDataBase(object):
         return cls._delete_sim_db_file(cls._sim_file_uri(sim_id, basename))
 
     @classmethod
+    def does_api_reply_with_file(cls, api, method):
+        return False
+
+    @classmethod
     def example_paths(cls):
         return sirepo.resource.glob_paths(
             _TEMPLATE_RESOURCE_DIR,

@@ -8,6 +8,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
 from sirepo.template import template_common
+import contextlib
 import inspect
 import pykern.pkconfig
 import pykern.pkio
@@ -15,6 +16,7 @@ import re
 import requests
 import sirepo.quest
 import sirepo.auth
+import sirepo.http_reply
 import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data
@@ -25,8 +27,14 @@ import sirepo.util
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
 
+_MUST_HAVE_METHOD = ("api_analysisJob", "api_statefulCompute", "api_statelessCompute")
+
 
 class API(sirepo.quest.API):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__sim_data = None
+
     @sirepo.quest.Spec("internal_test", days="TimeDeltaDays")
     def api_adjustSupervisorSrtime(self, days):
         return self._request_api(
@@ -43,6 +51,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     def api_analysisJob(self):
+        # TODO(robnagler): computeJobHash has to be checked
         return self._request_api()
 
     @sirepo.quest.Spec("require_user")
@@ -99,7 +108,7 @@ class API(sirepo.quest.API):
                 if t:
                     pykern.pkio.unchecked_remove(t)
             raise sirepo.util.raise_not_found(
-                "frame={} not found {id} {type}".format(frame, **req)
+                f"frame={frame} not found sid={req.id} sim_type={req.type}",
             )
 
     @sirepo.quest.Spec("allow_visitor")
@@ -243,22 +252,35 @@ class API(sirepo.quest.API):
             api=get_api_name(),
             serverSecret=sirepo.job.cfg().server_secret,
         )
+        if c.api in _MUST_HAVE_METHOD:
+            # TODO(robnagler) should be error reply
+            assert "method" in c
         pkdlog("api={} runDir={}", c.api, c.get("runDir"))
-        r = requests.post(
-            u,
-            data=pkjson.dump_bytes(c),
-            headers=PKDict({"Content-type": "application/json"}),
-            verify=sirepo.job.cfg().verify_tls,
-        )
-        r.raise_for_status()
-        return pkjson.load_any(r.content)
+        with self._reply_maybe_file(c) as d:
+            r = requests.post(
+                u,
+                data=pkjson.dump_bytes(c),
+                headers=PKDict({"Content-type": "application/json"}),
+                verify=sirepo.job.cfg().verify_tls,
+            )
+            r.raise_for_status()
+            if r.headers["content-type"] != "application/json":
+                raise AssertionError(
+                    f"expected json content-type={r.headers['content-type']}"
+                )
+            j = pkjson.load_any(r.content)
+            if d and j == sirepo.job.is_ok_reply(j):
+                return self._reply_with_file(d)
+            return j
 
     def _request_compute(self):
+        r = self.parse_post()
+        self.__sim_data = r.sim_data
         return self._request_api(
             jobRunMode=sirepo.job.SEQUENTIAL,
-            req_data=PKDict(**self.parse_post().req_data,).pkupdate(
+            req_data=PKDict(**r.req_data).pkupdate(
                 computeJobHash="unused",
-                report="statefulOrStatelessCompute",
+                report="unused",
             ),
             runDir=None,
         )
@@ -297,7 +319,33 @@ class API(sirepo.quest.API):
             computeJid=s.parse_jid(d, uid=b.uid),
             userDir=str(sirepo.simulation_db.user_path(qcall=self)),
         )
+        self.__sim_data = s
         return self._run_mode(b)
+
+    @contextlib.contextmanager
+    def _reply_maybe_file(self, content):
+        if (
+            not self.__sim_data
+            or content.api not in _MUST_HAVE_METHOD
+            or self.__sim_data.does_api_reply_with_file(content.api, content.method)
+        ):
+            yield None
+            return
+        with simulation_db.tmp_dir(qcall=self) as d:
+            t = None
+            try:
+                t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+                t.mksymlinkto(d, absolute=True)
+                yield d
+            finally:
+                if t:
+                    pykern.pkio.unchecked_remove(t)
+
+    def _reply_with_file(self, tmp_dir):
+        f = tmp_dir.listdir()
+        assert len(f) > 1, f"too many files={f}"
+        assert len(f) < 1, f"no files in tmp_dir={tmp_dir}"
+        return self.reply_file(f[0])
 
     def _run_mode(self, request_content):
         if "models" not in request_content.data or "jobRunMode" in request_content:

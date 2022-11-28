@@ -2347,19 +2347,32 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                     '<filename>': filename,
                 });
                 var m = appState.clone($scope.model);
+                simulationQueue.addTransientItem(
+                    'samplePreviewReport',
+                    appState.applicationState(),
+                    function(resp) {
+                        if (resp.error) {
+                            error(response);
+                            return;
+                        }
+                        requestSender.sendAnalysisJob(
+                            appState,
+                            function(resp) {
+                                data.error
+                            },
+                    {
+                        method: 'processedImage',
+                        baseImage: $scope.model.imageFile,
+                        model: m,
+                        report: 'samplePreviewReport',
+                    },
+                    },
+                    true,
+                );
                 m.outputImageFormat = format;
                 requestSender.downloadDataFile()
                 $http.post(
                     url,
-                    {
-                        'simulationId': appState.models.simulation.simulationId,
-                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
-                        'method': 'processedImage',
-                        'baseImage': $scope.model.imageFile,
-                        'model': m,
-                        'lib': true,
-                        modelName:
-                    },
                     {
                         responseType: 'blob',
                     }
@@ -2383,33 +2396,26 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                     return;
                 }
                 $scope.isLoading = true;
-                simulationQueue.addTransientItem(
-                    'samplePreviewReport',
-                    appState.applicationState(),
-                    function() {
-                        downloadImage(
-                            'png',
-                            function(filename, response) {
-                                imageData = response.data;
-                                $scope.isLoading = false;
-                                if (imageData.type == 'application/json') {
-                                    // an error message has been returned
-                                    imageData.text().then(function(text) {
-                                        $scope.errorMessage = JSON.parse(text).error;
-                                        $scope.$digest();
-                                    });
-                                }
-                                else {
-                                    var urlCreator = window.URL || window.webkitURL;
-                                    if ($('.srw-processed-image').length) {
-                                        $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
-                                    }
-                                }
-                            },
-                        );
+                downloadImage(
+                    'png',
+                    function(filename, response) {
+                        imageData = response.data;
+                        $scope.isLoading = false;
+                        if (imageData.type == 'application/json') {
+                            // an error message has been returned
+                            imageData.text().then(function(text) {
+                                $scope.errorMessage = JSON.parse(text).error;
+                                $scope.$digest();
+                            });
+                        }
+                        else {
+                            var urlCreator = window.URL || window.webkitURL;
+                            if ($('.srw-processed-image').length) {
+                                $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
+                            }
+                        }
                     },
-                    true,
-                )
+                );
             };
 
             $scope.downloadProcessedImage = function() {

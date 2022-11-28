@@ -198,9 +198,7 @@ async def terminate():
 
 class _Supervisor(PKDict):
     def __init__(self, **kwargs):
-        super().__init__(
-            **kwargs,
-        )
+        super().__init__(**kwargs)
 
     def destroy_op(self, op):
         pass
@@ -224,7 +222,7 @@ class _Supervisor(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            "_Supervisor(api={} uid={})", self.req.api, self.req.content.uid
+            "_Supervisor(api={} uid={})", self.req.content.api, self.req.content.uid
         )
 
     @classmethod

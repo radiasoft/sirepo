@@ -2279,8 +2279,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         });
     };
 
-    self.sendAnalysisJob = function(appState, callback, data) {
-        sendWithSimulationFields('analysisJob', appState, callback, data);
+    self.sendAnalysisJob = function(appState, callback, data, error) {
+        sendWithSimulationFields('analysisJob', appState, callback, data, errorCallback);
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {

@@ -109,12 +109,14 @@ def run(cfg_dir):
     srw = sirepo.template.import_module("srw")
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = template_common.exec_parameters()
-    # special case for importing python code
     m = sim_in.report
     if m == "backgroundImport":
+        # special case for importing python code
         template_common.write_sequential_result(
             PKDict({srw.PARSED_DATA_ATTR: r.parsed_data})
         )
+    elif m == "samplePreviewReport":
+        return
     else:
         template_common.write_sequential_result(
             srw.extract_report_data(sim_in),

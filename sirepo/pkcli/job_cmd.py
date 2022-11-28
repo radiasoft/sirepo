@@ -80,7 +80,18 @@ def _background_percent_complete(msg, template, is_running):
 
 def _dispatch_compute(msg):
     try:
-        return getattr(template_common, f"{msg.jobCmd}_dispatch")(msg.data)
+        r = getattr(template_common, f"{msg.jobCmd}_dispatch")(msg.data)
+        if not isinstance(r, template_common.JobCmdFile):
+            return r
+        e = _validate_msg(r.content)
+        if e:
+            return e
+        requests.put(
+            msg.dataFileUri + r.uri,
+            data=r.content,
+            verify=job.cfg().verify_tls,
+        ).raise_for_status()
+        return job.ok_reply()
     except Exception as e:
         return _maybe_parse_user_alert(e)
 

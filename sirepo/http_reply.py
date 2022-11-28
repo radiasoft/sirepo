@@ -87,16 +87,15 @@ def gen_file_as_attachment(qcall, content_or_path, filename=None, content_type=N
         filename = content_or_path.basename
     filename = re.sub(r"[^\w\.]+", "-", filename).strip("-")
     if re.search(r"^\.\w+$", filename):
-        # the safe filename has no basename, use "download" instead
+        # the safe filename has no basename, prefix with "download"
         filename = "download" + filename
-    if content_type is None:
-        content_type, _ = mimetypes.guess_type(filename)
-        if content_type is None:
-            content_type = "application/octet-stream"
-        # overrule mimetypes for this case
-        elif content_type == "text/x-python":
-            content_type = "text/plain"
-    return headers_for_no_cache(_as_attachment(f(), content_type, filename))
+    return headers_for_no_cache(
+        _as_attachment(
+            f(),
+            content_type or guess_content_type(filename),
+            filename,
+        ),
+    )
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
@@ -208,6 +207,16 @@ def gen_tornado_exception(exc):
         pykern.pkinspect.this_module(),
         "_gen_tornado_exception_reply_" + exc.__class__.__name__,
     )(exc.sr_args)
+
+
+def guess_content_type(basename):
+    res, _ = mimetypes.guess_type(basename)
+    if res is None:
+        return "application/octet-stream"
+    # overrule mimetypes for this case
+    elif res == "text/x-python":
+        return = "text/plain"
+    return res
 
 
 def headers_for_cache(resp, path=None):

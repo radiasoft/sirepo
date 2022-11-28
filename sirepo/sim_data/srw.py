@@ -90,6 +90,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         return analysis_model
 
     @classmethod
+    def does_api_reply_with_file(cls, api, method):
+        return api in "api_analysisJob" and method == "samplePreviewReport"
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         """Fixup data to match the most recent schema."""
         dm = data.models

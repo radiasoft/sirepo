@@ -285,6 +285,85 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
+def analysis_job_sample_preview(data, run_dira):
+    """Process image and return
+
+    Args:
+        data (dict): description of simulation
+    Returns:
+        py.path.local: file to return
+    """
+    # This should just be a basename, but this ensures it.
+    import srwl_uti_smp
+
+    def _obj_par1(m):
+        if m.obj_type in ("1", "2", "3"):
+            return m.obj_size_ratio
+        elif m.obj_type == "4":
+            return m.poly_sides
+        else:
+            return m.rand_shapes
+
+    def _obj_par2(m):
+        if m.obj_type in ("1", "2", "3"):
+            m.rand_obj_size == "1"
+        elif m.obj_type == "4":
+            m.rand_poly_side == "1"
+        else:
+            return None
+
+    path = str(
+        _SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)),
+    )
+    m = data.model
+    with pkio.save_chdir(run_dir):
+        if m.sampleSource == "file":
+            s = srwl_uti_smp.SRWLUtiSmp(
+                file_path=path,
+                area=None
+                if not int(m.cropArea)
+                else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd),
+                rotate_angle=float(m.rotateAngle),
+                rotate_reshape=int(m.rotateReshape),
+                cutoff_background_noise=float(m.cutoffBackgroundNoise),
+                background_color=int(m.backgroundColor),
+                invert=int(m.invert),
+                tile=None if not int(m.tileImage) else (m.tileRows, m.tileColumns),
+                shift_x=m.shiftX,
+                shift_y=m.shiftY,
+                is_save_images=True,
+                prefix=str(tmp_dir),
+                output_image_format=m.outputImageFormat,
+            )
+            p = pkio.py_path(s.processed_image_name)
+        else:
+            assert m.sampleSource == "randomDisk"
+            s = srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
+                _thickness=0,
+                _delta=0,
+                _atten_len=0,
+                _dens=m.dens,
+                _rx=m.rx,
+                _ry=m.ry,
+                _obj_type=int(m.obj_type),
+                _r_min_bw_obj=m.r_min_bw_obj,
+                _obj_size_min=m.obj_size_min,
+                _obj_size_max=m.obj_size_max,
+                _size_dist=int(m.size_dist),
+                _ang_min=m.ang_min,
+                _ang_max=m.ang_max,
+                _ang_dist=int(m.ang_dist),
+                _rand_alg=int(m.rand_alg),
+                _obj_par1=_obj_par1(m),
+                _obj_par2=_obj_par2(m),
+                _ret="img",
+            )
+            filename = "sample_processed.{}".format(m.outputImageFormat)
+            s.save(filename)
+            p = pkio.py_path(filename)
+        return template_common.JobCmdFile(path=p)
+
+
 def calculate_beam_drift(
     ebeam_position, source_type, undulator_type, undulator_length, undulator_period
 ):
@@ -1001,7 +1080,9 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if data.report == _SIM_DATA.EXPORT_RSOPT:
+    if data.report == "samplePreviewReport":
+        p = ""
+    elif data.report == _SIM_DATA.EXPORT_RSOPT:
         p = ""
         _export_rsopt_config(data)
     else:
@@ -1979,86 +2060,6 @@ def _parse_srw_log(run_dir):
     if res:
         return res
     return "An unknown error occurred"
-
-
-def _process_image(data, tmp_dir, qcall=None):
-    """Process image and return
-
-    Args:
-        data (dict): description of simulation
-
-    Returns:
-        py.path.local: file to return
-    """
-    # This should just be a basename, but this ensures it.
-    import srwl_uti_smp
-
-    def _obj_par1(m):
-        if m.obj_type in ("1", "2", "3"):
-            return m.obj_size_ratio
-        elif m.obj_type == "4":
-            return m.poly_sides
-        else:
-            return m.rand_shapes
-
-    def _obj_par2(m):
-        if m.obj_type in ("1", "2", "3"):
-            m.rand_obj_size == "1"
-        elif m.obj_type == "4":
-            m.rand_poly_side == "1"
-        else:
-            return None
-
-    path = str(
-        _SIM_DATA.lib_file_abspath(
-            sirepo.util.secure_filename(data.baseImage), qcall=qcall
-        )
-    )
-    m = data.model
-    with pkio.save_chdir(tmp_dir):
-        if m.sampleSource == "file":
-            s = srwl_uti_smp.SRWLUtiSmp(
-                file_path=path,
-                area=None
-                if not int(m.cropArea)
-                else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd),
-                rotate_angle=float(m.rotateAngle),
-                rotate_reshape=int(m.rotateReshape),
-                cutoff_background_noise=float(m.cutoffBackgroundNoise),
-                background_color=int(m.backgroundColor),
-                invert=int(m.invert),
-                tile=None if not int(m.tileImage) else (m.tileRows, m.tileColumns),
-                shift_x=m.shiftX,
-                shift_y=m.shiftY,
-                is_save_images=True,
-                prefix=str(tmp_dir),
-                output_image_format=m.outputImageFormat,
-            )
-            return pkio.py_path(s.processed_image_name)
-        assert m.sampleSource == "randomDisk"
-        s = srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
-            _thickness=0,
-            _delta=0,
-            _atten_len=0,
-            _dens=m.dens,
-            _rx=m.rx,
-            _ry=m.ry,
-            _obj_type=int(m.obj_type),
-            _r_min_bw_obj=m.r_min_bw_obj,
-            _obj_size_min=m.obj_size_min,
-            _obj_size_max=m.obj_size_max,
-            _size_dist=int(m.size_dist),
-            _ang_min=m.ang_min,
-            _ang_max=m.ang_max,
-            _ang_dist=int(m.ang_dist),
-            _rand_alg=int(m.rand_alg),
-            _obj_par1=_obj_par1(m),
-            _obj_par2=_obj_par2(m),
-            _ret="img",
-        )
-        filename = "sample_processed.{}".format(m.outputImageFormat)
-        s.save(filename)
-        return pkio.py_path(filename)
 
 
 def _process_rsopt_elements(els):

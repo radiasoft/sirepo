@@ -55,6 +55,32 @@ _PLOT_LINE_COLOR = [
 ]
 
 
+class JobCmdFile(PKDict):
+    """Returned by dispatched job commands
+
+    `analysis_job_dispatch`, `stateless_compute_dispatch`, and
+    `stateful_compute_dispatch` support file returns.
+
+    Args:
+        content (object): what to send [path.read()]
+        path (py.path): py.path of file to read
+        uri (str): what to call the file [path.basename]
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if "error" not in self:
+            self.error = None
+        if "uri" not in self:
+            self.u = self.path.basename
+        if "content" not in self:
+            self.content = (
+                pkcompat.to_bytes(pkio.read_text(self.path))
+                if u.endswith((".py", ".txt", ".csv"))
+                else self.path.read_binary()
+            )
+
+
 class ModelUnits:
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
@@ -140,12 +166,6 @@ class NamelistParser:
 
 class NoH5PathError(KeyError):
     """The given path into an h5 file does not exist"""
-
-    pass
-
-
-class FileResponse(PKDict):
-    """ """
 
     pass
 
