@@ -44,14 +44,65 @@
         }
     },
     "type": {
+        "String": {
+            "base": "String",
+            "config": {
+                "isRequired": true
+            }
+        },
         "OptionalString": {
-            "isRequired": false
+            "base": "String",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "Text": {
+            "base": "String",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "Float": {
+            "base": "Float",
+            "config": {
+                "isRequired": true
+            }
         },
         "OptionalFloat": {
-            "isRequired": false
+            "base": "String",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "Integer": {
+            "base": "Integer",
+            "config": {
+                "isRequired": true
+            }
         },
         "OptionalInteger": {
-            "isRequired": false
+            "base": "String",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "Boolean": {
+            "base": "Boolean",
+            "config": {
+                "isRequired": true
+            }
+        },
+        "OptionalBoolean": {
+            "base": "Boolean",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "File": {
+            "base": "File",
+            "config": {
+                "isRequired": false
+            }
         },
         "AspectRatio": {
             "base": "Enum",

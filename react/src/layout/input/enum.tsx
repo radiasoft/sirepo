@@ -8,13 +8,21 @@ import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
 
 export type EnumAllowedValues = { value: string, displayName: string }[]
 
+export type EnumConfigRaw = {
+    allowedValues: [string, string][]
+} & InputConfigBase
+
 export type EnumConfig = {
     allowedValues: EnumAllowedValues
 } & InputConfigBase
 
 export class EnumInputLayout extends InputLayout<EnumConfig, string, string> {
-    constructor(config: EnumConfig) {
-        super(config);
+    constructor(config: EnumConfigRaw) {
+        let newConfig = {
+            ...config,
+            allowedValues: config.allowedValues.map((v) => { return { value: v[0], displayName: v[1] }})
+        }
+        super(newConfig);
     }
 
     toModelValue: (value: string) => string = (v) => v;
@@ -33,7 +41,9 @@ export class EnumInputLayout extends InputLayout<EnumConfig, string, string> {
             props.onChange(event.target.value);
         }
 
-        return <Form.Select {...props} onChange={onChange}>
+        let { valid, touched, ...otherProps } = props;
+
+        return <Form.Select {...otherProps} onChange={onChange} isInvalid={!valid && touched}>
             {options}
         </Form.Select>
     }
@@ -82,12 +92,14 @@ export class ComputeResultEnumInputLayout extends InputLayout<ComputeResultEnumC
             enumOptionsPromise.then(result => updateOptionList(result));
         }, [])
 
+        let {valid, touched, ...otherProps} = props;
+
         let onChange: ChangeEventHandler<HTMLSelectElement> = (event) => {
             props.onChange(event.target.value);
         }
 
         // TODO: this is more of a mock element since this does not have
         // a working example right now
-        return <Form.Select {...props} onChange={onChange}></Form.Select>
+        return <Form.Select {...otherProps} onChange={onChange} isInvalid={!valid && touched}></Form.Select>
     }
 }

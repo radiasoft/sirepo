@@ -32,7 +32,7 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
     }
 
     component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
-        let { dependency, ...otherProps } = props;
+        let { dependency, valid, touched, ...otherProps } = props;
         let [dummyState, updateDummyState] = useState({})
 
         let appName = useContext(CAppName);
@@ -80,7 +80,7 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
         let formSelectRef = useRef<HTMLSelectElement>();
 
         let options = [
-            <option hidden>No file selected...</option>,
+            <option key={"default-file-option"} hidden>No file selected...</option>,
             ...(fileNameList || []).map(fileName => (
                 <option key={fileName} value={fileName}>{fileName}</option>
             ))
@@ -116,7 +116,7 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
 
         return (
             <div className="sr-form-file-upload-row">
-                <Form.Select ref={formSelectRef} {...otherProps} onChange={onChange}>
+                <Form.Select ref={formSelectRef} {...otherProps} onChange={onChange} isInvalid={!valid && touched}>
                     {options}
                 </Form.Select>
                 <Button onClick={downloadFile}>

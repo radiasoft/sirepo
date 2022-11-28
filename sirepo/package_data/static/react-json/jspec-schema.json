@@ -2,7 +2,7 @@
     "type": {
         "TwissFile": {
             "base": "File",
-            "settings": {
+            "config": {
                 "pattern": ".+\\.tfs",
                 "isRequired": true,
                 "inspectModal": {
@@ -31,14 +31,14 @@
         },
         "ElegantSimList": {
             "base": "StatefulComputeEnum",
-            "settings": {
+            "config": {
                 "computeMethod": "get_elegant_sim_list",
                 "resultName": "simList"
             }
         },
         "ElectronBeamShape": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["dc_uniform", "Cylindrical"],
                     ["bunched_gaussian", "Gaussian"],
@@ -49,7 +49,7 @@
         },
         "ElectronBeamShapeDescription": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["dc_uniform", "The unbunched electron beam is a continuous cylinder with circular cross-section."],
                     ["bunched_gaussian", "The electron beam is a 3D Gaussian distribution in space."],
@@ -60,7 +60,7 @@
         },
         "BeamColumn": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["emitx", "emit_x"],
                     ["emity", "emit_y"],
@@ -71,7 +71,7 @@
         },
         "BeamOptionalColumn": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["emitx", "emit_x"],
                     ["emity", "emit_y"],
@@ -83,7 +83,7 @@
         },
         "BeamParticle": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["ALUMINUM", "Aluminum"],
                     ["COPPER", "Copper"],
@@ -101,7 +101,7 @@
         },
         "BeamType": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["bunched", "Bunched Beam"],
                     ["continuous", "Continuous Beam"]
@@ -110,7 +110,7 @@
         },
         "CoolingRatesColumn": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["rx", "rx"],
                     ["ry", "ry"],
@@ -126,7 +126,7 @@
         },
         "ColorRangeType": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["none", "None"],
                     ["fixed", "Fixed"]
@@ -135,7 +135,7 @@
         },
         "CoolingRatesOptionalColumn": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["rx", "rx"],
                     ["ry", "ry"],
@@ -152,7 +152,7 @@
         },
         "ForceFormula": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["parkhomchuk", "Parkhomchuk"],
                     ["derbenevskrinsky", "Derbenev-Skrinsky"],
@@ -166,7 +166,7 @@
         },
         "ForceScaleFactor": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["negative", "-1"],
                     ["positive", "1"]
@@ -175,7 +175,7 @@
         },
         "ForceTableColumn": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["fx", "Transverse Force"],
                     ["flong", "Longitudinal Force"],
@@ -187,7 +187,7 @@
         },
         "ForceTablePlot": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["longitudinal", "Longitudinal"],
                     ["transverse", "Transverse"]
@@ -196,7 +196,7 @@
         },
         "FramesPerSecond": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["1", "1"],
                     ["2", "2"],
@@ -209,7 +209,7 @@
         },
         "IBSLongitudinalMethod": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["nz", "Longitudinal Grid Size"],
                     ["log_c", "Coulomb Logarithm"]
@@ -218,7 +218,7 @@
         },
         "IBSModel": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["bm", "Bjorken-Mtingwa"],
                     ["martini", "Martini"]
@@ -227,7 +227,7 @@
         },
         "LatticeSource": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["madx", "Mad-X TFS File"],
                     ["elegant", "elegant twiss_output SDDS File"],
@@ -237,7 +237,7 @@
         },
         "ParticleColumn": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["x", "x"],
                     ["xp", "xp"],
@@ -250,7 +250,7 @@
         },
         "PlotRangeType": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["none", "None"],
                     ["fit", "Fit Data"],
@@ -260,7 +260,7 @@
         },
         "SimulationModel": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["rms", "RMS"],
                     ["particle", "Particle"]
@@ -269,7 +269,7 @@
         },
         "TwissParameter": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["betx", "betax"],
                     ["alfx", "alphax"],

@@ -106,18 +106,20 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
                         let fieldDependency = new Dependency(fieldDepString);
                         let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDependency);
                         let fieldType = schema.models[fieldDependency.modelName][fieldDependency.fieldName].type;
-                        return <FieldInput 
-                            key={index} 
-                            value={fieldValue} 
-                            updateField={(value: unknown): void => {
-                                formState.updateField(
-                                    fieldDependency.fieldName, 
-                                    fieldDependency.modelName, 
-                                    store.getState(), 
-                                    fieldStateFromValue(value, fieldValue, fieldType));
-                            }}
-                            dependency={fieldDependency} 
-                            inputComponent={fieldType.component}/>
+                        return (<Col key={index}>
+                            <FieldInput 
+                                key={index} 
+                                value={fieldValue} 
+                                updateField={(value: unknown): void => {
+                                    formState.updateField(
+                                        fieldDependency.fieldName, 
+                                        fieldDependency.modelName, 
+                                        store.getState(), 
+                                        fieldStateFromValue(value, fieldValue, fieldType));
+                                }}
+                                dependency={fieldDependency} 
+                                inputComponent={fieldType.component}/>
+                        </Col>)
                     })}
                 </Row>
             ) : undefined;

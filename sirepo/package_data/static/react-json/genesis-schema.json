@@ -2,7 +2,7 @@
   "type": {
     "OutputParameter": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["none", "None"],
           ["bunching", "bunching"],
@@ -20,7 +20,7 @@
     },
     "ParticleColumn": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["gamma", "gamma"],
           ["psi", "psi"],
@@ -33,7 +33,7 @@
     },
     "TaperModel": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["0", "No Taper"],
           ["1", "Linear Taper"],
@@ -43,7 +43,7 @@
     },
     "Iscan": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["0", "None"],
           ["1", "GAMMA0"],
@@ -76,7 +76,7 @@
     },
     "Iertyp": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["0", "Disable field errors"],
           ["1", "Uniform"],
@@ -88,7 +88,7 @@
     },
     "Iwityp": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["0", "Planar"],
           ["1", "Helical"]
@@ -97,7 +97,7 @@
     },
     "Lbc": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["0", "Dirichlet"],
           ["1", "Neumann"]
@@ -106,7 +106,7 @@
     },
     "IgamGaus": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["1", "Gaussian"],
           ["2", "Uniform"]
@@ -115,7 +115,7 @@
     },
     "ItGaus": {
       "base": "Enum",
-      "settings": {
+      "config": {
         "allowedValues": [
           ["1", "Gaussian"],
           ["2", "Uniform"],

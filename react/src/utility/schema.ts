@@ -74,7 +74,8 @@ export function compileSchemaFromJson(schemaObj: SchemaJson) {
     let types: {[typeName: string]: InputLayout} = {};
 
     if(schemaObj.type) {
-        types = mapProperties(schemaObj.type, (_, {base, config}) => {
+        types = mapProperties(schemaObj.type, (_, typeSettings) => {
+            let {base, config} = typeSettings;
             return new (TYPE_BASES[base])(config);
         })
     }
@@ -104,6 +105,7 @@ export function compileSchemaFromJson(schemaObj: SchemaJson) {
         })
 
         if(missingTypeNames.length > 0) {
+            missingTypeNames = [...new Set(missingTypeNames)];
             throw new Error("types could not be found for type names " + JSON.stringify(missingTypeNames));
         }
     }
