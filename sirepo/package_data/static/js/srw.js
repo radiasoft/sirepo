@@ -816,7 +816,7 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
     });
 });
 
-SIREPO.app.controller('MLController', function (appState, panelState, persistentSimulation, requestSender, srwService, $scope) {
+SIREPO.app.controller('MLController', function (appState, panelState, persistentSimulation, requestSender, srwService, $scope, $window) {
     const self = this;
     self.appState = appState;
     self.srwService = srwService;
@@ -826,11 +826,9 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
     self.simState = persistentSimulation.initSimulationState(self);
 
     function createActvaitSimulation(data) {
-        srdbg('MAKE SIM FROM', data);
         requestSender.sendRequest(
             'newSimulation',
             simData => {
-                srdbg('SMI DATA', simData);
                 requestSender.sendRequest(
                     'saveSimulationData',
                     requestSender.formatUrlLocal(
@@ -846,13 +844,10 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
     }
 
     function openSim(data) {
-        srdbg('OPEN', data);
-        //requestSender.globalRedirect(`activait#/data/${data.models.simulation.simulationId}`,);
         requestSender.sendStatelessCompute(
             appState,
             d => {
-                srdbg('READY TO REDIR', d);
-                //requestSender.globalRedirect(`activait#/data/${data.models.simulation.simulationId}`,)
+                $window.location.href = `activait#/data/${data.models.simulation.simulationId}`;
             },
             {
                 method: 'results_to_activait',
@@ -861,30 +856,13 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
                     id: appState.models.simulation.simulationId,
                 }
             }
-        )
+        );
     }
 
     self.openResultsInActivait = () => {
-        /*
-        requestSender.sendStatelessCompute(
-            appState,
-            createActvaitSimulation,
-            {
-                method: 'build_activait_data',
-                args: {
-                    file: self.resultsFile,
-                    id: appState.models.simulation.simulationId,
-                    name: appState.models.simulation.name,
-                    serial: appState.models.simulation.simulationSerial,
-                }
-            }
-        );
-        */
         requestSender.sendRequest(
             'newSimulation',
             simData => {
-                srdbg('NEEW', simData);
-                //requestSender.globalRedirect(`activait#/data/${simData.models.simulation.simulationId}`,)
                 simData.models.dataFile.file = self.resultsFile;
                 requestSender.sendRequest(
                     'saveSimulationData',
@@ -909,7 +887,7 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
             '<frame>': SIREPO.nonDataFileFrame,
             '<suffix>': 'h5',
         });
-    }
+    };
 
     self.simHandleStatus = data => {
         if (data.error) {

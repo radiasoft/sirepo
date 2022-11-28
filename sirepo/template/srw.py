@@ -811,7 +811,13 @@ def stateful_compute_compute_undulator_length(data):
 
 
 def stateless_compute_results_to_activait(data):
-    _SIM_DATA.sim_file_to_other_sim_lib(data.args.id, data.args.file, "activait")
+    _SIM_DATA.sim_file_to_other_sim_lib(
+        data.args.id,
+        data.args.file,
+        "activait",
+        model_name="dataFile",
+        field="file",
+    )
     return PKDict()
 
 
@@ -1447,10 +1453,7 @@ def _export_rsopt_config(data, run_dir):
     f = _write_rsopt_zip(data, ctx)
     if data.report == _SIM_DATA.ML_REPORT:
         s = f"{_SIM_DATA.EXPORT_RSOPT}_run.sh"
-        pkio.write_text(
-            s,
-            template_common.render_jinja(SIM_TYPE, ctx, s)
-        )
+        pkio.write_text(s, template_common.render_jinja(SIM_TYPE, ctx, s))
         template_common.subprocess_output(
             ["bash", s],
         )
@@ -2022,7 +2025,7 @@ def _machine_learning_percent_complete(run_dir, res):
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     count = len(
         pkio.sorted_glob(
-            run_dir.join('ensemble').join('worker*').join('sim*').join('values.npy')
+            run_dir.join("ensemble").join("worker*").join("sim*").join("values.npy")
         )
     )
     res.frameCount = count
@@ -2030,9 +2033,7 @@ def _machine_learning_percent_complete(run_dir, res):
     if res.percentComplete >= 100:
         res.resultsFile = _SIM_DATA.ML_OUTPUT
         _SIM_DATA.put_sim_file(
-            dm.simulation.simulationId,
-            run_dir.join(res.resultsFile),
-            res.resultsFile
+            dm.simulation.simulationId, run_dir.join(res.resultsFile), res.resultsFile
         )
     return res
 
