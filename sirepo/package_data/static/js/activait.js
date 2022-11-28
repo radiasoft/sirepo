@@ -2165,8 +2165,8 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
             if (dataFile.inputsScaler == 'RobustScaler' || dataFile.outputsScaler == 'RobustScaler') {
                 dataFile.inputsScaler = 'StandardScaler';
                 dataFile.outputsScaler = 'None';
-            };
-        };
+            }
+        }
         ['inputsScaler', 'outputsScaler'].forEach((s) => {
             panelState.showEnum(
                 'dataFile',
