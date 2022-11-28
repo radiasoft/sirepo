@@ -55,20 +55,6 @@ class SirepoUtils {
         return this.seqApply(Math.max, array, -Number.MAX_VALUE);
     }
 
-    /**
-     * Push the elements of an array too large for Array.push
-     * @param {*[]} initArray
-     * @param {*[]} pushedArray
-     */
-    static largePush(initArray, pushedArray) {
-        let start = 0;
-        const inc = 1000;
-        do {
-            initArray.push(...pushedArray.slice(start, Math.min(pushedArray.length, start + inc)));
-            start += inc;
-        } while (start < pushedArray.length);
-    }
-
     static linearlySpacedArray(start, stop, nsteps) {
         if (nsteps < 1) {
             throw new Error("linearlySpacedArray: steps " + nsteps + " < 1");
