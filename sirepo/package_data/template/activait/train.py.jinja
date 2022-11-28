@@ -16,7 +16,7 @@ try:
         epochs={{ neuralNet_epochs }},
         callbacks=[CSVLogger('fit.csv')])
 except Exception as e:
-    raise AssertionError(f"Model training failed due to:\n{e.message}")
+    raise AssertionError(f"Model training failed due to:{e.message}")
 {% else %}
 
 model.compile(
