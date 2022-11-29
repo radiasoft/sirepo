@@ -63,7 +63,16 @@ function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispatch<Rea
     return [dim, setDim];
 }
 
-export function useGraphContentBounds(ref, aspectRatio) {
+export type GraphContentBounds = {
+    contentWidth: number,
+    contentHeight: number,
+    height: number,
+    width: number,
+    x: number,
+    y: number
+}
+
+export function useGraphContentBounds(ref: RefObject<HTMLElement>, aspectRatio: number): GraphContentBounds {
     const [dim, setDim] = useRefSize(ref);
     const h = graphContentHeightOffset() + ((dim.width - graphContentWidthOffset()) * aspectRatio);
     if (h != dim.height) {
