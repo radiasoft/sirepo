@@ -400,32 +400,6 @@ class SimDataBase(object):
                 s.copy(t.join(f))
 
     @classmethod
-    def sim_file_to_other_sim_lib(
-        cls, sim_id, basename, other_sim_type, qcall=None, model_name=None, field=None
-    ):
-        """Copy a sim file to a different sim's lib dir
-
-        Args:
-            sim_id (str): the source simulation
-            basename (str): name of the sim file
-            other_sim_type (str): the target sim type
-        """
-        cls._assert_server_side()
-        from sirepo import simulation_db
-
-        f = (
-            cls.lib_file_name_with_model_field(model_name, field, basename)
-            if model_name and field
-            else basename
-        )
-        t = simulation_db.simulation_lib_dir(other_sim_type, qcall=qcall).join(f)
-        r = _request(
-            "GET", _cfg.supervisor_sim_db_file_uri + cls._sim_file_uri(sim_id, basename)
-        )
-        r.raise_for_status()
-        t.write_binary(r.content)
-
-    @classmethod
     def lib_files_to_run_dir(cls, data, run_dir):
         """Copy auxiliary files to run_dir
 
@@ -577,6 +551,32 @@ class SimDataBase(object):
     @classmethod
     def sim_file_basenames(cls, data):
         return cls._sim_file_basenames(data)
+
+    @classmethod
+    def sim_file_to_other_sim_lib(
+        cls, sim_id, basename, other_sim_type, qcall=None, model_name=None, field=None
+    ):
+        """Copy a sim file to a different sim's lib dir
+
+        Args:
+            sim_id (str): the source simulation
+            basename (str): name of the sim file
+            other_sim_type (str): the target sim type
+        """
+        cls._assert_server_side()
+        from sirepo import simulation_db
+
+        f = (
+            cls.lib_file_name_with_model_field(model_name, field, basename)
+            if model_name and field
+            else basename
+        )
+        t = simulation_db.simulation_lib_dir(other_sim_type, qcall=qcall).join(f)
+        r = _request(
+            "GET", _cfg.supervisor_sim_db_file_uri + cls._sim_file_uri(sim_id, basename)
+        )
+        r.raise_for_status()
+        t.write_binary(r.content)
 
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
