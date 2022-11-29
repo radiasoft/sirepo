@@ -825,25 +825,7 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
     self.simComputeModel = 'machineLearningAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
-    function createActvaitSimulation(data) {
-        requestSender.sendRequest(
-            'newSimulation',
-            simData => {
-                requestSender.sendRequest(
-                    'saveSimulationData',
-                    requestSender.formatUrlLocal(
-                        'data',
-                        { 'simulationId': simData.models.simulation.simulationId},
-                        simData.simulationType
-                    ),
-                    simData
-                );
-            },
-            data
-        );
-    }
-
-    function openSim(data) {
+    function openActivait(data) {
         requestSender.sendStatelessCompute(
             appState,
             d => {
@@ -859,14 +841,15 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
         );
     }
 
-    self.openResultsInActivait = () => {
+    self.createActvaitSimulation = () => {
         requestSender.sendRequest(
             'newSimulation',
             simData => {
                 simData.models.dataFile.file = self.resultsFile;
+                simData.models.simulation.notes = 'rsopt results from SRW';
                 requestSender.sendRequest(
                     'saveSimulationData',
-                    openSim,
+                    openActivait,
                     simData
                 );
             },
