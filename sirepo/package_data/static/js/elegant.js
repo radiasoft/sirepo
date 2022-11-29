@@ -1446,10 +1446,51 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
+SIREPO.app.directive('viewLogIframeWrapper', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {},
+        template: `
+            <div data-view-log-iframe data-get-log="viewLog"></div>
+        `,
+        controller: function(appState, elegantService, requestSender, $scope) {
+
+            $scope.viewLog = function(onReturn) {
+                requestSender.sendAnalysisJob(
+                    appState,
+                    (data) => {
+                        onReturn(data.html);
+                    },
+                    {
+                        method: 'log_to_html',
+                        computeModel: elegantService.computeModel(),
+                        simulationId: appState.models.simulation.simulationId
+                    });
+            };
+
+            $scope.downloadLog = function() {
+                // TODO(e-carlin): implement
+                // var m = appState.models.simulationStatus.animation.computeModel;
+                // if (! m) {
+                //     return '';
+                // }
+                // return requestSender.formatUrl('downloadDataFile', {
+                //     '<simulation_id>': appState.models.simulation.simulationId,
+                //     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                //     '<model>': m,
+                //     '<frame>': -1,
+                // });
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            getLog: '<'
+        },
         template: `
             <a href data-ng-click="viewLog()">View Log</a>
             <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
@@ -1476,17 +1517,10 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
 
-            $scope.viewLog = function(model, filename) {
-                requestSender.sendAnalysisJob(
-                    appState,
-                    (data) => {
-                        $('#sr-text-iframe').attr("srcdoc", data.html);
-                    },
-                    {
-                        method: 'log_to_html',
-                        computeModel: elegantService.computeModel(),
-                        simulationId: appState.models.simulation.simulationId
-                    });
+            $scope.viewLog = function() {
+                $scope.getLog((html) => {
+                    $('#sr-text-iframe').attr("srcdoc", html);
+                });
                 $('#sr-iframe-text-view').modal('show');
             };
 
