@@ -2216,7 +2216,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         link: function(scope, element) {
             scope.panel = element.next();
-
             panelState.waitForUI(function() {
                 var view = appState.viewInfo(scope.viewName || scope.modelKey);
                 if (! view) {
