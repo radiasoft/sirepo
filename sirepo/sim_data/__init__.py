@@ -403,7 +403,7 @@ class SimDataBase(object):
     def sim_file_to_other_sim_lib(
         cls, sim_id, basename, other_sim_type, qcall=None, model_name=None, field=None
     ):
-        """Copy a sim file to this sim's lib dir - same user
+        """Copy a sim file to a different sim's lib dir
 
         Args:
             sim_id (str): the source simulation
