@@ -40,7 +40,7 @@ def create_user(email, display_name):
                 uid=u
             ).display_name, f"uid={u} authorized AuthEmailUser record but no UserRegistration.display_name"
             return u
-        m = module.AuthEmailUser.search_by(unverified_email=email)
+        m = module.UserModel.search_by(unverified_email=email)
         if m:
             # Email user that needs to complete registration (no display_name but have unverified_email)
             assert qcall.auth.need_complete_registration(
@@ -53,7 +53,7 @@ def create_user(email, display_name):
         # Completely new Sirepo user
         u = qcall.auth.create_user(module)
         qcall.auth.user_registration(uid=u, display_name=display_name)
-        module.AuthEmailUser(
+        module.UserModel(
             unverified_email=email,
             uid=u,
             user_name=email,

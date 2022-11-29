@@ -350,14 +350,14 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def validate_file(file_path, path):
+    if path.ext not in (".csv", ".dat", ".stl", ".txt"):
+        return f"invalid file type: {path.ext}"
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
             return f"not convex model: {path.basename}"
         elif len(mesh.faces) > 600:
             return f"too many faces({len(mesh.faces)}): {path.basename}"
-    else:
-        return f"invalid file type: {path.ext}"
     return None
 
 
@@ -1660,6 +1660,7 @@ def _update_geom_obj(o, **kwargs):
         size=[1.0, 1.0, 1.0],
         stlVertices=[],
         stlFaces=[],
+        stlCentroid=[],
         # TODO(BG) Not implemented
         # stlSlices = [],
     )
@@ -1699,6 +1700,8 @@ def _update_geom_obj(o, **kwargs):
             d.stlFaces.append(list(f))
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
+        o.size = list(mesh.bounding_box.primitive.extents)
+        o.stlCentroid = mesh.centroid.tolist()
 
         # TODO(BG) Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
         """
