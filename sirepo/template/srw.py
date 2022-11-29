@@ -246,7 +246,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if report == "beamlineAnimation":
         return _beamline_animation_percent_complete(run_dir, res)
-    if report == "machineLearningAnimation":
+    if _SIM_DATA.is_for_ml(report):
         return _machine_learning_percent_complete(run_dir, res)
     status = PKDict(
         progress=0,
@@ -1451,7 +1451,7 @@ def _enum_text(name, model, field):
 def _export_rsopt_config(data, run_dir):
     ctx = _rsopt_jinja_context(data)
     f = _write_rsopt_zip(data, ctx)
-    if data.report == _SIM_DATA.ML_REPORT:
+    if _SIM_DATA.is_for_ml(data.report):
         s = f"{_SIM_DATA.EXPORT_RSOPT}_run.sh"
         pkio.write_text(s, template_common.render_jinja(SIM_TYPE, ctx, s))
         template_common.subprocess_output(
@@ -1849,7 +1849,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         v.rs_type = "u"
     if is_for_rsopt:
         v.update(rsopt_ctx)
-        v.runInSirepo = report == "machineLearningAnimation"
+        v.runInSirepo = _SIM_DATA.is_for_ml(report)
     # rsopt uses this as a lookup param so want it in one place
     v.ws_fni_desc = "file name for saving propagated single-e intensity distribution vs horizontal and vertical position"
     if report == "mirrorReport":

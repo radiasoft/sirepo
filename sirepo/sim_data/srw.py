@@ -315,8 +315,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
+    def is_for_ml(cls, report):
+        return report == cls.ML_REPORT
+
+    @classmethod
     def is_for_rsopt(cls, report):
-        return report in (cls.EXPORT_RSOPT, cls.ML_REPORT)
+        return report == cls.EXPORT_RSOPT or cls.is_for_ml(report)
 
     @classmethod
     def is_run_mpi(cls, data):
