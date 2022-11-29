@@ -7,7 +7,7 @@ import { AutoRunReportLayout, ManualRunReportLayout, SimulationStartLayout } fro
 import { TabLayout } from "./tabs";
 import { LayoutWithSpacing } from "./spaced";
 import { NavBarModalButton, NavTabsLayout } from "./navbar";
-import { TableFromApi } from "./table";
+import { TableFromApi } from "./report/table";
 import { LayoutWithDownloadButton } from "./download";
 import { LayoutType, Layout } from "./layout";
 import { SchemaLayout } from "../utility/schema";

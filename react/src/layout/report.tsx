@@ -47,7 +47,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        let { report, reportLayout, dependencies } = this.config;
+        let { report, dependencies } = this.config;
 
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);

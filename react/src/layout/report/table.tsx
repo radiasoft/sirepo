@@ -1,7 +1,7 @@
 import React from "react";
-import { Table, TableConfig } from "../component/reusable/table";
-import { LayoutProps, Layout }from "./layout";
-import { ReportVisual, ReportVisualProps } from "./report";
+import { Table, TableConfig } from "../../component/reusable/table";
+import { LayoutProps }from "../layout";
+import { ReportVisual, ReportVisualProps } from "../report";
 
 export type TableConfigApi = [
     [string, number[]]
@@ -50,14 +50,10 @@ export class TableFromApi extends ReportVisual<TableFromApiConfig, {}, TableConf
     }
 
     component = (props: LayoutProps<{}> & ReportVisualProps<TableConfig>) => {
-        let { simulationData } = props;
-
-        let { dataAttributeName } = this.config;
-
-        let tableConfig = apiResponseToTableConfig(simulationData, dataAttributeName);
+        let { data } = props;
 
         return (
-            <>{tableConfig && <Table {...tableConfig} {...props}/>}</>
+            <Table {...data} {...props}/>
         )
     }
 }
