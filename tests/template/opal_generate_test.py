@@ -4,15 +4,10 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern import pkio
-from pykern import pkunit
-from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
-import pytest
 
 
 def test_generate_python():
-    from pykern import pkio
+    from pykern import pkio, pkunit
     from pykern.pkunit import pkeq
     from sirepo.template import opal
 
@@ -20,7 +15,7 @@ def test_generate_python():
         for name in ("CSR Bend Drift", "CTF3 RF Photoinjector"):
             data = _example_data(name)
             data["report"] = "animation"
-            actual = opal.python_source_for_model(data, None)
+            actual = opal.python_source_for_model(data, model=None, qcall=None)
             outfile = name.lower().replace(" ", "-") + ".txt"
             pkio.write_text(outfile, actual)
             expect = pkio.read_text(pkunit.data_dir().join(outfile))

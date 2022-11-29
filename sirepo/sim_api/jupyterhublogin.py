@@ -19,12 +19,8 @@ import sirepo.srdb
 import sirepo.uri
 import sirepo.uri_router
 import sirepo.util
-import sqlalchemy
 
 _cfg = None
-
-#: Used by auth_db. Sirepo record of each jupyterhub user.
-JupyterhubUser = None
 
 _HUB_USER_SEP = "-"
 
@@ -122,7 +118,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
     def __user_name():
         if github_handle:
             if (
-                JupyterhubUser.search_by(user_name=github_handle)
+                sirepo.auth_db.JupyterhubUser.search_by(user_name=github_handle)
                 or not _user_dir(qcall, user_name=github_handle).exists()
             ):
                 raise sirepo.util.SRException(
@@ -131,7 +127,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
                 )
             return github_handle
         n = __handle_or_name_sanitized()
-        if JupyterhubUser.search_by(user_name=n):
+        if sirepo.auth_db.JupyterhubUser.search_by(user_name=n):
             # The username already exists. Add some randomness to try and create
             # a unique user name.
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
@@ -144,7 +140,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
         u = __user_name()
         if check_dir and _user_dir(qcall, u).exists():
             raise AssertionError(f"existing user dir with same name={u}")
-        JupyterhubUser(
+        sirepo.auth_db.JupyterhubUser(
             uid=qcall.auth.logged_in_user(),
             user_name=u,
         ).save()
@@ -152,7 +148,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
         return u
 
 
-def delete_user_dir(qcall, uid):
+def delete_user_dir(qcall):
     n = _unchecked_jupyterhub_user_name(qcall, have_simulation_db=False)
     if not n:
         return
@@ -161,7 +157,6 @@ def delete_user_dir(qcall, uid):
 
 def init_apis(*args, **kwargs):
     _init()
-    sirepo.auth_db.init_model(_init_model)
     if _cfg.rs_jupyter_migrate:
         sirepo.events.register(
             PKDict(
@@ -228,21 +223,8 @@ def _event_github_authorized(qcall, kwargs):
     raise sirepo.util.Redirect("jupyter")
 
 
-def _init_model(base):
-    global JupyterhubUser
-
-    class JupyterhubUser(base):
-        __tablename__ = "jupyterhub_user_t"
-        uid = sqlalchemy.Column(base.STRING_ID, primary_key=True)
-        user_name = sqlalchemy.Column(
-            base.STRING_NAME,
-            nullable=False,
-            unique=True,
-        )
-
-
 def _unchecked_hub_user(qcall, uid):
-    u = JupyterhubUser.search_by(uid=uid)
+    u = sirepo.auth_db.JupyterhubUser.search_by(uid=uid)
     if u:
         return u.user_name
     return None

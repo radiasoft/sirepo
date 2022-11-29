@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 try:
     __IPYTHON__
@@ -1011,9 +1012,9 @@ varParam = [
     ['op_Grating_size_sag', 'f', 0.015, 'sagittalSize'],
     ['op_Grating_nvx', 'f', 0.0, 'nvx'],
     ['op_Grating_nvy', 'f', 0.99991607766, 'nvy'],
-    ['op_Grating_nvz', 'f', -0.012955216595673743, 'nvz'],
+    ['op_Grating_nvz', 'f', -0.012955216595673965, 'nvz'],
     ['op_Grating_tvx', 'f', 0.0, 'tvx'],
-    ['op_Grating_tvy', 'f', 0.012955216595673743, 'tvy'],
+    ['op_Grating_tvy', 'f', 0.012955216595673965, 'tvy'],
     ['op_Grating_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Grating_y', 'f', 0.0, 'verticalOffset'],
     ['op_Grating_m', 'f', 1.0, 'diffractionOrder'],

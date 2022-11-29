@@ -20,7 +20,6 @@ import os
 import re
 import sirepo.lib
 import sirepo.template.madx
-import sys
 
 
 _PV_TO_ELEMENT_FIELD = PKDict(
@@ -74,6 +73,14 @@ def list_value():
 @app.route("/")
 def root():
     return "MAD-X DeviceServer stand-in\n"
+
+
+def run(sim_id):
+    app.config["sim"] = _load_sim("controls", simulation_db.assert_sid(sim_id))
+    app.config["sim_dir"] = pkio.py_path(_SIM_OUTPUT_DIR)
+    # prep for initial queries by running sim with no changes
+    _init_sim()
+    app.run()
 
 
 def _abort(message, status=http.HTTPStatus.BAD_REQUEST.value):
@@ -257,13 +264,3 @@ def _update_values(params):
         el[f] = _convert_amps_to_k(el, float(value))
     _run_sim()
     return ""
-
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise AssertionError(f"usage: {sys.argv[0]} <sim_id>")
-    app.config["sim"] = _load_sim("controls", simulation_db.assert_sid(sys.argv[1]))
-    app.config["sim_dir"] = pkio.py_path(_SIM_OUTPUT_DIR)
-    # prep for initial queries by running sim with no changes
-    _init_sim()
-    app.run()

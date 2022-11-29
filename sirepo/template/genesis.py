@@ -119,7 +119,7 @@ def post_execution_processing(run_dir=None, **kwargs):
     return _parse_genesis_error(run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 

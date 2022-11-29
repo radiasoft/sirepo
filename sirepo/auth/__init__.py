@@ -24,9 +24,9 @@ import sirepo.events
 import sirepo.feature_config
 import sirepo.quest
 import sirepo.request
-import sirepo.session
 import sirepo.template
 import sirepo.uri
+import sirepo.spa_session
 import sirepo.util
 
 
@@ -82,11 +82,6 @@ non_guest_methods = None
 _cfg = None
 
 
-def hack_logged_in_user():
-    # avoids case of no quest (sirepo.agent)
-    return _cfg.logged_in_user or sirepo.quest.hack_current().auth.logged_in_user()
-
-
 def init_quest(qcall):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
@@ -98,7 +93,7 @@ def init_quest(qcall):
         sirepo.cookie.init_quest(qcall)
         # TODO(robnagler) auth_db
         o._set_log_user()
-        sirepo.session.init_quest(qcall)
+        sirepo.spa_session.init_quest(qcall)
 
 
 def init_module(**imports):
@@ -107,7 +102,6 @@ def init_module(**imports):
     def _init_full():
         global visible_methods, valid_methods, non_guest_methods
 
-        simulation_db.hook_auth_user = hack_logged_in_user
         p = pkinspect.this_module().__name__
         visible_methods = []
         valid_methods = _cfg.methods.union(_cfg.deprecated_methods)
@@ -164,8 +158,8 @@ class _Auth(sirepo.quest.Attr):
         u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
         if sirepo.auth_db.UserRole.has_role(
-            u, r
-        ) and not sirepo.auth_db.UserRole.is_expired(u, r):
+            qcall=self.qcall, role=r
+        ) and not sirepo.auth_db.UserRole.is_expired(qcall=self.qcall, role=r):
             return
         elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
@@ -225,10 +219,14 @@ class _Auth(sirepo.quest.Attr):
         values[_COOKIE_STATE] = _STATE_LOGGED_OUT
         return values
 
-    def create_user(self, uid_generated_callback, module):
+    def create_user(self, module, want_login=False):
         u = simulation_db.user_create()
-        uid_generated_callback(u)
-        self._create_roles_for_new_user(u, module.AUTH_METHOD)
+        if want_login:
+            self._login_user(module, u)
+            self._create_roles_for_new_user(module.AUTH_METHOD)
+        else:
+            with self.logged_in_user_set(u, method=module.AUTH_METHOD):
+                self._create_roles_for_new_user(module.AUTH_METHOD)
         return u
 
     def get_module(self, name):
@@ -253,8 +251,8 @@ class _Auth(sirepo.quest.Attr):
 
     def is_premium_user(self):
         return sirepo.auth_db.UserRole.has_role(
-            self.logged_in_user(),
-            sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+            qcall=self.qcall,
+            role=sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         )
 
     def logged_in_user(self, check_path=True):
@@ -265,8 +263,6 @@ class _Auth(sirepo.quest.Attr):
         Returns:
             str: uid of authenticated user
         """
-        if self._logged_in_user:
-            return self._logged_in_user
         u = self._qcall_bound_user()
         if not self.is_logged_in():
             raise sirepo.util.SRException(
@@ -280,7 +276,7 @@ class _Auth(sirepo.quest.Attr):
             self._qcall_bound_method(),
         )
         if check_path:
-            simulation_db.user_path(u, check=True)
+            simulation_db.user_path(uid=u, check=True)
         return u
 
     def logged_in_user_name(self):
@@ -290,10 +286,18 @@ class _Auth(sirepo.quest.Attr):
             method=self._qcall_bound_method(),
         )
 
+    @contextlib.contextmanager
     def logged_in_user_set(self, uid, method=METHOD_GUEST):
-        """Ephemeral login"""
-        self._logged_in_user = uid
-        self._logged_in_method = method
+        """Ephemeral login or may be used to logout"""
+        u = self._logged_in_user
+        m = self._logged_in_method
+        try:
+            self._logged_in_user = uid
+            self._logged_in_method = None if uid is None else method
+            yield
+        finally:
+            self._logged_in_user = u
+            self._logged_in_method = m
 
     def login(
         self,
@@ -357,7 +361,7 @@ class _Auth(sirepo.quest.Attr):
                 # This handles the case where logging in as guest, creates a user every time
                 self._login_user(method, uid)
             else:
-                uid = self.create_user(lambda u: self._login_user(method, u), method)
+                uid = self.create_user(method, want_login=True)
             if model:
                 model.uid = uid
                 model.save()
@@ -444,7 +448,10 @@ class _Auth(sirepo.quest.Attr):
 
     def require_adm(self):
         u = self.require_user()
-        if not sirepo.auth_db.UserRole.has_role(u, sirepo.auth_role.ROLE_ADM):
+        if not sirepo.auth_db.UserRole.has_role(
+            qcall=self.qcall,
+            role=sirepo.auth_role.ROLE_ADM,
+        ):
             sirepo.util.raise_forbidden(f"uid={u} role=ROLE_ADM not found")
 
     def require_auth_basic(self):
@@ -634,7 +641,7 @@ class _Auth(sirepo.quest.Attr):
                 r = sirepo.auth_db.UserRegistration.search_by(uid=u)
                 if r:
                     v.displayName = r.display_name
-            v.roles = sirepo.auth_db.UserRole.get_roles(u)
+            v.roles = sirepo.auth_db.UserRole.get_roles(qcall=self.qcall)
             self._plan(v)
             self._method_auth_state(v, u)
         if pkconfig.channel_in_internal_test():
@@ -643,10 +650,10 @@ class _Auth(sirepo.quest.Attr):
         pkdc("state={}", v)
         return v
 
-    def _create_roles_for_new_user(self, uid, method):
-        r = sirepo.auth_role.for_new_user(method == METHOD_GUEST)
+    def _create_roles_for_new_user(self, method):
+        r = sirepo.auth_role.for_new_user(is_guest=method == METHOD_GUEST)
         if r:
-            sirepo.auth_db.UserRole.add_roles(uid, r)
+            sirepo.auth_db.UserRole.add_roles(qcall=self.qcall, roles=r)
 
     def _login_user(self, module, uid):
         """Set up the cookie for logged in state
@@ -713,7 +720,7 @@ class _Auth(sirepo.quest.Attr):
         return self.qcall.cookie.unchecked_get_value(_COOKIE_STATE)
 
     def _qcall_bound_user(self):
-        return _cfg.logged_in_user or self.qcall.cookie.unchecked_get_value(
+        return self._logged_in_user or self.qcall.cookie.unchecked_get_value(
             _COOKIE_USER
         )
 

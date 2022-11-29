@@ -43,9 +43,9 @@
                 "cloneTransform": ["name","numCopies", "transforms", "alternateFields"],
                 "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"],
                 "translate": ["name","distance"],
-                "rotate": ["name", "angle", "axis", "center"],
+                "rotate": ["name", "angle", "axis", "center", "useObjectCenter"],
                 "translateClone": ["name","distance"],
-                "rotateClone": ["name", "angle", "axis", "center"]
+                "rotateClone": ["name", "angle", "axis", "center", "useObjectCenter"]
             }
         },
         "geomObjShapes": {
@@ -107,6 +107,14 @@
                     [0, 0], [24, 0], [24, 12], [18, 12], [18, 24], [6, 24], [6, 16], [6, 12], [0, 12]
                 ],
                 "stroke": "black"
+            },
+            "stl": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [24, 0], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
             }
         },
         "geomTypeLines": "lines",
@@ -149,21 +157,21 @@
                     },
                     {
                         "isButton": false,
-                        "layoutShape": "rect",
+                        "layoutShape": "polygon",
                         "model": "ell",
                         "title": "L-Bend",
                         "type": "ell"
                     },
                     {
                         "isButton": false,
-                        "layoutShape": "rect",
+                        "layoutShape": "polygon",
                         "model": "cee",
                         "title": "C-Bend",
                         "type": "cee"
                     },
                     {
                         "isButton": false,
-                        "layoutShape": "rect",
+                        "layoutShape": "polygon",
                         "model": "jay",
                         "title": "J-Bend",
                         "type": "jay"
@@ -180,6 +188,13 @@
                         "model": "geomGroup",
                         "title": "Group",
                         "type": "geomGroup"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "polygon",
+                        "model": "stl",
+                        "title": "STL",
+                        "type": "stl"
                     }
                 ],
                 "name": "Objects"
@@ -200,13 +215,6 @@
             {
                 "canDrag": true,
                 "contents": [
-                    {
-                        "isButton": false,
-                        "layoutShape": "rect",
-                        "model": "translate",
-                        "title": "Translate",
-                        "type": "translate"
-                    },
                     {
                         "isButton": false,
                         "layoutShape": "rect",
@@ -346,7 +354,8 @@
             ["extrudedPoints", "Extruded Points"],
             ["jay", "Extruded J-Bend"],
             ["racetrack", "RaceTrack"],
-            ["tee", "Extruded Tee"]
+            ["tee", "Extruded Tee"],
+            ["stl", "STL"]
         ],
         "PathType": [
             ["axis", "Axis"],
@@ -776,7 +785,8 @@
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
             "members": ["_", "Group", []],
-            "model": ["_", "String", "geomGroup"]
+            "model": ["_", "String", "geomGroup"],
+            "type": ["_", "String", "geomGroup"]
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
@@ -898,17 +908,19 @@
         "reset": {
         },
         "rotate": {
-            "angle": ["Angle (deg)", "Float", "0.0"],
+            "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "name": ["Name", "String", "Rotate"]
+            "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "name": ["Name", "String", "Rotate"],
+            "useObjectCenter": ["Use object center as origin", "Boolean", "1"]
         },
         "rotateClone": {
             "id": ["_", "RandomId", ""],
-            "angle": ["Angle (deg)", "Float", "0.0"],
+            "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "name": ["Name", "String", "Rotate"]
+            "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "name": ["Name", "String", "Rotate"],
+            "useObjectCenter": ["use clone center as origin", "Boolean", "1"]
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
@@ -934,8 +946,12 @@
             "sbatchCores": ["Cores", "Integer", 1],
             "sbatchProject": ["Project", "OptionalString", ""]
         },
+        "stl": {
+            "_super": ["_", "model", "geomObject"],
+            "type": ["_", "ObjectType", "stl"],
+            "file": ["STL File", "InputFile", ""]
+        },
         "fieldLineoutAnimation": {
-            "fieldPath": ["_", "model.fieldPath", {}],
             "fieldPaths": ["Path", "FieldPaths", []],
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"],
@@ -1236,17 +1252,16 @@
         },
         "geomGroup": {
             "title": "Group",
-            "basic": [
-                "name",
-                "transforms",
-                "color",
-                "members"
-            ],
+            "basic": [],
             "advanced": [
-                "name",
-                "transforms",
-                "color",
-                "members"
+                ["Main", [
+                    "name",
+                    "color",
+                    "members"
+                ]],
+                ["Transforms", [
+                    "transforms"
+                ]]
             ]
         },
         "geomObject": {
@@ -1376,7 +1391,8 @@
                     "stemmed.stemWidth",
                     "stemmed.stemPosition",
                     "jay.hookHeight",
-                    "jay.hookWidth"
+                    "jay.hookWidth",
+                    "stl.file"
                 ]],
                 ["Point Editor", [
                     "extrudedPoints.pointsFile",
@@ -1441,13 +1457,10 @@
         },
         "rotate": {
             "title": "Rotate",
-            "basic": [
-                "axis",
-                "center",
-                "angle"
-            ],
+            "basic": [],
             "advanced": [
                 "axis",
+                "useObjectCenter",
                 "center",
                 "angle"
             ]

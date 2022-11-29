@@ -26,7 +26,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     ]
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         if data.simulationType == "ml":
             data.simulationType = "activait"
         dm = data.models

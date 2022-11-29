@@ -37,8 +37,14 @@ def audit_proprietary_lib_files(*uid):
         *uid: UID(s) of the user(s) to audit. If None, all users will be audited.
     """
     with sirepo.quest.start() as qcall:
-        for u in uid or sirepo.auth_db.all_uids():
-            sirepo.auth_db.audit_proprietary_lib_files(u)
+        for u in uid or sirepo.auth_db.all_uids(qcall):
+            with qcall.auth.logged_in_user_set(u):
+                sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
+
+
+def db_upgrade():
+    with sirepo.quest.start() as qcall:
+        sirepo.auth_db.create_or_upgrade(qcall=qcall)
 
 
 def create_examples():
@@ -79,12 +85,12 @@ def delete_user(uid):
     with sirepo.quest.start() as qcall:
         if qcall.auth.unchecked_get_user(uid) is None:
             return
-        qcall.auth.logged_in_user_set(uid)
-        if sirepo.template.is_sim_type("jupyterhublogin"):
-            from sirepo.sim_api import jupyterhublogin
+        with qcall.auth.logged_in_user_set(uid):
+            if sirepo.template.is_sim_type("jupyterhublogin"):
+                from sirepo.sim_api import jupyterhublogin
 
-            jupyterhublogin.delete_user_dir(qcall, uid)
-        simulation_db.delete_user(uid)
+                jupyterhublogin.delete_user_dir(qcall=qcall)
+            simulation_db.delete_user(qcall=qcall)
         # This needs to be done last so we have access to the records in
         # previous steps.
         sirepo.auth_db.UserDbBase.delete_user(uid)
@@ -137,14 +143,12 @@ def _build_ops(simulations, sim_type, examples):
 
 
 def _create_example(qcall, example):
-    simulation_db.save_new_example(example, uid=qcall.auth.logged_in_user())
+    simulation_db.save_new_example(example, qcall=qcall)
 
 
 def _delete(qcall, ops):
     for s, t in ops.delete:
-        simulation_db.delete_simulation(
-            t, s.simulationId, uid=qcall.auth.logged_in_user()
-        )
+        simulation_db.delete_simulation(t, s.simulationId, qcall=qcall)
 
 
 def _example_is_too_old(last_modified):
@@ -176,6 +180,7 @@ def _get_named_example_sims(qcall, all_sim_types):
                         t,
                         simulation_db.process_simulation_list,
                         {"simulation.isExample": True},
+                        qcall=qcall,
                     )
                 }
             )
@@ -192,12 +197,12 @@ def _iterate_sims_by_users(qcall, all_sim_types):
     for d in pkio.sorted_glob(simulation_db.user_path_root().join("*")):
         if _is_src_dir(d):
             continue
-        qcall.auth.logged_in_user_set(simulation_db.uid_from_dir_name(d))
-        s = _get_named_example_sims(qcall, all_sim_types)
-        for t in s.keys():
-            yield (t, s)
+        with qcall.auth.logged_in_user_set(simulation_db.uid_from_dir_name(d)):
+            s = _get_named_example_sims(qcall, all_sim_types)
+            for t in s.keys():
+                yield (t, s)
 
 
-def _revert(ops, examples):
+def _revert(qcall, ops, examples):
     for n, t in ops.revert:
-        _create_example(_get_example_by_name(n, t, examples))
+        _create_example(qcall, _get_example_by_name(n, t, examples))

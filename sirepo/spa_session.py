@@ -1,19 +1,21 @@
-"""Manage user sessions"""
+# -*- coding: utf-8 -*-
+"""Manage user sessions
 
+:copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from pykern.pkcollections import PKDict
 import contextlib
 import datetime
-import sirepo.quest
 import sirepo.auth_db
 import sirepo.events
+import sirepo.quest
 import sirepo.srtime
 import sirepo.util
 import sqlalchemy
 
 _RENEW_SESSION_TIMEOUT_SECS = 5 * 60
-
-_Session = None
 
 _USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
 
@@ -27,7 +29,6 @@ def init_module():
     if _initialized:
         return
     _initialized = True
-    sirepo.auth_db.init_model(_init_model)
     sirepo.events.register(PKDict(end_api_call=_end_api_call))
 
 
@@ -36,7 +37,7 @@ def init_quest(qcall):
         l = qcall.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
         i = sirepo.util.random_base62()
-        _Session(
+        sirepo.auth_db.SPASession(
             user_agent_id=i,
             login_state=l,
             uid=qcall.auth.logged_in_user(check_path=False) if l else None,
@@ -48,7 +49,7 @@ def init_quest(qcall):
         return i
 
     def _update_session(user_agent_id):
-        s = _Session.search_by(user_agent_id=user_agent_id)
+        s = sirepo.auth_db.SPASession.search_by(user_agent_id=user_agent_id)
         if not s:
             pkdlog("Restarting session for user_agent_id={}", user_agent_id)
             return _new_session()
@@ -79,17 +80,3 @@ def init_quest(qcall):
 
 def _end_api_call(qcall, kwargs):
     kwargs.resp.headers[_USER_AGENT_ID_HEADER] = qcall.bucket_uget(_ID_ATTR)
-
-
-def _init_model(base):
-    global _Session
-
-    class _Session(base):
-        __tablename__ = "session_t"
-        user_agent_id = sqlalchemy.Column(base.STRING_ID, unique=True, primary_key=True)
-        login_state = sqlalchemy.Column(sqlalchemy.Boolean(), nullable=False)
-        uid = sqlalchemy.Column(base.STRING_ID)
-        start_time = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
-        request_time = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
-        # TODO(rorour) enable when using websockets
-        # end_time = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)

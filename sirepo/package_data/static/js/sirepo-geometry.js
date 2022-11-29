@@ -39,7 +39,7 @@ class GeometryUtils {
             z: [0, 0, 1]
         };
     }
-
+    
     /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
@@ -60,6 +60,15 @@ class GeometryUtils {
     static nextAxis(axis) {
         const b = GeometryUtils.BASIS();
         return b[(b.indexOf(axis) + 1) % b.length];
+    }
+
+    /**
+     * Normalize a vector
+     * @param {[number]} vector
+     * @returns {[number]}
+     */
+    static normalize(vector) {
+        return vector.map(c => c / Math.hypot(vector[0], vector[1], vector[2]));
     }
 
     /**
@@ -465,14 +474,97 @@ class SquareMatrix extends Matrix {
         }
         return new SquareMatrix(m);
     }
+
 }
 
 /*
  * The 2-dimensional identity matrix
  */
 class IdentityMatrix extends SquareMatrix {
-    constructor() {
-        super([[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
+    /**
+     * @param {number} size - number of rows/columms
+     */
+    constructor(size=3) {
+        const m = [];
+        for (let i = 0; i < size; ++i) {
+            const n = [];
+            for (let j = 0; j < size; ++j) {
+                n.push(i === j ? 1 : 0);
+            }
+            m.push(n);
+        }
+        super(m);
+    }
+}
+
+/*
+ * Rotation about arbitrary axis - note this is 4 x 4 and will need to multiply a vector [x, y, z, 0]
+ */
+class RotationMatrix extends SquareMatrix {
+
+    /**
+     * @param {[number]} axis - axis of rotation
+     * @param {[number]} point - a point that the axis contains
+     * @param {number} angle - rotation angle in radians
+     * @throws - if the number of rows and columns differ
+     */
+    constructor(axis, point, angle) {
+        const cs = Math.cos(angle);
+        const cs1 = 1 - cs;
+        const s = Math.sin(angle);
+
+        const A = point[0];
+        const B = point[1];
+        const C = point[2];
+
+        const nv = GeometryUtils.normalize(axis);
+        const u = nv[0];
+        const v = nv[1];
+        const w = nv[2];
+        const m = [
+            [
+                u * u + (v * v + w * w) * cs,
+                u * v * cs1 - w * s,
+                u * w * cs1 + v * s,
+                (A * (v * v + w * w) - u * (B * v + C * w)) * cs1 + (B * w - C * v) * s
+            ],
+            [
+                u * v * cs1 + w * s,
+                v * v + (u * u + w * w) * cs,
+                v * w * cs1 - u * s,
+                (B * (u * u + w * w) - v * (A * u + C * w)) * cs1 + (C * u - A * w) * s
+            ],
+            [
+                u * w * cs1 - v * s,
+                v * w * cs1 + u * s,
+                w * w + (u * u + v * v) * cs,
+                (C * (u * u + v * v) - w * (A * u + B * v)) * cs1 + (A * v - B * u) * s
+            ],
+            [0, 0, 0, 1]
+        ];
+        super(m);
+    }
+
+    toEuler(toDegrees=false) {
+        let theta = -Math.asin(this.val[2][0]);
+        const c = Math.cos(theta);
+        let psi = 0;
+        let phi = 0;
+        if (c === 0) {
+            if (this.val[2][0] === -1) {
+                theta = Math.PI / 2;
+                psi = phi + Math.atan2(this.val[0][1], this.val[0][0]);
+            }
+            else {
+                theta = -Math.PI / 2;
+                psi = -phi + Math.atan2(-this.val[0][1], -this.val[0][0]);
+            }
+        }
+        else {
+            psi = Math.atan2(this.val[2][1] / c, this.val[2][2] / c);
+            phi = Math.atan2(this.val[1][0] / c, this.val[0][0] / c);
+        }
+        return [psi, theta, phi].map(x => toDegrees ? 180.0 * x / Math.PI : x);
     }
 }
 
@@ -1772,43 +1864,6 @@ SIREPO.app.service('geometry', function(utilities) {
         });
     };
 
-    // for rotation about arbitrary axis - note this is 4 x 4 and will need to multiply a vector [x, y, z, 0]
-    this.rotationMatrix = function(pointCoords, vector, angle) {
-        var cs = Math.cos(angle);
-        var cs1 = 1 - cs;
-        var s = Math.sin(angle);
-
-        var A = pointCoords[0];
-        var B = pointCoords[1];
-        var C = pointCoords[2];
-
-        var nv = svc.normalize(vector);
-        var u = nv[0];
-        var v = nv[1];
-        var w = nv[2];
-        return [
-            [
-                u * u + (v * v + w * w) * cs,
-                u * v * cs1 - w * s,
-                u * w * cs1 + v * s,
-                (A * (v * v + w * w) - u * (B * v + C * w)) * cs1 + (B * w - C * v) * s
-            ],
-            [
-                u * v * cs1 + w * s,
-                v * v + (u * u + w * w) * cs,
-                v * w * cs1 - u * s,
-                (B * (u * u + w * w) - v * (A * u + C * w)) * cs1 + (C * u - A * w) * s
-            ],
-            [
-                u * w * cs1 - v * s,
-                v * w * cs1 + u * s,
-                w * w + (u * u + v * v) * cs,
-                (C * (u * u + v * v) - w * (A * u + B * v)) * cs1 + (A * v - B * u) * s
-            ],
-            [0, 0, 0, 1]
-        ];
-    };
-
     this.transform = function (matrix) {
 
         var identityMatrix = [
@@ -2077,10 +2132,12 @@ SIREPO.GEOMETRY = {
     GeometricObject: GeometricObject,
     GeometryUtils: GeometryUtils,
     IdentityMatrix: IdentityMatrix,
+    Line: Line,
     LineSegment: LineSegment,
     Matrix: Matrix,
     Point: Point,
     Rect: Rect,
+    RotationMatrix: RotationMatrix,
     SquareMatrix: SquareMatrix,
     Transform: Transform,
 };

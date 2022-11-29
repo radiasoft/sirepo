@@ -1,12 +1,32 @@
-#!/usr/bin/env python
 import h5py
+import numpy
 from sklearn.model_selection import train_test_split
 
-with h5py.File('{{ dataFile }}', 'r') as f:
-    test_and_validate = (100 - {{ partition_training }})/100
-    validation_size = ((test_and_validate * 100) - {{ partition_testing }})/100
-    x_values = f['images']
-    y_values = f['metadata/image_types']
-    trainx, tvx, trainy, tvy = train_test_split(x_values, y_values, test_size=test_and_validate, random_state=42, shuffle=False)
-    trainx, tvx = trainx / 255.0, tvx / 255.0
-    testx, valx, testy, valy = train_test_split(tvx, tvy, test_size=validation_size, random_state=42, shuffle=False)
+
+def _scale(values):
+    # TODO(pjm): use selected input/output scalar on dataFile model
+    return 2 * (values - numpy.min(values)) / (numpy.max(values) - numpy.min(values)) - 1.0
+
+
+with h5py.File("{{ dataFile }}", "r") as f:
+    test_and_validate = (100 - {{partition_training}}) / 100
+    validation_size = ((test_and_validate * 100) - {{partition_testing}}) / 100
+    x_values = f["{{ inPath }}"]
+    y_values = f["{{ outPath }}"]
+    {% if inScaling %}
+    x_values = _scale(x_values)
+    {% endif %}
+    {% if outScaling %}
+    y_values = _scale(y_values)
+    {% endif %}
+    
+    trainx, tvx, trainy, tvy = train_test_split(
+        x_values, y_values, test_size=test_and_validate, random_state=42, shuffle=False
+    )
+    testx, valx, testy, valy = train_test_split(
+        tvx, tvy, test_size=validation_size, random_state=42, shuffle=False
+    )
+    input_shape = trainx.shape[1:]
+    if len(input_shape) < 3:
+        input_shape += (1,)
+    output_shape = {{outputShape}}

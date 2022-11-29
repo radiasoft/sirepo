@@ -1,5 +1,4 @@
-let fs = require("fs");
-const { isObject } = require("util");
+let fs = require("fs")
 
 function convertModels(fileName) {
     let fileString = fs.readFileSync(fileName, { encoding: "utf-8" });

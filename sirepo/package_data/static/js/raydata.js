@@ -320,7 +320,10 @@ SIREPO.app.directive('scansTable', function() {
                     </tr>
                   </tbody>
                 </table>
-                <div ng-if="awaitingScans">Loading scans...</div>
+                <div style="height: 20px;">
+                  <div ng-if="awaitingScans" data-dots-animation="" data-text="Checking for new scans"></div>
+                  <div ng-if="noScansReturned">No scans found</div>
+                </div>
               </div>
             </div>
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
@@ -365,6 +368,7 @@ SIREPO.app.directive('scansTable', function() {
             // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['status', 'start', 'stop', 'suid'];
             $scope.images = null;
+            $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
             $scope.reverseSortScans = false;
             $scope.scans = [];
@@ -419,11 +423,15 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 function doRequest() {
                     $scope.awaitingScans = true;
+                    $scope.noScansReturned = false;
                     requestSender.sendStatelessCompute(
                         appState,
                         (json) => {
                             $scope.awaitingScans = false;
                             $scope.scans = json.data.scans.slice();
+                            if ($scope.scans.length === 0) {
+                                $scope.noScansReturned = true;
+                            }
                         },
                         {
                             method: 'scans',

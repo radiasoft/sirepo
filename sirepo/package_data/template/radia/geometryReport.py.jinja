@@ -20,9 +20,10 @@ _MODEL_GROUP = 'geomGroup'
 _MODEL_OBJECT = 'geomObject'
 _MODEL_EXTRUDED_POLY = 'extrudedPoly'
 _MODEL_RACETRACK = 'racetrack'
+_MODEL_STL = 'stl'
 _EXTRUDED_MODELS = [_MODEL_CEE, _MODEL_ELL, _MODEL_JAY, _MODEL_EXTRUDED_POLY]
 _GROUP_MODELS = [_MODEL_GROUP]
-_OBJ_MODELS = [_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT] + _EXTRUDED_MODELS
+_OBJ_MODELS = [_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT, _MODEL_STL] + _EXTRUDED_MODELS
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
 sirepo_objs = {{ objects }}
@@ -73,7 +74,7 @@ def _add_object(o, radia_objs, id_map):
             segments=segs,
             t_level=o.triangulationLevel,
             h_m_curve=o.h_m_curve
-    )
+        )
     if t == _MODEL_RACETRACK:
         g_id = radia_util.build_racetrack(
             center=o.center,
@@ -84,6 +85,22 @@ def _add_object(o, radia_objs, id_map):
             height=o.height,
             num_segs=o.numSegments,
             curr_density=o.currentDensity,
+        )
+    if t == _MODEL_STL:
+        g_id = radia_util.build_stl(
+            filename = o.get('file'),
+            center=o.center,
+            centroid=o.stlCentroid,
+            size=sz,
+            vertices=o.stlVertices,
+            faces=o.stlFaces,
+            magnetization=m,
+            material=o.material,
+            rem_mag=o.remanentMag,
+            segments=segs,
+            h_m_curve=o.h_m_curve,
+            #TODO: Not implemented
+            #slices=o.stlSlices
         )
     if t in _OBJ_MODELS:
         for b in o.get('bevels', []):

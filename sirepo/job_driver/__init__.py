@@ -129,18 +129,21 @@ class DriverBase(PKDict):
 
         m = op.msg
         with sirepo.quest.start() as qcall:
-            qcall.auth.logged_in_user_set(m.uid)
-            d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
-            op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
-            op.lib_dir_symlink.mksymlinkto(d, absolute=True)
-            m.pkupdate(
-                libFileUri=job.supervisor_file_uri(
-                    self.cfg.supervisor_uri,
-                    job.LIB_FILE_URI,
-                    op.lib_dir_symlink.basename,
-                ),
-                libFileList=[f.basename for f in d.listdir()],
-            )
+            with qcall.auth.logged_in_user_set(m.uid):
+                d = sirepo.simulation_db.simulation_lib_dir(
+                    m.simulationType,
+                    qcall=qcall,
+                )
+                op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
+                op.lib_dir_symlink.mksymlinkto(d, absolute=True)
+                m.pkupdate(
+                    libFileUri=job.supervisor_file_uri(
+                        self.cfg.supervisor_uri,
+                        job.LIB_FILE_URI,
+                        op.lib_dir_symlink.basename,
+                    ),
+                    libFileList=[f.basename for f in d.listdir()],
+                )
 
     def op_is_untimed(self, op):
         return op.opName in _UNTIMED_OPS
@@ -201,6 +204,7 @@ class DriverBase(PKDict):
         return job.agent_cmd_stdin_env(
             ("sirepo", "job_agent", "start"),
             env=self._agent_env(),
+            uid=self.uid,
             **kwargs,
         )
 
@@ -211,7 +215,6 @@ class DriverBase(PKDict):
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
                     job.SIM_DB_FILE_URI,
-                    sirepo.simulation_db.USER_ROOT_DIR,
                     self.uid,
                 ),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,

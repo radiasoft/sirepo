@@ -4,13 +4,11 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import base64
-import contextlib
 import cryptography.fernet
 import itertools
 import re
@@ -72,8 +70,7 @@ class _Cookie(sirepo.quest.Attr):
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=_cfg.is_secure,
-            # TODO(pjm): enabling this causes self-extracting simulations to break
-            # samesite='Strict',
+            samesite="Lax",
         )
 
     def set_sentinel(self):

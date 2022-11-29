@@ -11,10 +11,9 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 import re
-import sirepo.quest
-import sirepo.db_upgrade
 import sirepo.feature_config
 import sirepo.flask
+import sirepo.quest
 import sirepo.resource
 import sirepo.sim_data
 import sirepo.srschema
@@ -82,9 +81,12 @@ class API(sirepo.quest.API):
         sirepo.sim_data.get_class(req.type).lib_files_from_other_user(
             data,
             simulation_db.lib_dir_from_sim_dir(src),
+            qcall=self,
         )
         target = simulation_db.simulation_dir(
-            req.type, data.models.simulation.simulationId
+            req.type,
+            data.models.simulation.simulationId,
+            qcall=self,
         )
         # TODO(robnagler) does not work, supervisor needs to be notified to
         # copy the simulation state.
@@ -98,7 +100,7 @@ class API(sirepo.quest.API):
     def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
         req = self.parse_post(id=True, folder=True, name=True, template=True)
-        d = simulation_db.read_simulation_json(req.type, sid=req.id)
+        d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
         d.models.simulation.pkupdate(
             name=req.name,
             folder=req.folder,
@@ -127,7 +129,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sid="SimId")
     def api_deleteSimulation(self):
         req = self.parse_post(id=True)
-        simulation_db.delete_simulation(req.type, req.id)
+        simulation_db.delete_simulation(req.type, req.id, qcall=self)
         return self.reply_ok()
 
     @sirepo.quest.Spec(
@@ -137,7 +139,7 @@ class API(sirepo.quest.API):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, filename=filename)
         n = req.sim_data.lib_file_name_without_type(req.filename)
-        p = req.sim_data.lib_file_abspath(req.filename)
+        p = req.sim_data.lib_file_abspath(req.filename, qcall=self)
         try:
             return self.reply_attachment(p, filename=n)
         except Exception as e:
@@ -201,7 +203,7 @@ class API(sirepo.quest.API):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, file_type=file_type)
         return self.reply_json(
-            req.sim_data.lib_file_names_for_type(req.file_type),
+            req.sim_data.lib_file_names_for_type(req.file_type, qcall=self),
         )
 
     @sirepo.quest.Spec(
@@ -235,18 +237,20 @@ class API(sirepo.quest.API):
                 "simulation.name": simulation_name,
                 "simulation.isExample": True,
             },
+            qcall=self,
         )
         if len(rows) == 0:
             for s in simulation_db.examples(req.type):
                 if s["models"]["simulation"]["name"] != simulation_name:
                     continue
-                simulation_db.save_new_example(s)
+                simulation_db.save_new_example(s, qcall=self)
                 rows = simulation_db.iterate_simulation_datafiles(
                     req.type,
                     simulation_db.process_simulation_list,
                     {
                         "simulation.name": simulation_name,
                     },
+                    qcall=self,
                 )
                 break
             else:
@@ -276,9 +280,9 @@ class API(sirepo.quest.API):
             response: may be a file or JSON
         """
         req = self.parse_post(template=True, filename=filename or None)
-        with simulation_db.tmp_dir() as d:
+        with simulation_db.tmp_dir(qcall=self) as d:
             assert "method" in req.req_data
-            res = req.template.get_application_data(req.req_data, tmp_dir=d)
+            res = req.template.get_application_data(req.req_data, qcall=self, tmp_dir=d)
             assert (
                 res != None
             ), f"unhandled application data method: {req.req_data.method}"
@@ -289,25 +293,6 @@ class API(sirepo.quest.API):
                     content_type=req.req_data.get("contentType", None),
                 )
             return self.reply_json(res)
-
-    @sirepo.quest.Spec(
-        "allow_cookieless_require_user", sim_data="SimData", zip="ImportArchiveZip"
-    )
-    def api_importArchive(self):
-        """
-        Params:
-            data: what to import
-        """
-        from sirepo import importer
-
-        # special request parsing here
-        data = importer.do_form(self.sreq.internal_req.request.form, self)
-        m = simulation_db.get_schema(data.simulationType).appModes.default
-        return self.reply_redirect_for_local_route(
-            data.simulationType,
-            m.localRoute,
-            PKDict(simulationId=data.models.simulation.simulationId),
-        )
 
     @sirepo.quest.Spec(
         "require_user",
@@ -367,9 +352,12 @@ class API(sirepo.quest.API):
                         "no import_file in template req={}",
                         req,
                     )
-                with simulation_db.tmp_dir() as d:
+                with simulation_db.tmp_dir(qcall=self) as d:
                     data = req.template.import_file(
-                        req, tmp_dir=d, reply_op=s, qcall=self
+                        req,
+                        tmp_dir=d,
+                        reply_op=s,
+                        qcall=self,
                     )
                 if "error" in data:
                     return self.reply_json(data)
@@ -419,7 +407,10 @@ class API(sirepo.quest.API):
             f = getattr(req.template, "export_jupyter_notebook", None)
             if not f:
                 sirepo.util.raise_not_found(f"API not supported for tempate={req.type}")
-            return f(simulation_db.read_simulation_json(req.type, sid=req.id))
+            return f(
+                simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self),
+                qcall=self,
+            )
 
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         return self.reply_attachment(
@@ -440,7 +431,7 @@ class API(sirepo.quest.API):
             folder=req.folder,
         )
         if hasattr(req.template, "new_simulation"):
-            req.template.new_simulation(d, req.req_data)
+            req.template.new_simulation(d, req.req_data, qcall=self)
         return self._save_new_and_reply(req, d)
 
     @sirepo.quest.Spec("allow_visitor")
@@ -456,12 +447,12 @@ class API(sirepo.quest.API):
     def api_pythonSource(self, simulation_type, simulation_id, model=None, title=None):
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         m = model and req.sim_data.parse_model(model)
-        d = simulation_db.read_simulation_json(req.type, sid=req.id)
+        d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
         suffix = simulation_db.get_schema(
             simulation_type
         ).constants.simulationSourceExtension
         return self.reply_attachment(
-            req.template.python_source_for_model(d, m),
+            req.template.python_source_for_model(d, model=m, qcall=self),
             "{}.{}".format(
                 d.models.simulation.name + ("-" + title if title else ""),
                 "madx" if m == "madx" else suffix,
@@ -505,10 +496,12 @@ class API(sirepo.quest.API):
         # do not fixup_old_data yet
         req = self.parse_post(id=True, template=True)
         d = req.req_data
-        simulation_db.validate_serial(d)
+        simulation_db.validate_serial(d, qcall=self)
         return self._simulation_data_reply(
             req,
-            simulation_db.save_simulation_json(d, fixup=True, modified=True),
+            simulation_db.save_simulation_json(
+                d, fixup=True, modified=True, qcall=self
+            ),
         )
 
     @sirepo.quest.Spec(
@@ -539,7 +532,7 @@ class API(sirepo.quest.API):
                     userCopySimulationId=simulation_db.find_user_simulation_copy(
                         sim_type=req.type,
                         sid=req.id,
-                        uid=self.auth.logged_in_user(),
+                        qcall=self,
                     ),
                 ),
             )
@@ -548,7 +541,7 @@ class API(sirepo.quest.API):
         # TODO(robnagler) need real type transforms for inputs
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         try:
-            d = simulation_db.read_simulation_json(req.type, sid=req.id)
+            d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
             return self._simulation_data_reply(req, d)
         except sirepo.util.SPathNotFound:
             return _not_found(req)
@@ -562,6 +555,7 @@ class API(sirepo.quest.API):
                     req.type,
                     simulation_db.process_simulation_list,
                     req.req_data.get("search"),
+                    qcall=self,
                 ),
                 key=lambda row: row["name"],
             )
@@ -639,7 +633,9 @@ class API(sirepo.quest.API):
                 req,
             )
         for r in simulation_db.iterate_simulation_datafiles(
-            req.type, _simulation_data_iterator
+            req.type,
+            _simulation_data_iterator,
+            qcall=self,
         ):
             f = r.models.simulation.folder
             l = o.lower()
@@ -649,7 +645,7 @@ class API(sirepo.quest.API):
                 r.models.simulation.folder = n + f[len() :]
             else:
                 continue
-            simulation_db.save_simulation_json(r, fixup=False)
+            simulation_db.save_simulation_json(r, fixup=False, qcall=self)
         return self.reply_ok()
 
     @sirepo.quest.Spec(
@@ -670,7 +666,7 @@ class API(sirepo.quest.API):
         )
         e = None
         in_use = None
-        with simulation_db.tmp_dir() as d:
+        with simulation_db.tmp_dir(qcall=self) as d:
             t = d.join(req.filename)
             f.save(str(t))
             if hasattr(req.template, "validate_file"):
@@ -678,7 +674,7 @@ class API(sirepo.quest.API):
                 e = req.template.validate_file(req.file_type, t)
             if (
                 not e
-                and req.sim_data.lib_file_exists(req.filename)
+                and req.sim_data.lib_file_exists(req.filename, qcall=self)
                 and not self.sreq.internal_req.form.get("confirm")
             ):
                 in_use = _simulations_using_file(req, ignore_sim_id=req.id)
@@ -745,12 +741,12 @@ class API(sirepo.quest.API):
     def _save_new_and_reply(self, req, data):
         return self._simulation_data_reply(
             req,
-            simulation_db.save_new_simulation(data, uid=self.auth.logged_in_user()),
+            simulation_db.save_new_simulation(data, qcall=self),
         )
 
     def _simulation_data_reply(self, req, data):
         if hasattr(req.template, "prepare_for_client"):
-            d = req.template.prepare_for_client(data)
+            d = req.template.prepare_for_client(data, qcall=self)
         return self.headers_for_no_cache(self.reply_json(data))
 
 
@@ -780,12 +776,16 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     sirepo.flask.app_set(_app)
     if is_server:
         global _google_tag_manager
+        from sirepo import auth_db
+
+        with sirepo.quest.start() as qcall:
+            auth_db.create_or_upgrade(qcall=qcall)
 
         if cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>
         (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
         </script>"""
-        sirepo.db_upgrade.do_all()
+
         # Avoid unnecessary logging
         sirepo.flask.is_server = True
     return _app
@@ -857,6 +857,7 @@ def _init_proxy_react():
 def _lib_file_write_path(req):
     return req.sim_data.lib_file_write_path(
         req.sim_data.lib_file_name_with_type(req.filename, req.file_type),
+        qcall=req.qcall,
     )
 
 
@@ -868,7 +869,9 @@ def _simulation_data_iterator(res, path, data):
 def _simulations_using_file(req, ignore_sim_id=None):
     res = []
     for r in simulation_db.iterate_simulation_datafiles(
-        req.type, _simulation_data_iterator
+        req.type,
+        _simulation_data_iterator,
+        qcall=req.qcall,
     ):
         if not req.sim_data.lib_file_in_use(r, req.filename):
             continue

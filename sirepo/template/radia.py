@@ -7,8 +7,8 @@ Radia "instance" goes away and references no longer have any meaning.
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import inspect
 
+import inspect
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -30,6 +30,7 @@ import sdds
 import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
+import trimesh
 import uuid
 
 _AXES_UNIT = [1, 1, 1]
@@ -147,7 +148,9 @@ def create_archive(sim, qcall):
 
     if sim.filename.endswith("dat"):
         return qcall.reply_attachment(
-            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
+            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(
+                _DMP_FILE
+            ),
             content_type="application/octet-stream",
             filename=sim.filename,
         )
@@ -282,7 +285,7 @@ def import_file(req, tmp_dir=None, **kwargs):
     return data
 
 
-def new_simulation(data, new_sim_data):
+def new_simulation(data, new_sim_data, qcall, **kwargs):
     _prep_new_sim(data, new_sim_data=new_sim_data)
     dirs = _geom_directions(new_sim_data.beamAxis, new_sim_data.heightAxis)
     t = new_sim_data.get("magnetType", "freehand")
@@ -317,29 +320,51 @@ def sim_frame_fieldLineoutAnimation(frame_args):
     )
 
 
-def stateful_compute_build_shape_points(data):
+def stateless_compute_build_shape_points(data):
     pts = []
+    o = data.args.object
+    if not o.get("pointsFile"):
+        return PKDict(
+            points=pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
+                o, _get_stemmed_info(o)
+            )
+        )
     with open(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
-                "extrudedPoints", "pointsFile", data.args.points_file
+                "extrudedPoints", "pointsFile", o.pointsFile
             )
         ),
         "rt",
     ) as f:
         for r in csv.reader(f):
             pts.append([float(x) for x in r])
+    # Radia does not like it if the path is closed
+    if all(numpy.isclose(pts[0], pts[-1])):
+        del pts[-1]
     return PKDict(points=pts)
 
 
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data, False, for_export=True)
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
+
+
+def validate_file(file_path, path):
+    if path.ext not in (".csv", ".dat", ".stl", ".txt"):
+        return f"invalid file type: {path.ext}"
+    if path.ext == ".stl":
+        mesh = _create_stl_trimesh(path)
+        if trimesh.convex.is_convex(mesh) == False:
+            return f"not convex model: {path.basename}"
+        elif len(mesh.faces) > 600:
+            return f"too many faces({len(mesh.faces)}): {path.basename}"
+    return None
 
 
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, is_parallel, run_dir=run_dir),
+        _generate_parameters_file(data, is_parallel, run_dir=run_dir, qcall=None),
     )
     if is_parallel:
         return template_common.get_exec_parameters_cmd(is_mpi=True)
@@ -567,6 +592,29 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
     return _update_geom_from_undulator(geom_objs, model, **kwargs)
 
 
+def _is_binary(file_path):
+    textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F})
+    is_binary_string = lambda bytes: bool(bytes.translate(None, textchars))
+    return is_binary_string(open(file_path, "rb").read(1024))
+
+
+def _create_stl_trimesh(file_path):
+    readParam = "r"
+    keyType = "ascii"
+    if _is_binary(file_path):
+        readParam = "rb"
+        keyType = "binary"
+    with open(file_path, readParam) as f:
+        m = trimesh.exchange.stl.load_stl(file_obj=f)
+        if "geometry" in m:
+            return trimesh.Trimesh(
+                vertices=m["geometry"][keyType]["vertices"],
+                faces=m["geometry"][keyType]["faces"],
+                process=True,
+            )
+        return trimesh.Trimesh(vertices=m["vertices"], faces=m["faces"], process=True)
+
+
 # deep copy of an object, but with a new id
 def _copy_geom_obj(o):
     import copy
@@ -779,7 +827,7 @@ def _generate_obj_data(g_id, name):
     return radia_util.geom_to_data(g_id, name=name)
 
 
-def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None):
+def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_dir=None):
     import jinja2
 
     report = data.get("report", "")
@@ -832,7 +880,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         v.dmpImportFile = (
             data.models.simulation.dmpImportFile
             if for_export
-            else simulation_db.simulation_lib_dir(SIM_TYPE).join(
+            else simulation_db.simulation_lib_dir(SIM_TYPE, qcall=qcall).join(
                 f"{SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}"
             )
         )
@@ -1610,6 +1658,11 @@ def _update_geom_obj(o, **kwargs):
         magnetization=[0.0, 0.0, 0.0],
         segments=[1, 1, 1],
         size=[1.0, 1.0, 1.0],
+        stlVertices=[],
+        stlFaces=[],
+        stlCentroid=[],
+        # TODO(BG) Not implemented
+        # stlSlices = [],
     )
     for k in d:
         v = kwargs.get(k)
@@ -1634,6 +1687,44 @@ def _update_geom_obj(o, **kwargs):
         )
     if "points" in o:
         o.area = _poly_area(o.points)
+    if o.type == "stl":
+        path = str(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_type(o.file, "stl-file")
+            )
+        )
+        mesh = _create_stl_trimesh(path)
+        for v in list(mesh.vertices):
+            d.stlVertices.append(list(v))
+        for f in list(mesh.faces):
+            d.stlFaces.append(list(f))
+        o.stlVertices = d.stlVertices
+        o.stlFaces = d.stlFaces
+        o.size = list(mesh.bounding_box.primitive.extents)
+        o.stlCentroid = mesh.centroid.tolist()
+
+        # TODO(BG) Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
+        """
+        z_extents = mesh.bounds[:,2]
+        z_levels  = numpy.arange(*z_extents, step=1)
+        meshSlices = trimesh.intersections.mesh_multiplane(mesh=mesh, plane_origin=mesh.bounds[0], plane_normal=[0,0,1], heights=z_levels)[0]
+        formattedSlices = []
+        index = 0
+        for s in meshSlices:
+            slicePoints = []
+            for l in s:
+                for p in l:
+                    #Remove redundant points by rounding
+                    p[0] = round(p[0],5)
+                    p[1] = round(p[1],5)
+                    if list(p) not in slicePoints:
+                        slicePoints.append(list(p))
+            formattedSlices.append([list(slicePoints), z_levels[index]])
+            index += 1
+        for s in formattedSlices:
+            s[0] = sort_points_clockwise(s[0])
+        o.stlSlices = formattedSlices
+        """
     return o
 
 
@@ -1683,6 +1774,32 @@ def _update_kickmap(km, und, beam_axis):
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
+
+
+# TODO(BG) Necessary helper function to implement object slicing with radia.radObjMltExtPgn()
+# Edge Case: Need to remove linear points along same vecter before returning
+"""
+def _sort_points_clockwise(points):
+    angles = []
+    center = (sum([p[0] for p in points]) / len(points), sum([p[1] for p in points]) / len(points))
+    for p in points:
+        vector = [p[0] - center[0], p[1] - center[1]]
+        vlength = math.sqrt(pow(vector[0], 2) + pow(vector[1], 2))
+        if vlength == 0:
+            angles.append(-numpy.pi)
+        else:
+            normalized = [vector[0] / vlength, vector[1] / vlength]
+            angle = math.atan2(normalized[0], normalized[1])
+            # function checks against x-positive, if negative angle add to 2pi for mirror
+            if angle < 0:
+                angle = 2 * numpy.pi + angle
+            angles.append(angle)
+    for i in range(len(angles)):
+        angles[i] = [angles[i], points[i]]
+    angles.sort()  
+    # might have to check by lengths as well if angles are the same
+    return [x[1] for x in angels]
+"""
 
 
 def _validate_objects(objects):

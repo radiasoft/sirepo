@@ -673,11 +673,11 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             function(data) {
                 if (data.notFoundCopyRedirect) {
                     requestSender.localRedirect('notFoundCopy', {
-                        ':simulationIds': data.redirect.simulationId
-                            + (data.redirect.userCopySimulationId
-                               ? ('-' + data.redirect.userCopySimulationId)
+                        ':simulationIds': data.notFoundCopyRedirect.simulationId
+                            + (data.notFoundCopyRedirect.userCopySimulationId
+                               ? ('-' + data.notFoundCopyRedirect.userCopySimulationId)
                                : ''),
-                        ':section': data.redirect.section,
+                        ':section': data.notFoundCopyRedirect.section,
                     });
                     return;
                 }
@@ -1817,6 +1817,13 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             .text(text);
     };
 
+    self.setHidden = (name, doHide=true) => {
+        if ((self.isHidden(name) && doHide) || (! self.isHidden(name) && ! doHide) ) {
+            return;
+        }
+        self.toggleHidden(name);
+    };
+
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
 
     self.showEnum = function(model, field, value, isShown) {
@@ -1925,6 +1932,11 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (appState.isReportModelName(name)) {
             windowResize();
         }
+    };
+    
+    self.toggleHiddenAndNotify = name => {
+        self.toggleHidden(name);
+        $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
     };
 
     self.waitForUI = function(callback) {
