@@ -7,7 +7,7 @@ import { FormField } from "./form";
 
 export type FieldProps<T> = {
     value: FormFieldState<T>,
-    updateField: (value: T | string | undefined) => void,
+    updateField: (value: T) => void,
     dependency: Dependency,
     inputComponent: FunctionComponent<InputComponentProps<T>>
 }
@@ -17,10 +17,10 @@ export type LabeledFieldProps<T> = {
     description: string
 } & FieldProps<T>
 
-export function FieldInput(props: FieldProps<unknown>) {
+export function FieldInput<T>(props: FieldProps<T>) {
     let { value, updateField, inputComponent, dependency } = props;
 
-    const onChange = (nextValue) => {
+    const onChange = (nextValue: T) => {
         console.log("field input onChange");
         console.log("field.value.value", value.value);
         console.log("nextValue", nextValue);

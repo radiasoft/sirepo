@@ -3,18 +3,18 @@ import React from "react";
 import { FormFieldState, FormModelState } from "../store/formState";
 import { Dependency } from "./dependency";
 import { ModelState } from "../store/models";
-import { Schema } from "../utility/schema";
+import { Schema, SchemaModel } from "../utility/schema";
 import { ModelsAccessor } from "./accessor";
 import { AbstractModelsWrapper } from "./wrapper";
 import { InputLayout } from "../layout/input/input";
 
 
 
-export let formStateFromModel = (model, modelSchema) => mapProperties(modelSchema, (fieldName, { type }) => {
+export let formStateFromModel = (model: ModelState, modelSchema: SchemaModel) => mapProperties(modelSchema, (fieldName, { type }) => {
     const valid = type.validate(model[fieldName])
     return {
         valid: valid,
-        value: valid ? model[fieldName] : "",
+        value: type.fromModelValue(model[fieldName]),
         touched: false,
         active: true
     }
@@ -51,11 +51,11 @@ export class FormController {
             return {
                 modelName: mn,
                 changes: Object.fromEntries(modelValues.map(mv => {
-                    //let modelSchema = this.schema.models[mn];
-                    //let v = modelSchema[mv.dependency.fieldName].type.toModelValue(mv.value.value);
+                    let modelSchema = this.schema.models[mn];
+                    let v = modelSchema[mv.dependency.fieldName].type.toModelValue(mv.value.value);
                     return [
                         mv.dependency.fieldName,
-                        mv.value.value
+                        v
                     ]
                 }))
             }

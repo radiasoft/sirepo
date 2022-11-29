@@ -22,14 +22,14 @@ export class BooleanInputLayout extends InputLayout<InputConfigBase, boolean, Bo
         return (!this.config.isRequired) || this.hasValue(value);
     }
 
-    component: FunctionComponent<LayoutProps<InputComponentProps<BooleanModelType>>> = (props) => {
+    component: FunctionComponent<LayoutProps<InputComponentProps<boolean>>> = (props) => {
         let { value, valid, touched, ...otherProps } = props;
 
         let onChange = (event) => {
             let v: boolean = event.target.checked as boolean;
-            props.onChange(this.toModelValue(v));
+            props.onChange(v);
         }
         
-        return <Form.Check {...otherProps} onChange={onChange} checked={this.fromModelValue(value)} isInvalid={!valid && touched}></Form.Check>
+        return <Form.Check {...otherProps} onChange={onChange} checked={value} isInvalid={!valid && touched}></Form.Check>
     };
 }
