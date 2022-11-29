@@ -41,6 +41,11 @@ class Stopwatch {
     isComplete() {
         return this.times.startTime !== undefined && this.times.endTime !== undefined;
     }
+
+    setElapsedSeconds(seconds) {
+        this.times.endTime = new Date();
+        this.times.startTime = new Date(this.times.endTime.getTime() - 1000 * seconds);
+    }
 }
 
 export function useStopwatch() {

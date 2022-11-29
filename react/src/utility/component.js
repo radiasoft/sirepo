@@ -48,24 +48,24 @@ function useRefSize(ref) {
         height: 1000,
     });
     useLayoutEffect(() => {
-        if (! ref || ! ref.current) {
+        if (! ref || ! ref.current || ! ref.current.offsetWidth) {
             return;
         }
         const handleResize = debounce(() => {
-            if (! ref || ! ref.current) {
-                return;
+            const w = Number.parseInt(ref.current.offsetWidth);
+            if (dim.width != w) {
+                setDim({
+                    width: w,
+                    height: Number.parseInt(ref.current.offsetHeight),
+                });
             }
-            setDim({
-                width: Number.parseInt(ref.current.offsetWidth),
-                height: Number.parseInt(ref.current.offsetHeight),
-            });
         }, 250);
         window.addEventListener('resize', handleResize);
         handleResize();
         return _ => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [ref]);
+    });
     return [dim, setDim];
 }
 

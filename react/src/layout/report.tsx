@@ -85,7 +85,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
                     }
                 })
             })
-        }, dependentValues)    
+        }, dependentValues)
 
         let reportVisualConfig = this.reportLayout.getConfigFromApiResponse(simulationData);
         let canShow = this.reportLayout.canShow(simulationData);
@@ -149,7 +149,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         useEffect(() => {
             let reportEventsVersion = uuidv4();
             reportEventsVersionRef.current = reportEventsVersion;
-            
+
             reportEventManager.onReportData(reportGroupName, (simulationData) => {
                 if(reportEventsVersionRef.current !== reportEventsVersion) {
                     return; // guard against concurrency with older versions
@@ -287,6 +287,28 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
 
         let simulationPollingVersionRef = useRef(uuidv4())
 
+
+        useEffect(() => {
+            simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
+
+                simulationInfoPromise.then(({simulationId}) => {
+                    reportEventManager.runStatus({
+                        appName,
+                        models: modelsWrapper.getModels(store.getState()),
+                        simulationId,
+                        report: reportGroupName,
+                        callback: (simulationData) => {
+                            if (simulationData.state == 'completed') {
+                                stopwatch.setElapsedSeconds(simulationData.elapsedTime);
+                                updateLastSimulationData(simulationData);
+                            }
+                        }
+                    })
+                })
+            });
+        }, []);
+
+
         let startSimulation = () => {
             updateLastSimulationData(undefined);
             stopwatch.reset();
@@ -308,11 +330,10 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                     simulationId,
                     report: reportGroupName
                 })
-            })   
+            })
         }
 
         let endSimulation = () => {
-            debugger;
             updateLastSimulationData(undefined);
             stopwatch.reset();
             simulationPollingVersionRef.current = uuidv4();
@@ -324,7 +345,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                     simulationId,
                     report: reportGroupName
                 })
-            })   
+            })
         }
 
         let endSimulationButton = <Button variant="primary" onClick={endSimulation}>End Simulation</Button>;
@@ -334,7 +355,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
             let { state } = lastSimulationData;
             let elapsedTimeSeconds = stopwatch.isComplete() ? Math.ceil(stopwatch.getElapsedSeconds()) : undefined;
             let getStateBasedElement = (state) => {
-                
+
                 switch(state) {
                     case 'pending':
                         return (
@@ -352,7 +373,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                             </Stack>
                         )
                     case 'completed':
-                        return (    
+                        return (
                             <Stack gap={2}>
                                 <span>{'Simulation Completed'}</span>
                                 <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
@@ -360,7 +381,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                             </Stack>
                         )
                     case 'error':
-                        return (    
+                        return (
                             <Stack gap={2}>
                                 <span>{'Simulation Error'}</span>
                                 <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
