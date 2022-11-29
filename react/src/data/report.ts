@@ -25,6 +25,12 @@ export class ReportEventManager {
         simulationId,
         report,
         callback,
+    }: {
+        appName: string,
+        models: ModelStates,
+        simulationId: string,
+        report: string,
+        callback: (resp: any) => void
     }) => {
         runStatus({
             appName,

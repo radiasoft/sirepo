@@ -294,7 +294,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                 simulationInfoPromise.then(({simulationId}) => {
                     reportEventManager.runStatus({
                         appName,
-                        models: modelsWrapper.getModels(store.getState()),
+                        models: getModelValues(modelNames, modelsWrapper, store.getState()),
                         simulationId,
                         report: reportGroupName,
                         callback: (simulationData) => {

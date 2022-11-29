@@ -45,6 +45,11 @@ class Stopwatch {
         this.times.endTime = undefined;
     }
 
+    setElapsedSeconds(seconds) {
+        this.times.endTime = new Date().valueOf();
+        this.times.startTime = new Date(this.times.endTime - 1000 * seconds).valueOf();
+    }
+
     isComplete() {
         return this.times.startTime !== undefined && this.times.endTime !== undefined;
     }

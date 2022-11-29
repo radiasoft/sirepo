@@ -105,7 +105,7 @@ export type CancelComputeParams = {
     report: string
 }
 
-export function cancelReport({ appName, models, simulationId, report }: CancelComputeParams) {
+export function cancelReport({ appName, models, simulationId, report }: CancelComputeParams): Promise<Response> {
     return fetch('/run-cancel', {
         method: 'POST',
         headers: {
@@ -121,7 +121,16 @@ export function cancelReport({ appName, models, simulationId, report }: CancelCo
     })
 }
 
-export function runStatus({ appName, models, simulationId, report, callback, forceRun }) {
+export type RunStatusParams = {
+    appName: string,
+    models: ModelStates,
+    simulationId: string,
+    report: string,
+    callback: (resp: any) => void,
+    forceRun: boolean
+}
+
+export function runStatus({ appName, models, simulationId, report, callback, forceRun }: RunStatusParams) {
     let doStatus = () => fetch('/run-status', {
         method: 'POST',
         headers: {
