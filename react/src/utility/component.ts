@@ -1,6 +1,7 @@
 /* eslint eqeqeq: 0 */
 /* eslint no-unused-vars: 0 */
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { RefObject, useLayoutEffect, useState } from 'react';
+import { debounce } from './debounce';
 
 export function constrainZoom(transformMatrix, size, dimension) {
     if (transformMatrix[`scale${dimension}`] < 1) {
@@ -18,18 +19,6 @@ export function constrainZoom(transformMatrix, size, dimension) {
     return transformMatrix;
 }
 
-//TODO(pjm): use a library?
-export function debounce(fn, ms) {
-    let timer;
-    return _ => {
-        clearTimeout(timer);
-        timer = setTimeout(_ => {
-            timer = null;
-            fn.apply(this, arguments);
-        }, ms);
-    };
-}
-
 const xAxisSize = 30;
 const yAxisSize = 60;
 const margin = 25;
@@ -42,27 +31,32 @@ function graphContentWidthOffset() {
     return yAxisSize + margin * 2;
 }
 
-function useRefSize(ref) {
+export type Dimension = {
+    height: number,
+    width: number
+}
+
+function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispatch<React.SetStateAction<Dimension>>] {
     const [dim, setDim] = useState({
         width: 1000,
         height: 1000,
     });
     useLayoutEffect(() => {
         if (! ref || ! ref.current || ! ref.current.offsetWidth) {
-            return;
+            return () => {};
         }
         const handleResize = debounce(() => {
-            const w = Number.parseInt(ref.current.offsetWidth);
+            const w = ref.current.offsetWidth;
             if (dim.width != w) {
                 setDim({
                     width: w,
-                    height: Number.parseInt(ref.current.offsetHeight),
+                    height: ref.current.offsetHeight,
                 });
             }
         }, 250);
         window.addEventListener('resize', handleResize);
         handleResize();
-        return _ => {
+        return () => {
             window.removeEventListener('resize', handleResize);
         };
     });
@@ -71,7 +65,7 @@ function useRefSize(ref) {
 
 export function useGraphContentBounds(ref, aspectRatio) {
     const [dim, setDim] = useRefSize(ref);
-    const h = graphContentHeightOffset() + Number.parseInt((dim.width - graphContentWidthOffset()) * aspectRatio);
+    const h = graphContentHeightOffset() + ((dim.width - graphContentWidthOffset()) * aspectRatio);
     if (h != dim.height) {
         setDim({
             width: dim.width,
