@@ -278,37 +278,8 @@ SIREPO.app.controller('AnalysisController', function (appState, activaitService,
         });
     }
 
-    function updateAnalysisParameters() {
-        requestSender.getApplicationData(
-            {
-                method: 'column_info',
-                dataFile: appState.models.dataFile,
-            },
-            data => {
-                if (appState.isLoaded() && data.columnInfo) {
-                    appState.models.columnInfo = data.columnInfo;
-                    appState.saveChanges('columnInfo');
-                }
-            });
-    }
-
     appState.whenModelsLoaded($scope, () => {
         currentFile = appState.models.dataFile.file;
-        if (currentFile && ! appState.models.columnInfo) {
-            updateAnalysisParameters();
-        }
-        $scope.$on('dataFile.changed', () => {
-            let dataFile = appState.models.dataFile;
-            if (currentFile != dataFile.file) {
-                currentFile = dataFile.file;
-                if (currentFile) {
-                    updateAnalysisParameters();
-                    activaitService.removeAllSubreports();
-                    appState.models.analysisReport.action = null;
-                    appState.saveChanges(['analysisReport', 'hiddenReport']);
-                }
-            }
-        });
         $scope.$on('modelChanged', (e, name) => {
             if (name.indexOf('analysisReport') >= 0) {
                 // invalidate the corresponding fftReport
