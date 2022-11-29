@@ -285,7 +285,7 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def analysis_job_sample_preview(data, run_dira):
+def analysis_job_sample_preview_report(data, run_dira):
     """Process image and return
 
     Args:

@@ -2342,11 +2342,8 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
 
             function downloadImage(format, callback) {
                 var filename = $scope.model.imageFile.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format;
-                var url = requestSender.formatUrl({
-                    routeName: 'getApplicationData',
-                    '<filename>': filename,
-                });
                 var m = appState.clone($scope.model);
+                m.outputImageFormat = format;
                 simulationQueue.addTransientItem(
                     'samplePreviewReport',
                     appState.applicationState(),
@@ -2358,34 +2355,19 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                         requestSender.sendAnalysisJob(
                             appState,
                             function(resp) {
-                                data.error
                             },
-                    {
-                        method: 'processedImage',
-                        baseImage: $scope.model.imageFile,
-                        model: m,
-                        report: 'samplePreviewReport',
-                    },
-                    },
-                    true,
+                            {
+                                baseImage: $scope.model.imageFile,
+                                method: 'sample_preview_report',
+                                model: m,
+                                report: 'samplePreviewReport',
+                                responseType: 'blob',
+                            },
+                            true,
+                        );
+
                 );
-                m.outputImageFormat = format;
-                requestSender.downloadDataFile()
-                $http.post(
-                    url,
-                    {
-                        responseType: 'blob',
-                    }
-                ).then(
-                    function (response) {
-                        if (response.status == 200) {
-                            callback(filename, response);
-                            return;
-                        }
-                        error(response);
-                    },
-                    error);
-            }
+
 
             function error(response) {
                 $scope.errorMessage = 'An error occurred creating the preview image';
@@ -2398,8 +2380,7 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 $scope.isLoading = true;
                 downloadImage(
                     'png',
-                    function(filename, response) {
-                        imageData = response.data;
+                    function(filename, imageData) {
                         $scope.isLoading = false;
                         if (imageData.type == 'application/json') {
                             // an error message has been returned
@@ -2424,8 +2405,8 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 }
                 downloadImage(
                     $scope.model.outputImageFormat,
-                    function(filename, response) {
-                        saveAs(response.data, filename);
+                    function(filename, imageData) {
+                        saveAs(imageData, filename);
                     },
                 );
             };

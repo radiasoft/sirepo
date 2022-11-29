@@ -2279,11 +2279,35 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         });
     };
 
-    self.sendAnalysisJob = function(appState, callback, data, error) {
-        sendWithSimulationFields('analysisJob', appState, callback, data, errorCallback);
+    self.sendAnalysisJob = function(appState, callback, data) {
+        sendWithSimulationFields('analysisJob', appState, callback, data);
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
+        function blobReponse(response) {
+
+-                    if (imageData.type == 'application/json') {
+-                        // an error message has been returned
+-                        imageData.text().then(function(text) {
+-                            $scope.errorMessage = JSON.parse(text).error;
+-                            $scope.$digest();
+-                        });
+-                    }
+
+            if error need to transform to text and then json
+            if () {
+                return false;
+            }
+            if ((response.status || 0) !== 200) {
+                return false;
+            }
+            const c = response.headers['Content-Type'];
+            if (! c) {
+                return false;
+            }
+            return c.indexOf('application/json') !== 0 && c.indexOf('text/html') !== 0;
+        }
+
         if (! errorCallback) {
             errorCallback = logError;
         }
@@ -2296,7 +2320,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
-        t = {
+        const http_config = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
             headers: userAgent.id ? {[userAgent.HEADER]: userAgent.id} : {}
@@ -2312,8 +2336,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
             );
         }
         var req = data
-            ? $http.post(url, data, t)
-            : $http.get(url, t);
+            ? $http.post(url, data, http_config)
+            : $http.get(url, http_config);
         var thisErrorCallback = function(response) {
             var data = response.data;
             var status = response.status;
@@ -2397,6 +2421,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 if (i) {
                     userAgent.id = i;
                 }
+                if (http_config.responseType !== 'blob') {
+                    $interval.cancel(interval);
+                    blobResponse(response, successCallback, thisErrorCallback)
+                    return;
+                }
                 var data = response.data;
                 if (! angular.isObject(data) || data.state === 'srException') {
                     thisErrorCallback(response);
@@ -2405,7 +2434,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 $interval.cancel(interval);
                 successCallback(data, response.status);
             },
-            thisErrorCallback
+            thisErrorCallback,
         );
     };
 
