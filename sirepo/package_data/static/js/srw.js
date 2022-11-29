@@ -2336,42 +2336,35 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
             </div>
           `,
         controller: function($scope) {
-            var imageData;
+            let imageData;
             $scope.isLoading = false;
             $scope.errorMessage = '';
 
-            function downloadImage(format, callback) {
-                var filename = $scope.model.imageFile.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format;
-                var m = appState.clone($scope.model);
+            const downloadImage = (format, callback) => {
+                let m = appState.clone($scope.model);
+                const f = $scope.model.imageFile;
                 m.outputImageFormat = format;
-                simulationQueue.addTransientItem(
-                    'samplePreviewReport',
-                    appState.applicationState(),
-                    function(resp) {
-                        if (resp.error) {
-                            error(response);
-                            return;
-                        }
-                        requestSender.sendAnalysisJob(
-                            appState,
-                            function(resp) {
-                            },
-                            {
-                                baseImage: $scope.model.imageFile,
-                                method: 'sample_preview_report',
-                                model: m,
-                                report: 'samplePreviewReport',
-                                responseType: 'blob',
-                            },
-                            true,
-                        );
-
+                $scope.errorMessage = '';
+                requestSender.sendStatefulCompute(
+                    appState,
+                    function(data) {
+                        callback(
+                            f.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format,
+                            data,
+                        )
+                    },
+                    {
+                        baseImage: f,
+                        method: 'sample_preview',
+                        model: m,
+                        // TODO(robnagler) should come from schema, and be filled in automatically.
+                        responseType: 'blob',
+                    },
+                    (response) => {
+                        $scope.errorMessage = 'An error occurred creating the preview image';
+                    },
                 );
-
-
-            function error(response) {
-                $scope.errorMessage = 'An error occurred creating the preview image';
-            }
+            };
 
             $scope.loadImageFile = function() {
                 if (! appState.isLoaded() || imageData || $scope.isLoading) {
@@ -2380,20 +2373,12 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 $scope.isLoading = true;
                 downloadImage(
                     'png',
-                    function(filename, imageData) {
+                    (data) => {
+                        imageData = data;
                         $scope.isLoading = false;
-                        if (imageData.type == 'application/json') {
-                            // an error message has been returned
-                            imageData.text().then(function(text) {
-                                $scope.errorMessage = JSON.parse(text).error;
-                                $scope.$digest();
-                            });
-                        }
-                        else {
-                            var urlCreator = window.URL || window.webkitURL;
-                            if ($('.srw-processed-image').length) {
-                                $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
-                            }
+                        const u = window.URL || window.webkitURL;
+                        if ($('.srw-processed-image').length) {
+                            $('.srw-processed-image')[0].src = u.createObjectURL(data);
                         }
                     },
                 );
@@ -2405,8 +2390,8 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 }
                 downloadImage(
                     $scope.model.outputImageFormat,
-                    function(filename, imageData) {
-                        saveAs(imageData, filename);
+                    (data, filename) => {
+                        saveAs(data, filename);
                     },
                 );
             };

@@ -279,7 +279,7 @@ def init_module():
 
 
 def is_ok_reply(value):
-    return value == PKDict() or value == _OK_REPLY
+    return isinstance(value, PKDict) and value == _OK_REPLY
 
 
 def join_jid(uid, sid, compute_model):

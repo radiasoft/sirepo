@@ -2103,10 +2103,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
     }
 
-    function sendWithSimulationFields(url, appState, successCallback, data, errorCallback) {
+    function sendWithSimulationFields(url, appState, successCallback, data, errorCb) {
         data.simulationId = data.simulationId || appState.models.simulation.simulationId;
         data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-        self.sendRequest(url, successCallback, data, errorCallback);
+        self.sendRequest(url, successCallback, data, errorCb);
     }
 
     // Started from serializeValue in angular, but need more specialization.
@@ -2284,28 +2284,21 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
-        function blobReponse(response) {
-
--                    if (imageData.type == 'application/json') {
--                        // an error message has been returned
--                        imageData.text().then(function(text) {
--                            $scope.errorMessage = JSON.parse(text).error;
--                            $scope.$digest();
--                        });
--                    }
-
-            if error need to transform to text and then json
-            if () {
-                return false;
+        function blobReponse(response, successCallback, thisErrorCallback) {
+            // These two content-types are what the server might return with a 200.
+            const r = new RegExp('^(application/json|text/html)$')
+            let d = response.data;
+            if (response.status === 200 && ! r.test(d.type)) {
+                successCallback(d)
+                return;
             }
-            if ((response.status || 0) !== 200) {
-                return false;
+            if (r.test(d.type) || /^text/.test(d.type)) {
+                imageData.text().then((text) => {d = text});
             }
-            const c = response.headers['Content-Type'];
-            if (! c) {
-                return false;
-            }
-            return c.indexOf('application/json') !== 0 && c.indexOf('text/html') !== 0;
+            thisErrorCallback({
+                ...response,
+                data: d,
+            });
         }
 
         if (! errorCallback) {
@@ -2338,7 +2331,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         var req = data
             ? $http.post(url, data, http_config)
             : $http.get(url, http_config);
-        var thisErrorCallback = function(response) {
+        var thisErrorCallback = function(response, data) {
             var data = response.data;
             var status = response.status;
             $interval.cancel(interval);
@@ -2421,7 +2414,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 if (i) {
                     userAgent.id = i;
                 }
-                if (http_config.responseType !== 'blob') {
+                if (http_config.responseType === 'blob') {
                     $interval.cancel(interval);
                     blobResponse(response, successCallback, thisErrorCallback)
                     return;
@@ -2444,8 +2437,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
             self.sendStatefulCompute(appState, callback, data);
         }, SIREPO.debounce_timeout);
 
-    self.sendStatefulCompute = function(appState, callback, data) {
-        sendWithSimulationFields('statefulCompute', appState, callback, data);
+    self.sendStatefulCompute = function(appState, callback, data, errorCb) {
+        sendWithSimulationFields('statefulCompute', appState, callback, data, errorCb);
     };
 
     self.sendStatelessCompute = function(appState, successCallback, data, options={}) {

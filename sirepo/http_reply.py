@@ -215,7 +215,7 @@ def guess_content_type(basename):
         return "application/octet-stream"
     # overrule mimetypes for this case
     elif res == "text/x-python":
-        return = "text/plain"
+        return "text/plain"
     return res
 
 

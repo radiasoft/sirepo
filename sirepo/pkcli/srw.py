@@ -115,8 +115,6 @@ def run(cfg_dir):
         template_common.write_sequential_result(
             PKDict({srw.PARSED_DATA_ATTR: r.parsed_data})
         )
-    elif m == "samplePreviewReport":
-        return
     else:
         template_common.write_sequential_result(
             srw.extract_report_data(sim_in),
