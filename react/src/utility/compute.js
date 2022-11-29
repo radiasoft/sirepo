@@ -71,13 +71,30 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
         let { nextRequest, state } = respObj;
 
         callback(respObj);
-        
+
         if (!state || state === 'pending' || state === 'running') {
             setTimeout(() => doPoll(nextRequest).then(iterate), pollInterval);
         }
-    } 
+    }
 
     doFetch().then(iterate);
+}
+
+export function runStatus({ appName, models, simulationId, report, callback, forceRun }) {
+    let doStatus = () => fetch('/run-status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            models,
+            forceRun,
+            report,
+            simulationId,
+            simulationType: appName
+        }),
+    });
+    doStatus().then(async lastResp => callback(await lastResp.json()));
 }
 
 export function cancelReport({ appName, models, simulationId, report }) {

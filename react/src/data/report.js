@@ -1,4 +1,4 @@
-import { getSimulationFrame, pollRunReport } from "../utility/compute";
+import { getSimulationFrame, pollRunReport, runStatus } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 
 export class ReportEventManager {
@@ -10,6 +10,29 @@ export class ReportEventManager {
         let reportListeners = this.reportEventListeners[report] || [];
         reportListeners.push(callback);
         this.reportEventListeners[report] = reportListeners;
+    }
+
+    runStatus = ({
+        appName,
+        models,
+        simulationId,
+        report,
+        callback,
+    }) => {
+        runStatus({
+            appName,
+            models,
+            simulationId,
+            report,
+            forceRun: false,
+            callback: (simulationData) => {
+                let reportListeners = this.reportEventListeners[report] || [];
+                for(let reportListener of reportListeners) {
+                    reportListener(simulationData);
+                }
+                callback(simulationData);
+            }
+        })
     }
 
     startReport = ({
