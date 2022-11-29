@@ -76,7 +76,11 @@ export function compileSchemaFromJson(schemaObj: SchemaJson) {
     if(schemaObj.type) {
         types = mapProperties(schemaObj.type, (_, typeSettings) => {
             let {base, config} = typeSettings;
-            return new (TYPE_BASES[base])(config);
+            let initializer = TYPE_BASES[base];
+            if(!initializer) {
+                throw new Error(`type base with name ${base} was not found`);
+            }
+            return new initializer(config);
         })
     }
 

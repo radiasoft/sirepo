@@ -9,20 +9,21 @@
                     "title": "Twiss Parameters",
                     "items": [
                         {
-                            "name": "twissReport",
                             "layout": "autoRunReport",
-                            "report": "twissReport",
-                            "dependencies": [
-                                "ionBeam.*",
-                                "intrabeamScatteringRate.*",
-                                "electronCoolingRate.*",
-                                "ring.*",
-                                "simulationSettings.*",
-                                "electronBeam.*",
-                                "cooler.*"
-                            ],
-                            "reportLayout": {
-                                "layout": "graph2d"
+                            "config": {
+                                "report": "twissReport",
+                                "dependencies": [
+                                    "ionBeam.*",
+                                    "intrabeamScatteringRate.*",
+                                    "electronCoolingRate.*",
+                                    "ring.*",
+                                    "simulationSettings.*",
+                                    "electronBeam.*",
+                                    "cooler.*"
+                                ],
+                                "reportLayout": {
+                                    "layout": "graph2d"
+                                }
                             }
                         }
                     ]
@@ -30,7 +31,7 @@
             }
         },
         "ElegantSimList": {
-            "base": "StatefulComputeEnum",
+            "base": "ComputeEnum",
             "config": {
                 "computeMethod": "get_elegant_sim_list",
                 "resultName": "simList"
