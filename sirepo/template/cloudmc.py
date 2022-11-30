@@ -66,16 +66,16 @@ def extract_report_data(run_dir, sim_in):
             _tally_report_plot(run_dir, sim_in)
         )
 
-def _next_axes(axis):
-    w = _next_axis(axis)
-    return [w, _next_axis(w)]
-
 
 def _next_axis(axis):
     return _AXES[(_AXES.index(axis) + 1) % len(_AXES)]
 
 
-def next_axis_indices(axis):
+def _next_axis_indices(axis):
+    def _next_axes(a):
+        w = _next_axis(a)
+        return [w, _next_axis(w)]
+
     return [_AXES.index(x) for x in _next_axes(axis)]
 
 
@@ -98,49 +98,24 @@ def _get_mesh(tally):
 
 def _tally_report_plot(run_dir, sim_in):
     import math
-    import openmc
 
-    #t = sim_in.models.tallyReport
-    t = PKDict(axis='y')
+    t = sim_in.models.tallyReport
     scale = 0.01
     n = _AXES.index(t.axis)
-    l, m = next_axis_indices(t.axis)
+    l, m = _next_axis_indices(t.axis)
     tally = _get_tally(run_dir, sim_in)
-    all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
+    fields = getattr(tally, sim_in.models.openmcAnimation.aspect)[
         :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
     ]
     mesh = _get_mesh(tally)
     dims = mesh.dimension
+    d = _reorder(fields, t.axis, dims)
     ranges = scale * numpy.array([[x, mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left)])
     p = min(dims[n] - 1, max(0, math.floor(
         dims[n] * (scale * t.planePos - ranges[n][0]) /
         (ranges[n][1] - ranges[n][0])
     )))
-    r = [[p, p + 1] if i == n else [0, dims[i]] for i in range(3)]
-    ad = all_data.reshape(-1, dims[1], dims[0])
-    print("AD {}".format(ad))
-    f = [0] * (dims[l] * dims[m])
-    pkdp("RANGES {} {} {} POS {} DIMS {}", ranges, r, t.axis, scale * t.planePos, dims)
-
-
-    i = 0
-#    for zi in range(r[2][0], r[2][1]):
-#        for yi in range(r[1][0], r[1][1]):
-#            for xi in range(r[0][0], r[0][1]):
-#                pkdp("ZI {} YI {} XI {} Z {} Y {}", zi, yi, xi, zi * dims[0] * dims[1], yi * dims[0])
-#                f[i] = all_data[zi * dims[0] * dims[1] + yi * dims[0] + xi]
-#                i += 1
-
-    #ni = r[n][0]
-    #for mi in range(r[m][0], r[m][1]):
-    #    for li in range(r[l][0], r[l][1]):
-    #        pkdp("NI {} MI {} LI {} Z {} Y {}", ni, mi, li, ni * dims[l] * dims[m], li * dims[l])
-    #        f[i] = all_data[ni * dims[l] * dims[m] + mi * dims[l] + li]
-    #        i += 1
-
-
-    score = numpy.array(f).reshape(r[m][1], -1).tolist()
-    print("ALL {} F {} SCORE {}".format(all_data, f, score))
+    score = d[p].tolist()
 
     return PKDict(
         aspectRatio=abs(ranges[m][1] - ranges[m][0]) / abs(ranges[l][1] - ranges[l][0]),
@@ -156,11 +131,11 @@ def _tally_report_plot(run_dir, sim_in):
 
 # assumes the original flat data is ordered by x then y then z
 # returns data ordered by x (y, z) then y (z, x) then z (x, y)
-def reorder(flat_data, outer_axis, dims):
+def _reorder(flat_data, outer_axis, dims):
     n = _AXES.index(outer_axis)
-    l, m = next_axis_indices(outer_axis)
+    l, m = _next_axis_indices(outer_axis)
     d = flat_data.reshape(list(reversed(dims)))
-    f = []
+    f = numpy.zeros([dims[n], dims[m], dims[l]])
     for k in range(dims[n]):
         for j in range(dims[m]):
             for i in range(dims[l]):
@@ -168,7 +143,7 @@ def reorder(flat_data, outer_axis, dims):
                 v[l] = i
                 v[m] = j
                 v[n] = k
-                f.append(d[v[2]][v[1]][v[0]])
+                f[k][j][i] = (d[v[2]][v[1]][v[0]])
     return f
 
 
