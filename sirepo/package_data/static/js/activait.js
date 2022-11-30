@@ -257,15 +257,9 @@ SIREPO.app.directive('appHeader', function(appState, activaitService) {
 
 SIREPO.app.controller('AnalysisController', function (appState, activaitService, panelState, requestSender, $scope, $window) {
     const self = this;
-    self.activaitService = activaitService;
-    var currentFile = null;
     self.subplots = null;
 
     function buildSubplots() {
-        if (! currentFile) {
-            self.subplots = null;
-            return;
-        }
         self.subplots = [];
         (activaitService.getSubreports() || []).forEach((id, idx) => {
             const modelKey = 'analysisReport' + id;
@@ -278,17 +272,14 @@ SIREPO.app.controller('AnalysisController', function (appState, activaitService,
         });
     }
 
-    appState.whenModelsLoaded($scope, () => {
-        currentFile = appState.models.dataFile.file;
-        $scope.$on('modelChanged', (e, name) => {
-            if (name.indexOf('analysisReport') >= 0) {
-                // invalidate the corresponding fftReport
-                appState.saveChanges('fftReport' + (appState.models[name].id || ''));
-            }
-        });
-        $scope.$on('hiddenReport.changed', buildSubplots);
-        buildSubplots();
+    $scope.$on('modelChanged', (e, name) => {
+        if (name.indexOf('analysisReport') >= 0) {
+            // invalidate the corresponding fftReport
+            appState.saveChanges('fftReport' + (appState.models[name].id || ''));
+        }
     });
+    $scope.$on('hiddenReport.changed', buildSubplots);
+    buildSubplots();
 });
 
 SIREPO.app.controller('DataController', function (activaitService, appState) {
