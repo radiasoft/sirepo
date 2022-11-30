@@ -2293,7 +2293,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 return;
             }
             if (r.test(d.type) || /^text/.test(d.type)) {
-                d.text().then((text) => {d = text});
+                d.text().then((text) => {d = text;});
             }
             thisErrorCallback({
                 ...response,
