@@ -105,14 +105,12 @@ def _tally_report_plot(run_dir, sim_in):
     scale = 0.01
     n = _AXES.index(t.axis)
     l, m = next_axis_indices(t.axis)
-    pkdp("L {} M {} N {}", l, m, n)
     tally = _get_tally(run_dir, sim_in)
-    #all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
-    #    :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
-    #]
+    all_data = getattr(tally, sim_in.models.openmcAnimation.aspect)[
+        :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
+    ]
     mesh = _get_mesh(tally)
-    dims = numpy.array([2, 3, 4]) #mesh.dimension
-    all_data = numpy.arange(numpy.product(dims))
+    dims = mesh.dimension
     ranges = scale * numpy.array([[x, mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left)])
     p = min(dims[n] - 1, max(0, math.floor(
         dims[n] * (scale * t.planePos - ranges[n][0]) /
@@ -158,25 +156,19 @@ def _tally_report_plot(run_dir, sim_in):
 
 # assumes the original flat data is ordered by x then y then z
 # returns data ordered by x (y, z) then y (z, x) then z (x, y)
-def reorder(data, outer_axis, dims):
-    # already in the desired order
-    if outer_axis == 'z':
-        return data
-    d = [1, dims[0], dims[0] * dims[1]]
+def reorder(flat_data, outer_axis, dims):
     n = _AXES.index(outer_axis)
     l, m = next_axis_indices(outer_axis)
-
-    pkdp("indices slow {} {} middle {} {} fast {} {} dims [slow, middle, fast] = {}", _AXES[n], n, _AXES[m], m, _AXES[l], l, [dims[n], dims[m], dims[l]])
+    d = flat_data.reshape(list(reversed(dims)))
     f = []
     for k in range(dims[n]):
-        #pkdp("slow {} {}", _AXES[n], k)
-        for j in range(d[1]):
-            #pkdp("middle {} {}", _AXES[m], j)
-            for i in range(d[2]):
-                #pkdp("fast {} {}", _AXES[l], i)
-                idx = i * dims[n]
-                #pkdp("i {} j * dims[l] {} k * dims[l] * dims[m] {} idx {}", i, j * dims[l], k * dims[l] * dims[m], idx)
-                f.append(data[idx])
+        for j in range(dims[m]):
+            for i in range(dims[l]):
+                v = [0, 0, 0]
+                v[l] = i
+                v[m] = j
+                v[n] = k
+                f.append(d[v[2]][v[1]][v[0]])
     return f
 
 
