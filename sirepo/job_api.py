@@ -29,12 +29,10 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 
 _MUST_HAVE_METHOD = ("api_analysisJob", "api_statefulCompute", "api_statelessCompute")
 
+_JSON_TYPE = re.compile(r"^application/json")
+
 
 class API(sirepo.quest.API):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__sim_data = None
-
     @sirepo.quest.Spec("internal_test", days="TimeDeltaDays")
     def api_adjustSupervisorSrtime(self, days):
         return self._request_api(
@@ -254,9 +252,13 @@ class API(sirepo.quest.API):
         )
         if c.api in _MUST_HAVE_METHOD:
             # TODO(robnagler) should be error reply
-            assert "method" in c
-        pkdlog("api={} runDir={}", c.api, c.get("runDir"))
+            assert (
+                "method" in c.data
+            ), f"missing method for api={c.api} in content={list(c.keys())}"
+        if c.api not in ("api_runStatus",):
+            pkdlog("api={} runDir={}", c.api, c.get("runDir"))
         with self._reply_maybe_file(c) as d:
+            pkdp(list(c.keys()))
             r = requests.post(
                 u,
                 data=pkjson.dump_bytes(c),
@@ -264,7 +266,7 @@ class API(sirepo.quest.API):
                 verify=sirepo.job.cfg().verify_tls,
             )
             r.raise_for_status()
-            if r.headers["content-type"] != "application/json":
+            if not _JSON_TYPE.search(r.headers["content-type"]):
                 raise AssertionError(
                     f"expected json content-type={r.headers['content-type']}"
                 )
@@ -274,11 +276,9 @@ class API(sirepo.quest.API):
             return j
 
     def _request_compute(self):
-        r = self.parse_post()
-        self.__sim_data = r.sim_data
         return self._request_api(
             jobRunMode=sirepo.job.SEQUENTIAL,
-            req_data=PKDict(**r.req_data).pkupdate(
+            req_data=PKDict(**self.parse_post().req_data).pkupdate(
                 computeJobHash="unused",
                 report="unused",
             ),
@@ -319,15 +319,14 @@ class API(sirepo.quest.API):
             computeJid=s.parse_jid(d, uid=b.uid),
             userDir=str(sirepo.simulation_db.user_path(qcall=self)),
         )
-        self.__sim_data = s
+        self.bucket_set("sim_data", s)
         return self._run_mode(b)
 
     @contextlib.contextmanager
     def _reply_maybe_file(self, content):
-        if (
-            not self.__sim_data
-            or content.api not in _MUST_HAVE_METHOD
-            or self.__sim_data.does_api_reply_with_file(content.api, content.method)
+        s = self.bucket_uget("sim_data")
+        if not s or not s.does_api_reply_with_file(
+            content.api, content.data.get("method")
         ):
             yield None
             return
@@ -336,6 +335,7 @@ class API(sirepo.quest.API):
             try:
                 t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
                 t.mksymlinkto(d, absolute=True)
+                content.dataFileKey = t.basename
                 yield d
             finally:
                 if t:

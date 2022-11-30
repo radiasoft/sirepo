@@ -433,17 +433,6 @@ def extract_report_data(sim_in):
     return res
 
 
-def get_application_data(data, qcall, **kwargs):
-    if data.method == "processedImage":
-        try:
-            return _process_image(data, kwargs["tmp_dir"], qcall=qcall)
-        except Exception as e:
-            pkdlog("exception during processedImage: {}", pkdexc())
-            return PKDict(
-                error=str(e),
-            )
-
-
 def get_data_file(run_dir, model, frame, options):
     if options.suffix == template_common.RUN_LOG:
         return template_common.text_data_file(options.suffix, run_dir)
@@ -806,6 +795,7 @@ def stateful_compute_sample_preview(data):
         _SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)),
     )
     m = data.model
+    pkdp(pkio.py_path())
     if m.sampleSource == "file":
         s = srwl_uti_smp.SRWLUtiSmp(
             file_path=path,
@@ -821,7 +811,7 @@ def stateful_compute_sample_preview(data):
             shift_x=m.shiftX,
             shift_y=m.shiftY,
             is_save_images=True,
-            prefix=str(tmp_dir),
+            prefix=str(pkio.py_path()),
             output_image_format=m.outputImageFormat,
         )
         p = pkio.py_path(s.processed_image_name)

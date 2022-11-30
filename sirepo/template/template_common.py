@@ -69,16 +69,17 @@ class JobCmdFile(PKDict):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if "error" not in self:
-            self.error = None
-        if "uri" not in self:
-            self.u = self.path.basename
-        if "content" not in self:
-            self.content = (
+        self.pksetdefault(
+            error=None,
+            uri=lambda: self.path.basename,
+        )
+        self.pksetdefault(
+            content=lambda: (
                 pkcompat.to_bytes(pkio.read_text(self.path))
-                if u.endswith((".py", ".txt", ".csv"))
+                if self.uri.endswith((".py", ".txt", ".csv"))
                 else self.path.read_binary()
-            )
+            ),
+        )
 
 
 class ModelUnits:

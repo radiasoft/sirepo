@@ -100,11 +100,14 @@ def _dispatch_compute(msg, template):
         return job.ok_reply()
 
     try:
-        if template.does_api_reply_with_file(msg.jobCmd, msg.data.method):
+        x = sirepo.sim_data.get_class(
+            template.SIM_TYPE,
+        ).does_api_reply_with_file(msg.api, msg.data.method)
+        if x:
             with simulation_db.tmp_dir(chdir=True) as d:
-                return _op(expect_file=True)
+                return _op(expect_file=x)
         else:
-            return _op(expect_file=False)
+            return _op(expect_file=x)
     except Exception as e:
         return _maybe_parse_user_alert(e)
 

@@ -2284,23 +2284,24 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
-        function blobReponse(response, successCallback, thisErrorCallback) {
+        const blobResponse = (response, successCallback, thisErrorCallback) => {
             // These two content-types are what the server might return with a 200.
             const r = new RegExp('^(application/json|text/html)$')
             let d = response.data;
+            srlog(response);
+            srlog(r.test(d.type));
             if (response.status === 200 && ! r.test(d.type)) {
                 successCallback(d)
                 return;
             }
             if (r.test(d.type) || /^text/.test(d.type)) {
-                imageData.text().then((text) => {d = text});
+                d.text().then((text) => {d = text});
             }
             thisErrorCallback({
                 ...response,
                 data: d,
             });
-        }
-
+        };
         if (! errorCallback) {
             errorCallback = logError;
         }

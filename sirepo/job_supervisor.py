@@ -252,11 +252,11 @@ class _Supervisor(PKDict):
             msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=job_run_mode),
             opName=opName,
         )
-        if "dataFileKey" in kwargs:
+        if "dataFileKey" in o.msg:
             kwargs["dataFileUri"] = job.supervisor_file_uri(
                 o.driver.cfg.supervisor_uri,
                 job.DATA_FILE_URI,
-                kwargs.pop("dataFileKey"),
+                o.msg.pop("dataFileKey"),
             )
         o.msg.pkupdate(**kwargs)
         return o
@@ -676,7 +676,6 @@ class _ComputeJob(_Supervisor):
             job.OP_IO,
             req,
             jobCmd="download_data_file",
-            dataFileKey=req.content.pop("dataFileKey"),
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
