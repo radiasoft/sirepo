@@ -2349,8 +2349,8 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                     appState,
                     function(data) {
                         callback(
-                            f.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format,
                             data,
+                            f.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format,
                         )
                     },
                     {

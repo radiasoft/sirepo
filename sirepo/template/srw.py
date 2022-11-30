@@ -774,6 +774,12 @@ def stateful_compute_sample_preview(data):
     """
     import srwl_uti_smp
 
+    def _input_file(data):
+        """This should just be a basename, but secure_filename ensures it."""
+        return str(
+            _SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)),
+        )
+
     def _obj_par1(m):
         if m.obj_type in ("1", "2", "3"):
             return m.obj_size_ratio
@@ -790,15 +796,11 @@ def stateful_compute_sample_preview(data):
         else:
             return None
 
-    # This should just be a basename, but secure_filename ensures it.
-    path = str(
-        _SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)),
-    )
     m = data.model
-    pkdp(pkio.py_path())
+    d = pkio.py_path()
     if m.sampleSource == "file":
         s = srwl_uti_smp.SRWLUtiSmp(
-            file_path=path,
+            file_path=_input_file(data),
             area=None
             if not int(m.cropArea)
             else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd),
@@ -811,7 +813,7 @@ def stateful_compute_sample_preview(data):
             shift_x=m.shiftX,
             shift_y=m.shiftY,
             is_save_images=True,
-            prefix=str(pkio.py_path()),
+            prefix=str(d),
             output_image_format=m.outputImageFormat,
         )
         p = pkio.py_path(s.processed_image_name)
@@ -837,9 +839,8 @@ def stateful_compute_sample_preview(data):
             _obj_par2=_obj_par2(m),
             _ret="img",
         )
-        filename = "sample_processed.{}".format(m.outputImageFormat)
-        s.save(filename)
-        p = pkio.py_path(filename)
+        p = d.join(f"sample_processed.{m.outputImageFormat}")
+        s.save(p.basename)
     return template_common.JobCmdFile(path=p)
 
 

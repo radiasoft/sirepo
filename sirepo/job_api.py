@@ -258,7 +258,6 @@ class API(sirepo.quest.API):
         if c.api not in ("api_runStatus",):
             pkdlog("api={} runDir={}", c.api, c.get("runDir"))
         with self._reply_maybe_file(c) as d:
-            pkdp(list(c.keys()))
             r = requests.post(
                 u,
                 data=pkjson.dump_bytes(c),
@@ -271,7 +270,7 @@ class API(sirepo.quest.API):
                     f"expected json content-type={r.headers['content-type']}"
                 )
             j = pkjson.load_any(r.content)
-            if d and j == sirepo.job.is_ok_reply(j):
+            if d and sirepo.job.is_ok_reply(j):
                 return self._reply_with_file(d)
             return j
 
@@ -343,8 +342,10 @@ class API(sirepo.quest.API):
 
     def _reply_with_file(self, tmp_dir):
         f = tmp_dir.listdir()
-        assert len(f) > 1, f"too many files={f}"
-        assert len(f) < 1, f"no files in tmp_dir={tmp_dir}"
+        if len(f) != 1:
+            raise AssertionError(
+                f"too many files={f}" if f else f"no files in tmp_dir={tmp_dir}",
+            )
         return self.reply_file(f[0])
 
     def _run_mode(self, request_content):

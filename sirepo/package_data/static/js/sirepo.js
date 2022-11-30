@@ -2288,8 +2288,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
             // These two content-types are what the server might return with a 200.
             const r = new RegExp('^(application/json|text/html)$')
             let d = response.data;
-            srlog(response);
-            srlog(r.test(d.type));
             if (response.status === 200 && ! r.test(d.type)) {
                 successCallback(d)
                 return;
