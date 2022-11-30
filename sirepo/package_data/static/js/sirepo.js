@@ -2286,10 +2286,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         const blobResponse = (response, successCallback, thisErrorCallback) => {
             // These two content-types are what the server might return with a 200.
-            const r = new RegExp('^(application/json|text/html)$')
+            const r = new RegExp('^(application/json|text/html)$');
             let d = response.data;
             if (response.status === 200 && ! r.test(d.type)) {
-                successCallback(d)
+                successCallback(d);
                 return;
             }
             if (r.test(d.type) || /^text/.test(d.type)) {
@@ -2330,7 +2330,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         var req = data
             ? $http.post(url, data, http_config)
             : $http.get(url, http_config);
-        var thisErrorCallback = function(response, data) {
+        var thisErrorCallback = function(response) {
             var data = response.data;
             var status = response.status;
             $interval.cancel(interval);
@@ -2415,7 +2415,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 }
                 if (http_config.responseType === 'blob') {
                     $interval.cancel(interval);
-                    blobResponse(response, successCallback, thisErrorCallback)
+                    blobResponse(response, successCallback, thisErrorCallback);
                     return;
                 }
                 var data = response.data;

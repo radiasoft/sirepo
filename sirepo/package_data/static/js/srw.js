@@ -2351,7 +2351,7 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                         callback(
                             data,
                             f.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format,
-                        )
+                        );
                     },
                     {
                         baseImage: f,
