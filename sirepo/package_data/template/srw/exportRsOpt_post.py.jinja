@@ -23,7 +23,9 @@ def main():
     param_vals = []
     for r in numpy.load("{{ fileBase }}.npy"):
         beams.append(
-            numpy.load(f"ensemble/worker{r['sim_worker']}/sim{r['sim_id']}/beam.npy").tolist()
+            numpy.flipud(
+                numpy.load(f"ensemble/worker{r['sim_worker']}/sim{r['sim_id']}/beam.npy").tolist()[0]
+            )
         )
         param_vals.append(r["x"])
     with h5py.File("{{ resultsFileName }}", "w") as f:
