@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
-def test_srw_processed_image(fc):
+def test_srw_sample_preview(fc):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkfail
     from pykern import pkunit
@@ -16,11 +16,11 @@ def test_srw_processed_image(fc):
 
     r = fc.sr_sim_data("Sample from Image")
     r = fc.sr_post(
-        "getApplicationData",
+        "statefulCompute",
         {
             "simulationId": r.models.simulation.simulationId,
             "simulationType": fc.sr_sim_type,
-            "method": "processedImage",
+            "method": "sample_preview",
             "baseImage": "sample.tif",
             "model": {
                 "cutoffBackgroundNoise": 0.5,
@@ -40,9 +40,6 @@ def test_srw_processed_image(fc):
                 "tileColumns": 1,
                 "outputImageFormat": "tif",
             },
-        },
-        {
-            "filename": "foo.tif",
         },
         raw_response=True,
     )
