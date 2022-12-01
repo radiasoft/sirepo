@@ -1906,7 +1906,7 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
         },
         template: `
             <div class="sr-object-table" style="border-width: 2px; border-color: black;">
-              <div style="overflow-y: scroll; overflow-x: hidden; height: 360px; border-style: solid; border-width: 1px; border-color: #00a2c5;">
+              <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
               <table class="table table-hover table-condensed" style="">
                 <thead>
                     <tr>
