@@ -307,9 +307,6 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
 
     self.saveSTLPolys = function(reader, filename) {
         // check if exists first?
-        var data = {
-            file: filename
-        };
         var polyData = reader.getOutputData();
         polyData.buildCells();
         var polys = [];
@@ -327,10 +324,15 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
             }
             polys.push(polyVerts);
         }
-        data.method = 'save_stl_polys';
-        data.polys = polys;
-        requestSender.getApplicationData(data, function(d) {
-        });
+        requestSender.sendStatefulCompute(
+            appState,
+            function(d) {},
+            {
+                filename: filename,
+                method: 'save_stl_polys',
+                polys: polys,
+            },
+        );
     };
 
     self.setOptimizingRow = function(row) {
@@ -774,11 +776,8 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
                 appState.saveQuietly('simulation');
             }
         }
-        requestSender.getApplicationData(
-            {
-                method: 'compute_simulation_steps',
-                simulationId: appState.models.simulation.simulationId,
-            },
+        requestSender.sendAnalysisJob(
+            appState,
             function(data) {
                 if (data.timeOfFlight || data.electronFraction) {
                     self.estimates = {
@@ -790,7 +789,13 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
                 else {
                     self.estimates = null;
                 }
-            });
+            },
+            {
+                method: 'compute_simulation_steps',
+                simulationId: appState.models.simulation.simulationId,
+                modelName: 'fieldCalculationAnimation',
+            },
+        );
     }
 
     self.handleModalShown = function() {

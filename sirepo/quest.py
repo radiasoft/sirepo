@@ -90,7 +90,9 @@ class API(pykern.quest.API):
         self[name] = obj
 
     def bucket_set(self, name, value):
-        assert name not in self._bucket
+        assert (
+            name not in self._bucket
+        ), f"duplicate name={name} in _bucket={list(self._bucket.keys())}"
         self._bucket[name] = value
 
     def bucket_uget(self, name):
@@ -141,7 +143,7 @@ class API(pykern.quest.API):
         assert isinstance(qcall, API)
         # must be right after initialization
         assert not self._bucket
-        assert len(self.keys()) == 1
+        assert len(self.keys()) == 1, f"too many self.keys={list(self.keys())}"
         for k, v in qcall.items():
             if k not in ("uri_route", "_bucket"):
                 assert k not in self

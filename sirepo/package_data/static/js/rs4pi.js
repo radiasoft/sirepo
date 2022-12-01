@@ -144,11 +144,8 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
             $rootScope.$broadcast('roiPointsLoaded');
             return;
         }
-        requestSender.getApplicationData(
-            {
-                method: 'roi_points',
-                simulationId: appState.models.simulation.simulationId,
-            },
+        requestSender.sendAnalysisJob(
+            appState,
             function(data) {
                 if (! appState.isLoaded()) {
                     return;
@@ -157,7 +154,12 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
                 dicomHistogram = data.models.dicomHistogram;
                 roiPoints = data.models.regionsOfInterest;
                 $rootScope.$broadcast('roiPointsLoaded');
-            });
+            },
+            {
+                method: 'roi_points',
+                modelName: 'dicomAnimation',
+            },
+        );
     };
 
     self.setActiveROI = function(roiNumber) {
@@ -204,13 +206,16 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
     };
 
     self.updateROIPoints = function(editedContours) {
-        requestSender.getApplicationData(
+        requestSender.sendAnalysisJob(
+            appState,
+            function() {},
             {
                 method: 'update_roi_points',
-                simulationId: appState.models.simulation.simulationId,
+                modelName: 'dicomAnimation',
                 editedContours: editedContours,
             },
-            function() {});
+
+        );
     };
 
     appState.setAppService(self);
