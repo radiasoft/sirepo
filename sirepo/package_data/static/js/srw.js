@@ -936,6 +936,7 @@ SIREPO.app.directive('appFooter', function() {
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
             <div data-sim-conversion-modal="" data-conv-method="create_shadow_simulation"></div>
+            <div data-download-status="" data-label="" data-title="" data-sim-state="{}"></div>
         `,
     };
 });
@@ -1288,14 +1289,6 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
                 `
             )($scope)
         );
-        $('[data-app-footer]').append(
-            $compile(
-                `
-                    <div data-download-status="" data-label="Exporting" data-title="Exporting" data-sim-state="simState">
-                    </div>
-                `
-            )($scope)
-        );
     }
 
     self.simHandleStatus = data => {
@@ -1321,7 +1314,6 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
 
     self.simState = persistentSimulation.initSimulationState(self);
 
-    $scope.simState = self.simState;
     $scope.export = () => {
         self.startSimulation($scope.modelName);
     };
