@@ -206,6 +206,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
     self.computeDeltaAttenCharacteristics = function(item) {
         self.updateMaterialFields(item);
+        srdbg("delta_atten");
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -1018,7 +1019,7 @@ SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender
                 });
             },
             {
-                method: 'compute_crl_characteristics',
+                method: 'crl_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
@@ -1064,7 +1065,7 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, requestSe
                 srwService.formatOrientationFields(item, data);
             },
             {
-                method: 'compute_crystal_orientation',
+                method: 'crystal_orientation',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
@@ -1297,7 +1298,7 @@ SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, requestSe
                 srwService.formatOrientationFields(item, data);
             },
             {
-                method: 'compute_PGM_value',
+                method: 'PGM_value',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
@@ -1393,7 +1394,6 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
     if ($scope.fieldDef == 'basic') {
         return;
     }
-
     function computeUndulatorLength() {
         requestSender.sendStatefulCompute(
             appState,
@@ -1403,7 +1403,7 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
                 }
             },
             {
-                method: 'compute_undulator_length',
+                method: 'undulator_length',
                 args: {
                     tabulated_undulator: appState.models.tabulatedUndulator,
                 }
