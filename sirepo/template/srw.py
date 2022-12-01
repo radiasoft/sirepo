@@ -842,7 +842,7 @@ def stateless_compute_crl_characteristics(data):
     )
 
 
-def stateless_compute_compute_crystal_init(data):
+def stateless_compute_crystal_init(data):
     return _compute_crystal_init(data.optical_element)
 
 
@@ -850,14 +850,14 @@ def stateless_compute_crystal_orientation(data):
     return _compute_crystal_orientation(data.optical_element)
 
 
-def stateless_compute_compute_delta_atten_characteristics(data):
+def stateless_compute_delta_atten_characteristics(data):
     return _compute_material_characteristics(
         data.optical_element,
         data.photon_energy,
     )
 
 
-def stateless_compute_compute_dual_characteristics(data):
+def stateless_compute_dual_characteristics(data):
     return _compute_material_characteristics(
         _compute_material_characteristics(
             data.optical_element,

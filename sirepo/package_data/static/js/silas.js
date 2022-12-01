@@ -274,7 +274,7 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, reques
                 }
             },
             {
-                method: 'compute_rms_size',
+                method: 'rms_size',
                 args: {
                     gaussianBeam: appState.models.gaussianBeam,
                     simulationSettings: appState.models.simulationSettings,

@@ -206,7 +206,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
     self.computeDeltaAttenCharacteristics = function(item) {
         self.updateMaterialFields(item);
-        srdbg("delta_atten");
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -215,7 +214,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 });
             },
             {
-                method: 'compute_delta_atten_characteristics',
+                method: 'delta_atten_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
@@ -239,7 +238,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 });
             },
             {
-                method: 'compute_dual_characteristics',
+                method: 'dual_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
                 prefix1: prefixes[0],
@@ -1050,7 +1049,7 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, requestSe
                 ], item.material == 'Unknown',
             ]);
         if (item.material != 'Unknown') {
-            srwService.computeFields('compute_crystal_init', item, [
+            srwService.computeFields('crystal_init', item, [
                 'dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi',
                 'psiHBr', 'psiHBi', 'orientation',
             ]);
