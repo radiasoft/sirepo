@@ -3146,8 +3146,8 @@ SIREPO.app.directive('downloadStatus', function() {
         restrict: 'A',
         scope: {
             simState: '=',
-            label: '=',
-            title: '=',
+            label: '@',
+            title: '@',
         },
         template: `
             <div class="modal fade" id="sr-download-status" tabindex="-1" role="dialog">

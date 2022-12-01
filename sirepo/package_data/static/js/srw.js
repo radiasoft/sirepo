@@ -1278,7 +1278,7 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
     self.simScope = $scope;
     self.simComputeModel = 'exportRsOpt';
 
-    function addExportButton() {
+    function addExportUI() {
         $('#sr-exportRsOpt-basicEditor .model-panel-heading-buttons').append(
             $compile(
                 `
@@ -1286,7 +1286,16 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
                         <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span>
                    </a>
                 `
-        )($scope));
+            )($scope)
+        );
+        $('[data-app-footer]').append(
+            $compile(
+                `
+                    <div data-download-status="" data-label="Exporting" data-title="Exporting" data-sim-state="simState">
+                    </div>
+                `
+            )($scope)
+        );
     }
 
     self.simHandleStatus = data => {
@@ -1312,12 +1321,13 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
 
     self.simState = persistentSimulation.initSimulationState(self);
 
+    $scope.simState = self.simState;
     $scope.export = () => {
         self.startSimulation($scope.modelName);
     };
 
     appState.whenModelsLoaded($scope, () => {
-        addExportButton();
+        addExportUI();
     });
 
 });
