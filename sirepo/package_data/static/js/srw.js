@@ -1272,6 +1272,55 @@ SIREPO.beamlineItemLogic('fiberView', function(srwService, $scope) {
     ];
 });
 
+SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSimulation, requestSender, $compile, $scope, $rootScope) {
+
+    const self = this;
+    self.simScope = $scope;
+    self.simComputeModel = 'exportRsOpt';
+
+    function addExportButton() {
+        $('#sr-exportRsOpt-basicEditor .model-panel-heading-buttons').append(
+            $compile(
+                `
+                    <a href data-ng-click="export()" class="dropdown-toggle" data-toggle="dropdown" title="Export ML Script">
+                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span>
+                   </a>
+                `
+        )($scope));
+    }
+
+    self.simHandleStatus = data => {
+        if (self.simState.isStopped()) {
+            $('#sr-download-status').modal('hide');
+        }
+        if (self.simState.isStateCompleted()) {
+            requestSender.newWindow('downloadDataFile', {
+                '<simulation_id>': appState.models.simulation.simulationId,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<model>': 'exportRsOpt',
+                '<frame>': SIREPO.nonDataFileFrame,
+                '<suffix>': 'zip'
+            });
+        }
+    };
+
+    self.startSimulation = function(model) {
+        $('#sr-download-status').modal('show');
+        $rootScope.$broadcast('download.started', self.simState, 'Export Script', 'Exporting exportRsOpt.zip');
+        self.simState.saveAndRunSimulation([model]);
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    $scope.export = () => {
+        self.startSimulation($scope.modelName);
+    };
+
+    appState.whenModelsLoaded($scope, () => {
+        addExportButton();
+    });
+
+});
 
 SIREPO.viewLogic('fluxAnimationView', function(appState, panelState, srwService, $scope) {
 
