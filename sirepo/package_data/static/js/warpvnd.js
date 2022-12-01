@@ -4073,15 +4073,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 return [i, j, k];
             }
 
-            function largeMin(array) {
-                return utilities.seqApply(Math.min, array, Number.MAX_VALUE);
-            }
-
-            function largeMax(array) {
-                return utilities.seqApply(Math.max, array, -Number.MAX_VALUE);
-            }
-
-           function mapImpactDensity() {
+            function mapImpactDensity() {
                 // loop over conductors
                 // arr[0][0] + k * sk + l * sl
                 var doWarn = false;
@@ -4183,9 +4175,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var d = faceData.dArr;
 
                 // data can be too large for the stack
-                var smin = ! impactData.v_min ? (impactData.v_min === 0 ? 0 : largeMin(d)) : impactData.v_min ;
-                var smax = impactData.v_max || largeMax(d);
-                //srdbg('impact min/max', smin, smax, impactData.v_min, impactData.v_max);
+                var smin = ! impactData.v_min ? (impactData.v_min === 0 ? 0 : SIREPO.UTILS.arrayMin(d)) : impactData.v_min ;
+                var smax = impactData.v_max || SIREPO.UTILS.arrayMax(d);
 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
                 var dataColors = [];
