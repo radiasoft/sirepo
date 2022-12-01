@@ -925,9 +925,6 @@ SIREPO.app.factory('appDataService', function() {
     self.getApplicationMode = function() {
         return self.applicationMode;
     };
-    self.appDataForReset = function() {
-        return null;
-    };
     self.canCopy = function() {
         return true;
     };

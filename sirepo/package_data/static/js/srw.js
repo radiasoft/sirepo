@@ -74,15 +74,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     var self = {};
     self.showCalcCoherence = false;
 
-    // override appDataService functions
-    appDataService.appDataForReset = function() {
-        // delete the user-defined models first
-         return {
-             method: 'delete_user_models',
-             electron_beam: appState.models.electronBeam,
-             tabulated_undulator: appState.models.tabulatedUndulator,
-         };
-    };
     appDataService.canCopy = function() {
         if (appDataService.applicationMode == 'calculator' || appDataService.applicationMode == 'wavefront') {
             return false;

@@ -2876,22 +2876,12 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
             <div data-confirmation-modal="" data-id="reset-confirmation" data-title="Reset Simulation?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()">Discard changes to &quot;{{ simulationName() }}&quot;?</div>
         `,
         controller: function($scope) {
-            function revertSimulation() {
+            $scope.revertToOriginal = () => {
                 $scope.nav.revertToOriginal(
                     appDataService.getApplicationMode(),
                     appState.models.simulation.name);
-            }
-
-            $scope.revertToOriginal = function() {
-                var resetData = appDataService.appDataForReset();
-                if (resetData) {
-                    requestSender.getApplicationData(resetData, revertSimulation);
-                }
-                else {
-                    revertSimulation();
-                }
             };
-            $scope.simulationName = function() {
+            $scope.simulationName = () => {
                 if (appState.isLoaded()) {
                     return appState.models.simulation.name;
                 }

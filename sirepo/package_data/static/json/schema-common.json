@@ -202,7 +202,7 @@
             "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,
-            "ignoredFrameId": -1,
+            "logFileFrameId": -1,
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {
