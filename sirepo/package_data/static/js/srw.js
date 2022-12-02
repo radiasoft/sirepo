@@ -205,7 +205,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 });
             },
             {
-                method: 'compute_delta_atten_characteristics',
+                method: 'delta_atten_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
@@ -229,7 +229,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 });
             },
             {
-                method: 'compute_dual_characteristics',
+                method: 'dual_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
                 prefix1: prefixes[0],
@@ -1009,7 +1009,7 @@ SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender
                 });
             },
             {
-                method: 'compute_crl_characteristics',
+                method: 'crl_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
@@ -1040,7 +1040,7 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, requestSe
                 ], item.material == 'Unknown',
             ]);
         if (item.material != 'Unknown') {
-            srwService.computeFields('compute_crystal_init', item, [
+            srwService.computeFields('crystal_init', item, [
                 'dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi',
                 'psiHBr', 'psiHBi', 'orientation',
             ]);
@@ -1055,7 +1055,7 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, requestSe
                 srwService.formatOrientationFields(item, data);
             },
             {
-                method: 'compute_crystal_orientation',
+                method: 'crystal_orientation',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
@@ -1288,7 +1288,7 @@ SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, requestSe
                 srwService.formatOrientationFields(item, data);
             },
             {
-                method: 'compute_PGM_value',
+                method: 'PGM_value',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
@@ -1384,7 +1384,6 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
     if ($scope.fieldDef == 'basic') {
         return;
     }
-
     function computeUndulatorLength() {
         requestSender.sendStatefulCompute(
             appState,
@@ -1394,7 +1393,7 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
                 }
             },
             {
-                method: 'compute_undulator_length',
+                method: 'undulator_length',
                 args: {
                     tabulated_undulator: appState.models.tabulatedUndulator,
                 }
