@@ -60,10 +60,6 @@
             "longName": "RCSCON",
             "shortName": "RCSCON"
         },
-        "rs4pi": {
-            "longName": "RS4PI",
-            "shortName": "RS4PI"
-        },
         "shadow": {
             "longName": "SHADOW",
             "shortName": "SHADOW"

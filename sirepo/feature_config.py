@@ -42,7 +42,6 @@ _NON_PROD_FOSS_CODES = frozenset(
         "myapp",
         "cloudmc",
         "rcscon",
-        "rs4pi",
         "silas",
     )
 )
