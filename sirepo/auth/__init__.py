@@ -83,6 +83,12 @@ _cfg = None
 
 
 def init_quest(qcall, top_level_call_api=False):
+    """Under development
+
+    Only use as `init_quest(qcall)`.
+
+    top_level_call_api only used by uri_router.
+    """
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
     sirepo.auth_db.init_quest(qcall)
@@ -219,19 +225,8 @@ class _Auth(sirepo.quest.Attr):
         values[_COOKIE_STATE] = _STATE_LOGGED_OUT
         return values
 
-    def create_user(self, module_or_method, want_login=False):
-        m = _METHOD_MODULES.get(module_or_method, module_or_method)
-        u = simulation_db.user_create()
-        if want_login:
-            self._login_user(m, u)
-            self._create_roles_for_new_user(m.AUTH_METHOD)
-        else:
-            with self.logged_in_user_set(u, method=m.AUTH_METHOD):
-                self._create_roles_for_new_user(m.AUTH_METHOD)
-        return u
-
     def create_user_from_email(self, email, display_name):
-        u = self.create_user(METHOD_EMAIL)
+        u = self._create_user(_METHOD_MODULES[METHOD_EMAIL], want_login=False)
         self.user_registration(uid=u, display_name=display_name)
         self.qcall.auth_db.model(
             self.get_module(METHOD_EMAIL).UserModel,
@@ -325,7 +320,7 @@ class _Auth(sirepo.quest.Attr):
         Raises an exception if successful, except in the case of methods
 
         Args:
-            method (module): method module (only if is_mock) [None]
+            method (module or str): method module (only if is_mock) [None]
             uid (str): user to login [None]
             model (auth_db.UserDbBase): user to login (overrides uid) [None]
             sim_type (str): app to redirect to [None]
@@ -336,27 +331,26 @@ class _Auth(sirepo.quest.Attr):
         if method is None:
             assert is_mock, "only used by api_srUnit"
             method = METHOD_GUEST
-        if isinstance(method, str):
-            method = _METHOD_MODULES[method]
-        self._validate_method(method, sim_type=sim_type)
+        mm = _METHOD_MODULES[method] if isinstance(method, str) else method
+        self._validate_method(mm, sim_type=sim_type)
         guest_uid = None
         if model:
             uid = model.uid
             # if previously cookied as a guest, move the non-example simulations into uid below
             m = self._qcall_bound_method()
-            if m == METHOD_GUEST and method.AUTH_METHOD != METHOD_GUEST:
+            if m == METHOD_GUEST and mm.AUTH_METHOD != METHOD_GUEST:
                 guest_uid = self._qcall_bound_user() if self.is_logged_in() else None
         if uid:
-            self._login_user(method, uid)
-        if method.AUTH_METHOD in _cfg.deprecated_methods:
-            pkdlog("deprecated auth method={} uid={}".format(method.AUTH_METHOD, uid))
+            self._login_user(mm, uid)
+        if mm.AUTH_METHOD in _cfg.deprecated_methods:
+            pkdlog("deprecated auth method={} uid={}".format(mm.AUTH_METHOD, uid))
             if not uid:
                 # No user so clear cookie so this method is removed
                 self.reset_state()
             # We are logged in with a deprecated method, and now the user
             # needs to login with an allowed method.
             self.login_fail_redirect(
-                sim_type=sim_type, module=method, reason="deprecated", reload_js=not uid
+                sim_type=sim_type, module=mm, reason="deprecated", reload_js=not uid
             )
         if not uid:
             # No user in the cookie and method didn't provide one so
@@ -366,13 +360,13 @@ class _Auth(sirepo.quest.Attr):
             # Or, this is just a new user, and we'll create one.
             uid = self._qcall_bound_user() if self.is_logged_in() else None
             m = self._qcall_bound_method()
-            if uid and method.AUTH_METHOD not in (m, METHOD_GUEST):
+            if uid and mm.AUTH_METHOD not in (m, METHOD_GUEST):
                 # switch this method to this uid (even for methods)
                 # except if the same method, then assuming logging in as different user.
                 # This handles the case where logging in as guest, creates a user every time
-                self._login_user(method, uid)
+                self._login_user(mm, uid)
             else:
-                uid = self.create_user(method, want_login=True)
+                uid = self._create_user(mm, want_login=True)
             if model:
                 model.uid = uid
                 model.save()
@@ -384,7 +378,7 @@ class _Auth(sirepo.quest.Attr):
             if guest_uid and guest_uid != uid:
                 simulation_db.migrate_guest_to_persistent_user(guest_uid, uid)
             self.login_success_response(sim_type, want_redirect)
-        assert not method.AUTH_METHOD_VISIBLE
+        assert not mm.AUTH_METHOD_VISIBLE
 
     def login_fail_redirect(
         self, sim_type=None, module=None, reason=None, reload_js=False
@@ -673,6 +667,16 @@ class _Auth(sirepo.quest.Attr):
         r = sirepo.auth_role.for_new_user(is_guest=method == METHOD_GUEST)
         if r:
             self.qcall.auth_db.model("UserRole").add_roles(roles=r)
+
+    def _create_user(self, module, want_login):
+        u = simulation_db.user_create()
+        if want_login:
+            self._login_user(module, u)
+            self._create_roles_for_new_user(module.AUTH_METHOD)
+        else:
+            with self.logged_in_user_set(u, method=module.AUTH_METHOD):
+                self._create_roles_for_new_user(module.AUTH_METHOD)
+        return u
 
     def _login_user(self, module, uid):
         """Set up the cookie for logged in state
