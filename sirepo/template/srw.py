@@ -2023,11 +2023,7 @@ def _load_user_model_list(model_name, qcall=None):
 
 def _machine_learning_percent_complete(run_dir, res):
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
-    count = len(
-        pkio.sorted_glob(
-            run_dir.join("ensemble").join("worker*").join("sim*").join("values.npy")
-        )
-    )
+    count = len(pkio.walk_tree(run_dir, "values.npy"))
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
     return res
