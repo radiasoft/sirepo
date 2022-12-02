@@ -383,7 +383,7 @@ def extract_report_data(sim_in):
         return _extract_brilliance_report(dm.brillianceReport, out.filename)
     if r == "trajectoryReport":
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
-    if r == _SIM_DATA.EXPORT_RSOPT:
+    if _SIM_DATA.is_for_ml(r):
         return out
     if r in ("coherenceXAnimation", "coherenceYAnimation", "multiElectronAnimation"):
         out.filename = _best_data_file(out.filename)
@@ -1036,7 +1036,9 @@ def write_parameters(data, run_dir, is_parallel):
         p = ""
         _export_rsopt_config(data, run_dir=run_dir)
         if _SIM_DATA.is_for_ml(data.report):
-            p = f"import subprocess\nsubprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])"
+            p = f"""import subprocess
+subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
+"""
     else:
         p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
@@ -2028,11 +2030,6 @@ def _machine_learning_percent_complete(run_dir, res):
     )
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
-    if res.percentComplete >= 100:
-        res.resultsFile = _SIM_DATA.ML_OUTPUT
-        _SIM_DATA.put_sim_file(
-            dm.simulation.simulationId, run_dir.join(res.resultsFile), res.resultsFile
-        )
     return res
 
 
@@ -2256,9 +2253,9 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
 def _export_rsopt_files():
     files = PKDict()
     for t in (
-            "py",
-            "sh",
-            "yml",
+        "py",
+        "sh",
+        "yml",
     ):
         files[f"{t}FileName"] = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
     files["postProcFileName"] = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
@@ -2632,7 +2629,7 @@ def _write_rsopt_files(data, run_dir, ctx):
             run_dir.join(f),
             python_source_for_model(data, data.report, None, plot_reports=False)
             if f == f"{_SIM_DATA.EXPORT_RSOPT}.py"
-            else template_common.render_jinja(SIM_TYPE, ctx, f)
+            else template_common.render_jinja(SIM_TYPE, ctx, f),
         )
 
 
