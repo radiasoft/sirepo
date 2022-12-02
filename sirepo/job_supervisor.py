@@ -18,7 +18,6 @@ import copy
 import inspect
 import pykern.pkio
 import re
-import sirepo.auth_db
 import sirepo.const
 import sirepo.http_reply
 import sirepo.quest
@@ -350,9 +349,9 @@ class _Supervisor(PKDict):
                     else:
                         d.uid = i.db.uid
                         d.displayName = (
-                            sirepo.auth_db.UserRegistration.search_by(
-                                uid=i.db.uid
-                            ).display_name
+                            qcall.auth_db.model("UserRegistration")
+                            .search_by(uid=i.db.uid)
+                            .display_name
                             or "n/a"
                         )
                         d.queuedTime = _get_queued_time(i.db)
@@ -463,11 +462,10 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     async def purge_free_simulations(cls):
-        # TODO add-qcall
-        def _get_uids_and_files():
+        def _get_uids_and_files(qcall):
             r = []
             u = None
-            p = sirepo.auth_db.UserRole.uids_of_paid_users()
+            p = qcall.auth_db.model("UserRole").uids_of_paid_users()
             for f in pkio.sorted_glob(
                 _DB_DIR.join(
                     "*{}".format(
@@ -516,7 +514,7 @@ class _ComputeJob(_Supervisor):
                 sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
             )
             with sirepo.quest.start() as qcall:
-                for u, v in _get_uids_and_files():
+                for u, v in _get_uids_and_files(qcall):
                     with qcall.auth.logged_in_user_set(u):
                         for f in v:
                             _purge_sim(jid=f.purebasename, qcall=qcall)

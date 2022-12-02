@@ -20,7 +20,6 @@ import json
 import os.path
 import re
 import shutil
-import sirepo.auth_db
 import sirepo.quest
 
 
@@ -37,14 +36,14 @@ def audit_proprietary_lib_files(*uid):
         *uid: UID(s) of the user(s) to audit. If None, all users will be audited.
     """
     with sirepo.quest.start() as qcall:
-        for u in uid or sirepo.auth_db.all_uids(qcall):
+        for u in uid or qcall.auth_db.all_uids():
             with qcall.auth.logged_in_user_set(u):
-                sirepo.auth_db.audit_proprietary_lib_files(qcall=qcall)
+                sim_data.audit_proprietary_lib_files(qcall=qcall)
 
 
 def db_upgrade():
     with sirepo.quest.start() as qcall:
-        sirepo.auth_db.create_or_upgrade(qcall=qcall)
+        qcall.auth_db.create_or_upgrade()
 
 
 def create_examples():
@@ -93,7 +92,7 @@ def delete_user(uid):
             simulation_db.delete_user(qcall=qcall)
         # This needs to be done last so we have access to the records in
         # previous steps.
-        sirepo.auth_db.UserDbBase.delete_user(uid)
+        qcall.auth_db.delete_user(uid=uid)
 
 
 def move_user_sims(uid):
