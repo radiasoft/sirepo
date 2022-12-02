@@ -289,6 +289,14 @@ _TWISS_SUMMARY_LABELS = PKDict(
 )
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_frames,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     error = ""
     if not is_running:
@@ -431,13 +439,6 @@ def extract_tunes_report(run_dir, data):
             "#17becf",
         ],
     )
-
-
-def get_application_data(data, qcall, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(
-            data, _compute_range_across_frames, qcall=qcall
-        )
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -593,15 +594,13 @@ def write_parameters(
                         z.extract(info, str(run_dir))
 
 
-def _compute_range_across_frames(run_dir, data):
+def _compute_range_across_frames(run_dir, **kwargs):
     res = PKDict()
     for v in SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = []
     for v in SCHEMA.enum.EnergyPlotVariable:
         res[v[0]] = []
-    col_names, rows = _read_data_file(
-        py.path.local(run_dir).join(_ZGOUBI_FAI_DATA_FILE)
-    )
+    col_names, rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
     for field in res:
         values = column_data(field, col_names, rows)
         initial_field = _initial_phase_field(field)

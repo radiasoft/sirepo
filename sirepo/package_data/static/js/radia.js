@@ -3638,7 +3638,7 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
             const tArr = [];
             const tOffset = points.length / 3;
             typeInfo[type].offset = tOffset;
-            points.push(...t.vertices);
+            points = points.concat(t.vertices);
             let tInd = 0;
             const tInds = utilities.indexArray(t.vertices.length / 3);
             t.lengths.forEach(len => {
@@ -3894,9 +3894,16 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
 
         panelState.enableField('geomObject', 'size', true);
+
+        if (o.type === 'stl') {
+            panelState.enableField('geomObject', 'size', false);
+            //TODO(BG): Only disables 'size' field, need to build shape to get sizes to update values (likely will need to send request since python)
+        }
+
         if (o.type !== 'extrudedPoints') {
             return;
         }
+
         for (const dim of [o.widthAxis, o.heightAxis]) {
             panelState.enableArrayField(
                 'geomObject',

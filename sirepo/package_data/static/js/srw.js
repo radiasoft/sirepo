@@ -74,15 +74,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     var self = {};
     self.showCalcCoherence = false;
 
-    // override appDataService functions
-    appDataService.appDataForReset = function() {
-        // delete the user-defined models first
-         return {
-             method: 'delete_user_models',
-             electron_beam: appState.models.electronBeam,
-             tabulated_undulator: appState.models.tabulatedUndulator,
-         };
-    };
     appDataService.canCopy = function() {
         if (appDataService.applicationMode == 'calculator' || appDataService.applicationMode == 'wavefront') {
             return false;
@@ -2336,67 +2327,52 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
             </div>
           `,
         controller: function($scope) {
-            var imageData;
+            let imageData;
             $scope.isLoading = false;
             $scope.errorMessage = '';
 
-            function downloadImage(format, callback) {
-                var filename = $scope.model.imageFile.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format;
-                var url = requestSender.formatUrl({
-                    routeName: 'getApplicationData',
-                    '<filename>': filename,
-                });
-                var m = appState.clone($scope.model);
+            const downloadImage = (format, callback) => {
+                let m = appState.clone($scope.model);
+                const f = $scope.model.imageFile;
                 m.outputImageFormat = format;
-                $http.post(
-                    url,
-                    {
-                        'simulationId': appState.models.simulation.simulationId,
-                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
-                        'method': 'processedImage',
-                        'baseImage': $scope.model.imageFile,
-                        'model': m,
+                $scope.errorMessage = '';
+                requestSender.sendStatefulCompute(
+                    appState,
+                    function(data) {
+                        callback(
+                            data,
+                            f.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format,
+                        );
                     },
                     {
+                        baseImage: f,
+                        method: 'sample_preview',
+                        model: m,
+                        // TODO(robnagler) should come from schema, and be filled in automatically.
                         responseType: 'blob',
-                    }
-                ).then(
-                    function (response) {
-                        if (response.status == 200) {
-                            callback(filename, response);
-                            return;
-                        }
-                        error(response);
                     },
-                    error);
-            }
-
-            function error(response) {
-                $scope.errorMessage = 'An error occurred creating the preview image';
-            }
+                    (response) => {
+                        $scope.errorMessage = 'An error occurred creating the preview image';
+                    },
+                );
+            };
 
             $scope.loadImageFile = function() {
                 if (! appState.isLoaded() || imageData || $scope.isLoading) {
                     return;
                 }
                 $scope.isLoading = true;
-                downloadImage('png', function(filename, response) {
-                    imageData = response.data;
-                    $scope.isLoading = false;
-                    if (imageData.type == 'application/json') {
-                        // an error message has been returned
-                        imageData.text().then(function(text) {
-                            $scope.errorMessage = JSON.parse(text).error;
-                            $scope.$digest();
-                        });
-                    }
-                    else {
-                        var urlCreator = window.URL || window.webkitURL;
+                downloadImage(
+                    'png',
+                    (data) => {
+                        imageData = data;
+                        $scope.isLoading = false;
+                        const u = window.URL || window.webkitURL;
                         if ($('.srw-processed-image').length) {
-                            $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
+                            $('.srw-processed-image')[0].src = u.createObjectURL(data);
                         }
-                    }
-                });
+                    },
+                );
             };
 
             $scope.downloadProcessedImage = function() {
@@ -2405,9 +2381,10 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                 }
                 downloadImage(
                     $scope.model.outputImageFormat,
-                    function(filename, response) {
-                        saveAs(response.data, filename);
-                    });
+                    (data, filename) => {
+                        saveAs(data, filename);
+                    },
+                );
             };
         },
     };

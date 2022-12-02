@@ -78,9 +78,36 @@ def _background_percent_complete(msg, template, is_running):
     )
 
 
-def _dispatch_compute(msg):
+def _dispatch_compute(msg, template):
+    def _op(expect_file):
+        r = getattr(template_common, f"{msg.jobCmd}_dispatch")(msg.data)
+        if not isinstance(r, template_common.JobCmdFile):
+            # ok to not return JobCmdFile if there was an error
+            return r
+        if not expect_file:
+            return PKDict(
+                state=job.ERROR,
+                error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
+            )
+        e = _validate_msg(r.content)
+        if e:
+            return e
+        requests.put(
+            msg.dataFileUri + r.uri,
+            data=r.content,
+            verify=job.cfg().verify_tls,
+        ).raise_for_status()
+        return job.ok_reply()
+
     try:
-        return getattr(template_common, f"{msg.jobCmd}_dispatch")(msg.data)
+        x = sirepo.sim_data.get_class(
+            template.SIM_TYPE,
+        ).does_api_reply_with_file(msg.api, msg.data.method)
+        if x:
+            with simulation_db.tmp_dir(chdir=True) as d:
+                return _op(expect_file=x)
+        else:
+            return _op(expect_file=x)
     except Exception as e:
         return _maybe_parse_user_alert(e)
 
@@ -126,7 +153,7 @@ def _do_compute(msg, template):
 
 
 def _do_analysis_job(msg, template):
-    return _dispatch_compute(msg)
+    return _dispatch_compute(msg, template)
 
 
 def _do_download_data_file(msg, template):
@@ -261,11 +288,11 @@ def _do_sequential_result(msg, template):
 
 
 def _do_stateful_compute(msg, template):
-    return _dispatch_compute(msg)
+    return _dispatch_compute(msg, template)
 
 
 def _do_stateless_compute(msg, template):
-    return _dispatch_compute(msg)
+    return _dispatch_compute(msg, template)
 
 
 def _maybe_parse_user_alert(exception, error=None):
