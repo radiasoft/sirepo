@@ -324,7 +324,11 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def is_run_mpi(cls, data):
-        return cls.is_parallel(data) and data.report != "beamlineAnimation"
+        return (
+            cls.is_parallel(data)
+            and data.report != "beamlineAnimation"
+            and not cls.is_for_ml(data.report)
+        )
 
     @classmethod
     def _organize_example(cls, data):
