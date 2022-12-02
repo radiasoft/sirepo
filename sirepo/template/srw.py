@@ -1035,6 +1035,8 @@ def write_parameters(data, run_dir, is_parallel):
     if _SIM_DATA.is_for_rsopt(data.report):
         p = ""
         _export_rsopt_config(data, run_dir=run_dir)
+        if _SIM_DATA.is_for_ml(data.report):
+            p = f"import subprocess\nsubprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])"
     else:
         p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
@@ -1450,14 +1452,10 @@ def _enum_text(name, model, field):
 
 def _export_rsopt_config(data, run_dir):
     ctx = _rsopt_jinja_context(data)
-    f = _write_rsopt_zip(data, ctx)
     if _SIM_DATA.is_for_ml(data.report):
-        s = f"{_SIM_DATA.EXPORT_RSOPT}_run.sh"
-        pkio.write_text(s, template_common.render_jinja(SIM_TYPE, ctx, s))
-        template_common.subprocess_output(
-            ["bash", s],
-        )
-    return f
+        _write_rsopt_files(data, run_dir, ctx)
+    else:
+        _write_rsopt_zip(data, ctx)
 
 
 def _extend_plot(
@@ -2255,12 +2253,24 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     return ar2d, x_range, y_range
 
 
+def _export_rsopt_files():
+    files = PKDict()
+    for t in (
+            "py",
+            "sh",
+            "yml",
+    ):
+        files[f"{t}FileName"] = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
+    files["postProcFileName"] = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
+    files["readmeFileName"] = "README.txt"
+    return files
+
+
 def _rsopt_jinja_context(data):
     import multiprocessing
 
     model = data.models[_SIM_DATA.EXPORT_RSOPT]
-    e = _process_rsopt_elements(model.elements)
-    return PKDict(
+    res = PKDict(
         fileBase=_SIM_DATA.EXPORT_RSOPT,
         forRSOpt=True,
         libFiles=_SIM_DATA.lib_file_basenames(data),
@@ -2269,10 +2279,9 @@ def _rsopt_jinja_context(data):
         numSamples=int(model.numSamples),
         outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
         randomSeed=model.randomSeed if model.randomSeed is not None else "",
-        readmeFileName="README.txt",
         resultsFileName=_SIM_DATA.ML_OUTPUT,
         rsOptCharacteristic=model.characteristic,
-        rsOptElements=e,
+        rsOptElements=_process_rsopt_elements(model.elements),
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRotation=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName="scan_results",
@@ -2281,6 +2290,8 @@ def _rsopt_jinja_context(data):
         totalSamples=model.totalSamples,
         zipFileName=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
     )
+    res.update(_export_rsopt_files())
+    return res
 
 
 def _rsopt_main():
@@ -2615,6 +2626,16 @@ def _wavefront_pickle_filename(el_id):
     return "initial.pkl"
 
 
+def _write_rsopt_files(data, run_dir, ctx):
+    for f in _export_rsopt_files().values():
+        pkio.write_text(
+            run_dir.join(f),
+            python_source_for_model(data, data.report, None, plot_reports=False)
+            if f == f"{_SIM_DATA.EXPORT_RSOPT}.py"
+            else template_common.render_jinja(SIM_TYPE, ctx, f)
+        )
+
+
 def _write_rsopt_zip(data, ctx):
     def _files():
         files = []
@@ -2641,7 +2662,7 @@ def _write_rsopt_zip(data, ctx):
 
     filename = f"{_SIM_DATA.EXPORT_RSOPT}.zip"
     with zipfile.ZipFile(
-        filename,
+        f"{_SIM_DATA.EXPORT_RSOPT}.zip",
         mode="w",
         compression=zipfile.ZIP_DEFLATED,
         allowZip64=True,
