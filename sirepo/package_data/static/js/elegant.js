@@ -1454,8 +1454,9 @@ SIREPO.app.directive('viewLogIframeWrapper', function(appState, requestSender) {
             <div data-view-log-iframe data-get-log="viewLog"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
-
+            srdbg('called a')
             $scope.viewLog = function(onReturn) {
+                srdbg('called b')
                 requestSender.sendAnalysisJob(
                     appState,
                     (data) => {
@@ -1469,6 +1470,7 @@ SIREPO.app.directive('viewLogIframeWrapper', function(appState, requestSender) {
             };
 
             $scope.downloadLog = function() {
+                srdbg('called c')
                 // TODO(e-carlin): implement
                 // var m = appState.models.simulationStatus.animation.computeModel;
                 // if (! m) {
@@ -1516,8 +1518,11 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
             </div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
-
+// TODO(rorour): this has view logic, wrapper has backend logic
+            // TODO(rorour): make sure behaves same in elegant as on main
+            srdbg('called d')
             $scope.viewLog = function() {
+                srdbg('called e')
                 $scope.getLog((html) => {
                     $('#sr-text-iframe').attr("srcdoc", html);
                 });
@@ -1525,6 +1530,7 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
             };
 
             $scope.downloadLog = function() {
+                srdbg('called f')
                 var m = appState.models.simulationStatus.animation.computeModel;
                 if (! m) {
                     return '';
