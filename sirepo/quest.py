@@ -66,7 +66,9 @@ class API(pykern.quest.API):
         self[name] = obj
 
     def bucket_set(self, name, value):
-        assert name not in self._bucket
+        assert (
+            name not in self._bucket
+        ), f"duplicate name={name} in _bucket={list(self._bucket.keys())}"
         self._bucket[name] = value
 
     def bucket_uget(self, name):

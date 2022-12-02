@@ -38,21 +38,21 @@ class SirepoUtils {
     }
 
     /**
-     * The min value of an array too large for Math.min
+     * The min value of an array
      * @param {number[]} array
      * @returns {number}
      */
-    static largeMin(array) {
-        return this.seqApply(Math.min, array, Number.MAX_VALUE);
+    static arrayMin(array) {
+        return this.applyInChunks(Math.min, array, Number.MAX_VALUE);
     }
 
     /**
-     * The max value of an array too large for Math.max
+     * The max value of an array
      * @param {number[]} array
      * @returns {number}
      */
-    static largeMax(array) {
-        return this.seqApply(Math.max, array, -Number.MAX_VALUE);
+    static arrayMax(array) {
+        return this.applyInChunks(Math.max, array, -Number.MAX_VALUE);
     }
 
     static linearlySpacedArray(start, stop, nsteps) {
@@ -88,23 +88,22 @@ class SirepoUtils {
     }
 
     /**
-     * Some functions that take array arguments (e.g. Math.min) can break the stack if the array is too
-     * large. This applies the function in chunks to avoid such cases
+     * Functions that take "varargs" (e.g. Math.min) can break the stack if the number of args is too
+     * large. This applies the function to an array in chunks to avoid such cases
      * @param {function} fn - the function to apply
      * @param {*[]} array - the array of interest
      * @param {*} initVal - default return value for empty arrays
      * @returns {*}
      */
-    static seqApply(fn, arr, initVal) {
-        let start = 0;
-        const inc = 1000;
+    static applyInChunks(fn, arr, initVal) {
         let res = initVal;
-        do {
-            const sub = fn.apply(null, arr.slice(start, Math.min(arr.length, start + inc)));
+        let i = 0;
+        while (i < arr.length) {
+            const j = Math.min(i + 1000, arr.length);
+            const sub = fn.apply(null, arr.slice(i, j));
             res = fn.apply(null, [res, sub]);
-            start += inc;
-        } while (start < arr.length);
-
+            i = j;
+        }
         return res;
     }
 

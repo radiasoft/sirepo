@@ -251,6 +251,10 @@ class SimDataBase(object):
         return cls._delete_sim_db_file(cls._sim_file_uri(sim_id, basename))
 
     @classmethod
+    def does_api_reply_with_file(cls, api, method):
+        return False
+
+    @classmethod
     def example_paths(cls):
         return sirepo.resource.glob_paths(
             _TEMPLATE_RESOURCE_DIR,
@@ -538,7 +542,12 @@ class SimDataBase(object):
         if isinstance(obj, pkconfig.STRING_TYPES):
             res = obj
         elif isinstance(obj, dict):
-            res = obj.get("frameReport") or obj.get("report") or obj.get("computeModel")
+            for i in ("frameReport", "report", "computeModel", "modelName"):
+                if i in obj:
+                    res = obj.get(i)
+                    break
+            else:
+                res = None
         else:
             raise AssertionError("obj={} is unsupported type={}", obj, type(obj))
         assert res and _MODEL_RE.search(res), "invalid model={} from obj={}".format(
