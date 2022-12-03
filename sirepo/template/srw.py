@@ -438,43 +438,6 @@ def extract_report_data(sim_in):
     return res
 
 
-def get_application_data(data, qcall, **kwargs):
-    if data.method == "model_list":
-        res = []
-        model_name = data.model_name
-        if model_name == "electronBeam":
-            res.extend(get_predefined_beams())
-        res.extend(_load_user_model_list(model_name, qcall=qcall))
-        if model_name == "electronBeam":
-            for beam in res:
-                srw_common.process_beam_parameters(beam)
-        return PKDict(modelList=res)
-    if data.method == "create_shadow_simulation":
-        from sirepo.template.srw_shadow import Convert
-
-        return Convert().to_shadow(data)
-    if data.method == "delete_user_models":
-        return _delete_user_models(
-            data.electron_beam,
-            data.tabulated_undulator,
-            qcall=qcall,
-        )
-    elif data.method == "compute_undulator_length":
-        return compute_undulator_length(
-            data.tabulated_undulator,
-            qcall=qcall,
-        )
-    elif data.method == "processedImage":
-        try:
-            return _process_image(data, kwargs["tmp_dir"], qcall=qcall)
-        except Exception as e:
-            pkdlog("exception during processedImage: {}", pkdexc())
-            return PKDict(
-                error=str(e),
-            )
-    raise RuntimeError("unknown application data method: {}".format(data.method))
-
-
 def get_data_file(run_dir, model, frame, options):
     if options.suffix == template_common.RUN_LOG:
         return template_common.text_data_file(options.suffix, run_dir)
@@ -806,7 +769,87 @@ def run_epilogue():
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
 
-def stateful_compute_compute_undulator_length(data):
+def stateful_compute_sample_preview(data):
+    """Process image and return
+
+    Args:
+        data (dict): description of simulation
+    Returns:
+        JobCmdFile: file to be returned
+    """
+    import srwl_uti_smp
+
+    def _input_file(data):
+        """This should just be a basename, but secure_filename ensures it."""
+        return str(
+            _SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)),
+        )
+
+    def _obj_par1(m):
+        if m.obj_type in ("1", "2", "3"):
+            return m.obj_size_ratio
+        elif m.obj_type == "4":
+            return m.poly_sides
+        else:
+            return m.rand_shapes
+
+    def _obj_par2(m):
+        if m.obj_type in ("1", "2", "3"):
+            m.rand_obj_size == "1"
+        elif m.obj_type == "4":
+            m.rand_poly_side == "1"
+        else:
+            return None
+
+    m = data.model
+    d = pkio.py_path()
+    if m.sampleSource == "file":
+        s = srwl_uti_smp.SRWLUtiSmp(
+            file_path=_input_file(data),
+            area=None
+            if not int(m.cropArea)
+            else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd),
+            rotate_angle=float(m.rotateAngle),
+            rotate_reshape=int(m.rotateReshape),
+            cutoff_background_noise=float(m.cutoffBackgroundNoise),
+            background_color=int(m.backgroundColor),
+            invert=int(m.invert),
+            tile=None if not int(m.tileImage) else (m.tileRows, m.tileColumns),
+            shift_x=m.shiftX,
+            shift_y=m.shiftY,
+            is_save_images=True,
+            prefix=str(d),
+            output_image_format=m.outputImageFormat,
+        )
+        p = pkio.py_path(s.processed_image_name)
+    else:
+        assert m.sampleSource == "randomDisk"
+        s = srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
+            _thickness=0,
+            _delta=0,
+            _atten_len=0,
+            _dens=m.dens,
+            _rx=m.rx,
+            _ry=m.ry,
+            _obj_type=int(m.obj_type),
+            _r_min_bw_obj=m.r_min_bw_obj,
+            _obj_size_min=m.obj_size_min,
+            _obj_size_max=m.obj_size_max,
+            _size_dist=int(m.size_dist),
+            _ang_min=m.ang_min,
+            _ang_max=m.ang_max,
+            _ang_dist=int(m.ang_dist),
+            _rand_alg=int(m.rand_alg),
+            _obj_par1=_obj_par1(m),
+            _obj_par2=_obj_par2(m),
+            _ret="img",
+        )
+        p = d.join(f"sample_processed.{m.outputImageFormat}")
+        s.save(p.basename)
+    return template_common.JobCmdFile(path=p)
+
+
+def stateful_compute_undulator_length(data):
     return compute_undulator_length(data.args["tabulated_undulator"])
 
 
@@ -828,9 +871,20 @@ def stateful_compute_create_shadow_simulation(data):
 
 
 def stateful_compute_delete_user_models(data):
-    return _delete_user_models(
-        data.args["electron_beam"], data.args["tabulated_undulator"]
-    )
+    """Remove the beam and undulator user model list files"""
+    electron_beam = data.args.electron_beam
+    tabulated_undulator = data.args.tabulated_undulator
+    for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        model = electron_beam if model_name == "electronBeam" else tabulated_undulator
+        if not model or "id" not in model:
+            continue
+        user_model_list = _load_user_model_list(model_name, qcall=qcall)
+        for i, m in enumerate(user_model_list):
+            if m.id == model.id:
+                del user_model_list[i]
+                _save_user_model_list(model_name, user_model_list, qcall=qcall)
+                break
+    return PKDict()
 
 
 def stateful_compute_model_list(data):
@@ -845,11 +899,11 @@ def stateful_compute_model_list(data):
     return PKDict(modelList=res)
 
 
-def stateless_compute_compute_PGM_value(data):
+def stateless_compute_PGM_value(data):
     return _compute_PGM_value(data.optical_element)
 
 
-def stateless_compute_compute_crl_characteristics(data):
+def stateless_compute_crl_characteristics(data):
     return compute_crl_focus(
         _compute_material_characteristics(
             data.optical_element,
@@ -858,22 +912,22 @@ def stateless_compute_compute_crl_characteristics(data):
     )
 
 
-def stateless_compute_compute_crystal_init(data):
+def stateless_compute_crystal_init(data):
     return _compute_crystal_init(data.optical_element)
 
 
-def stateless_compute_compute_crystal_orientation(data):
+def stateless_compute_crystal_orientation(data):
     return _compute_crystal_orientation(data.optical_element)
 
 
-def stateless_compute_compute_delta_atten_characteristics(data):
+def stateless_compute_delta_atten_characteristics(data):
     return _compute_material_characteristics(
         data.optical_element,
         data.photon_energy,
     )
 
 
-def stateless_compute_compute_dual_characteristics(data):
+def stateless_compute_dual_characteristics(data):
     return _compute_material_characteristics(
         _compute_material_characteristics(
             data.optical_element,
@@ -1032,14 +1086,18 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
+    p = ""
     if _SIM_DATA.is_for_rsopt(data.report):
-        p = ""
         _export_rsopt_config(data, run_dir=run_dir)
         if _SIM_DATA.is_for_ml(data.report):
             p = f"""import subprocess
 subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
 """
-    else:
+    if data.report not in (
+        "samplePreviewReport",
+        _SIM_DATA.EXPORT_RSOPT,
+        _SIM_DATA.ML_REPORT,
+    ):
         p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -1429,21 +1487,6 @@ def _create_user_model(data, model_name):
         model = model.copy()
         model.undulator = data.models.undulator
     return model
-
-
-def _delete_user_models(electron_beam, tabulated_undulator, qcall=None):
-    """Remove the beam and undulator user model list files"""
-    for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        model = electron_beam if model_name == "electronBeam" else tabulated_undulator
-        if not model or "id" not in model:
-            continue
-        user_model_list = _load_user_model_list(model_name, qcall=qcall)
-        for i, m in enumerate(user_model_list):
-            if m.id == model.id:
-                del user_model_list[i]
-                _save_user_model_list(model_name, user_model_list, qcall=qcall)
-                break
-    return PKDict()
 
 
 def _enum_text(name, model, field):
@@ -2042,78 +2085,6 @@ def _parse_srw_log(run_dir):
     if res:
         return res
     return "An unknown error occurred"
-
-
-def _process_image(data, tmp_dir, qcall=None):
-    """Process image and return
-
-    Args:
-        data (dict): description of simulation
-
-    Returns:
-        py.path.local: file to return
-    """
-    # This should just be a basename, but this ensures it.
-    import srwl_uti_smp
-
-    path = str(
-        _SIM_DATA.lib_file_abspath(
-            sirepo.util.secure_filename(data.baseImage), qcall=qcall
-        )
-    )
-    m = data.model
-    with pkio.save_chdir(tmp_dir):
-        if m.sampleSource == "file":
-            s = srwl_uti_smp.SRWLUtiSmp(
-                file_path=path,
-                area=None
-                if not int(m.cropArea)
-                else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd),
-                rotate_angle=float(m.rotateAngle),
-                rotate_reshape=int(m.rotateReshape),
-                cutoff_background_noise=float(m.cutoffBackgroundNoise),
-                background_color=int(m.backgroundColor),
-                invert=int(m.invert),
-                tile=None if not int(m.tileImage) else (m.tileRows, m.tileColumns),
-                shift_x=m.shiftX,
-                shift_y=m.shiftY,
-                is_save_images=True,
-                prefix=str(tmp_dir),
-                output_image_format=m.outputImageFormat,
-            )
-            return pkio.py_path(s.processed_image_name)
-        assert m.sampleSource == "randomDisk"
-        s = srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
-            _thickness=0,
-            _delta=0,
-            _atten_len=0,
-            _dens=m.dens,
-            _rx=m.rx,
-            _ry=m.ry,
-            _obj_type=int(m.obj_type),
-            _r_min_bw_obj=m.r_min_bw_obj,
-            _obj_size_min=m.obj_size_min,
-            _obj_size_max=m.obj_size_max,
-            _size_dist=int(m.size_dist),
-            _ang_min=m.ang_min,
-            _ang_max=m.ang_max,
-            _ang_dist=int(m.ang_dist),
-            _rand_alg=int(m.rand_alg),
-            _obj_par1=m.obj_size_ratio
-            if m.obj_type in ("1", "2", "3")
-            else m.poly_sides
-            if m.obj_type == "4"
-            else m.rand_shapes,
-            _obj_par2=m.rand_obj_size == "1"
-            if m.obj_type in ("1", "2", "3")
-            else m.rand_poly_side == "1"
-            if m.obj_type == "4"
-            else None,
-            _ret="img",
-        )
-        filename = "sample_processed.{}".format(m.outputImageFormat)
-        s.save(filename)
-        return pkio.py_path(filename)
 
 
 def _process_rsopt_elements(els):

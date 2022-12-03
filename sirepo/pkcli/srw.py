@@ -118,6 +118,7 @@ def run(cfg_dir):
         )
     # special case for importing python code
     if m == "backgroundImport":
+        # special case for importing python code
         template_common.write_sequential_result(
             PKDict({srw.PARSED_DATA_ATTR: r.parsed_data})
         )

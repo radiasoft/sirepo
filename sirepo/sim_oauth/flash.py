@@ -9,8 +9,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import datetime
 import sirepo.quest
-import sirepo.auth
-import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.oauth
 import sirepo.srtime
@@ -30,8 +28,7 @@ class API(sirepo.quest.API):
         assert (
             i.status == cfg.info_valid_user
         ), f"unexpected status in info={i} expect={cfg.info_valid_user}"
-        sirepo.auth_db.UserRole.add_role_or_update_expiration(
-            qcall=self,
+        self.auth_db.model("UserRole").add_role_or_update_expiration(
             role=sirepo.auth_role.for_sim_type(_SIM_TYPE),
             expiration=datetime.datetime.fromtimestamp(PKDict(o.token).expires_at),
         )

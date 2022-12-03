@@ -92,6 +92,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         return analysis_model
 
     @classmethod
+    def does_api_reply_with_file(cls, api, method):
+        # TODO(robnagler) move this to the schema so Javascript can use
+        return api in "api_statefulCompute" and method == "sample_preview"
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         """Fixup data to match the most recent schema."""
         dm = data.models

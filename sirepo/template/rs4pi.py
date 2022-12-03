@@ -65,6 +65,27 @@ _TMP_ZIP_DIR = "tmp-dicom-files"
 _ZIP_FILE_NAME = "input.zip"
 
 
+def analysis_job_roi_points(data, run_dir, **kwargs):
+    return _read_roi_file(data["simulationId"], qcall=None)
+
+
+def analysis_job_update_roi_points(data, run_dir, **kwargs):
+    sim_id = data["simulationId"]
+    contours = data["editedContours"]
+    data = _read_roi_file(sim_id, qcall=None)
+    rois = data["models"]["regionsOfInterest"]
+    for roi_number in contours:
+        if roi_number not in rois:
+            rois[roi_number] = contours[roi_number]
+        else:
+            for frame_id in contours[roi_number]:
+                points = contours[roi_number][frame_id]
+                rois[roi_number]["contour"][frame_id] = points
+    # TODO(pjm): file locking or atomic update
+    simulation_db.write_json(_roi_file(sim_id, qcall=None), data)
+    return PKDict()
+
+
 def background_percent_complete(report, run_dir, is_running):
     data_path = run_dir.join(template_common.INPUT_BASE_NAME)
     if not os.path.exists(str(simulation_db.json_filename(data_path))):
@@ -149,15 +170,6 @@ def generate_rtdose_file(data, run_dir):
         ).tolist()
         ds.save_as(_parent_file(run_dir, _DOSE_DICOM_FILE))
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
-
-
-def get_application_data(data, qcall, **kwargs):
-    if data["method"] == "roi_points":
-        return _read_roi_file(data["simulationId"], qcall)
-    elif data["method"] == "update_roi_points":
-        return _update_roi_file(data["simulationId"], data["editedContours"], qcall)
-    else:
-        raise RuntimeError("{}: unknown application data method".format(data["method"]))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -852,18 +864,3 @@ def _summarize_rt_structure(simulation, plan, frame_ids):
         },
     )
     return res
-
-
-def _update_roi_file(sim_id, contours, qcall):
-    data = _read_roi_file(sim_id, qcall)
-    rois = data["models"]["regionsOfInterest"]
-    for roi_number in contours:
-        if roi_number not in rois:
-            rois[roi_number] = contours[roi_number]
-        else:
-            for frame_id in contours[roi_number]:
-                points = contours[roi_number][frame_id]
-                rois[roi_number]["contour"][frame_id] = points
-    # TODO(pjm): file locking or atomic update
-    simulation_db.write_json(_roi_file(sim_id, qcall), data)
-    return PKDict()

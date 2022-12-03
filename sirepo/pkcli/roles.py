@@ -11,7 +11,6 @@ from sirepo.pkcli import admin
 import contextlib
 import pykern.pkcli
 import sirepo.auth_role
-import sirepo.auth_db
 import sirepo.quest
 
 
@@ -23,7 +22,7 @@ def add(uid_or_email, *roles):
     """
 
     with _parse_args(uid_or_email, roles) as qcall:
-        sirepo.auth_db.UserRole.add_roles(qcall, roles)
+        qcall.auth_db.model("UserRole").add_roles(roles)
 
 
 def add_roles(*args):
@@ -39,7 +38,7 @@ def delete(uid_or_email, *roles):
     """
 
     with _parse_args(uid_or_email, roles) as qcall:
-        sirepo.auth_db.UserRole.delete_roles(qcall, roles)
+        qcall.auth_db.model("UserRole").delete_roles(roles)
 
 
 def delete_roles(*args):
@@ -54,7 +53,7 @@ def list(uid_or_email):
     """
 
     with _parse_args(uid_or_email, []) as qcall:
-        return sirepo.auth_db.UserRole.get_roles(qcall)
+        return qcall.auth_db.model("UserRole").get_roles()
 
 
 def list_roles(*args):
@@ -69,9 +68,9 @@ def _parse_args(uid_or_email, roles):
     with sirepo.quest.start() as qcall:
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_email:
-            u = qcall.auth.get_module(
-                "email",
-            ).unchecked_user_by_user_name(qcall, uid_or_email)
+            u = qcall.auth_db.model("AuthEmailUser").unchecked_uid(
+                user_name=uid_or_email
+            )
         else:
             u = qcall.auth.unchecked_get_user(uid_or_email)
         if not u:
