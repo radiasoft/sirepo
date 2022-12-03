@@ -877,7 +877,7 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
         }
         if ('percentComplete' in data && ! data.error) {
             if (self.simState.isStateCompleted()) {
-                self.resultsFile = data.resultsFile;
+                self.resultsFile = 'results.h5';
             }
         }
     };
