@@ -107,15 +107,9 @@ def run(cfg_dir):
         cfg_dir (str): directory to run srw in
     """
     srw = sirepo.template.import_module("srw")
-    sim_data = sirepo.sim_data.get_class("srw")
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = template_common.exec_parameters()
     m = sim_in.report
-    if sim_data.is_for_ml(m):
-        f = sim_data.ML_OUTPUT
-        sirepo.sim_data.put_sim_file(
-            sim_in.models.simulation.simulationId, cfg_dir.join(f), f
-        )
     # special case for importing python code
     if m == "backgroundImport":
         # special case for importing python code

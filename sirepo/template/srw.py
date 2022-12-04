@@ -636,6 +636,15 @@ def post_execution_processing(
     success_exit=True, is_parallel=True, run_dir=None, **kwargs
 ):
     if success_exit:
+        # Should sim_type and sim_id be available in kwargs?
+        if _SIM_DATA.ML_REPORT in str(run_dir):
+            f = _SIM_DATA.ML_OUTPUT
+            sim_id = simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME)
+            ).models.simulation.simulationId
+            _SIM_DATA.put_sim_file(
+                sim_id, run_dir.join(f), f
+            )
         return None
     return _parse_srw_log(run_dir)
 
