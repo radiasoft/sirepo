@@ -642,9 +642,7 @@ def post_execution_processing(
             sim_id = simulation_db.read_json(
                 run_dir.join(template_common.INPUT_BASE_NAME)
             ).models.simulation.simulationId
-            _SIM_DATA.put_sim_file(
-                sim_id, run_dir.join(f), f
-            )
+            _SIM_DATA.put_sim_file(sim_id, run_dir.join(f), f)
         return None
     return _parse_srw_log(run_dir)
 
