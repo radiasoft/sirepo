@@ -110,7 +110,6 @@ def run(cfg_dir):
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = template_common.exec_parameters()
     m = sim_in.report
-    # special case for importing python code
     if m == "backgroundImport":
         # special case for importing python code
         template_common.write_sequential_result(
