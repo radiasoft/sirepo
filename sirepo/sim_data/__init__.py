@@ -622,17 +622,11 @@ class SimDataBase(object):
     def sim_file_basenames(cls, data):
         return cls._sim_file_basenames(data)
 
+    #TODO(mvk):  use a server to provide access to sim db and library files
     @classmethod
-    def sim_file_to_other_sim_lib(
+    def _sim_file_to_other_sim_lib(
         cls, sim_id, basename, other_sim_type, qcall=None, model_name=None, field=None
     ):
-        """Copy a sim file to a different sim's lib dir
-
-        Args:
-            sim_id (str): the source simulation
-            basename (str): name of the sim file
-            other_sim_type (str): the target sim type
-        """
         cls._assert_server_side()
         from sirepo import simulation_db
 
