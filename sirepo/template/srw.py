@@ -1097,6 +1097,7 @@ def write_parameters(data, run_dir, is_parallel):
     if _SIM_DATA.is_for_rsopt(data.report):
         _export_rsopt_config(data, run_dir=run_dir)
         if _SIM_DATA.is_for_ml(data.report):
+            pkio.unchecked_remove(_SIM_DATA.ML_OUTPUT)
             p = f"""import subprocess
 subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
 """
