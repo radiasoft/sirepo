@@ -25,22 +25,25 @@ import sirepo.util
 _PREVENT_DB_UPGRADE_FILE = "prevent-db-upgrade"
 
 
-def do_all():
+def do_all(qcall):
+    def _new_functions():
+        x = qcall.auth_db.model("DbUpgrade").search_all_for_column("name")
+        y = pkinspect.module_functions("_2")
+        return ((n, y[n]) for n in sorted(set(y.keys()) - set(x)))
+
     assert (
         not _prevent_db_upgrade_file().exists()
     ), f"prevent_db_upgrade_file={_prevent_db_upgrade_file()} found"
 
-    with sirepo.quest.start() as qcall:
-        a = sirepo.auth_db.DbUpgrade.search_all_for_column("name")
-        f = pkinspect.module_functions("_2")
-        for n in sorted(set(f.keys()) - set(a)):
-            with _backup_db_and_prevent_upgrade_on_error():
-                pkdlog("running upgrade {}", n)
-                f[n](qcall=qcall)
-                sirepo.auth_db.DbUpgrade(
-                    name=n,
-                    created=sirepo.srtime.utc_now(),
-                ).save()
+    for n, f in _new_functions():
+        with _backup_db_and_prevent_upgrade_on_error():
+            pkdlog("running upgrade {}", n)
+            f(qcall=qcall)
+            qcall.auth_db.model(
+                "DbUpgrade",
+                name=n,
+                created=sirepo.srtime.utc_now(),
+            ).save()
 
 
 def _20210211_add_flash_proprietary_lib_files(qcall, force=False):
@@ -48,18 +51,21 @@ def _20210211_add_flash_proprietary_lib_files(qcall, force=False):
 
     if not sirepo.template.is_sim_type("flash"):
         return
-    for u in sirepo.auth_db.all_uids(qcall):
-        # Remove the existing rpm
-        pkio.unchecked_remove(
-            sirepo.simulation_db.simulation_lib_dir(
-                "flash",
+    for u in qcall.auth_db.all_uids():
+        with qcall.auth.logged_in_user_set(u):
+            # Remove the existing rpm
+            pkio.unchecked_remove(
+                sirepo.simulation_db.simulation_lib_dir(
+                    "flash",
+                    qcall=qcall,
+                ).join("flash.rpm"),
+            )
+            # Add's the flash proprietary lib files (unpacks flash.tar.gz)
+            sirepo.sim_data.audit_proprietary_lib_files(
                 qcall=qcall,
-            ).join("flash.rpm"),
-        )
-        # Add's the flash proprietary lib files (unpacks flash.tar.gz)
-        sirepo.auth_db.audit_proprietary_lib_files(
-            u, force=force, sim_types=set(("flash",))
-        )
+                force=force,
+                sim_types=set(("flash",)),
+            )
 
 
 def _20210211_upgrade_runner_to_job_db(qcall):
@@ -168,27 +174,30 @@ def _20210218_add_flash_proprietary_lib_files_force(qcall):
 
 def _20210301_migrate_role_jupyterhub(qcall):
     r = sirepo.auth_role.for_sim_type("jupyterhublogin")
-    if (
-        not sirepo.template.is_sim_type("jupyterhublogin")
-        or r in sirepo.auth_db.UserRole.all_roles()
-    ):
+    m = qcall.auth_db.model("UserRole")
+    if not sirepo.template.is_sim_type("jupyterhublogin") or r in m.all_roles():
         return
-    for u in sirepo.auth_db.all_uids(qcall):
-        sirepo.auth_db.UserRole.add_roles(u, r)
+    for u in qcall.auth_db.all_uids():
+        m.add_roles(u, r)
 
 
 def _20220609_add_expiration_column_to_user_role_t(qcall):
-    sirepo.auth_db.UserDbBase.add_column_if_not_exists(
-        sirepo.auth_db.UserRole,
+    qcall.auth_db.add_column_if_not_exists(
+        qcall.auth_db.model("UserRole"),
         "expiration",
         "datetime",
     )
 
 
 def _20220901_migrate_ml_to_activait(qcall):
-    for u in sirepo.auth_db.all_uids(qcall):
+    for u in qcall.auth_db.all_uids():
         with qcall.auth.logged_in_user_set(u):
             _migrate_sim_type("ml", "activait", qcall)
+
+
+def _20221120_rename_session_to_spa_session(qcall):
+    if "session_t" in qcall.auth_db.metadata().tables:
+        qcall.auth_db.rename_table("session_t", "spa_session_t")
 
 
 @contextlib.contextmanager

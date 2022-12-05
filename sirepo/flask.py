@@ -32,11 +32,6 @@ def app_set(app):
     _app = app
 
 
-def g():
-    _assert_flask()
-    return flask.g
-
-
 def in_request():
     if not flask:
         return False

@@ -9,19 +9,17 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import datetime
 import hashlib
 import pyisemail
 import pykern.pkcompat
 import sirepo.auth
 import sirepo.auth_db
+import sirepo.auth_db.email
 import sirepo.quest
 import sirepo.smtp
 import sirepo.srtime
-import sirepo.template
 import sirepo.uri
 import sirepo.util
-import sqlalchemy
 
 
 AUTH_METHOD = sirepo.auth.METHOD_EMAIL
@@ -29,20 +27,11 @@ AUTH_METHOD = sirepo.auth.METHOD_EMAIL
 #: User can see it
 AUTH_METHOD_VISIBLE = True
 
-#: Used by auth_db
-AuthEmailUser = None
-
 #: Well known alias for auth
-UserModel = None
+UserModel = "AuthEmailUser"
 
 #: module handle
 this_module = pkinspect.this_module()
-
-#: how long before token expires
-_EXPIRES_MINUTES = 8 * 60
-
-#: for adding to now
-_EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
 class API(sirepo.quest.API):
@@ -56,14 +45,15 @@ class API(sirepo.quest.API):
             sirepo.util.raise_forbidden("robots not allowed")
         req = self.parse_params(type=simulation_type)
         with sirepo.util.THREAD_LOCK:
-            u = AuthEmailUser.search_by(token=token)
+            m = self.auth_db.model(UserModel)
+            u = m.unchecked_search_by(token=token)
             if u and u.expires >= sirepo.srtime.utc_now():
                 n = self._verify_confirm(
                     req.type,
                     token,
                     self.auth.need_complete_registration(u),
                 )
-                AuthEmailUser.delete_changed_email(u)
+                m.delete_changed_email(user=u)
                 u.user_name = u.unverified_email
                 u.token = None
                 u.expires = None
@@ -97,9 +87,10 @@ class API(sirepo.quest.API):
         req = self.parse_post()
         email = self._parse_email(req.req_data)
         with sirepo.util.THREAD_LOCK:
-            u = AuthEmailUser.search_by(unverified_email=email)
+            m = self.auth_db.model(UserModel)
+            u = m.unchecked_search_by(unverified_email=email)
             if not u:
-                u = AuthEmailUser(unverified_email=email)
+                u = m.new(unverified_email=email)
             u.create_token()
             u.save()
         return self._send_login_email(
@@ -131,7 +122,7 @@ class API(sirepo.quest.API):
 
     {}
     """.format(
-                login_text, _EXPIRES_MINUTES / 60, uri
+                login_text, self.auth_db.model(UserModel).EXPIRES_MINUTES / 60, uri
             ),
         )
         if not r:
@@ -172,52 +163,3 @@ def avatar_uri(qcall, model, size):
         hashlib.md5(pykern.pkcompat.to_bytes(model.user_name)).hexdigest(),
         size,
     )
-
-
-def unchecked_user_by_user_name(qcall, user_name):
-    with sirepo.util.THREAD_LOCK:
-        u = AuthEmailUser.search_by(user_name=user_name)
-        if u:
-            return u.uid
-        return None
-
-
-def _init_model(base):
-    """Creates AuthEmailUser bound to dynamic `db` variable"""
-    global AuthEmailUser, UserModel
-
-    # Primary key is unverified_email.
-    # New user: (unverified_email, uid, token, expires) -> auth -> (unverified_email, uid, email)
-    # Existing user: (unverified_email, token, expires) -> auth -> (unverified_email, uid, email)
-
-    # display_name is prompted after first login
-    class AuthEmailUser(base):
-        EMAIL_SIZE = 255
-        __tablename__ = "auth_email_user_t"
-        unverified_email = sqlalchemy.Column(
-            sqlalchemy.String(EMAIL_SIZE), primary_key=True
-        )
-        uid = sqlalchemy.Column(base.STRING_ID, unique=True)
-        user_name = sqlalchemy.Column(sqlalchemy.String(EMAIL_SIZE), unique=True)
-        token = sqlalchemy.Column(
-            sqlalchemy.String(sirepo.util.TOKEN_SIZE), unique=True
-        )
-        expires = sqlalchemy.Column(sqlalchemy.DateTime())
-
-        def create_token(self):
-            self.expires = sirepo.srtime.utc_now() + _EXPIRES_DELTA
-            self.token = sirepo.util.create_token(self.unverified_email)
-
-        @classmethod
-        def delete_changed_email(cls, user):
-            with sirepo.util.THREAD_LOCK:
-                cls._session().query(cls).filter(
-                    (cls.user_name == user.unverified_email),
-                    cls.unverified_email != user.unverified_email,
-                ).delete()
-                cls._session().commit()
-
-    UserModel = AuthEmailUser
-
-
-sirepo.auth_db.init_model(_init_model)

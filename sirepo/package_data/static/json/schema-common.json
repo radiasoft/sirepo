@@ -28,10 +28,6 @@
             "longName": "GENESIS 1.3",
             "shortName": "GENESIS 1.3"
         },
-        "irad": {
-            "longName": "IRAD",
-            "shortName": "IRAD"
-        },
         "jspec": {
             "longName": "JSPEC",
             "shortName": "JSPEC"
@@ -59,10 +55,6 @@
         "rcscon": {
             "longName": "RCSCON",
             "shortName": "RCSCON"
-        },
-        "rs4pi": {
-            "longName": "RS4PI",
-            "shortName": "RS4PI"
         },
         "shadow": {
             "longName": "SHADOW",
@@ -202,6 +194,7 @@
             "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,
+            "logFileFrameId": -1,
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {

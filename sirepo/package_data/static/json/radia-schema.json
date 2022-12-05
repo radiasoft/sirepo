@@ -43,9 +43,9 @@
                 "cloneTransform": ["name","numCopies", "transforms", "alternateFields"],
                 "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"],
                 "translate": ["name","distance"],
-                "rotate": ["name", "angle", "axis", "center"],
+                "rotate": ["name", "angle", "axis", "center", "useObjectCenter"],
                 "translateClone": ["name","distance"],
-                "rotateClone": ["name", "angle", "axis", "center"]
+                "rotateClone": ["name", "angle", "axis", "center", "useObjectCenter"]
             }
         },
         "geomObjShapes": {
@@ -215,13 +215,6 @@
             {
                 "canDrag": true,
                 "contents": [
-                    {
-                        "isButton": false,
-                        "layoutShape": "rect",
-                        "model": "translate",
-                        "title": "Translate",
-                        "type": "translate"
-                    },
                     {
                         "isButton": false,
                         "layoutShape": "rect",
@@ -792,7 +785,8 @@
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
             "members": ["_", "Group", []],
-            "model": ["_", "String", "geomGroup"]
+            "model": ["_", "String", "geomGroup"],
+            "type": ["_", "String", "geomGroup"]
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
@@ -914,17 +908,19 @@
         "reset": {
         },
         "rotate": {
-            "angle": ["Angle (deg)", "Float", "0.0"],
+            "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "name": ["Name", "String", "Rotate"]
+            "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "name": ["Name", "String", "Rotate"],
+            "useObjectCenter": ["Use object center as origin", "Boolean", "1"]
         },
         "rotateClone": {
             "id": ["_", "RandomId", ""],
-            "angle": ["Angle (deg)", "Float", "0.0"],
+            "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "name": ["Name", "String", "Rotate"]
+            "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "name": ["Name", "String", "Rotate"],
+            "useObjectCenter": ["use clone center as origin", "Boolean", "1"]
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
@@ -1256,17 +1252,16 @@
         },
         "geomGroup": {
             "title": "Group",
-            "basic": [
-                "name",
-                "transforms",
-                "color",
-                "members"
-            ],
+            "basic": [],
             "advanced": [
-                "name",
-                "transforms",
-                "color",
-                "members"
+                ["Main", [
+                    "name",
+                    "color",
+                    "members"
+                ]],
+                ["Transforms", [
+                    "transforms"
+                ]]
             ]
         },
         "geomObject": {
@@ -1462,13 +1457,10 @@
         },
         "rotate": {
             "title": "Rotate",
-            "basic": [
-                "axis",
-                "center",
-                "angle"
-            ],
+            "basic": [],
             "advanced": [
                 "axis",
+                "useObjectCenter",
                 "center",
                 "angle"
             ]

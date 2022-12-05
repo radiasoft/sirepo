@@ -4,8 +4,8 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkinspect
 from pykern import pkconfig
+from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
@@ -252,6 +252,7 @@ def _call_api(parent, route, kwargs, data=None):
         return sirepo.http_reply.gen_response(res)
 
     qcall = route.cls()
+    c = False
     try:
         if parent:
             qcall.parent_set(parent)
@@ -259,7 +260,7 @@ def _call_api(parent, route, kwargs, data=None):
         qcall.attr_set("uri_route", route)
         qcall.sim_type_set_from_spec(route.func)
         if not parent:
-            sirepo.auth.init_quest(qcall)
+            sirepo.auth.init_quest(qcall=qcall, top_level_call_api=True)
         if data:
             qcall.http_data_set(data)
         try:
@@ -272,8 +273,11 @@ def _call_api(parent, route, kwargs, data=None):
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)
             r = _response(getattr(qcall, qcall.uri_route.func_name)(**kwargs))
+            c = True
         except Exception as e:
             if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+                if isinstance(e, sirepo.util.OKReply):
+                    c = True
                 pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
             else:
                 pkdlog(
@@ -284,8 +288,11 @@ def _call_api(parent, route, kwargs, data=None):
         if pkconfig.channel_in("dev"):
             r.headers.add("Access-Control-Allow-Origin", "*")
         return r
+    except:
+        c = False
+        raise
     finally:
-        qcall.destroy()
+        qcall.destroy(commit=c)
 
 
 def _check_route(qcall, route):
@@ -393,17 +400,14 @@ def _register_sim_api_modules():
 
 
 def _register_sim_modules_from_package(package, valid_sim_types=None):
-    for _, n, ispkg in pkgutil.iter_modules(
-        [os.path.dirname(importlib.import_module(f"sirepo.{package}").__file__)],
-    ):
-        if ispkg:
-            continue
+    p = pkinspect.module_name_join(("sirepo", package))
+    for n in pkinspect.package_module_names(p):
         if not sirepo.template.is_sim_type(n) or (
             valid_sim_types is not None and n not in valid_sim_types
         ):
             pkdc(f"not adding apis for unknown sim_type={n}")
             continue
-        register_api_module(f"sirepo.{package}.{n}")
+        register_api_module(pkinspect.module_name_join((p, n)))
 
 
 def _register_sim_oauth_modules(oauth_sim_types):

@@ -34,7 +34,7 @@ def import_and_init(name):
     _i("sirepo.simulation_db", [])
     if name != "sirepo.pkcli.job_agent":
         _i("sirepo.auth_db", [])
-        _i("sirepo.session", [])
+        _i("sirepo.spa_session", [])
         _i("sirepo.cookie", [])
     _i("sirepo.auth", ["simulation_db"])
     if name in "sirepo.pkcli.job_agent":
