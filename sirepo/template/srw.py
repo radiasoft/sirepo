@@ -383,7 +383,7 @@ def extract_report_data(sim_in):
         return _extract_brilliance_report(dm.brillianceReport, out.filename)
     if r == "trajectoryReport":
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
-    if _SIM_DATA.is_for_ml(r):
+    if r == _SIM_DATA.EXPORT_RSOPT:
         return out
     if r in ("coherenceXAnimation", "coherenceYAnimation", "multiElectronAnimation"):
         out.filename = _best_data_file(out.filename)
@@ -2613,21 +2613,6 @@ def _write_rsopt_files(data, run_dir, ctx):
 
 
 def _write_rsopt_zip(data, ctx):
-    def _files():
-        files = []
-        for t in (
-            "py",
-            "sh",
-            "yml",
-        ):
-            f = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
-            ctx[f"{t}FileName"] = f
-            files.append(f)
-        f = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
-        files.append(f)
-        ctx["postProcFileName"] = f
-        return files
-
     def _write(zip_file, path):
         zip_file.writestr(
             path,
@@ -2643,17 +2628,10 @@ def _write_rsopt_zip(data, ctx):
         compression=zipfile.ZIP_DEFLATED,
         allowZip64=True,
     ) as z:
-        # the shell script depends on the other filenames being defined
-        for f in _files():
+        for f in _export_rsopt_files().values():
             _write(z, f)
-        z.writestr(
-            ctx.readmeFileName,
-            template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName),
-        )
-        if data.report != _SIM_DATA.ML_REPORT:
-            # lib files are already in the run_dir
-            for f in ctx.libFiles:
-                z.write(f, f)
+        for f in ctx.libFiles:
+            z.write(f, f)
     return PKDict(
         content_type="application/zip",
         filename=filename,
