@@ -526,6 +526,9 @@ SIREPO.app.directive('scansTable', function() {
                 $scope.reverseSortScans = ! $scope.reverseSortScans;
             };
 
+            if ($scope.analysisStatus === 'history') {
+                $scope.reverseSortScans = true;
+            }
             $scope.$on(`${$scope.modelName}.changed`, sendScanRequest);
             $scope.$on('catalog.changed', sendScanRequest);
             $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {
