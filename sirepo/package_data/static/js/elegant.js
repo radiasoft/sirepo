@@ -1451,7 +1451,7 @@ SIREPO.app.directive('viewLogIframeWrapper', function(appState, requestSender) {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-view-log-iframe data-get-log="viewLog"></div>
+            <div data-view-log-iframe data-get-log="viewLog" data-wrapper-download-log="downloadLog"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
             srdbg('called a')
@@ -1460,6 +1460,7 @@ SIREPO.app.directive('viewLogIframeWrapper', function(appState, requestSender) {
                 requestSender.sendAnalysisJob(
                     appState,
                     (data) => {
+                        srdbg('html', data.html)
                         onReturn(data.html);
                     },
                     {
@@ -1471,17 +1472,21 @@ SIREPO.app.directive('viewLogIframeWrapper', function(appState, requestSender) {
 
             $scope.downloadLog = function() {
                 srdbg('called c')
-                // TODO(e-carlin): implement
-                // var m = appState.models.simulationStatus.animation.computeModel;
-                // if (! m) {
-                //     return '';
-                // }
-                // return requestSender.formatUrl('downloadDataFile', {
-                //     '<simulation_id>': appState.models.simulation.simulationId,
-                //     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                //     '<model>': m,
-                //     '<frame>': -1,
-                // });
+                var m = appState.models.simulationStatus.animation.computeModel;
+                if (! m) {
+                    return '';
+                }
+
+                var z = requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': m,
+                    '<frame>': -1,
+                });
+
+                srdbg('z', z)
+
+                return z;
             };
         },
     };
@@ -1491,7 +1496,8 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
-            getLog: '<'
+            getLog: '<',
+            wrapperDownloadLog: '<'
         },
         template: `
             <a href data-ng-click="viewLog()">View Log</a>
@@ -1530,17 +1536,10 @@ SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
             };
 
             $scope.downloadLog = function() {
+                // returns uri to download log from just for download button
                 srdbg('called f')
-                var m = appState.models.simulationStatus.animation.computeModel;
-                if (! m) {
-                    return '';
-                }
-                return requestSender.formatUrl('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': m,
-                    '<frame>': -1,
-                });
+                $scope.wrapperDownloadLog()
+
             };
         },
     };
