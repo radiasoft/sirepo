@@ -283,9 +283,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 </div>
             </div>
             <div data-ng-show="displayType === '2D'">
-               <!--<input class="fieldClass col-sm-4" type="range" data-ng-model="tallyReport.planePos" min="tallyReport.zRange[0]" max="tallyReport.zRange[1]" step="tallyReport.zRange[2]">-->
-               <!--<div data-field-editor="'planePos'" data-model-name="'tallyReport'"></div>-->
-               <div data-basic-editor-panel="" data-view-name="tallyReport"></div>
+               <div class="col-md-8 col-md-offset-4">
+                   <!--<input class="fieldClass col-sm-4" type="range" data-ng-model="tallyReport.planePos" min="tallyReport.zRange[0]" max="tallyReport.zRange[1]" step="tallyReport.zRange[2]">-->
+                   <!--<div class="row" data-field-editor="planePos" data-model="tallyReport" data-model-name="tallyReportName"></div>-->
+                   <div class="row" data-field-editor="planePos" data-model="tallyReport" data-model-name="tallyReportName"></div>
+               </div>
+               <!--<div data-basic-editor-panel="" data-view-name="tallyReport"></div>-->
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
         `,
@@ -294,15 +297,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             $scope.displayType = '3D';
             $scope.isClientOnly = isGeometryOnly;
-            //$scope.tallyReport = appState.models.tallyReport;
+            $scope.tallyReportName = 'tallyReport';
+            $scope.planePos = 'planePos';
+            $scope.tallyReport = appState.models[$scope.tallyReportName ];
 
             let axesBoxes = {};
             let basePolyData = null;
             let colorbar = null;
             let colorbarPtr = null;
             let fieldData = [];
-            let picker = null;
+            let mesh = null;
             let minField, maxField;
+            let picker = null;
+            let planePosDelegate = null;
             let selectedVolume = null;
             let tally = null;
 
@@ -385,6 +392,22 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 });
             }
 
+            function buildRangeDelegate(modelName, field) {
+                const d = panelState.getFieldDelegate(modelName, field);
+                d.range = () => {
+                    return {
+                        min: appState.fieldProperties(modelName, field).min,
+                        max: appState.fieldProperties(modelName, field).max,
+                        step: 0.01
+                    };
+                };
+                d.readout = () => {
+                    return appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
+                };
+                d.update = () => {};
+                return d;
+            }
+
             function buildOpacityDelegate() {
                 const m = $scope.modelName;
                 const f = 'opacity';
@@ -404,20 +427,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function buildPlanePosDelegate() {
-                const m = 'tallyReport';
-                const f = 'planePos';
-                const d = panelState.getFieldDelegate(m, f);
-                d.range = () => {
-
-                    return {
-                        min: appState.fieldProperties(m, f).min,
-                        max: appState.fieldProperties(m, f).max,
-                        step: 0.01
-                    };
-                };
-                d.readout = () => {
-                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
-                };
+                srdbg('BLD PP');
+                const d = buildRangeDelegate('tallyReport', 'planePos');
+                d.range = planePosRange;
                 return d;
             }
 
@@ -444,7 +456,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     picker.deletePickList(tallyBundle.actor);
                     tallyBundle = null;
                 }
-                const mesh = getMeshFilter();
+                mesh = getMeshFilter();
                 if (! mesh) {
                     return;
                 }
@@ -619,9 +631,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
+                //buildPlanePosDelegate();
             }
-
-            $scope.supportsColorbar = () => $scope.displayType === '3D' && ! isGeometryOnly;
 
             function loadVolumes(volIds) {
                 //TODO(pjm): update progress bar with each promise resolve?
@@ -630,6 +641,23 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             function model() {
                 return appState.models[$scope.modelName];
+            }
+
+            function planePosRange() {
+                srdbg('m', mesh);
+                let r = {
+                    min: -1,
+                    max: 1,
+                    step: 0.01
+                };
+                if (! mesh) {
+                    return r;
+                }
+                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(appState.models.tallyReport.axis);
+                r.min = mesh.lower_left[i];
+                r.max = mesh.upper_right[i];
+                r.step = Math.floor(Math.abs(r.max - r.min) / mesh.dimension[i]);
+                return r;
             }
 
             function scoreUnits() {
@@ -698,6 +726,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 colorbarPtr.pointTo(f);
             }
 
+            function updatePlanePosDelegate() {
+                const m = 'tallyReport';
+                const f = 'planePos';
+                const d = panelState.getFieldDelegate(m, f);
+                d.range = planePosRange;
+                d.readout = () => {
+                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+                };
+                d.update = () => {};
+                return d;
+            }
+
             function volumesError(reason) {
                 srlog(new Error(`Volume load failed: ${reason}`));
                 $rootScope.$broadcast('vtk.hideLoader');
@@ -735,6 +775,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             $scope.init = () => {
                 buildOpacityDelegate();
+                //planePosDelegate = buildPlanePosDelegate();
             };
 
             $scope.load = json => {
@@ -769,6 +810,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     margin: '0 auto',
                 };
             };
+
+            $scope.supportsColorbar = () => $scope.displayType === '3D' && ! isGeometryOnly;
 
             $scope.$on('fieldsChanged', function(e, modelFields) {
                 $scope.onlyClientFieldsChanged = modelFields && modelFields.every(x => clientOnlyFields.includes(x));

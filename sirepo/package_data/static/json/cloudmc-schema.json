@@ -440,7 +440,7 @@
             "colorMap": ["Color Map", "ColorMap", "jet"],
             "horizontalAxis": ["_", "Axis", "z"],
             "horizontalTrim": ["Trim", "FloatArray", []],
-            "planePos": ["{{ appState.models.tallyReport.axis }} [cm]", "Float", 0.0, ""],
+            "planePos": ["{{ appState.models.tallyReport.axis }} [cm]", "Range", 0.0, ""],
             "verticalAxis": ["_", "Axis", "x"]
         },
         "tallyScore": {
