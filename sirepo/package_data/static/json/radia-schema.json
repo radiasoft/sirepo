@@ -48,6 +48,10 @@
                 "rotateClone": ["name", "angle", "axis", "center", "useObjectCenter"]
             }
         },
+        "fileTypeHM": "h-m",
+        "fileTypePathPts": "path-pts",
+        "fileTypeRadiaDmp": "radia-dmp",
+        "fileTypeSTL": "stl-file",
         "geomObjShapes": {
             "cuboid": {
                 "doClose": true,
@@ -134,8 +138,6 @@
             "item": ":"
         },
         "objectScale": 0.001,
-        "pathPtsFileType": "path-pts",
-        "radiaDmpFileType": "radia-dmp",
         "rawExamples": ["Dipole", "Wiggler"],
         "toolbarItems": [
             {
