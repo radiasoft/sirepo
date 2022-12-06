@@ -1078,12 +1078,12 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
           </div>
           <div data-ng-if="! isLoading()">
             <div class="pull-left">
-              <button class="btn btn-primary" data-ng-click="start()">|<</button>
-              <button class="btn btn-primary" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><™</button>
+              <button class="btn btn-primary" title="first" data-ng-click="first()">|<</button>
+              <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
             </div>
             <div class="pull-right">
-              <button class="btn btn-primary" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
-              <button class="btn btn-primary" data-ng-click="end()">>|</button>
+              <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
+              <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
             </div>
           </div>
         </div>
@@ -1095,14 +1095,18 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             let uris;
             
             $scope.canUpdateUri = increment => {
-                return idx + increment >= 0 && idx + increment <= numPages;
+                return idx + increment >= 0 && idx + increment < numPages;
             };
 
-            $scope.end = () => {
-                setImageFromUriIndex(idx = uris.length - 1);
+            $scope.first = () => {
+                setImageFromUriIndex(idx = 0);
             };
 
             $scope.isLoading = () => loading;
+
+            $scope.last = () => {
+                setImageFromUriIndex(idx = uris.length - 1);
+            };
 
             $scope.next = () => {
                 setImageFromUriIndex(idx += 1);
@@ -1110,10 +1114,6 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
 
             $scope.prev = () => {
                 setImageFromUriIndex(idx -= 1);
-            };
-
-            $scope.start = () => {
-                setImageFromUriIndex(idx = 0);
             };
 
             function setImageFromUriIndex(index) {
@@ -1126,7 +1126,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 requestSender.sendStatefulCompute(
                     appState,
                     response => {
-                        numPages = response.numPagees;
+                        numPages = response.numPages;
                         uris = response.uris;
                         setImageFromUriIndex(0);
                         loading = false;
