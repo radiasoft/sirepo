@@ -537,7 +537,9 @@
                     "items": [
                         {
                             "layout": "fieldList",
-                            "config": { "name": "simulation", "fields": ["simulation.name"] }
+                            "config": { 
+                                "fields": ["simulation.name"] 
+                            }
                         }
                     ]
                 }
@@ -610,7 +612,7 @@
                                         {
                                             "layout": "fieldList",
                                             "config": {
-                                                "field": [
+                                                "fields": [
                                                     "electronPlasma.density",
                                                     "electronPlasma.length",
                                                     "electronPlasma.entranceRampLength",
@@ -648,6 +650,7 @@
                                             "layout": "text",
                                             "config": {
                                                 "type": "header",
+                                                "align": "center",
                                                 "text": "R"
                                             }
                                         },
@@ -670,6 +673,7 @@
                                             "layout": "text",
                                             "config": {
                                                 "type": "header",
+                                                "align": "center",
                                                 "text": "Z"
                                             }
                                         },

@@ -5,8 +5,12 @@ import { CModelsWrapper } from "../data/wrapper";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
 import { Layout } from "./layout";
 
+export type TextAlign = "left" | "right" | "center"
+export type TextType = 'body' | 'header'
+
 export type TextConfig = {
-    type: 'body' | 'header',
+    type: TextType,
+    align?: TextAlign,
     text: string
 }
 
@@ -19,13 +23,35 @@ export class TextLayout extends Layout<TextConfig, {}> {
         let modelsWrapper = useContext(CModelsWrapper);
         
         let interpText = useInterpolatedString(modelsWrapper, this.config.text, ValueSelectors.Models);
-
-        switch(this.config.type) {
-            case "header":
-                return <h3>{interpText}</h3>;
-            case "body":
-                return <p>{interpText}</p>
-            
+        let getTextElement = (type: TextType) => {
+            switch(type) {
+                case "header":
+                    return <h3>{interpText}</h3>;
+                case "body":
+                    return <p>{interpText}</p>
+            }
         }
+
+        let getFlexJustify = (align: TextAlign) => {
+            switch(align || "left") {
+                case "left":
+                    return "flex-start";
+                case "right":
+                    return "flex-end";
+                case "center":
+                    return "center";
+            }
+        }
+
+        let style: React.CSSProperties = {
+            display: 'flex',
+            justifyContent: getFlexJustify(this.config.align)
+        }
+
+        return (
+            <div style={style}>
+                {getTextElement(this.config.type)}
+            </div>
+        )
     };
 }
