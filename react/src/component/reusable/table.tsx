@@ -17,13 +17,13 @@ export function Table(props: TableConfig) {
 
     if(hasColumnNames) {
         rowElements.push(
-            <thead>
-                <tr className="sr-table-row-header sr-table-row">
+            <thead key="thead">
+                <tr>
                     {
-                        hasRowNames && <td></td>
+                        hasRowNames && <th></th>
                     }
                     {
-                        columnNames.map(columnName => <td className="sr-table-cell sr-table-cell-header">{columnName}</td>)
+                        columnNames.map(columnName => <th key={columnName} className="text-end">{columnName}</th>)
                     }
                 </tr>
             </thead>
@@ -31,15 +31,14 @@ export function Table(props: TableConfig) {
         )
     }
 
-    // TODO using indices as ids here will cause future issues, need keys
     rowElements.push(
-        <tbody>
+        <tbody key="tbody">
             {
                 (rows.map((row, idx) => {
                     return (
-                        <tr className="sr-table-row sr-table-row-body">
-                            { hasRowNames && <td className="sr-table-cell-header sr-table-cell">{rowNames[idx]}</td> }
-                            { row.map((colVal) => <td className="sr-table-cell sr-table-cell-body">{`${colVal}`}</td>)}
+                        <tr key={`row${idx}`}>
+                            { hasRowNames && <th key={rowNames[idx]}>{rowNames[idx]}</th> }
+                            { row.map((colVal, idx2) => <td key={`${idx2} ${colVal}`} className="text-end">{`${colVal}`}</td>)}
                         </tr>
                     )
                 }))
@@ -48,8 +47,10 @@ export function Table(props: TableConfig) {
     )
 
     return (
-        <table className="sr-table">
-            {rowElements}
-        </table>
+        <div className="col-sm-12">
+            <table className="table">
+                {rowElements}
+            </table>
+        </div>
     )
 }
