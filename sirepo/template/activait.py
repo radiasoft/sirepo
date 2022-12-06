@@ -360,7 +360,8 @@ def stateful_compute_sample_images(data):
         y = f[io.output.path]
         u = []
         k = 0
-        for i in _image_grid(len(x)):
+        g = _image_grid(len(x))
+        for i in g:
             plt.figure(figsize=[10, 10])
             for j in range(i):
                 v = x[k + j]
@@ -388,7 +389,10 @@ def stateful_compute_sample_images(data):
             plt.savefig(p)
             u.append(_data_url(p))
             k += i
-        return PKDict(uris=u)
+        return PKDict(
+            numPages=len(g),
+            uris=u,
+        )
 
 
 def stateless_compute_get_remote_data(data):
