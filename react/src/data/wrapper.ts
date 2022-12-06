@@ -44,7 +44,7 @@ export class FormStateWrapper extends AbstractModelsWrapper<FormModelState, Form
     }
 
     override updateModel = (modelName: string, value: any) => {
-        console.log("dispatching update form to ", modelName, " changing to value ", value);
+        //console.log("dispatching update form to ", modelName, " changing to value ", value);
         this.dispatch(this.formActions.updateFormState({
             name: modelName,
             value
@@ -86,7 +86,7 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
     }
 
     updateModel = (modelName: string, value: ModelState) => {
-        console.log("dispatching update to ", modelName, " changing to value ", value);
+        //console.log("dispatching update to ", modelName, " changing to value ", value);
         this.dispatch(this.modelActions.updateModel({
             name: modelName,
             value
