@@ -37,7 +37,7 @@ function convertEnums(fileName) {
     for(let [enumName, allowedValues] of Object.entries(e)) {
         types[enumName] = {
             base: "Enum",
-            settings: {
+            config: {
                 allowedValues
             }
         }

@@ -2,7 +2,7 @@
     "type": {
         "BeamRadiusMethod": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["a", "Absolute"],
                     ["s", "Scale to Electron Plasma"]
@@ -11,7 +11,7 @@
         },
         "BeamBunchLengthMethod": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["a", "Absolute"],
                     ["s", "Scale to Electron Plasma"]
@@ -20,7 +20,7 @@
         },
         "Field": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["E", "E - Electron field [V/m]"],
                     ["B", "B - Magnetic field [T]"],
@@ -31,7 +31,7 @@
         },
         "FieldCoordinate": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["r", "r"],
                     ["z", "z"],
@@ -43,7 +43,7 @@
         },
         "FieldMode": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["0", "0"],
                     ["1", "1"],
@@ -53,7 +53,7 @@
         },
         "FramesPerSecond": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["1", "1"],
                     ["2", "2"],
@@ -66,7 +66,7 @@
         },
         "GridDimensions": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["a", "Absolute"],
                     ["s", "Scale to Laser Pulse"],
@@ -76,7 +76,7 @@
         },
         "PulseDimensions": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["a", "Absolute"],
                     ["r", "Resonant with Plasma Density"]
@@ -85,7 +85,7 @@
         },
         "Range1to8": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["1", "1"],
                     ["2", "2"],
@@ -100,7 +100,7 @@
         },
         "Range20to80": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["20", "20"],
                     ["30", "30"],
@@ -114,7 +114,7 @@
         },
         "Range8to32": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["8", "8"],
                     ["9", "9"],
@@ -146,7 +146,7 @@
         },
         "SourceType": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["laserPulse", "Laser Pulse"],
                     ["electronBeam", "Electron Beam"]
@@ -155,7 +155,7 @@
         },
         "XValue": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["x", "x"],
                     ["y", "y"],
@@ -168,7 +168,7 @@
         },
         "YValue": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["x", "x"],
                     ["y", "y"],
@@ -706,11 +706,11 @@
                                                     "electronPlasma.*",
                                                     "laserPulse.*",
                                                     "simulationGrid.*"
-                                                ]
-                                            },
-                                            "reportLayout": {
-                                                "layout": "heatplot",
-                                                "config": { }
+                                                ],
+                                                "reportLayout": {
+                                                    "layout": "heatplot",
+                                                    "config": { }
+                                                }
                                             }
                                         }
                                     ]
@@ -749,7 +749,82 @@
                                 }
                             },
                             {
-                                
+                                "layout": "panel",
+                                "config": {
+                                    "title": "Field Animation",
+                                    "basic": [
+                                        {
+                                            "layout": "manualRunReport",
+                                            "config": {
+                                                "reportGroupName": "animation",
+                                                "reportName": "fieldAnimation",
+                                                "frameIdFields": [
+                                                    "fieldAnimation.field",
+                                                    "fieldAnimation.coordinate",
+                                                    "fieldAnimation.mode"
+                                                ],
+                                                "frameCountFieldName": "frameCount",
+                                                "reportLayout": { "layout": "heatplot", "config": {} }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "panel",
+                                "config": {
+                                    "title": "Plasma Animation",
+                                    "basic": [
+                                        {
+                                            "layout": "manualRunReport",
+                                            "config": {
+                                                "reportGroupName": "animation",
+                                                "reportName": "particleAnimation",
+                                                "frameIdFields": [
+                                                    "particleAnimation.x",
+                                                    "particleAnimation.y",
+                                                    "particleAnimation.histogramBins",
+                                                    "particleAnimation.xMin",
+                                                    "particleAnimation.xMax",
+                                                    "particleAnimation.yMin",
+                                                    "particleAnimation.yMax",
+                                                    "particleAnimation.zMin",
+                                                    "particleAnimation.zMax",
+                                                    "particleAnimation.uxMin",
+                                                    "particleAnimation.uxMax",
+                                                    "particleAnimation.uyMin",
+                                                    "particleAnimation.uyMax",
+                                                    "particleAnimation.uzMin",
+                                                    "particleAnimation.uzMax"
+                                                ],
+                                                "frameCountFieldName": "frameCount",
+                                                "reportLayout": { "layout": "heatplot", "config": {} }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "panel",
+                                "config": {
+                                    "title": "Electron Beam Animation",
+                                    "basic": [
+                                        {
+                                            "layout": "manualRunReport",
+                                            "config": {
+                                                "reportGroupName": "animation",
+                                                "reportName": "beamAnimation",
+                                                "frameIdFields": [
+                                                    "beamAnimation.x",
+                                                    "beamAnimation.y",
+                                                    "beamAnimation.histogramBins"
+                                                ],
+                                                "frameCountFieldName": "frameCount",
+                                                "reportLayout": { "layout": "heatplot", "config": {} }
+                                            }
+                                        }
+                                    ]
+                                }
                             }
                         ]
                     }

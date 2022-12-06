@@ -12,6 +12,16 @@ export class ModelsAccessor<M, F> {
                 modelsWrapper.hookModel(modelName)
             ]
         }))
+
+        // expand wildcard
+        this.dependencies = this.dependencies.flatMap(d => {
+            if(d.fieldName === '*') {
+                let fieldNames = Object.keys(this.modelValues[d.modelName]);
+                return fieldNames.map(fn => new Dependency(`${d.modelName}.${fn}`));
+            } else {
+                return [d];
+            }
+        })
     }
 
     getFieldValue = (dependency: Dependency): F => {
