@@ -92,6 +92,14 @@ class SynergiaLatticeIterator(lattice.LatticeIterator):
             super(SynergiaLatticeIterator, self).end(model)
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_files,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     diag_file = run_dir.join(OUTPUT_FILE.beamEvolutionAnimation)
     if diag_file.exists():
@@ -127,16 +135,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 def format_float(v):
     return float(format(v, ".10f"))
-
-
-def get_application_data(data, qcall, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(
-            data,
-            _compute_range_across_files,
-            qcall=qcall,
-        )
-    assert False, "unknown application data method: {}".format(data.method)
 
 
 def import_file(req, tmp_dir=None, **kwargs):
@@ -476,7 +474,7 @@ def _calc_particle_info(bunch):
     bunch.charge = charge
 
 
-def _compute_range_across_files(run_dir, data):
+def _compute_range_across_files(run_dir, **kwargs):
     res = PKDict()
     for v in SCHEMA.enum.PhaseSpaceCoordinate6:
         res[v[0]] = []

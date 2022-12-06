@@ -38,11 +38,9 @@ PROD_FOSS_CODES = frozenset(
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset(
     (
-        "irad",
         "myapp",
         "cloudmc",
         "rcscon",
-        "rs4pi",
         "silas",
     )
 )
