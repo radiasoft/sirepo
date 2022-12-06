@@ -261,12 +261,21 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
 }
 
 export type SimulationStartConfig = {
-    reportGroupName: string
+    reportGroupName: string,
+    items: SchemaLayout[]
 }
 
 export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
+    childLayouts: Layout[];
+    
+    constructor(config: SimulationStartConfig) {
+        super(config);
+
+        this.childLayouts = (config.items || []).map(LAYOUTS.getLayoutForSchema);
+    }
+
     getFormDependencies = () => {
-        return [];
+        return (this.childLayouts || []).flatMap(v => v.getFormDependencies());
     }
 
     component = (props: LayoutProps<{}>) => {
@@ -351,6 +360,11 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
         let endSimulationButton = <Button variant="primary" onClick={endSimulation}>End Simulation</Button>;
         let startSimulationButton = <Button variant="primary" onClick={startSimulation}>Start Simulation</Button>
 
+        let children = this.childLayouts.map(l => {
+            let Component = l.component;
+            return <Component></Component>
+        });
+
         if(lastSimulationData) {
             let { state } = lastSimulationData;
             let elapsedTimeSeconds = stopwatch.isComplete() ? Math.ceil(stopwatch.getElapsedSeconds()) : undefined;
@@ -377,6 +391,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                             <Stack gap={2}>
                                 <span>{'Simulation Completed'}</span>
                                 <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
+                                <div>{children}</div>
                                 {startSimulationButton}
                             </Stack>
                         )
@@ -385,6 +400,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                             <Stack gap={2}>
                                 <span>{'Simulation Error'}</span>
                                 <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
+                                <div>{children}</div>
                                 {startSimulationButton}
                             </Stack>
                         )
@@ -396,6 +412,9 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                 <>{getStateBasedElement(state)}</>
             )
         }
-        return <>{startSimulationButton}</>
+        return (<>
+            <div>{children}</div>
+            {startSimulationButton}
+        </>)
     }
 }

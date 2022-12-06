@@ -93,5 +93,6 @@ function placeConfigInField(fileName) {
     fs.writeFileSync('new-' + fileName, JSON.stringify({ view: recur(fileJson.view) }));
 }
 
-placeConfigInField("jspec-schema.json");
-//convertModels("myapp.json");
+//placeConfigInField("jspec-schema.json");
+convertModels("warppba-schema.json");
+//convertEnums("warppba-schema.json");
