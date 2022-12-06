@@ -82,6 +82,14 @@ _SPECIES_MASS_AND_CHARGE = PKDict(
 _X_FIELD = "t"
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_files,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         count, settings, has_rates = _background_task_info(run_dir)
@@ -127,16 +135,6 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=0,
         frameCount=0,
     )
-
-
-def get_application_data(data, qcall, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(
-            data,
-            _compute_range_across_files,
-            qcall=qcall,
-        )
-    assert False, "unknown application data method={}".format(data.method)
 
 
 def get_rates(run_dir):
@@ -346,7 +344,7 @@ def _beam_evolution_status(run_dir, settings, has_rates):
     )
 
 
-def _compute_range_across_files(run_dir, data):
+def _compute_range_across_files(run_dir, **kwargs):
     res = PKDict(
         {
             _X_FIELD: [],

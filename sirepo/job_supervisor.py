@@ -18,7 +18,6 @@ import copy
 import inspect
 import pykern.pkio
 import re
-import sirepo.auth_db
 import sirepo.const
 import sirepo.http_reply
 import sirepo.quest
@@ -198,9 +197,7 @@ async def terminate():
 
 class _Supervisor(PKDict):
     def __init__(self, **kwargs):
-        super().__init__(
-            **kwargs,
-        )
+        super().__init__(**kwargs)
 
     def destroy_op(self, op):
         pass
@@ -224,7 +221,7 @@ class _Supervisor(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            "_Supervisor(api={} uid={})", self.req.api, self.req.content.uid
+            "_Supervisor(api={} uid={})", self.req.content.api, self.req.content.uid
         )
 
     @classmethod
@@ -254,11 +251,11 @@ class _Supervisor(PKDict):
             msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=job_run_mode),
             opName=opName,
         )
-        if "dataFileKey" in kwargs:
+        if "dataFileKey" in o.msg:
             kwargs["dataFileUri"] = job.supervisor_file_uri(
                 o.driver.cfg.supervisor_uri,
                 job.DATA_FILE_URI,
-                kwargs.pop("dataFileKey"),
+                o.msg.pop("dataFileKey"),
             )
         o.msg.pkupdate(**kwargs)
         return o
@@ -352,9 +349,9 @@ class _Supervisor(PKDict):
                     else:
                         d.uid = i.db.uid
                         d.displayName = (
-                            sirepo.auth_db.UserRegistration.search_by(
-                                uid=i.db.uid
-                            ).display_name
+                            qcall.auth_db.model("UserRegistration")
+                            .search_by(uid=i.db.uid)
+                            .display_name
                             or "n/a"
                         )
                         d.queuedTime = _get_queued_time(i.db)
@@ -465,11 +462,10 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     async def purge_free_simulations(cls):
-        # TODO add-qcall
-        def _get_uids_and_files():
+        def _get_uids_and_files(qcall):
             r = []
             u = None
-            p = sirepo.auth_db.UserRole.uids_of_paid_users()
+            p = qcall.auth_db.model("UserRole").uids_of_paid_users()
             for f in pkio.sorted_glob(
                 _DB_DIR.join(
                     "*{}".format(
@@ -518,7 +514,7 @@ class _ComputeJob(_Supervisor):
                 sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
             )
             with sirepo.quest.start() as qcall:
-                for u, v in _get_uids_and_files():
+                for u, v in _get_uids_and_files(qcall):
                     with qcall.auth.logged_in_user_set(u):
                         for f in v:
                             _purge_sim(jid=f.purebasename, qcall=qcall)
@@ -670,11 +666,7 @@ class _ComputeJob(_Supervisor):
             sirepo.util.raise_not_found("purged or missing {}", req)
 
     async def _receive_api_analysisJob(self, req):
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            jobCmd="analysis_job",
-        )
+        return await self._send_op_analysis(req, "analysis_job")
 
     async def _receive_api_downloadDataFile(self, req):
         self._raise_if_purged_or_missing(req)
@@ -682,7 +674,6 @@ class _ComputeJob(_Supervisor):
             job.OP_IO,
             req,
             jobCmd="download_data_file",
-            dataFileKey=req.content.pop("dataFileKey"),
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
@@ -827,11 +818,7 @@ class _ComputeJob(_Supervisor):
         r = self._status_reply(req)
         if r:
             return r
-        r = await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            jobCmd="sequential_result",
-        )
+        r = await self._send_op_analysis(req, "sequential_result")
         if r.state == job.ERROR:
             return self._init_db_missing_response(req)
         return r
@@ -843,15 +830,13 @@ class _ComputeJob(_Supervisor):
         if not self._req_is_valid(req):
             sirepo.util.raise_not_found("invalid req={}", req)
         self._raise_if_purged_or_missing(req)
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS, req, jobCmd="get_simulation_frame"
-        )
+        return await self._send_op_analysis(req, "get_simulation_frame")
 
     async def _receive_api_statefulCompute(self, req):
-        return await self._send_simulation_compute(req)
+        return await self._send_op_analysis(req, "stateful_compute")
 
     async def _receive_api_statelessCompute(self, req):
-        return await self._send_simulation_compute(req)
+        return await self._send_op_analysis(req, "stateless_compute")
 
     def _create_op(self, opName, req, **kwargs):
         req.simulationType = self.db.simulationType
@@ -968,16 +953,15 @@ class _ComputeJob(_Supervisor):
         finally:
             op.destroy(cancel=False)
 
-    async def _send_simulation_compute(self, req):
-        pkdlog("{} method={} api={}", req, req.content.data.method, req.content.api)
-        f = inspect.currentframe().f_back.f_code.co_name
-        m = re.search(f"^_receive_api_([a-z]+)Compute$", f)
-        assert m, f"unrecognized caller function={f}"
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
+    async def _send_op_analysis(self, req, jobCmd):
+        pkdlog(
+            "{} api={} method={}",
             req,
-            jobCmd=f"{m.group(1)}_compute",
+            jobCmd,
+            req.content.data.get("method"),
         )
+
+        return await self._send_with_single_reply(job.OP_ANALYSIS, req, jobCmd=jobCmd)
 
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
