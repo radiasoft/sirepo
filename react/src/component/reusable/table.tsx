@@ -1,4 +1,3 @@
-import "./table.scss";
 import React from "react";
 
 export type TableConfig = {
@@ -27,7 +26,7 @@ export function Table(props: TableConfig) {
                     }
                 </tr>
             </thead>
-            
+
         )
     }
 
