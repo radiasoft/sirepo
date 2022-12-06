@@ -73,20 +73,18 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
     def __init__(
         self,
         indices=None,
-        scale_fn_x=None,
-        scale_fn_y=None,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         if indices is not None:
             self._indices = indices
-        self.scale_fn_x = scale_fn_x() if scale_fn_x is not None else None
-        self.scale_fn_y = scale_fn_y() if scale_fn_y is not None else None
         with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
-            self.original_shape_x = file[self.X_key].shape
-            self.channels = self.original_shape_x[-1]
-            self.original_shape_y = file[self.y_key].shape
+            self._xmin = numpy.min(file[self.X_key])
+            self._xmax = numpy.max(file[self.X_key])
+
+    def _scale_x(self, values):
+        return 2 * (values - self._xmin) / (self._xmax - self._xmin) - 1.0
 
     def _HDF5ImageGenerator__get_dataset_items(
         self,
@@ -100,14 +98,7 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
                 # TODO (gurhar1133): why empty x and y?
                 assert not y.any(), f"if x is empty y should be too, got y={y}"
                 return (x, y)
-            if self.scale_fn_x is not None:
-                self.scale_fn_x.partial_fit(numpy.array(x).reshape(-1, self.channels))
-                x = self.scale_fn_x.transform(numpy.array(x).reshape(-1, self.channels))
-                x = x.reshape(len(indices), *self.original_shape_x[1:])
-            if self.scale_fn_y is not None:
-                self.scale_fn_y.partial_fit(numpy.array(y).reshape(-1, 1))
-                y = self.scale_fn_y.transform(y.reshape(-1, 1))
-            return (x, y)
+            return (self._scale_x(x), y)
 
 
 def background_percent_complete(report, run_dir, is_running):

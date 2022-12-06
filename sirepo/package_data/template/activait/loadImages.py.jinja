@@ -5,18 +5,6 @@ from pykern.pkcollections import PKDict
 from sirepo.template.activait import SirepoHDF5ImageGenerator
 
 
-{% if dataFile_inputsScaler != 'None' %}
-from sklearn.preprocessing import {{ dataFile_inputsScaler }} as in_scaler_fn
-{% endif %}
-{% if dataFile_outputsScaler != 'None' and dataFile_outputsScaler != dataFile_inputsScaler %}
-from sklearn.preprocessing import {{ dataFile_outputsScaler }} as out_scale_fn
-{% endif %}
-
-def _scale(values):
-    # TODO(pjm): use selected input/output scalar on dataFile model
-    return 2 * (values - numpy.min(values)) / (numpy.max(values) - numpy.min(values)) - 1.0
-
-
 def _split_indices(indices_all):
     test_and_validate = (100 - {{partition_training}}) / 100
     validation_size = ((test_and_validate * 100) - {{partition_testing}}) / 100
@@ -64,14 +52,6 @@ split = image_train_val_test_split(
     labels_encoding=False,
     scaler=False,
     shuffle={{ shuffleEachEpoch }},
-    {% if dataFile_inputsScaler != 'None' %}
-    scale_fn_x=in_scaler_fn,
-    {% endif %}
-    {% if dataFile_outputsScaler != 'None' and dataFile_outputsScaler != dataFile_inputsScaler %}
-    scale_fn_y=out_scaler_fn,
-    {% elif dataFile_outputsScaler != 'None' and dataFile_outputsScaler == dataFile_inputsScaler %}
-    scale_fn_y=in_scaler_fn,
-    {% endif %}
     num_classes=output_shape,
     batch_size={{ neuralNet_batch_size }},
 )
