@@ -412,6 +412,14 @@ class OpalMadxConverter(MadxConverter):
         return self.vars.eval_var_with_assert(var_value)
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_frames,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
         percentComplete=0,
@@ -450,19 +458,6 @@ def code_var(variables):
         _P(),
         case_insensitive=True,
     )
-
-
-def get_application_data(data, qcall, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(
-            data,
-            _compute_range_across_frames,
-            qcall=qcall,
-        )
-    if code_var(data.variables).get_application_data(
-        data, SCHEMA, ignore_array_values=True
-    ):
-        return data
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -914,7 +909,7 @@ def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
     )
 
 
-def _compute_range_across_frames(run_dir, data):
+def _compute_range_across_frames(run_dir, **kwargs):
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res:

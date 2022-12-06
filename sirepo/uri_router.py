@@ -252,6 +252,7 @@ def _call_api(parent, route, kwargs, data=None):
         return sirepo.http_reply.gen_response(res)
 
     qcall = route.cls()
+    c = False
     try:
         if parent:
             qcall.parent_set(parent)
@@ -259,7 +260,7 @@ def _call_api(parent, route, kwargs, data=None):
         qcall.attr_set("uri_route", route)
         qcall.sim_type_set_from_spec(route.func)
         if not parent:
-            sirepo.auth.init_quest(qcall)
+            sirepo.auth.init_quest(qcall=qcall, top_level_call_api=True)
         if data:
             qcall.http_data_set(data)
         try:
@@ -272,8 +273,11 @@ def _call_api(parent, route, kwargs, data=None):
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)
             r = _response(getattr(qcall, qcall.uri_route.func_name)(**kwargs))
+            c = True
         except Exception as e:
             if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+                if isinstance(e, sirepo.util.OKReply):
+                    c = True
                 pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
             else:
                 pkdlog(
@@ -284,8 +288,11 @@ def _call_api(parent, route, kwargs, data=None):
         if pkconfig.channel_in("dev"):
             r.headers.add("Access-Control-Allow-Origin", "*")
         return r
+    except:
+        c = False
+        raise
     finally:
-        qcall.destroy()
+        qcall.destroy(commit=c)
 
 
 def _check_route(qcall, route):
