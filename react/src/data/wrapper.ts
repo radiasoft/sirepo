@@ -114,7 +114,7 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
         }
         return fv;
     }
-    
+
     setFieldInModel(fieldName: string, model: ModelState, value: unknown): ModelState {
         let m = {...model};
         m[fieldName] = value;
@@ -122,7 +122,7 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
     }
 
     saveToServer = (simulationInfo: any, modelNames: string[], state: any) => {
-        let models = modelNames.map(mn => this.getModel(mn, state));
+        let models = Object.fromEntries(modelNames.map(mn => [mn, this.getModel(mn, state)]));
         simulationInfo.models = models;
         fetch("/save-simulation", {
             method: 'POST',
