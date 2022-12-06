@@ -844,7 +844,7 @@ def stateful_compute_sample_preview(data):
     return template_common.JobCmdFile(path=p)
 
 
-def stateful_compute_compute_undulator_length(data):
+def stateful_compute_undulator_length(data):
     return compute_undulator_length(data.args["tabulated_undulator"])
 
 
@@ -883,11 +883,11 @@ def stateful_compute_model_list(data):
     return PKDict(modelList=res)
 
 
-def stateless_compute_compute_PGM_value(data):
+def stateless_compute_PGM_value(data):
     return _compute_PGM_value(data.optical_element)
 
 
-def stateless_compute_compute_crl_characteristics(data):
+def stateless_compute_crl_characteristics(data):
     return compute_crl_focus(
         _compute_material_characteristics(
             data.optical_element,
@@ -896,22 +896,22 @@ def stateless_compute_compute_crl_characteristics(data):
     )
 
 
-def stateless_compute_compute_crystal_init(data):
+def stateless_compute_crystal_init(data):
     return _compute_crystal_init(data.optical_element)
 
 
-def stateless_compute_compute_crystal_orientation(data):
+def stateless_compute_crystal_orientation(data):
     return _compute_crystal_orientation(data.optical_element)
 
 
-def stateless_compute_compute_delta_atten_characteristics(data):
+def stateless_compute_delta_atten_characteristics(data):
     return _compute_material_characteristics(
         data.optical_element,
         data.photon_energy,
     )
 
 
-def stateless_compute_compute_dual_characteristics(data):
+def stateless_compute_dual_characteristics(data):
     return _compute_material_characteristics(
         _compute_material_characteristics(
             data.optical_element,

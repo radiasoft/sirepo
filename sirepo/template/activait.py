@@ -360,7 +360,7 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
     )
 
 
-def stateful_compute_compute_column_info(data):
+def stateful_compute_column_info(data):
     f = data.args.dataFile.file
     if pkio.has_file_extension(f, "csv"):
         return _compute_csv_info(f)

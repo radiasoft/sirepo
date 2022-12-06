@@ -2,7 +2,7 @@
     "type": {
         "Gender": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["male", "Male"],
                     ["female", "Female"]
@@ -11,7 +11,7 @@
         },
         "DogDisposition": {
             "base": "Enum",
-            "settings": {
+            "config": {
                 "allowedValues": [
                     ["aggressive", "Aggressive"],
                     ["friendly", "Friendly"],

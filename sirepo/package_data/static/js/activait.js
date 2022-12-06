@@ -2102,7 +2102,7 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
                 appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
             },
             {
-                method: 'compute_column_info',
+                method: 'column_info',
                 args: {
                     dataFile: dataFile,
                 }

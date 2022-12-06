@@ -279,7 +279,7 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, 
             return;
         }
         shadowService.sendStatelessCompute(
-            'compute_harmonic_photon_energy',
+            'harmonic_photon_energy',
             appState,
             function(data) {
                 if (appState.isLoaded()) {

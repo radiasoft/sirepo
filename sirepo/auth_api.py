@@ -6,6 +6,7 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import sirepo.auth
 import sirepo.quest
 import sirepo.util
 
@@ -16,7 +17,7 @@ class API(sirepo.quest.API):
         # Needs to be explicit, because we would need a special permission
         # for just this API.
         if not self.auth.is_logged_in():
-            raise sirepo.util.SRException(LOGIN_ROUTE_NAME, None)
+            raise sirepo.util.SRException(sirepo.auth.LOGIN_ROUTE_NAME, None)
         self.auth.complete_registration(
             self.auth.parse_display_name(self.parse_json().get("displayName")),
         )

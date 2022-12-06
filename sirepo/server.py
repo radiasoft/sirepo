@@ -28,7 +28,7 @@ import werkzeug.exceptions
 # TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
 if any(
     k in sirepo.feature_config.cfg().sim_types
-    for k in ("flash", "rs4pi", "radia", "synergia", "silas", "warppba", "warpvnd")
+    for k in ("flash", "radia", "synergia", "silas", "warppba", "warpvnd")
 ):
     import h5py
 
@@ -341,7 +341,7 @@ class API(sirepo.quest.API):
                 data = importer.read_json(req.file_stream.read(), self, req.type)
             # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
             # (dicom input is normally a zip file)
-            elif pkio.has_file_extension(req.filename, "zip") and req.type != "rs4pi":
+            elif pkio.has_file_extension(req.filename, "zip"):
                 data = importer.read_zip(
                     req.file_stream.read(), self, sim_type=req.type
                 )
@@ -779,7 +779,7 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
         from sirepo import auth_db
 
         with sirepo.quest.start() as qcall:
-            auth_db.create_or_upgrade(qcall=qcall)
+            qcall.auth_db.create_or_upgrade()
 
         if cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>
