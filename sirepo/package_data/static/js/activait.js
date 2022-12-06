@@ -1076,9 +1076,15 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
           <div data-ng-if="isLoading()" class="progress">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
           </div>
-          <div style="display: flex; justify-content: space-between;" data-ng-if="! isLoading()">
-            <button class="btn btn-primary" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"> < prev image set </button>
-            <button class="btn btn-primary" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()"> next image set > </button>
+          <div data-ng-if="! isLoading()">
+            <div class="pull-left">
+              <button class="btn btn-primary" data-ng-click="start()">|<</button>
+              <button class="btn btn-primary" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><™</button>
+            </div>
+            <div class="pull-right">
+              <button class="btn btn-primary" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
+              <button class="btn btn-primary" data-ng-click="end()">>|</button>
+            </div>
           </div>
         </div>
         `,
@@ -1087,20 +1093,27 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             let loading = true;
             let numPages = 0;
             let uris;
-
-
+            
             $scope.canUpdateUri = increment => {
                 return idx + increment >= 0 && idx + increment <= numPages;
             };
 
+            $scope.end = () => {
+                setImageFromUriIndex(idx = uris.length - 1);
+            };
+
             $scope.isLoading = () => loading;
+
+            $scope.next = () => {
+                setImageFromUriIndex(idx += 1);
+            };
 
             $scope.prev = () => {
                 setImageFromUriIndex(idx -= 1);
             };
 
-            $scope.next = () => {
-                setImageFromUriIndex(idx += 1);
+            $scope.start = () => {
+                setImageFromUriIndex(idx = 0);
             };
 
             function setImageFromUriIndex(index) {
