@@ -631,7 +631,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                //buildPlanePosDelegate();
+                buildPlanePosDelegate();
             }
 
             function loadVolumes(volIds) {
@@ -775,7 +775,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             $scope.init = () => {
                 buildOpacityDelegate();
-                //planePosDelegate = buildPlanePosDelegate();
+                planePosDelegate = buildPlanePosDelegate();
             };
 
             $scope.load = json => {
