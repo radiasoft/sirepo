@@ -1077,8 +1077,8 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
           </div>
           <div style="display: flex; justify-content: space-between;" data-ng-if="! isLoading()">
-            <button class="btn btn-default" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"> < prev image set </button>
-            <button class="btn btn-default" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()"> next image set > </button>
+            <button class="btn btn-primary" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"> < prev image set </button>
+            <button class="btn btn-primary" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()"> next image set > </button>
           </div>
         </div>
         `,
