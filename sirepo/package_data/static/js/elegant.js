@@ -1446,16 +1446,17 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('viewLogIframeWrapper', function(appState, requestSender) {
+SIREPO.app.directive('viewLogIframeWrapper', function() {
     return {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-view-log-iframe data-get-log="viewLog" data-wrapper-download-log="downloadLog"></div>
+            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-wrapper-download-log="downloadLog"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
             srdbg('called a')
             $scope.viewLog = function(onReturn) {
+                // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
                 srdbg('called b')
                 requestSender.sendAnalysisJob(
                     appState,
@@ -1477,69 +1478,12 @@ SIREPO.app.directive('viewLogIframeWrapper', function(appState, requestSender) {
                     return '';
                 }
 
-                var z = requestSender.formatUrl('downloadDataFile', {
+                return requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': m,
                     '<frame>': -1,
                 });
-
-                srdbg('z', z)
-
-                return z;
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('viewLogIframe', function(appState, requestSender) {
-    return {
-        restrict: 'A',
-        scope: {
-            getLog: '<',
-            wrapperDownloadLog: '<'
-        },
-        template: `
-            <a href data-ng-click="viewLog()">View Log</a>
-            <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
-              <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                  <div class="modal-header bg-warning">
-                    <span class="lead modal-title text-info">Log</span>
-                    <div class="sr-panel-options pull-right">
-                      <a data-ng-href="{{ downloadLog() }}" target="_blank">
-                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download"></span>
-                      </a>
-                      <button type="button" class="close" data-dismiss="modal" style="margin-left: 10px">
-                        <span>&times;</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="modal-body" style="padding: 0">
-                    <iframe id="sr-text-iframe"
-                      style="border: 0; width: 100%; height: 80vh" src=""></iframe>
-                  </div>
-                </div>
-              </div>
-            </div>
-        `,
-        controller: function(appState, elegantService, requestSender, $scope) {
-// TODO(rorour): this has view logic, wrapper has backend logic
-            // TODO(rorour): make sure behaves same in elegant as on main
-            srdbg('called d')
-            $scope.viewLog = function() {
-                srdbg('called e')
-                $scope.getLog((html) => {
-                    $('#sr-text-iframe').attr("srcdoc", html);
-                });
-                $('#sr-iframe-text-view').modal('show');
-            };
-
-            $scope.downloadLog = function() {
-                // returns uri to download log from just for download button
-                srdbg('called f')
-                $scope.wrapperDownloadLog()
-
             };
         },
     };

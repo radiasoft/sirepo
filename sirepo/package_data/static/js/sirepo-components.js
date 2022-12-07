@@ -1871,6 +1871,57 @@ SIREPO.app.directive('validatedString', function(panelState, validationService) 
     };
 });
 
+SIREPO.app.directive('viewLogIframe', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            logPath: '@',
+            wrapperViewLog: '<',
+            wrapperDownloadLog: '<'
+        },
+        template: `
+            <a href data-ng-click="viewLog()">View Log</a>
+            <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <span class="lead modal-title text-info">Log</span>
+                    <div class="sr-panel-options pull-right">
+                      <a data-ng-if="wrapperDownloadLog" data-ng-href="{{ downloadLog() }}" target="_blank">
+                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download"></span>
+                      </a>
+                      <button type="button" class="close" data-dismiss="modal" style="margin-left: 10px">
+                        <span>&times;</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="modal-body" style="padding: 0">
+                    <div data-ng-if="logPath">{{ logPath }}</div>
+                    <iframe id="sr-text-iframe"
+                      style="border: 0; width: 100%; height: 80vh" src=""></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            // TODO(rorour): rename wrapper functions
+            // TODO(rorour): format logPath div
+            $scope.viewLog = function() {
+                $scope.wrapperViewLog((html) => {
+                    $('#sr-text-iframe').attr("srcdoc", html);
+                });
+                $('#sr-iframe-text-view').modal('show');
+            };
+
+            $scope.downloadLog = function() {
+                return $scope.wrapperDownloadLog()
+            };
+        },
+    };
+});
+
+
 SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
 
     return {
