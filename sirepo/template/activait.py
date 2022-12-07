@@ -84,7 +84,13 @@ class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
             self._xmax = numpy.max(file[self.X_key])
 
     def _scale_x(self, values):
-        return 2 * (values - self._xmin) / (self._xmax - self._xmin) - 1.0
+        if len(values.shape) == 2:
+            values = values[:]
+            for idx in range(values.shape[1]):
+                values[:, idx] = self._scale_x(values[:, idx])
+            return values
+        domain = self._xmax - self._xmin
+        return (values - self._xmin) / domain
 
     def _HDF5ImageGenerator__get_dataset_items(
         self,
