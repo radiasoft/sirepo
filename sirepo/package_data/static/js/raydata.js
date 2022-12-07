@@ -557,3 +557,31 @@ SIREPO.app.directive('scansTable', function() {
         },
     };
 });
+
+SIREPO.app.directive('viewLogIframeWrapper', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-wrapper-log-path="logPath"></div>
+        `,
+        controller: function(appState, elegantService, requestSender, $scope) {
+            $scope.logPath = ""
+
+            $scope.viewLog = function(onReturn) {
+                // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
+                // TODO(rorour): get log, wrap in html and return
+                requestSender.sendAnalysisJob(
+                    appState,
+                    (data) => {
+                        onReturn(data.html);
+                    },
+                    {
+                        method: 'log_to_html',
+                        computeModel: elegantService.computeModel(),
+                        simulationId: appState.models.simulation.simulationId
+                    });
+            };
+        },
+    };
+});

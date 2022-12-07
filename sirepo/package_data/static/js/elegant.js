@@ -1454,14 +1454,10 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             <div data-view-log-iframe data-wrapper-view-log="viewLog" data-wrapper-download-log="downloadLog"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
-            srdbg('called a')
             $scope.viewLog = function(onReturn) {
-                // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
-                srdbg('called b')
                 requestSender.sendAnalysisJob(
                     appState,
                     (data) => {
-                        srdbg('html', data.html)
                         onReturn(data.html);
                     },
                     {
@@ -1472,7 +1468,6 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             };
 
             $scope.downloadLog = function() {
-                srdbg('called c')
                 var m = appState.models.simulationStatus.animation.computeModel;
                 if (! m) {
                     return '';
