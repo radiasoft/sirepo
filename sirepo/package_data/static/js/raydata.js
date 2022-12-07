@@ -306,6 +306,7 @@ SIREPO.app.directive('scansTable', function() {
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
+                      <th style="width: 50px; height: 40px;"></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
                         <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
                         {{ column }}
@@ -315,6 +316,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
+                      <td><div data-view-log-iframe-wrapper data-ng-click="$event.stopPropagation();"></div></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -565,14 +567,17 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
         template: `
             <div data-view-log-iframe data-wrapper-view-log="viewLog" data-wrapper-log-path="logPath"></div>
         `,
-        controller: function(appState, elegantService, requestSender, $scope) {
+        controller: function(requestSender, $scope) {
             // TODO(rorour): get log path
+            // TODO(rorour): use logic from existing raydata branch
             $scope.logPath = "logPathHere"
 
             $scope.viewLog = function(onReturn) {
                 onReturn("LogHere");
+                // TODO(rorour): log is disappearing after a second
                 // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
                 // TODO(rorour): get log, wrap in html and return
+                // TODO(rorour): why is computeModel needed for elegant directive? & appstate
                 // requestSender.sendAnalysisJob(
                 //     appState,
                 //     (data) => {
