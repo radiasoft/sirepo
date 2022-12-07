@@ -186,17 +186,17 @@
                         "type": "extrudedPoints"
                     },
                     {
-                        "layoutShape": "rect",
-                        "model": "geomGroup",
-                        "title": "Group",
-                        "type": "geomGroup"
-                    },
-                    {
                         "isButton": false,
                         "layoutShape": "polygon",
                         "model": "stl",
                         "title": "STL",
                         "type": "stl"
+                    },
+                    {
+                        "layoutShape": "rect",
+                        "model": "geomGroup",
+                        "title": "Group",
+                        "type": "geomGroup"
                     }
                 ],
                 "name": "Objects"
@@ -1278,17 +1278,25 @@
             "advanced": [
                 ["Main", [
                     "name",
-                    "shapeButton",
-                    "magnetization",
-                    "remanentMag",
+                    "color"
+                ]],
+                ["Geometry", [
+                    "center",
+                    "size",
+                    "segments"
+                ]],
+                ["Material", [
                     "material",
                     "materialFile",
-                    "segments",
-                    "center",
-                    "size"
+                    "magnetization",
+                    "remanentMag"
                 ]],
                 ["Transforms", [
                     "transforms"
+                ]],
+                ["Modifications", [
+                    "bevels",
+                    "fillets"
                 ]]
             ]
         },
