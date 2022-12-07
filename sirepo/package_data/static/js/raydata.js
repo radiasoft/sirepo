@@ -404,8 +404,6 @@ SIREPO.app.directive('scansTable', function() {
                     appState,
                     (json) => {
                         $scope.images = json.images;
-                        // TODO(e-carlin): view json.run_log
-                        // TODO(rorour): change what is sent back
                     },
                     {
                         method: 'analysis_output',
@@ -528,6 +526,8 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.showRunLogModal = (scan) => {
+                // TODO(rorour): send request to get run log from backend
+                // TODO(rorour): hide view log link
                 $scope.logScanId = scan.uid;
                 srdbg('showRunLogModal called for ', $scope.logScanId);
                 // $('#mylink').attr("myattr", "999");
@@ -588,15 +588,35 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
         template: `
             <div data-view-log-iframe data-wrapper-view-log="viewLog" data-log-path="logPath"></div>
         `,
-        controller: function(requestSender, $scope) {
+        controller: function(appState, requestSender, $scope) {
+            $scope.log = null;
             // TODO(rorour): get log path
             // TODO(rorour): use logic from existing raydata branch
             $scope.logPath = "logPathHere"
 
             $scope.viewLog = function(onReturn) {
-                srdbg('scanId', $scope.scanId)
-                onReturn(`LogHere ${$scope.scanId}`);
-                // TODO(rorour): log is disappearing after a second
+
+
+                requestSender.sendStatelessCompute(
+                    appState,
+                    (json) => {
+                        $scope.log = json.data.run_log;
+                    },
+                    {
+                        method: 'scans',
+                        args: {
+                            analysisStatus: $scope.analysisStatus,
+                            catalogName: appState.models.catalog.catalogName,
+                            searchStartTime: m.searchStartTime,
+                            searchStopTime: m.searchStopTime,
+                            selectedColumns: appState.models.metadataColumns.selected,
+                        }
+                    },
+                    errorOptions
+                );
+
+                onReturn(`LogHere ${$scope.scanId} ${$scope.log}`);
+
                 // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
                 // TODO(rorour): get log, wrap in html and return
                 // TODO(rorour): why is computeModel needed for elegant directive? & appstate
