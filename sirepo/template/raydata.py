@@ -21,6 +21,7 @@ def stateless_compute_analysis_output(data):
 
 
 def stateless_compute_analysis_run_log(data):
+    pkdp('11111111')
     return _request_scan_monitor(PKDict(method="analysis_run_log", uid=data.args.uid))
 
 

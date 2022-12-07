@@ -588,27 +588,26 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
         template: `
             <div data-view-log-iframe data-wrapper-view-log="viewLog" data-log-path="logPath"></div>
         `,
-        controller: function(appState, requestSender, $scope) {
+        controller: function(appState, errorService, panelState, requestSender, $scope) {
             $scope.log = null;
-            // TODO(rorour): get log path
-            // TODO(rorour): use logic from existing raydata branch
-            $scope.logPath = "logPathHere"
+            $scope.logPath = null;
+            // TODO(rorour): long load time
+            // TODO(rorour): analysis_output_dir in scanmonitor assumes unique uid across catalogs
+            // TODO(rorour): why does return pkdict sometimes have data
 
             $scope.viewLog = function(onReturn) {
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
-                        $scope.log = json.data.run_log;
-                        srdbg('got log ', $scope.log)
+                        $scope.log = json.run_log;
+                        $scope.logPath = json.log_path;
+                        srdbg($scope.log);
+                        onReturn($scope.log);
                     },
                     {
                         method: 'analysis_run_log',
                         args: {
-                            analysisStatus: $scope.analysisStatus,
-                            catalogName: appState.models.catalog.catalogName,
-                            searchStartTime: m.searchStartTime,
-                            searchStopTime: m.searchStopTime,
-                            selectedColumns: appState.models.metadataColumns.selected,
+                            uid: $scope.scanId,
                         }
                     },
                     {
@@ -621,12 +620,11 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                     }
                 );
 
-                onReturn(`LogHere ${$scope.scanId} ${$scope.log}`);
-
                 // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
                 // TODO(rorour): get log, wrap in html and return
                 // TODO(rorour): why is computeModel needed for elegant directive? & appstate
                 // TODO(rorour): rename onReturn here and in elegant
+                // TODO(rorour): on modal close need to unset logPath & log
                 // requestSender.sendAnalysisJob(
                 //     appState,
                 //     (data) => {
