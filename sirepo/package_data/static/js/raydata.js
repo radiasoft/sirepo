@@ -373,7 +373,6 @@ SIREPO.app.directive('scansTable', function() {
             $scope.reverseSortScans = false;
             $scope.scans = [];
             $scope.selectedScan = null;
-            //$event.stopPropagation();
 
             let cols = [];
             let hoveredIndex = null;
@@ -519,21 +518,16 @@ SIREPO.app.directive('scansTable', function() {
                 return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
             };
 
-            function clickOnUpload() {
+            function clickViewLog() {
               $timeout(function() {
                 angular.element(document.querySelector('#mylink')).triggerHandler('click');
               });
-            };
+            }
 
             $scope.showRunLogModal = (scan) => {
-                // TODO(rorour): send request to get run log from backend
                 // TODO(rorour): hide view log link
                 $scope.logScanId = scan.uid;
-                srdbg('showRunLogModal called for ', $scope.logScanId);
-                // $('#mylink').attr("myattr", "999");
-                // angular.element('#mylink').trigger('click');
-                clickOnUpload();
-                // TODO(rorour): make modal appear
+                clickViewLog();
             };
 
             $scope.sortCol = (column) => {
@@ -586,14 +580,11 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             scanId: '<',
         },
         template: `
-            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-log-path="logPath"></div>
+            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-log-path="logPath" data-hide-text="true"></div>
         `,
         controller: function(appState, errorService, panelState, requestSender, $scope) {
             $scope.log = null;
             $scope.logPath = null;
-            // TODO(rorour): long load time
-            // TODO(rorour): analysis_output_dir in scanmonitor assumes unique uid across catalogs
-            // TODO(rorour): why does return pkdict sometimes have data
 
             $scope.viewLog = function(onReturn) {
                 requestSender.sendStatelessCompute(
