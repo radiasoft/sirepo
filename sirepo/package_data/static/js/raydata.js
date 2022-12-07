@@ -595,15 +595,14 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             $scope.logPath = "logPathHere"
 
             $scope.viewLog = function(onReturn) {
-
-
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
                         $scope.log = json.data.run_log;
+                        srdbg('got log ', $scope.log)
                     },
                     {
-                        method: 'scans',
+                        method: 'analysis_run_log',
                         args: {
                             analysisStatus: $scope.analysisStatus,
                             catalogName: appState.models.catalog.catalogName,
@@ -612,7 +611,14 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                             selectedColumns: appState.models.metadataColumns.selected,
                         }
                     },
-                    errorOptions
+                    {
+                        modelName: $scope.modelName,
+                        onError: (data) => {
+                            errorService.alertText(data.error);
+                            panelState.setLoading($scope.modelName, false);
+                        },
+                        panelState: panelState,
+                    }
                 );
 
                 onReturn(`LogHere ${$scope.scanId} ${$scope.log}`);

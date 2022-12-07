@@ -13,12 +13,15 @@ import sirepo.feature_config
 import sirepo.sim_data
 import sirepo.util
 
-
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def stateless_compute_analysis_output(data):
     return _request_scan_monitor(PKDict(method="analysis_output", uid=data.args.uid))
+
+
+def stateless_compute_analysis_run_log(data):
+    return _request_scan_monitor(PKDict(method="analysis_run_log", uid=data.args.uid))
 
 
 def stateless_compute_catalog_names(_):
