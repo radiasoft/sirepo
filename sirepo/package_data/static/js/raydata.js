@@ -316,7 +316,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
-                      <td><div data-view-log-iframe-wrapper data-ng-click="$event.stopPropagation();"></div></td>
+                      <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s);$event.stopPropagation();">run log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -360,17 +360,20 @@ SIREPO.app.directive('scansTable', function() {
                 </div>
               </div>
             </div>
+            <div data-view-log-iframe-wrapper data-scan-id="logScanId"></div>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
             // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['status', 'start', 'stop', 'suid'];
             $scope.images = null;
+            $scope.logScanId = null;
             $scope.orderByColumn = 'start';
             $scope.reverseSortScans = false;
             $scope.scans = [];
             $scope.selectedScan = null;
+            //$event.stopPropagation();
 
             let cols = [];
             let hoveredIndex = null;
@@ -402,6 +405,7 @@ SIREPO.app.directive('scansTable', function() {
                     (json) => {
                         $scope.images = json.images;
                         // TODO(e-carlin): view json.run_log
+                        // TODO(rorour): change what is sent back
                     },
                     {
                         method: 'analysis_output',
@@ -517,6 +521,21 @@ SIREPO.app.directive('scansTable', function() {
                 return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
             };
 
+            function clickOnUpload() {
+              $timeout(function() {
+                angular.element(document.querySelector('#mylink')).triggerHandler('click');
+              });
+            };
+
+            $scope.showRunLogModal = (scan) => {
+                $scope.logScanId = scan.uid;
+                srdbg('showRunLogModal called for ', $scope.logScanId);
+                // $('#mylink').attr("myattr", "999");
+                // angular.element('#mylink').trigger('click');
+                clickOnUpload();
+                // TODO(rorour): make modal appear
+            };
+
             $scope.sortCol = (column) => {
                 if (column === 'selected') {
                     return;
@@ -563,9 +582,11 @@ SIREPO.app.directive('scansTable', function() {
 SIREPO.app.directive('viewLogIframeWrapper', function() {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            scanId: '<',
+        },
         template: `
-            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-wrapper-log-path="logPath"></div>
+            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-log-path="logPath"></div>
         `,
         controller: function(requestSender, $scope) {
             // TODO(rorour): get log path
@@ -573,11 +594,13 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             $scope.logPath = "logPathHere"
 
             $scope.viewLog = function(onReturn) {
-                onReturn("LogHere");
+                srdbg('scanId', $scope.scanId)
+                onReturn(`LogHere ${$scope.scanId}`);
                 // TODO(rorour): log is disappearing after a second
                 // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
                 // TODO(rorour): get log, wrap in html and return
                 // TODO(rorour): why is computeModel needed for elegant directive? & appstate
+                // TODO(rorour): rename onReturn here and in elegant
                 // requestSender.sendAnalysisJob(
                 //     appState,
                 //     (data) => {

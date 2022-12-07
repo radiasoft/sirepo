@@ -1875,12 +1875,12 @@ SIREPO.app.directive('viewLogIframe', function() {
     return {
         restrict: 'A',
         scope: {
-            logPath: '@',
+            logPath: '<',
             wrapperViewLog: '<',
             wrapperDownloadLog: '<'
         },
         template: `
-            <a href data-ng-click="viewLog()">View Log</a>
+            <a href data-ng-click="viewLog()" id="mylink">View Log</a>
             <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
