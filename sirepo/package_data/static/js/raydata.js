@@ -566,21 +566,24 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             <div data-view-log-iframe data-wrapper-view-log="viewLog" data-wrapper-log-path="logPath"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
-            $scope.logPath = ""
+            // TODO(rorour): get log path
+            $scope.logPath = "logPathHere"
 
             $scope.viewLog = function(onReturn) {
+                onReturn("LogHere");
                 // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
                 // TODO(rorour): get log, wrap in html and return
-                requestSender.sendAnalysisJob(
-                    appState,
-                    (data) => {
-                        onReturn(data.html);
-                    },
-                    {
-                        method: 'log_to_html',
-                        computeModel: elegantService.computeModel(),
-                        simulationId: appState.models.simulation.simulationId
-                    });
+                // requestSender.sendAnalysisJob(
+                //     appState,
+                //     (data) => {
+                //         onReturn(data.html);
+                //     },
+                //     {
+                //         method: 'log_to_html',
+                //         computeModel: elegantService.computeModel(),
+                //         simulationId: appState.models.simulation.simulationId
+                //     });
+
             };
         },
     };
