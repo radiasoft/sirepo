@@ -25,8 +25,7 @@ export class ModelsAccessor<M, F> {
     }
 
     getFieldValue = (dependency: Dependency): F => {
-        let m =  this.modelValues[dependency.modelName];
-        return this.modelsWrapper.getFieldFromModel(dependency.fieldName, m);
+        return this.modelsWrapper.getFieldFromModel(dependency.fieldName, this.modelValues[dependency.modelName]);
     }
 
     getModelValue = (modelName: string): M => {
