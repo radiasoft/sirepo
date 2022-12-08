@@ -811,6 +811,7 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     var self = this;
     self.appState = appState;
     self.srwService = srwService;
+
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated
@@ -1318,6 +1319,7 @@ SIREPO.viewLogic('intensityReportView', function(srwService, $scope) {
     function updateIntensityReport() {
         srwService.updateIntensityReport('intensityReport');
     }
+
     $scope.whenSelected = updateIntensityReport;
     $scope.watchFields = [
         ['intensityReport.method'], updateIntensityReport,
