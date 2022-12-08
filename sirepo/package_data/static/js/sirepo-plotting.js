@@ -2823,8 +2823,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 prevDomain = null;
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
-                $scope.height = json.z_matrix[0].length
-                $scope.width = json.z_matrix.length
+                $scope.height = json.z_matrix[0].length;
+                $scope.width = json.z_matrix.length;
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 var newFullDomain = [
                     [json.x_range[0], json.x_range[1]],
