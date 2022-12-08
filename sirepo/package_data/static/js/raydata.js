@@ -11,8 +11,8 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="executed"></div>
         </div>
-        <div data-ng-switch-when="HistoryScansTable" class="col-sm-12">
-          <div data-scans-table="" data-model-name="modelName" data-analysis-status="history"></div>
+        <div data-ng-switch-when="RecentlyExecutedScansTable" class="col-sm-12">
+          <div data-scans-table="" data-model-name="modelName" data-analysis-status="recentlyExecuted"></div>
         </div>
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="queued"></div>
@@ -534,9 +534,6 @@ SIREPO.app.directive('scansTable', function() {
                 $scope.reverseSortScans = ! $scope.reverseSortScans;
             };
 
-            if ($scope.analysisStatus === 'history') {
-                $scope.reverseSortScans = true;
-            }
             $scope.$on(`${$scope.modelName}.changed`, sendScanRequest);
             $scope.$on('catalog.changed', sendScanRequest);
             $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {

@@ -50,8 +50,8 @@
             "searchStopTime":["Stop", "DateTimePicker", null],
             "scans": ["", "ExecutedScansTable", ""]
         },
-        "historyScans": {
-            "scans": ["", "HistoryScansTable", ""]
+        "recentlyExecutedScans": {
+            "scans": ["", "RecentlyExecutedScansTable", ""]
         },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
@@ -93,7 +93,7 @@
             ],
             "advanced": []
         },
-        "historyScans": {
+        "recentlyExecutedScans": {
             "title": "Recently Executed",
             "basic": [
                 "scans"
