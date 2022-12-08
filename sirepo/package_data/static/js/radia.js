@@ -946,6 +946,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function rotateFn(xform, i) {
+        srdbg('rot', xform);
         return (shape1, shape2) => {
             const scale = SIREPO.APP_SCHEMA.constants.objectScale;
             shape2.rotationMatrix = new SIREPO.GEOMETRY.RotationMatrix(
@@ -2415,24 +2416,29 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             <div class="sr-object-table">
               <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
               <table class="table radia-table-hover">
+                <thead></thead>
+                <tbody>
                 <tr data-ng-repeat="item in getItems() track by $index">
-                  <td><span data-toolbar-icon="" data-item="item"></span></td>
+                  <td><span data-toolbar-icon="" data-item="toolbarItemForType(item)"></span></td>
                   <td data-ng-repeat="f in fieldInfo($index)">
-                    <div class="row" data-field-editor="f" data-field-size="8" data-label-size="" data-model-name="item.type" data-model="item"></div>
+                    <div data-field-editor="f" data-field-size="8" data-label-size="" data-model-name="item.type" data-model="item"></div>
                   </td>
                   <td>
                     <div class="sr-button-bar-parent pull-right">
                       <div class="sr-button-bar">
-                        <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                        <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
                 <tr>
-                  <td>
-                    <b>Add Transform</b>
+                  <td colspan="100%">
                     <select class="form-control" data-ng-model="selectedItem" data-ng-options="item.title for item in toolbarItems" data-ng-change="addItem()">
+                      <option value="" disabled selected>add</option>
                     </select>
                   </td>
                </tr>
+               </tbody>
               </table>
             </div>
             </div>
@@ -2469,9 +2475,9 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 if (! $scope.selectedItem) {
                     return;
                 }
-                $scope.field.push(
-                    appState.setModelDefaults({}, $scope.selectedItem.model)
-                );
+                const m = appState.setModelDefaults({}, $scope.selectedItem.model);
+                m.model = $scope.selectedItem.model;
+                $scope.field.push(m);
                 $scope.selectedItem = null;
             };
 
@@ -2500,6 +2506,15 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             $scope.fieldInfo = idx => SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][$scope.field[idx].type];
 
             $scope.getSelected = () => $scope.selectedItem;
+
+            $scope.toolbarItemForType = item => {
+                for (const i of $scope.toolbarItems) {
+                    if (i.model === item.type) {
+                        return i;
+                    }
+                }
+                return null;
+            }
 
             $scope.itemDetails = item => {
                 let res = '';
@@ -2560,18 +2575,11 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
 
 
             $scope.$on('modelChanged', (e, modelName) => {
-                if (watchedModels.indexOf(modelName) < 0) {
+                if (! watchedModels.includes(modelName)) {
                     return;
                 }
                 $scope.selectedItem = null;
-                //if (! isEditing) {
-                //    appState.models[modelName].id = radiaService.generateId();
-                //    $scope.field.push(appState.models[modelName]);
-                //    isEditing = true;
-                //}
-                radiaService.saveGeometry(true, false,() => {
-                    $scope.loadItems();
-                });
+                radiaService.saveGeometry(true, false);
             });
 
             $scope.$on('cancelChanges', (e, name) => {
