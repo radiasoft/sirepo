@@ -3013,6 +3013,66 @@ SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
     };
 });
 
+SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <form class="form-horizontal" autocomplete="off" novalidate>
+              <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                  <p>Enter your LDAP login</p>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label">Username</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" data-ng-model="data.username" required/>
+                </div>
+                <label class="col-sm-2 control-label">Password</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" data-ng-model="data.password" required/>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                   <div data-disable-after-click="">
+                    <button data-ng-click="login()" class="btn btn-primary">Continue</button>
+                  </div>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                </div>
+              </div>
+            </form>
+        `,
+        controller: function($scope) {
+            function handleResponse(data) {
+                if (data.state == 'ok') {
+                    $scope.showWarning = false;
+                    $scope.data.username = '';
+                    $scope.data.password = '';
+                }
+                else {
+                    $scope.showWarning = true;
+                    $scope.warningText = 'Server reported an error, please contact support@sirepo.com.';
+                }
+            }
+
+            $scope.login = function() {
+                $scope.showWarning = false;
+                requestSender.sendRequest(
+                    'authLdapAuthorized',
+                    handleResponse,
+                    {
+                        username: $scope.data.username,
+                        password: $scope.data.password
+                    }
+                );
+            };
+        },
+    };
+});
+
+
 SIREPO.app.directive('commonFooter', function() {
     return {
         restrict: 'A',
