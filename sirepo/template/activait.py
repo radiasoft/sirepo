@@ -98,7 +98,6 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
 
     def __getitem__(self, idx):
         indices = numpy.sort(self.indices[idx * self.batch_size:(idx + 1) *self.batch_size])
-
         with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
             x = f[self.x.key][indices]
             y = f[self.y.key][indices]
@@ -107,6 +106,7 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
 
     def on_epoch_end(self):
         numpy.random.shuffle(self.indices)
+
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))

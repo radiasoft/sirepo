@@ -15,9 +15,9 @@ def _split_indices(indices_all):
         tvx, tvy, test_size=validation_size/test_and_validate, random_state=42, shuffle=True
     )
     return PKDict(
-        train_indices=train_indices,
-        validation_indices=val_indices,
-        test_indices=test_indices,
+        train=train_indices,
+        val=val_indices,
+        test=test_indices,
     )
 
 
@@ -27,8 +27,9 @@ def image_train_val_test_split(
     with h5py.File(kwargs.get("src"), "r", libver="latest", swmr=True) as file:
         indices_all = numpy.arange(file[kwargs.get("X_key")].shape[0])
     s = _split_indices(indices_all)
-    return PKDict(
-        train_gen = SirepoHDF5Sequence(
+    r = PKDict()
+    for k in s:
+        r[k+"_gen"] = SirepoHDF5Sequence(
             filename=kwargs.get('src'),
             x=PKDict(
                 domain=[0, 255],
@@ -38,23 +39,10 @@ def image_train_val_test_split(
                 domain=None,
                 key=kwargs.get('y_key'),
             ),
-            indices=numpy.arange(18000),
-            batch_size=kwargs.get('batch_size'),
-        ),
-        val_gen = SirepoHDF5Sequence(
-            filename=kwargs.get('src'),
-            x=PKDict(
-                domain=[0, 255],
-                key=kwargs.get('X_key'),
-            ),
-            y=PKDict(
-                domain=None,
-                key=kwargs.get('y_key'),
-            ),
-            indices=numpy.arange(18000, 21000),
+            indices=s[k],
             batch_size=kwargs.get('batch_size'),
         )
-    )
+    return r
 
 
 output_shape = {{ outputShape }}
@@ -67,8 +55,8 @@ split = image_train_val_test_split(
     batch_size={{ neuralNet_batch_size }},
 )
 with h5py.File('{{ dataFile }}', "r", libver="latest", swmr=True) as file:
-    {# testy = file[split.test_generator.y_key][sorted(split.test_generator._indices)] #}
+    testy = file[split.test_gen.y.key][sorted(split.test_gen.indices)]
     input_shape = file["{{ inPath }}"].shape[1:]
     if len(input_shape) < 3:
         input_shape += (1,)
-{# testx = split.test_generator #}
+testx = split.test_gen
