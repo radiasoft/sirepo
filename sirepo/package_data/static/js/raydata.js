@@ -363,7 +363,7 @@ SIREPO.app.directive('scansTable', function() {
                 </div>
               </div>
             </div>
-            <div data-view-log-iframe-wrapper data-scan-id="logScanId"></div>
+            <div data-view-log-iframe-wrapper data-scan-id="runLogScanId"></div>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
             $scope.availableColumns = [];
@@ -371,10 +371,10 @@ SIREPO.app.directive('scansTable', function() {
             // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['status', 'start', 'stop', 'suid'];
             $scope.images = null;
-            $scope.logScanId = null;
             $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
             $scope.reverseSortScans = false;
+            $scope.runLogScanId = null;
             $scope.scans = [];
             $scope.selectedScan = null;
 
@@ -418,6 +418,12 @@ SIREPO.app.directive('scansTable', function() {
                     errorOptions
                 );
             };
+
+            function clickViewLog() {
+              $timeout(function() {
+                angular.element(document.querySelector('#viewLogIframeLink')).triggerHandler('click');
+              });
+            }
 
             function sendScanRequest () {
                 const m = appState.models[$scope.modelName];
@@ -526,14 +532,8 @@ SIREPO.app.directive('scansTable', function() {
                 return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
             };
 
-            function clickViewLog() {
-              $timeout(function() {
-                angular.element(document.querySelector('#viewLogIframeLink')).triggerHandler('click');
-              });
-            }
-
             $scope.showRunLogModal = (scan) => {
-                $scope.logScanId = scan.uid;
+                $scope.runLogScanId = scan.uid;
                 clickViewLog();
             };
 
@@ -599,7 +599,6 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                     (json) => {
                         $scope.log = json.run_log;
                         $scope.logPath = json.log_path;
-                        srdbg($scope.log);
                         onReturn($scope.log);
                     },
                     {

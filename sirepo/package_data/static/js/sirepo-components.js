@@ -1906,6 +1906,8 @@ SIREPO.app.directive('viewLogIframe', function() {
             </div>
         `,
         controller: function($scope) {
+            $scope.linkText = generateLinkText();
+
             function generateLinkText() {
                 if ($scope.hideLink) {
                     return '';
@@ -1913,16 +1915,16 @@ SIREPO.app.directive('viewLogIframe', function() {
                     return 'View Log';
                 }
             }
-            $scope.linkText = generateLinkText();
-            $scope.viewLog = function() {
-                $scope.wrapperViewLog((html) => {
-                    $('#sr-text-iframe').attr("srcdoc", html);
-                });
-                $('#sr-iframe-text-view').modal('show');
-            };
 
             $scope.downloadLog = function() {
-                return $scope.wrapperDownloadLog()
+                return $scope.wrapperDownloadLog();
+            };
+
+            $scope.viewLog = function() {
+                $scope.wrapperViewLog((html) => {
+                    $('#sr-text-iframe').attr('srcdoc', html);
+                });
+                $('#sr-iframe-text-view').modal('show');
             };
         },
     };

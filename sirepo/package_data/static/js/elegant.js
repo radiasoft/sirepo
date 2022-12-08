@@ -1454,7 +1454,20 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             <div data-view-log-iframe data-wrapper-view-log="viewLog" data-wrapper-download-log="downloadLog"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
-            $scope.viewLog = function(onReturn) {
+            $scope.downloadLog = function() {
+                var m = appState.models.simulationStatus.animation.computeModel;
+                if (! m) {
+                    return '';
+                }
+                return requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': m,
+                    '<frame>': -1,
+                });
+            };
+
+            $scope.viewLog = function (onReturn) {
                 requestSender.sendAnalysisJob(
                     appState,
                     (data) => {
@@ -1464,21 +1477,8 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                         method: 'log_to_html',
                         computeModel: elegantService.computeModel(),
                         simulationId: appState.models.simulation.simulationId
-                    });
-            };
-
-            $scope.downloadLog = function() {
-                var m = appState.models.simulationStatus.animation.computeModel;
-                if (! m) {
-                    return '';
-                }
-
-                return requestSender.formatUrl('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': m,
-                    '<frame>': -1,
-                });
+                    }
+                );
             };
         },
     };
