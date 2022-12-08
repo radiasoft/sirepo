@@ -4,8 +4,8 @@
 """
 from pykern.pkdebug import pkdlog, pkdp
 from pykern.pkcollections import PKDict
-import sirepo.quest
 import ldap
+import sirepo.quest
 
 AUTH_METHOD = "ldap"
 
