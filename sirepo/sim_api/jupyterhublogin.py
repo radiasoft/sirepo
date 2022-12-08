@@ -9,7 +9,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
 import sirepo.api_perm
-import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
@@ -118,7 +117,9 @@ def create_user(qcall, github_handle=None, check_dir=False):
     def __user_name():
         if github_handle:
             if (
-                sirepo.auth_db.JupyterhubUser.search_by(user_name=github_handle)
+                qcall.auth_db.model("JupyterhubUser").unchecked_search_by(
+                    user_name=github_handle
+                )
                 or not _user_dir(qcall, user_name=github_handle).exists()
             ):
                 raise sirepo.util.SRException(
@@ -127,7 +128,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
                 )
             return github_handle
         n = __handle_or_name_sanitized()
-        if sirepo.auth_db.JupyterhubUser.search_by(user_name=n):
+        if qcall.auth_db.model("JupyterhubUser").unchecked_search_by(user_name=n):
             # The username already exists. Add some randomness to try and create
             # a unique user name.
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
@@ -140,7 +141,8 @@ def create_user(qcall, github_handle=None, check_dir=False):
         u = __user_name()
         if check_dir and _user_dir(qcall, u).exists():
             raise AssertionError(f"existing user dir with same name={u}")
-        sirepo.auth_db.JupyterhubUser(
+        qcall.auth_db.model(
+            "JupyterhubUser",
             uid=qcall.auth.logged_in_user(),
             user_name=u,
         ).save()
@@ -224,7 +226,7 @@ def _event_github_authorized(qcall, kwargs):
 
 
 def _unchecked_hub_user(qcall, uid):
-    u = sirepo.auth_db.JupyterhubUser.search_by(uid=uid)
+    u = qcall.auth_db.model("JupyterhubUser").unchecked_search_by(uid=uid)
     if u:
         return u.user_name
     return None

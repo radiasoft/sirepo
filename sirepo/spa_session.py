@@ -8,7 +8,6 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from pykern.pkcollections import PKDict
 import contextlib
 import datetime
-import sirepo.auth_db
 import sirepo.events
 import sirepo.quest
 import sirepo.srtime
@@ -37,7 +36,8 @@ def init_quest(qcall):
         l = qcall.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
         i = sirepo.util.random_base62()
-        sirepo.auth_db.SPASession(
+        qcall.auth_db.model(
+            "SPASession",
             user_agent_id=i,
             login_state=l,
             uid=qcall.auth.logged_in_user(check_path=False) if l else None,
@@ -49,7 +49,9 @@ def init_quest(qcall):
         return i
 
     def _update_session(user_agent_id):
-        s = sirepo.auth_db.SPASession.search_by(user_agent_id=user_agent_id)
+        s = qcall.auth_db.model("SPASession").unchecked_search_by(
+            user_agent_id=user_agent_id
+        )
         if not s:
             pkdlog("Restarting session for user_agent_id={}", user_agent_id)
             return _new_session()
@@ -76,6 +78,9 @@ def init_quest(qcall):
     if qcall.sreq.method_is_post():
         i = _update_session(i) if i else _new_session()
     qcall.bucket_set(_ID_ATTR, i)
+    # TODO(robnagler): commit here is necessary because we want to log all
+    # accesses
+    qcall.auth_db.commit()
 
 
 def _end_api_call(qcall, kwargs):

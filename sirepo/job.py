@@ -28,6 +28,8 @@ OP_RUN = "run"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
 
+_OK_REPLY = PKDict(state="ok")
+
 #: path supervisor registers to receive messages from agent
 AGENT_URI = "/job-agent-websocket"
 
@@ -276,6 +278,10 @@ def init_module():
     return _cfg
 
 
+def is_ok_reply(value):
+    return isinstance(value, PKDict) and value == _OK_REPLY
+
+
 def join_jid(uid, sid, compute_model):
     """A Job is a tuple of user, sid, and compute_model.
 
@@ -289,6 +295,10 @@ def join_jid(uid, sid, compute_model):
         str: unique name (treat opaquely)
     """
     return _JOB_ID_SEP.join((uid, sid, compute_model))
+
+
+def ok_reply():
+    return _OK_REPLY.copy()
 
 
 def split_jid(jid):

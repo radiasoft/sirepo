@@ -2934,22 +2934,12 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
             <div data-confirmation-modal="" data-id="reset-confirmation" data-title="Reset Simulation?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()">Discard changes to &quot;{{ simulationName() }}&quot;?</div>
         `,
         controller: function($scope) {
-            function revertSimulation() {
+            $scope.revertToOriginal = () => {
                 $scope.nav.revertToOriginal(
                     appDataService.getApplicationMode(),
                     appState.models.simulation.name);
-            }
-
-            $scope.revertToOriginal = function() {
-                var resetData = appDataService.appDataForReset();
-                if (resetData) {
-                    requestSender.getApplicationData(resetData, revertSimulation);
-                }
-                else {
-                    revertSimulation();
-                }
             };
-            $scope.simulationName = function() {
+            $scope.simulationName = () => {
                 if (appState.isLoaded()) {
                     return appState.models.simulation.name;
                 }
@@ -4689,12 +4679,8 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             controller.fieldRange = null;
             controller.isComputingRanges = true;
             setRunningState(name);
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_particle_ranges',
-                    simulationId: appState.models.simulation.simulationId,
-                    modelName: name,
-                },
+            requestSender.sendAnalysisJob(
+                appState,
                 function(data) {
                     controller.isComputingRanges = false;
                     if (appState.isLoaded() && data.fieldRange) {
@@ -4710,7 +4696,12 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
                         }
                         controller.fieldRange = data.fieldRange;
                     }
-                });
+                },
+                {
+                    method: 'compute_particle_ranges',
+                    modelName: name,
+                },
+            );
         }
     };
 
@@ -4979,21 +4970,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         }
         var r = Math.pow(10, p);
         return Math.round(val * r) / r;
-    };
-
-    // Sequentially applies a function to an array - useful for large arrays which
-    // can exceed the stack limit
-    this.seqApply = function(fn, array, initVal) {
-        var start = 0;
-        var inc = 1000;
-        var res = initVal;
-
-        do {
-            var sub = fn.apply(null, array.slice(start, Math.min(array.length, start + inc)));
-            res = fn.apply(null, [res, sub]);
-            start += inc;
-        } while (start < array.length);
-        return res;
     };
 
     // returns an array containing the unique elements of the input,
