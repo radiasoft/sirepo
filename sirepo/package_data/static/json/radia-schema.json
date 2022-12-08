@@ -48,6 +48,10 @@
                 "rotateClone": ["name", "angle", "axis", "center", "useObjectCenter"]
             }
         },
+        "fileTypeHM": "h-m",
+        "fileTypePathPts": "path-pts",
+        "fileTypeRadiaDmp": "radia-dmp",
+        "fileTypeSTL": "stl-file",
         "geomObjShapes": {
             "cuboid": {
                 "doClose": true,
@@ -134,8 +138,6 @@
             "item": ":"
         },
         "objectScale": 0.001,
-        "pathPtsFileType": "path-pts",
-        "radiaDmpFileType": "radia-dmp",
         "rawExamples": ["Dipole", "Wiggler"],
         "toolbarItems": [
             {
@@ -799,7 +801,7 @@
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
-            "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
+            "materialFile": ["Tabulated H-B from File", "HMFile", "", "H, B (T)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Shape Type", "ObjectType", "cuboid"],
             "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]]
