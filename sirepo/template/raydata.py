@@ -33,6 +33,7 @@ def stateless_compute_analysis_run_log(data):
                 linenos=False,
             ),
         )
+
     r = _request_scan_monitor(PKDict(method="analysis_run_log", uid=data.args.uid))
     r.run_log = _log_to_html(r.run_log)
     return r
