@@ -19,11 +19,13 @@ import numpy
 import os
 import re
 import pandas
+import keras
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
 import urllib
+import math
 
 _CHUNK_SIZE = 1024 * 1024
 
@@ -69,43 +71,42 @@ _REPORTS = [
 ] + _SIM_REPORTS
 
 
-class SirepoHDF5ImageGenerator(HDF5ImageGenerator):
+class SirepoHDF5Sequence(keras.utils.Sequence):
     def __init__(
         self,
-        indices=None,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        if indices is not None:
-            self._indices = indices
-        with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
-            self._xmin = numpy.min(file[self.X_key])
-            self._xmax = numpy.max(file[self.X_key])
-
-    def _scale_x(self, values):
-        if len(values.shape) == 2:
-            values = values[:]
-            for idx in range(values.shape[1]):
-                values[:, idx] = self._scale_x(values[:, idx])
-            return values
-        domain = self._xmax - self._xmin
-        return (values - self._xmin) / domain
-
-    def _HDF5ImageGenerator__get_dataset_items(
-        self,
+        filename,
+        # contains key, domain
+        x,
+        y,
         indices,
-        dataset=None,
+        batch_size
     ):
-        with h5py.File(self.src, "r", libver="latest", swmr=True) as file:
-            x = file[self.X_key][indices]
-            y = file[self.y_key][indices]
-            if not x.any():
-                # TODO (gurhar1133): why empty x and y?
-                assert not y.any(), f"if x is empty y should be too, got y={y}"
-                return (x, y)
-            return (self._scale_x(x), y)
+        self.filename = filename
+        self.x = x
+        self.y = y
+        self.indices = indices
+        self.batch_size = batch_size
 
+    def __len__(self):
+        return math.ceil(len(self.indices) / self.batch_size)
+
+    def _scale(self, domain, values):
+        if not domain:
+            return values
+        d = domain[1] - domain[0]
+        return (values - domain[0]) / d
+
+    def __getitem__(self, idx):
+        indices = numpy.sort(self.indices[idx * self.batch_size:(idx + 1) *self.batch_size])
+
+        with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
+            x = f[self.x.key][indices]
+            y = f[self.y.key][indices]
+            assert x.any() and y.any()
+            return self._scale(self.x.domain, x), self._scale(self.y.domain, y)
+
+    def on_epoch_end(self):
+        numpy.random.shuffle(self.indices)
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))

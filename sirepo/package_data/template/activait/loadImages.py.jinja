@@ -2,17 +2,17 @@ import h5py
 import numpy
 from sklearn.model_selection import train_test_split
 from pykern.pkcollections import PKDict
-from sirepo.template.activait import SirepoHDF5ImageGenerator
+from sirepo.template.activait import SirepoHDF5Sequence
 
 
 def _split_indices(indices_all):
     test_and_validate = (100 - {{partition_training}}) / 100
     validation_size = ((test_and_validate * 100) - {{partition_testing}}) / 100
     train_indices, tvx, _, tvy = train_test_split(
-        indices_all, indices_all, test_size=test_and_validate, random_state=42, shuffle=False
+        indices_all, indices_all, test_size=test_and_validate, random_state=42, shuffle=True
     )
     test_indices, val_indices, _, _ = train_test_split(
-        tvx, tvy, test_size=validation_size/test_and_validate, random_state=42, shuffle=False
+        tvx, tvy, test_size=validation_size/test_and_validate, random_state=42, shuffle=True
     )
     return PKDict(
         train_indices=train_indices,
@@ -28,18 +28,31 @@ def image_train_val_test_split(
         indices_all = numpy.arange(file[kwargs.get("X_key")].shape[0])
     s = _split_indices(indices_all)
     return PKDict(
-        train_generator=SirepoHDF5ImageGenerator(
-            indices=s.train_indices,
-            **kwargs,
+        train_gen = SirepoHDF5Sequence(
+            filename=kwargs.get('src'),
+            x=PKDict(
+                domain=[0, 255],
+                key=kwargs.get('X_key'),
+            ),
+            y=PKDict(
+                domain=None,
+                key=kwargs.get('y_key'),
+            ),
+            indices=numpy.arange(18000),
+            batch_size=kwargs.get('batch_size'),
         ),
-        val_generator=SirepoHDF5ImageGenerator(
-            indices=s.validation_indices,
-            **kwargs,
-        ),
-        test_generator=SirepoHDF5ImageGenerator(
-            mode="test",
-            indices=s.test_indices,
-            **kwargs,
+        val_gen = SirepoHDF5Sequence(
+            filename=kwargs.get('src'),
+            x=PKDict(
+                domain=[0, 255],
+                key=kwargs.get('X_key'),
+            ),
+            y=PKDict(
+                domain=None,
+                key=kwargs.get('y_key'),
+            ),
+            indices=numpy.arange(18000, 21000),
+            batch_size=kwargs.get('batch_size'),
         )
     )
 
@@ -49,15 +62,13 @@ split = image_train_val_test_split(
     src='{{ dataFile }}',
     X_key='images',
     y_key='metadata/image_types',
-    labels_encoding=False,
-    scaler=False,
     shuffle={{ shuffleEachEpoch }},
     num_classes=output_shape,
     batch_size={{ neuralNet_batch_size }},
 )
 with h5py.File('{{ dataFile }}', "r", libver="latest", swmr=True) as file:
-    testy = file[split.test_generator.y_key][split.test_generator._indices]
+    {# testy = file[split.test_generator.y_key][sorted(split.test_generator._indices)] #}
     input_shape = file["{{ inPath }}"].shape[1:]
     if len(input_shape) < 3:
         input_shape += (1,)
-testx = split.test_generator
+{# testx = split.test_generator #}

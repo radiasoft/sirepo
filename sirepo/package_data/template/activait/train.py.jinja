@@ -10,8 +10,8 @@ model.compile(
 )
 try:
     history = model.fit(
-        split.train_generator,
-        validation_data=split.val_generator,
+        split.train_gen,
+        validation_data=split.val_gen,
         use_multiprocessing=True,
         epochs={{ neuralNet_epochs }},
         callbacks=[CSVLogger('fit.csv')])
