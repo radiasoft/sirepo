@@ -2480,7 +2480,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 '20': 'mouse-move-n',
                 '02': 'mouse-move-s',
             };
-
             function adjustZoomToCenter(scale) {
                 // if the domain is almost centered on 0.0 (within 10%) adjust zoom and offset to center
                 var domain = scale.domain();
@@ -2823,6 +2822,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 prevDomain = null;
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
+                $scope.height = json.z_matrix[0].length
+                $scope.width = json.z_matrix.length
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 var newFullDomain = [
                     [json.x_range[0], json.x_range[1]],
