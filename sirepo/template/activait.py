@@ -79,7 +79,7 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         x,
         y,
         indices,
-        batch_size
+        batch_size,
     ):
         self.filename = filename
         self.x = x
@@ -97,7 +97,9 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         return (values - domain[0]) / d
 
     def __getitem__(self, idx):
-        indices = numpy.sort(self.indices[idx * self.batch_size:(idx + 1) *self.batch_size])
+        indices = numpy.sort(
+            self.indices[idx * self.batch_size : (idx + 1) * self.batch_size]
+        )
         with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
             x = f[self.x.key][indices]
             y = f[self.y.key][indices]
