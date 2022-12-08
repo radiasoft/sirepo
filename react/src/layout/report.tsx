@@ -1,7 +1,7 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
 import { LayoutProps, Layout } from "./layout";
-import { cancelReport, getSimulationFrame, pollRunReport } from "../utility/compute";
+import { cancelReport, pollRunReport } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from "react-redux";
 import { ProgressBar, Stack, Button } from "react-bootstrap";
@@ -77,7 +77,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
                     forceRun: false,
                     callback: (simulationData) => {
                         // guard concurrency
-                        if(simulationPollingVersionRef.current == pollingVersion) {
+                        if(simulationPollingVersionRef.current === pollingVersion) {
                             updateSimulationData(simulationData);
                         } else {
                             console.log("polling data was not from newest request");
@@ -156,7 +156,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                 }
 
                 let { state } = simulationData;
-                if(state == "completed") {
+                if(state === "completed") {
                     simulationInfoPromise.then(({simulationId}) => {
                         let { computeJobHash, computeJobSerial } = simulationData;
                         let frameCount = !!frameCountFieldName ? simulationData[frameCountFieldName] : 1;
@@ -307,7 +307,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         simulationId,
                         report: reportGroupName,
                         callback: (simulationData) => {
-                            if (simulationData.state == 'completed') {
+                            if (simulationData.state === 'completed') {
                                 stopwatch.setElapsedSeconds(simulationData.elapsedTime);
                                 updateLastSimulationData(simulationData);
                             }
