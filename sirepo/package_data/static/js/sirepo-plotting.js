@@ -2480,6 +2480,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 '20': 'mouse-move-n',
                 '02': 'mouse-move-s',
             };
+
             function adjustZoomToCenter(scale) {
                 // if the domain is almost centered on 0.0 (within 10%) adjust zoom and offset to center
                 var domain = scale.domain();
