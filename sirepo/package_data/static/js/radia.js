@@ -699,7 +699,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         o.transforms.forEach(function (xform) {
             // draw the shapes for symmetry planes once
             if (xform.model === 'symmetryTransform') {
-                plIds.push(...addSymmetryPlane(baseShape, xform));
+                plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
             }
             // each successive transform must be applied to all previous shapes
             [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
@@ -730,7 +730,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                             }
                         }
                         addTxShape(xShape, xform, linkTx);
-                        clones.push(...transformMembers(xo, xform, linkTx, clones));
+                        clones = clones.concat(transformMembers(xo, xform, linkTx, clones));
                     }
                 }
                 if (xform.model === 'symmetryTransform') {
@@ -847,7 +847,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             return self.getObject(id);
         });
         for (const m of members) {
-            members.push(...getMembers(m));
+            members = members.concat(getMembers(m));
         }
         return members;
     }
@@ -871,9 +871,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
         let v2 = [];
         for (const s of v) {
-            v2.push(...getVirtualShapes(s, excludedIds));
+            v2 = v2.concat(getVirtualShapes(s, excludedIds));
         }
-        v.push(...v2);
+        v = v.concat(v2);
         return v;
     }
 
@@ -2233,7 +2233,8 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 }
                 let objs = [];
                 for (const mId of (o.members || [])) {
-                    objs.push(...[mId, ...groupedObjects(mId)]);
+                    objs.push(mId);
+                    objs = objs.concat(groupedObjects(mId));
                 }
                 return objs;
             }
@@ -2411,11 +2412,10 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             parentController: '='
         },
         template: `
-            <!--<div data-toolbar="toolbarSections" data-item-filter="itemFilter" data-parent-controller="parentController"></div>-->
             <div class="sr-object-table">
               <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
-              <table class="table radia-table-hover" style="width: 100%; height: 15%; table-layout: fixed;">
-                <tr data-ng-repeat="item in loadItems() track by $index">
+              <table class="table radia-table-hover">
+                <tr data-ng-repeat="item in getItems() track by $index">
                   <td><span data-toolbar-icon="" data-item="item"></span></td>
                   <td data-ng-repeat="f in fieldInfo($index)">
                     <div class="row" data-field-editor="f" data-field-size="8" data-label-size="" data-model-name="item.type" data-model="item"></div>
@@ -2423,7 +2423,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                   <td>
                     <div class="sr-button-bar-parent pull-right">
                       <div class="sr-button-bar">
-                        <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                        <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
                   </td>
                 </tr>
                 <tr>
@@ -2444,9 +2444,8 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 'rotate',
                 'translate'
             ];
-            let watchedModels;
+            let watchedModels = [$scope.modelName];
 
-            $scope.items = [];
             $scope.radiaService = radiaService;
             $scope.selectedItem = null;
             $scope.toolbarItems = [];
@@ -2457,13 +2456,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             });
 
             $scope.toolbarSections.forEach(s => {
-                $scope.toolbarItems.push(...s.contents);
+                $scope.toolbarItems = $scope.toolbarItems.concat(s.contents);
             });
 
-            watchedModels = $scope.toolbarItems.map(item => item.model);
+            watchedModels = watchedModels.concat($scope.toolbarItems.map(item => item.model));
 
             function itemIndex(data) {
-                return $scope.items.indexOf(data);
+                return $scope.field.indexOf(data);
             }
 
             $scope.addItem = () => {
@@ -2498,35 +2497,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 panelState.showModalEditor(item.model);
             };
 
-            $scope.fieldInfo = idx => {
-                if (! appState.isLoaded()) {
-                    return [];
-                }
-                return SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][$scope.field[idx].type];
-            };
-
-            $scope.dropItem = (index, data) => {
-                if (! data) {
-                    return;
-                }
-                const i = $scope.items.indexOf(data);
-                if (i < 0) {
-                    $scope.addItem(data);
-                    return;
-                }
-                data = $scope.items.splice(i, 1)[0];
-                if (i < index) {
-                    index--;
-                }
-                $scope.items.splice(index, 0, data);
-            };
-
-            $scope.dropLast = item => {
-                if (! item) {
-                    return;
-                }
-                $scope.addItem(item);
-            };
+            $scope.fieldInfo = idx => SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][$scope.field[idx].type];
 
             $scope.getSelected = () => $scope.selectedItem;
 
@@ -2546,19 +2517,16 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
 
             $scope.isExpanded = item => expanded[itemIndex(item)];
 
-            $scope.loadItems = () => {
-                $scope.items = $scope.field;
-                return $scope.items;
-            };
+            $scope.getItems = () => $scope.field;
 
             $scope.moveItem = (direction, item) => {
-                const d = direction == 0 ? 0 : (direction > 0 ? 1 : -1);
+                const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
                 const currentIndex = itemIndex(item);
                 const newIndex = currentIndex + d;
-                if (newIndex >= 0 && newIndex < $scope.items.length) {
-                    const tmp = $scope.items[newIndex];
-                    $scope.items[newIndex] = item;
-                    $scope.items[currentIndex] = tmp;
+                if (newIndex >= 0 && newIndex < $scope.field.length) {
+                    const tmp = $scope.field[newIndex];
+                    $scope.field[newIndex] = item;
+                    $scope.field[currentIndex] = tmp;
                 }
             };
 
@@ -2590,39 +2558,32 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 return true;
             };
 
-            appState.whenModelsLoaded($scope, () => {
 
-                $scope.$on('modelChanged', (e, modelName) => {
-                    if (watchedModels.indexOf(modelName) < 0) {
-                        return;
-                    }
-                    $scope.selectedItem = null;
-                    if (! isEditing) {
-                        appState.models[modelName].id = radiaService.generateId();
-                        $scope.field.push(appState.models[modelName]);
-                        isEditing = true;
-                    }
-                    radiaService.saveGeometry(true, false,() => {
-                        $scope.loadItems();
-                    });
+            $scope.$on('modelChanged', (e, modelName) => {
+                if (watchedModels.indexOf(modelName) < 0) {
+                    return;
+                }
+                $scope.selectedItem = null;
+                //if (! isEditing) {
+                //    appState.models[modelName].id = radiaService.generateId();
+                //    $scope.field.push(appState.models[modelName]);
+                //    isEditing = true;
+                //}
+                radiaService.saveGeometry(true, false,() => {
+                    $scope.loadItems();
                 });
-
-                $scope.$on('cancelChanges', (e, name) => {
-                    $rootScope.$broadcast('drop.target.enabled', true);
-                    if (! watchedModels.includes(name)) {
-                        return;
-                    }
-                    appState.removeModel(name);
-                });
-
-                $scope.$on('$destroy', () => {
-                    $rootScope.$broadcast('drop.target.enabled', true);
-                });
-
-                $scope.loadItems();
             });
 
-            $rootScope.$broadcast('drop.target.enabled', false);
+            $scope.$on('cancelChanges', (e, name) => {
+                if (name === 'geometryReport') {
+                    return;
+                }
+                if (! watchedModels.includes(name)) {
+                    return;
+                }
+                appState.removeModel(name);
+                appState.cancelChanges('geometryReport');
+            });
         },
     };
 });
@@ -3935,7 +3896,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         if (o.type === 'stl') {
             panelState.enableField('geomObject', 'size', false);
-            //TODO(BG): Only disables 'size' field, need to build shape to get sizes to update values (likely will need to send request since python)
         }
 
         if (o.type !== 'extrudedPoints') {
