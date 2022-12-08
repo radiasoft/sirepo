@@ -911,7 +911,7 @@
         "reset": {
         },
         "rotate": {
-            "_super": ["_", "model", "transform"],
+            "_super": ["_", "model", "spatialTransform"],
             "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
             "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
@@ -920,7 +920,7 @@
             "useObjectCenter": ["Use object center as origin", "Boolean", "1"]
         },
         "rotateClone": {
-            "id": ["_", "RandomId", ""],
+            "_super": ["_", "model", "spatialTransform"],
             "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
             "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
@@ -969,6 +969,7 @@
             "sbatchProject": ["Project", "OptionalString", ""]
         },
         "spatialTransform": {
+            "_super": ["_", "model", "transform"]
         },
         "stemmed": {
             "_super": ["_", "model", "extrudedPoly"],
@@ -1000,11 +1001,12 @@
             "type": ["_", "TransformTypes"]
         },
         "translate": {
+            "_super": ["_", "model", "spatialTransform"],
             "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Translate"]
         },
         "translateClone": {
-            "id": ["_", "RandomId", ""],
+            "_super": ["_", "model", "spatialTransform"],
             "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Translate"]
         },
