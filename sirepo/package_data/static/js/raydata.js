@@ -520,12 +520,11 @@ SIREPO.app.directive('scansTable', function() {
 
             function clickViewLog() {
               $timeout(function() {
-                angular.element(document.querySelector('#mylink')).triggerHandler('click');
+                angular.element(document.querySelector('#viewLogIframeLink')).triggerHandler('click');
               });
             }
 
             $scope.showRunLogModal = (scan) => {
-                // TODO(rorour): hide view log link
                 $scope.logScanId = scan.uid;
                 clickViewLog();
             };
@@ -580,7 +579,7 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             scanId: '<',
         },
         template: `
-            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-log-path="logPath" data-hide-text="true"></div>
+            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-log-path="logPath" data-hide-link="true"></div>
         `,
         controller: function(appState, errorService, panelState, requestSender, $scope) {
             $scope.log = null;
@@ -610,23 +609,6 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                         panelState: panelState,
                     }
                 );
-
-                // TODO(rorour): use log_to_html in raydata? or have viewLog wrap in html
-                // TODO(rorour): get log, wrap in html and return
-                // TODO(rorour): why is computeModel needed for elegant directive? & appstate
-                // TODO(rorour): rename onReturn here and in elegant
-                // TODO(rorour): on modal close need to unset logPath & log
-                // requestSender.sendAnalysisJob(
-                //     appState,
-                //     (data) => {
-                //         onReturn(data.html);
-                //     },
-                //     {
-                //         method: 'log_to_html',
-                //         computeModel: elegantService.computeModel(),
-                //         simulationId: appState.models.simulation.simulationId
-                //     });
-
             };
         },
     };

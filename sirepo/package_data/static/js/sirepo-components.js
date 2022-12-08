@@ -1875,13 +1875,13 @@ SIREPO.app.directive('viewLogIframe', function() {
     return {
         restrict: 'A',
         scope: {
-            hideText: '<',
+            hideLink: '<',
             logPath: '<',
             wrapperViewLog: '<',
             wrapperDownloadLog: '<'
         },
         template: `
-            <a href data-ng-click="viewLog()" id="mylink">{{ linkText }}</a>
+            <a href data-ng-click="viewLog()" id="viewLogIframeLink">{{ linkText }}</a>
             <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -1907,15 +1907,13 @@ SIREPO.app.directive('viewLogIframe', function() {
         `,
         controller: function($scope) {
             function generateLinkText() {
-                if ($scope.hideText) {
+                if ($scope.hideLink) {
                     return '';
                 } else {
                     return 'View Log';
                 }
             }
             $scope.linkText = generateLinkText();
-            // TODO(rorour): rename wrapper functions
-            // TODO(rorour): format logPath div
             $scope.viewLog = function() {
                 $scope.wrapperViewLog((html) => {
                     $('#sr-text-iframe').attr("srcdoc", html);
