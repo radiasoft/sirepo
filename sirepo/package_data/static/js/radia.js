@@ -2411,28 +2411,28 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             parentController: '='
         },
         template: `
-            <div data-toolbar="toolbarSections" data-item-filter="itemFilter" data-parent-controller="parentController"></div>
+            <!--<div data-toolbar="toolbarSections" data-item-filter="itemFilter" data-parent-controller="parentController"></div>-->
             <div class="sr-object-table">
-              <p class="lead text-center"><small><em>use arrows to reorder {{ itemClass.toLowerCase() }}s</em></small></p>
-              <div style="overflow-y: scroll; overflow-x: hidden; height: 100px;">
-              <table class="table table-striped radia-table-hover" style="width: 100%; height: 15%; table-layout: fixed;">
-                <tr data-ng-repeat="item in loadItems()">
-                  <td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">
-                    <div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
-                    <div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="item">
-                      <a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item) }" href data-ng-click="selectItem(item)" data-ng-dblclick="editItem(item)">{{ itemName(item) }}</a>
-                    </div>
-                    <div data-ng-show="! isExpanded(item) && itemDetails(item)" style="margin-left: 3em; margin-right: 1em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ itemDetails(item) }}</div>
-                    <div data-ng-show="isExpanded(item) && itemDetails(item)" style="color: #777; margin-left: 3em; white-space: pre-wrap">{{ itemDetails(item) }}</div>
+              <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
+              <table class="table radia-table-hover" style="width: 100%; height: 15%; table-layout: fixed;">
+                <tr data-ng-repeat="item in loadItems() track by $index">
+                  <td><span data-toolbar-icon="" data-item="item"></span></td>
+                  <td data-ng-repeat="f in fieldInfo($index)">
+                    <div class="row" data-field-editor="f" data-field-size="8" data-label-size="" data-model-name="item.type" data-model="item"></div>
+                  </td>
+                  <td>
+                    <div class="sr-button-bar-parent pull-right">
+                      <div class="sr-button-bar">
+                        <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
                   </td>
                 </tr>
                 <tr>
                   <td>
                     <b>Add Transform</b>
-                      <select class="form-control" data-ng-model="selectedItem" data-ng-options="item[0] as item[1] for item in toolbarItems" data-ng-change="addItem()"></select>
+                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="item.title for item in toolbarItems" data-ng-change="addItem()">
+                    </select>
                   </td>
                </tr>
-                <!--<tr><td style="height: 3em; text-align: center; color: #aaaaaa;" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><em>*drop here*</em></td></tr>-->
               </table>
             </div>
             </div>
@@ -2466,19 +2466,14 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 return $scope.items.indexOf(data);
             }
 
-            $scope.addLayer = () => {
-                const m = appState.setModelDefaults({}, stringsService.lcfirst($scope.selectedLayer));
-                m.layer = $scope.selectedLayer;
-                neuralNet.push(m);
-                $scope.selectedLayer = '';
-            };
-
-            $scope.addItem = item => {
+            $scope.addItem = () => {
                 if (! $scope.selectedItem) {
                     return;
                 }
-
-                //$scope.editItem(item, true);
+                $scope.field.push(
+                    appState.setModelDefaults({}, $scope.selectedItem.model)
+                );
+                $scope.selectedItem = null;
             };
 
             $scope.deleteItem = item => {
@@ -2501,6 +2496,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     appState.models[item.model] = item;
                 }
                 panelState.showModalEditor(item.model);
+            };
+
+            $scope.fieldInfo = idx => {
+                if (! appState.isLoaded()) {
+                    return [];
+                }
+                return SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][$scope.field[idx].type];
             };
 
             $scope.dropItem = (index, data) => {

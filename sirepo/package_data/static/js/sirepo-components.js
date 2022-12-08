@@ -719,7 +719,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             <div data-ng-switch="info[1]">
               <div data-ng-switch-when="Integer" data-ng-class="fieldClass">
                 <input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
-            </div>
+              </div>
               <div data-ng-switch-when="Float" data-ng-class="fieldClass">
                 <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
                 <div class="sr-input-warning"></div>
@@ -3935,7 +3935,7 @@ SIREPO.app.directive('toolbarIcon', function() {
         scope: {
             item: '=',
         },
-        template: '<ng-include src="iconUrl()" onload="iconLoaded()"/>',
+        template: '<ng-include title="{{ item.title }}" src="iconUrl()" onload="iconLoaded()"/>',
         controller: function($scope, $element) {
             var adjustmentsByType = {
             };

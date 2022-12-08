@@ -40,12 +40,12 @@
                 "manualPath": ["ptX", "ptY", "ptZ"]
             },
             "transforms": {
-                "cloneTransform": ["name","numCopies", "transforms", "alternateFields"],
-                "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"],
-                "translate": ["name","distance"],
-                "rotate": ["name", "angle", "axis", "center", "useObjectCenter"],
-                "translateClone": ["name","distance"],
-                "rotateClone": ["name", "angle", "axis", "center", "useObjectCenter"]
+                "cloneTransform": ["numCopies", "transforms", "alternateFields"],
+                "symmetryTransform": ["symmetryPlane", "symmetryPoint", "symmetryType"],
+                "translate": ["distance"],
+                "rotate": ["angle", "axis", "center", "useObjectCenter"],
+                "translateClone": ["distance"],
+                "rotateClone": ["angle", "axis", "center", "useObjectCenter"]
             }
         },
         "fileTypeHM": "h-m",
@@ -461,7 +461,8 @@
             "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
-            "transforms": ["", "TransformTable", [], ""]
+            "transforms": ["", "TransformTable", [], ""],
+            "type": ["_", "TransformTypes", "cloneTransform"]
         },
         "dipoleBasic": {
             "_super": ["_", "model", "radiaObject"],
@@ -910,10 +911,12 @@
         "reset": {
         },
         "rotate": {
+            "_super": ["_", "model", "transform"],
             "angle": ["Angle [deg]", "Float", "0.0"],
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
             "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Rotate"],
+            "type": ["_", "TransformTypes", "rotate"],
             "useObjectCenter": ["Use object center as origin", "Boolean", "1"]
         },
         "rotateClone": {
@@ -979,7 +982,8 @@
             "name": ["Name", "String", "Symmetry"],
             "symmetryPlane": ["Symmetry Plane", "FloatArray", [1.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "symmetryPoint": ["Symmetry Point", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "symmetryType": ["Symmetry", "SymmetryType", "parallel"]
+            "symmetryType": ["Symmetry", "SymmetryType", "parallel"],
+            "type": ["_", "TransformTypes", "symmetryTransform"]
         },
         "tee": {
             "_super": ["_", "model", "stemmed"],
