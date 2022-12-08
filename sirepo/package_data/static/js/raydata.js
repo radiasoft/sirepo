@@ -330,7 +330,7 @@ SIREPO.app.directive('scansTable', function() {
               </div>
             </div>
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
-            <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
+            <div class="modal fade" id="{{ analysisModalId }}" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
@@ -366,6 +366,7 @@ SIREPO.app.directive('scansTable', function() {
             </div>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
+            $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
             // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
@@ -396,7 +397,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.showAnalysisOutputModal = () => {
-                const el = $('#sr-analysis-output');
+                const el = $('#' + $scope.analysisModalId);
                 el.modal('show');
                 el.on('hidden.bs.modal', function() {
                     $scope.setSelectedScan(null);
