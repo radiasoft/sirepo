@@ -832,7 +832,7 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
         );
     }
 
-    self.createActvaitSimulation = () => {
+    self.createActivaitSimulation = () => {
         requestSender.sendRequest(
             'newSimulation',
             simData => {
