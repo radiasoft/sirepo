@@ -1,5 +1,5 @@
 import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
-import { Routes, Route, Navigate, useRoutes, Outlet, Link, useResolvedPath, useParams } from "react-router-dom";
+import { Navigate, useRoutes, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarContainerId } from "../component/reusable/navbar";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
 import { useContext, useState } from "react";

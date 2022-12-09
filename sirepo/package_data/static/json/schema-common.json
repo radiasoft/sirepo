@@ -132,7 +132,6 @@
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "forbidden": "/forbidden",
         "notFound": "/not-found",
-        "getApplicationData": "/get-application-data/?<filename>",
         "getModerationRequestRows": "/get-moderation-request-rows",
         "homePage": "/en/*<path_info>",
         "importFile": "/import-file/<simulation_type>",
