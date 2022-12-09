@@ -1,6 +1,5 @@
 import React from "react";
-import { Dependency } from "../data/dependency";
-import { LayoutProps, LayoutType, Layout } from "./layout";
+import { LayoutProps, LayoutType } from "./layout";
 
 export function LayoutWithSpacing<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
     return class extends Child {

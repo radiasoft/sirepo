@@ -144,6 +144,11 @@ def get_rates(run_dir):
         # TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
         x_range=[],
         rate=[],
+        headings=[
+            "Horizontal",
+            "Vertical",
+            "Longitudinal",
+        ],
     )
     for l in pkio.read_text(f).split("\n"):
         m = re.match(r"^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)", l)
