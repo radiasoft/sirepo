@@ -2243,6 +2243,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
                     obj.center = ctr.map(x => x * invObjScale);
                     $scope.$emit('layout.object.dropped', obj);
+                    drawShapes();
                 }
             };
 
