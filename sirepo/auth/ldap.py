@@ -29,7 +29,6 @@ class API(sirepo.quest.API):
         ATTRIBUTES_TO_SEARCH = ["uid"]
 
         req = self.parse_post(type=False)
-        pkdp("req: {}", req.req_data.username)
 
         # initialize our connect to ldap-server
         connect = ldap.initialize(LDAP_SERVER)
