@@ -1,14 +1,21 @@
 import { ModelStates } from "../store/models";
 
+export type SrState = 'completed' | 'srException' | 'error' | 'running' | 'pending' | 'canceled' | 'missing';
+
+export type ResponseHasState = {
+    state: SrState,
+    [key: string]: any
+}
+
 export type BaseComputeParams = {
     pollInterval: number,
-    callback: (resp: any) => void
+    callback: (resp: ResponseHasState) => void
 }
 
 export function pollCompute({ doFetch, pollInterval, callback }: BaseComputeParams & { doFetch: () => Promise<Response> }) {
     let iterate = () => {
         doFetch().then(async (resp) => {
-            let respObj = await resp.json();
+            let respObj: ResponseHasState = await resp.json();
             let { state } = respObj;
 
             if (state === 'pending' || state === 'running') {
@@ -72,30 +79,22 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
             simulationId,
             simulationType: appName
         })
+    }).then(async (resp) => {
+        return await resp.json() as ResponseHasState
     });
 
-    let doPoll = (nextRequest) => fetch('/run-status', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            ...nextRequest
-        })
+    doFetch().then(resp => {
+        callback(resp);
+        pollRunStatus({
+            pollInterval,
+            callback,
+            simulationId,
+            models,
+            appName,
+            report,
+            forceRun
+        });
     });
-
-    let iterate = async (lastResp) => {
-        let respObj = await lastResp.json();
-        let { nextRequest, state } = respObj;
-
-        callback(respObj);
-
-        if (!state || state === 'pending' || state === 'running') {
-            setTimeout(() => doPoll(nextRequest).then(iterate), pollInterval);
-        }
-    }
-
-    doFetch().then(iterate);
 }
 
 export type CancelComputeParams = {
@@ -126,25 +125,44 @@ export type RunStatusParams = {
     models: ModelStates,
     simulationId: string,
     report: string,
-    callback: (resp: any) => void,
     forceRun: boolean
-}
+} & {[key: string]: any}
 
-export function runStatus({ appName, models, simulationId, report, callback, forceRun }: RunStatusParams) {
+export function getRunStatusOnce({ appName, ...otherParams }: RunStatusParams): Promise<ResponseHasState> {
     let doStatus = () => fetch('/run-status', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            models,
-            forceRun,
-            report,
-            simulationId,
-            simulationType: appName
+            simulationType: appName,
+            ...otherParams
         }),
     });
-    doStatus().then(async lastResp => callback(await lastResp.json()));
+
+    return new Promise<ResponseHasState>((resolve, reject) => {
+        doStatus().then(async lastResp => resolve(await lastResp.json()));
+    })
+    
+}
+
+export type RunStatusPollParams = {
+    callback: (simulationData: ResponseHasState) => void,
+    pollInterval: number
+} & RunStatusParams
+
+export function pollRunStatus({ callback, pollInterval, ...otherParams }: RunStatusPollParams) {
+    let iterate = (lastResp: ResponseHasState) => {
+        let { nextRequest, state } = lastResp;
+
+        callback(lastResp);
+
+        if (!state || state === 'pending' || state === 'running') {
+            setTimeout(() => getRunStatusOnce(nextRequest).then(iterate), pollInterval);
+        }
+    }
+
+    getRunStatusOnce(otherParams).then(iterate);
 }
 
 export function getSimulationFrame(frameId: string) {

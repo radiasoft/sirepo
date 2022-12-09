@@ -29,9 +29,9 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
     let zmin = Math.min(...zMatrix.map(row => Math.min(...row)));
     let zmax = Math.max(...zMatrix.map(row => Math.max(...row)));
 
-    console.log(`zmin: ${zmin}, zmax: ${zmax}`);
+    //console.log(`zmin: ${zmin}, zmax: ${zmax}`);
 
-    let scaleZScalar = (v) => (v - zmin) / zmax;
+    let scaleZScalar = (v) => (v - zmin) / (zmax - zmin);
 
     for (let yi = cacheCanvas.height - 1, p = -1; yi >= 0; --yi) {
         for (let xi = 0; xi < cacheCanvas.width; ++xi) {
