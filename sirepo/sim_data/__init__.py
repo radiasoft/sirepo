@@ -622,26 +622,6 @@ class SimDataBase(object):
     def sim_file_basenames(cls, data):
         return cls._sim_file_basenames(data)
 
-    # TODO(mvk):  use a server to provide access to sim db and library files
-    @classmethod
-    def _sim_file_to_other_sim_lib(
-        cls, sim_id, basename, other_sim_type, qcall=None, model_name=None, field=None
-    ):
-        cls._assert_server_side()
-        from sirepo import simulation_db
-
-        f = (
-            cls.lib_file_name_with_model_field(model_name, field, basename)
-            if model_name and field
-            else basename
-        )
-        t = simulation_db.simulation_lib_dir(other_sim_type, qcall=qcall).join(f)
-        r = _request(
-            "GET", _cfg.supervisor_sim_db_file_uri + cls._sim_file_uri(sim_id, basename)
-        )
-        r.raise_for_status()
-        t.write_binary(r.content)
-
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         for b in cls.sim_file_basenames(data):
@@ -870,6 +850,10 @@ class SimDataBase(object):
     @classmethod
     def _sim_file_basenames(cls, data):
         return []
+
+    @classmethod
+    def _sim_db_file_get(cls, uri):
+        return _request("GET", _cfg.supervisor_sim_db_file_uri + uri)
 
     @classmethod
     def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
