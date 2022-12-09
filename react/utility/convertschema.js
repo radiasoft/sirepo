@@ -37,7 +37,7 @@ function convertEnums(fileName) {
     for(let [enumName, allowedValues] of Object.entries(e)) {
         types[enumName] = {
             base: "Enum",
-            settings: {
+            config: {
                 allowedValues
             }
         }
@@ -93,5 +93,6 @@ function placeConfigInField(fileName) {
     fs.writeFileSync('new-' + fileName, JSON.stringify({ view: recur(fileJson.view) }));
 }
 
-placeConfigInField("jspec-schema.json");
-//convertModels("myapp.json");
+//placeConfigInField("jspec-schema.json");
+convertModels("warppba-schema.json");
+//convertEnums("warppba-schema.json");
