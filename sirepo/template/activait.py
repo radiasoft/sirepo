@@ -23,7 +23,6 @@ import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
 import urllib
-import math
 
 _CHUNK_SIZE = 1024 * 1024
 
