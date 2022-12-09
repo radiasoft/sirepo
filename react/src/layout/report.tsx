@@ -1,7 +1,7 @@
-import { useContext, useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
 import { LayoutProps, Layout } from "./layout";
-import { cancelReport, pollRunReport, ResponseHasState, SrState } from "../utility/compute";
+import { cancelReport, pollRunReport, ResponseHasState } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from "react-redux";
 import { ProgressBar, Stack, Button } from "react-bootstrap";
@@ -73,7 +73,6 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
                     models,
                     simulationId,
                     report: report,
-                    pollInterval: 2000,
                     forceRun: false,
                     callback: (simulationData) => {
                         // guard concurrency

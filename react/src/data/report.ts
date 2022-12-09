@@ -87,7 +87,6 @@ export class ReportEventManager {
             models,
             simulationId,
             report,
-            pollInterval: 500,
             forceRun: true,
             callback: (simulationData) => {
                 this.handleSimulationData(report, simulationData);

@@ -8,18 +8,17 @@ export type ResponseHasState = {
 }
 
 export type BaseComputeParams = {
-    pollInterval: number,
     callback: (resp: ResponseHasState) => void
 }
 
-export function pollCompute({ doFetch, pollInterval, callback }: BaseComputeParams & { doFetch: () => Promise<Response> }) {
+export function pollCompute({ doFetch, callback }: BaseComputeParams & { doFetch: () => Promise<Response> }) {
     let iterate = () => {
         doFetch().then(async (resp) => {
             let respObj: ResponseHasState = await resp.json();
             let { state } = respObj;
 
             if (state === 'pending' || state === 'running') {
-                setTimeout(iterate, pollInterval);
+                setTimeout(iterate, respObj.nextRequestSeconds * 1000);
             }
 
             callback(respObj);
@@ -34,7 +33,7 @@ export type StatefulComputeParams = {
     appName: string
 } & BaseComputeParams
 
-export function pollStatefulCompute({ pollInterval, method, simulationId, appName, callback }: StatefulComputeParams & { method: string }) {
+export function pollStatefulCompute({ method, simulationId, appName, callback }: StatefulComputeParams & { method: string }) {
     let doFetch = () => fetch('/stateful-compute', {
         method: 'POST',
         headers: {
@@ -49,7 +48,6 @@ export function pollStatefulCompute({ pollInterval, method, simulationId, appNam
 
     pollCompute({
         doFetch,
-        pollInterval,
         callback: (respObj) => {
             let { state } = respObj;
 
@@ -66,7 +64,7 @@ export type ReportComputeParams = {
     report: string
 } & StatefulComputeParams
 
-export function pollRunReport({ appName, models, simulationId, report, pollInterval, callback, forceRun }: ReportComputeParams) {
+export function pollRunReport({ appName, models, simulationId, report, callback, forceRun }: ReportComputeParams) {
     let doFetch = () => fetch('/run-simulation', {
         method: 'POST',
         headers: {
@@ -86,7 +84,6 @@ export function pollRunReport({ appName, models, simulationId, report, pollInter
     doFetch().then(resp => {
         callback(resp);
         pollRunStatus({
-            pollInterval,
             callback,
             simulationId,
             models,
@@ -148,17 +145,16 @@ export function getRunStatusOnce({ appName, ...otherParams }: RunStatusParams): 
 
 export type RunStatusPollParams = {
     callback: (simulationData: ResponseHasState) => void,
-    pollInterval: number
 } & RunStatusParams
 
-export function pollRunStatus({ callback, pollInterval, ...otherParams }: RunStatusPollParams) {
+export function pollRunStatus({ callback, ...otherParams }: RunStatusPollParams) {
     let iterate = (lastResp: ResponseHasState) => {
-        let { nextRequest, state } = lastResp;
+        let { nextRequest, state, nextRequestSeconds } = lastResp;
 
         callback(lastResp);
 
         if (!state || state === 'pending' || state === 'running') {
-            setTimeout(() => getRunStatusOnce(nextRequest).then(iterate), pollInterval);
+            setTimeout(() => getRunStatusOnce(nextRequest).then(iterate), nextRequestSeconds * 1000);
         }
     }
 

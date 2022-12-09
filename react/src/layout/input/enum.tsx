@@ -77,7 +77,6 @@ export class ComputeResultEnumInputLayout extends InputLayout<ComputeResultEnumC
             let enumOptionsPromise = new Promise((resolve, reject) => {
                 simulationInfoPromise.then(({simulationId, version}) => {
                     pollStatefulCompute({
-                        pollInterval: 500,
                         method: this.config.computeMethod,
                         appName,
                         simulationId,
