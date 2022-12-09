@@ -11,9 +11,8 @@ import { InputLayout } from "../layout/input/input";
 
 
 export let formStateFromModel = (model: ModelState, modelSchema: SchemaModel) => mapProperties(modelSchema, (fieldName, { type }) => {
-    const valid = type.validate(model[fieldName])
     return {
-        valid: valid,
+        valid: type.validate(model[fieldName]),
         value: type.fromModelValue(model[fieldName]),
         touched: false,
         active: true
@@ -45,12 +44,11 @@ export class FormController {
     }
 
     saveToModels = () => {
-        let fv = this.formStatesAccessor.getValues();
+        let f = this.formStatesAccessor.getValues();
         this.formStatesAccessor.getModelNames().map(mn => {
-            let modelValues = fv.filter(v => v.dependency.modelName == mn)
             return {
                 modelName: mn,
-                changes: Object.fromEntries(modelValues.map(mv => {
+                changes: Object.fromEntries(f.filter(v => v.dependency.modelName == mn).map(mv => {
                     let modelSchema = this.schema.models[mn];
                     let v = modelSchema[mv.dependency.fieldName].type.toModelValue(mv.value.value);
                     return [
@@ -60,16 +58,16 @@ export class FormController {
                 }))
             }
         }).forEach(modelChanges => {
-            let modelValue = this.modelStatesAccessor.getModelValue(modelChanges.modelName);
-            modelValue = {...modelValue}; //copy
-            Object.assign(modelValue, modelChanges.changes);
+            let m = this.modelStatesAccessor.getModelValue(modelChanges.modelName);
+            m = {...m}; //copy
+            Object.assign(m, modelChanges.changes);
 
-            console.log("submitting value ", modelValue, " to ", modelChanges.modelName);
-            this.modelsWrapper.updateModel(modelChanges.modelName, modelValue);
+            console.log("submitting value ", m, " to ", modelChanges.modelName);
+            this.modelsWrapper.updateModel(modelChanges.modelName, m);
             // this should make sure that if any part of the reducers are inconsistent / cause mutations
             // then the form state should remain consistent with saved model copy
             // TODO: this line has been changed with recent update, evaluate
-            this.formStatesWrapper.updateModel(modelChanges.modelName, formStateFromModel(modelValue, this.schema.models[modelChanges.modelName]))
+            this.formStatesWrapper.updateModel(modelChanges.modelName, formStateFromModel(m, this.schema.models[modelChanges.modelName]))
         })
     }
 
@@ -87,9 +85,9 @@ export class FormController {
 
     cancelChanges = () => {
         this.formStatesAccessor.modelNames.map(modelName => {
-            let mv = this.modelStatesAccessor.getModelValue(modelName);
-            let ms = this.schema.models[modelName];
-            this.formStatesWrapper.updateModel(modelName, formStateFromModel(mv, ms));
+            this.formStatesWrapper.updateModel(modelName, formStateFromModel(
+                this.modelStatesAccessor.getModelValue(modelName), 
+                this.schema.models[modelName]));
         });
     }
 

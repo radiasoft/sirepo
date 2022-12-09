@@ -1,6 +1,6 @@
 import React from "react";
 import { Graph2d, Graph2dConfig } from "../../component/reusable/graph2d";
-import { LayoutProps, Layout } from "../layout";
+import { LayoutProps } from "../layout";
 import { ReportVisual, ReportVisualProps } from "../report";
 
 export type Graph2dPlotApi = {

@@ -135,6 +135,10 @@ export type FieldListConfig = {
 }
 
 export class FieldListLayout extends Layout<FieldListConfig, {}> {
+    constructor(config: FieldListConfig) {
+        super(config);
+    }
+
     getFormDependencies = () => {
         return (this.config.fields || []).map(f => new Dependency(f));
     }
