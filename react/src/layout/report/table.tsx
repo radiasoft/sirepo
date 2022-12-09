@@ -17,7 +17,7 @@ function apiResponseToTableConfig(apiResponse: any, attributeName: string): Tabl
     }
 
     let rowNames = [];
-    let columnNames = [];
+    let columnNames = apiResponse.headings ? apiResponse.headings.slice() : [];
     let rows = [];
 
     for(let [rowName, row] of data) {
