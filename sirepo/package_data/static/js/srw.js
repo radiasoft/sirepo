@@ -836,7 +836,7 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
         requestSender.sendRequest(
             'newSimulation',
             simData => {
-                simData.models.dataFile.file = self.resultsFile;
+                simData.models.dataFile.file = `srw-${appState.models.simulation.simulationId}-${self.resultsFile}`;
                 simData.models.simulation.notes = 'rsopt results from SRW';
                 requestSender.sendRequest(
                     'saveSimulationData',

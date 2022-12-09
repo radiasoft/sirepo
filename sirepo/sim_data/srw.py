@@ -353,15 +353,17 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._assert_server_side()
         from sirepo import simulation_db
 
+        t_basename = f"{cls.sim_type()}-{sim_id}-{basename}"
         f = (
-            cls.lib_file_name_with_model_field(model_name, field, basename)
+            cls.lib_file_name_with_model_field(model_name, field, t_basename)
             if model_name and field
-            else basename
+            else t_basename
         )
         t = simulation_db.simulation_lib_dir(other_sim_type, qcall=qcall).join(f)
-        r = cls._sim_db_file_get(cls._sim_file_uri(sim_id, basename))
-        r.raise_for_status()
-        t.write_binary(r.content)
+        s = simulation_db.simulation_dir(cls.sim_type(), sid=sim_id, qcall=qcall).join(
+            basename
+        )
+        s.copy(t)
 
     @classmethod
     def srw_compute_crystal_grazing_angle(cls, model):
