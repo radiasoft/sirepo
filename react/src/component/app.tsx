@@ -4,7 +4,7 @@ import { modelsSlice } from "../store/models";
 import { formStatesSlice } from "../store/formState";
 import { useSetup } from "../hook/setup";
 import { Provider } from "react-redux";
-import { SimulationBrowserRoot } from "../component/simbrowser";
+import { SimulationBrowserRoot } from "./simbrowser";
 import "./app.scss";
 import { AppWrapper, CAppName, CSchema, CSimulationList } from "../data/appwrapper";
 
@@ -20,8 +20,8 @@ export const AppRoot = (props) => {
     let appWrapper = new AppWrapper(appName);
 
     const [hasAppSchema, schema] = useSetup(true, appWrapper.getSchema());
-    const [hasMadeHomepageRequest] = useSetup(true, appWrapper.doGuestLogin());
-    const [hasSimulationList, simulationList] = useSetup(hasMadeHomepageRequest, appWrapper.getSimulationList());
+    //const [hasMadeHomepageRequest] = useSetup(true, appWrapper.doGuestLogin());
+    
 
     if(hasAppSchema && hasMadeHomepageRequest && hasSimulationList) {
         return (
@@ -34,4 +34,8 @@ export const AppRoot = (props) => {
             </Provider>
         )
     }
+}
+
+export const SimulationListInitializer = (props) => {
+    const [hasSimulationList, simulationList] = useSetup(hasMadeHomepageRequest, appWrapper.getSimulationList());
 }

@@ -20,6 +20,11 @@ export type SimulationListItem = {
     simulation: ApiSimulation
 }
 
+export type LoginStatus = {
+    isLoggedIn: boolean,
+    loginRedirect?: string
+}
+
 export const CSimulationList = React.createContext<SimulationListItem[]>(undefined);
 export const CSimulationInfoPromise = React.createContext<Promise<any>>(undefined);
 export const CAppName = React.createContext<string>(undefined);
@@ -28,6 +33,10 @@ export const CSchema = React.createContext<Schema>(undefined);
 export class AppWrapper {
     constructor(private appName: string) {
 
+    }
+
+    getAppRootLink: () => string = () => {
+        return `/react/${this.appName}`;
     }
 
     getSchema = (): Promise<Schema> => {
@@ -47,7 +56,7 @@ export class AppWrapper {
         })
     }
 
-    getSimulationList = (): Promise<SimulationListItem[]> => {
+    private simulationListPromise: () => Promise<Response> = () => {
         return new Promise((resolve, reject) => {
             fetch('/simulation-list', {
                 method: 'POST',
@@ -58,8 +67,34 @@ export class AppWrapper {
                     simulationType: this.appName
                 })
             }).then(async (resp) => {
+                resolve(resp);
+            })
+        })
+    }
+
+    getSimulationList = (): Promise<SimulationListItem[]> => {
+        return new Promise((resolve, reject) => {
+            this.simulationListPromise().then(async (resp) => {
                 let simulationList = await resp.json() as SimulationListItem[];
                 resolve(simulationList);
+            })
+        })
+    }
+
+    // TODO @garsuga: this should be its own api call, http errors should be used to signal login missing
+    getIsLoggedIn: () => Promise<LoginStatus> = () => {
+        return new Promise((resolve, reject) => {
+            this.simulationListPromise().then(async (resp) => {
+                let r = await resp.json();
+                if(r.state) {
+                    if(r.state === "srException") {
+                        resolve({ isLoggedIn: false, loginRedirect: r.srException.routeName })
+                    } else {
+                        throw new Error(`unknown state=${JSON.stringify(r.state)} in simulation list response=${JSON.stringify(r)}`);
+                    }
+                } else {
+                    resolve({ isLoggedIn: true });
+                }
             })
         })
     }
