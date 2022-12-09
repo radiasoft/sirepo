@@ -399,6 +399,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span><FontAwesomeIcon fixedWidth icon={Icon.faHourglass}/>{` Pending...`}</span>
+                                <ProgressBar animated now={100}/>
                                 {endSimulationButton}
                             </Stack>
                         )
@@ -406,7 +407,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span>{`Running`}</span>
-                                <ProgressBar animated now={(simState.percentComplete !== undefined) ? simState.percentComplete : 0}></ProgressBar>
+                                <ProgressBar animated now={Math.max((simState.percentComplete !== undefined) ? simState.percentComplete : 100, 5)}/>
                                 {endSimulationButton}
                             </Stack>
                         )
