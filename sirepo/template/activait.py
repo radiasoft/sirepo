@@ -12,14 +12,12 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
-from h5imagegenerator import HDF5ImageGenerator
 import csv
 import h5py
 import numpy
 import os
 import re
 import pandas
-import keras
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
@@ -69,45 +67,6 @@ _REPORTS = [
     "partitionColumnReport",
     "partitionSelectionReport",
 ] + _SIM_REPORTS
-
-
-class SirepoHDF5Sequence(keras.utils.Sequence):
-    def __init__(
-        self,
-        filename,
-        # contains key, domain
-        x,
-        y,
-        indices,
-        batch_size,
-    ):
-        self.filename = filename
-        self.x = x
-        self.y = y
-        self.indices = indices
-        self.batch_size = batch_size
-
-    def __len__(self):
-        return math.ceil(len(self.indices) / self.batch_size)
-
-    def _scale(self, domain, values):
-        if not domain:
-            return values
-        d = domain[1] - domain[0]
-        return (values - domain[0]) / d
-
-    def __getitem__(self, idx):
-        indices = numpy.sort(
-            self.indices[idx * self.batch_size : (idx + 1) * self.batch_size]
-        )
-        with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
-            x = f[self.x.key][indices]
-            y = f[self.y.key][indices]
-            assert x.any() and y.any()
-            return self._scale(self.x.domain, x), self._scale(self.y.domain, y)
-
-    def on_epoch_end(self):
-        numpy.random.shuffle(self.indices)
 
 
 def background_percent_complete(report, run_dir, is_running):
