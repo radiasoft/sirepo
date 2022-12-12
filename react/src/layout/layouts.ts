@@ -11,6 +11,7 @@ import { TableFromApi } from "./report/table";
 import { LayoutWithDownloadButton } from "./download";
 import { LayoutType, Layout } from "./layout";
 import { SchemaLayout } from "../utility/schema";
+import { TextLayout } from "./text";
 
 
 // TODO rename to LayoutsWrapper
@@ -27,7 +28,8 @@ class LayoutWrapper {
         heatplot: LayoutWithDownloadButton(HeatplotFromApi),
         navTabs: NavTabsLayout,
         table: TableFromApi,
-        startSimulation: SimulationStartLayout
+        startSimulation: SimulationStartLayout,
+        text: TextLayout
     }
 
     constructor () {

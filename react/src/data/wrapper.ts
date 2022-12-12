@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { AnyAction } from "redux";
 import { FormActions, FormFieldState, FormModelState, FormSelectors } from "../store/formState";
 import { ModelActions, ModelSelectors, ModelState } from "../store/models";
-import { Schema } from "../utility/schema";
 
 export abstract class AbstractModelsWrapper<M, F> {
     abstract getModel(modelName: string, state: any): M;
@@ -44,7 +43,7 @@ export class FormStateWrapper extends AbstractModelsWrapper<FormModelState, Form
     }
 
     override updateModel = (modelName: string, value: any) => {
-        console.log("dispatching update form to ", modelName, " changing to value ", value);
+        //console.log("dispatching update form to ", modelName, " changing to value ", value);
         this.dispatch(this.formActions.updateFormState({
             name: modelName,
             value
@@ -52,12 +51,19 @@ export class FormStateWrapper extends AbstractModelsWrapper<FormModelState, Form
     }
 
     override hookModel = (modelName: string) => {
-        let selectFn = useSelector;
-        return selectFn(this.formSelectors.selectFormState(modelName));
+        let m = useSelector(this.formSelectors.selectFormState(modelName));
+        if(m === undefined || m === null) {
+            throw new Error("model could not be hooked because it was not found: " + modelName);
+        }
+        return m;
     }
 
     getFieldFromModel(fieldName: string, model: FormModelState): FormFieldState<unknown> {
-        return model[fieldName];
+        let fv = model[fieldName];
+        if(fv === undefined || fv === null) {
+            throw new Error(`field could not be found in model state: ${fieldName}, ${JSON.stringify(model)}`)
+        }
+        return fv;
     }
 
     setFieldInModel(fieldName: string, model: FormModelState, value: FormFieldState<unknown>): FormModelState {
@@ -86,7 +92,7 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
     }
 
     updateModel = (modelName: string, value: ModelState) => {
-        console.log("dispatching update to ", modelName, " changing to value ", value);
+        //console.log("dispatching update to ", modelName, " changing to value ", value);
         this.dispatch(this.modelActions.updateModel({
             name: modelName,
             value
@@ -94,13 +100,21 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
     }
 
     hookModel = (modelName: string) => {
-        let selectFn = useSelector;
-        return selectFn(this.modelSelectors.selectModel(modelName));
+        let m = useSelector(this.modelSelectors.selectModel(modelName));
+        if(m === undefined || m === null) {
+            throw new Error("model could not be hooked because it was not found: " + modelName);
+        }
+        return m;
     }
 
     getFieldFromModel(fieldName: string, model: ModelState): unknown {
-        return model[fieldName];
+        let fv = model[fieldName];
+        if(fv === undefined || fv === null) {
+            throw new Error(`field could not be found in model state: ${fieldName}, ${JSON.stringify(model)}`)
+        }
+        return fv;
     }
+
     setFieldInModel(fieldName: string, model: ModelState, value: unknown): ModelState {
         let m = {...model};
         m[fieldName] = value;
@@ -108,7 +122,7 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
     }
 
     saveToServer = (simulationInfo: any, modelNames: string[], state: any) => {
-        let models = modelNames.map(mn => this.getModel(mn, state));
+        let models = Object.fromEntries(modelNames.map(mn => [mn, this.getModel(mn, state)]));
         simulationInfo.models = models;
         fetch("/save-simulation", {
             method: 'POST',
