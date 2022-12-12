@@ -1,14 +1,14 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { Dependency } from "../data/dependency";
 import { LayoutProps, Layout } from "./layout";
-import { cancelReport, pollRunReport } from "../utility/compute";
+import { cancelReport, pollRunReport, ResponseHasState } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from "react-redux";
 import { ProgressBar, Stack, Button } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useStopwatch } from "../hook/stopwatch";
-import { AnimationReader, CReportEventManager } from "../data/report";
+import { AnimationReader, CReportEventManager, SimulationFrame } from "../data/report";
 import { useShown } from "../hook/shown";
 import React from "react";
 import { CPanelController } from "../data/panel";
@@ -73,7 +73,6 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
                     models,
                     simulationId,
                     report: report,
-                    pollInterval: 500,
                     forceRun: false,
                     callback: (simulationData) => {
                         // guard concurrency
@@ -140,39 +139,53 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
 
         let frameIdAccessor = new ModelsAccessor(modelsWrapper, frameIdDependencies);
 
-        let [animationReader, updateAnimationReader] = useState(undefined);
+        let [animationReader, updateAnimationReader] = useState<AnimationReader>(undefined);
 
         useEffect(() => {
             panelController.setShown(false);
         }, [0])
 
         useEffect(() => {
-            let reportEventsVersion = uuidv4();
-            reportEventsVersionRef.current = reportEventsVersion;
-
-            reportEventManager.onReportData(reportGroupName, (simulationData) => {
-                if(reportEventsVersionRef.current !== reportEventsVersion) {
-                    return; // guard against concurrency with older versions
-                }
-
-                let { state } = simulationData;
-                if(state === "completed") {
+            reportEventManager.addListener(reportEventsVersionRef.current, reportGroupName, {
+                onStart: () => {
+                    updateAnimationReader(undefined);
+                    panelController.setShown(false);
+                },
+                onReportData: (simulationData: ResponseHasState) => {
                     simulationInfoPromise.then(({simulationId}) => {
                         let { computeJobHash, computeJobSerial } = simulationData;
-                        let frameCount = !!frameCountFieldName ? simulationData[frameCountFieldName] : 1;
-                        let animationReader = new AnimationReader({
-                            reportName,
-                            simulationId,
-                            appName,
-                            computeJobSerial,
-                            computeJobHash,
-                            frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
-                            frameCount
-                        })
-                        updateAnimationReader(animationReader);
+                        let frameCount = frameCountFieldName ? simulationData[frameCountFieldName] : (simulationData.state === 'completed' ? 1 : 0);
+                        if(frameCount !== animationReader?.frameCount) {
+                            if(frameCount > 0) {
+                                let newAnimationReader = new AnimationReader({
+                                    reportName,
+                                    simulationId,
+                                    appName,
+                                    computeJobSerial,
+                                    computeJobHash,
+                                    frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
+                                    frameCount
+                                })
+
+                                /*// if the reader is at the old end or was not previously defined
+                                if(!animationReader || animationReader.nextFrameIndex >= animationReader.frameCount - 1) {
+                                    // seek end
+                                    console.log("seeking end");
+                                    newAnimationReader.seekEnd();
+                                } else {
+                                    console.log(`seeking same; next=${animationReader.nextFrameIndex} oldcount=${animationReader.frameCount} newcount=${newAnimationReader.frameCount}`);
+                                    newAnimationReader.seekFrame(animationReader.nextFrameIndex);
+                                }*/
+                                
+                                updateAnimationReader(newAnimationReader);
+                            } else {
+                                updateAnimationReader(undefined);
+                            }
+                        }
                     })
                 }
             })
+            return () => reportEventManager.clearListenersForKey(reportEventsVersionRef.current);
         })
 
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
@@ -189,21 +202,20 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
 
     let panelController = useContext(CPanelController);
 
-    let [currentReportData, updateCurrentReportData] = useState(undefined);
+    let [currentFrame, updateCurrentFrame] = useState<SimulationFrame>(undefined);
 
-    let reportDataCallback = (simulationData) => updateCurrentReportData(simulationData);
+    let reportDataCallback = (simulationData) => updateCurrentFrame(simulationData);
     let presentationIntervalMs = 1000;
 
     useEffect(() => {
-        if(currentReportData === undefined) {
-            animationReader.getNextFrame().then(reportDataCallback);
-        }
-    }, [0])
+        animationReader.seekEnd();
+        animationReader.getNextFrame().then(reportDataCallback);
+    }, [animationReader?.frameCount])
 
     useEffect(() => {
-        let s = shown && !!currentReportData && reportLayout.canShow(currentReportData);
+        let s = animationReader && animationReader.frameCount > 0 && shown && !!currentFrame && reportLayout.canShow(currentFrame?.data);
         panelController.setShown(s);
-    }, [shown, !!currentReportData])
+    }, [shown, !!currentFrame, animationReader?.frameCount])
 
     let animationControlButtons = (
         <div className="d-flex flex-row justify-content-center w-100">
@@ -243,13 +255,13 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
     )
 
     let LayoutComponent = reportLayout.component;
-    let canShowReport = reportLayout.canShow(currentReportData);
-    let reportLayoutConfig = reportLayout.getConfigFromApiResponse(currentReportData);
+    let canShowReport = reportLayout.canShow(currentFrame?.data);
+    let reportLayoutConfig = reportLayout.getConfigFromApiResponse(currentFrame?.data);
 
     return (
         <>
             {
-                canShowReport && shown && currentReportData && (
+                canShowReport && shown && currentFrame && (
                     <>
                         <LayoutComponent data={reportLayoutConfig}/>
                         {animationReader.getFrameCount() > 1 && animationControlButtons}
@@ -291,46 +303,60 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
         let store = useStore();
 
 
-        let [lastSimulationData, updateLastSimulationData] = useState(undefined);
+        let [lastSimState, updateSimState] = useState<ResponseHasState>(undefined);
         let stopwatch = useStopwatch();
 
         let simulationPollingVersionRef = useRef(uuidv4())
 
+        let listenForReportData = () => {
+            reportEventManager.addListener(simulationPollingVersionRef.current, reportGroupName, {
+                onStart: () => {
+                    updateSimState(undefined);
+                    stopwatch.reset();
+                    stopwatch.start();
+                },
+                onReportData: (simulationData: ResponseHasState) => {
+                    updateSimState(simulationData);
+                },
+                onComplete: () => {
+                    stopwatch.stop();
+                }
+            })
+        }
 
         useEffect(() => {
-            simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-
-                simulationInfoPromise.then(({simulationId}) => {
-                    reportEventManager.runStatus({
-                        appName,
-                        models: getModelValues(modelNames, modelsWrapper, store.getState()),
-                        simulationId,
-                        report: reportGroupName,
-                        callback: (simulationData) => {
-                            if (simulationData.state === 'completed') {
-                                stopwatch.setElapsedSeconds(simulationData.elapsedTime);
-                                updateLastSimulationData(simulationData);
-                            }
-                        }
-                    })
+            // recover from previous runs on server
+            simulationInfoPromise.then(({simulationId}) => {
+                let models = getModelValues(modelNames, modelsWrapper, store.getState());
+                reportEventManager.getRunStatusOnce({
+                    appName,
+                    models,
+                    simulationId,
+                    report: reportGroupName
+                }).then(simulationData => {
+                    // catch running reports after page refresh
+                    updateSimState(simulationData);
+                    if (simulationData.state === 'running') {
+                        listenForReportData();
+                        reportEventManager.pollRunStatus({
+                            appName,
+                            models,
+                            simulationId,
+                            report: reportGroupName
+                        })
+                    }
+                    if (simulationData.elapsedTime) {
+                        stopwatch.setElapsedSeconds(simulationData.elapsedTime);
+                    }
                 })
-            });
+            })
+
+            return () => reportEventManager.clearListenersForKey(simulationPollingVersionRef.current);
         }, []);
 
 
         let startSimulation = () => {
-            updateLastSimulationData(undefined);
-            stopwatch.reset();
-            stopwatch.start();
-            let pollingVersion = uuidv4();
-            simulationPollingVersionRef.current = pollingVersion;
-
-            reportEventManager.onReportData(reportGroupName, (simulationData) => {
-                if(simulationPollingVersionRef.current === pollingVersion) {
-                    updateLastSimulationData(simulationData);
-                    stopwatch.stop();
-                }
-            })
+            listenForReportData();
 
             simulationInfoPromise.then(({simulationId}) => {
                 reportEventManager.startReport({
@@ -343,7 +369,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
         }
 
         let endSimulation = () => {
-            updateLastSimulationData(undefined);
+            updateSimState(undefined);
             stopwatch.reset();
             simulationPollingVersionRef.current = uuidv4();
 
@@ -365,16 +391,15 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
             return <Component></Component>
         });
 
-        if(lastSimulationData) {
-            let { state } = lastSimulationData;
+        if(lastSimState) {
             let elapsedTimeSeconds = stopwatch.isComplete() ? Math.ceil(stopwatch.getElapsedSeconds()) : undefined;
-            let getStateBasedElement = (state) => {
-
-                switch(state) {
+            let getStateBasedElement = (simState: ResponseHasState) => {
+                switch(simState.state) {
                     case 'pending':
                         return (
                             <Stack gap={2}>
                                 <span><FontAwesomeIcon fixedWidth icon={Icon.faHourglass}/>{` Pending...`}</span>
+                                <ProgressBar animated now={100}/>
                                 {endSimulationButton}
                             </Stack>
                         )
@@ -382,7 +407,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span>{`Running`}</span>
-                                <ProgressBar animated now={100}></ProgressBar>
+                                <ProgressBar animated now={Math.max((simState.percentComplete !== undefined) ? simState.percentComplete : 100, 5)}/>
                                 {endSimulationButton}
                             </Stack>
                         )
@@ -395,7 +420,16 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                                 {startSimulationButton}
                             </Stack>
                         )
+                    case 'canceled':
+                        return (
+                            <Stack gap={2}>
+                                <span>{'Simulation Canceled'}</span>
+                                <div>{children}</div>
+                                {startSimulationButton}
+                            </Stack>
+                        )
                     case 'error':
+                    case 'srException':
                         return (
                             <Stack gap={2}>
                                 <span>{'Simulation Error'}</span>
@@ -404,12 +438,14 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                                 {startSimulationButton}
                             </Stack>
                         )
+                    case 'missing':
+                        return <>{startSimulationButton}</>
                 }
-                throw new Error("state was not handled for run-status: " + state);
+                throw new Error(`state was not handled for run-status: ${simState.state}`);
             }
 
             return (
-                <>{getStateBasedElement(state)}</>
+                <>{getStateBasedElement(lastSimState)}</>
             )
         }
         return (<>
