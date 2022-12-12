@@ -325,6 +325,10 @@ def stateful_compute_sample_images(data):
         f.close()
         return u
 
+    def _image_grid(num_images):
+        num_pages = min(5, 1 + (num_images - 1) // 25)
+        return [min(25, num_images - 25 * i) for i in range(num_pages)]
+
     # go through columnInfo, find first multidimensional col
     # take first dimension size and look for other columns with that single dimension
     io = PKDict()
@@ -355,10 +359,12 @@ def stateful_compute_sample_images(data):
         x = f[io.input.path]
         y = f[io.output.path]
         u = []
-        for i in range(0, 125, 25):
+        k = 0
+        g = _image_grid(len(x))
+        for i in g:
             plt.figure(figsize=[10, 10])
-            for j in range(25):
-                v = x[i + j]
+            for j in range(i):
+                v = x[k + j]
                 if io.input.kind == "f":
                     v = v.astype(float)
                 plt.subplot(5, 5, j + 1)
@@ -369,20 +375,24 @@ def stateful_compute_sample_images(data):
                 if len(f[io.output.path].shape) == 1:
                     if "label_path" in io.output:
                         plt.xlabel(
-                            pkcompat.from_bytes(f[io.output.label_path][y[i + j]])
+                            pkcompat.from_bytes(f[io.output.label_path][y[k + j]])
                         )
                     else:
-                        plt.xlabel(y[i + j])
+                        plt.xlabel(y[k + j])
                 else:
-                    plt.xlabel("\n".join([str(l) for l in y[i + j]]))
+                    plt.xlabel("\n".join([str(l) for l in y[k + j]]))
             p = (
                 _SIM_DATA.lib_file_write_path(data.args.imageFilename)
-                + f"_{int(i/25)}.png"
+                + f"_{int(k/25)}.png"
             )
             plt.tight_layout()
             plt.savefig(p)
             u.append(_data_url(p))
-        return PKDict(uris=u)
+            k += i
+        return PKDict(
+            numPages=len(g),
+            uris=u,
+        )
 
 
 def stateless_compute_get_remote_data(data):
