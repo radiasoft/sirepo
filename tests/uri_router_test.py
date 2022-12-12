@@ -18,7 +18,7 @@ def test_error_for_bots(fc):
     from sirepo import http_request
 
     fc.sr_login_as_guest()
-    uri = "/get-application-data"
+    uri = "/stateless-compute"
     d = PKDict(simulationType="srw", method="NO SUCH METHOD")
 
     # "Real" browsers get redirected to an error page with a 200 status

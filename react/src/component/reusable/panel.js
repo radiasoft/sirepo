@@ -13,7 +13,7 @@ import { CPanelController } from "../../data/panel"
 import { PanelController } from "../../data/panel";
 
 export function Panel(props) {
-    let { title, buttons, panelBodyShown, ...otherProps } = props;
+    let { title, buttons, panelBodyShown } = props;
 
     let [panelButtonsId] = useState(() => uuidv4());
 
@@ -48,7 +48,7 @@ export function Panel(props) {
 }
 
 export function ViewPanelActionButtons(props) {
-    let { canSave, onSave, onCancel, ...otherProps } = props;
+    let { canSave, onSave, onCancel } = props;
     return (
         <Col className="text-center sr-form-action-buttons" sm={12}>
             <Button onClick={onSave} disabled={!canSave} variant="primary">Save Changes</Button>

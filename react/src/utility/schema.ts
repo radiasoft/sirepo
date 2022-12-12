@@ -53,16 +53,23 @@ export type Schema = {
     views: SchemaLayout[]
 }
 
-export function mergeSchemaJson(original, overrides) {
+export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): SchemaJson {
+    let model = {...original.model};
+
+    for(let [modelName, schemaModel] of Object.entries(overrides.model)) {
+        let original = model[modelName] || {};
+        model[modelName] = {
+            ...original,
+            ...schemaModel
+        }
+    }
+
     return {
         view: [
             ...(original.view || []),
             ...(overrides.view || [])
         ],
-        model: {
-            ...(original.model || {}),
-            ...(overrides.model || {})
-        },
+        model,
         type: {
             ...(original.type || {}),
             ...(overrides.type || {})
