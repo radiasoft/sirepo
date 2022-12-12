@@ -1,7 +1,7 @@
 import React from "react"
 import { Route, Routes } from "react-router"
 
-export const LoginWrapper = (props) => {
+export const LoginRouter = (props) => {
     return (
         <Routes>
             <Route path="/login/*" element={<LoginRoot/>}/>
@@ -11,5 +11,7 @@ export const LoginWrapper = (props) => {
 }
 
 export const LoginRoot = (props) => {
-    return 
+    return (
+        <>LOGIN TEST</>
+    )
 }

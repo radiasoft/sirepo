@@ -7,6 +7,8 @@ import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "./simbrowser";
 import "./app.scss";
 import { AppWrapper, CAppName, CSchema, CSimulationList } from "../data/appwrapper";
+import { LoginRouter } from "./login";
+import { Navigate } from "react-router";
 
 export const AppRoot = (props) => {
     const formStateStore = configureStore({
@@ -16,26 +18,47 @@ export const AppRoot = (props) => {
         },
     });
     let appName = useContext(CAppName);
-
     let appWrapper = new AppWrapper(appName);
 
     const [hasAppSchema, schema] = useSetup(true, appWrapper.getSchema());
     //const [hasMadeHomepageRequest] = useSetup(true, appWrapper.doGuestLogin());
-    
+    const [, loginStatus] = useSetup(true, appWrapper.getIsLoggedIn());
 
-    if(hasAppSchema && hasMadeHomepageRequest && hasSimulationList) {
+    if(hasAppSchema && loginStatus) {
         return (
             <Provider store={formStateStore}>
                 <CSchema.Provider value={schema}>
-                    <CSimulationList.Provider value={simulationList}>
-                        <SimulationBrowserRoot></SimulationBrowserRoot>
-                    </CSimulationList.Provider>
+                    <LoginRouter>
+                        {
+                            loginStatus.isLoggedIn ?
+                            (
+                                <SimulationListInitializer>
+                                    <SimulationBrowserRoot/>
+                                </SimulationListInitializer>
+                            ) : (
+                                <Navigate to={"/react/login"}/> // TODO @garsuga: abstract
+                            )
+                        }
+                    </LoginRouter>
                 </CSchema.Provider>
             </Provider>
         )
     }
+    return undefined;
 }
 
 export const SimulationListInitializer = (props) => {
-    const [hasSimulationList, simulationList] = useSetup(hasMadeHomepageRequest, appWrapper.getSimulationList());
+    let appName = useContext(CAppName);
+    let appWrapper = new AppWrapper(appName);
+
+    const [hasSimulationList, simulationList] = useSetup(true, appWrapper.getSimulationList());
+
+    return (
+        <>
+            {hasSimulationList && 
+            <CSimulationList.Provider value={simulationList}>
+                {props.children}
+            </CSimulationList.Provider>}
+        </>
+    )
 }
