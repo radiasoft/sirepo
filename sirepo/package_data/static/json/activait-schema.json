@@ -286,6 +286,8 @@
             "appMode": ["Application Mode", "AppMode", "regression"],
             "dataOrigin": ["Data Origin", "DataOrigin", "file"],
             "file": ["Data File", "InputFile"],
+            "featureRangeMin": ["Input Feature range minimum", "Integer", 0],
+            "featureRangeMax": ["Input Feature range maximum", "Integer", 1],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
             "url": ["Data URL", "URL", ""]
@@ -577,7 +579,9 @@
                 "file",
                 "url",
                 "inputsScaler",
-                "outputsScaler"
+                "outputsScaler",
+                "featureRangeMin",
+                "featureRangeMax"
             ],
             "advanced": []
         },

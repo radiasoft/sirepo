@@ -1093,7 +1093,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             let loading = true;
             let numPages = 0;
             let uris;
-            
+
             $scope.canUpdateUri = increment => {
                 return idx + increment >= 0 && idx + increment < numPages;
             };
@@ -2088,7 +2088,11 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
 
     const modelName = $scope.modelName;
     const self = this;
-
+    srdbg(appState.models);
+    if (appState.models.dataFile.inputsScaler == 'MinMaxScaler') {
+        srdbg('minMax selected');
+        panelState.showField(['featureRangeMin', 'featureRangeMax']);
+    }
     function computeColumnInfo() {
         const dataFile = appState.models.dataFile;
         if (! dataFile.file) {
