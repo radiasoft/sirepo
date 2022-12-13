@@ -2061,6 +2061,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapePoints(shape) {
+                //TODO(mvk): apply transforms to dx, dy
                 const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragX, dragY] : [0, 0];
                 let pts = '';
                 for (const p of shape.points[shape.elev.axis]) {
