@@ -1,54 +1,77 @@
-import { getSimulationFrame, pollRunReport, runStatus } from "../utility/compute";
+import { getSimulationFrame, pollRunReport, ResponseHasState, getRunStatusOnce } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import React from "react";
 import { ModelStates } from "../store/models";
+import { mapProperties } from "../utility/object";
 
 export const CReportEventManager = React.createContext<ReportEventManager>(undefined);
 
-export type ReportEventSubscriber = (simulationData: any) => void;
+export type ReportEventSubscriber = {
+    /**
+     * Called once for every simulationData received (including during completion)
+     */
+    onReportData?: (simulationData: ResponseHasState) => void;
+    /**
+     * Called once when reports are starting to be generated
+     */
+    onStart?: () => void;
+    /**
+     * Called once when reports are finished being generated
+     */
+    onComplete?: () => void;
+}
+
+type RunStatusParams = {
+    appName: string,
+    models: ModelStates,
+    simulationId: string,
+    report: string
+}
 
 export class ReportEventManager {
-    reportEventListeners: {[reportName: string]: ReportEventSubscriber[]} = {}
+    reportEventListeners: {[reportName: string]: {[key: string]: ReportEventSubscriber}} = {}
 
-    constructor() {
-    }
-
-    onReportData = (reportName: string, callback: ReportEventSubscriber): void => {
-        let reportListeners = this.reportEventListeners[reportName] || [];
-        reportListeners.push(callback);
+    addListener = (key: string, reportName: string, listener: ReportEventSubscriber): void => {
+        let reportListeners = this.reportEventListeners[reportName] || {};
+        //reportListeners.push(callback);
+        reportListeners[key] = listener;
         this.reportEventListeners[reportName] = reportListeners;
     }
 
-    runStatus = ({
+    clearListenersForKey = (key: string) => {
+        this.reportEventListeners = mapProperties(this.reportEventListeners, (_, listeners) => Object.fromEntries(Object.entries(listeners).filter(([k,]) => k !== key)));
+    }
+
+    getListenersForReport: (report: string) => ReportEventSubscriber[] = (report: string) => {
+        return Object.entries(this.reportEventListeners[report] || {}).map(([, listener]) => listener);
+    }
+
+    handleSimulationData: (report: string, simulationData: ResponseHasState) => void = (report: string, simulationData: ResponseHasState) => {
+        this.getListenersForReport(report).forEach(l => l.onReportData && l.onReportData(simulationData));
+        if(simulationData.state === 'completed') {
+            this.getListenersForReport(report).forEach(l => l.onComplete && l.onComplete());
+        }
+    }
+
+    getRunStatusOnce: (params: RunStatusParams) => Promise<ResponseHasState> = ({
         appName,
         models,
         simulationId,
-        report,
-        callback,
-    }: {
-        appName: string,
-        models: ModelStates,
-        simulationId: string,
-        report: string,
-        callback: (resp: any) => void
+        report
     }) => {
-        runStatus({
+        return getRunStatusOnce({
             appName,
             models,
             simulationId,
             report,
-            forceRun: false,
-            callback: (simulationData) => {
-                let reportListeners = this.reportEventListeners[report] || [];
-                for(let reportListener of reportListeners) {
-                    reportListener(simulationData);
-                }
-                callback(simulationData);
-            }
+            forceRun: false
+        }).then(d => {
+            this.handleSimulationData(report, d)
+            return d;
         })
     }
 
-    startReport = ({
+    pollRunStatus = ({
         appName,
         models,
         simulationId,
@@ -64,14 +87,30 @@ export class ReportEventManager {
             models,
             simulationId,
             report,
-            pollInterval: 500,
             forceRun: true,
             callback: (simulationData) => {
-                let reportListeners = this.reportEventListeners[report] || [];
-                for(let reportListener of reportListeners) {
-                    reportListener(simulationData);
-                }
+                this.handleSimulationData(report, simulationData);
             }
+        })
+    }
+
+    startReport = ({
+        appName,
+        models,
+        simulationId,
+        report
+    }: {
+        appName: string,
+        models: ModelStates,
+        simulationId: string,
+        report: string
+    }) => {
+        this.getListenersForReport(report).forEach(l => l.onStart && l.onStart());
+        this.pollRunStatus({
+            appName,
+            models,
+            simulationId,
+            report
         })
     }
 }
@@ -96,6 +135,11 @@ function getFrameId({
     ]
 
     return frameIdElements.join('*');
+}
+
+export type SimulationFrame<T = unknown> = {
+    index: number,
+    data: T
 }
 
 // Note this accepts hookedFrameIdFields but provides no mechanism for updating them.
@@ -134,15 +178,20 @@ export class AnimationReader {
         this.presentationVersionNum = uuidv4();
     }
 
-    getFrame = (frameIndex) => {
+    getFrame = (frameIndex): Promise<SimulationFrame> => {
         if(frameIndex < 0 || frameIndex >= this.frameCount) {
             throw new Error(`frame index out of bounds: ${frameIndex}, frame count was ${this.frameCount}`)
         }
 
-        return getSimulationFrame(this.getFrameId(frameIndex));
+        return getSimulationFrame(this.getFrameId(frameIndex)).then(data => {
+            return {
+                index: frameIndex,
+                data
+            }
+        });
     }
 
-    getNextFrame = () => {
+    getNextFrame = (): Promise<SimulationFrame> => {
         return this.getFrame(this.nextFrameIndex++);
     }
 
@@ -154,7 +203,7 @@ export class AnimationReader {
         return this.nextFrameIndex - 2 >= 0;
     }
 
-    getPreviousFrame = () => {
+    getPreviousFrame = (): Promise<SimulationFrame> => {
         return this.getFrame((--this.nextFrameIndex) - 1);
     }
 
@@ -179,27 +228,27 @@ export class AnimationReader {
 
         let activePresentationVersion = this.presentationVersionNum;
 
-        if(direction == 'forward') {
+        if(direction === 'forward') {
             dir = 1;
-        } else if(direction == 'backward') {
+        } else if(direction === 'backward') {
             dir = -1;
         } else {
             throw new Error(`invalid direction for presentation: ${direction}`);
         }
 
         let handlePresentationFrame = (simulationData) => {
-            if(activePresentationVersion == this.presentationVersionNum) {
+            if(activePresentationVersion === this.presentationVersionNum) {
                 callback(simulationData);
             }
         }
 
         let itFuncs = {
-            hasNext: dir == 1 ? this.hasNextFrame : this.hasPreviousFrame,
-            next: dir == 1 ? this.getNextFrame : this.getPreviousFrame
+            hasNext: dir === 1 ? this.hasNextFrame : this.hasPreviousFrame,
+            next: dir === 1 ? this.getNextFrame : this.getPreviousFrame
         }
 
         let presentationInterval = setInterval(() => {
-            if(activePresentationVersion != this.presentationVersionNum) {
+            if(activePresentationVersion !== this.presentationVersionNum) {
                 clearInterval(presentationInterval);
                 return;
             }

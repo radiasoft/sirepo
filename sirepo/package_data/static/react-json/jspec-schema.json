@@ -1361,6 +1361,7 @@
                               "coolingRatesAnimation.verticalSize",
                               "coolingRatesAnimation.verticalOffset"
                             ],
+                            "frameCountFieldName": "frameCount",
                             "reportLayout": { "layout": "graph2d", "config": {} }
                           }
                         }

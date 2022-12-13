@@ -1543,7 +1543,7 @@ SIREPO.app.service('geometry', function(utilities) {
             }
             var p1 = this.paramLine(pl2)(0);  // random t?
             var p2 = this.paramLine(pl2)(1);
-            return svc.line(svc.pointFromArr(p1), svc.pointFromArr(p2));
+            return new Line(new Point(...p1), new Point(...p2));
         };
         pl.intersectsLine = function (l) {
             var pts = l.points();

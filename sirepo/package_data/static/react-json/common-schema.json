@@ -136,9 +136,9 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["sequential", "sequential"],
-                    ["parallel", "parallel"],
-                    ["sbatch", "sbatch"]
+                    ["sequential", "Serial"],
+                    ["parallel", "5 cores (SMP)"],
+                    ["sbatch", "cori.nersc.gov"]
                 ]
             }
         },
