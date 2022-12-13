@@ -821,6 +821,7 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
             appState,
             d => {
                 $window.location.href = `activait#/data/${data.models.simulation.simulationId}`;
+                //const u = requestSender.globalRedirect(`activait#/data/${data.models.simulation.simulationId}`);
             },
             {
                 method: 'results_to_activait',
@@ -835,19 +836,30 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
     self.createActivaitSimulation = () => {
         requestSender.sendRequest(
             'newSimulation',
-            simData => {
-                simData.models.dataFile.file = `srw-${appState.models.simulation.simulationId}-${self.resultsFile}`;
-                simData.models.simulation.notes = 'rsopt results from SRW';
-                requestSender.sendRequest(
-                    'saveSimulationData',
-                    openActivait,
-                    simData
+            data => {
+                //$window.location.href = `activait#/data/${data.models.simulation.simulationId}`;
+                requestSender.globalRedirect(
+                    'findByNameWithAuth',
+                    {
+                        '<simulation_name>': data.models.simulation.name,
+                        '<simulation_type>': 'activait',
+                        '<application_mode>': 'default',
+                        '<limit_to_examples>': false,
+                    }
                 );
             },
             {
                 folder: '/',
                 name: appState.models.simulation.name,
                 simulationType: 'activait',
+                notes: 'rsopt results from SRW',
+                sourceSimFile: self.resultsFile,
+                sourceSimId: appState.models.simulation.simulationId,
+                sourceSimType: 'srw',
+            },
+            err => {
+                srdbg(err);
+                throw new Error('Error creating simulation' + err);
             }
         );
     };

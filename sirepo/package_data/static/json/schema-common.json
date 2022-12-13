@@ -129,7 +129,7 @@
         "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
-        "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
+        "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>/?<limit_to_examples>",
         "forbidden": "/forbidden",
         "notFound": "/not-found",
         "getModerationRequestRows": "/get-moderation-request-rows",

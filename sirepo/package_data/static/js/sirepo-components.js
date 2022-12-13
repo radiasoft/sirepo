@@ -4723,7 +4723,8 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                     requestSender.newLocalWindow(
                         $scope.route || 'visualization',
                         {':simulationId': $scope.model[$scope.field]},
-                        $scope.code);
+                        $scope.code
+                    );
                 }
             };
             appState.whenModelsLoaded($scope, function() {
