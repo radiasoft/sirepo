@@ -3025,20 +3025,21 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
                 </div>
               </div>
               <div class="form-group">
-                <label class="col-sm-2 control-label">Username</label>
+                <label class="col-sm-2 control-label">Email</label>
                 <div class="col-sm-10">
-                  <input type="text" class="form-control" data-ng-model="data.username" required/>
+                  <input type="text" class="form-control" data-ng-model="data.username"/>
                 </div>
                 <label class="col-sm-2 control-label">Password</label>
                 <div class="col-sm-10">
-                  <input type="text" class="form-control" data-ng-model="data.password" required/>
+                  <input type="text" class="form-control" data-ng-model="data.password"/>
                 </div>
               </div>
               <div class="form-group">
                 <div class="col-sm-offset-2 col-sm-10">
-                   <div data-disable-after-click="">
+                  <div data-disable-after-click="">
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
+                  <div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>
                   <p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
@@ -3046,27 +3047,29 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
         `,
         controller: function($scope) {
             function handleResponse(data) {
-                if (data.state == 'ok') {
-                    $scope.showWarning = false;
-                    $scope.data.username = '';
-                    $scope.data.password = '';
-                }
-                else {
-                    $scope.showWarning = true;
-                    $scope.warningText = 'Server reported an error, please contact support@sirepo.com.';
-                }
+                $scope.showWarning = false;
+                $scope.data.username = null;
+                $scope.data.password = null;
+            
             }
 
             $scope.login = function() {
-                $scope.showWarning = false;
-                requestSender.sendRequest(
-                    'authLdapAuthorized',
-                    handleResponse,
-                    {
-                        username: $scope.data.username,
-                        password: $scope.data.password
-                    }
-                );
+                if($scope.data.username.length > 256 || $scope.data.password.length > 256) {
+                    $scope.showWarning = true;
+                    $scope.warningText = 'Usernames and Passwords cannot exceed 256 characters.';
+                    $scope.$broadcast('sr-clearDisableAfterClick');
+                }
+                else {
+                    $scope.showWarning = false;
+                    requestSender.sendRequest(
+                        'authLdapAuthorized',
+                        handleResponse,
+                        {
+                            username: $scope.data.username,
+                            password: $scope.data.password
+                        }
+                    );
+                }
             };
         },
     };
