@@ -16,12 +16,7 @@ class Stopwatch {
         if(this.times.startTime === undefined) {
             throw new Error("cannot get elapsed time from stopwatch that has not been started");
         }
-
-        if(this.times.endTime === undefined) {
-            throw new Error("cannot get elapsed time from stopwatch that has not been ended");
-        }
-
-        return (this.times.endTime - this.times.startTime) / 1000;
+        return ((this.times.endTime || new Date().valueOf()) - this.times.startTime) / 1000;
     }
 
     start() {
@@ -52,6 +47,38 @@ class Stopwatch {
 
     isComplete() {
         return this.times.startTime !== undefined && this.times.endTime !== undefined;
+    }
+
+    formatElapsedTime() {
+        if (! this.times.startTime) {
+            return '';
+        }
+
+        function format(val) {
+            return leftPadZero(Math.floor(val));
+        }
+
+        function formatDays(seconds) {
+            const d = Math.floor(seconds / (3600 * 24));
+            return d === 0
+                ? ''
+                : `${d} day${d > 1 ? 's' : ''} `;
+        }
+
+        function leftPadZero(num) {
+            return num >= 10
+                ? num
+                : '0' + num;
+        }
+
+        const s = Math.floor(this.getElapsedSeconds());
+        return 'Elapsed time: ' + formatDays(s)
+            + [
+                // hh:mm:ss
+                format(s % (3600 * 24) / 3600),
+                format(s % 3600 / 60),
+                format(s % 60),
+            ].join(':');
     }
 }
 
