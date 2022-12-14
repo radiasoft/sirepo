@@ -12,8 +12,8 @@ import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react
 import { SimulationRoot } from "./simulation";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
-import { NavbarContainerId, SrNavbar } from "./reusable/navbar";
-import { CAppName, CSimulationList } from "../data/appwrapper";
+import { NavbarContainerId } from "./reusable/navbar";
+import { CSimulationList } from "../data/appwrapper";
 import usePortal from "react-useportal";
 
 function buildSimulationsTree(simulations) {
@@ -66,7 +66,7 @@ function SimulationTreeViewFolder(props) {
     let childElements = [];
     for(let child of tree.children) {
         if(child.children) {
-            let [_, ...restPath] = path;
+            let [, ...restPath] = path;
             childElements.push(<SimulationTreeViewFolder key={joinPath(child.folder, child.name)} tree={child} path={restPath}/>);
         } else {
             childElements.push(<SimulationTreeViewItem key={joinPath(child.folder, child.name)} item={child}/>);
