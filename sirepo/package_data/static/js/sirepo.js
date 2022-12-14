@@ -2006,16 +2006,16 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     }
 
     for (let n in SIREPO.APP_SCHEMA.localRoutes) {
-        localMap[n] = routeMap(n, SIREPO.APP_SCHEMA.localRoutes[n]);
+        localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
     }
 
-    function routeMap(routeName, routeObj) {
-        const u = routeObj.route.split('/');
+    function routeMapLocal(name, route) {
+        const u = route.split('/');
         u.shift();
         return {
-            name: routeName,
+            name: name,
             baseUri: u.shift(),
-            params: u.map(_localIterator)
+            params: u.map(_localIterator),
         };
     }
 
@@ -2165,27 +2165,17 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         $window.open(self.formatUrl(routeName, params), '_blank');
     };
 
-    self.openSimulation = (app, section, simId) => {
-        const u = self.formatUrlLocal(
-            section,
-            {
-                ':simulationId': simId
-            },
-            app,
-            {
-                data: {
-                    "route": "/data/:simulationId",
-                    "config": {
-                        "controller": "DataController as data",
-                        "templateUrl": "/static/html/activait-data.html"
-                    }
-                },
-            }
-        )
-        self.newWindow(
-            section || 'default',
-            {':simulationId': simId},
-            app
+    self.openSimulation = (app, route, simId) => {
+        const m = {};
+        m[route] = routeMapLocal(route, `/${route}/:simulationId`);
+        $window.open(
+            self.formatUrlLocal(
+                route,
+                {':simulationId': simId},
+                app,
+                m,
+            ),
+            '_blank'
         );
     };
 

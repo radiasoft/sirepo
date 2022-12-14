@@ -4717,14 +4717,11 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
 
             $scope.openSimulation = function() {
                 if ($scope.model && $scope.model[$scope.field]) {
-                    //TODO(e-carlin): this depends on the visualization route
-                    // being present in both the caller and callee apps.
-                    // Need meta data for a page in another app
-                    requestSender.newLocalWindow(
+                    requestSender.openSimulation(
+                        $scope.code,
                         $scope.route || 'visualization',
-                        {':simulationId': $scope.model[$scope.field]},
-                        $scope.code
-                    );
+                        $scope.model[$scope.field]
+                    )
                 }
             };
             appState.whenModelsLoaded($scope, function() {

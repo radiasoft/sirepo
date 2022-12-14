@@ -838,7 +838,11 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
             'newSimulation',
             data => {
                 //$window.location.href = `activait#/data/${data.models.simulation.simulationId}`;
-                requestSender.openSimulation('activait', null, data.models.simulation.simulationId);
+                requestSender.openSimulation(
+                    'activait',
+                    'data',
+                    data.models.simulation.simulationId
+                );
             },
             {
                 folder: '/',
