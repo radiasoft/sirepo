@@ -1,13 +1,14 @@
 from pykern.pkcollections import PKDict
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
 import h5py
 import keras
 import math
 import numpy
-{% if inputsScaler %}
+{% if inputsScaler != "None" and inputsScaler != "MinMaxScaler" %}
 from sklearn.preprocessing import {{ inputsScaler }}
 {% endif %}
-{%if outputsScaler %}
+{% if outputsScaler != "None" and outputsScaler != "MinMaxScaler" %}
 from sklearn.preprocessing import {{ outputsScaler }}
 {% endif %}
 
@@ -76,8 +77,6 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         if scaler is None:
             print(f"scaler is None scaler={scaler}")
             return
-        print(scaler==MinMaxScaler)
-        #TODO (gurhar) fix NameError: name 'MinMaxScaler' is not defined
         if scaler == MinMaxScaler:
             print("\n\n\n MIN MAX HIT")
             return scaler(feature_range=({{ feature_min }}, {{ feature_max }}))
