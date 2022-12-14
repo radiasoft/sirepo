@@ -6,10 +6,11 @@ import { useSetup } from "../hook/setup";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "./simbrowser";
 import "./app.scss";
-import { AppWrapper, CAppName, CSchema, CSimulationList } from "../data/appwrapper";
+import { AppWrapper, CAppName, CLoginStatus, CSchema, CSimulationList } from "../data/appwrapper";
 import { Navigate } from "react-router";
 import { LoginRouter } from "./login";
 import { SrNavbar } from "./reusable/navbar";
+import { Container, Row } from "react-bootstrap";
 
 export const AppRoot = (props) => {
     const formStateStore = configureStore({
@@ -35,19 +36,23 @@ export const AppRoot = (props) => {
         return (
             <Provider store={formStateStore}>
                 <CSchema.Provider value={schema}>
-                    <SrNavbar title={appName.toUpperCase()} titleHref={'/'} simulationsHref={`/react/${appName}/simulations`}/>
-                    <LoginRouter>
-                        {
-                            loginStatus.isLoggedIn ?
-                            (
-                                <SimulationListInitializer>
-                                    <SimulationBrowserRoot/>
-                                </SimulationListInitializer>
-                            ) : (
-                                <Navigate to={"/react/login"}/> // TODO @garsuga: abstract
-                            )
-                        }
-                    </LoginRouter>
+                    <CLoginStatus.Provider value={loginStatus}>
+                        <SrNavbar title={appName.toUpperCase()} titleHref={'/'} simulationsHref={`/react/${appName}/simulations`}/>
+                        <Container fluid className="app-body">
+                            <LoginRouter>
+                                {
+                                    loginStatus.isLoggedIn ?
+                                    (
+                                        <SimulationListInitializer>
+                                            <SimulationBrowserRoot/>
+                                        </SimulationListInitializer>
+                                    ) : (
+                                        <Navigate to={`/react/${appName}/login`}/> // TODO @garsuga: abstract
+                                    )
+                                }
+                            </LoginRouter>
+                        </Container>
+                    </CLoginStatus.Provider>
                 </CSchema.Provider>
             </Provider>
         )

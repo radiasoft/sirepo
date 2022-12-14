@@ -35,7 +35,13 @@ class API(sirepo.quest.API):
     def api_authState2(self):
         """is alternative to auth_state that returns the JSON struct instead of static JS
         """
-        return self.auth.only_for_api_auth_state()
+        a = self.auth.only_for_api_auth_state()
+        # only one method is valid, replace visibleMethods array with single value including guest
+        assert(a['guestIsOnlyMethod'] or len(a['visibleMethods']) == 1)
+        m = "guest" if a['guestIsOnlyMethod'] else a['visibleMethods'][0]
+        a.pkdel("visibleMethods")
+        a.pkupdate({"visibleMethod": m})
+        return a
 
 
     @sirepo.quest.Spec("allow_visitor")

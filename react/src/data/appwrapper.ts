@@ -20,6 +20,8 @@ export type SimulationListItem = {
     simulation: ApiSimulation
 }
 
+export type AuthMethod = "basic" | "bluesky" | "email" | "github" | "guest";
+
 export type LoginStatus = {
     avatarUrl: string | null,
     displayName: string | null,
@@ -28,12 +30,12 @@ export type LoginStatus = {
     isLoggedIn: boolean,
     isLoginExpired: boolean,
     jobRunModeMap: {[runType: string]: string},
-    method: string | null,
+    method: AuthMethod | null,
     needsCompleteRegistration: boolean,
     roles: string[],
     slackUri: string,
     userName: string | null,
-    visibleMethods: string[],
+    visibleMethod: AuthMethod,
     uid: string | null
 }
 
@@ -41,6 +43,7 @@ export const CSimulationList = React.createContext<SimulationListItem[]>(undefin
 export const CSimulationInfoPromise = React.createContext<Promise<any>>(undefined);
 export const CAppName = React.createContext<string>(undefined);
 export const CSchema = React.createContext<Schema>(undefined);
+export const CLoginStatus = React.createContext<LoginStatus>(undefined);
 
 export class AppWrapper {
     constructor(private appName: string) {
@@ -99,6 +102,19 @@ export class AppWrapper {
     }
 
     doGuestLogin = (): Promise<void> => {
-        return new Promise<void>((resolve, reject) => fetch(`/auth-guest-login/${this.appName}`).then(() => resolve()));
+        return fetch(`/auth-guest-login/${this.appName}`).then();
+    }
+
+    doEmailLogin = (email: string): Promise<void> => {
+        return fetch(`/auth-email-login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email,
+                simulationType: this.appName
+            })
+        }).then();
     }
 }

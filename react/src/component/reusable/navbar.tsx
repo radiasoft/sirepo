@@ -1,4 +1,4 @@
-import { Navbar, Container, Nav } from "react-bootstrap";
+import { Navbar, Container, Nav, Col } from "react-bootstrap";
 import React from "react";
 import "./navbar.scss";
 
@@ -7,7 +7,7 @@ export const NavbarContainerId = "nav-tabs-container";
 export function SrNavbar(props) {
     let { title, titleHref, simulationsHref } = props;
     return (
-        <Navbar>
+        <Navbar bg="light">
             <Container fluid id={NavbarContainerId}>
                 <Navbar.Brand href={titleHref}>
                     <img
@@ -19,9 +19,11 @@ export function SrNavbar(props) {
                     />{' '}
                     {title}
                 </Navbar.Brand>
-                <Nav>
-                    <Nav.Link href={simulationsHref}><span className="sr-navbar-simulations-button">Simulations</span></Nav.Link>
-                </Nav>
+                <Col className="float-left">
+                    <Nav>
+                        <Nav.Link href={simulationsHref}><span className="sr-navbar-simulations-button">Simulations</span></Nav.Link>
+                    </Nav>
+                </Col>
                 <div className="sr-navbar-spacer">
                 </div>
                 {props.children}

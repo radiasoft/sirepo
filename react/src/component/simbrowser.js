@@ -237,9 +237,7 @@ function SimulationBrowser(props) {
                 return (
                     <>
                         <ButtonPortal>
-                            <div>
-                                <SimulationRouteHeader path={routedPath}/>
-                            </div>
+                            <SimulationRouteHeader path={routedPath}/>
                         </ButtonPortal>
                         <div className="sr-sim-browser-outer">
                             <Container fluid className="sr-sim-browser">
