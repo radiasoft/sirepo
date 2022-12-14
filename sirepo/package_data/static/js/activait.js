@@ -2088,11 +2088,22 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
 
     const modelName = $scope.modelName;
     const self = this;
-    srdbg(appState.models);
-    if (appState.models.dataFile.inputsScaler == 'MinMaxScaler') {
-        srdbg('minMax selected');
-        panelState.showField(['featureRangeMin', 'featureRangeMax']);
+
+    showOrHideFieldRange();
+    function showOrHideFieldRange() {
+        if (appState.models.dataFile.inputsScaler == 'MinMaxScaler') {
+            featureRangesOn(true);
+            return;
+        }
+        featureRangesOn(false);
     }
+
+    function featureRangesOn(display) {
+        ['featureRangeMin', 'featureRangeMax'].forEach(f => {
+            panelState.showField('dataFile', f, display)
+        });
+    }
+
     function computeColumnInfo() {
         const dataFile = appState.models.dataFile;
         if (! dataFile.file) {
@@ -2295,6 +2306,7 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         [`${modelName}.appMode`], processAppMode,
         [`${modelName}.dataOrigin`, `${modelName}.file`, `${modelName}.dataFormat`], updateEditor,
         [`${modelName}.url`], validateURL,
+        [`${modelName}.inputsScaler`], showOrHideFieldRange,
     ];
 
     $scope.whenSelected = () => {
