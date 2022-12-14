@@ -209,7 +209,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        if(this.config.tabs.length == 0) {
+        if(this.config.tabs.length === 0) {
             throw new Error("navtabs component contained no tabs");
         }
 
@@ -225,7 +225,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
                 element: <Navigate to={`${firstTabName}`}></Navigate>
             },
             {
-                path: '/:tabName/*',
+                path: ':tabName/*',
                 element: <this.TabsSwitcher/>
             }
         ])

@@ -8,17 +8,19 @@ import React, {
 } from "react";
 import {
     modelSelectors,
-    modelActions
+    modelActions,
+    ModelState
 } from "../store/models";
-import { FormStateInitializer } from "./reusable/form.tsx";
+import { FormStateInitializer } from "./reusable/form";
 import { useResolvedPath } from "react-router-dom";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";
-import { SrNavbar } from "./reusable/navbar";
 import { CReportEventManager } from "../data/report";
 import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { LAYOUTS } from "../layout/layouts";
+import { ModelsAccessor } from "../data/accessor";
+import { Dependency } from "../data/dependency";
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;
@@ -38,7 +40,7 @@ function SimulationInfoInitializer(props) {
             // TODO: why 0
             fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
                 let simulationInfo = await resp.json();
-                let { models } = simulationInfo;
+                let models = simulationInfo['models'] as ModelState[];
 
                 for(let [modelName, model] of Object.entries(models)) {
                     modelsWrapper.updateModel(modelName, model);
@@ -66,19 +68,21 @@ function ReportEventManagerInitializer(props) {
 }
 
 export function SimulationOuter(props) {
-    let appName = useContext(CAppName);
-
-    let simBrowerRelativeRouter = useContext(CRelativeRouterHelper);
 
     let pathPrefix = useResolvedPath('');
     let currentRelativeRouter = new RouteHelper(pathPrefix);
 
+    let modelsWrapper = useContext(CModelsWrapper);
+    let simNameDep = new Dependency("simulation.name");
+    let simNameAccessor = new ModelsAccessor(modelsWrapper, [simNameDep]);
+
+    useEffect(() => {
+        document.title = simNameAccessor.getFieldValue(simNameDep) as string;
+    })
 
     // TODO: navbar should route to home, when one is made
     return (
         <Container fluid>
-            <SrNavbar title={appName.toUpperCase()} titleHref={simBrowerRelativeRouter.getCurrentPath()}>
-            </SrNavbar>
             <CRelativeRouterHelper.Provider value={currentRelativeRouter}>
                 {props.children}
             </CRelativeRouterHelper.Provider>
@@ -105,15 +109,15 @@ export function SimulationRoot(props) {
     });
 
     // TODO: use multiple rows
-    return (
-        <SimulationOuter>
-            <ReportEventManagerInitializer>
-                <SimulationInfoInitializer simulation={simulation}>
+    return (    
+        <SimulationInfoInitializer simulation={simulation}>
+            <SimulationOuter>
+                <ReportEventManagerInitializer>
                     <FormStateInitializer>
                         {layoutComponents}
                     </FormStateInitializer>
-                </SimulationInfoInitializer>
-            </ReportEventManagerInitializer>
-        </SimulationOuter>
+                </ReportEventManagerInitializer>
+            </SimulationOuter>
+        </SimulationInfoInitializer>    
     )
 }

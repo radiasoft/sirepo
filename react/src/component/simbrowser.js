@@ -12,8 +12,9 @@ import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react
 import { SimulationRoot } from "./simulation";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
-import { SrNavbar } from "./reusable/navbar";
+import { NavbarContainerId, SrNavbar } from "./reusable/navbar";
 import { CAppName, CSimulationList } from "../data/appwrapper";
+import usePortal from "react-useportal";
 
 function buildSimulationsTree(simulations) {
     let root = {
@@ -142,7 +143,7 @@ function SimulationIconViewItem(props) {
 
     let routeHelper = useContext(CRelativeRouterHelper);
 
-    let path = routeHelper.getRelativePath(joinPath('source', tree.simulationId))
+    let path = routeHelper.getRelativePath(tree.simulationId)
 
     return (
         <Link to={path}>
@@ -222,19 +223,24 @@ function SimulationRouteHeader(props) {
 function SimulationBrowser(props) {
     let { tree } = props;
 
-    let appName = useContext(CAppName);
-    let routeHelper = useContext(CRelativeRouterHelper);
-
     return (
         <SimulationFolderRouter tree={tree}>
             {({routedTree, routedPath}) => {
+                let { Portal: ButtonPortal, portalRef } = usePortal({
+                    bindTo: document && document.getElementById(NavbarContainerId)
+                })
+
+                if(portalRef && portalRef.current) {
+                    portalRef.current.classList.add("float-left");
+                    portalRef.current.classList.add("col");
+                }
                 return (
                     <>
-                        <SrNavbar title={appName.toUpperCase()} titleHref={'/'} simulationsHref={routeHelper.getCurrentPath()}>
-                            <Col className="float-right">
+                        <ButtonPortal>
+                            <div>
                                 <SimulationRouteHeader path={routedPath}/>
-                            </Col>
-                        </SrNavbar>
+                            </div>
+                        </ButtonPortal>
                         <div className="sr-sim-browser-outer">
                             <Container fluid className="sr-sim-browser">
                                 <Row sm={2}>
@@ -277,9 +283,9 @@ export function SimulationBrowserRoot(props) {
                 <Route path="/" element={
                     <Navigate to={`simulations`}></Navigate>
                 }/>
-                <Route path="/simulations" element={<SimulationBrowser tree={simulationTree} />}/>
+                <Route path="/simulations/*" element={<SimulationBrowser tree={simulationTree} />}/>
                 <Route path="/simulations/:simulationFolder/*" element={<SimulationBrowser tree={simulationTree} />}/>
-                <Route path="/source/:id/*" element={
+                <Route path="/:id/*" element={
                     <SimulationRootWrapper simulationList={simulationList}/>
                 }/>
             </Routes>

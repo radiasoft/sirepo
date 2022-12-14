@@ -21,8 +21,20 @@ export type SimulationListItem = {
 }
 
 export type LoginStatus = {
+    avatarUrl: string | null,
+    displayName: string | null,
+    guestIsOnlyMethod: boolean,
+    isGuestUser: boolean,
     isLoggedIn: boolean,
-    loginRedirect?: string
+    isLoginExpired: boolean,
+    jobRunModeMap: {[runType: string]: string},
+    method: string | null,
+    needsCompleteRegistration: boolean,
+    roles: string[],
+    slackUri: string,
+    userName: string | null,
+    visibleMethods: string[],
+    uid: string | null
 }
 
 export const CSimulationList = React.createContext<SimulationListItem[]>(undefined);
@@ -82,21 +94,8 @@ export class AppWrapper {
     }
 
     // TODO @garsuga: this should be its own api call, http errors should be used to signal login missing
-    getIsLoggedIn: () => Promise<LoginStatus> = () => {
-        return new Promise((resolve, reject) => {
-            this.simulationListPromise().then(async (resp) => {
-                let r = await resp.json();
-                if(r.state) {
-                    if(r.state === "srException") {
-                        resolve({ isLoggedIn: false, loginRedirect: r.srException.routeName })
-                    } else {
-                        throw new Error(`unknown state=${JSON.stringify(r.state)} in simulation list response=${JSON.stringify(r)}`);
-                    }
-                } else {
-                    resolve({ isLoggedIn: true });
-                }
-            })
-        })
+    getLoginStatus: () => Promise<LoginStatus> = async () => {
+        return await fetch('/auth-state2').then(async (resp) => await resp.json() as LoginStatus)
     }
 
     doGuestLogin = (): Promise<void> => {

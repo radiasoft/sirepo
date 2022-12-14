@@ -1,6 +1,7 @@
 import { useParams, Routes, Route } from "react-router-dom";
 import { CAppName } from "../data/appwrapper";
 import React from "react";
+import { LoginRoot } from "./login";
 
 function AppNameWrapper(props) {
     let { appName } = useParams();
@@ -13,14 +14,18 @@ function AppNameWrapper(props) {
 }
 
 export function RootRouter(props) {
+    let child = (
+        <AppNameWrapper>
+            {props.children}
+        </AppNameWrapper>
+    )
+
     return (
         <Routes>
-            <Route path="react/:appName/*" element={
-                 <AppNameWrapper>
-                    {props.children}
-                </AppNameWrapper>
-            }>
+            <Route path="react/*">
+                <Route path=":appName/*" element={child}/>
             </Route>
+            <Route path=":appName/*" element={child}/>
         </Routes>
     )
 }

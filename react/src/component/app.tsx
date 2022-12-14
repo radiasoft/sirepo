@@ -7,8 +7,9 @@ import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "./simbrowser";
 import "./app.scss";
 import { AppWrapper, CAppName, CSchema, CSimulationList } from "../data/appwrapper";
-import { LoginRouter } from "./login";
 import { Navigate } from "react-router";
+import { LoginRouter } from "./login";
+import { SrNavbar } from "./reusable/navbar";
 
 export const AppRoot = (props) => {
     const formStateStore = configureStore({
@@ -22,12 +23,13 @@ export const AppRoot = (props) => {
 
     const [hasAppSchema, schema] = useSetup(true, appWrapper.getSchema());
     //const [hasMadeHomepageRequest] = useSetup(true, appWrapper.doGuestLogin());
-    const [, loginStatus] = useSetup(true, appWrapper.getIsLoggedIn());
+    const [, loginStatus] = useSetup(true, appWrapper.getLoginStatus());
 
     if(hasAppSchema && loginStatus) {
         return (
             <Provider store={formStateStore}>
                 <CSchema.Provider value={schema}>
+                    <SrNavbar title={appName.toUpperCase()} titleHref={'/'} simulationsHref={`/react/${appName}/simulations`}/>
                     <LoginRouter>
                         {
                             loginStatus.isLoggedIn ?

@@ -32,6 +32,13 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_visitor")
+    def api_authState2(self):
+        """is alternative to auth_state that returns the JSON struct instead of static JS
+        """
+        return self.auth.only_for_api_auth_state()
+
+
+    @sirepo.quest.Spec("allow_visitor")
     def api_authLogout(self, simulation_type=None):
         """Set the current user as logged out.
 
