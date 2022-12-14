@@ -950,7 +950,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function rotateFn(xform, i) {
-        srdbg('rot', xform);
         return (shape1, shape2) => {
             const scale = SIREPO.APP_SCHEMA.constants.objectScale;
             shape2.rotationMatrix = new SIREPO.GEOMETRY.RotationMatrix(
@@ -2418,8 +2417,8 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 <tbody>
                 <tr data-ng-repeat="item in getItems() track by $index">
                   <td><span data-toolbar-icon="" data-item="toolbarItemForType(item)"></span></td>
-                  <td data-ng-repeat="f in fieldInfo($index)">
-                    <div data-field-editor="f" data-field-size="8" data-label-size="" data-model-name="item.type" data-model="item"></div>
+                  <td data-ng-repeat="f in fieldInfo($index)" style="text-align: left;">
+                    <div data-field-editor="f" data-field-size="{{ fieldSize(item.type, f) }}" data-label-size="" data-model-name="item.type" data-model="item"></div>
                   </td>
                   <td>
                     <div class="sr-button-bar-parent pull-right">
@@ -2502,6 +2501,14 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             };
 
             $scope.fieldInfo = idx => SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][$scope.field[idx].type];
+
+            // adjust field sizes to fit better in a dialog
+            $scope.fieldSize = (modelName, field) => {
+                const i = appState.modelInfo(modelName)[field];
+                return {
+                    Float: 4,
+                }[i[SIREPO.INFO_INDEX_TYPE]] || 8;
+            };
 
             $scope.getSelected = () => $scope.selectedItem;
 
