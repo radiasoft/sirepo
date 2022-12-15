@@ -3050,13 +3050,12 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
                 $scope.showWarning = false;
                 $scope.data.username = null;
                 $scope.data.password = null;
-            
             }
 
             $scope.login = function() {
                 if($scope.data.username.length > 256 || $scope.data.password.length > 256) {
                     $scope.showWarning = true;
-                    $scope.warningText = 'Usernames and Passwords cannot exceed 256 characters.';
+                    $scope.warningText = 'Username and Password cannot exceed 256 characters.';
                     $scope.$broadcast('sr-clearDisableAfterClick');
                 }
                 else {

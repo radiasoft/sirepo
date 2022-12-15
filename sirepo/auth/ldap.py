@@ -14,19 +14,17 @@ AUTH_METHOD_VISIBLE = True
 
 _cfg = None
 
-LDAP_SERVER = "ldap://10.10.10.10:389"
-BASE_DN = ",ou=users,dc=example,dc=com"
-
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel")
     def api_authLdapAuthorized(self):
 
         # TODO(BG) Move req data to cfg?
         req = self.parse_post(type=False)
-        u = req.req_data.username
-        p = req.req_data.password
 
         c = ldap.initialize(_cfg.ldap_server)
+        
+        if(len(req.req_data.username) > 256 | len(req.req_data.password > 256)):
+            raise Exception("login user/pass greater than 256 chars")
         
         c.simple_bind_s(
             self._get_escaped(req.req_data.username), req.req_data.password
@@ -47,12 +45,11 @@ class API(sirepo.quest.API):
                 v += c
         return "mail=" + v + _cfg.base_dn
     
-    #TODO(BG) Add 'c' to pkconfig once working
-    def init_apis(*args, **kwargs):
-        global _cfg
-        
-        pkdp("calling to _cfg")
-        _cfg = pkconfig.init(
-            ldap_server=("ldap://10.10.10.10:389", str, " ldap address:port"),
-            base_dn=(",ou=users,dc=example,dc=com", str, "base dn")
-        )
+def init_apis(*args, **kwargs):
+    global _cfg
+    
+    pkdp("calling to _cfg")
+    _cfg = pkconfig.init(
+        ldap_server=("ldap://192.168.121.164:389", str, " ldap address:port"),
+        base_dn=(",ou=users,dc=example,dc=com", str, "base dn")
+    )
