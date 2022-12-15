@@ -2412,13 +2412,18 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
         template: `
             <div class="sr-object-table">
               <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
-              <table class="table radia-table-hover">
+              <table class="table table-striped table-condensed radia-table-hover">
                 <thead></thead>
                 <tbody>
                 <tr data-ng-repeat="item in getItems() track by $index">
-                  <td><span data-toolbar-icon="" data-item="toolbarItemForType(item)"></span></td>
-                  <td data-ng-repeat="f in fieldInfo($index)" style="text-align: left;">
-                    <div data-field-editor="f" data-field-size="{{ fieldSize(item.type, f) }}" data-label-size="" data-model-name="item.type" data-model="item"></div>
+                  <td>
+                    <span data-label-with-tooltip="" data-ng-class="labelClass" data-label="Type" style="font-size: smaller;"></span>
+                    <!--<span data-toolbar-icon="" data-item="toolbarItemForType(item)"></span>-->
+                    <div>{{ item.name }}</div>
+                  </td>
+                  <td data-ng-repeat="f in editableFields($index)" style="text-align: left;" colspan="100%">
+                    <span data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ fieldLabel(item.type, f) }}"></span>
+                    <div class="pull-left" data-field-editor="f" data-field-size="" data-model-name="item.type" data-model="item"></div>
                   </td>
                   <td>
                     <div class="sr-button-bar-parent pull-right">
@@ -2500,15 +2505,9 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 panelState.showModalEditor(item.model);
             };
 
-            $scope.fieldInfo = idx => SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][$scope.field[idx].type];
+            $scope.editableFields = idx => SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][$scope.field[idx].type];
 
-            // adjust field sizes to fit better in a dialog
-            $scope.fieldSize = (modelName, field) => {
-                const i = appState.modelInfo(modelName)[field];
-                return {
-                    Float: 4,
-                }[i[SIREPO.INFO_INDEX_TYPE]] || 8;
-            };
+            $scope.fieldLabel = (modelName, field) => appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
 
             $scope.getSelected = () => $scope.selectedItem;
 
@@ -2596,6 +2595,9 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 }
                 appState.removeModel(name);
                 appState.cancelChanges('geometryReport');
+            });
+
+            panelState.waitForUI(() => {
             });
         },
     };
