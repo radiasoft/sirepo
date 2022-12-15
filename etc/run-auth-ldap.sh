@@ -39,7 +39,8 @@ sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f /home/vagrant/src/radiasoft/sirepo/e
 # allow admin database access
 sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f /home/vagrant/src/radiasoft/sirepo/etc/ldap_ldifs/admin_access.ldif
 
-# sudo ldapadd -f /home/vagrant/src/radiasoft/sirepo/etc/ldap_ldifs/test_dn.ldif -D cn=admin,dc=example,dc=com -w vagrant
+# create test base dn
+sudo ldapadd -f /home/vagrant/src/radiasoft/sirepo/etc/ldap_ldifs/test_dn.ldif -D cn=admin,dc=example,dc=com -w vagrant
 
 # create organizational unit (ou) for users (assigns permissions)
 sudo ldapadd -f /home/vagrant/src/radiasoft/sirepo/etc/ldap_ldifs/test_ou.ldif -D cn=admin,dc=example,dc=com -w vagrant
