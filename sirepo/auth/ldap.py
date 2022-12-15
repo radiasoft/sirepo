@@ -18,23 +18,24 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel")
     def api_authLdapAuthorized(self):
 
-        # TODO(BG) Move req data to cfg?
         req = self.parse_post(type=False)
+        u = req.req_data.username
+        p = req.req_data.password
 
         c = ldap.initialize(_cfg.ldap_server)
         
-        #if(len(req.req_data.username) > 256 | len(req.req_data.password > 256)):
+        #TODO(BG) Get char length checking working on api side
+        #if(len(u) > 256 or len(p > 256)):
             #raise Exception("login user/pass greater than 256 chars")
         
         c.simple_bind_s(
-            self._get_escaped(req.req_data.username), req.req_data.password
+            self._get_escaped(u), p
         )
 
         return PKDict()
     
     # escapes special chars for ldap validity
     def _get_escaped(self, username):
-        #TODO(BG) Move e to ldap?
         e = ['+', ';', ',', '\\', '\"', '<', '>', '#']
         v = ""
             
