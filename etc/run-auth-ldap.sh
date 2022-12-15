@@ -33,8 +33,6 @@ sudo systemctl enable slapd
 cd /home/vagrant/src/radiasoft/sirepo
 pip install -e .
 
-"""
-
 # assign default root and appended distunguished name
 sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f /home/vagrant/src/radiasoft/sirepo/etc/ldap_ldifs/config.ldif
 
@@ -57,6 +55,5 @@ sudo ldapadd -Y EXTERNAL -H ldapi:// -f /etc/openldap/schema/nis.ldif
 
 # add user to ou
 sudo ldapadd -f /home/vagrant/src/radiasoft/sirepo/etc/ldap_ldifs/test_user.ldif -x -D cn=admin,dc=example,dc=com -w vagrant
-"""
 
 exec sirepo service http
