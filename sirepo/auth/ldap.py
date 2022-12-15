@@ -23,8 +23,8 @@ class API(sirepo.quest.API):
 
         c = ldap.initialize(_cfg.ldap_server)
         
-        if(len(req.req_data.username) > 256 | len(req.req_data.password > 256)):
-            raise Exception("login user/pass greater than 256 chars")
+        #if(len(req.req_data.username) > 256 | len(req.req_data.password > 256)):
+            #raise Exception("login user/pass greater than 256 chars")
         
         c.simple_bind_s(
             self._get_escaped(req.req_data.username), req.req_data.password
