@@ -1,13 +1,14 @@
 import { useParams, Routes, Route } from "react-router-dom";
-import { ContextAppName } from "../context";
+import { CAppName } from "../data/appwrapper";
+import React from "react";
 
 function AppNameWrapper(props) {
     let { appName } = useParams();
 
     return (
-        <ContextAppName.Provider value={appName}>
+        <CAppName.Provider value={appName}>
             {props.children}
-        </ContextAppName.Provider>
+        </CAppName.Provider>
     )
 }
 

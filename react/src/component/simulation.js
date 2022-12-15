@@ -1,52 +1,35 @@
 import {
-    Col,
-    Row,
-    Container,
-    Nav,
-    Navbar
+    Container
 } from "react-bootstrap";
-import {
+import React, {
     useState,
     useEffect,
     useContext
 } from "react";
 import {
-    ContextAppName,
-    ContextSimulationListPromise,
-    ContextRelativeRouterHelper,
-    ContextLayouts,
-    ContextSchema,
-    ContextModelsWrapper,
-    ContextSimulationInfoPromise,
-    ContextReportEventManager
-} from "../context";
-import {
-    updateModel,
-    selectModel,
-    selectModels
+    modelSelectors,
+    modelActions
 } from "../store/models";
-import { ModelsWrapper } from "../data/model";
-import { FormStateInitializer } from "../component/form";
+import { FormStateInitializer } from "./reusable/form.tsx";
 import { useResolvedPath } from "react-router-dom";
-import { RouteHelper } from "../hook/route";
+import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";
-import { SrNavbar } from "./navbar";
+import { SrNavbar } from "./reusable/navbar";
+import { CReportEventManager } from "../data/report";
+import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
+import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { LAYOUTS } from "../layout/layouts";
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;
 
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
-    let appName = useContext(ContextAppName);
+    let appName = useContext(CAppName);
 
     let modelsWrapper = new ModelsWrapper({
-        modelActions: {
-            updateModel
-        },
-        modelSelectors: {
-            selectModel,
-            selectModels
-        }
+        modelActions,
+        modelSelectors
     })
 
     useEffect(() => {
@@ -68,24 +51,24 @@ function SimulationInfoInitializer(props) {
     }, [])
 
     return hasInit && simulationInfoPromise && (
-        <ContextModelsWrapper.Provider value={modelsWrapper}>
-            <ContextSimulationInfoPromise.Provider value={simulationInfoPromise}>
+        <CModelsWrapper.Provider value={modelsWrapper}>
+            <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
                 {props.children}
-            </ContextSimulationInfoPromise.Provider>
-        </ContextModelsWrapper.Provider>
+            </CSimulationInfoPromise.Provider>
+        </CModelsWrapper.Provider>
     )
 }
 
 function ReportEventManagerInitializer(props) {
-    return <ContextReportEventManager.Provider value={new ReportEventManager()}>
+    return <CReportEventManager.Provider value={new ReportEventManager()}>
         {props.children}
-    </ContextReportEventManager.Provider>
+    </CReportEventManager.Provider>
 }
 
 export function SimulationOuter(props) {
-    let appName = useContext(ContextAppName);
+    let appName = useContext(CAppName);
 
-    let simBrowerRelativeRouter = useContext(ContextRelativeRouterHelper);
+    let simBrowerRelativeRouter = useContext(CRelativeRouterHelper);
 
     let pathPrefix = useResolvedPath('');
     let currentRelativeRouter = new RouteHelper(pathPrefix);
@@ -96,9 +79,9 @@ export function SimulationOuter(props) {
         <Container fluid>
             <SrNavbar title={appName.toUpperCase()} titleHref={simBrowerRelativeRouter.getCurrentPath()}>
             </SrNavbar>
-            <ContextRelativeRouterHelper.Provider value={currentRelativeRouter}>
+            <CRelativeRouterHelper.Provider value={currentRelativeRouter}>
                 {props.children}
-            </ContextRelativeRouterHelper.Provider>
+            </CRelativeRouterHelper.Provider>
         </Container>
 
     )
@@ -108,15 +91,16 @@ export function SimulationOuter(props) {
 export function SimulationRoot(props) {
     let { simulation } = props;
 
-    let layouts = useContext(ContextLayouts);
+    let schema = useContext(CSchema);
 
-    let schema = useContext(ContextSchema);
-
-    let viewComponents = schema.views.map((view, index) => {
-        let layout = layouts.getLayoutForConfig(view);
+    let layoutComponents = schema.views.map((schemaLayout, index) => {
+        // this should not be called here. it is dangerous to generate layouts on render
+        // this is an exception for now as no updates should occur above this element
+        // besides changing apps
+        let layout = LAYOUTS.getLayoutForSchema(schemaLayout);
         let Component = layout.component;
         return (
-            <Component config={view} key={index}></Component>
+            <Component key={index}></Component>
         )
     });
 
@@ -126,7 +110,7 @@ export function SimulationRoot(props) {
             <ReportEventManagerInitializer>
                 <SimulationInfoInitializer simulation={simulation}>
                     <FormStateInitializer>
-                        {viewComponents}
+                        {layoutComponents}
                     </FormStateInitializer>
                 </SimulationInfoInitializer>
             </ReportEventManagerInitializer>

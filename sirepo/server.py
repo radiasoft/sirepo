@@ -268,33 +268,6 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec(
-        "require_user", filename="SimFileName", spec="ApplicationDataSpec"
-    )
-    def api_getApplicationData(self, filename=None):
-        """Get some data from the template
-
-        Args:
-            filename (str): if supplied, result is file attachment
-
-        Returns:
-            response: may be a file or JSON
-        """
-        req = self.parse_post(template=True, filename=filename or None)
-        assert "method" in req.req_data
-        with simulation_db.tmp_dir(qcall=self) as d:
-            res = req.template.get_application_data(req.req_data, qcall=self, tmp_dir=d)
-            assert (
-                res != None
-            ), f"unhandled application data method: {req.req_data.method}"
-            if "filename" in req and isinstance(res, pkconst.PY_PATH_LOCAL_TYPE):
-                return self.reply_attachment(
-                    res,
-                    filename=req.filename,
-                    content_type=req.req_data.get("contentType", None),
-                )
-            return self.reply_json(res)
-
-    @sirepo.quest.Spec(
         "require_user",
         file="ImportFile",
         folder="SimFolderPath",
@@ -904,5 +877,5 @@ cfg = pkconfig.init(
     google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
     react_server=(None, _cfg_react_server, "Base URL of npm start server"),
-    react_sim_types=(("myapp", "jspec", "genesis"), set, "React apps"),
+    react_sim_types=(("myapp", "jspec", "genesis", "warppba"), set, "React apps"),
 )

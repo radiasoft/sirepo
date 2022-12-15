@@ -1,109 +1,36 @@
-import { useState, useEffect, useContext } from "react";
-import {
-    ContextAppName,
-    ContextSimulationListPromise,
-    ContextSchema,
-    ContextLayouts
-} from "../context"
+import React, { useContext } from "react";
 import { configureStore } from "@reduxjs/toolkit"
 import { modelsSlice } from "../store/models";
 import { formStatesSlice } from "../store/formState";
 import { useSetup } from "../hook/setup";
-import { compileSchemaFromJson, mergeSchemaJson } from "../utility/schema";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "../component/simbrowser";
-import { Layouts } from "../layout/layouts";
 import "./app.scss";
-
-function SimulationListInitializer(props) {
-    let stateFn = useState;
-    let effectFn = useEffect;
-    let contextFn = useContext;
-
-    let [simulationListPromise, updateSimulationListPromise] = stateFn(undefined)
-    let appName = contextFn(ContextAppName);
-
-    effectFn(() => {
-        updateSimulationListPromise(new Promise((resolve, reject) => {
-            fetch('/simulation-list', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    simulationType: appName
-                })
-            }).then(async (resp) => {
-                let simulationList = await resp.json();
-                resolve(simulationList);
-            })
-        }))
-    }, [])
-
-    return simulationListPromise && (
-        <ContextSimulationListPromise.Provider value={simulationListPromise}>
-            {props.children}
-        </ContextSimulationListPromise.Provider>
-    )
-}
+import { AppWrapper, CAppName, CSchema, CSimulationList } from "../data/appwrapper";
 
 export const AppRoot = (props) => {
-    const [schema, updateSchema] = useState(undefined);
     const formStateStore = configureStore({
         reducer: {
             [modelsSlice.name]: modelsSlice.reducer,
             [formStatesSlice.name]: formStatesSlice.reducer,
         },
     });
+    let appName = useContext(CAppName);
 
-    let appName = useContext(ContextAppName);
+    let appWrapper = new AppWrapper(appName);
 
-    
+    const [hasAppSchema, schema] = useSetup(true, appWrapper.getSchema());
+    const [hasMadeHomepageRequest] = useSetup(true, appWrapper.doGuestLogin());
+    const [hasSimulationList, simulationList] = useSetup(hasMadeHomepageRequest, appWrapper.getSimulationList());
 
-    const hasAppSchema = useSetup(true,
-        (finishInitSchema) => {
-            Promise.all([
-                fetch(`/static/react-json/common-schema.json`),
-                fetch(`/static/react-json/${appName}-schema.json`)
-            ]).then(([commonResp, appResp]) => {
-                Promise.all([
-                    commonResp.json(), 
-                    appResp.json()
-                ]).then(([commonJson, appJson]) => {
-                    let schemaJson = mergeSchemaJson(commonJson, appJson)
-                    updateSchema(compileSchemaFromJson(schemaJson));
-                    finishInitSchema();
-                })
-            })
-
-            /*fetch(`/static/react-json/${appName}-schema.json`).then(resp => {
-                resp.json().then(json => {
-                    updateSchema(compileSchemaFromJson(json));
-                    finishInitSchema();
-                })
-            })*/
-        }
-    )
-
-    const hasMadeHomepageRequest = useSetup(true,
-        (finishHomepageRequest) => {
-            fetch(`/auth-guest-login/${appName}`).then(() => {
-                finishHomepageRequest();
-            });
-        }
-    )
-
-    if(hasAppSchema && hasMadeHomepageRequest) {
-        //let AppChild = buildAppComponentsRoot(schema);
+    if(hasAppSchema && hasMadeHomepageRequest && hasSimulationList) {
         return (
             <Provider store={formStateStore}>
-                <ContextSchema.Provider value={schema}>
-                    <ContextLayouts.Provider value={new Layouts()}>
-                        <SimulationListInitializer>
-                            <SimulationBrowserRoot></SimulationBrowserRoot>
-                        </SimulationListInitializer>
-                    </ContextLayouts.Provider>
-                </ContextSchema.Provider>
+                <CSchema.Provider value={schema}>
+                    <CSimulationList.Provider value={simulationList}>
+                        <SimulationBrowserRoot></SimulationBrowserRoot>
+                    </CSimulationList.Provider>
+                </CSchema.Provider>
             </Provider>
         )
     }
