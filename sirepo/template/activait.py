@@ -920,6 +920,7 @@ def _fit_animation(frame_args):
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
+    pkdp("\n\n data.models.dataFile={}", dm.dataFile)
     res, v = template_common.generate_parameters_file(data)
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
@@ -933,6 +934,10 @@ def _generate_parameters_file(data):
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
     v.image_data = pkio.has_file_extension(v.dataFile, "h5")
+    v.inputsScaler = dm.dataFile.inputsScaler
+    v.outputsScaler = dm.dataFile.outputsScaler
+    v.feature_min = dm.dataFile.featureRangeMin
+    v.feature_max = dm.dataFile.featureRangeMax
     if v.image_data:
         v.inPath = None
         v.outPath = None

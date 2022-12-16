@@ -4,7 +4,12 @@ import h5py
 import keras
 import math
 import numpy
-
+{% if inputsScaler %}
+from sklearn.preprocessing import {{ inputsScaler }}
+{% endif %}
+{%if outputsScaler %}
+from sklearn.preprocessing import {{ outputsScaler }}
+{% endif %}
 
 class SirepoScaler:
     def __init__(
@@ -48,6 +53,8 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         indices,
         shuffle,
         batch_size,
+        in_scaler=None,
+        out_scaler=None,
     ):
         self.filename = filename
         self.x = x
@@ -56,10 +63,25 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.return_value = None
+        print(f"in_scaler={in_scaler}")
+        print(f"out_scaler={out_scaler}")
+        self.inScaler = self._scaler(in_scaler)
+        self.outScaler = self._scaler(out_scaler)
 
     def set_return_value(self, name):
         self.return_value = name
         return self
+
+    def _scaler(self, scaler):
+        if scaler is None:
+            print(f"scaler is None scaler={scaler}")
+            return
+        print(scaler==MinMaxScaler)
+        #TODO (gurhar) fix NameError: name 'MinMaxScaler' is not defined
+        if scaler == MinMaxScaler:
+            print("\n\n\n MIN MAX HIT")
+            return scaler(feature_range=({{ feature_min }}, {{ feature_max }}))
+        return scaler()
 
     def __len__(self):
         return math.ceil(len(self.indices) / self.batch_size)
@@ -122,6 +144,7 @@ def image_train_val_test_split(
     shuffle,
     batch_size,
     output_shape,
+    **kwargs
 ):
     with h5py.File(filename, "r") as f:
         indices_all = numpy.arange(f[xkey].shape[0])
@@ -143,6 +166,12 @@ def image_train_val_test_split(
             indices=s[k],
             batch_size=batch_size,
             shuffle=shuffle,
+            {% if inputsScaler %}
+            in_scaler=kwargs.get('in_scaler'),
+            {% endif %}
+            {%if outputsScaler %}
+            out_scaler=kwargs.get('out_scaler'),
+            {% endif %}
         )
     return r
 
@@ -155,6 +184,12 @@ split = image_train_val_test_split(
     {{shuffleEachEpoch}},
     {{neuralNet_batch_size}},
     output_shape,
+    {% if inputsScaler %}
+    in_scaler={{ inputsScaler }},
+    {% endif %}
+    {%if outputsScaler %}
+    out_scaler={{ outputsScaler }},
+    {% endif %}
 )
 with h5py.File("{{ dataFile }}", "r") as f:
     input_shape = f["{{ inPath }}"].shape[1:]
