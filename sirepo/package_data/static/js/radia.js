@@ -3895,7 +3895,9 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     $scope.$on('geomObject.changed', () => {
         if (editedModels.includes('extrudedPoly')) {
-            radiaService.updateExtruded($scope.modelData);
+            radiaService.updateExtruded($scope.modelData, d => {
+                radiaService.saveGeometry(true, true);
+            });
         }
         editedModels = [];
     });
