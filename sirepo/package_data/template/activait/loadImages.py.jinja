@@ -71,11 +71,21 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
             x = f[self.x.key][indices]
             y = f[self.y.key][indices]
+
+
+
             if self.inScaler:
                 x = self.inScaler.transform(numpy.array(x).reshape(-1, self.channels))
                 x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.outScaler:
                 y = self.outScaler.transform(y.reshape(-1, 1))
+
+            if self.return_value:
+                if self.return_value == "x":
+                    return x
+                elif self.return_value == "y":
+                    return y
+                raise AssertionError(f"invalid return_value specified: {return_value}")
             return (x, y)
 
     def on_epoch_end(self):
