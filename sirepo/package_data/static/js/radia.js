@@ -594,8 +594,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = o => {
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
-        let center = radiaService.scaledArray(o.center || SIREPO.ZERO_ARR, scale);
-        let size =   radiaService.scaledArray(o.size || SIREPO.ZERO_ARR, scale);
+        let center = radiaService.scaledArray(o.center, scale);
+        let size =   radiaService.scaledArray(o.size, scale);
         const isGroup = o.members && o.members.length;
 
         if (isGroup) {
@@ -604,13 +604,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        // initial dragged polygons have no points defined
-        if (! o.points) {
-            o.layoutShape = 'rect';
-        }
+        const l = o.isButton === undefined ? o.layoutShape : 'rect';
         let pts = {};
-        if (o.layoutShape === 'polygon') {
-            const [k, i, j] = [o.extrusionAxis, o.widthAxis, o.heightAxis].map(radiaService.axisIndex);
+        if (l === 'polygon') {
+            const k  = radiaService.axisIndex(o.extrusionAxis);
             const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
             pts[o.extrusionAxis] = scaledPts;
             const cp = center[k] + size[k] / 2.0;
@@ -626,7 +623,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             o.id, o.name,
             center, size,
             o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
-            o.layoutShape,
+            l,
             pts
         );
         if (isGroup) {
