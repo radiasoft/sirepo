@@ -608,7 +608,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const l = o.isButton === undefined ? o.layoutShape : 'rect';
         let pts = {};
         if (l === 'polygon') {
-            const k  = radiaService.axisIndex(o.extrusionAxis);
+            const k = radiaService.axisIndex(o.extrusionAxis);
             const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
             pts[o.extrusionAxis] = scaledPts;
             const cp = center[k] + size[k] / 2.0;
