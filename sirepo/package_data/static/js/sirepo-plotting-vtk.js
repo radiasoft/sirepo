@@ -1773,6 +1773,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function d3DragEndShape(shape) {
+                hideShapeLocation();
+                const dragThreshold = 1e-3;
+                if (Math.abs(dragX) < dragThreshold && Math.abs(dragY) < dragThreshold) {
+                    return;
+                }
                 $scope.$applyAsync(() => {
                     if (isShapeInBounds(shape)) {
                         const o = $scope.source.getObject(shape.id);
@@ -1796,7 +1801,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         resetDrag();
                     }
                 });
-                hideShapeLocation();
             }
 
             function d3DragShape(shape) {

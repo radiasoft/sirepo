@@ -308,7 +308,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
 
-    self.scaledArray = function (arr, scale = 1.0) {
+    self.scaledArray = function (arr=SIREPO.ZERO_ARR, scale = 1.0) {
         return arr.map(x => scale * x);
     };
 
@@ -320,6 +320,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.updateExtruded = (o, callback) => {
+        o.layoutShape = 'polygon';
         o.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis(o.extrusionAxis);
         o.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis(o.widthAxis);
         if (o.referencePoints && o.referencePoints.length) {
