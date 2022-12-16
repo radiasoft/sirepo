@@ -42,10 +42,8 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
 
     def _scaler(self, scaler):
         if scaler is None:
-            print(f"scaler is None scaler={scaler}")
             return
         if scaler == MinMaxScaler:
-            print("\n\n\n MIN MAX HIT")
             return scaler(feature_range=({{ feature_min }}, {{ feature_max }}))
         return scaler()
 
@@ -54,12 +52,13 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
             return
         with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
             self.original_shape_x = f[self.x.key].shape
-            self.channels = self.original_shape_x[-1]
             self.original_shape_y = f[self.y.key].shape
+            self.x_channels = self.original_shape_x[-1]
+            self.y_channels = self.original_shape_y[-1]
             if self.inScaler:
-                self.inScaler.fit(numpy.array(f[self.x.key]).reshape(-1, self.channels))
+                self.inScaler.fit(numpy.array(f[self.x.key]).reshape(-1, self.x_channels))
             if self.outScaler:
-                self.outScaler.fit(numpy.array(f[self.y.key]).reshape(-1, 1))
+                self.outScaler.fit(numpy.array(f[self.y.key]).reshape(-1, self.y_channels))
 
     def __len__(self):
         return math.ceil(len(self.indices) / self.batch_size)
@@ -71,15 +70,11 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
             x = f[self.x.key][indices]
             y = f[self.y.key][indices]
-
-
-
             if self.inScaler:
-                x = self.inScaler.transform(numpy.array(x).reshape(-1, self.channels))
+                x = self.inScaler.transform(numpy.array(x).reshape(-1, self.x_channels))
                 x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.outScaler:
-                y = self.outScaler.transform(y.reshape(-1, 1))
-
+                y = self.outScaler.transform(y.reshape(-1, self.y_channels))
             if self.return_value:
                 if self.return_value == "x":
                     return x
