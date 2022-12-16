@@ -1568,7 +1568,12 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             if (code == 'e' && decimals >= 0) {
                 decimals = -(p0 - decimals);
             }
-            decimals = decimals < 0 ? Math.abs(decimals) : 0;
+            if (v0 == v1) {
+                decimals = 1;
+            }
+            else {
+                decimals = decimals < 0 ? Math.abs(decimals) : 0;
+            }
             return {
                 decimals: decimals,
                 code: code,
