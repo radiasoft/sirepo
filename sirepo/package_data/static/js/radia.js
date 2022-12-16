@@ -924,7 +924,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 [shape1.center.x, shape1.center.y, shape1.center.z]
                 )).coords()
             );
-            shape2.setSize(shape1.getSizeCoords());
+            for (const dim in shape1.points) {
+                shape2.points[dim] = (shape1.points[dim] || []).map(p => {
+                    return pl.mirrorPoint(new SIREPO.GEOMETRY.Point(...p)).coords();
+                });
+            }
             return shape2;
         };
     }
@@ -1031,14 +1035,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function txShape(shape, tx) {
-        const sh = vtkPlotting.plotShape(
-            virtualShapeId(shape),
-            shape.name,
-            SIREPO.ZERO_ARR,
-            shape.getSizeCoords(),
-            shape.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
-            shape.layoutShape
-        );
+        const sh = appState.clone(shape);
+        sh.id = virtualShapeId(shape);
         sh.draggable = false;
         sh.txId = tx.id;
         return sh;
