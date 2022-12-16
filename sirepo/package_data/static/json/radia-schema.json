@@ -348,6 +348,10 @@
             ["AFK1", "Aperam 1 (nonlinnear isotropic)"],
             ["custom", "Custom"]
         ],
+        "ObjectCutType": [
+            ["bevel", "Bevel"],
+            ["fillet", "Fillet"]
+        ],
         "ObjectType": [
             ["cuboid", "Cuboid"],
             ["cylinder", "Cylinder"],
@@ -864,7 +868,8 @@
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "edge": ["Filleted Edge", "BevelEdge", "0", "Index of base shape edge to fillet, relative to the view axis"],
             "numSides": ["Number of Sides", "Integer", 10, "Resolution of the curved surface", 6],
-            "radius": ["Radius", "Float", 1.0]
+            "radius": ["Radius", "Float", 1.0],
+            "type": ["_", "ObjectCutType", "fillet"]
         },
         "objectBevel": {
             "_super": ["_", "model", "objectCut"],
@@ -873,13 +878,14 @@
             "cutDir": ["", "Array", [0, 0, 1]],
             "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
             "heightDir": ["", "Array", [0, 1, 0]],
+            "type": ["_", "ObjectCutType", "bevel"],
             "widthDir": ["", "Array", [1, 0, 0]]
         },
         "objectCut": {
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
             "cutPoint": ["Cut Point", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
-            "type": ["_", "PathType", "manual"]
+            "type": ["_", "ObjectCutType", "bevel"]
         },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]

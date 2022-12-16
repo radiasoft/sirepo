@@ -1244,7 +1244,7 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
         },
 
         template: `
-            <table class="table radia-table-hover">
+            <table class="table table-striped table-condensed radia-table-hover">
               <colgroup>
                 <col span="5" style="width: 20ex">
               </colgroup>
@@ -1274,9 +1274,15 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                     </div>
                   </td>
                 </tr>
+                <tr>
+                  <td colspan="100%">
+                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="item.title for item in toolbarItems" data-ng-change="addItem()">
+                      <option value="" disabled selected>add</option>
+                    </select>
+                  </td>
+               </tr>
               </tbody>
             </table>
-            <button data-ng-click="addItem()" id="sr-new-bevel" class="btn btn-info btn-xs pull-right">New Bevel <span class="glyphicon glyphicon-plus"></span></button>
         `,
         controller: function($scope, $element) {
             let isEditing = false;
