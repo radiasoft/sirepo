@@ -27,6 +27,16 @@ class SirepoScaler:
         else:
             self.domain = self.__compute_domain(values)
 
+    def _fit(self):
+        with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
+            self.original_shape_x = f[self.x.key].shape
+            self.channels = self.original_shape_x[-1]
+            self.original_shape_y = f[self.y.key].shape
+            if self.inScaler:
+                self.inScaler.fit(numpy.array(f[self.x.key]).reshape(-1, self.channels))
+            if self.outScaler:
+                self.outScaler.fit(numpy.array(f[self.y.key]).reshape(-1, 1))
+
     def scale(self, values):
         if self.columns == 1:
             return self.__scale(values, self.domain)
@@ -65,7 +75,6 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         self.shuffle = shuffle
         self.return_value = None
         self.inScaler = self._scaler(in_scaler)
-        self.inScaler =  self._scaler(in_scaler)
         self.outScaler = self._scaler(out_scaler)
         self._fit()
 
@@ -82,15 +91,7 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
             return scaler(feature_range=({{ feature_min }}, {{ feature_max }}))
         return scaler()
 
-    def _fit(self):
-        with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
-            self.original_shape_x = f[self.x.key].shape
-            self.channels = self.original_shape_x[-1]
-            self.original_shape_y = f[self.y.key].shape
-            if self.inScaler:
-                self.inScaler.fit(numpy.array(f[self.x.key]).reshape(-1, self.channels))
-            if self.outScaler:
-                self.outScaler.fit(numpy.array(f[self.y.key]).reshape(-1, 1))
+
 
     def __len__(self):
         return math.ceil(len(self.indices) / self.batch_size)
@@ -109,22 +110,12 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
             y = f[self.y.key][indices]
             if not x.any() and y.any():
                 raise AssertionError(f"Empty batch: x={x} y={y}")
-<<<<<<< HEAD
-            if self.return_value:
-                if self.return_value == "x":
-                    return self._scale(self.x.scaler, x)
-                elif self.return_value == "y":
-                    return self._scale(self.y.scaler, y)
-                raise AssertionError(f"invalid return_value specified: {return_value}")
-            return self._scale(self.x.scaler, x), self._scale(self.y.scaler, y)
-=======
             if self.inScaler:
                 x = self.inScaler.transform(numpy.array(x).reshape(-1, self.channels))
                 x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.outScaler:
                 y = self.outScaler.transform(y.reshape(-1, 1))
             return (x, y)
->>>>>>> 183921f63... Fix #5206: scale WIP
 
     def on_epoch_end(self):
         if self.shuffle and not self.return_value:
