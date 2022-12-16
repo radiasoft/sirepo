@@ -57,6 +57,8 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         in_scaler=None,
         out_scaler=None,
     ):
+
+
         self.filename = filename
         self.x = x
         self.y = y
@@ -64,10 +66,10 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.return_value = None
-        print(f"in_scaler={in_scaler}")
-        print(f"out_scaler={out_scaler}")
         self.inScaler = self._scaler(in_scaler)
+        self.inScaler =  self._scaler(in_scaler)
         self.outScaler = self._scaler(out_scaler)
+        self._fit()
 
     def set_return_value(self, name):
         self.return_value = name
@@ -81,6 +83,14 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
             print("\n\n\n MIN MAX HIT")
             return scaler(feature_range=({{ feature_min }}, {{ feature_max }}))
         return scaler()
+
+    def _fit(self):
+        #TODO (gurhar1133): test
+        with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
+            if self.inScaler:
+                self.inScaler.fit(f[self.x.key])
+            if self.outScaler:
+                self.outScaler.fit(f[self.y.key])
 
     def __len__(self):
         return math.ceil(len(self.indices) / self.batch_size)
