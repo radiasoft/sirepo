@@ -1749,6 +1749,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.objects = [];
             $scope.width = $scope.height = 0;
 
+            let didDrag = false;
             let dragShape, dragStart, zoom;
             let [dragX, dragY] = [0, 0];
             let draggedShape = null;
@@ -1767,6 +1768,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function resetDrag() {
+                didDrag = false;
                 hideShapeLocation();
                 [dragX, dragY] = [0, 0];
                 draggedShape = null;
@@ -1775,7 +1777,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function d3DragEndShape(shape) {
                 const dragThreshold = 1e-3;
-                if (Math.abs(dragX) < dragThreshold && Math.abs(dragY) < dragThreshold) {
+                if (didDrag && Math.abs(dragX) < dragThreshold && Math.abs(dragY) < dragThreshold) {
                     resetDrag();
                     return;
                 }
@@ -1808,6 +1810,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 if (! shape.draggable) {
                     return;
                 }
+                didDrag = true;
                 [dragX, dragY] = [d3.event.x, d3.event.y];
                 draggedShape = shape;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
