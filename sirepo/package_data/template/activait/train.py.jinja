@@ -12,7 +12,6 @@ try:
     history = model.fit(
         split.train_gen,
         validation_data=split.val_gen,
-        use_multiprocessing=True,
         epochs={{ neuralNet_epochs }},
         callbacks=[CSVLogger('fit.csv')])
 except Exception as e:
