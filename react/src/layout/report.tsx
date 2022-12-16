@@ -35,7 +35,7 @@ export type AutoRunReportConfig = {
 
 export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
     reportLayout: ReportVisual;
-    
+
     constructor(config: AutoRunReportConfig) {
         super(config);
 
@@ -111,7 +111,7 @@ export type ManualRunReportConfig = {
 
 export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
     reportLayout: ReportVisual;
-    
+
     constructor(config: ManualRunReportConfig) {
         super(config);
 
@@ -124,7 +124,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
 
     component = (props: LayoutProps<{}>) => {
         let { reportName, reportGroupName, frameIdFields, shown: shownConfig, frameCountFieldName } = this.config;
-        
+
         let reportEventManager = useContext(CReportEventManager);
         let modelsWrapper = useContext(CModelsWrapper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
@@ -176,7 +176,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                                     console.log(`seeking same; next=${animationReader.nextFrameIndex} oldcount=${animationReader.frameCount} newcount=${newAnimationReader.frameCount}`);
                                     newAnimationReader.seekFrame(animationReader.nextFrameIndex);
                                 }*/
-                                
+
                                 updateAnimationReader(newAnimationReader);
                             } else {
                                 updateAnimationReader(undefined);
@@ -279,7 +279,7 @@ export type SimulationStartConfig = {
 
 export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
     childLayouts: Layout[];
-    
+
     constructor(config: SimulationStartConfig) {
         super(config);
 
@@ -392,7 +392,6 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
         });
 
         if(lastSimState) {
-            let elapsedTimeSeconds = stopwatch.isComplete() ? Math.ceil(stopwatch.getElapsedSeconds()) : undefined;
             let getStateBasedElement = (simState: ResponseHasState) => {
                 switch(simState.state) {
                     case 'pending':
@@ -407,7 +406,8 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span>{`Running`}</span>
-                                <ProgressBar animated now={Math.max((simState.percentComplete !== undefined) ? simState.percentComplete : 100, 5)}/>
+                                <span>{stopwatch.formatElapsedTime()}</span>
+                                <ProgressBar animated now={Math.max((simState.percentComplete !== undefined && simState.percentComplete > 0) ? simState.percentComplete : 100, 5)}/>
                                 {endSimulationButton}
                             </Stack>
                         )
@@ -415,7 +415,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span>{'Simulation Completed'}</span>
-                                <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
+                                <span>{stopwatch.formatElapsedTime()}</span>
                                 <div>{children}</div>
                                 {startSimulationButton}
                             </Stack>
@@ -433,7 +433,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span>{'Simulation Error'}</span>
-                                <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
+                                <span>{stopwatch.formatElapsedTime()}</span>
                                 <div>{children}</div>
                                 {startSimulationButton}
                             </Stack>
