@@ -12,6 +12,7 @@ import { LayoutWithDownloadButton } from "./download";
 import { LayoutType, Layout } from "./layout";
 import { SchemaLayout } from "../utility/schema";
 import { TextLayout } from "./text";
+import { ColumnBreakLayout } from "./columnbreak";
 
 
 // TODO rename to LayoutsWrapper
@@ -29,11 +30,12 @@ class LayoutWrapper {
         navTabs: NavTabsLayout,
         table: TableFromApi,
         startSimulation: SimulationStartLayout,
-        text: TextLayout
+        text: TextLayout,
+        columnBreak: ColumnBreakLayout,
     }
 
     constructor () {
-        
+
     }
 
     getLayoutTypeForName = <C, P>(layoutName: string): LayoutType<C, P> => {
