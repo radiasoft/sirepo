@@ -54,13 +54,13 @@ class SimData(sirepo.sim_data.SimDataBase):
         sim = models.simulation
         if not sim.get("exampleName"):
             sim.exampleName = sim.name
-        if sim.name == "Dipole":
+        if sim.name in cls.schema().constants.rawExamples:
             sim.applicationMode = "imported"
+        if sim.name == "Dipole":
             sim.beamAxis = "x"
             sim.heightAxis = "z"
             sim.widthAxis = "y"
         if sim.name == "Wiggler":
-            sim.applicationMode = "imported"
             models.geometryReport.isSolvable = "0"
             if not len(models.fieldPaths.paths):
                 models.fieldPaths.paths.append(
@@ -200,6 +200,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         dm = data.models
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
+        if dm.simulation.get("dmpImportFile"):
+            dm.simulation.applicationMode = "imported"
         if dm.get("geometry"):
             dm.geometryReport = dm.geometry.copy()
             del dm["geometry"]
