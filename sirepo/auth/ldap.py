@@ -20,13 +20,15 @@ class API(sirepo.quest.API):
 
         # TODO(BG): pass simulation type as method parameter to assign to 'type', currently passing simulation_type to req and leaving 'type' False
         req = self.parse_post(type=False)
+        u = req.req_data.username
+        p = req.req_data.password
 
         c = ldap.initialize(_cfg.ldap_server)
 
         if(len(u) > 256 or len(p) > 256):
             raise Exception("login user/pass greater than 256 chars")
 
-        c.simple_bind_s(self._get_escaped(req.req_data.username), req.req_data.password)
+        c.simple_bind_s(self._get_escaped(u), p)
         
         raise sirepo.util.Redirect(sirepo.uri.local_route(req.req_data.simulation_type))
         return PKDict()
