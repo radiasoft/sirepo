@@ -3065,7 +3065,8 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
                         handleResponse,
                         {
                             username: $scope.data.username,
-                            password: $scope.data.password
+                            password: $scope.data.password,
+                            simulation_type: SIREPO.APP_SCHEMA.simulationType
                         }
                     );
                 }
