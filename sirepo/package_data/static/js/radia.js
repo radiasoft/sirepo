@@ -696,22 +696,26 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let txArr = [];
         let plIds = [];
         // probably better to create a transform and let svg do this work
-        o.transforms.forEach(function (xform) {
+        for (const xform of o.transforms) {
+            srdbg(o.id, 'xform', xform);
             // draw the shapes for symmetry planes once
             if (xform.model === 'symmetryTransform') {
                 plIds.push(...addSymmetryPlane(baseShape, xform));
             }
             // each successive transform must be applied to all previous shapes
-            [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
+            for (const xShape of [baseShape, ...getVirtualShapes(baseShape, plIds)]) {
                 // these transforms do not copy the object
                 if (xform.model === 'rotate') {
-                    txArr.push(rotateFn(xform, 1));
-                    return;
+                    srdbg('add r to', xShape);
+                    //txArr.push(rotateFn(xform, 1));
+                    rotateFn(xform, 1)(xShape, xShape);
+                    continue;
                 }
-                if (xform.model === 'translate') {
-                    txArr.push(offsetFn(xform, 1));
-                    return;
-                }
+                // deprecated
+                //if (xform.model === 'translate') {
+                //    txArr.push(offsetFn(xform, 1));
+                //    continue;
+                //}
 
                 let xo = self.getObject(xShape.id);
                 let linkTx;
@@ -734,15 +738,17 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     }
                 }
                 if (xform.model === 'symmetryTransform') {
+                    srdbg('add symm tto', xShape);
                     linkTx = mirrorFn(xform);
-                    addTxShape(xShape, xform, linkTx);
+                    const txs = addTxShape(xShape, xform, linkTx);
                     transformMembers(xo, xform, linkTx);
                 }
-            });
-        });
+            }
+        }
 
+        srdbg(o.id, txArr);
         // apply non-copying transforms to the object and its members (if any)
-        composeFn(txArr)(baseShape, baseShape);
+        //composeFn(txArr)(baseShape, baseShape);
         for (const m of getMembers(o)) {
             let s = self.getShape(m.id);
             composeFn(txArr)(s, s);
@@ -798,9 +804,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function composeFn(fnArr) {
         return function(shape1, shape2) {
             let prevShape = shape1;
-            fnArr.forEach(function (tx) {
+            for (const tx of fnArr) {
                 prevShape = tx(prevShape, shape2);
-            });
+            }
             return shape2;
         };
     }
@@ -866,14 +872,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // may have to flatten
     function getVirtualShapes(baseShape, excludedIds = []) {
-        let v = self.shapes.filter(function (s) {
-            return excludedIds.indexOf(s.id) < 0 && hasBaseShape(s, baseShape);
-        });
+        let v = self.shapes.filter(s => ! excludedIds.includes(s.id) && hasBaseShape(s, baseShape));
         let v2 = [];
         for (const s of v) {
-            v2.push(...getVirtualShapes(s, excludedIds));
+            v2 = v2.concat(getVirtualShapes(s, excludedIds));
         }
-        v.push(...v2);
+        v = v.concat(v2);
         return v;
     }
 
@@ -913,15 +917,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function mirrorFn(xform) {
         return function (shape1, shape2) {
-            const pl = geometry.plane(
+            const pl = new SIREPO.GEOMETRY.Plane(
                 xform.symmetryPlane,
-                geometry.pointFromArr(
-                    radiaService.scaledArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale)
+                new SIREPO.GEOMETRY.Point(
+                    ...radiaService.scaledArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale)
                 )
             );
             shape2.setCenter(
-                pl.mirrorPoint(geometry.pointFromArr(
-                [shape1.center.x, shape1.center.y, shape1.center.z]
+                pl.mirrorPoint(new SIREPO.GEOMETRY.Point(
+                    ...[shape1.center.x, shape1.center.y, shape1.center.z]
                 )).coords()
             );
             for (const dim in shape1.points) {

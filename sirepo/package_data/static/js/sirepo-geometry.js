@@ -39,7 +39,7 @@ class GeometryUtils {
             z: [0, 0, 1]
         };
     }
-    
+
     /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
@@ -60,15 +60,6 @@ class GeometryUtils {
     static nextAxis(axis) {
         const b = GeometryUtils.BASIS();
         return b[(b.indexOf(axis) + 1) % b.length];
-    }
-
-    /**
-     * Normalize a vector
-     * @param {[number]} vector
-     * @returns {[number]}
-     */
-    static normalize(vector) {
-        return vector.map(c => c / Math.hypot(vector[0], vector[1], vector[2]));
     }
 
     /**
@@ -229,7 +220,6 @@ class Matrix extends GeometricObject {
     add(matrix) {
         return this.linearCombination(matrix, 1);
     }
-
 
     /**
      * Determines if this matrix is equal to another, according to the following criteria:
@@ -474,7 +464,6 @@ class SquareMatrix extends Matrix {
         }
         return new SquareMatrix(m);
     }
-
 }
 
 /*
@@ -517,7 +506,7 @@ class RotationMatrix extends SquareMatrix {
         const B = point[1];
         const C = point[2];
 
-        const nv = GeometryUtils.normalize(axis);
+        const nv = VectorUtils.normalize(axis);
         const u = nv[0];
         const v = nv[1];
         const w = nv[2];
@@ -565,6 +554,47 @@ class RotationMatrix extends SquareMatrix {
             phi = Math.atan2(this.val[1][0] / c, this.val[0][0] / c);
         }
         return [psi, theta, phi].map(x => toDegrees ? 180.0 * x / Math.PI : x);
+    }
+}
+
+
+/**
+ * Affine transformation for reflections
+ */
+class ReflectionMatrix extends SquareMatrix {
+    /**
+     * @param {Plane} plane - reflection plane
+     */
+    constructor(plane) {
+        const n = plane.norm;
+        const p = plane.point;
+        const d = -n[0] * p[0] - n[1] * p[1] - n[2] * p[2];
+        const m = [
+            [1 - 2 * n[0] * n[0], -2 * n[0] * n[1], -2 * n[0] * n[2], -2 * n[0] * d],
+            [-2 * n[1] * n[0], 1 - 2 * n[1] * n[1], -2 * n[1] * n[2], -2 * n[1] * d],
+            [-2 * n[2] * n[0], -2 * n[2] * n[1], 1 - 2 * n[2] * n[2], -2 * n[2] * d],
+            [0, 0, 0, 1]
+        ];
+        super(m);
+        this.plane = plane;
+    }
+}
+
+/**
+ * Affine transformation for translations
+ */
+class TranslationMatrix extends SquareMatrix {
+    /**
+     * @param {[number]} deltas - translation in each direction
+     */
+    constructor(deltas) {
+        super([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 0, 1],
+            [...deltas, 1]
+        ]);
+        this.deltas = deltas;
     }
 }
 
@@ -642,7 +672,6 @@ class Transform extends GeometricObject {
         }
         return str;
     }
-
 }
 
 /*
@@ -736,7 +765,143 @@ class Point extends GeometricObject {
         }
         return new Point(0, 0, 0);
     }
+}
 
+/**
+ * A plane defined by a normal vector and a point
+ */
+class Plane extends GeometricObject {
+    /**
+     * @param {[number]} normal vector - will be normalized
+     * @param {Point} point
+     */
+    constructor(norm, point) {
+        if (VectorUtils.isZero(norm)) {
+            throw new Error('Must specify a non-zero plane normal: ' + norm);
+        }
+        super();
+        this.norm = VectorUtils.normalize(norm);
+        this.point = point;
+        this.pointCoords = point.coords();
+        this.A = this.norm[0];
+        this.B = this.norm[1];
+        this.C = this.norm[2];
+        this.D = VectorUtils.dot(this.norm, this.pointCoords);
+    }
+
+    closestPointToPoint(p) {
+        const d = this.distToPoint(p, true);
+        const pc = p.coords();
+        return new Point(...[pc[0] - d * this.A, pc[1] - d * this.B, pc[2] - d * this.C]);
+    }
+
+    containsPoint(p) {
+        return this.equalWithin(VectorUtils.dot(this.norm, p.coords()), this.D);
+    }
+
+    distToPoint(p, signed) {
+        const d = (1 / Math.hypot(...this.norm) *
+            (VectorUtils.dot(this.norm, p.coords()) - this.D));
+        return signed ? d : Math.abs(d);
+    }
+
+    equals(otherPlane) {
+        if (! this.isParallelTo(otherPlane)) {
+            return false;
+        }
+        return this.D === otherPlane.D;
+    }
+
+    intersection(otherPlane) {
+        if (this.equals(otherPlane)) {
+            // planes are equal, return an arbitrary line containing the point
+            // need ensure they are not the same point!  Use random number?
+            return new Line(this.point, this.pointInPlane());
+        }
+        // parallel but not equal, there is no intersection
+        if (this.isParallelTo(otherPlane)) {
+            return null;
+        }
+        const p1 = this.paramLine(otherPlane)(0);
+        const p2 = this.paramLine(otherPlane)(1);
+        return new Line(new Point(...p1), new Point(...p2));
+    }
+
+    intersectsLine(l) {
+        const pts = l.points();
+        const p1 = pts[0].coords();
+        const p2 = pts[1].coords();
+        let dp = VectorUtils.dot(
+            [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]],
+            this.norm
+        );
+        if (dp !== 0) {
+            return true;
+        }
+        const pp = this.pointInPlane().coords();
+        const d = [pp[0] - p1[0], pp[1] - p1[1], pp[2] - p1[2]];
+        dp = VectorUtils.dot(d, this.norm);
+        return dp === 0;
+    }
+
+    isParallelTo(otherPlane) {
+        return this.equalWithin(this.A, otherPlane.A) &&
+            this.equalWithin(this.B, otherPlane.B) &&
+            this.equalWithin(this.C, otherPlane.C);
+    };
+
+    mirrorPoint(p) {
+        const cp = this.closestPointToPoint(p).coords();
+        const d = this.distToPoint(p, true);
+        return new Point(...[cp[0] - d * this.A,  cp[1] - d * this.B,  cp[2] - d * this.C]);
+    }
+
+    paramLine(otherPlane, t) {
+        let freeIndex = 0;
+        let i = 1;
+        let j = 2;
+        let d = 0;
+        for (freeIndex = 0; freeIndex < 3; ++freeIndex) {
+            i = (freeIndex + 1) % 3;
+            j = (freeIndex + 2) % 3;
+            d = this.norm[i] * otherPlane.norm[j] - this.norm[j] * otherPlane.norm[i];
+            if (d !== 0) {
+                break;
+            }
+        }
+        return t => {
+            const p = [0, 0, 0];
+            p[freeIndex] = t;
+            p[i] = ((otherPlane.norm[j] * this.D - this.norm[j] * otherPlane.D) +
+                t * (this.norm[j] * otherPlane.norm[freeIndex] - otherPlane.norm[j] * this.norm[freeIndex])) / d;
+            p[j] = ((this.norm[i] * otherPlane.D - otherPlane.norm[i] * this.D) +
+                t * (this.norm[i] * otherPlane.norm[freeIndex] - otherPlane.norm[i] * this.norm[freeIndex])) / d;
+            return p;
+        };
+    };
+
+    pointInPlane(fixedVal) {
+        if (fixedVal !== 0 && ! fixedVal) {
+            fixedVal = 1;
+        }
+        // check if plane norm is along a basis vector - if so, any values in the remaining coords
+        // satisfy the plane's equation
+        for (let v of GeometryUtils.BASIS_VECTORS()) {
+            if (VectorUtils.dot(v, this.norm) === 1) {
+                return new Point(VectorUtils.subtract([1, 1, 1], v));
+            }
+        }
+        // if a coord is 0 - can't all be 0 so at most one - the equation of the plane
+        // is also the equation of a line.  If no coords are 0 we can arbitrarily set z to 0
+        const non0 = [[1, 2], [0, 2], [0, 1]];
+        const ptArr = [0, 0, 0];
+        let zIdx = this.norm.indexOf(0);
+        zIdx = zIdx >= 0 ? zIdx : 2;
+        const nzIdxs = non0[zIdx];
+        ptArr[nzIdxs[0]] = fixedVal;
+        ptArr[nzIdxs[1]] = -fixedVal * this.norm[nzIdxs[0]] / this.norm[nzIdxs[1]];
+        return new Point(...ptArr);
+    };
 }
 
 /*
@@ -1147,6 +1312,47 @@ class Rect extends GeometricObject {
      */
     width() {
         return this.sides()[1].length();
+    }
+}
+
+/**
+ * Vector-specific utilities
+ */
+class VectorUtils {
+
+    static dot(v1, v2) {
+        return v1.reduce((prev, curr, i) => prev + curr * v2[i], 1);
+    }
+
+    static isZero(v) {
+        return v.every(c => c === 0);
+    }
+
+    /**
+     * Normalize a vector
+     * @param {[number]} v
+     * @returns {[number]}
+     */
+    static normalize(v) {
+        return v.map(c => c / Math.hypot(...v));
+    }
+
+    /**
+     * Add two vectors
+     * @param {[number]} v1
+     * @param {[number]} v2
+     * @returns {[number]}
+     */
+    static add(v1, v2) {
+        return this.combine(v1, v2, 1);
+    }
+
+    static combine = function (v1, v2, c) {
+        return v1.map((x, i) => x + c * v2[i]);
+    }
+
+    subtract(v1, v2) {
+        return this.combine(v1, v2, -1);
     }
 }
 
@@ -2135,9 +2341,12 @@ SIREPO.GEOMETRY = {
     Line: Line,
     LineSegment: LineSegment,
     Matrix: Matrix,
+    Plane: Plane,
     Point: Point,
     Rect: Rect,
+    ReflectionMatrix: ReflectionMatrix,
     RotationMatrix: RotationMatrix,
     SquareMatrix: SquareMatrix,
     Transform: Transform,
+    TranslationMatrix: TranslationMatrix,
 };
