@@ -257,15 +257,9 @@ SIREPO.app.directive('appHeader', function(appState, activaitService) {
 
 SIREPO.app.controller('AnalysisController', function (appState, activaitService, panelState, requestSender, $scope, $window) {
     const self = this;
-    self.activaitService = activaitService;
-    var currentFile = null;
     self.subplots = null;
 
     function buildSubplots() {
-        if (! currentFile) {
-            self.subplots = null;
-            return;
-        }
         self.subplots = [];
         (activaitService.getSubreports() || []).forEach((id, idx) => {
             const modelKey = 'analysisReport' + id;
@@ -278,46 +272,14 @@ SIREPO.app.controller('AnalysisController', function (appState, activaitService,
         });
     }
 
-    function updateAnalysisParameters() {
-        requestSender.getApplicationData(
-            {
-                method: 'column_info',
-                dataFile: appState.models.dataFile,
-            },
-            data => {
-                if (appState.isLoaded() && data.columnInfo) {
-                    appState.models.columnInfo = data.columnInfo;
-                    appState.saveChanges('columnInfo');
-                }
-            });
-    }
-
-    appState.whenModelsLoaded($scope, () => {
-        currentFile = appState.models.dataFile.file;
-        if (currentFile && ! appState.models.columnInfo) {
-            updateAnalysisParameters();
+    $scope.$on('modelChanged', (e, name) => {
+        if (name.indexOf('analysisReport') >= 0) {
+            // invalidate the corresponding fftReport
+            appState.saveChanges('fftReport' + (appState.models[name].id || ''));
         }
-        $scope.$on('dataFile.changed', () => {
-            let dataFile = appState.models.dataFile;
-            if (currentFile != dataFile.file) {
-                currentFile = dataFile.file;
-                if (currentFile) {
-                    updateAnalysisParameters();
-                    activaitService.removeAllSubreports();
-                    appState.models.analysisReport.action = null;
-                    appState.saveChanges(['analysisReport', 'hiddenReport']);
-                }
-            }
-        });
-        $scope.$on('modelChanged', (e, name) => {
-            if (name.indexOf('analysisReport') >= 0) {
-                // invalidate the corresponding fftReport
-                appState.saveChanges('fftReport' + (appState.models[name].id || ''));
-            }
-        });
-        $scope.$on('hiddenReport.changed', buildSubplots);
-        buildSubplots();
     });
+    $scope.$on('hiddenReport.changed', buildSubplots);
+    buildSubplots();
 });
 
 SIREPO.app.controller('DataController', function (activaitService, appState) {
@@ -1114,32 +1076,44 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
           <div data-ng-if="isLoading()" class="progress">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
           </div>
-          <div style="display: flex; justify-content: space-between;" data-ng-if="! isLoading()">
-            <button data-ng-click="prev()"> < prev image set </button>
-            <button data-ng-click="next()"> next image set > </button>
+          <div data-ng-if="! isLoading()">
+            <div class="pull-left">
+              <button class="btn btn-primary" title="first" data-ng-click="first()">|<</button>
+              <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
+            </div>
+            <div class="pull-right">
+              <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
+              <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
+            </div>
           </div>
         </div>
         `,
         controller: function($scope, appState) {
             let idx = 0;
-            let uris;
             let loading = true;
+            let numPages = 0;
+            let uris;
+            
+            $scope.canUpdateUri = increment => {
+                return idx + increment >= 0 && idx + increment < numPages;
+            };
+
+            $scope.first = () => {
+                setImageFromUriIndex(idx = 0);
+            };
 
             $scope.isLoading = () => loading;
 
-            $scope.updateUriIndex = increment => {
-                if ((0 <= idx + increment) && (idx + increment <= 4)) {
-                    idx = idx + increment;
-                    setImageFromUriIndex(idx);
-                }
-            };
-
-            $scope.prev = () => {
-                $scope.updateUriIndex(-1);
+            $scope.last = () => {
+                setImageFromUriIndex(idx = uris.length - 1);
             };
 
             $scope.next = () => {
-                $scope.updateUriIndex(1);
+                setImageFromUriIndex(idx += 1);
+            };
+
+            $scope.prev = () => {
+                setImageFromUriIndex(idx -= 1);
             };
 
             function setImageFromUriIndex(index) {
@@ -1152,6 +1126,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 requestSender.sendStatefulCompute(
                     appState,
                     response => {
+                        numPages = response.numPages;
                         uris = response.uris;
                         setImageFromUriIndex(0);
                         loading = false;
@@ -2140,7 +2115,7 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
                 appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
             },
             {
-                method: 'compute_column_info',
+                method: 'column_info',
                 args: {
                     dataFile: dataFile,
                 }

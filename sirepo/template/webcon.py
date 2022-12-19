@@ -81,6 +81,34 @@ _SETTINGS_KICKER_SYMBOLS = PKDict(
 )
 
 
+def analysis_job_enable_steering(data, run_dir, **kwargs):
+    if run_dir.exists():
+        simulation_db.write_json(run_dir.join(STEERING_FILE), data["beamSteering"])
+    return PKDict()
+
+
+def analysis_job_read_epics_kickers(data, **kwargs):
+    return PKDict(
+        kickers=read_epics_values(
+            data.epicsServerAnimation.serverAddress,
+            CURRENT_FIELDS,
+        ),
+    )
+
+
+def analysis_job_update_kicker(data, run_dir, **kwargs):
+    # data validation is done by casting values to int() or float()
+    prefix = "sr_epics:corrector{}:".format(int(data["epics_field"]))
+    fields = []
+    values = []
+    for f in "h", "v":
+        field = "{}{}Current".format(prefix, f.upper())
+        fields.append(field)
+        values.append(float(data["kicker"]["{}kick".format(f)]))
+    update_epics_kickers(data.epicsServerAnimation, run_dir, fields, values)
+    return PKDict()
+
+
 def background_percent_complete(report, run_dir, is_running):
     if report == "epicsServerAnimation" and is_running:
         monitor_file = run_dir.join(MONITOR_LOGFILE)
@@ -164,16 +192,6 @@ def get_analysis_report(run_dir, data):
             summaryData=PKDict(),
         ),
     )
-
-
-def get_application_data(data, qcall, **kwargs):
-    if data["method"] == "update_kicker":
-        return _update_epics_kicker(data, qcall)
-    if data["method"] == "read_kickers":
-        return _read_epics_kickers(data)
-    if data["method"] == "enable_steering":
-        return _enable_steering(data, qcall)
-    assert False, "unknown application_data method: {}".format(data["method"])
 
 
 def get_beam_pos_report(run_dir, data):
@@ -928,14 +946,6 @@ def _elements_of_types(data, types):
     return [m for m in data.models.elements if "type" in m and m.type in types]
 
 
-def _enable_steering(data, qcall):
-    sim_dir = _epics_dir(data["simulationId"], qcall)
-    if sim_dir.exists():
-        # TODO(pjm): use save to tmp followed by mv for atomicity
-        simulation_db.write_json(sim_dir.join(STEERING_FILE), data["beamSteering"])
-    return PKDict()
-
-
 def _epics_dir(sim_id, qcall):
     return simulation_db.simulation_dir(SIM_TYPE, sim_id, qcall=qcall).join(
         "epicsServerAnimation",
@@ -1197,13 +1207,6 @@ def _position_of_element(data, id):
     return p[i]
 
 
-def _read_epics_kickers(data):
-    epics_settings = data.epicsServerAnimation
-    return PKDict(
-        kickers=read_epics_values(epics_settings.serverAddress, CURRENT_FIELDS),
-    )
-
-
 def _read_monitor_file(monitor_path, history=False):
     from datetime import datetime
 
@@ -1354,22 +1357,6 @@ def _tokenize_equation(eq):
         for t in re.split(r"[-+*/^|%().0-9\s]", (eq if eq is not None else ""))
         if len(t) > 0
     ]
-
-
-def _update_epics_kicker(data, qcall):
-    epics_settings = data.epicsServerAnimation
-    # data validation is done by casting values to int() or float()
-    prefix = "sr_epics:corrector{}:".format(int(data["epics_field"]))
-    fields = []
-    values = []
-    for f in "h", "v":
-        field = "{}{}Current".format(prefix, f.upper())
-        fields.append(field)
-        values.append(float(data["kicker"]["{}kick".format(f)]))
-    update_epics_kickers(
-        epics_settings, _epics_dir(data.simulationId, qcall), fields, values
-    )
-    return PKDict()
 
 
 def _validate_eq_var(val):

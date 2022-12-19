@@ -720,7 +720,7 @@ def import_file(req, test_data=None, **kwargs):
         simulation_db.delete_simulation(
             SIM_TYPE,
             d.models.simulation.simulationId,
-            qcall=req.call,
+            qcall=req.qcall,
         )
     return res
 

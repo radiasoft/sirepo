@@ -925,9 +925,6 @@ SIREPO.app.factory('appDataService', function() {
     self.getApplicationMode = function() {
         return self.applicationMode;
     };
-    self.appDataForReset = function() {
-        return null;
-    };
     self.canCopy = function() {
         return true;
     };
@@ -1933,7 +1930,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             windowResize();
         }
     };
-    
+
     self.toggleHiddenAndNotify = name => {
         self.toggleHidden(name);
         $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
@@ -1971,7 +1968,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
     var auxillaryData = {};
-    var getApplicationDataTimeout = {};
     var globalMap = {_name: 'global'};
     var localMap = {_name: 'local'};
 
@@ -2104,10 +2100,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
     }
 
-    function sendWithSimulationFields(url, appState, successCallback, data, errorCallback) {
+    function sendWithSimulationFields(url, appState, successCallback, data, errorCb) {
         data.simulationId = data.simulationId || appState.models.simulation.simulationId;
         data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-        self.sendRequest(url, successCallback, data, errorCallback);
+        self.sendRequest(url, successCallback, data, errorCb);
     }
 
     // Started from serializeValue in angular, but need more specialization.
@@ -2150,31 +2146,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
 
     self.formatUrl = function(routeName, params) {
         return formatUrl(globalMap, routeName, params);
-    };
-
-    self.getApplicationData = function(data, callback, fileName) {
-        // debounce the method so server calls don't go on every keystroke
-        // track method calls by methodSignature (for shared methods) or method name (for unique methods)
-        var signature = data.methodSignature || data.method;
-        if (getApplicationDataTimeout[signature]) {
-            $interval.cancel(getApplicationDataTimeout[signature]);
-        }
-        getApplicationDataTimeout[signature] = $interval(function() {
-            delete getApplicationDataTimeout[signature];
-            data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-            var r = fileName ? {
-                routeName: 'getApplicationData',
-                '<filename>': fileName
-            } : 'getApplicationData';
-            self.sendRequest(r, callback, data, function (data, status, respData) {
-                if (status === 200) {
-                    if (fileName) {
-                        // if filename, do a Blob saveAs() here?
-                        callback(respData, status);
-                    }
-                }
-            });
-        }, SIREPO.debounce_timeout, 1);
     };
 
     self.getAuxiliaryData = function(name) {
@@ -2310,6 +2281,22 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
+        const blobResponse = (response, successCallback, thisErrorCallback) => {
+            // These two content-types are what the server might return with a 200.
+            const r = new RegExp('^(application/json|text/html)$');
+            let d = response.data;
+            if (response.status === 200 && ! r.test(d.type)) {
+                successCallback(d);
+                return;
+            }
+            if (r.test(d.type) || /^text/.test(d.type)) {
+                d.text().then((text) => {d = text;});
+            }
+            thisErrorCallback({
+                ...response,
+                data: d,
+            });
+        };
         if (! errorCallback) {
             errorCallback = logError;
         }
@@ -2322,7 +2309,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
-        t = {
+        const http_config = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
             headers: userAgent.id ? {[userAgent.HEADER]: userAgent.id} : {}
@@ -2338,8 +2325,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
             );
         }
         var req = data
-            ? $http.post(url, data, t)
-            : $http.get(url, t);
+            ? $http.post(url, data, http_config)
+            : $http.get(url, http_config);
         var thisErrorCallback = function(response) {
             var data = response.data;
             var status = response.status;
@@ -2423,21 +2410,20 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 if (i) {
                     userAgent.id = i;
                 }
+                if (http_config.responseType === 'blob') {
+                    $interval.cancel(interval);
+                    blobResponse(response, successCallback, thisErrorCallback);
+                    return;
+                }
                 var data = response.data;
                 if (! angular.isObject(data) || data.state === 'srException') {
-                    // properly handle file path returns from get_application_data, which do not live in json objects
-                    // (this is a placeholder)
-                    //if (response.status === 200) {
-                    //    successCallback(data, response.status);
-                    //    return;
-                    //}
                     thisErrorCallback(response);
                     return;
                 }
                 $interval.cancel(interval);
                 successCallback(data, response.status);
             },
-            thisErrorCallback
+            thisErrorCallback,
         );
     };
 
@@ -2447,8 +2433,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
             self.sendStatefulCompute(appState, callback, data);
         }, SIREPO.debounce_timeout);
 
-    self.sendStatefulCompute = function(appState, callback, data) {
-        sendWithSimulationFields('statefulCompute', appState, callback, data);
+    self.sendStatefulCompute = function(appState, callback, data, errorCb) {
+        sendWithSimulationFields('statefulCompute', appState, callback, data, errorCb);
     };
 
     self.sendStatelessCompute = function(appState, successCallback, data, options={}) {

@@ -82,6 +82,14 @@ _SPECIES_MASS_AND_CHARGE = PKDict(
 _X_FIELD = "t"
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_files,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         count, settings, has_rates = _background_task_info(run_dir)
@@ -129,16 +137,6 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def get_application_data(data, qcall, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(
-            data,
-            _compute_range_across_files,
-            qcall=qcall,
-        )
-    assert False, "unknown application data method={}".format(data.method)
-
-
 def get_rates(run_dir):
     f = pkio.py_path(run_dir).join(JSPEC_LOG_FILE)
     assert f.exists(), "non-existent log file {}".format(f)
@@ -146,6 +144,11 @@ def get_rates(run_dir):
         # TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
         x_range=[],
         rate=[],
+        headings=[
+            "Horizontal",
+            "Vertical",
+            "Longitudinal",
+        ],
     )
     for l in pkio.read_text(f).split("\n"):
         m = re.match(r"^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)", l)
@@ -346,7 +349,7 @@ def _beam_evolution_status(run_dir, settings, has_rates):
     )
 
 
-def _compute_range_across_files(run_dir, data):
+def _compute_range_across_files(run_dir, **kwargs):
     res = PKDict(
         {
             _X_FIELD: [],

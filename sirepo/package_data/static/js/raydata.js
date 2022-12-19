@@ -11,6 +11,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="executed"></div>
         </div>
+        <div data-ng-switch-when="RecentlyExecutedScansTable" class="col-sm-12">
+          <div data-scans-table="" data-model-name="modelName" data-analysis-status="recentlyExecuted"></div>
+        </div>
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="queued"></div>
         </div>
@@ -320,11 +323,14 @@ SIREPO.app.directive('scansTable', function() {
                     </tr>
                   </tbody>
                 </table>
-                <div ng-if="awaitingScans">Loading scans...</div>
+                <div style="height: 20px;">
+                  <div ng-if="awaitingScans" data-dots-animation="" data-text="Checking for new scans"></div>
+                  <div ng-if="noScansReturned">No scans found</div>
+                </div>
               </div>
             </div>
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
-            <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
+            <div class="modal fade" id="{{ analysisModalId }}" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
@@ -360,11 +366,13 @@ SIREPO.app.directive('scansTable', function() {
             </div>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
+            $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
             // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['status', 'start', 'stop', 'suid'];
             $scope.images = null;
+            $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
             $scope.reverseSortScans = false;
             $scope.scans = [];
@@ -389,7 +397,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.showAnalysisOutputModal = () => {
-                const el = $('#sr-analysis-output');
+                const el = $('#' + $scope.analysisModalId);
                 el.modal('show');
                 el.on('hidden.bs.modal', function() {
                     $scope.setSelectedScan(null);
@@ -419,11 +427,15 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 function doRequest() {
                     $scope.awaitingScans = true;
+                    $scope.noScansReturned = false;
                     requestSender.sendStatelessCompute(
                         appState,
                         (json) => {
                             $scope.awaitingScans = false;
                             $scope.scans = json.data.scans.slice();
+                            if ($scope.scans.length === 0) {
+                                $scope.noScansReturned = true;
+                            }
                         },
                         {
                             method: 'scans',

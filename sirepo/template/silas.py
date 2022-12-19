@@ -215,7 +215,7 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
     )
 
 
-def stateless_compute_compute_rms_size(data):
+def stateless_compute_rms_size(data):
     return _compute_rms_size(data.args)
 
 

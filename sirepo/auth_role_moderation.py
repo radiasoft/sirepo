@@ -9,9 +9,6 @@ from pykern.pkdebug import pkdexc, pkdp, pkdlog
 from pykern.pkcollections import PKDict
 from pykern import pkjinja
 import sirepo.quest
-import sirepo.api_perm
-import sirepo.auth
-import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.simulation_db
@@ -57,16 +54,17 @@ class API(sirepo.quest.API):
 
         def _set_moderation_status(info):
             if info.status == "approve":
-                sirepo.auth_db.UserRole.add_roles(qcall=self, roles=[info.role])
-            sirepo.auth_db.UserRoleInvite.set_status(
-                qcall=self,
+                self.auth_db.model("UserRole").add_roles(roles=[info.role])
+            self.auth_db.model("UserRoleInvite").set_status(
                 role=info.role,
                 status=info.status,
                 moderator_uid=info.moderator_uid,
             )
 
         req = self.parse_post(type=False)
-        i = sirepo.auth_db.UserRoleInvite.search_by(token=req.req_data.token)
+        i = self.auth_db.model("UserRoleInvite").unchecked_search_by(
+            token=req.req_data.token
+        )
         if not i:
             pkdlog(f"No record in UserRoleInvite for token={req.req_data.token}")
             raise sirepo.util.UserAlert(
@@ -108,7 +106,7 @@ class API(sirepo.quest.API):
     def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
-                rows=sirepo.auth_db.UserRoleInvite.get_moderation_request_rows(self),
+                rows=self.auth_db.model("UserRoleInvite").get_moderation_request_rows(),
             ),
         )
 
@@ -129,10 +127,11 @@ class API(sirepo.quest.API):
         u = self.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(req.type)
         with sirepo.util.THREAD_LOCK:
-            if sirepo.auth_db.UserRole.has_role(qcall=self, role=r):
+            if self.auth_db.model("UserRole").has_role(role=r):
                 raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
             try:
-                sirepo.auth_db.UserRoleInvite(
+                self.auth_db.model(
+                    "UserRoleInvite",
                     uid=u,
                     role=r,
                     status=sirepo.auth_role.ModerationStatus.PENDING,
@@ -166,7 +165,7 @@ class API(sirepo.quest.API):
 
 
 def raise_control_for_user(qcall, uid, role, sim_type):
-    s = sirepo.auth_db.UserRoleInvite.get_status(qcall=qcall, role=role)
+    s = qcall.auth_db.model("UserRoleInvite").get_status(role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", PKDict(sim_type=sim_type))
     if s == sirepo.auth_role.ModerationStatus.DENY:

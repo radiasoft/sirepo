@@ -78,6 +78,10 @@ class Reply(Exception):
         return self.__repr__()
 
 
+class OKReply(Reply):
+    """When a Reply exception is a successful response"""
+
+
 class Error(Reply):
     """Raised to send an error response
 
@@ -93,7 +97,7 @@ class Error(Reply):
         super().__init__(values, *args, **kwargs)
 
 
-class Redirect(Reply):
+class Redirect(OKReply):
     """Raised to redirect
 
     Args:
@@ -105,7 +109,7 @@ class Redirect(Reply):
         super().__init__(PKDict(uri=uri), *args, **kwargs)
 
 
-class Response(Reply):
+class Response(OKReply):
     """Raise with a Response object
 
     Args:
@@ -225,7 +229,7 @@ def files_to_watch_for_reload(*extensions):
     if not pkconfig.channel_in("dev"):
         return []
     for e in extensions:
-        for p in set(["sirepo", *feature_config.cfg().package_path]):
+        for p in sorted(set(["sirepo", *feature_config.cfg().package_path])):
             d = pykern.pkio.py_path(
                 getattr(importlib.import_module(p), "__file__"),
             ).dirname
