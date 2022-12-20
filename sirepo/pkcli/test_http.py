@@ -18,6 +18,7 @@ import inspect
 import random
 import re
 import signal
+import sirepo.const
 import sirepo.pkcli.service
 import sirepo.sim_data
 import sirepo.util
@@ -139,7 +140,7 @@ def default_command():
             await t
         except Exception as e:
             await _cancel_all_tasks(s)
-            if isinstance(e, sirepo.util.ASYNC_CANCELED_ERROR):
+            if isinstance(e, sirepo.const.ASYNC_CANCELED_ERROR):
                 # Will only be canceled by a signal handler
                 return
             pkdlog("error={} stack={} sims={}", e, pkdexc(), _sims)
@@ -415,7 +416,7 @@ class _Sim(PKDict):
                     finally:
                         if c:
                             await self._cancel(error=e)
-            except sirepo.util.ASYNC_CANCELED_ERROR:
+            except sirepo.const.ASYNC_CANCELED_ERROR:
                 # Don't log on cancel error, we initiate cancels so not interesting
                 raise
             except Exception as e:

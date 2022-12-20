@@ -7,7 +7,6 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
-from pykern import pkinspect
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
@@ -15,9 +14,7 @@ from sirepo import job
 import asyncio
 import contextlib
 import copy
-import inspect
 import pykern.pkio
-import re
 import sirepo.const
 import sirepo.quest
 import sirepo.sim_data
@@ -239,7 +236,7 @@ class _Supervisor(PKDict):
                 o,
                 "_receive_" + req.content.api,
             )(req)
-        except sirepo.util.ASYNC_CANCELED_ERROR:
+        except sirepo.const.ASYNC_CANCELED_ERROR:
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog("{} error={} stack={}", req, e, pkdexc())
@@ -911,7 +908,7 @@ class _ComputeJob(_Supervisor):
                         pass
                 else:
                     raise AssertionError(f"too many retries {op}")
-            except sirepo.util.ASYNC_CANCELED_ERROR:
+            except sirepo.const.ASYNC_CANCELED_ERROR:
                 if self.pkdel("_canceled_serial") != compute_job_serial:
                     # There was a timeout getting the run started. Set the
                     # error and let the user know. The timeout has destroyed
@@ -921,7 +918,7 @@ class _ComputeJob(_Supervisor):
                     # We were canceled due to api_runCancel.
                     # api_runCancel destroyed the op and updated the db
                     pass
-                return False
+                raise
             except Exception as e:
                 op.destroy(cancel=False)
                 if isinstance(e, sirepo.util.SRException) and e.sr_args.params.get(
@@ -938,8 +935,7 @@ class _ComputeJob(_Supervisor):
 
         op.task = asyncio.current_task()
         op.pkdel("run_callback")
-        if not await _send_op(op, compute_job_serial, prev_db):
-            return
+        await _send_op(op, compute_job_serial, prev_db)
         try:
             with op.set_job_situation("Entered __create._run"):
                 while True:
@@ -966,7 +962,7 @@ class _ComputeJob(_Supervisor):
                         self.__db_write()
                         if r.state in job.EXIT_STATUSES:
                             break
-                    except sirepo.util.ASYNC_CANCELED_ERROR:
+                    except sirepo.const.ASYNC_CANCELED_ERROR:
                         return
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
