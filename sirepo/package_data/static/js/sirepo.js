@@ -2136,7 +2136,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     };
 
     self.defaultRouteName = function(appMode=null) {
-        srdbg(appMode);
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
 
@@ -3902,7 +3901,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             }
         }
         else {
-            srdbg(item);
             requestSender.localRedirectHome(item.simulationId, item.appMode);
         }
     };
