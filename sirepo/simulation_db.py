@@ -468,6 +468,7 @@ def process_simulation_list(res, path, data):
     sim = data["models"]["simulation"]
     res.append(
         PKDict(
+            appMode=sim.get("applicationMode", "default"),
             simulationId=_sim_from_path(path)[0],
             name=sim["name"],
             folder=sim["folder"],
