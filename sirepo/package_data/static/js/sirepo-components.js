@@ -4721,7 +4721,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                         $scope.code,
                         $scope.route || 'visualization',
                         $scope.model[$scope.field]
-                    )
+                    );
                 }
             };
             appState.whenModelsLoaded($scope, function() {
