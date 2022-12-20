@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { configureStore } from "@reduxjs/toolkit"
 import { modelsSlice } from "../store/models";
 import { formStatesSlice } from "../store/formState";
@@ -22,6 +22,12 @@ export const AppRoot = (props) => {
     const [hasAppSchema, schema] = useSetup(true, appWrapper.getSchema());
     const [hasMadeHomepageRequest] = useSetup(true, appWrapper.doGuestLogin());
     const [hasSimulationList, simulationList] = useSetup(hasMadeHomepageRequest, appWrapper.getSimulationList());
+
+    useEffect(() => {
+        if (appName) {
+            document.title = `${appName.toUpperCase()} - Sirepo`;
+        }
+    }, [appName]);
 
     if(hasAppSchema && hasMadeHomepageRequest && hasSimulationList) {
         return (

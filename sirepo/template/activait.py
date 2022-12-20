@@ -26,6 +26,8 @@ import urllib
 
 _CHUNK_SIZE = 1024 * 1024
 
+_LOG_FILE = "run.log"
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
@@ -90,7 +92,17 @@ def background_percent_complete(report, run_dir, is_running):
         max_frame = data.models.neuralNet.epochs
         res.frameCount = int(m.group(1)) + 1
         res.percentComplete = float(res.frameCount) * 100 / max_frame
+    error = _parse_activait_log_file(run_dir)
+    if error:
+        res.error = error
     return res
+
+
+def _parse_activait_log_file(run_dir):
+    for l in pkio.read_text(run_dir.join(_LOG_FILE)).split("\n"):
+        if re.search("AssertionError: Model training failed due to:", l):
+            return l
+    return ""
 
 
 def get_analysis_report(run_dir, data):
@@ -928,6 +940,7 @@ def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
+    v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
