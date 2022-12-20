@@ -1,5 +1,5 @@
 import { trimPathSeparators, joinPath } from "../utility/path";
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext } from "react";
 import {
     Accordion,
     Container,
@@ -12,8 +12,7 @@ import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react
 import { SimulationRoot } from "./simulation";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
-import { SrNavbar, NavbarContainerId } from "./reusable/navbar";
-import { titleCaseString } from "../utility/string";
+import { SrNavbar } from "./reusable/navbar";
 import { CAppName, CSimulationList } from "../data/appwrapper";
 
 function buildSimulationsTree(simulations) {
@@ -231,7 +230,7 @@ function SimulationBrowser(props) {
             {({routedTree, routedPath}) => {
                 return (
                     <>
-                        <SrNavbar title={`${titleCaseString(appName)} Simulations`} titleHref={routeHelper.getCurrentPath()}>
+                        <SrNavbar title={`${appName.toUpperCase()} Simulations`} titleHref={routeHelper.getCurrentPath()}>
                             <Col className="float-right">
                                 <SimulationRouteHeader path={routedPath}/>
                             </Col>

@@ -1,6 +1,6 @@
 import { LayoutProps, LayoutType, Layout } from "./layout";
 import React, { useContext } from "react";
-import { 
+import {
     Row,
     Col,
     Form,
@@ -38,17 +38,17 @@ export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutT
             let formState = useContext(CFormStateWrapper);
             let schema = useContext(CSchema);
             let modelsWrapper = useContext(CModelsWrapper);
-    
+
             let dependencies = this.getFormDependencies();
-    
+
             let formController = new FormController(formState, modelsWrapper, dependencies, schema);
-    
+
             return (
                 <CFormController.Provider value={formController}>
                     { props.children }
                 </CFormController.Provider>
             )
-        };        
+        };
     };
 }
 
@@ -85,7 +85,7 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
         let els = [];
 
         let someRowHasLabel = rows.reduce<boolean>((prev: boolean, cur: FieldGridRow) => prev || !!cur.label, false);
-        
+
         els.push( // header row
             <Row className="sr-form-row" key={"header"}>
                 {(someRowHasLabel ? <Col key={"label_dummy"}></Col> : undefined)}
@@ -107,17 +107,17 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
                         let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDependency);
                         let fieldType = schema.models[fieldDependency.modelName][fieldDependency.fieldName].type;
                         return (<Col key={index}>
-                            <FieldInput 
-                                key={index} 
-                                value={fieldValue} 
+                            <FieldInput
+                                key={index}
+                                value={fieldValue}
                                 updateField={(value: unknown): void => {
                                     formState.updateField(
-                                        fieldDependency.fieldName, 
-                                        fieldDependency.modelName, 
-                                        store.getState(), 
+                                        fieldDependency.fieldName,
+                                        fieldDependency.modelName,
+                                        store.getState(),
                                         fieldStateFromValue(value, fieldValue, fieldType));
                                 }}
-                                dependency={fieldDependency} 
+                                dependency={fieldDependency}
                                 inputComponent={fieldType.component}/>
                         </Col>)
                     })}
@@ -135,6 +135,10 @@ export type FieldListConfig = {
 }
 
 export class FieldListLayout extends Layout<FieldListConfig, {}> {
+    constructor(config: FieldListConfig) {
+        super(config);
+    }
+
     getFormDependencies = () => {
         return (this.config.fields || []).map(f => new Dependency(f));
     }
@@ -152,26 +156,27 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
                 let fieldDep = new Dependency(fieldDepString);
                 let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDep);
                 let fieldSchema = schema.models[fieldDep.modelName][fieldDep.fieldName];
+                let shown = useShown(fieldSchema.shown, true, formState, ValueSelectors.Fields);
 
-                if(fieldValue.active) {
-                    return <LabeledFieldInput 
-                    key={idx} 
-                    value={fieldValue} 
-                    dependency={fieldDep} 
-                    displayName={fieldSchema.displayName} 
-                    description={fieldSchema.description} 
+                if(shown && fieldValue.active) {
+                    return <LabeledFieldInput
+                    key={idx}
+                    value={fieldValue}
+                    dependency={fieldDep}
+                    displayName={fieldSchema.displayName}
+                    description={fieldSchema.description}
                     updateField={(value: unknown): void => {
                         formState.updateField(
-                            fieldDep.fieldName, 
-                            fieldDep.modelName, 
-                            store.getState(), 
+                            fieldDep.fieldName,
+                            fieldDep.modelName,
+                            store.getState(),
                             fieldStateFromValue(value, fieldValue, fieldSchema.type));
                     }}
                     inputComponent={fieldSchema.type.component}/>
                 }
 
                 return undefined;
-            })} 
+            })}
         </Container>
     }
 }

@@ -1568,7 +1568,12 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             if (code == 'e' && decimals >= 0) {
                 decimals = -(p0 - decimals);
             }
-            decimals = decimals < 0 ? Math.abs(decimals) : 0;
+            if (v0 == v1) {
+                decimals = 1;
+            }
+            else {
+                decimals = decimals < 0 ? Math.abs(decimals) : 0;
+            }
             return {
                 decimals: decimals,
                 code: code,
@@ -2823,6 +2828,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 prevDomain = null;
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
+                $scope.width = json.z_matrix[0].length;
+                $scope.height = json.z_matrix.length;
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 var newFullDomain = [
                     [json.x_range[0], json.x_range[1]],

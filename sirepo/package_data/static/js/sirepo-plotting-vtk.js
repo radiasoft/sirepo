@@ -2062,6 +2062,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapePoints(shape) {
+                //TODO(mvk): apply transforms to dx, dy
                 const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragX, dragY] : [0, 0];
                 let pts = '';
                 for (const p of shape.points[shape.elev.axis]) {
@@ -2233,16 +2234,16 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             // called when dropping new objects, not existing
             $scope.dropSuccess = function(obj, evt) {
-                var p = isMouseInBounds(evt);
+                const p = isMouseInBounds(evt);
                 if (p) {
-                    var shape = $scope.source.shapeForObject(obj);
-                    var labXIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].x.axis);
-                    var labYIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].y.axis);
-                    var ctr = [0, 0, 0];
+                    const labXIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].x.axis);
+                    const labYIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].y.axis);
+                    const ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
                     obj.center = ctr.map(x => x * invObjScale);
                     $scope.$emit('layout.object.dropped', obj);
+                    drawShapes();
                 }
             };
 

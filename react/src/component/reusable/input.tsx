@@ -1,6 +1,5 @@
 import React, { FunctionComponent } from "react";
 import { Dependency } from "../../data/dependency";
-import { useRenderCount } from "../../hook/debug";
 import { InputComponentProps } from "../../layout/input/input";
 import { FormFieldState } from "../../store/formState";
 import { FormField } from "./form";
