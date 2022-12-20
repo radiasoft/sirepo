@@ -201,7 +201,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
         if dm.simulation.get("dmpImportFile"):
-            dm.simulation.applicationMode = "imported"
+            dm.simulation.appMode = "imported"
         if dm.get("geometry"):
             dm.geometryReport = dm.geometry.copy()
             del dm["geometry"]

@@ -2136,6 +2136,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     };
 
     self.defaultRouteName = function(appMode=null) {
+        srdbg(appMode);
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
 
@@ -3279,7 +3280,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             }
 
             newItem = {
-                applicationMode: item.applicationMode,
+                appMode: item.appMode,
                 parent: currentFolder,
                 name: item.name,
                 simulationId: item.simulationId,
@@ -3902,7 +3903,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         }
         else {
             srdbg(item);
-            requestSender.localRedirectHome(item.simulationId, item.applicationMode);
+            requestSender.localRedirectHome(item.simulationId, item.appMode);
         }
     };
 
