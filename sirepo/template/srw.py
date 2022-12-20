@@ -860,17 +860,6 @@ def stateful_compute_undulator_length(data):
     return compute_undulator_length(data.args["tabulated_undulator"])
 
 
-def stateless_compute_results_to_activait(data):
-    _SIM_DATA.srw_sim_file_to_other_sim_lib(
-        data.args.id,
-        data.args.file,
-        "activait",
-        model_name="dataFile",
-        field="file",
-    )
-    return PKDict()
-
-
 def stateful_compute_create_shadow_simulation(data):
     from sirepo.template.srw_shadow import Convert
 

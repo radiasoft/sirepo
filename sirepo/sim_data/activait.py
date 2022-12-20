@@ -44,38 +44,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm.hiddenReport.pksetdefault(subreports=[])
 
     @classmethod
-    def sim_filename(cls, sim_type, sim_id, basename):
-        return f"{sim_type}-{sim_id}-{basename}"
-
-    # TODO(mvk): use a server to provide access to sim db and library files
-    @classmethod
-    def other_sim_file_to_lib_dir(
-        cls, sim_id, basename, other_sim_type, qcall=None, model_name=None, field=None
-    ):
-        from sirepo import simulation_db
-        t_basename = cls.sim_filename(other_sim_type, sim_id, basename)
-        f = (
-            cls.lib_file_name_with_model_field(model_name, field, t_basename)
-            if model_name and field
-            else t_basename
-        )
-        t = simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(f)
-        s = simulation_db.simulation_dir(other_sim_type, sid=sim_id, qcall=qcall).join(
-            basename
-        )
-        #???
-        t.mksymlinkto(s, absolute=False)
-        #r = cls._sim_db_file_get(
-        #    simulation_db.sim_db_file_uri(
-        #        other_sim_type,
-        #        sim_id,
-        #        basename,
-        #    )
-        #)
-        #r.raise_for_status()
-        #t.write_binary(r.content)
-
-    @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if "fileColumnReport" in analysis_model:
             return "fileColumnReport"

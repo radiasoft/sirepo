@@ -816,23 +816,6 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
     self.simComputeModel = 'machineLearningAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
-    function openActivait(data) {
-        requestSender.sendStatelessCompute(
-            appState,
-            d => {
-                $window.location.href = `activait#/data/${data.models.simulation.simulationId}`;
-                //const u = requestSender.globalRedirect(`activait#/data/${data.models.simulation.simulationId}`);
-            },
-            {
-                method: 'results_to_activait',
-                args: {
-                    file: self.resultsFile,
-                    id: appState.models.simulation.simulationId,
-                }
-            }
-        );
-    }
-
     self.createActivaitSimulation = () => {
         requestSender.sendRequest(
             'newSimulation',
@@ -853,12 +836,10 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
                 sourceSimType: 'srw',
             },
             err => {
-                srdbg(err);
                 throw new Error('Error creating simulation' + err);
             }
         );
     };
-
 
     self.resultsFileURL = () => {
         return requestSender.formatUrl('downloadDataFile', {
