@@ -177,12 +177,10 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
     t = simulation_db.simulation_lib_dir(_SIM_DATA.sim_type(), qcall=qcall).join(
         _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", t_basename)
     )
-    if (t.exists()):
+    if t.exists():
         return
     s = simulation_db.simulation_dir(
-        new_sim_data.sourceSimType,
-        sid=new_sim_data.sourceSimId,
-        qcall=qcall
+        new_sim_data.sourceSimType, sid=new_sim_data.sourceSimId, qcall=qcall
     ).join(new_sim_data.sourceSimFile)
     t.mksymlinkto(s, absolute=False)
 
