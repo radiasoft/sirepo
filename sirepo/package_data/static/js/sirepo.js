@@ -3900,7 +3900,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             }
         }
         else {
-            srdbg(appState);
             requestSender.localRedirectHome(item.simulationId);
         }
     };
