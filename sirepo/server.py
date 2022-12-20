@@ -678,7 +678,7 @@ class API(sirepo.quest.API):
         def _build():
             if re.search(r"^react/\w+$", path):
                 p = "index.html"
-            elif path in cfg.react_sim_types:
+            elif path in sirepo.feature_config.cfg().react_sim_types:
                 raise sirepo.util.Redirect(f"/react/{path}")
             else:
                 p = path
@@ -817,11 +817,10 @@ def _init_proxy_react():
         "static/js/bundle.js",
         "static/js/bundle.js.map",
     ]
-    for x in cfg.react_sim_types:
-        p.append(x)
-        p.append(f"{x}-schema.json")
     _PROXY_REACT_URI_SET = set(p)
     r = "^react/"
+    for x in sirepo.feature_config.cfg().react_sim_types:
+        r += rf"|^{x}(?:/|$)"
     if cfg.react_server == _REACT_SERVER_BUILD:
         r += r"|^static/(css|js)/main\."
     _PROXY_REACT_URI_RE = re.compile(r)
@@ -877,5 +876,5 @@ cfg = pkconfig.init(
     google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
     react_server=(None, _cfg_react_server, "Base URL of npm start server"),
-    react_sim_types=(("myapp", "jspec", "genesis", "warppba"), set, "React apps"),
+    react_sim_types=pkconfig.ReplacedBy("sirepo.feature_config.react_sim_types"),
 )

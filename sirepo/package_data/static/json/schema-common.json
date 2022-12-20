@@ -310,6 +310,20 @@
                 ["fixed", "Fixed"]
             ]
         },
+        "reactRoutes": {
+            "completeRegistration": {
+                "route": "/complete-registration"
+            },
+            "login": {
+                "route": "/login"
+            },
+            "loginWithEmailConfirm": {
+                "route": "/login-confirm/email/:token/:needCompleteRegistration"
+            },
+            "source": {
+                "route": "/:simulationId/source"
+            }
+        },
         "localRoutes": {
             "admJobs": {
                 "route": "/adm-jobs",

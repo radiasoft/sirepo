@@ -161,6 +161,7 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
+        react_sim_types=(("myapp", "jspec", "genesis", "warppba"), set, "React apps"),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         slack_uri=(
             "https://slack.com/",
