@@ -927,11 +927,9 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
             o.super_classes = SCHEMA.model[o.type]._super
         # read in h-m curves if applicable
         o.h_m_curve = (
-            _read_h_m_file(o.materialFile)
-            if o.get("material", None)
-            and o.material == "custom"
-            and o.get("materialFile", None)
-            and o.materialFile
+            _read_h_m_file(o.materialFile, qcall=qcall)
+            if o.get("material") == "custom"
+            and o.get("materialFile")
             else None
         )
     v.geomName = g.name
@@ -1240,9 +1238,10 @@ def _read_h5_path(filename, h5path):
     # propagate other errors
 
 
-def _read_h_m_file(file_name):
+def _read_h_m_file(file_name, qcall=None):
     h_m_file = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM)
+        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
+        qcall=qcall,
     )
     lines = [r for r in sirepo.csv.open_csv(h_m_file)]
     f_lines = []
