@@ -1454,7 +1454,7 @@ def _update_extruded(o):
     return o
 
 
-def _update_dipoleBasic(model, assembly, **kwargs):
+def _update_dipoleBasic(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     sz = assembly.pole.size
     return _update_geom_obj(
@@ -1462,10 +1462,11 @@ def _update_dipoleBasic(model, assembly, **kwargs):
         size=sz,
         center=sz * d.height_dir / 2 + model.gap * d.height_dir / 2,
         transforms=[_build_symm_xform(d.height_dir, "parallel")],
+        qcall=qcall,
     )
 
 
-def _update_dipoleC(model, assembly, **kwargs):
+def _update_dipoleC(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     mag_sz = numpy.array(assembly.magnet.size)
     pole_sz, pole_ctr = _fit_poles_in_c_bend(
@@ -1481,18 +1482,20 @@ def _update_dipoleC(model, assembly, **kwargs):
         center=pole_ctr,
         size=pole_sz,
         transforms=[_build_symm_xform(d.height_dir, "parallel")],
+        qcall=qcall,
     )
-    _update_geom_obj(assembly.magnet, center=mag_ctr)
+    _update_geom_obj(assembly.magnet, center=mag_ctr, qcall=qcall)
     _update_geom_obj(
         assembly.coil,
         center=mag_ctr
         + mag_sz * d.width_dir / 2
         - model.magnet.stemWidth * d.width_dir / 2,
+        qcall=qcall,
     )
     return assembly.magnetCoilGroup
 
 
-def _update_dipoleH(model, assembly, **kwargs):
+def _update_dipoleH(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     # magnetSize is for the entire magnet - split it here so we can apply symmetries
     mag_sz = numpy.array(model.magnetSize) / 2
@@ -1503,9 +1506,9 @@ def _update_dipoleH(model, assembly, **kwargs):
         pole_width=model.poleWidth,
         **kwargs,
     )
-    _update_geom_obj(assembly.pole, center=pole_ctr, size=pole_sz)
-    _update_geom_obj(assembly.coil, center=pole_ctr * d.height_dir)
-    _update_geom_obj(assembly.magnet, size=mag_sz, center=mag_sz / 2)
+    _update_geom_obj(assembly.pole, center=pole_ctr, size=pole_sz, qcall=qcall)
+    _update_geom_obj(assembly.coil, center=pole_ctr * d.height_dir, qcall=qcall)
+    _update_geom_obj(assembly.magnet, size=mag_sz, center=mag_sz / 2, qcall=qcall)
     # length and width symmetries
     assembly.corePoleGroup.transforms = [
         _build_symm_xform(d.length_dir, "perpendicular"),
@@ -1516,25 +1519,25 @@ def _update_dipoleH(model, assembly, **kwargs):
     return assembly.magnetCoilGroup
 
 
-def _update_geom_from_dipole(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs, qcall=kwargs.get("qcall"))
+def _update_geom_from_dipole(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
     return pkinspect.module_functions("_update_")[f"_update_{model.dipoleType}"](
         model, _get_radia_objects(geom_objs, model), **kwargs
     )
 
 
-def _update_geom_from_freehand(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs, qcall=kwargs.get("qcall"))
+def _update_geom_from_freehand(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
 
 
-def _update_geom_from_undulator(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs, qcall=kwargs.get("qcall"))
+def _update_geom_from_undulator(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
     return pkinspect.module_functions("_update_")[f"_update_{model.undulatorType}"](
-        model, _get_radia_objects(geom_objs, model), **kwargs
+        model, _get_radia_objects(geom_objs, model), qcall=qcall, **kwargs
     )
 
 
-def _update_undulatorBasic(model, assembly, **kwargs):
+def _update_undulatorBasic(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
 
     sz = numpy.array(model.magnet.size)
@@ -1544,6 +1547,7 @@ def _update_undulatorBasic(model, assembly, **kwargs):
         assembly.magnet,
         center=sz / 2 + model.gap / 2 * d.height_dir + model.airGap * d.length_dir / 2,
         size=sz,
+        qcall=qcall,
     )
 
     assembly.magnet.transforms = (
@@ -1570,7 +1574,7 @@ def _update_undulatorBasic(model, assembly, **kwargs):
     return assembly.octantGroup
 
 
-def _update_undulatorHybrid(model, assembly, **kwargs):
+def _update_undulatorHybrid(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
 
     pole_x = model.poleCrossSection
@@ -1596,7 +1600,9 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         "segments",
     ):
         assembly.halfPole[f] = copy.deepcopy(assembly.pole[f])
-    _update_geom_obj(assembly.halfPole, center=pos + sz / 2 + gap_half_height, size=sz)
+    _update_geom_obj(
+        assembly.halfPole, center=pos + sz / 2 + gap_half_height, size=sz, qcall=qcall
+    )
     pos += sz * d.length_dir
 
     sz = (
@@ -1605,7 +1611,10 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         + (model.periodLength / 2 - model.poleLength) * d.length_dir
     )
     _update_geom_obj(
-        assembly.magnet, center=pos + sz / 2 + gap_half_height + gap_offset, size=sz
+        assembly.magnet,
+        center=pos + sz / 2 + gap_half_height + gap_offset,
+        size=sz,
+        qcall=qcall,
     )
     pos += sz * d.length_dir
 
@@ -1618,6 +1627,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         assembly.pole,
         center=pos + sz / 2 + gap_half_height,
         size=sz,
+        qcall=qcall,
     )
 
     pos = (model.poleLength + model.numPeriods * model.periodLength) / 2 * d.length_dir
@@ -1632,6 +1642,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
             + t.airGap * d.length_dir
             + gap_half_height
             + t.gapOffset * d.height_dir,
+            qcall=qcall,
         )
         pos += sz * d.length_dir + t.airGap * d.length_dir
 
@@ -1668,6 +1679,7 @@ def _update_geom_obj(o, qcall=None, **kwargs):
             numpy.dot(t[0], numpy.roll(t[1], 1)) - numpy.dot(t[1], numpy.roll(t[0], 1))
         )
 
+    pkdp("UPDATE OBJ {} QC? {}", o.name, qcall is not None)
     d = PKDict(
         center=[0.0, 0.0, 0.0],
         magnetization=[0.0, 0.0, 0.0],
@@ -1735,7 +1747,6 @@ def _update_geom_obj(o, qcall=None, **kwargs):
             s[0] = sort_points_clockwise(s[0])
         o.stlSlices = formattedSlices
         """
-    # read in h-m curves if applicable
     o.h_m_curve = (
         _read_h_m_file(o.materialFile, qcall=qcall)
         if o.get("material") == "custom" and o.get("materialFile")
