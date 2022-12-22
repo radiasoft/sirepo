@@ -21,7 +21,6 @@ import sirepo.uri
 import sirepo.util
 import urllib
 import urllib.parse
-import werkzeug
 import werkzeug.exceptions
 
 
