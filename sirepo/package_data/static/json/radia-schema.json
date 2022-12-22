@@ -1293,9 +1293,23 @@
                     "color"
                 ]],
                 ["Geometry", [
+                    "extrudedPoints.pointsFile",
+                    "extrudedPoints.referencePoints",
                     "center",
                     "size",
-                    "segments"
+                    "segments",
+                    "cylinder.radius",
+                    "extrudedObject.extrusionAxis",
+                    "cylinder.numSides",
+                    "extrudedPoly.extrusionAxisSegments",
+                    "extrudedPoly.triangulationLevel",
+                    "stemmed.armHeight",
+                    "stemmed.armPosition",
+                    "stemmed.stemWidth",
+                    "stemmed.stemPosition",
+                    "jay.hookHeight",
+                    "jay.hookWidth",
+                    "stl.file"
                 ]],
                 ["Material", [
                     "material",

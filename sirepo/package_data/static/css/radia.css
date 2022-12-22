@@ -11,36 +11,35 @@
   outline-color: #00a2c5;
 }
 
-
-
-.radia-table-hover .control-label {
+.radia-table-dialog .control-label {
     font-size: smaller !important;
 }
 
-.radia-table-hover div[data-ng-switch-when="Float"], div[data-ng-switch-when="FloatArray"], div[data-ng-switch-when="Boolean"] {
+.radia-table-dialog div:is([data-ng-switch-when="Float"], div[data-ng-switch-when="FloatArray"], div[data-ng-switch-when="Boolean"]) {
     width: 100%;
     padding-left: 0;
 }
 
-.radia-table-hover div[data-ng-switch-default] {
-    width: 100% !important;
-}
-
-.radia-table-hover .toggle {
-    min-height: 30px !important;
-    height: 30px !important;
-}
-
-.radia-table-hover .toggle label {
+.radia-table-dialog .toggle label {
     font-size: small !important;
 }
 
-.radia-table-hover input[data-string-to-number] {
+.radia-table-dialog input[data-string-to-number] {
     width: 4em;
     margin-right: 2px;
 }
 
-.radia-table-hover div[data-num-array] label {
+.radia-table-dialog div[data-num-array] label {
     font-size: smaller;
     margin-right: 0 !important;
 }
+
+.radia-table-dialog div[data-ng-switch-default] {
+    width: 100% !important;
+}
+
+.radia-table-dialog .toggle {
+    min-height: 30px !important;
+    height: 30px !important;
+}
+

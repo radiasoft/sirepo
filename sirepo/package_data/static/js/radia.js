@@ -50,11 +50,13 @@ SIREPO.app.config(function() {
           <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt,.csv"/>
         </div>
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
-          <label class="control-label col-sm-5" style="text-align: center">{{ model.widthAxis }}</label> <label class="control-label col-sm-5"  style="text-align: center">{{ model.heightAxis }}</label>
-          <div class="col-sm-12" style="height: 200px; overflow-y: scroll; overflow-x: hidden;">
-              <div data-ng-repeat="p in model[field]">
-                <input data-ng-repeat="e in p track by $index" class="form-control sr-number-list" data-string-to-number="float" data-ng-model="e" data-ng-disabled="model.pointsFile" style="text-align: right;" required />
-              </div>
+          <div class="col-sm-12">
+              <table class="table-condensed table-striped">
+              <label class="control-label col-sm-5" style="text-align: center">{{ model.widthAxis }}</label> <label class="control-label col-sm-5"  style="text-align: center">{{ model.heightAxis }}</label>
+              <tr data-ng-repeat="p in model[field]">
+                <td data-ng-repeat="e in p track by $index" class="form-control sr-number-list">{{ e }}</td>
+              </tr>
+              </table>
           </div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
@@ -1244,7 +1246,7 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
         },
 
         template: `
-            <table class="table table-striped table-condensed radia-table-hover">
+            <table class="table table-striped table-condensed radia-table-dialog">
               <colgroup>
                 <col span="5" style="width: 20ex">
               </colgroup>
@@ -1386,7 +1388,7 @@ SIREPO.app.directive('filletTable', function(appState, panelState, radiaService)
             object: '=',
         },
         template: `
-            <table class="table radia-table-hover">
+            <table class="table radia-table-dialog">
               <colgroup>
                 <col span="4" style="width: 20ex">
               </colgroup>
@@ -2416,12 +2418,15 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             parentController: '='
         },
         template: `
-            <div class="sr-object-table">
+            <div>
               <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
-              <table class="table table-striped table-condensed radia-table-hover">
+              <table class="table table-striped table-condensed radia-table-dialog">
                 <thead></thead>
                 <tbody>
                 <tr data-ng-repeat="item in getItems() track by $index">
+                  <td>
+                    <span class="glyphicon glyphicon-chevron-down"></span>
+                  </td>
                   <td>
                     <span data-label-with-tooltip="" data-ng-class="labelClass" data-label="Type" style="font-size: smaller;"></span>
                     <!--<span data-toolbar-icon="" data-item="toolbarItemForType(item)"></span>-->
@@ -2603,7 +2608,16 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 appState.cancelChanges('geometryReport');
             });
 
+            // since this table is in a multi-tab dialog...
+            function applyStyles() {
+                const e = $($element);
+                e.find('table div[data-ng-switch-when="Float"], div[data-ng-switch-when="FloatArray"], div[data-ng-switch-when="Boolean"]')
+                    .width('100%')
+                    .css('padding-left', 0);
+            }
+
             panelState.waitForUI(() => {
+                //$($element).find('table').addClass('radia-table-dialog');
             });
         },
     };
@@ -3885,12 +3899,16 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $scope) {
 
     let editedModels = [];
+    const parent = $scope.$parent;
 
-    $scope.watchFields = [
+   $scope.watchFields = [
         [
             'geomObject.type',
+            "extrudedPoly.extrusionAxisSegments", "extrudedPoly.triangulationLevel",
+            'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
+            'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor
-    ];
+   ];
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
@@ -3906,13 +3924,46 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     });
 
 
+    function buildTriangulationLevelDelegate() {
+        const m = 'extrudedPoly';
+        const f = 'triangulationLevel';
+        let d = panelState.getFieldDelegate(m, f);
+        d.range = () => {
+            return {
+                min: appState.fieldProperties(m, f).min,
+                max: appState.fieldProperties(m, f).max,
+                step: 0.01
+            };
+        };
+        d.readout = () => {
+            return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+        };
+        d.update = () => {};
+        $scope.fieldDelegate = d;
+    }
+
+    function modelField(f) {
+        const m = appState.parseModelField(f);
+        return m ? m : [parent.modelName, f];
+    }
+
     function updateObjectEditor() {
         const o = $scope.modelData;
         if (! o) {
             return;
         }
-        panelState.showField('geomObject', 'materialFile', o.material === 'custom');
+        const modelType = o.type;
+        parent.activePage.items.forEach((f) => {
+            const m = modelField(f);
+            const hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;
+            panelState.showField(
+                m[0],
+                m[1],
+                hasField || appState.isSubclass(modelType, m[0])
+            );
+        });
 
+        panelState.showField('geomObject', 'materialFile', o.material === 'custom');
         panelState.enableField('geomObject', 'size', true);
 
         if (o.type === 'stl') {
@@ -3940,6 +3991,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
 
+    buildTriangulationLevelDelegate();
     const self = {};
     self.getBaseObject = () => $scope.modelData;
     return self;
