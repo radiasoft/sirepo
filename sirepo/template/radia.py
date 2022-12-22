@@ -1679,7 +1679,6 @@ def _update_geom_obj(o, qcall=None, **kwargs):
             numpy.dot(t[0], numpy.roll(t[1], 1)) - numpy.dot(t[1], numpy.roll(t[0], 1))
         )
 
-    pkdp("UPDATE OBJ {} QC? {}", o.name, qcall is not None)
     d = PKDict(
         center=[0.0, 0.0, 0.0],
         magnetization=[0.0, 0.0, 0.0],
