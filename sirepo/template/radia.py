@@ -918,6 +918,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
             height_dir=dirs.height_dir,
             length_dir=dirs.length_dir,
             width_dir=dirs.width_dir,
+            qcall=qcall,
         )
     v.objects = g.get("objects", [])
     _validate_objects(v.objects)
@@ -925,13 +926,6 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     for o in v.objects:
         if o.get("type"):
             o.super_classes = SCHEMA.model[o.type]._super
-        # read in h-m curves if applicable
-        o.h_m_curve = (
-            _read_h_m_file(o.materialFile, qcall=qcall)
-            if o.get("material") == "custom"
-            and o.get("materialFile")
-            else None
-        )
     v.geomName = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
@@ -1222,6 +1216,14 @@ def _prep_new_sim(data, new_sim_data=None):
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
 
 
+def _read_data(view_type, field_type):
+    res = _read_h5_path(_GEOM_FILE, _geom_h5_path(view_type, field_type))
+    if res:
+        res.idMap = _read_id_map()
+        res.solution = _read_solution()
+    return res
+
+
 def _read_h5_path(filename, h5path):
     try:
         with h5py.File(filename, "r") as f:
@@ -1248,14 +1250,6 @@ def _read_h_m_file(file_name, qcall=None):
     for l in lines:
         f_lines.append([float(c.strip()) for c in l])
     return f_lines
-
-
-def _read_data(view_type, field_type):
-    res = _read_h5_path(_GEOM_FILE, _geom_h5_path(view_type, field_type))
-    if res:
-        res.idMap = _read_id_map()
-        res.solution = _read_solution()
-    return res
 
 
 def _read_id_map():
@@ -1304,6 +1298,16 @@ def _read_solution():
     if not s:
         return None
     return PKDict(steps=s[3], time=s[0], maxM=s[1], maxH=s[2])
+
+
+def _read_stl_file(file_name, qcall=None):
+    path = str(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeSTL),
+            qcall=qcall,
+        )
+    )
+    return _create_stl_trimesh(path)
 
 
 def _rotate_axis(to_axis="z", from_axis="x"):
@@ -1513,18 +1517,18 @@ def _update_dipoleH(model, assembly, **kwargs):
 
 
 def _update_geom_from_dipole(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+    _update_geom_objects(geom_objs, qcall=kwargs.get("qcall"))
     return pkinspect.module_functions("_update_")[f"_update_{model.dipoleType}"](
         model, _get_radia_objects(geom_objs, model), **kwargs
     )
 
 
 def _update_geom_from_freehand(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+    _update_geom_objects(geom_objs, qcall=kwargs.get("qcall"))
 
 
 def _update_geom_from_undulator(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+    _update_geom_objects(geom_objs, qcall=kwargs.get("qcall"))
     return pkinspect.module_functions("_update_")[f"_update_{model.undulatorType}"](
         model, _get_radia_objects(geom_objs, model), **kwargs
     )
@@ -1651,12 +1655,12 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     return assembly.octantGroup
 
 
-def _update_geom_objects(objects):
+def _update_geom_objects(objects, qcall=None):
     for o in objects:
-        _update_geom_obj(o)
+        _update_geom_obj(o, qcall=qcall)
 
 
-def _update_geom_obj(o, **kwargs):
+def _update_geom_obj(o, qcall=None, **kwargs):
     # uses the "shoelace formula" to calculate the area of a polygon
     def _poly_area(pts):
         t = numpy.array(pts).T
@@ -1699,12 +1703,7 @@ def _update_geom_obj(o, **kwargs):
     if "points" in o:
         o.area = _poly_area(o.points)
     if o.type == "stl":
-        path = str(
-            _SIM_DATA.lib_file_abspath(
-                _SIM_DATA.lib_file_name_with_type(o.file, SCHEMA.constants.fileTypeSTL)
-            )
-        )
-        mesh = _create_stl_trimesh(path)
+        mesh = _read_stl_file(o.file, qcall=qcall)
         for v in list(mesh.vertices):
             d.stlVertices.append(list(v))
         for f in list(mesh.faces):
@@ -1736,6 +1735,12 @@ def _update_geom_obj(o, **kwargs):
             s[0] = sort_points_clockwise(s[0])
         o.stlSlices = formattedSlices
         """
+    # read in h-m curves if applicable
+    o.h_m_curve = (
+        _read_h_m_file(o.materialFile, qcall=qcall)
+        if o.get("material") == "custom" and o.get("materialFile")
+        else None
+    )
     return o
 
 
