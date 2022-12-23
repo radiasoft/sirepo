@@ -15,7 +15,7 @@
     font-size: smaller !important;
 }
 
-.radia-table-dialog div:is([data-ng-switch-when="Float"], div[data-ng-switch-when="FloatArray"], div[data-ng-switch-when="Boolean"]) {
+.radia-table-dialog div:is([data-ng-switch-when=Float], div[data-ng-switch-when=FloatArray], div[data-ng-switch-when=Boolean]) {
     width: 100%;
     padding-left: 0;
 }

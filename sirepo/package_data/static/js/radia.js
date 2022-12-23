@@ -2425,14 +2425,15 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 <tbody>
                 <tr data-ng-repeat="item in getItems() track by $index">
                   <td>
-                    <span class="glyphicon glyphicon-chevron-down"></span>
+                    <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click="toggleExpand(item)"></span>
+                    <span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click="toggleExpand(item)"></span>
                   </td>
                   <td>
-                    <span data-label-with-tooltip="" data-ng-class="labelClass" data-label="Type" style="font-size: smaller;"></span>
-                    <!--<span data-toolbar-icon="" data-item="toolbarItemForType(item)"></span>-->
+                    <span data-ng-show="isExpanded(item)" data-label-with-tooltip="" data-ng-class="labelClass" data-label="Type" style="font-size: smaller;"></span>
+                    <!--<span data-ng-show="! isExpanded(item)" data-toolbar-icon="" data-item="toolbarItemForType(item)"></span>-->
                     <div>{{ item.name }}</div>
                   </td>
-                  <td data-ng-repeat="f in editableFields($index)" style="text-align: left;" colspan="100%">
+                  <td data-ng-show="isExpanded(item)" data-ng-repeat="f in editableFields($index)" style="text-align: left;" colspan="100%">
                     <span data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ fieldLabel(item.type, f) }}"></span>
                     <div class="pull-left" data-field-editor="f" data-field-size="" data-model-name="item.type" data-model="item"></div>
                   </td>
@@ -2457,7 +2458,10 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             </div>
         `,
         controller: function($scope, $element) {
-            const expanded = {};
+            let expanded = {};
+            for (const i in $scope.field) {
+                expanded[i] = false;
+            }
             let isEditing = false;
             const spatialTransforms = [
                 'rotate',
@@ -2491,6 +2495,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 const m = appState.setModelDefaults({}, $scope.selectedItem.model);
                 m.model = $scope.selectedItem.model;
                 $scope.field.push(m);
+                expanded[$scope.field.length - 1] = true;
                 $scope.selectedItem = null;
             };
 
@@ -2500,6 +2505,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     return;
                 }
                 $scope.field.splice(index, 1);
+                delete expanded[index];
                 radiaService.saveGeometry(true);
             };
 
@@ -2607,17 +2613,8 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 appState.removeModel(name);
                 appState.cancelChanges('geometryReport');
             });
-
-            // since this table is in a multi-tab dialog...
-            function applyStyles() {
-                const e = $($element);
-                e.find('table div[data-ng-switch-when="Float"], div[data-ng-switch-when="FloatArray"], div[data-ng-switch-when="Boolean"]')
-                    .width('100%')
-                    .css('padding-left', 0);
-            }
-
+            
             panelState.waitForUI(() => {
-                //$($element).find('table').addClass('radia-table-dialog');
             });
         },
     };
