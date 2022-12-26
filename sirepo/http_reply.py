@@ -48,6 +48,14 @@ _SUBPROCESS_ERROR_RE = re.compile(
 _RELOAD_JS_ROUTES = None
 
 
+# HTTP/1.0 401 UNAUTHORIZED
+# WWW-Authenticate: Basic realm="*"
+# Content-Type: text/html; charset=utf-8
+# X-Sirepo-UserAgentId: None
+# Access-Control-Allow-Origin: *
+# Content-Length: 0
+
+
 def gen_exception(qcall, exc):
     """Generate from an Exception
 
