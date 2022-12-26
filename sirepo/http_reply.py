@@ -32,6 +32,9 @@ MIME_TYPE = None
 #: default Max-Age header
 CACHE_MAX_AGE = 43200
 
+#: Default file to serve on errors
+DEFAULT_ERROR_FILE = "server-error.html"
+
 _ERROR_STATE = "error"
 
 _STATE = "state"
@@ -46,14 +49,6 @@ _SUBPROCESS_ERROR_RE = re.compile(
 
 #: routes that will require a reload
 _RELOAD_JS_ROUTES = None
-
-
-# HTTP/1.0 401 UNAUTHORIZED
-# WWW-Authenticate: Basic realm="*"
-# Content-Type: text/html; charset=utf-8
-# X-Sirepo-UserAgentId: None
-# Access-Control-Allow-Origin: *
-# Content-Length: 0
 
 
 def gen_exception(qcall, exc):
@@ -262,6 +257,25 @@ def init_module(**imports):
     )
 
 
+def render_html(path, want_cache=True, response_args=None):
+    """Call sirepo.html.render with path
+
+    Args:
+        path (py.path): sirepo.html file to render
+        want_cache (bool): whether to cache result
+        kwargs (dict): params to p
+
+    Returns:
+        Response: reply
+    """
+    r = gen_response(
+        sirepo.html.render(path),
+        content_type=MIME_TYPE.html,
+        **(response_args or dict()),
+    )
+    return headers_for_cache(r, path=path) if want_cache else headers_for_no_cache(r)
+
+
 def render_static_jinja(base, ext, j2_ctx, cache_ok=False):
     """Render static template with jinja
 
@@ -282,24 +296,6 @@ def render_static_jinja(base, ext, j2_ctx, cache_ok=False):
     if cache_ok:
         return headers_for_cache(r, path=p)
     return headers_for_no_cache(r)
-
-
-def render_html(path):
-    """
-
-    Args:
-        path (py.path): srhtml to render
-
-    Returns:
-        Response: reply
-    """
-    return headers_for_cache(
-        gen_response(
-            sirepo.html.render(path),
-            content_type=MIME_TYPE.html,
-        ),
-        path=path,
-    )
 
 
 def _as_attachment(resp, content_type, filename):
@@ -374,6 +370,14 @@ def _gen_exception_reply_Error(qcall, args):
     return gen_redirect_for_local_route(qcall, t, route="error", query=q)
 
 
+def _gen_exception_reply_Forbidden(qcall, args):
+    return _gen_http_exception(403)
+
+
+def _gen_exception_reply_NotFound(qcall, args):
+    return _gen_http_exception(404)
+
+
 def _gen_exception_reply_Redirect(qcall, args):
     return gen_redirect(args.uri)
 
@@ -384,6 +388,10 @@ def _gen_exception_reply_Response(qcall, args):
         r, sirepo.flask.app().response_class
     ), "invalid class={} response={}".format(type(r), r)
     return r
+
+
+def _gen_exception_reply_ServerError(qcall, args):
+    return _gen_http_exception(500)
 
 
 def _gen_exception_reply_SPathNotFound(qcall, args):
@@ -444,6 +452,10 @@ def _gen_exception_reply_SRException(qcall, args):
     )
 
 
+def _gen_exception_reply_Unauthorized(qcall, args):
+    return _gen_http_exception(401)
+
+
 def _gen_exception_reply_UserDirNotFound(qcall, args):
     return qcall.auth.user_dir_not_found(**args)
 
@@ -462,8 +474,22 @@ def _gen_exception_reply_WWWAuthenticate(qcall, args):
 
 
 def _gen_exception_werkzeug(qcall, exc):
-    # TODO(robnagler) convert exceptions to our own
     raise exc
+
+
+def _gen_http_exception(code):
+    x = simulation_db.SCHEMA_COMMON["customErrors"].get(str(code))
+    if x:
+        try:
+            return render_html(
+                path=sirepo.resource.static("html", x["url"]),
+                want_cache=False,
+                response_args=PKDict(status=code),
+            )
+        except Exception as e:
+            pkdlog("customErrors code={} render error={} stack={}", code, e, pkdexc())
+    # If there isn't a customError, then render empty reponse
+    return headers_for_no_cache(gen_response(status=code))
 
 
 def _gen_tornado_exception_reply_SRException(args):

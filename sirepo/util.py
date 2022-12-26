@@ -58,9 +58,13 @@ class Reply(Exception):
         log_fmt (str): server side log data
     """
 
-    def __init__(self, sr_args, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__()
-        self.sr_args = sr_args
+        if "sr_args" in kwargs:
+            self.sr_args = kwargs["sr_args"]
+            del kwargs["sr_args"]
+        else:
+            self.sr_args = PKDict()
         if args or kwargs:
             kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
             pkdlog(*args, **kwargs)
@@ -94,7 +98,19 @@ class Error(Reply):
             values = PKDict(error=values)
         else:
             assert values.get("error"), 'values={} must contain "error"'.format(values)
-        super().__init__(values, *args, **kwargs)
+        super().__init__(*args, sr_args=values, **kwargs)
+
+
+class Forbidden(Reply):
+    """Raised for forbidden"""
+
+    pass
+
+
+class NotFound(Reply):
+    """Raised for not found"""
+
+    pass
 
 
 class Redirect(OKReply):
@@ -106,7 +122,7 @@ class Redirect(OKReply):
     """
 
     def __init__(self, uri, *args, **kwargs):
-        super().__init__(PKDict(uri=uri), *args, **kwargs)
+        super().__init__(*args, sr_args=PKDict(uri=uri), **kwargs)
 
 
 class Response(OKReply):
@@ -118,10 +134,16 @@ class Response(OKReply):
     """
 
     def __init__(self, response, *args, **kwargs):
-        super().__init__(PKDict(response=response), *args, **kwargs)
+        super().__init__(*args, sr_args=PKDict(response=response), **kwargs)
 
 
-class SPathNotFound(Reply):
+class ServerError(Reply):
+    """Raised for server error"""
+
+    pass
+
+
+class SPathNotFound(NotFound):
     """Raised by simulation_db
 
     Args:
@@ -132,8 +154,8 @@ class SPathNotFound(Reply):
 
     def __init__(self, sim_type, uid, sid, *args, **kwargs):
         super().__init__(
-            PKDict(sim_type=sim_type, uid=uid, sid=sid),
             *args,
+            sr_args=PKDict(sim_type=sim_type, uid=uid, sid=sid),
             **kwargs,
         )
 
@@ -152,8 +174,8 @@ class SRException(Reply):
 
     def __init__(self, route_name, params, *args, **kwargs):
         super().__init__(
-            PKDict(routeName=route_name, params=params),
             *args,
+            sr_args=PKDict(routeName=route_name, params=params),
             **kwargs,
         )
 
@@ -167,10 +189,10 @@ class UserAlert(Reply):
     """
 
     def __init__(self, display_text, *args, **kwargs):
-        super().__init__(PKDict(error=display_text), *args, **kwargs)
+        super().__init__(*args, sr_args=PKDict(error=display_text), **kwargs)
 
 
-class UserDirNotFound(Reply):
+class UserDirNotFound(NotFound):
     """Raised by simulation_db
 
     Args:
@@ -180,8 +202,8 @@ class UserDirNotFound(Reply):
 
     def __init__(self, user_dir, uid, *args, **kwargs):
         super().__init__(
-            PKDict(user_dir=user_dir, uid=uid),
             *args,
+            sr_args=PKDict(user_dir=user_dir, uid=uid),
             **kwargs,
         )
 
@@ -193,8 +215,7 @@ class WWWAuthenticate(Reply):
         log_fmt (str): server side log data
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(PKDict(), *args, **kwargs)
+    pass
 
 
 def assert_sim_type(sim_type):
@@ -325,10 +346,6 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     return res
 
 
-def raise_bad_request(*args, **kwargs):
-    _raise("BadRequest", *args, **kwargs)
-
-
 def raise_forbidden(*args, **kwargs):
     _raise("Forbidden", *args, **kwargs)
 
@@ -432,11 +449,10 @@ def write_zip(path):
 
 
 def _raise(exc, fmt, *args, **kwargs):
-    import werkzeug.exceptions
-
     kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
-    raise getattr(werkzeug.exceptions, exc)()
+    pkdp(exc)
+    raise globals().get(exc, ServerError)
 
 
 cfg = pkconfig.init(
