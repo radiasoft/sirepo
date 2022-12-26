@@ -1,14 +1,16 @@
-import { Navbar, Container, Nav, Col } from "react-bootstrap";
-import React from "react";
+import { Navbar, Container, Nav, Col, NavDropdown, Row } from "react-bootstrap";
+import React, { ReactNode, useRef } from "react";
 import "./navbar.scss";
+import { v4 as uuidv4 } from 'uuid';
+import { NavbarAuthStatus } from "../login";
 
 export const NavbarContainerId = "nav-tabs-container";
 
 export function SrNavbar(props) {
     let { title, titleHref, simulationsHref } = props;
     return (
-        <Navbar bg="light">
-            <Container fluid id={NavbarContainerId}>
+        <Navbar className="sr-navbar" bg="light">
+            <div className="sr-navbar-container" id={NavbarContainerId}>
                 <Navbar.Brand href={titleHref}>
                     <img
                     alt=""
@@ -19,15 +21,37 @@ export function SrNavbar(props) {
                     />{' '}
                     {title}
                 </Navbar.Brand>
-                <Col className="float-left">
+                <div>
                     <Nav>
                         <Nav.Link href={simulationsHref}><span className="sr-navbar-simulations-button">Simulations</span></Nav.Link>
                     </Nav>
-                </Col>
+                </div>
                 <div className="sr-navbar-spacer">
                 </div>
+                <div className="flex-grow-1 order-3"></div>
                 {props.children}
-            </Container>
+            </div>
         </Navbar>
+    )
+}
+
+export const NavToggleDropdown = (props: {title: ReactNode, children?: ReactNode[]}) => {
+    let { title } = props;
+
+    let id = useRef<string>(uuidv4());
+
+    return (
+        <>
+            <Navbar.Toggle aria-controls={id.current} />
+            <Navbar.Collapse id={id.current}>
+                <Nav>
+                    <NavDropdown
+                        title={title}
+                    >
+                        {props.children}
+                    </NavDropdown>
+                </Nav>
+            </Navbar.Collapse>
+        </>
     )
 }

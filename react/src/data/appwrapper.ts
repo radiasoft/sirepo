@@ -29,6 +29,7 @@ export type LoginStatus = {
     isGuestUser: boolean,
     isLoggedIn: boolean,
     isLoginExpired: boolean,
+    paymentPlan: string,
     jobRunModeMap: {[runType: string]: string},
     method: AuthMethod | null,
     needsCompleteRegistration: boolean,
@@ -48,6 +49,11 @@ export const CLoginStatus = React.createContext<LoginStatus>(undefined);
 export class AppWrapper {
     constructor(private appName: string) {
 
+    }
+
+    // TODO: this should he housed elsewhere
+    getPaymentPlanName = (paymentPlan: string, schema: Schema): string => {
+        return schema.constants.paymentPlans[paymentPlan];
     }
 
     getAppRootLink: () => string = () => {

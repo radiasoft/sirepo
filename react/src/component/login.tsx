@@ -1,15 +1,25 @@
-import React, { useContext, useState } from "react"
-import { Button, Col, Container, Form, Row } from "react-bootstrap"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import * as Icon from "@fortawesome/free-solid-svg-icons";
+import React, { useContext, useEffect, useState } from "react"
+import { Button, Col, Container, Dropdown, Form, Image, Nav, Row } from "react-bootstrap"
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router"
-import { AppWrapper, AuthMethod, CAppName, CLoginStatus } from "../data/appwrapper"
+import { AppWrapper, AuthMethod, CAppName, CLoginStatus, CSchema } from "../data/appwrapper"
 import { useSetup } from "../hook/setup"
+import { NavbarContainerId, NavToggleDropdown } from "./reusable/navbar";
+import { Portal } from "./reusable/portal";
+import "./login.scss";
 
 export const LoginRouter = (props) => {
     let appName = useContext(CAppName);
     const [hasLoginStatus, loginStatus] = useSetup(true, (new AppWrapper(appName)).getLoginStatus());
+
     return hasLoginStatus && (
         <CLoginStatus.Provider value={loginStatus}>
+            <Portal targetId={NavbarContainerId} className="order-5 sr-navbar-auth">
+                <NavbarAuthStatus/>
+            </Portal>
             <Routes>
+                <Route path="logout/*" element={<LogoutRoot/>}/>
                 <Route path="login/*" element={<LoginRoot/>}/>
                 <Route path="login-confirm/:method/:token/:needsCompleteRegistration" element={<LoginConfirm/>}/>
                 <Route path="*" element={<CatchLoggedOut>{props.children}</CatchLoggedOut>}/>
@@ -18,13 +28,50 @@ export const LoginRouter = (props) => {
     )
 }
 
+export const NavbarAuthStatus = (props) => {
+    let loginStatus = useContext(CLoginStatus);
+    let schema = useContext(CSchema);
+    let appName = useContext(CAppName);
+    let appWrapper = new AppWrapper(appName);
+
+    if(loginStatus.isLoggedIn) {
+        return (
+            <NavToggleDropdown title={
+                <>{
+                    loginStatus.avatarUrl ? (
+                        <Image src={loginStatus.avatarUrl} fluid rounded={true}/>
+                    ) : (
+                        <FontAwesomeIcon icon={Icon.faUser}/>
+                    )
+                }</>
+            }>
+                <Dropdown.Header>{loginStatus.displayName}</Dropdown.Header>
+                {
+                    loginStatus.paymentPlan && (
+                        <Dropdown.Header>{appWrapper.getPaymentPlanName(loginStatus.paymentPlan, schema)}</Dropdown.Header>
+                    )
+                }
+                <Dropdown.Header>{loginStatus.userName}</Dropdown.Header>
+                <Dropdown.Item href={`/${appName}/logout`}>Sign Out</Dropdown.Item>
+            </NavToggleDropdown>
+        )
+    }
+
+    return (
+        <Nav.Link href={`/${appName}/login`}>Sign In</Nav.Link>
+    )
+
+
+}
+
 export const CatchLoggedOut = (props) => {
     let appName = useContext(CAppName);
     let loginStatus = useContext(CLoginStatus);
+
     return (
         <>
             {
-                loginStatus.isLoggedIn ?
+                loginStatus.isLoggedIn && !loginStatus.needsCompleteRegistration ?
                 (
                     props.children
                 ) : (
@@ -57,7 +104,7 @@ export const LoginEmailConfirm = (props) => {
     let appName = useContext(CAppName);
     let navigate = useNavigate();
     let completeLogin = (extra?: {[key: string]: any}) => {
-        fetch(`/auth-email-authorized/${token}`, {
+        fetch(`/auth-email-authorized/${appName}/${token}`, {
             method: "POST",
             body: JSON.stringify({ token, ...(extra || {}) }),
             headers: {
@@ -112,6 +159,15 @@ export const LoginRoot = (props) => {
     }
 
     let loginStatus = useContext(CLoginStatus);
+
+    if(loginStatus.isLoggedIn) {
+        return (
+            <Container className="sm-12 lg-6">
+                <p>You are already logged in.</p>
+            </Container>
+        )
+    }
+
     return (
         <Container className="sm-12 lg-6">
             {getLoginComponent(loginStatus.visibleMethod)}
@@ -152,4 +208,16 @@ export const LoginWithEmail = (props) => {
             </Row>
         </Container>
     )
+}
+
+export function LogoutRoot(props) {
+    let navigate = useNavigate();
+    let appName = useContext(CAppName);
+
+    useEffect(() => {
+        fetch(`/auth-logout/${appName}`).then(() => navigate(new AppWrapper(appName).getAppRootLink()));
+    })
+    
+
+    return <>Singing out...</>
 }

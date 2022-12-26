@@ -4,7 +4,6 @@ import { NavbarContainerId } from "../component/reusable/navbar";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
 import { useContext, useState } from "react";
 import { LayoutProps, Layout } from "./layout";
-import usePortal from "react-useportal"; 
 import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/reusable/panel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -16,6 +15,7 @@ import { CModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
+import { Portal } from "../component/reusable/portal";
 
 export type NavBarModalButtonConfig = {
     modal: {
@@ -78,31 +78,22 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
         let isValid = formController.isFormStateValid();
         let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
 
-        let { Portal: NavbarPortal, portalRef } = usePortal({
-            bindTo: document && document.getElementById(NavbarContainerId)
-        })
-
-        if(portalRef && portalRef.current) {
-            portalRef.current.classList.add("float-left");
-            portalRef.current.classList.add("col");
-        }
-
         let { icon } = this.config;
         let iconElement = undefined;
-        if(icon && icon != "") {
+        if(icon && icon !== "") {
             iconElement = <FontAwesomeIcon fixedWidth icon={Icon[icon]}></FontAwesomeIcon>;
         }
 
         // TODO fix button cursor on hover
         return (
             <>
-                <NavbarPortal>
+                <Portal targetId={NavbarContainerId} className="float-left">
                     <Col>
                         <div onClick={() => updateModalShown(true)}>
                             <span>{title}<a className="ms-2">{iconElement}</a></span>
                         </div>
                     </Col>
-                </NavbarPortal>
+                </Portal>
 
                 <Modal show={modalShown} onHide={() => _cancel()} size="lg">
                     <Modal.Header className="lead bg-info bg-opacity-25">
@@ -175,13 +166,9 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         let modelsWrapper = useContext(CModelsWrapper);
         let routerHelper = useContext(CRelativeRouterHelper);
 
-        let { Portal: NavbarPortal, portalRef } = usePortal({
-            bindTo: document && document.getElementById(NavbarContainerId)
-        })
-
         return (
             <>
-                <NavbarPortal>
+                <Portal targetId={NavbarContainerId} className="order-4">
                     <Nav variant="tabs" defaultActiveKey={selectedTabName}>
                         {
                             this.tabs.map(tab => {
@@ -196,7 +183,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
                             })
                         }
                     </Nav>
-                </NavbarPortal>
+                </Portal>
                 {
                     this.tabs.map(tab => (
                         <div key={tab.name} style={tab.name !== selectedTabName ? { display: 'none' } : undefined}>

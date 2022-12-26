@@ -14,7 +14,7 @@ import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
 import { NavbarContainerId } from "./reusable/navbar";
 import { CSimulationList } from "../data/appwrapper";
-import usePortal from "react-useportal";
+import { Portal } from "./reusable/portal";
 
 function buildSimulationsTree(simulations) {
     let root = {
@@ -226,19 +226,11 @@ function SimulationBrowser(props) {
     return (
         <SimulationFolderRouter tree={tree}>
             {({routedTree, routedPath}) => {
-                let { Portal: ButtonPortal, portalRef } = usePortal({
-                    bindTo: document && document.getElementById(NavbarContainerId)
-                })
-
-                if(portalRef && portalRef.current) {
-                    portalRef.current.classList.add("float-left");
-                    portalRef.current.classList.add("col");
-                }
                 return (
                     <>
-                        <ButtonPortal>
+                        <Portal targetId={NavbarContainerId}>
                             <SimulationRouteHeader path={routedPath}/>
-                        </ButtonPortal>
+                        </Portal>
                         <div className="sr-sim-browser-outer">
                             <Container fluid className="sr-sim-browser">
                                 <Row sm={2}>
