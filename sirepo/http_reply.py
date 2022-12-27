@@ -20,7 +20,6 @@ import sirepo.http_request
 import sirepo.resource
 import sirepo.uri
 import sirepo.util
-import werkzeug.exceptions
 
 
 #: data.state for srException
@@ -61,8 +60,6 @@ def gen_exception(qcall, exc):
     # to the server, which will have code to handle this case.
     if isinstance(exc, sirepo.util.Reply):
         return _gen_exception_reply(qcall, exc)
-    if isinstance(exc, werkzeug.exceptions.HTTPException):
-        return _gen_exception_werkzeug(qcall, exc)
     return _gen_exception_error(qcall, exc)
 
 
@@ -471,10 +468,6 @@ def _gen_exception_reply_WWWAuthenticate(qcall, args):
         status=401,
         headers={"WWW-Authenticate": 'Basic realm="*"'},
     )
-
-
-def _gen_exception_werkzeug(qcall, exc):
-    raise exc
 
 
 def _gen_http_exception(code):

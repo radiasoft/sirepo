@@ -21,7 +21,6 @@ import sirepo.uri
 import sirepo.util
 import urllib
 import urllib.parse
-import werkzeug.exceptions
 
 
 # TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
@@ -334,8 +333,6 @@ class API(sirepo.quest.API):
                 if "error" in data:
                     return self.reply_json(data)
             return s(data)
-        except werkzeug.exceptions.HTTPException:
-            raise
         except sirepo.util.Reply:
             raise
         except Exception as e:
@@ -741,8 +738,6 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     )
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
-    for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
-        _app.register_error_handler(int(e), _handle_error)
     _init_proxy_react()
     sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
     sirepo.flask.app_set(_app)
@@ -783,27 +778,6 @@ def _cfg_react_server(value):
     ):
         return value
     pkconfig.raise_error(f"invalid url={value}, must be http://netloc/")
-
-
-def _handle_error(error):
-    status_code = 500
-    if isinstance(error, werkzeug.exceptions.HTTPException):
-        status_code = error.code
-    try:
-        error_file = simulation_db.SCHEMA_COMMON["customErrors"][str(status_code)][
-            "url"
-        ]
-    except Exception:
-        error_file = DEFAULT_ERROR_FILE
-    return (
-        # SECURITY: We control the path of the file so using send_file is ok.
-        sirepo.flask.send_file(
-            str(sirepo.resource.static("html", error_file)),
-            mimetype="text/html",
-            conditional=True,
-        ),
-        status_code,
-    )
 
 
 def _init_proxy_react():
