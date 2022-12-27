@@ -418,10 +418,7 @@ def stateless_compute_update_lib_file(data):
             _SIM_DATA.flash_app_lib_basename(data.args.archiveLibId),
         ).copy(p)
     else:
-        simulation_db.simulation_dir(
-            SIM_TYPE,
-            data.args.simulationId,
-        ).join(
+        simulation_db.simulation_dir(SIM_TYPE, data.args.simulationId,).join(
             _SIM_DATA.flash_app_archive_basename()
         ).rename(p)
     return PKDict(
