@@ -3901,7 +3901,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
    $scope.watchFields = [
         [
             'geomObject.type',
-            "extrudedPoly.extrusionAxisSegments", "extrudedPoly.triangulationLevel",
+            'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
+            'extrudedObject.extrusionAxis',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor
@@ -3949,6 +3950,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         if (! o) {
             return;
         }
+
+        const axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
         const modelType = o.type;
         parent.activePage.items.forEach((f) => {
             const m = modelField(f);
@@ -3962,6 +3965,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
         panelState.enableField('geomObject', 'size', true);
+        panelState.showField('geomObject', 'segments', ! editedModels.includes('extrudedObject'));
 
         if (o.type === 'stl') {
             panelState.enableField('geomObject', 'size', false);
@@ -3971,20 +3975,9 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             return;
         }
 
-        for (const dim of [o.widthAxis, o.heightAxis]) {
-            panelState.enableArrayField(
-                'geomObject',
-                'size',
-                SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim),
-                false
-            );
+        for (const i in axes) {
+            panelState.enableArrayField('geomObject', 'size', i, axes[i] === o.extrusionAxis);
         }
-        panelState.enableArrayField(
-            'geomObject',
-            'size',
-            SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(o.extrusionAxis),
-            true
-        );
     }
 
 

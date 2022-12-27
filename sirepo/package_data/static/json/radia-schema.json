@@ -800,7 +800,7 @@
             "bevels": ["Bevels", "BevelTable", []],
             "fillets": ["Fillets", "FilletTable", []],
             "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "segments": ["Num Divisions", "IntArray", [1, 1, 1], "", ["N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
+            "segments": ["Num Segments", "IntArray", [1, 1, 1], "", ["N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
