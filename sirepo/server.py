@@ -571,7 +571,7 @@ class API(sirepo.quest.API):
         if not path_info:
             sirepo.util.raise_not_found("empty path info")
         self._proxy_react("static/" + path_info)
-        p = sirepo.resource.static(sirepo.util.safe_path(path_info))
+        p = sirepo.resource.static(sirepo.util.validate_path(path_info))
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
             return self.headers_for_cache(
                 self.reply(
@@ -681,10 +681,10 @@ class API(sirepo.quest.API):
                 raise sirepo.util.Redirect(f"/react/{path}")
             else:
                 p = path
-            # call call api due to recursion of proxy_react
+            # do not call api_staticFile due to recursion of proxy_react
             raise sirepo.util.Response(
                 flask.send_file(
-                    sirepo.resource.static(sirepo.util.safe_path(f"react/{p}")),
+                    sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
                     conditional=True,
                 ),
             )

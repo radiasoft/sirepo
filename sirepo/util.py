@@ -15,6 +15,7 @@ import hashlib
 import importlib
 import inspect
 import numconv
+import posixpath
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
@@ -23,7 +24,6 @@ import random
 import six
 import sys
 import threading
-import werkzeug.utils
 import zipfile
 
 
@@ -46,8 +46,10 @@ TOKEN_SIZE = 16
 
 # See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
 # for reasoning on why define both
-_INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)", re.IGNORECASE)
+_INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)")
 _VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
+
+_INVALID_PATH_CHARS = re.compile(r"[^A-Za-z0-9_.-]")
 
 
 class Reply(Exception):
@@ -180,6 +182,12 @@ class SRException(Reply):
         )
 
 
+class Unauthorized(Reply):
+    """Raised to generate 401 response"""
+
+    pass
+
+
 class UserAlert(Reply):
     """Raised to display a user error and log info
 
@@ -209,11 +217,7 @@ class UserDirNotFound(NotFound):
 
 
 class WWWAuthenticate(Reply):
-    """Raised to generate 401 response
-
-    Args:
-        log_fmt (str): server side log data
-    """
+    """Raised to generate 401 response with WWWAuthenticate response"""
 
     pass
 
@@ -393,12 +397,6 @@ def read_zip(path_or_bytes):
             yield pykern.pkio.py_path(i.filename).basename, z.read(i)
 
 
-def safe_path(*paths):
-    p = werkzeug.utils.safe_join(*paths)
-    assert p is not None, f"could not join in a safe manner paths={paths}"
-    return p
-
-
 def sanitize_string(string):
     """Remove special characters from string
 
@@ -417,9 +415,31 @@ def sanitize_string(string):
 
 
 def secure_filename(path):
-    import werkzeug.utils
+    """Converts a user supplied path to a secure file
 
-    return werkzeug.utils.secure_filename(path)
+    Args:
+        path (str): contains anything
+    Returns:
+        str: does not contain special file system chars or path chars
+    """
+    p = (
+        unicodedata.normalize(
+            "NFKD",
+            path,
+        )
+        .encode(
+            "ascii",
+            "ignore",
+        )
+        .decode(
+            "ascii",
+        )
+        .replace(
+            "/",
+            " ",
+        )
+    )
+    return _INVALID_PATH_CHARS.sub("", "_".join(p.split())).strip("._")
 
 
 def setattr_imports(imports):
@@ -440,6 +460,32 @@ def url_safe_hash(value):
     return hashlib.md5(pkcompat.to_bytes(value)).hexdigest()
 
 
+def validate_path(uri):
+    """Ensures path component of uri is safe
+
+    Very strict. Doesn't allow any dot files and few specials.
+
+    Args:
+        uri (str): uncheck path
+    Returns:
+        str: validated path
+    """
+    if uri == "" or uri is None:
+        raise AssertionError(f"empty uri")
+    res = []
+    for p in uri.split("/"):
+        pkdp(p)
+        if _INVALID_PATH_CHARS.search(p):
+            raise AssertionError(f"illegal char(s) in component={p} uri={uri}")
+        if p == "":
+            # covers absolute path case
+            raise AssertionError(f"empty component in uri={uri}")
+        if p.startswith("."):
+            raise AssertionError(f"dot prefix in component={p} uri={uri}")
+        res.append(p)
+    return "/".join(res)
+
+
 def write_zip(path):
     return zipfile.ZipFile(
         path,
@@ -451,7 +497,6 @@ def write_zip(path):
 def _raise(exc, fmt, *args, **kwargs):
     kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
-    pkdp(exc)
     raise globals().get(exc, ServerError)
 
 
