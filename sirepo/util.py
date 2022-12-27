@@ -464,7 +464,6 @@ def validate_path(uri):
         raise AssertionError(f"empty uri")
     res = []
     for p in uri.split("/"):
-        pkdp(p)
         if _INVALID_PATH_CHARS.search(p):
             raise AssertionError(f"illegal char(s) in component={p} uri={uri}")
         if p == "":
