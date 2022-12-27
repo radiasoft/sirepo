@@ -2,7 +2,7 @@ import { Navbar, Container, Nav, Col, NavDropdown, Row } from "react-bootstrap";
 import React, { ReactNode, useRef } from "react";
 import "./navbar.scss";
 import { v4 as uuidv4 } from 'uuid';
-import { NavbarAuthStatus } from "../login";
+import { NavbarAuthStatus } from "../login/login";
 
 export const NavbarContainerId = "nav-tabs-container";
 

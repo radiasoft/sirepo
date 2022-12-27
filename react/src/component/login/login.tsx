@@ -3,11 +3,12 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import React, { useContext, useEffect, useState } from "react"
 import { Button, Col, Container, Dropdown, Form, Image, Modal, Nav, Row } from "react-bootstrap"
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router"
-import { AppWrapper, AuthMethod, CAppName, CLoginStatus, CSchema } from "../data/appwrapper"
-import { useSetup } from "../hook/setup"
-import { NavbarContainerId, NavToggleDropdown } from "./reusable/navbar";
-import { Portal } from "./reusable/portal";
+import { AppWrapper, AuthMethod, CAppName, CLoginStatus, CSchema } from "../../data/appwrapper"
+import { useSetup } from "../../hook/setup"
+import { NavbarContainerId, NavToggleDropdown } from "../reusable/navbar";
+import { Portal } from "../reusable/portal";
 import "./login.scss";
+import { LoginEmailConfirm, LoginWithEmail } from "./email";
 
 export const LoginRouter = (props) => {
     let appName = useContext(CAppName);
@@ -103,34 +104,7 @@ export const LoginConfirm = (props) => {
     }
 }
 
-export const LoginEmailConfirm = (props) => {
-    let { token, needCompleteRegistration } = props;
-    let appName = useContext(CAppName);
-    let navigate = useNavigate();
-    let completeLogin = (extra?: {[key: string]: any}) => {
-        fetch(`/auth-email-authorized/${appName}/${token}`, {
-            method: "POST",
-            body: JSON.stringify({ token, ...(extra || {}) }),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        }).then(() => navigate(`/react/${appName}`))
-    }
-    return (
-        <Container>
-            {
-                needCompleteRegistration ? (
-                    <LoginExtraInfoForm onComplete={(data) => completeLogin(data)}/>
-                ) : (
-                    <>
-                        <p>Click the button complete the login process.</p>
-                        <Button onClick={() => completeLogin()}>Continue</Button>
-                    </>
-                )
-            }
-        </Container>
-    )
-}
+
 
 export const LoginNeedCompleteRegistration = (props) => {
     let appName = useContext(CAppName);
@@ -201,63 +175,6 @@ export const LoginRoot = (props) => {
         <Container className="sm-12 lg-6">
             {getLoginComponent(loginStatus.visibleMethod)}
         </Container>
-    )
-}
-
-export const LoginWithEmail = (props) => {
-    let [email, updateEmail] = useState<string>("");
-    let appName = useContext(CAppName);
-    let appWrapper = new AppWrapper(appName);
-
-    let [emailSent, updateEmailSent] = useState<boolean>(false);
-
-    let doLogin = (email) => {
-        appWrapper.doEmailLogin(email);
-        updateEmailSent(true);
-    }
-    return (
-        <>
-            <LoginEmailSent email={email} show={emailSent}/>
-            <Container>
-                <Row>
-                    <p className="text-secondary">
-                        Enter your email address and we'll send an authorization link to your inbox.
-                    </p>
-                </Row>
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextEmail">
-                    <Form.Label column sm="2">
-                        Email
-                    </Form.Label>
-                    <Col sm="8">
-                        <Form.Control placeholder="email@example.com" value={email} onChange={(e) => updateEmail(e.target.value)}/>
-                    </Col>
-                    <Col sm="2">
-                        <Button variant="primary" onClick={() => doLogin(email)}>Continue</Button>
-                    </Col>
-                </Form.Group>
-                <Row>
-                    <p className="text-secondary">
-                        By signing up for Sirepo you agree to Sirepo's privacy policy and terms and conditions, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.
-                    </p>
-                </Row>
-            </Container>
-        </>
-    )
-}
-
-export function LoginEmailSent(props: { email: string, show: boolean }) {
-    let { email, show } = props;
-
-    return (
-        <Modal show={show}>
-            <Modal.Header>
-                <Modal.Title>Check your inbox</Modal.Title>
-            </Modal.Header>
-
-            <Modal.Body>
-                <p>We just emailed a confirmation link to {email}. Click the link and you'll be signed in. You may close this window.</p>
-            </Modal.Body>
-        </Modal>
     )
 }
 

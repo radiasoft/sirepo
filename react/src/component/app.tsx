@@ -7,7 +7,7 @@ import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "./simbrowser";
 import "./app.scss";
 import { AppWrapper, CAppName, CSchema, CSimulationList } from "../data/appwrapper";
-import { LoginRouter } from "./login";
+import { LoginRouter } from "./login/login";
 import { SrNavbar } from "./reusable/navbar";
 import { Container } from "react-bootstrap";
 
