@@ -142,7 +142,7 @@ class API(sirepo.quest.API):
             return self.reply_attachment(p, filename=n)
         except Exception as e:
             if pkio.exception_is_not_found(e):
-                sirepo.util.raise_not_found("lib_file={} not found", p)
+                raise sirepo.util.NotFound("lib_file={} not found", p)
             raise
 
     @sirepo.quest.Spec("allow_visitor", spec="ErrorLoggingSpec")
@@ -189,7 +189,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("allow_visitor")
     def api_forbidden(self):
-        sirepo.util.raise_forbidden("app forced forbidden")
+        raise sirepo.util.Forbidden("app forced forbidden")
 
     @sirepo.quest.Spec(
         "require_user",
@@ -252,7 +252,7 @@ class API(sirepo.quest.API):
                 )
                 break
             else:
-                sirepo.util.raise_not_found(
+                raise sirepo.util.NotFound(
                     "simulation not found by name={} type={}",
                     simulation_name,
                     req.type,
@@ -375,7 +375,7 @@ class API(sirepo.quest.API):
         def _data(req):
             f = getattr(req.template, "export_jupyter_notebook", None)
             if not f:
-                sirepo.util.raise_not_found(f"API not supported for tempate={req.type}")
+                raise sirepo.util.NotFound(f"API not supported for tempate={req.type}")
             return f(
                 simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self),
                 qcall=self,
@@ -405,7 +405,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("allow_visitor")
     def api_notFound(self):
-        sirepo.util.raise_not_found("app forced not found (uri parsing error)")
+        raise sirepo.util.NotFound("app forced not found (uri parsing error)")
 
     @sirepo.quest.Spec(
         "require_user",
@@ -458,7 +458,7 @@ class API(sirepo.quest.API):
         u = sirepo.uri.unchecked_root_redirect(path_info)
         if u:
             return self.reply_redirect(u)
-        sirepo.util.raise_not_found(f"unknown path={path_info}")
+        raise sirepo.util.NotFound(f"unknown path={path_info}")
 
     @sirepo.quest.Spec("require_user", sid="SimId", data="SimData all_input")
     def api_saveSimulationData(self):
@@ -487,7 +487,7 @@ class API(sirepo.quest.API):
 
         def _not_found(req):
             if not simulation_db.find_global_simulation(req.type, req.id):
-                sirepo.util.raise_not_found(
+                raise sirepo.util.NotFound(
                     "stype={} sid={} global simulation not found", req.type, req.id
                 )
             return self.headers_for_no_cache(self.reply_json(_redirect(req)))
@@ -566,7 +566,7 @@ class API(sirepo.quest.API):
             Response: reply with file
         """
         if not path_info:
-            sirepo.util.raise_not_found("empty path info")
+            raise sirepo.util.NotFound("empty path info")
         self._proxy_react("static/" + path_info)
         p = sirepo.resource.static(sirepo.util.validate_path(path_info))
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):

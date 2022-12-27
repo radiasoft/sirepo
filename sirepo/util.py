@@ -351,18 +351,6 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     return res
 
 
-def raise_forbidden(*args, **kwargs):
-    _raise("Forbidden", *args, **kwargs)
-
-
-def raise_not_found(*args, **kwargs):
-    _raise("NotFound", *args, **kwargs)
-
-
-def raise_unauthorized(*args, **kwargs):
-    _raise("Unauthorized", *args, **kwargs)
-
-
 def random_base62(length=32):
     """Returns a safe string of sufficient length to be a nonce
 
@@ -494,10 +482,6 @@ def write_zip(path):
         mode="w",
         compression=zipfile.ZIP_DEFLATED,
     )
-
-
-def _raise(exc, *args, **kwargs):
-    raise globals().get(exc, ServerError)
 
 
 cfg = pkconfig.init(

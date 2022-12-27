@@ -663,7 +663,7 @@ class _ComputeJob(_Supervisor):
 
     def _raise_if_purged_or_missing(self, req):
         if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
-            sirepo.util.raise_not_found("purged or missing {}", req)
+            raise sirepo.util.NotFound("purged or missing {}", req)
 
     async def _receive_api_analysisJob(self, req):
         return await self._send_op_analysis(req, "analysis_job")
@@ -828,7 +828,7 @@ class _ComputeJob(_Supervisor):
 
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
-            sirepo.util.raise_not_found("invalid req={}", req)
+            raise sirepo.util.NotFound("invalid req={}", req)
         self._raise_if_purged_or_missing(req)
         return await self._send_op_analysis(req, "get_simulation_frame")
 
@@ -845,7 +845,7 @@ class _ComputeJob(_Supervisor):
         r = req.content.get("jobRunMode", self.db.jobRunMode)
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
-            sirepo.util.raise_not_found("invalid jobRunMode={} req={}", r, req)
+            raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
         k = (
             job.PARALLEL
             if self.db.isParallel and opName != job.OP_ANALYSIS

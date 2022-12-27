@@ -108,6 +108,6 @@ def parse_post(qcall, kwargs):
         kwargs.pkdel("check_sim_exists")
         and not simulation_db.sim_data_file(res.type, res.id, qcall=qcall).exists()
     ):
-        sirepo.util.raise_not_found("type={} sid={} does not exist", res.type, res.id)
+        raise sirepo.util.NotFound("type={} sid={} does not exist", res.type, res.id)
     assert not kwargs, "unexpected kwargs={}".format(kwargs)
     return res
