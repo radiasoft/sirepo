@@ -1113,7 +1113,6 @@ def _get_jay_points(o, stemmed_info):
 
 
 def _get_radia_objects(geom_objs, model):
-
     o = PKDict(groupedObjects=PKDict())
     o_ids = []
     for f in model:

@@ -15,7 +15,6 @@ import tarfile
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     _OLD_NEURAL_NET_FIELDS = [
         "activationActivation",
         "alphaDropoutRate",
@@ -89,7 +88,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 layer.pop(old)
 
         for l in dm.neuralNet.layers:
-            for (old, new) in _layer_fields(l):
+            for old, new in _layer_fields(l):
                 _update(l, old, new)
             for f in cls._OLD_NEURAL_NET_FIELDS:
                 if f in l:
