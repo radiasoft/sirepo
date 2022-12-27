@@ -24,6 +24,7 @@ import random
 import six
 import sys
 import threading
+import unicodedata
 import zipfile
 
 
@@ -439,7 +440,8 @@ def secure_filename(path):
             " ",
         )
     )
-    return _INVALID_PATH_CHARS.sub("", "_".join(p.split())).strip("._")
+    p = _INVALID_PATH_CHARS.sub("", "_".join(p.split())).strip("._")
+    return "file" if p is "" else p
 
 
 def setattr_imports(imports):

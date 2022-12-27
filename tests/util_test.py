@@ -7,6 +7,16 @@
 import pytest
 
 
+def test_secure_filename():
+    from sirepo import util
+    from pykern import pkunit
+
+    pkunit.pkeq("file", util.secure_filename(""))
+    pkunit.pkeq("file", util.secure_filename("/"))
+    pkunit.pkeq("a_b", util.secure_filename("/a/b"))
+    pkunit.pkeq("b", util.secure_filename(".b."))
+
+
 def test_validate_path():
     from sirepo import util
     from pykern import pkunit
