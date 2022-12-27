@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import React, { useContext, useEffect, useState } from "react"
-import { Button, Col, Container, Dropdown, Form, Image, Nav, Row } from "react-bootstrap"
+import { Button, Col, Container, Dropdown, Form, Image, Modal, Nav, Row } from "react-bootstrap"
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router"
 import { AppWrapper, AuthMethod, CAppName, CLoginStatus, CSchema } from "../data/appwrapper"
 import { useSetup } from "../hook/setup"
@@ -21,7 +21,7 @@ export const LoginRouter = (props) => {
             <Routes>
                 <Route path="logout/*" element={<LogoutRoot/>}/>
                 <Route path="login/*" element={<LoginRoot/>}/>
-                <Route path="login-confirm/:method/:token/:needsCompleteRegistration" element={<LoginConfirm/>}/>
+                <Route path="login-confirm/:method/:token/:needCompleteRegistration" element={<LoginConfirm/>}/>
                 <Route path="*" element={<CatchLoggedOut>{props.children}</CatchLoggedOut>}/>
             </Routes>
         </CLoginStatus.Provider>
@@ -45,7 +45,11 @@ export const NavbarAuthStatus = (props) => {
                     )
                 }</>
             }>
-                <Dropdown.Header>{loginStatus.displayName}</Dropdown.Header>
+                {
+                    loginStatus.displayName && loginStatus.displayName.length > 0 && (
+                        <Dropdown.Header>{loginStatus.displayName}</Dropdown.Header>
+                    )
+                }
                 {
                     loginStatus.paymentPlan && (
                         <Dropdown.Header>{appWrapper.getPaymentPlanName(loginStatus.paymentPlan, schema)}</Dropdown.Header>
@@ -71,7 +75,7 @@ export const CatchLoggedOut = (props) => {
     return (
         <>
             {
-                loginStatus.isLoggedIn && !loginStatus.needsCompleteRegistration ?
+                loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration ?
                 (
                     props.children
                 ) : (
@@ -85,22 +89,22 @@ export const CatchLoggedOut = (props) => {
 type LoginConfirmParams = {
     token: string,
     method: AuthMethod,
-    needsCompleteRegistration: "0" | "1"
+    needCompleteRegistration: "0" | "1"
 }
 
 export const LoginConfirm = (props) => {
-    let { token, method, needsCompleteRegistration } = useParams<LoginConfirmParams>();
+    let { token, method, needCompleteRegistration } = useParams<LoginConfirmParams>();
 
     switch(method) {
         case 'email':
-            return <LoginEmailConfirm needsCompleteRegistration={needsCompleteRegistration} token={token}/>
+            return <LoginEmailConfirm needCompleteRegistration={needCompleteRegistration} token={token}/>
         default:
             throw new Error(`could not handle login method=${method}`)
     }
 }
 
 export const LoginEmailConfirm = (props) => {
-    let { token, needsCompleteRegistration } = props;
+    let { token, needCompleteRegistration } = props;
     let appName = useContext(CAppName);
     let navigate = useNavigate();
     let completeLogin = (extra?: {[key: string]: any}) => {
@@ -115,8 +119,8 @@ export const LoginEmailConfirm = (props) => {
     return (
         <Container>
             {
-                needsCompleteRegistration ? (
-                    <LoginEmailExtraInfoForm onComplete={(data) => completeLogin(data)}/>
+                needCompleteRegistration ? (
+                    <LoginExtraInfoForm onComplete={(data) => completeLogin(data)}/>
                 ) : (
                     <>
                         <p>Click the button complete the login process.</p>
@@ -128,9 +132,26 @@ export const LoginEmailConfirm = (props) => {
     )
 }
 
-export const LoginEmailExtraInfoForm = (props: { onComplete: ({fullName}) => void }) => {
+export const LoginNeedCompleteRegistration = (props) => {
+    let appName = useContext(CAppName);
+    let navigate = useNavigate();
+    let onCompleteForm = (data: {[key: string]: any}) => {
+        fetch(`/auth-complete-registration`, {
+            method: "POST",
+            body: JSON.stringify({ ...data, simulationType: appName }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then(() => navigate(`/react/${appName}`))
+    }
+    return (
+        <LoginExtraInfoForm onComplete={(data) => onCompleteForm(data)}/>
+    )
+}
+
+export const LoginExtraInfoForm = (props: { onComplete: ({displayName}) => void }) => {
     let { onComplete } = props;
-    let [fullName, updateFullName] = useState<string>("");
+    let [displayName, updateDisplayName] = useState<string>("");
     return (
         <>
             <p>Please enter your full name to complete your Sirepo registration.</p>
@@ -139,10 +160,10 @@ export const LoginEmailExtraInfoForm = (props: { onComplete: ({fullName}) => voi
                     Your full name
                 </Form.Label>
                 <Col sm="9">
-                    <Form.Control value={fullName} onChange={(e) => updateFullName(e.target.value)}/>
+                    <Form.Control value={displayName} onChange={(e) => updateDisplayName(e.target.value)}/>
                 </Col>
             </Form.Group>
-            <Button variant="primary" onClick={() => onComplete({ fullName })}>Continue</Button>
+            <Button variant="primary" onClick={() => onComplete({ displayName })}>Continue</Button>
         </>
     )
 }
@@ -159,12 +180,20 @@ export const LoginRoot = (props) => {
     }
 
     let loginStatus = useContext(CLoginStatus);
+    let appName = useContext(CAppName);
 
-    if(loginStatus.isLoggedIn) {
+    if(loginStatus.needCompleteRegistration) {
         return (
             <Container className="sm-12 lg-6">
-                <p>You are already logged in.</p>
+                <LoginNeedCompleteRegistration/>
             </Container>
+            
+        )
+    }
+
+    if(loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) {
+        return (
+            <Navigate to={new AppWrapper(appName).getAppRootLink()}></Navigate>
         )
     }
 
@@ -180,33 +209,55 @@ export const LoginWithEmail = (props) => {
     let appName = useContext(CAppName);
     let appWrapper = new AppWrapper(appName);
 
+    let [emailSent, updateEmailSent] = useState<boolean>(false);
+
     let doLogin = (email) => {
         appWrapper.doEmailLogin(email);
+        updateEmailSent(true);
     }
     return (
-        <Container>
-            <Row>
-                <p className="text-secondary">
-                    Enter your email address and we'll send an authorization link to your inbox.
-                </p>
-            </Row>
-            <Form.Group as={Row} className="mb-3" controlId="formPlaintextEmail">
-                <Form.Label column sm="2">
-                    Email
-                </Form.Label>
-                <Col sm="8">
-                    <Form.Control placeholder="email@example.com" value={email} onChange={(e) => updateEmail(e.target.value)}/>
-                </Col>
-                <Col sm="2">
-                    <Button variant="primary" onClick={() => doLogin(email)}>Continue</Button>
-                </Col>
-            </Form.Group>
-            <Row>
-                <p className="text-secondary">
-                    By signing up for Sirepo you agree to Sirepo's privacy policy and terms and conditions, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.
-                </p>
-            </Row>
-        </Container>
+        <>
+            <LoginEmailSent email={email} show={emailSent}/>
+            <Container>
+                <Row>
+                    <p className="text-secondary">
+                        Enter your email address and we'll send an authorization link to your inbox.
+                    </p>
+                </Row>
+                <Form.Group as={Row} className="mb-3" controlId="formPlaintextEmail">
+                    <Form.Label column sm="2">
+                        Email
+                    </Form.Label>
+                    <Col sm="8">
+                        <Form.Control placeholder="email@example.com" value={email} onChange={(e) => updateEmail(e.target.value)}/>
+                    </Col>
+                    <Col sm="2">
+                        <Button variant="primary" onClick={() => doLogin(email)}>Continue</Button>
+                    </Col>
+                </Form.Group>
+                <Row>
+                    <p className="text-secondary">
+                        By signing up for Sirepo you agree to Sirepo's privacy policy and terms and conditions, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.
+                    </p>
+                </Row>
+            </Container>
+        </>
+    )
+}
+
+export function LoginEmailSent(props: { email: string, show: boolean }) {
+    let { email, show } = props;
+
+    return (
+        <Modal show={show}>
+            <Modal.Header>
+                <Modal.Title>Check your inbox</Modal.Title>
+            </Modal.Header>
+
+            <Modal.Body>
+                <p>We just emailed a confirmation link to {email}. Click the link and you'll be signed in. You may close this window.</p>
+            </Modal.Body>
+        </Modal>
     )
 }
 

@@ -32,7 +32,7 @@ export type LoginStatus = {
     paymentPlan: string,
     jobRunModeMap: {[runType: string]: string},
     method: AuthMethod | null,
-    needsCompleteRegistration: boolean,
+    needCompleteRegistration: boolean,
     roles: string[],
     slackUri: string,
     userName: string | null,
