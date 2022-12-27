@@ -496,9 +496,7 @@ def write_zip(path):
     )
 
 
-def _raise(exc, fmt, *args, **kwargs):
-    kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
-    pkdlog(fmt, *args, **kwargs)
+def _raise(exc, *args, **kwargs):
     raise globals().get(exc, ServerError)
 
 
