@@ -56,8 +56,16 @@ export const NavbarAuthStatus = (props) => {
                         <Dropdown.Header>{appWrapper.getPaymentPlanName(loginStatus.paymentPlan, schema)}</Dropdown.Header>
                     )
                 }
-                <Dropdown.Header>{loginStatus.userName}</Dropdown.Header>
-                <Dropdown.Item href={`/${appName}/logout`}>Sign Out</Dropdown.Item>
+                {
+                    loginStatus.userName && (
+                        <Dropdown.Header>{loginStatus.userName}</Dropdown.Header>
+                    )
+                }
+                {
+                    loginStatus.method !== "guest" && (
+                        <Dropdown.Item href={`/${appName}/logout`}>Sign Out</Dropdown.Item>
+                    )
+                }
             </NavToggleDropdown>
         )
     }
@@ -76,7 +84,7 @@ export const CatchLoggedOut = (props) => {
     return (
         <>
             {
-                loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration ?
+                (loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) || loginStatus.method === "guest" ?
                 (
                     props.children
                 ) : (
@@ -143,18 +151,19 @@ export const LoginExtraInfoForm = (props: { onComplete: ({displayName}) => void 
 }
 
 export const LoginRoot = (props) => {
+    let loginStatus = useContext(CLoginStatus);
+    let appName = useContext(CAppName);
+
     let getLoginComponent = (method: string): JSX.Element => {
         switch(method) {
             case "email":
                 return <LoginWithEmail/>
-
+            case "guest":
+                return <Navigate to={new AppWrapper(appName).getAppRootLink()}/>
             default:
                 throw new Error(`could not handle login method=${method}`)
         }
     }
-
-    let loginStatus = useContext(CLoginStatus);
-    let appName = useContext(CAppName);
 
     if(loginStatus.needCompleteRegistration) {
         return (
