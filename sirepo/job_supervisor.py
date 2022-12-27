@@ -385,7 +385,6 @@ class _Supervisor(PKDict):
 
 
 class _ComputeJob(_Supervisor):
-
     instances = PKDict()
     _purged_jids_cache = set()
 

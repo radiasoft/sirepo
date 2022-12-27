@@ -18,7 +18,6 @@ import tornado.queues
 
 
 class LocalDriver(job_driver.DriverBase):
-
     cfg = None
 
     __instances = PKDict({k: [] for k in job.KINDS})
