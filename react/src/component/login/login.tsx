@@ -42,7 +42,7 @@ export const NavbarAuthStatus = (props) => {
                     loginStatus.avatarUrl ? (
                         <Image src={loginStatus.avatarUrl} fluid rounded={true}/>
                     ) : (
-                        <FontAwesomeIcon icon={Icon.faUser}/>
+                        <FontAwesomeIcon icon={Icon.faQuestionCircle}/>
                     )
                 }</>
             }>
