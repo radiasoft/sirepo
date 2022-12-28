@@ -40,8 +40,8 @@ export type SimulationInfo = SimulationInfoRaw & {
     simulationId: string
 }
 
-function SimulationInfoInitializer(props) {
-    let { simulation } = props;
+function SimulationInfoInitializer(props: { simulationId: string } & {[key: string]: any}) {
+    let { simulationId } = props;
 
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
@@ -54,7 +54,6 @@ function SimulationInfoInitializer(props) {
 
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
-            let { simulationId } = simulation;
             // TODO: why 0
             fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
                 let simulationInfo = await resp.json();
@@ -230,8 +229,8 @@ export function SimulationOuter(props) {
 
 }
 
-export function SimulationRoot(props: {simulation: SimulationInfo}) {
-    let { simulation } = props;
+export function SimulationRoot(props: {simulationId: string}) {
+    let { simulationId } = props;
 
     let schema = useContext(CSchema);
 
@@ -248,7 +247,7 @@ export function SimulationRoot(props: {simulation: SimulationInfo}) {
 
     // TODO: use multiple rows
     return ( 
-        <SimulationInfoInitializer simulation={simulation}>
+        <SimulationInfoInitializer simulationId={simulationId}>
             <SimulationOuter>
                 <ReportEventManagerInitializer>
                     <FormStateInitializer>

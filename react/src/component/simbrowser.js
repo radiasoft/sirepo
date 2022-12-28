@@ -252,13 +252,8 @@ function SimulationBrowser(props) {
 }
 
 function SimulationRootWrapper(props) {
-    let { simulationList } = props;
     let { id } = useParams();
-
-
-    let simulation = simulationList.find(sim => sim.simulationId === id);
-
-    return <SimulationRoot simulation={simulation}/> // TODO: error/missing handling
+    return <SimulationRoot key={id} simulationId={id}/> // TODO: error/missing handling
 }
 
 export function SimulationBrowserRoot(props) {
