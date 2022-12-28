@@ -16,7 +16,7 @@ export const LoginRouter = (props) => {
 
     return hasLoginStatus && (
         <CLoginStatus.Provider value={loginStatus}>
-            <Portal targetId={NavbarRightContainerId} className="order-4">
+            <Portal targetId={NavbarRightContainerId} className="order-3">
                 <NavbarSlack/>
             </Portal>
             <Portal targetId={NavbarRightContainerId} className="order-5 sr-navbar-auth">
@@ -52,6 +52,10 @@ export const NavbarAuthStatus = (props) => {
     let appName = useContext(CAppName);
     let appWrapper = new AppWrapper(appName);
 
+    if(loginStatus.method === "guest") {
+        return (<></>)
+    }
+
     if(loginStatus.isLoggedIn) {
         return (
             <NavToggleDropdown title={
@@ -59,7 +63,7 @@ export const NavbarAuthStatus = (props) => {
                     loginStatus.avatarUrl ? (
                         <Image src={loginStatus.avatarUrl} fluid rounded={true}/>
                     ) : (
-                        <FontAwesomeIcon icon={Icon.faQuestionCircle}/>
+                        <FontAwesomeIcon icon={Icon.faPerson}/>
                     )
                 }</>
             }>
@@ -78,11 +82,7 @@ export const NavbarAuthStatus = (props) => {
                         <Dropdown.Header>{loginStatus.userName}</Dropdown.Header>
                     )
                 }
-                {
-                    loginStatus.method !== "guest" && (
-                        <Dropdown.Item href={`/${appName}/logout`}>Sign Out</Dropdown.Item>
-                    )
-                }
+                <Dropdown.Item href={`/${appName}/logout`}>Sign Out</Dropdown.Item>
             </NavToggleDropdown>
         )
     }

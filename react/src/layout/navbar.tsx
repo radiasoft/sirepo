@@ -168,7 +168,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
 
         return (
             <>
-                <Portal targetId={NavbarRightContainerId} className="order-2">
+                <Portal targetId={NavbarRightContainerId} className="order-1">
                     <Nav variant="tabs" defaultActiveKey={selectedTabName}>
                         {
                             this.tabs.map(tab => {

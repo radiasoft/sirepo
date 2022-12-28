@@ -251,7 +251,7 @@ export function SimulationRoot(props: {simulationId: string}) {
             <SimulationOuter>
                 <ReportEventManagerInitializer>
                     <FormStateInitializer>
-                        <Portal targetId={NavbarRightContainerId} className="order-3">
+                        <Portal targetId={NavbarRightContainerId} className="order-2">
                             <SimulationCogMenu/>
                         </Portal>
                         {layoutComponents}
