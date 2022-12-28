@@ -33,7 +33,6 @@ _MAX_OPEN_FILES = 1024
 
 
 class DockerDriver(job_driver.DriverBase):
-
     cfg = None
 
     __hosts = PKDict()

@@ -701,7 +701,6 @@ def subprocess_output(cmd, env=None):
     err = None
     out = None
     try:
-
         p = subprocess.Popen(
             cmd,
             env=env,

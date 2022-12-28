@@ -12,7 +12,6 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     ANALYSIS_ONLY_FIELDS = frozenset(("colorMap", "notes"))
 
     @classmethod

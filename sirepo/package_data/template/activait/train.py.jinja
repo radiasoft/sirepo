@@ -8,16 +8,14 @@ model.compile(
     loss={{ neuralNet_losses }},
     metrics=['accuracy'],
 )
-
-history = model.fit(
-    x=trainx,
-    y=trainy,
-    epochs={{ neuralNet_epochs }},
-    validation_data=(valx, valy),
-    batch_size={{ neuralNet_batch_size }},
-    callbacks=[CSVLogger('{{ fitCSVFile }}')],
-)
-
+try:
+    history = model.fit(
+        split.train_gen,
+        validation_data=split.val_gen,
+        epochs={{ neuralNet_epochs }},
+        callbacks=[CSVLogger('fit.csv')])
+except Exception as e:
+    raise AssertionError(f"Model training failed due to:{e.message}")
 {% else %}
 
 model.compile(

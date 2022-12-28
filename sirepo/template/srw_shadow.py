@@ -639,7 +639,6 @@ class Convert:
             "sphericalMirror",
             "toroidalMirror",
         ):
-
             self.beamline.append(
                 self.__copy_item(
                     item,
