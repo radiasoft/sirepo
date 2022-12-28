@@ -321,7 +321,7 @@
                 "route": "/login-confirm/email/:token/:needCompleteRegistration"
             },
             "source": {
-                "route": "/:simulationId/source"
+                "route": "/:simulationId"
             }
         },
         "localRoutes": {

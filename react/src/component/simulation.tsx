@@ -1,5 +1,7 @@
 import {
-    Container
+    Button,
+    Col,
+    Container, Dropdown, Form, Modal, Row
 } from "react-bootstrap";
 import React, {
     useState,
@@ -9,18 +11,34 @@ import React, {
 import {
     modelSelectors,
     modelActions,
-    ModelState
+    ModelState,
+    ModelStates
 } from "../store/models";
 import { FormStateInitializer } from "./reusable/form";
-import { useResolvedPath } from "react-router-dom";
+import { useNavigate, useResolvedPath } from "react-router-dom";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";
 import { CReportEventManager } from "../data/report";
 import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
-import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { AppWrapper, CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { LAYOUTS } from "../layout/layouts";
 import { ModelsAccessor } from "../data/accessor";
 import { Dependency } from "../data/dependency";
+import { NavbarRightContainerId, NavToggleDropdown } from "./reusable/navbar";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import * as Icon from "@fortawesome/free-solid-svg-icons";
+import { useSetup } from "../hook/setup";
+import { Portal } from "./reusable/portal";
+
+export type SimulationInfoRaw = {
+    models: ModelStates,
+    simulationType: string,
+    version: string
+}
+
+export type SimulationInfo = SimulationInfoRaw & {
+    simulationId: string
+}
 
 function SimulationInfoInitializer(props) {
     let { simulation } = props;
@@ -58,6 +76,126 @@ function SimulationInfoInitializer(props) {
                 {props.children}
             </CSimulationInfoPromise.Provider>
         </CModelsWrapper.Provider>
+    )
+}
+
+function SimulationCogMenu(props) {
+    let appName = useContext(CAppName);
+    let navigate = useNavigate();
+    let simulationInfoPromise = useContext(CSimulationInfoPromise);
+
+    let [showCopyModal, updateShowCopyModal] = useState<boolean>(false);
+
+    let [hasSimualtionInfo, simulationInfo] = useSetup(true, simulationInfoPromise);
+
+    let deleteSimulationPromise = (simulationId: string) => {
+        return fetch(`/delete-simulation`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                simulationId,
+                simulationType: appName
+            })
+        });
+    }
+
+    let discardChanges = async () => {
+        let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
+        await deleteSimulationPromise(simulationId);
+        let newSimulationInfo: SimulationInfoRaw = await (await fetch(`/find-by-name-auth/${appName}/default/${name}`)).json();
+        console.log("simulationInfo", newSimulationInfo);
+        navigate(`/${appName}/${newSimulationInfo.models.simulation.simulationId}`);
+    }
+
+    let deleteSimulation = async () => {
+        let { simulationId } = simulationInfo || await simulationInfoPromise;
+        await deleteSimulationPromise(simulationId);
+        navigate(new AppWrapper(appName).getAppRootLink());
+    }
+
+    let exportArchive = async () => {
+        let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
+        window.open(`/export-archive/${appName}/${simulationId}/${name}.zip`, "_blank")
+    }
+
+    let pythonSource = async () => {
+        let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
+        window.open(`/python-source/${appName}/${simulationId}//${name}`, "_blank")
+    }
+
+    let openCopy = async (newName) => {
+        let { simulationId, models: { simulation: { name, folder }} } = simulationInfo || await simulationInfoPromise;
+        let { models: { simulation: { simulationId: newSimId }} } = await (await fetch('/copy-simulation', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                folder,
+                name: newName,
+                simulationId,
+                simulationType: appName
+            })
+        })).json()
+        navigate(`/${appName}/${newSimId}`);
+    }
+
+    return (
+        <>
+            <CopySimulationNamePickerModal 
+            show={showCopyModal} 
+            defaultName={simulationInfo ? `${simulationInfo.models.simulation.name} 2` : ""}
+            onComplete={(name) => {
+                updateShowCopyModal(false);
+                openCopy(name)
+            }}
+            onCancel={() => updateShowCopyModal(false)}/>
+            <NavToggleDropdown title={<FontAwesomeIcon icon={Icon.faCog}/>}>
+                <Dropdown.Item onClick={() => exportArchive()}><FontAwesomeIcon icon={Icon.faCloudDownload}/> Export as ZIP</Dropdown.Item>
+                <Dropdown.Item onClick={() => pythonSource()}><FontAwesomeIcon icon={Icon.faCloudDownload}/> Python Source</Dropdown.Item>
+                <Dropdown.Item onClick={() => updateShowCopyModal(true)}><FontAwesomeIcon icon={Icon.faCopy}/> Open as a New Copy</Dropdown.Item>
+                {
+                    hasSimualtionInfo && (
+                        simulationInfo.models.simulation.isExample ? (
+                            <Dropdown.Item onClick={() => discardChanges()}><FontAwesomeIcon icon={Icon.faRepeat}/> Discard changes to example</Dropdown.Item>
+                        ) : (
+                            <Dropdown.Item onClick={() => deleteSimulation()}><FontAwesomeIcon icon={Icon.faTrash}/> Delete</Dropdown.Item>
+                        )
+                    ) 
+                }
+            </NavToggleDropdown>
+        </>
+        
+    )
+}
+
+function CopySimulationNamePickerModal({show, defaultName, onComplete, onCancel}: {show: boolean, defaultName: string, onComplete: (string) => void, onCancel: () => void}) {
+    let [name, updateName] = useState<string>(defaultName || "");
+
+    return (
+        <Modal show={show}>
+            <Modal.Header>Copy Simulation</Modal.Header>
+            <Modal.Body as={Container}>
+                <Form.Group as={Row} className="mb-3">
+                    <Form.Label column>
+                        New Name
+                    </Form.Label>
+                    <Col>
+                        <Form.Control onChange={(event) => updateName(event.target.value)} value={name}/>
+                    </Col>
+                </Form.Group>
+                <Row>
+                    <Col className="ms-auto col-auto">
+                        <Button disabled={!name || name.length === 0} onClick={() => onComplete(name)}>Create Copy</Button>
+                    </Col>
+                    <Col className="col-auto">
+                        <Button variant="danger" onClick={() => onCancel()}>Cancel</Button>
+                    </Col>
+                </Row>
+            </Modal.Body>
+        </Modal>
     )
 }
 
@@ -109,11 +247,14 @@ export function SimulationRoot(props) {
     });
 
     // TODO: use multiple rows
-    return (    
+    return ( 
         <SimulationInfoInitializer simulation={simulation}>
             <SimulationOuter>
                 <ReportEventManagerInitializer>
                     <FormStateInitializer>
+                        <Portal targetId={NavbarRightContainerId} className="order-3">
+                            <SimulationCogMenu/>
+                        </Portal>
                         {layoutComponents}
                     </FormStateInitializer>
                 </ReportEventManagerInitializer>

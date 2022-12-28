@@ -1,6 +1,6 @@
 import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
 import { Navigate, useRoutes, Link, useResolvedPath, useParams } from "react-router-dom";
-import { NavbarContainerId } from "../component/reusable/navbar";
+import { NavbarLeftContainerId, NavbarRightContainerId } from "../component/reusable/navbar";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
 import { useContext, useState } from "react";
 import { LayoutProps, Layout } from "./layout";
@@ -87,7 +87,7 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
         // TODO fix button cursor on hover
         return (
             <>
-                <Portal targetId={NavbarContainerId} className="float-left">
+                <Portal targetId={NavbarLeftContainerId} className="order-2">
                     <Col>
                         <div onClick={() => updateModalShown(true)}>
                             <span>{title}<a className="ms-2">{iconElement}</a></span>
@@ -168,7 +168,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
 
         return (
             <>
-                <Portal targetId={NavbarContainerId} className="order-4">
+                <Portal targetId={NavbarRightContainerId} className="order-2">
                     <Nav variant="tabs" defaultActiveKey={selectedTabName}>
                         {
                             this.tabs.map(tab => {

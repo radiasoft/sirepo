@@ -21,6 +21,8 @@ export type SchemaModelJson = {
     [fieldName: string]: ScheamFieldJson<any>
 }
 
+export type SchemaModelsJson = {[modelName: string]: SchemaModelJson};
+
 export type SchemaTypeJson = {
     base: string,
     config: {[key: string]: any}
@@ -29,7 +31,7 @@ export type SchemaTypeJson = {
 export type SchemaJson = {
     constants: {[key: string]: any},
     type: {[typeName: string]: SchemaTypeJson},
-    model: {[modelName: string]: SchemaModelJson},
+    model: SchemaModelsJson,
     view: SchemaLayoutJson[]
 }
 
@@ -49,9 +51,11 @@ export type SchemaModel = {
     [fieldName: string]: SchemaField<any>
 }
 
+export type SchemaModels = {[modelName: string]: SchemaModel}
+
 export type Schema = {
     constants: {[key: string]: any},
-    models: {[modelName: string]: SchemaModel},
+    models: SchemaModels,
     views: SchemaLayout[]
 }
 

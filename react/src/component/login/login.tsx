@@ -5,7 +5,7 @@ import { Button, Col, Container, Dropdown, Form, Image, Modal, Nav, Row } from "
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router"
 import { AppWrapper, AuthMethod, CAppName, CLoginStatus, CSchema } from "../../data/appwrapper"
 import { useSetup } from "../../hook/setup"
-import { NavbarContainerId, NavToggleDropdown } from "../reusable/navbar";
+import { NavbarRightContainerId, NavToggleDropdown } from "../reusable/navbar";
 import { Portal } from "../reusable/portal";
 import "./login.scss";
 import { LoginEmailConfirm, LoginWithEmail } from "./email";
@@ -16,7 +16,10 @@ export const LoginRouter = (props) => {
 
     return hasLoginStatus && (
         <CLoginStatus.Provider value={loginStatus}>
-            <Portal targetId={NavbarContainerId} className="order-5 sr-navbar-auth">
+            <Portal targetId={NavbarRightContainerId} className="order-4">
+                <NavbarSlack/>
+            </Portal>
+            <Portal targetId={NavbarRightContainerId} className="order-5 sr-navbar-auth">
                 <NavbarAuthStatus/>
             </Portal>
             <Routes>
@@ -26,6 +29,20 @@ export const LoginRouter = (props) => {
                 <Route path="*" element={<CatchLoggedOut>{props.children}</CatchLoggedOut>}/>
             </Routes>
         </CLoginStatus.Provider>
+    )
+}
+
+export const NavbarSlack = (props) => {
+    let loginStatus = useContext(CLoginStatus);
+
+    return (
+        <>
+        {
+            loginStatus.slackUri && (
+                <Nav.Link href={loginStatus.slackUri}><img style={{"filter": "invert(0.5)"}} width="70" src="/static/svg/slack.svg" title="Join us on Slack"/></Nav.Link>
+            )
+        }
+        </>
     )
 }
 

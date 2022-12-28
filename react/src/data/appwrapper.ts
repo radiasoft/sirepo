@@ -1,4 +1,5 @@
 import React from "react"
+import { SimulationInfo } from "../component/simulation"
 import { compileSchemaFromJson, mergeSchemaJson, Schema } from "../utility/schema"
 
 export type ApiSimulation = {
@@ -41,7 +42,7 @@ export type LoginStatus = {
 }
 
 export const CSimulationList = React.createContext<SimulationListItem[]>(undefined);
-export const CSimulationInfoPromise = React.createContext<Promise<any>>(undefined);
+export const CSimulationInfoPromise = React.createContext<Promise<SimulationInfo>>(undefined);
 export const CAppName = React.createContext<string>(undefined);
 export const CSchema = React.createContext<Schema>(undefined);
 export const CLoginStatus = React.createContext<LoginStatus>(undefined);

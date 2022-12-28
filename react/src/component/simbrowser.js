@@ -12,7 +12,7 @@ import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react
 import { SimulationRoot } from "./simulation";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
-import { NavbarContainerId } from "./reusable/navbar";
+import { NavbarLeftContainerId, NavbarRightContainerId } from "./reusable/navbar";
 import { CSimulationList } from "../data/appwrapper";
 import { Portal } from "./reusable/portal";
 
@@ -228,7 +228,7 @@ function SimulationBrowser(props) {
             {({routedTree, routedPath}) => {
                 return (
                     <>
-                        <Portal targetId={NavbarContainerId}>
+                        <Portal targetId={NavbarLeftContainerId} className="order-4">
                             <SimulationRouteHeader path={routedPath}/>
                         </Portal>
                         <div className="sr-sim-browser-outer">
