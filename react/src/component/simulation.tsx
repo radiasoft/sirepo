@@ -230,7 +230,7 @@ export function SimulationOuter(props) {
 
 }
 
-export function SimulationRoot(props) {
+export function SimulationRoot(props: {simulation: SimulationInfo}) {
     let { simulation } = props;
 
     let schema = useContext(CSchema);
