@@ -40,7 +40,7 @@
                 "manualPath": ["ptX", "ptY", "ptZ"]
             },
             "transforms": {
-                "cloneTransform": ["numCopies", "transforms", "alternateFields"],
+                "cloneTransform": ["numCopies", "alternateFields", "transforms"],
                 "symmetryTransform": ["symmetryPlane", "symmetryPoint", "symmetryType"],
                 "translate": ["distance"],
                 "rotate": ["angle", "axis", "center", "useObjectCenter"],
@@ -227,16 +227,16 @@
                     {
                         "isButton": false,
                         "layoutShape": "rect",
-                        "model": "cloneTransform",
-                        "title": "Clone",
-                        "type": "clone"
+                        "model": "symmetryTransform",
+                        "title": "Symmetry",
+                        "type": "symmetry"
                     },
                     {
                         "isButton": false,
                         "layoutShape": "rect",
-                        "model": "symmetryTransform",
-                        "title": "Symmetry",
-                        "type": "symmetry"
+                        "model": "cloneTransform",
+                        "title": "Clone",
+                        "type": "clone"
                     }
                 ],
                 "name": "Transforms"
@@ -459,13 +459,9 @@
         "cloneTransform": {
             "_super": ["_", "model", "transform"],
             "alternateFields": ["Alternate Fields", "Boolean", "1"],
-            "angle": ["Angle (deg)", "Float", "0.0"],
-            "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
-            "center": ["Center", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
-            "transforms": ["", "TransformTable", [], ""],
+            "transforms": ["Transforms", "TransformTable", [], ""],
             "type": ["_", "TransformTypes", "cloneTransform"]
         },
         "dipoleBasic": {
@@ -987,8 +983,8 @@
         "symmetryTransform": {
             "_super": ["_", "model", "transform"],
             "name": ["Name", "String", "Symmetry"],
-            "symmetryPlane": ["Symmetry Plane", "FloatArray", [1.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "symmetryPoint": ["Symmetry Point", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "symmetryPlane": ["Plane", "FloatArray", [1.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "symmetryPoint": ["Point", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "symmetryType": ["Symmetry", "SymmetryType", "parallel"],
             "type": ["_", "TransformTypes", "symmetryTransform"]
         },
