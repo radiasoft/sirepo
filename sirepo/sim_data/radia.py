@@ -13,7 +13,6 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     ANALYSIS_ONLY_FIELDS = frozenset(
         (
             "alpha",
@@ -245,7 +244,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         u = dm.undulatorHybrid
         g = dm.geometryReport
 
-        for (k, v) in PKDict(
+        for k, v in PKDict(
             halfPole="Half Pole",
             magnet="Magnet Block",
             pole="Pole",

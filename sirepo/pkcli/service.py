@@ -58,6 +58,7 @@ def flask():
             extra_files=sirepo.util.files_to_watch_for_reload("json"),
             host=_cfg().ip,
             port=_cfg().port,
+            reloader_type="stat",
             threaded=True,
             use_reloader=_cfg().use_reloader,
         )
