@@ -144,8 +144,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def create_archive(sim, qcall):
-    from sirepo import http_reply
-
     if sim.filename.endswith("dat"):
         return qcall.reply_attachment(
             simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(
@@ -1807,7 +1805,7 @@ def _sort_points_clockwise(points):
             angles.append(angle)
     for i in range(len(angles)):
         angles[i] = [angles[i], points[i]]
-    angles.sort()  
+    angles.sort()
     # might have to check by lengths as well if angles are the same
     return [x[1] for x in angels]
 """

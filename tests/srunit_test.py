@@ -27,7 +27,6 @@ def test_wrap_in_request():
     f(None)
 
     import pykern.pkunit
-    import flask
 
     with pykern.pkunit.pkexcept("error.*f-hello"):
         s["f"] = "UserAlert"

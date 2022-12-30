@@ -10,27 +10,29 @@ from pykern import pkcollections
 from sirepo import srunit
 
 
-@srunit.wrap_in_request(sim_types="myapp", want_user=False)
-def test_login(qcall):
-    from pykern import pkunit, pkcompat
-    from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
-    from sirepo import util
-    from sirepo.auth import guest
+def test_login():
+    from sirepo import srunit
 
-    r = qcall.call_api("authState")
-    pkre('LoggedIn": false.*Registration": false', pkcompat.from_bytes(r.data))
-    with pkunit.pkexcept("SRException.*routeName=login"):
-        qcall.auth.logged_in_user()
-    with pkexcept("SRException.*routeName=login"):
+    with srunit.quest_start() as qcall:
+        from pykern import pkunit, pkcompat
+        from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
+        from sirepo import util
+        from sirepo.auth import guest
+
+        r = qcall.call_api("authState")
+        pkre('LoggedIn": false.*Registration": false', pkcompat.from_bytes(r.data))
+        with pkunit.pkexcept("SRException.*routeName=login"):
+            qcall.auth.logged_in_user()
+        with pkexcept("SRException.*routeName=login"):
+            qcall.auth.require_user()
+        qcall.cookie.set_sentinel()
+        try:
+            r = qcall.auth.login("guest", sim_type="myapp")
+            pkfail("expecting sirepo.util.Response")
+        except util.Response as e:
+            r = e.sr_args.response
+        pkre(r'LoggedIn":\s*true.*Registration":\s*false', pkcompat.from_bytes(r.data))
+        u = qcall.auth.logged_in_user()
+        pkok(u, "user should exist")
+        # guests do not require completeRegistration
         qcall.auth.require_user()
-    qcall.cookie.set_sentinel()
-    try:
-        r = qcall.auth.login("guest", sim_type="myapp")
-        pkfail("expecting sirepo.util.Response")
-    except util.Response as e:
-        r = e.sr_args.response
-    pkre(r'LoggedIn":\s*true.*Registration":\s*false', pkcompat.from_bytes(r.data))
-    u = qcall.auth.logged_in_user()
-    pkok(u, "user should exist")
-    # guests do not require completeRegistration
-    qcall.auth.require_user()

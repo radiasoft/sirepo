@@ -9,10 +9,6 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from sirepo import events
-from sirepo import http_reply
-from sirepo import job
-from sirepo import util
 import contextlib
 import datetime
 import importlib
@@ -22,11 +18,12 @@ import sirepo.auth_role
 import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
+import sirepo.job
 import sirepo.quest
 import sirepo.request
+import sirepo.spa_session
 import sirepo.template
 import sirepo.uri
-import sirepo.spa_session
 import sirepo.util
 
 
@@ -635,7 +632,7 @@ class _Auth(sirepo.quest.Attr):
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:
-            v.sbatchQueueMaxes = job.NERSC_QUEUE_MAX
+            v.sbatchQueueMaxes = sirepo.job.NERSC_QUEUE_MAX
         u = self._qcall_bound_user()
         if v.isLoggedIn:
             if v.method == METHOD_GUEST:

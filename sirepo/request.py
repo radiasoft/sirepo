@@ -19,6 +19,18 @@ _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
 
 def init_quest(qcall):
+    sreq = _Request(
+        http_authorization=None,
+        http_headers=PKDict(),
+        http_method="GET",
+        http_request_uri="/",
+        http_server_uri="http://localhost",
+        internal_req=None,
+        remote_addr="0.0.0.0",
+    )
+    qcall.attr_set("sreq", sreq)
+    return
+
     import flask
 
     sreq = _Request(

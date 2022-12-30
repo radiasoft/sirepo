@@ -16,13 +16,10 @@ import pkgutil
 import re
 import sirepo.api_auth
 import sirepo.auth
-import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
 import sirepo.http_reply
-import sirepo.http_request
 import sirepo.quest
-import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
 
@@ -84,8 +81,6 @@ def call_api(qcall, name, kwargs=None, data=None):
     """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
 
     Call another API with permission checks.
-
-    Note: also calls `save_to_cookie`.
 
     Args:
         qcall (quest.API): request object

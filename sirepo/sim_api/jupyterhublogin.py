@@ -10,8 +10,6 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
 import sirepo.api_perm
 import sirepo.events
-import sirepo.http_reply
-import sirepo.http_request
 import sirepo.oauth
 import sirepo.quest
 import sirepo.srdb
