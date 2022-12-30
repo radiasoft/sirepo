@@ -2425,20 +2425,22 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 <tbody>
                 <tr data-ng-repeat="item in getItems() track by $index">
                   <td style="display: inline-flex; flex-wrap: wrap;">
-                    <div>
+                    <div class="item-name">
                       <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click="toggleExpand(item)"></span>
                       <span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click="toggleExpand(item)"></span>
-                      {{ item.name }}
+                      <label>{{ item.name }}</label>
                     </div>
                     <div data-ng-show="isExpanded(item)" data-ng-repeat="f in editableFields($index)" style="padding-left: 6px; min-width: {{ f === 'transforms' ? '900px' : 0 }};">
                       <span data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ fieldLabel(item.type, f) }}"></span>
                       <div data-field-editor="f" data-field-size="" data-model-name="item.type" data-model="item"></div>
                     </div>
-                    <div class="sr-button-bar-parent;">
+                    <!--
+                    <div class="sr-button-bar-parent">
                       <div class="sr-button-bar">
                         <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
                       </div>                      
                     </div>
+                    -->
                   </td>
                 </tr>
                 <tr>
@@ -2523,6 +2525,10 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             $scope.editableFields = idx => detailFields[$scope.field[idx].type];
 
             $scope.fieldLabel = (modelName, field) => appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
+
+            $scope.fieldMinWidth = f => {
+
+            };
 
             $scope.getItems = () => $scope.field;
 
@@ -3905,7 +3911,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     let editedModels = [];
     const parent = $scope.$parent;
 
-   $scope.watchFields = [
+    $scope.watchFields = [
         [
             'geomObject.type',
             'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
@@ -3913,7 +3919,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor
-   ];
+    ];
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];

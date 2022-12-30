@@ -29,6 +29,10 @@
     margin-right: 2px;
 }
 
+.radia-table-dialog div.item-name {
+    padding-right: 6px;
+}
+
 .radia-table-dialog div[data-num-array] label {
     font-size: smaller;
     margin-right: 0 !important;
@@ -36,17 +40,10 @@
 
 .radia-table-dialog div[data-ng-switch-default] {
     width: 100% !important;
+    padding-left: 0;
 }
 
 .radia-table-dialog .toggle {
     min-height: 30px !important;
     height: 30px !important;
-}
-
-.radia-nested-grid-container {
-    display: grid;
-}
-
-.radia-nested-grid-item {
-    display: grid;
 }
