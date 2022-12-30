@@ -2424,24 +2424,20 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 <thead></thead>
                 <tbody>
                 <tr data-ng-repeat="item in getItems() track by $index">
-                  <td>
-                    <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click="toggleExpand(item)"></span>
-                    <span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click="toggleExpand(item)"></span>
-                  </td>
-                  <td>
-                    <span data-ng-show="isExpanded(item)" data-label-with-tooltip="" data-ng-class="labelClass" data-label="Type" style="font-size: smaller;"></span>
-                    <!--<span data-ng-show="! isExpanded(item)" data-toolbar-icon="" data-item="toolbarItemForType(item)"></span>-->
-                    <div>{{ item.name }}</div>
-                  </td>
-                  <td data-ng-show="isExpanded(item)" data-ng-repeat="f in editableFields($index)" style="text-align: left;" colspan="100%">
-                    <span data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ fieldLabel(item.type, f) }}"></span>
-                    <div class="pull-left" data-field-editor="f" data-field-size="" data-model-name="item.type" data-model="item"></div>
-                  </td>
-                  <td>
-                    <div class="sr-button-bar-parent pull-right">
+                  <td style="display: inline-flex; flex-wrap: wrap;">
+                    <div>
+                      <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click="toggleExpand(item)"></span>
+                      <span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click="toggleExpand(item)"></span>
+                      {{ item.name }}
+                    </div>
+                    <div data-ng-show="isExpanded(item)" data-ng-repeat="f in editableFields($index)" style="padding-left: 6px; min-width: {{ f === 'transforms' ? '900px' : 0 }};">
+                      <span data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ fieldLabel(item.type, f) }}"></span>
+                      <div data-field-editor="f" data-field-size="" data-model-name="item.type" data-model="item"></div>
+                    </div>
+                    <div class="sr-button-bar-parent;">
                       <div class="sr-button-bar">
                         <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                      </div>
+                      </div>                      
                     </div>
                   </td>
                 </tr>
@@ -2458,10 +2454,12 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             </div>
         `,
         controller: function($scope, $element) {
+            const detailFields = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName];
             let expanded = {};
             for (const i in $scope.field) {
                 expanded[i] = false;
             }
+
             let isEditing = false;
             const spatialTransforms = [
                 'rotate',
@@ -2522,24 +2520,19 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 panelState.showModalEditor(item.model);
             };
 
-            $scope.editableFields = idx => SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][$scope.field[idx].type];
+            $scope.editableFields = idx => detailFields[$scope.field[idx].type];
 
             $scope.fieldLabel = (modelName, field) => appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
 
+            $scope.getItems = () => $scope.field;
+
             $scope.getSelected = () => $scope.selectedItem;
 
-            $scope.toolbarItemForType = item => {
-                for (const i of $scope.toolbarItems) {
-                    if (i.model === item.type) {
-                        return i;
-                    }
-                }
-                return null;
-            }
+            $scope.isExpanded = item => expanded[itemIndex(item)];
 
             $scope.itemDetails = item => {
                 let res = '';
-                const d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
+                const d = detailFields[item.model];
                 const info = appState.modelInfo(item.model);
                 d.forEach((f, i) => {
                     let val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
@@ -2549,25 +2542,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     res += (info[f][SIREPO.INFO_INDEX_LABEL] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
                 });
                 return res;
-            };
-
-            $scope.isExpanded = item => expanded[itemIndex(item)];
-
-            $scope.getItems = () => $scope.field;
-
-            $scope.moveItem = (direction, item) => {
-                const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
-                const currentIndex = itemIndex(item);
-                const newIndex = currentIndex + d;
-                if (newIndex >= 0 && newIndex < $scope.field.length) {
-                    const tmp = $scope.field[newIndex];
-                    $scope.field[newIndex] = item;
-                    $scope.field[currentIndex] = tmp;
-                }
-            };
-
-            $scope.toggleExpand = item => {
-                expanded[itemIndex(item)] = ! expanded[itemIndex(item)];
             };
 
             $scope.itemFilter = item => {
@@ -2594,6 +2568,39 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 return true;
             };
 
+            $scope.itemGrid = item => {
+                return '';
+            };
+
+            $scope.moveItem = (direction, item) => {
+                const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
+                const currentIndex = itemIndex(item);
+                const newIndex = currentIndex + d;
+                if (newIndex >= 0 && newIndex < $scope.field.length) {
+                    const tmp = $scope.field[newIndex];
+                    $scope.field[newIndex] = item;
+                    $scope.field[currentIndex] = tmp;
+                }
+            };
+
+            $scope.numCols = () => {
+                return 1 + Math.max(
+                    ...Object.values(detailFields).map(v => v.length)
+                );
+            }
+
+            $scope.toggleExpand = item => {
+                expanded[itemIndex(item)] = ! expanded[itemIndex(item)];
+            };
+
+            $scope.toolbarItemForType = item => {
+                for (const i of $scope.toolbarItems) {
+                    if (i.model === item.type) {
+                        return i;
+                    }
+                }
+                return null;
+            }
 
             $scope.$on('modelChanged', (e, modelName) => {
                 if (! watchedModels.includes(modelName)) {

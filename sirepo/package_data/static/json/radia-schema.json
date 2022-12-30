@@ -927,6 +927,7 @@
             "axis": ["Axis", "FloatArray", [0.0, 0.0, 1.0], "", ["x", "y", "z"]],
             "center": ["Origin", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "name": ["Name", "String", "Rotate"],
+            "type": ["_", "TransformTypes", "rotate"],
             "useObjectCenter": ["use clone center as origin", "Boolean", "1"]
         },
         "simulation": {
@@ -1010,7 +1011,8 @@
         "translateClone": {
             "_super": ["_", "model", "spatialTransform"],
             "distance": ["Direction", "FloatArray", [10.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "name": ["Name", "String", "Translate"]
+            "name": ["Name", "String", "Translate"],
+            "type": ["_", "TransformTypes", "translate"]
         },
         "undulatorBasic": {
             "_super": ["_", "model", "radiaObject"],
