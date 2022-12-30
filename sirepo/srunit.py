@@ -34,10 +34,10 @@ _DB_DIR = "db"
 
 
 @contextlib.contextmanager
-def quest_start(top_level_call_api=False):
+def quest_start():
     from sirepo import quest
 
-    with quest.start(top_level_call_api=top_level_call_api) as qcall:
+    with quest.start(in_srunit=True) as qcall:
         yield qcall
 
 

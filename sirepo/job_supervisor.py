@@ -238,7 +238,9 @@ class _Supervisor(PKDict):
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog("{} error={} stack={}", req, e, pkdexc())
-            return sirepo.http_reply.gen_tornado_exception(e)
+            if isinstance(e, sirepo.util.Reply):
+                return cls._reply_exception(e)
+            raise
 
     async def op_run_timeout(self, op):
         pass
@@ -382,6 +384,15 @@ class _Supervisor(PKDict):
 
     async def _receive_api_ownJobs(self, req):
         return self._get_running_pending_jobs(uid=req.content.uid)
+
+    @classmethod
+    def _reply_exception(cls, exc):
+        n = exc.__class__
+        if isinstance(exc, sirepo.util.SRException):
+            return PKDict({_STATE: SR_EXCEPTION_STATE, SR_EXCEPTION_STATE: exc.sr_args})
+        if isinstance(exc, sirepo.util.UserAlert):
+            return PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: exc.sr_args.error})
+        raise AssertionError(f"Reply class={exc.__class__.__name__} unknown exc={exc}")
 
 
 class _ComputeJob(_Supervisor):

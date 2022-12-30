@@ -19,29 +19,29 @@ _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
 
 def init_quest(qcall):
-    sreq = _Request(
-        http_authorization=None,
-        http_headers=PKDict(),
-        http_method="GET",
-        http_request_uri="/",
-        http_server_uri="http://localhost",
-        internal_req=None,
-        remote_addr="0.0.0.0",
-    )
-    qcall.attr_set("sreq", sreq)
-    return
+    if qcall.bucket_unchecked_get("in_srunit"):
+        sreq = _Request(
+            http_authorization=None,
+            http_headers=PKDict(),
+            http_method="GET",
+            http_request_uri="/",
+            http_server_uri="http://localhost",
+            internal_req=None,
+            remote_addr="0.0.0.0",
+        )
+        qcall.attr_set("sreq", sreq)
+    else:
+        import flask
 
-    import flask
-
-    sreq = _Request(
-        http_authorization=flask.request.authorization,
-        http_headers=flask.request.headers,
-        http_method=flask.request.method,
-        http_request_uri=flask.request.url,
-        http_server_uri=flask.url_for("_dispatch_empty", _external=True),
-        internal_req=flask.request,
-        remote_addr=flask.request.remote_addr,
-    )
+        sreq = _Request(
+            http_authorization=flask.request.authorization,
+            http_headers=flask.request.headers,
+            http_method=flask.request.method,
+            http_request_uri=flask.request.url,
+            http_server_uri=flask.url_for("_dispatch_empty", _external=True),
+            internal_req=flask.request,
+            remote_addr=flask.request.remote_addr,
+        )
     qcall.attr_set("sreq", sreq)
 
 

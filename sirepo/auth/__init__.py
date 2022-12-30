@@ -20,6 +20,7 @@ import sirepo.events
 import sirepo.feature_config
 import sirepo.job
 import sirepo.quest
+import sirepo.reply
 import sirepo.request
 import sirepo.spa_session
 import sirepo.template
@@ -91,6 +92,7 @@ def init_quest(qcall, top_level_call_api=False):
     sirepo.auth_db.init_quest(qcall)
     if not _cfg.logged_in_user and top_level_call_api:
         sirepo.request.init_quest(qcall)
+        sirepo.reply.init_quest(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
         sirepo.cookie.init_quest(qcall)

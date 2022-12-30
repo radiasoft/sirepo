@@ -18,7 +18,6 @@ import sirepo.api_auth
 import sirepo.auth
 import sirepo.events
 import sirepo.feature_config
-import sirepo.http_reply
 import sirepo.quest
 import sirepo.uri
 import sirepo.util
@@ -237,12 +236,12 @@ class _URIParams(PKDict):
 
 
 def _call_api(parent, route, kwargs, data=None):
-    def _response(res):
+    def _response(qcall, res):
         if isinstance(res, dict):
-            return sirepo.http_reply.gen_json(res)
+            return qcall.sreply.gen_json(res)
         if res is None or isinstance(res, (str, tuple)):
             raise AssertionError("invalid return from qcall={}", qcall)
-        return sirepo.http_reply.gen_response(res)
+        return qcall.sreply.gen_response(res)
 
     qcall = route.cls()
     c = False
@@ -265,7 +264,7 @@ def _call_api(parent, route, kwargs, data=None):
             elif kwargs is None:
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)
-            r = _response(getattr(qcall, qcall.uri_route.func_name)(**kwargs))
+            r = _response(qcall, getattr(qcall, qcall.uri_route.func_name)(**kwargs))
             c = True
         except Exception as e:
             if isinstance(e, sirepo.util.Reply):
@@ -276,7 +275,7 @@ def _call_api(parent, route, kwargs, data=None):
                 pkdlog(
                     "api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc()
                 )
-            r = sirepo.http_reply.gen_exception(qcall, e)
+            r = qcall.sreply.gen_exception(e)
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
             r.headers.add("Access-Control-Allow-Origin", "*")

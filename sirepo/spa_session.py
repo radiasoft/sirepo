@@ -84,4 +84,4 @@ def init_quest(qcall):
 
 
 def _end_api_call(qcall, kwargs):
-    kwargs.resp.headers[_USER_AGENT_ID_HEADER] = qcall.bucket_uget(_ID_ATTR)
+    kwargs.resp.headers[_USER_AGENT_ID_HEADER] = qcall.bucket_unchecked_get(_ID_ATTR)
