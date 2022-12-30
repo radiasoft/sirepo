@@ -2434,13 +2434,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                       <span data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ fieldLabel(item.type, f) }}"></span>
                       <div data-field-editor="f" data-field-size="" data-model-name="item.type" data-model="item"></div>
                     </div>
-                    <!--
+                    <td>
                     <div class="sr-button-bar-parent">
                       <div class="sr-button-bar">
                         <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
                       </div>                      
                     </div>
-                    -->
+                    </td>
                   </td>
                 </tr>
                 <tr>
