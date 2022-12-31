@@ -68,6 +68,7 @@ def init_quest(qcall):
 
 class _SReply(sirepo.quest.Attr):
     def flask_response(self, cls):
+        from werkzeug import utils
 
         def _cache(resp, cache):
             if isinstance(cache, bool):
@@ -107,8 +108,38 @@ class _SReply(sirepo.quest.Attr):
         return self._gen_exception_error(exc)
 
     def gen_file(self, path, content_type):
+        e = None
+        if content_type is None:
+            content_type, e = self._guess_content_type(path.basename)
+        self.__attrs.pkupdate(
+            content_handle=open(path, "rb"),
+            content_length=path.size(),
+            content_mtime=int(path.mtime()),
+
+        self.__attrs.content_length = path.size()
+        self.
+
+    return werkzeug.utils.send_file(
+        **_prepare_send_file_kwargs(
+            path_or_file=path_or_file,
+            environ=request.environ,
+            mimetype=mimetype,
+            as_attachment=as_attachment,
+            download_name=download_name,
+            attachment_filename=attachment_filename,
+            conditional=conditional,
+            etag=etag,
+            add_etags=add_etags,
+            last_modified=last_modified,
+            max_age=max_age,
+            cache_timeout=cache_timeout,
+        )
+    )
+
+
+
         return self.gen_response(
-            content_path=path,
+            content_file=path,
             content_type=content_type,
         )
 
@@ -140,7 +171,7 @@ class _SReply(sirepo.quest.Attr):
             filename = "download" + filename
         return self.headers_for_no_cache(
             f()._as_attachment(
-                content_type or self._guess_content_type(filename),
+                content_type or self._guess_content_type(filename)[0],
                 filename,
             ),
         )
@@ -449,10 +480,10 @@ class _SReply(sirepo.quest.Attr):
         return self.gen_response(status=code).headers_for_no_cache()
 
     def _guess_content_type(basename):
-        res, _ = mimetypes.guess_type(basename)
-        if res is None:
-            return "application/octet-stream"
+        res = mimetypes.guess_type(basename)
+        if res[0] is None:
+            return "application/octet-stream", None
         # overrule mimetypes for this case
-        elif res == "text/x-python":
-            return "text/plain"
+        elif res[0] == "text/x-python":
+            return "text/plain", res[1]
         return res
