@@ -70,30 +70,47 @@ class _SReply(sirepo.quest.Attr):
     def flask_response(self, cls):
         from werkzeug import utils
 
-        def _cache(resp, cache):
-            if isinstance(cache, bool):
-                assert cache == False
+        def _cache_control(resp):
+            if "cache" is not in self.__attrs:
+                return resp
+            c = self.__attrs.cache
+            if isinstance(c, bool):
+                assert c == False
                 resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
                 resp.headers["Pragma"] = "no-cache"
             else:
                 resp.cache_control.max_age = CACHE_MAX_AGE
-                if cache > 0:
-                    resp.last_modified = path.mtime()
+                if is not None:
+                    resp.last_modified = c
             return resp
 
+        def _file():
+            # Takes over some of the work for werkzeug.send_file
+            c = self.__attrs.content
+            res = werkzeug.send_file(
+                c.handle,
+                mimetype=self.__attrs.content_type,
+                download_name=c.path.basename,
+                last_modified=c.mtime,
+            )
+            res.headers["Content-Encoding"] = c.encoding
+            res.content_length = c.length
+            return res
 
-            path_or_file=path_or_file,
-            mimetype=a.content_type,
-            conditional=True,
-            last_modified=last_modified,
-            max_age=max_age,
-            cache_timeout=cache_timeout,
-
-        return cls(
-            response=_content(a),
-            status=a.get("status", 200),
-            a.headers=_headers(),
-        )
+        a = self.__attrs
+        if isinstance(a.content, PKDict):
+            assert "headers" not in a
+            r = _file()
+        else:
+            r = cls(
+                response=a.get("content"),
+                headers=a.get("headers"),
+                mimetype=a.get("content_type"),
+                status=a.get("status"),
+            )
+        if "content_disposition" in a:
+            r.headers["Content-Disposition"] = a.content_disposition
+        return _cache_control(r)
 
     def gen_exception(self, exc):
         """Generate from an Exception
@@ -108,40 +125,20 @@ class _SReply(sirepo.quest.Attr):
         return self._gen_exception_error(exc)
 
     def gen_file(self, path, content_type):
+        # Always (re-)initialize __attrs
+        self.gen_response()
         e = None
         if content_type is None:
             content_type, e = self._guess_content_type(path.basename)
-        self.__attrs.pkupdate(
-            content_handle=open(path, "rb"),
-            content_length=path.size(),
-            content_mtime=int(path.mtime()),
-
-        self.__attrs.content_length = path.size()
-        self.
-
-    return werkzeug.utils.send_file(
-        **_prepare_send_file_kwargs(
-            path_or_file=path_or_file,
-            environ=request.environ,
-            mimetype=mimetype,
-            as_attachment=as_attachment,
-            download_name=download_name,
-            attachment_filename=attachment_filename,
-            conditional=conditional,
-            etag=etag,
-            add_etags=add_etags,
-            last_modified=last_modified,
-            max_age=max_age,
-            cache_timeout=cache_timeout,
+        self.__attrs.content_type = content_type
+        self.__attrs.content = PKDict(
+            encoding=e,
+            handle=open(path, "rb"),
+            length=path.size(),
+            mtime=int(path.mtime()),
+            path=path,
         )
-    )
-
-
-
-        return self.gen_response(
-            content_file=path,
-            content_type=content_type,
-        )
+        return self
 
     def gen_file_as_attachment(self, content_or_path, filename=None, content_type=None):
         """Generate a file attachment response
@@ -263,10 +260,6 @@ class _SReply(sirepo.quest.Attr):
             **kwargs,
         )
 
-    def gen_response(self, **kwargs):
-        self.__attrs = PKDict(kwargs)
-        return self
-
     def headers_for_cache(self, path=None):
         self.__attrs.cache = path and path.mtime()
         return self
@@ -275,7 +268,24 @@ class _SReply(sirepo.quest.Attr):
         self.__attrs.cache = False
         return self
 
-    def render_html(path, want_cache=True, response_args=None):
+    def from_api(self, res):
+        if isinstance(res, dict):
+            return self.gen_json(res)
+        if isinstance(res, _Reply):
+            return res
+        raise AssertionError(f"invalid return type={type(res)} from qcall={self.qcall}")
+
+
+    def from_kwargs(self, **kwargs):
+        """Saves reply attributes
+
+        While replies are global (qcall.sreply), the attributes
+
+        """
+        self.__attrs = PKDict(kwargs)
+        return self
+
+    def render_html(path, want_cache=True, attrs=None):
         """Call sirepo.html.render with path
 
         Args:
@@ -289,7 +299,7 @@ class _SReply(sirepo.quest.Attr):
         r = self.gen_response(
             content=sirepo.html.render(path),
             content_type=MIME_TYPE.html,
-            **(response_args or PKDict()),
+            **(attrs or PKDict()),
         )
         return (
             headers_for_cache(r, path=path) if want_cache else headers_for_no_cache(r)
@@ -352,7 +362,6 @@ class _SReply(sirepo.quest.Attr):
 
     def _gen_exception_reply_BadRequest(qcall, args):
         return _gen_http_exception(400)
-
 
     def _gen_exception_reply_Error(qcall, args):
         try:
@@ -464,7 +473,7 @@ class _SReply(sirepo.quest.Attr):
     def _gen_exception_reply_WWWAuthenticate(qcall, args):
         return gen_response(
             status=401,
-            headers={"WWW-Authenticate": 'Basic realm="*"'},
+            headers=PKDict({"WWW-Authenticate": 'Basic realm="*"'}),
         )
 
     def _gen_http_exception(code):
@@ -474,7 +483,7 @@ class _SReply(sirepo.quest.Attr):
                 return render_html(
                     path=sirepo.resource.static("html", x["url"]),
                     want_cache=False,
-                    response_args=PKDict(status=code),
+                    attrs=PKDict(status=code),
                 )
             except Exception as e:
                 pkdlog(

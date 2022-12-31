@@ -19,7 +19,6 @@ import inspect
 import pykern.pkio
 import re
 import sirepo.const
-import sirepo.http_reply
 import sirepo.quest
 import sirepo.sim_data
 import sirepo.simulation_db

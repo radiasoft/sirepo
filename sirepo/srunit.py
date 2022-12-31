@@ -628,7 +628,7 @@ class _TestClient(flask.testing.FlaskClient):
         """
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
         from pykern import pkjson
-        from sirepo import uri, util, http_reply
+        from sirepo import uri, util, reply
 
         redirects = kwargs.setdefault("__redirects", 0) + 1
         assert redirects <= 5
@@ -680,7 +680,7 @@ class _TestClient(flask.testing.FlaskClient):
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
             d = pkjson.load_any(r.data)
-            if isinstance(d, dict) and d.get("state") == http_reply.SR_EXCEPTION_STATE:
+            if isinstance(d, dict) and d.get("state") == reply.SR_EXCEPTION_STATE:
                 raise util.SRException(
                     d.srException.routeName,
                     d.srException.params,

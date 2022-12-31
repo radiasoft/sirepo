@@ -542,7 +542,7 @@ class _Auth(sirepo.quest.Attr):
             return None
 
     def user_dir_not_found(self, user_dir, uid):
-        """Called by http_reply when user_dir is not found
+        """Called by sirepo.reply when user_dir is not found
 
         Deletes any user records and resets auth state.
 

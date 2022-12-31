@@ -121,11 +121,13 @@ class API(pykern.quest.API):
         # auth_db is robust here since it dynamically creates sessions.
         qcall.auth_db.commit()
         for k, v in qcall.items():
-            if k not in ("uri_route", "_bucket"):
+            if k not in ("uri_route", "_bucket", "sreply"):
                 assert k not in self
                 self[k] = v
         self._bucket[_PARENT_ATTR] = qcall
         self._bucket.in_srunit = qcall.in_srunit
+        if "sreply" in qcall:
+            sirepo.sreply.init_quest(qcall)
 
     def parse_json(self):
         return http_request.parse_json(self)
@@ -139,12 +141,13 @@ class API(pykern.quest.API):
     def parse_post(self, **kwargs):
         return http_request.parse_post(self, PKDict(kwargs))
 
-    def reply(self, **kwargs):
-        return self.sreply.gen_response(**kwargs)
+    def reply(self, *args, **kwargs):
+        return self.sreply.from_attrs(*args, **kwargs)
 
     def reply_as_proxy(self, content, content_type):
-        return self.sreply.gen_response(
-            content=content, content_type=content
+        return self.sreply.from_kwargs(
+            content=content,
+            content_type=content,
         ).headers_for_no_cache()
 
     def reply_attachment(self, content_or_path, filename=None, content_type=None):
@@ -303,5 +306,5 @@ class _Bucket(Attr):
 def init_module(**imports):
     import sirepo.util
 
-    # import http_reply, http_request, uri_router, simulation_db
+    # import http_request, uri_router, simulation_db
     sirepo.util.setattr_imports(imports)

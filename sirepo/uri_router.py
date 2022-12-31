@@ -241,13 +241,6 @@ class _URIParams(PKDict):
 
 
 def _call_api(parent, route, kwargs, data=None):
-    def _response(qcall, res):
-        if isinstance(res, dict):
-            return qcall.sreply.gen_json(res)
-        if res is None or isinstance(res, (str, tuple)):
-            raise AssertionError("invalid return from qcall={}", qcall)
-        return qcall.sreply.gen_response(res)
-
     qcall = route.cls()
     c = False
     try:
@@ -269,7 +262,9 @@ def _call_api(parent, route, kwargs, data=None):
             elif kwargs is None:
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)
-            r = _response(qcall, getattr(qcall, qcall.uri_route.func_name)(**kwargs))
+            r = qcall.sreply.from_api(
+                getattr(qcall, qcall.uri_route.func_name)(**kwargs),
+            )
             c = True
         except Exception as e:
             if isinstance(e, sirepo.util.Reply):
