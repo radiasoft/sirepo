@@ -85,6 +85,12 @@ class Reply(Exception):
         return self.__repr__()
 
 
+class BadRequest(Reply):
+    """Raised for bad request"""
+
+    pass
+
+
 class OKReply(Reply):
     """When a Reply exception is a successful response"""
 

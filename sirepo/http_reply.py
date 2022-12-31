@@ -344,6 +344,10 @@ def _gen_exception_reply(qcall, exc):
     return f(qcall, exc.sr_args)
 
 
+def _gen_exception_reply_BadRequest(qcall, args):
+    return _gen_http_exception(400)
+
+
 def _gen_exception_reply_Error(qcall, args):
     try:
         t = qcall.sim_type_uget(args.pkdel("sim_type"))

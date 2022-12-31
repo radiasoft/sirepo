@@ -23,7 +23,7 @@ def parse_json(qcall):
     if d:
         return d
     if not qcall.sreq.content_type_eq("application/json"):
-        sirepo.util.raise_bad_request(
+        raise sirepo.util.BadRequest(
             "Content-Type={} must be application/json",
             qcall.sreq.header_uget("Content-Type"),
         )
