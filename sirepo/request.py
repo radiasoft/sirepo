@@ -20,7 +20,7 @@ _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
 def init_quest(qcall):
     if qcall.bucket_unchecked_get("in_srunit"):
-        sreq = _Request(
+        sreq = _SRequest(
             http_authorization=None,
             http_headers=PKDict(),
             http_method="GET",
@@ -33,7 +33,7 @@ def init_quest(qcall):
     else:
         import flask
 
-        sreq = _Request(
+        sreq = _SRequest(
             http_authorization=flask.request.authorization,
             http_headers=flask.request.headers,
             http_method=flask.request.method,
@@ -45,7 +45,7 @@ def init_quest(qcall):
     qcall.attr_set("sreq", sreq)
 
 
-class _Request(sirepo.quest.Attr):
+class _SRequest(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
     def body_as_bytes(self):

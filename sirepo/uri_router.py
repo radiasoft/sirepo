@@ -93,14 +93,19 @@ def call_api(qcall, name, kwargs=None, data=None):
 
 
 def init_for_flask(app):
-    """and adds a single flask route (`_dispatch`) to dispatch based on the map."""
-    global _init_for_flask
+    """and adds a single flask route (`_flask_dispatch`) to dispatch based on the map."""
+    global _init_for_flask, _app
 
     if _init_for_flask:
         return
     _init_for_flask = True
-    app.add_url_rule("/<path:path>", "_dispatch", _dispatch, methods=("GET", "POST"))
-    app.add_url_rule("/", "_dispatch_empty", _dispatch_empty, methods=("GET", "POST"))
+    app.add_url_rule(
+        "/<path:path>", "_flask_dispatch", _flask_dispatch, methods=("GET", "POST")
+    )
+    app.add_url_rule(
+        "/", "_flask_dispatch_empty", _flask_dispatch_empty, methods=("GET", "POST")
+    )
+    _app = app
 
 
 def init_module(want_apis, **imports):
@@ -296,7 +301,7 @@ def _check_route(qcall, route):
     sirepo.api_auth.check_api_call(qcall, route.func)
 
 
-def _dispatch(path):
+def _flask_dispatch(path):
     """Called by Flask and routes the base_uri with parameters
 
     Args:
@@ -309,13 +314,16 @@ def _dispatch(path):
     if error:
         pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
         route = _not_found_route
+    return _flask_reply(_call_api(None, route, kwargs=kwargs))
 
-    return _call_api(None, route, kwargs=kwargs)
 
-
-def _dispatch_empty():
+def _flask_dispatch_empty():
     """Hook for '/' route"""
-    return _dispatch(None)
+    return _flask_dispatch(None)
+
+
+def _flask_reply(sreply):
+    return sreply.flask_response(_app.response_class)
 
 
 def _init_uris(simulation_db, sim_types):

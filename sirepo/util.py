@@ -128,18 +128,6 @@ class Redirect(OKReply):
         super().__init__(*args, sr_args=PKDict(uri=uri), **kwargs)
 
 
-class Response(OKReply):
-    """Raise with a Response object
-
-    Args:
-        response (str): what the reply should be
-        log_fmt (str): server side log data
-    """
-
-    def __init__(self, response, *args, **kwargs):
-        super().__init__(*args, sr_args=PKDict(response=response), **kwargs)
-
-
 class ServerError(Reply):
     """Raised for server error"""
 
@@ -161,6 +149,18 @@ class SPathNotFound(NotFound):
             sr_args=PKDict(sim_type=sim_type, uid=uid, sid=sid),
             **kwargs,
         )
+
+
+class SReply(OKReply):
+    """Raise with an SReply object
+
+    Args:
+        sreply (object): what the reply should be
+        log_fmt (str): server side log data
+    """
+
+    def __init__(self, sreply, *args, **kwargs):
+        super().__init__(*args, sr_args=PKDict(sreply=sreply), **kwargs)
 
 
 class SRException(Reply):

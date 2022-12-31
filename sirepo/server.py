@@ -546,7 +546,7 @@ class API(sirepo.quest.API):
         Args:
             path_info (str): relative path to join
         Returns:
-            Response: reply with file
+            Reply: reply with file
         """
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
@@ -662,10 +662,9 @@ class API(sirepo.quest.API):
             else:
                 p = path
             # do not call api_staticFile due to recursion of proxy_react
-            raise sirepo.util.Response(
-                flask.send_file(
+            raise sirepo.util.SReply(
+                self.reply_file(
                     sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
-                    conditional=True,
                 ),
             )
 
@@ -673,7 +672,7 @@ class API(sirepo.quest.API):
             r = requests.get(cfg.react_server + path)
             # We want to throw an exception here, because it shouldn't happen
             r.raise_for_status()
-            raise sirepo.util.Response(
+            raise sirepo.util.SReply(
                 self.reply_as_proxy(
                     content=r.content,
                     content_type=r.headers["Content-Type"],
