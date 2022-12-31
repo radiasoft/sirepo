@@ -350,6 +350,10 @@ class _SReply(sirepo.quest.Attr):
             return self._gen_exception_error(exc)
         return f(exc.sr_args)
 
+    def _gen_exception_reply_BadRequest(qcall, args):
+        return _gen_http_exception(400)
+
+
     def _gen_exception_reply_Error(qcall, args):
         try:
             t = qcall.sim_type_uget(args.pkdel("sim_type"))
