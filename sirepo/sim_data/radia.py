@@ -164,6 +164,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                         m.type = "objectBevel"
                     if m.get("radius") is not None:
                         m.type = "objectFillet"
+                    for d in ("heightDir", "widthDir"):
+                        if d in m:
+                            del m[d]
                 if not o.get("segments"):
                     o.segments = o.get("division", [1, 1, 1])
                 for f in (
