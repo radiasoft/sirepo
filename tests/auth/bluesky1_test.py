@@ -22,7 +22,7 @@ def test_srw_auth_hash(monkeypatch):
     from pykern import pkcollections
     from pykern.pkunit import pkexcept, pkre
     import time
-    import werkzeug.exceptions
+    from sirepo import util
 
     monkeypatch.setattr(bluesky, "_AUTH_NONCE_REPLAY_SECS", 1)
     req = pkcollections.Dict(
@@ -32,7 +32,7 @@ def test_srw_auth_hash(monkeypatch):
     bluesky.auth_hash(req)
     bluesky.auth_hash(req, verify=True)
     time.sleep(2)
-    with pkexcept(werkzeug.exceptions.Unauthorized):
+    with pkexcept(util.Unauthorized):
         bluesky.auth_hash(req, verify=True)
 
 
