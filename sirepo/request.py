@@ -43,6 +43,9 @@ class _Request(sirepo.quest.Attr):
         return self.__content_type().get("charset")
 
     def content_type_eq(self, value):
+        c = self.__content_type()._key
+        if c is None:
+            return False
         return self.__content_type()._key.lower() == value.lower()
 
     def header_uget(self, key):

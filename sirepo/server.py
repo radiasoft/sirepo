@@ -21,8 +21,6 @@ import sirepo.uri
 import sirepo.util
 import urllib
 import urllib.parse
-import werkzeug
-import werkzeug.exceptions
 
 
 # TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
@@ -144,7 +142,7 @@ class API(sirepo.quest.API):
             return self.reply_attachment(p, filename=n)
         except Exception as e:
             if pkio.exception_is_not_found(e):
-                sirepo.util.raise_not_found("lib_file={} not found", p)
+                raise sirepo.util.NotFound("lib_file={} not found", p)
             raise
 
     @sirepo.quest.Spec("allow_visitor", spec="ErrorLoggingSpec")
@@ -191,7 +189,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("allow_visitor")
     def api_forbidden(self):
-        sirepo.util.raise_forbidden("app forced forbidden")
+        raise sirepo.util.Forbidden("app forced forbidden")
 
     @sirepo.quest.Spec(
         "require_user",
@@ -255,7 +253,7 @@ class API(sirepo.quest.API):
                 )
                 break
             else:
-                sirepo.util.raise_not_found(
+                raise sirepo.util.NotFound(
                     "simulation not found by name={} type={}",
                     simulation_name,
                     req.type,
@@ -339,8 +337,6 @@ class API(sirepo.quest.API):
                 if "error" in data:
                     return self.reply_json(data)
             return s(data)
-        except werkzeug.exceptions.HTTPException:
-            raise
         except sirepo.util.Reply:
             raise
         except Exception as e:
@@ -383,7 +379,7 @@ class API(sirepo.quest.API):
         def _data(req):
             f = getattr(req.template, "export_jupyter_notebook", None)
             if not f:
-                sirepo.util.raise_not_found(f"API not supported for tempate={req.type}")
+                raise sirepo.util.NotFound(f"API not supported for tempate={req.type}")
             return f(
                 simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self),
                 qcall=self,
@@ -413,7 +409,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("allow_visitor")
     def api_notFound(self):
-        sirepo.util.raise_not_found("app forced not found (uri parsing error)")
+        raise sirepo.util.NotFound("app forced not found (uri parsing error)")
 
     @sirepo.quest.Spec(
         "require_user",
@@ -466,7 +462,7 @@ class API(sirepo.quest.API):
         u = sirepo.uri.unchecked_root_redirect(path_info)
         if u:
             return self.reply_redirect(u)
-        sirepo.util.raise_not_found(f"unknown path={path_info}")
+        raise sirepo.util.NotFound(f"unknown path={path_info}")
 
     @sirepo.quest.Spec("require_user", sid="SimId", data="SimData all_input")
     def api_saveSimulationData(self):
@@ -495,7 +491,7 @@ class API(sirepo.quest.API):
 
         def _not_found(req):
             if not simulation_db.find_global_simulation(req.type, req.id):
-                sirepo.util.raise_not_found(
+                raise sirepo.util.NotFound(
                     "stype={} sid={} global simulation not found", req.type, req.id
                 )
             return self.headers_for_no_cache(self.reply_json(_redirect(req)))
@@ -574,9 +570,9 @@ class API(sirepo.quest.API):
             Response: reply with file
         """
         if not path_info:
-            sirepo.util.raise_not_found("empty path info")
+            raise sirepo.util.NotFound("empty path info")
         self._proxy_react("static/" + path_info)
-        p = sirepo.resource.static(sirepo.util.safe_path(path_info))
+        p = sirepo.resource.static(sirepo.util.validate_path(path_info))
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
             return self.headers_for_cache(
                 self.reply(
@@ -686,10 +682,10 @@ class API(sirepo.quest.API):
                 raise sirepo.util.Redirect(f"/react/{path}")
             else:
                 p = path
-            # call call api due to recursion of proxy_react
+            # do not call api_staticFile due to recursion of proxy_react
             raise sirepo.util.Response(
                 flask.send_file(
-                    sirepo.resource.static(sirepo.util.safe_path(f"react/{p}")),
+                    sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
                     conditional=True,
                 ),
             )
@@ -746,8 +742,6 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     )
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
-    for e, _ in simulation_db.SCHEMA_COMMON["customErrors"].items():
-        _app.register_error_handler(int(e), _handle_error)
     _init_proxy_react()
     sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
     sirepo.flask.app_set(_app)
@@ -788,27 +782,6 @@ def _cfg_react_server(value):
     ):
         return value
     pkconfig.raise_error(f"invalid url={value}, must be http://netloc/")
-
-
-def _handle_error(error):
-    status_code = 500
-    if isinstance(error, werkzeug.exceptions.HTTPException):
-        status_code = error.code
-    try:
-        error_file = simulation_db.SCHEMA_COMMON["customErrors"][str(status_code)][
-            "url"
-        ]
-    except Exception:
-        error_file = DEFAULT_ERROR_FILE
-    return (
-        # SECURITY: We control the path of the file so using send_file is ok.
-        sirepo.flask.send_file(
-            str(sirepo.resource.static("html", error_file)),
-            mimetype="text/html",
-            conditional=True,
-        ),
-        status_code,
-    )
 
 
 def _init_proxy_react():
