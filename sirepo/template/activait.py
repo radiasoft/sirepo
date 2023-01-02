@@ -106,23 +106,15 @@ def _parse_activait_log_file(run_dir):
 
 
 def _range_error(error):
-    i = "^-?\[0-9]+$"
-    e = re.search(
-        re.compile(
-            "Received a label value of"
-            + i
-            + "which is outside the valid range of ["
-            + i
-            + ","
-            + i
-            + ")"
-        )
-        ,
+    i = "^-?\d+$"
+    s = r"outside the valid range of \[{}, {}\)".format(i, i)
+    pkdp("\n\n\n" + s + "\n\n\n" + error)
+    e = re.search(s,
         error
     )
     if e:
         pkdp("\n\n\n e={}", e)
-        return e
+        return "Failed test"
     return error
 
 
