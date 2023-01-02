@@ -297,8 +297,8 @@ def multiply_vector_by_matrix(v, m):
     return numpy.array(m).dot(numpy.array(v)).tolist()
 
 
-def apply_transform(g_id, xform):
-    _TRANSFORMS[xform["model"]](g_id, xform)
+def apply_transform(g_id, **kwargs):
+    _TRANSFORMS[kwargs["type"]](g_id, kwargs)
 
 
 def apply_modification(g_id, **kwargs):

@@ -693,35 +693,36 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let plIds = [];
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
+            const t = xform.type
             // draw the shapes for symmetry planes once
-            if (xform.model === 'symmetryTransform') {
+            if (t === 'symmetryTransform') {
                 plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
             }
             // each successive transform must be applied to all previous shapes
             [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
                 // these transforms do not copy the object
-                if (xform.model === 'rotate') {
+                if (t === 'rotate') {
                     txArr.push(rotateFn(xform, 1));
                     return;
                 }
-                if (xform.model === 'translate') {
+                if (t === 'translate') {
                     txArr.push(offsetFn(xform, 1));
                     return;
                 }
 
                 let xo = self.getObject(xShape.id);
                 let linkTx;
-                if (xform.model === 'cloneTransform') {
+                if (t === 'cloneTransform') {
                     let clones = [];
                     for (let i = 1; i <= xform.numCopies; ++i) {
                         let cloneTx = txArr.slice(0);
                         linkTx = composeFn(cloneTx);
                         for (let j = 0; j < xform.transforms.length; ++j) {
                             let cloneXform = xform.transforms[j];
-                            if (cloneXform.model === 'translateClone') {
+                            if (cloneXform.type === 'translateClone') {
                                 cloneTx.push(offsetFn(cloneXform, i));
                             }
-                            if (cloneXform.model === 'rotateClone') {
+                            if (cloneXform.type === 'rotateClone') {
                                 cloneTx.push(rotateFn(cloneXform, i));
                             }
                         }
@@ -729,7 +730,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                         clones = clones.concat(transformMembers(xo, xform, linkTx, clones));
                     }
                 }
-                if (xform.model === 'symmetryTransform') {
+                if (t === 'symmetryTransform') {
                     linkTx = mirrorFn(xform);
                     addTxShape(xShape, xform, linkTx);
                     transformMembers(xo, xform, linkTx);
