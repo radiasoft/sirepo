@@ -46,7 +46,7 @@ class API(sirepo.quest.API):
     def api_migrateJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         if not _cfg.rs_jupyter_migrate:
-            sirepo.util.raise_forbidden("migrate not enabled")
+            raise sirepo.util.Forbidden("migrate not enabled")
         d = self.parse_json()
         if not d.doMigration:
             create_user(self)

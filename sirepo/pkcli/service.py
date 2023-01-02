@@ -34,13 +34,14 @@ import socket
 import socket
 import subprocess
 import time
-import werkzeug.serving
 
 
 __cfg = None
 
 
 def flask():
+    from werkzeug import serving
+
     with pkio.save_chdir(_run_dir()) as r:
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
@@ -52,7 +53,7 @@ def flask():
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = "development"
 
-        werkzeug.serving.click = None
+        serving.click = None
         app.run(
             exclude_patterns=[str(r.join("*"))],
             extra_files=sirepo.util.files_to_watch_for_reload("json"),
