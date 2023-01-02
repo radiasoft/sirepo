@@ -2091,7 +2091,8 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
 
     showOrHideFieldRange();
     function showOrHideFieldRange() {
-        if (appState.models.dataFile.inputsScaler == 'MinMaxScaler') {
+        srdbg(appState.models.dataFile);
+        if (appState.models.dataFile.inputsScaler == 'MinMaxScaler' || appState.models.dataFile.outputsScaler == 'MinMaxScaler') {
             featureRangesOn(true);
             return;
         }
