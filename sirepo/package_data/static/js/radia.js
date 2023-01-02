@@ -707,8 +707,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 // these transforms do not copy the object
                 if (xform.model === 'rotate') {
                     srdbg('add r to', xShape);
-                    //txArr.push(rotateFn(xform, 1));
-                    rotateFn(xform, 1)(xShape, xShape);
+                    txArr.push(rotateFn(xform, 1));
+                    //rotateFn(xform, 1)(xShape, xShape);
                     continue;
                 }
                 // deprecated
@@ -748,7 +748,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
         srdbg(o.id, txArr);
         // apply non-copying transforms to the object and its members (if any)
-        //composeFn(txArr)(baseShape, baseShape);
+        composeFn(txArr)(baseShape, baseShape);
         for (const m of getMembers(o)) {
             let s = self.getShape(m.id);
             composeFn(txArr)(s, s);
