@@ -1093,7 +1093,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             let loading = true;
             let numPages = 0;
             let uris;
-            
+
             $scope.canUpdateUri = increment => {
                 return idx + increment >= 0 && idx + increment < numPages;
             };
@@ -1788,11 +1788,11 @@ SIREPO.app.directive('partitionSelection', function(appState) {
 
             function drawCarats(parts) {
                 const viewport = plotScope.select('.plot-viewport');
-                viewport.selectAll('.rcscon-cell-selector').remove();
-                viewport.selectAll('.rcscon-cell-selector')
+                viewport.selectAll('.activait-cell-selector').remove();
+                viewport.selectAll('.activait-cell-selector')
                     .data(parts)
                     .enter().append('path')
-                    .attr('class', 'rcscon-cell-selector')
+                    .attr('class', 'activait-cell-selector')
                     .attr('d', 'M-2,-28L-2,-3000 2,-3000 2,-28 14,0 -14,0Z')
                     .style('cursor', 'ew-resize')
                     .style('fill-opacity', 0.8)
