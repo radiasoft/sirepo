@@ -693,7 +693,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let plIds = [];
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
-            const t = xform.type
+            const t = xform.type;
             // draw the shapes for symmetry planes once
             if (t === 'symmetryTransform') {
                 plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
@@ -1315,7 +1315,7 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
 
             $scope.modelFields = index => {
                 return SIREPO.APP_SCHEMA.view[$scope.field[index].type].advanced;
-            }
+            };
 
             $scope.moveItem = (direction, item) => {
                 const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
