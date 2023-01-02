@@ -101,8 +101,29 @@ def background_percent_complete(report, run_dir, is_running):
 def _parse_activait_log_file(run_dir):
     for l in pkio.read_text(run_dir.join(_LOG_FILE)).split("\n"):
         if re.search("AssertionError: Model training failed due to:", l):
-            return l
+            return _range_error(l)
     return ""
+
+
+def _range_error(error):
+    i = "^-?\[0-9]+$"
+    e = re.search(
+        re.compile(
+            "Received a label value of"
+            + i
+            + "which is outside the valid range of ["
+            + i
+            + ","
+            + i
+            + ")"
+        )
+        ,
+        error
+    )
+    if e:
+        pkdp("\n\n\n e={}", e)
+        return e
+    return error
 
 
 def get_analysis_report(run_dir, data):
