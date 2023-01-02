@@ -55,7 +55,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not sim.get("exampleName"):
             sim.exampleName = sim.name
         if sim.name in cls.schema().constants.rawExamples:
-            sim.applicationMode = "imported"
+            sim.appMode = "imported"
         if sim.name == "Dipole":
             sim.beamAxis = "x"
             sim.heightAxis = "z"
