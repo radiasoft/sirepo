@@ -203,6 +203,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_transforms(model):
             _fixup_array(model, "model", "transforms")
+            for t in model.get("transforms", []):
+                if "model" in t:
+                    t.type = t.model
 
         dm = data.models
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
