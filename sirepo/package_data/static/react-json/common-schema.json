@@ -43,6 +43,14 @@
             }
         }
     },
+    "constants": {
+        "paymentPlans": {
+            "basic": "Sirepo Basic",
+            "enterprise": "Sirepo Enterprise",
+            "premium": "Sirepo Premium"
+        },
+        "plansUrl": "/en/plans.html"
+    },
     "type": {
         "String": {
             "base": "String",

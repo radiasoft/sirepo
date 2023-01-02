@@ -227,6 +227,7 @@ class API(sirepo.quest.API):
         req = self.parse_params(type=simulation_type)
         # TODO(pjm): need to unquote when redirecting from saved cookie redirect?
         simulation_name = urllib.parse.unquote(simulation_name)
+        n = None
         # use the existing named simulation, or copy it from the examples
         rows = simulation_db.iterate_simulation_datafiles(
             req.type,
@@ -241,7 +242,7 @@ class API(sirepo.quest.API):
             for s in simulation_db.examples(req.type):
                 if s["models"]["simulation"]["name"] != simulation_name:
                     continue
-                simulation_db.save_new_example(s, qcall=self)
+                n = simulation_db.save_new_example(s, qcall=self)
                 rows = simulation_db.iterate_simulation_datafiles(
                     req.type,
                     simulation_db.process_simulation_list,
@@ -258,6 +259,9 @@ class API(sirepo.quest.API):
                     req.type,
                 )
         m = simulation_db.get_schema(req.type).appModes[application_mode]
+
+        if simulation_type in sirepo.feature_config.cfg().react_sim_types:
+            return self.headers_for_no_cache(self.reply_json(n))
         return self.reply_redirect_for_local_route(
             req.type,
             m.localRoute,
@@ -674,7 +678,7 @@ class API(sirepo.quest.API):
         def _build():
             if re.search(r"^react/\w+$", path):
                 p = "index.html"
-            elif path in cfg.react_sim_types:
+            elif path in sirepo.feature_config.cfg().react_sim_types:
                 raise sirepo.util.Redirect(f"/react/{path}")
             else:
                 p = path
@@ -790,11 +794,10 @@ def _init_proxy_react():
         "static/js/bundle.js",
         "static/js/bundle.js.map",
     ]
-    for x in cfg.react_sim_types:
-        p.append(x)
-        p.append(f"{x}-schema.json")
     _PROXY_REACT_URI_SET = set(p)
     r = "^react/"
+    for x in sirepo.feature_config.cfg().react_sim_types:
+        r += rf"|^{x}(?:/|$)"
     if cfg.react_server == _REACT_SERVER_BUILD:
         r += r"|^static/(css|js)/main\."
     _PROXY_REACT_URI_RE = re.compile(r)
@@ -850,5 +853,5 @@ cfg = pkconfig.init(
     google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
     react_server=(None, _cfg_react_server, "Base URL of npm start server"),
-    react_sim_types=(("myapp", "jspec", "genesis", "warppba"), set, "React apps"),
+    react_sim_types=pkconfig.ReplacedBy("sirepo.feature_config.react_sim_types"),
 )
