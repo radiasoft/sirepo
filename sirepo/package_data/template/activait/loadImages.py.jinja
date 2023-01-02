@@ -75,7 +75,7 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
                 x = self.inScaler.transform(numpy.array(x).reshape(-1, self.x_channels))
                 x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.outScaler:
-                pkdp("\n\n\n self.y_channels={} \nself.x_channels={}\nself.original_shape_x={}\n\n\n", self.y_channels, self.x_channels, self.original_shape_x)
+                {# pkdp("\n\n\n self.y_channels={} \nself.x_channels={}\nself.original_shape_x={}\n\n\n", self.y_channels, self.x_channels, self.original_shape_x) #}
                 y = self.outScaler.transform(numpy.array(y).reshape(-1, self.y_channels))
             if self.return_value:
                 if self.return_value == "x":
