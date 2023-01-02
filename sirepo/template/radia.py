@@ -1199,7 +1199,7 @@ def _prep_new_sim(data, new_sim_data=None):
         return
     sim = data.models.simulation
     if new_sim_data.get("dmpImportFile"):
-        sim.applicationMode = "imported"
+        sim.appMode = "imported"
     sim.beamAxis = new_sim_data.beamAxis
     sim.enableKickMaps = new_sim_data.enableKickMaps
     t = new_sim_data.get("magnetType", "freehand")
