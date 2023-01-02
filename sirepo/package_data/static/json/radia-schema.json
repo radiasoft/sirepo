@@ -39,6 +39,10 @@
                 "linePath": ["begin", "end"],
                 "manualPath": ["ptX", "ptY", "ptZ"]
             },
+            "modifications": {
+                "objectBevel": ["cutAxis", "edge", "amountVert", "amountHoriz", "cutRemoval"],
+                "objectFillet": ["cutAxis", "edge", "radius", "numSides"]
+            },
             "transforms": {
                 "cloneTransform": ["numCopies", "alternateFields", "transforms"],
                 "symmetryTransform": ["symmetryPlane", "symmetryPoint", "symmetryType"],
@@ -349,8 +353,8 @@
             ["custom", "Custom"]
         ],
         "ObjectCutType": [
-            ["bevel", "Bevel"],
-            ["fillet", "Fillet"]
+            ["objectBevel", "Bevel"],
+            ["objectFillet", "Fillet"]
         ],
         "ObjectType": [
             ["cuboid", "Cuboid"],
@@ -461,7 +465,7 @@
             "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
-            "transforms": ["Transforms", "TransformTable", [], ""],
+            "transforms": ["", "ModelArrayTable", [], "", ["rotateClone", "translateClone"]],
             "type": ["_", "TransformTypes", "cloneTransform"]
         },
         "dipoleBasic": {
@@ -793,13 +797,12 @@
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
-            "bevels": ["Bevels", "BevelTable", []],
-            "fillets": ["Fillets", "FilletTable", []],
             "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "segments": ["Num Segments", "IntArray", [1, 1, 1], "", ["N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "modifications": ["", "ModelArrayTable", [], "", ["objectBevel", "objectFillet"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B from File", "HMFile", "", "H, B (T)"],
@@ -860,28 +863,28 @@
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
         },
-        "objectFillet": {
-            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
-            "edge": ["Filleted Edge", "BevelEdge", "0", "Index of base shape edge to fillet, relative to the view axis"],
-            "numSides": ["Number of Sides", "Integer", 10, "Resolution of the curved surface", 6],
-            "radius": ["Radius", "Float", 1.0],
-            "type": ["_", "ObjectCutType", "fillet"]
-        },
         "objectBevel": {
             "_super": ["_", "model", "objectCut"],
-            "amountVert": ["Cut Distance in Vertical Direction [mm]", "Float", 1.0],
-            "amountHoriz": ["Cut Distance in Horizontal Direction [mm]", "Float", 1.0],
+            "amountVert": ["Vertical Cut [mm]", "Float", 1.0],
+            "amountHoriz": ["Horizontal Cut [mm]", "Float", 1.0],
             "cutDir": ["", "Array", [0, 0, 1]],
             "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
             "heightDir": ["", "Array", [0, 1, 0]],
-            "type": ["_", "ObjectCutType", "bevel"],
+            "type": ["_", "ObjectCutType", "objectBevel"],
             "widthDir": ["", "Array", [1, 0, 0]]
         },
         "objectCut": {
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
             "cutPoint": ["Cut Point", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
-            "type": ["_", "ObjectCutType", "bevel"]
+            "type": ["_", "ObjectCutType", "objectBevel"]
+        },
+        "objectFillet": {
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
+            "edge": ["Filleted Edge", "BevelEdge", "0", "Index of base shape edge to fillet, relative to the view axis"],
+            "numSides": ["Number of Sides", "Integer", 10, "Resolution of the curved surface", 6],
+            "radius": ["Radius", "Float", 1.0],
+            "type": ["_", "ObjectCutType", "objectFillet"]
         },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
@@ -908,7 +911,7 @@
         "radiaObject": {
             "_super": ["_", "model", "layoutObject"],
             "name": ["Name", "String", ""],
-            "transforms": ["", "TransformTable", [], ""]
+            "transforms": ["", "ModelArrayTable", [], "", ["cloneTransform" ,"rotate", "symmetryTransform"]]
         },
         "reset": {
         },
@@ -1127,16 +1130,16 @@
             ]
         },
         "cloneTransform": {
-            "title": "Clone Object",
+            "title": "Clone",
             "basic": [
-                "transforms",
                 "numCopies",
-                "alternateFields"
+                "alternateFields",
+                "transforms"
             ],
             "advanced": [
-                "transforms",
                 "numCopies",
-                "alternateFields"
+                "alternateFields",
+                "transforms"
             ]
         },
         "dipoleBasic": {
@@ -1319,8 +1322,7 @@
                     "transforms"
                 ]],
                 ["Modifications", [
-                    "bevels",
-                    "fillets"
+                    "modifications"
                 ]]
             ]
         },
@@ -1394,6 +1396,7 @@
             ]
         },
         "objectFillet": {
+            "title": "Fillet",
             "basic": [
                 "cutAxis",
                 "edge",
@@ -1433,8 +1436,7 @@
                     "extrudedPoints.referencePoints"
                 ]],
                 ["Modifications", [
-                    "bevels",
-                    "fillets"
+                    "modifications"
                 ]]
             ]
         },
@@ -1493,23 +1495,20 @@
             "title": "Rotate",
             "basic": [],
             "advanced": [
+                "angle",
                 "axis",
-                "useObjectCenter",
                 "center",
-                "angle"
+                "useObjectCenter"
             ]
         },
         "rotateClone": {
             "title": "Rotate",
-            "basic": [
-                "axis",
-                "center",
-                "angle"
-            ],
+            "basic": [],
             "advanced": [
+                "angle",
                 "axis",
                 "center",
-                "angle"
+                "useObjectCenter"
             ]
         },
         "simulation": {
@@ -1544,16 +1543,16 @@
             ]
         },
         "symmetryTransform": {
-            "title": "Apply Symmetry",
+            "title": "Symmetry",
             "basic": [
-                "symmetryType",
                 "symmetryPlane",
-                "symmetryPoint"
+                "symmetryPoint",
+                "symmetryType"
             ],
             "advanced": [
-                "symmetryType",
                 "symmetryPlane",
-                "symmetryPoint"
+                "symmetryPoint",
+                "symmetryType"
             ]
         },
         "termination": {

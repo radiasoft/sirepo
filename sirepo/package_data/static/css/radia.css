@@ -13,6 +13,8 @@
 
 .radia-table-dialog .control-label {
     font-size: smaller !important;
+    padding-left: 0;
+    text-align: left;
 }
 
 .radia-table-dialog div:is([data-ng-switch-when=Float], div[data-ng-switch-when=FloatArray], div[data-ng-switch-when=Boolean]) {

@@ -14,17 +14,11 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.freehandType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += `
-        <div data-ng-switch-when="BevelTable" class="col-sm-12">
-          <div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
-        </div>
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
         <div data-ng-switch-when="FieldPaths" class="col-sm-7">
           <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
-        </div>
-        <div data-ng-switch-when="FilletTable" class="col-sm-12">
-          <div data-fillet-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
         </div>
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
@@ -45,6 +39,9 @@ SIREPO.app.config(function() {
           <select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
             <div class="sr-input-warning">
             </div>
+        </div>
+        <div data-ng-switch-when="ModelArrayTable" class="col-sm-12">
+          <div data-model-array-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Modification" data-models="info[4]"></div>
         </div>
         <div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">
           <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt,.csv"/>
@@ -1232,7 +1229,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
     };
 });
 
-SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) {
+SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -1240,269 +1237,122 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
             fieldName: '=',
             itemClass: '@',
             model: '=',
+            models: '=',
             modelName: '=',
-            parentController: '=',
-            object: '=',
         },
-
         template: `
-            <table class="table table-striped table-condensed radia-table-dialog">
-              <colgroup>
-                <col span="5" style="width: 20ex">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Cut Axis</th>
-                  <th>Cut Edge</th>
-                  <th>Vertical Distance From Corner</th>
-                  <th>Horizontal Distance From Corner</th>
-                  <th>Cut Removal Side</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr data-ng-repeat="item in loadItems()">
-                  <td>{{ item.cutAxis }}</td>
-                  <td>{{ bevelEdge(item.edge) }}</td>
-                  <td>{{ item.amountVert }}mm</td>
-                  <td>{{ item.amountHoriz }}mm</td>
-                  <td>{{ item.cutRemoval }}</td>
-                  <td style="text-align: right">
-                    <div class="sr-button-bar-parent">
-                      <div class="sr-button-bar" data-ng-class="sr-button-bar-active">
-                        <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
-                        <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                      </div>
+            <div>
+              <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
+              <table class="table table-striped table-condensed radia-table-dialog">
+                <thead></thead>
+                <tbody>
+                <tr data-ng-repeat="item in field track by $index">
+                  <td style="display: inline-flex; flex-wrap: wrap;">
+                    <div class="item-name">
+                      <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click="toggleExpand($index)"></span>
+                      <span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click="toggleExpand($index)"></span>
+                      <label>{{ title(item.type) }}</label>
                     </div>
-                  </td>
+                    <div data-ng-show="isExpanded(item)" data-ng-repeat="f in modelFields($index)" style="padding-left: 6px; min-width: {{ fieldMinWidth(item.type, f) }}">
+                      <div data-field-editor="f" data-label-size="12" data-field-size="" data-model-name="item.type" data-model="item"></div>
+                    </div>
+                    <div data-ng-show="! isExpanded(item)">...</div>
+                    </td>
+                    <td>
+                      <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar">
+                          <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>                      
+                      </div>
+                    </td>
                 </tr>
                 <tr>
                   <td colspan="100%">
-                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="item.title for item in toolbarItems" data-ng-change="addItem()">
+                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="title(m) for m in models" data-ng-change="addItem()">
                       <option value="" disabled selected>add</option>
                     </select>
                   </td>
                </tr>
-              </tbody>
-            </table>
+               </tbody>
+              </table>
+            </div>
+            </div>
         `,
         controller: function($scope, $element) {
-            let isEditing = false;
-            let itemModel = 'objectBevel';
-            let watchedModels = [itemModel];
+            let expanded = {};
+            for (const i in $scope.field) {
+                expanded[i] = false;
+            }
 
-            $scope.items = [];
-            $scope.radiaService = radiaService;
+            let watchedModels = [$scope.modelName].concat($scope.models);
+
             $scope.selectedItem = null;
 
             function itemIndex(data) {
-                return $scope.items.indexOf(data);
+                return $scope.field.indexOf(data);
             }
-
             $scope.addItem = () => {
-                let b = appState.setModelDefaults({}, itemModel);
-                $scope.editItem(b, true);
-            };
-
-            $scope.bevelEdge = index => {
-                for (const e of SIREPO.APP_SCHEMA.enum.BevelEdge) {
-                    if (e[SIREPO.ENUM_INDEX_VALUE] === index) {
-                        return e[SIREPO.ENUM_INDEX_LABEL];
-                    }
-                }
-                return '';
-            };
-
-            $scope.deleteItem = item => {
-                const index = itemIndex(item);
-                if (index < 0) {
+                if (! $scope.selectedItem) {
                     return;
                 }
+                const m = appState.setModelDefaults({}, $scope.selectedItem);
+                $scope.field.push(m);
+                expanded[$scope.field.length - 1] = true;
+                $scope.selectedItem = null;
+            };
+
+            $scope.deleteItem = index => {
                 $scope.field.splice(index, 1);
+                delete expanded[index];
                 radiaService.saveGeometry(true);
             };
 
-            $scope.editItem = (item, isNew) => {
-                isEditing = ! isNew;
-                $scope.selectedItem = item;
-                appState.models[itemModel] = item;
-                panelState.showModalEditor(itemModel);
+            $scope.fieldLabel = (modelName, field) => appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
+
+            $scope.fieldMinWidth = (modelName, field) => {
+                return appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_TYPE] === 'ModelArrayTable' ? '900px' : '0';
             };
 
-            $scope.getSelected = () => $scope.selectedItem;
+            $scope.isExpanded = item => expanded[itemIndex(item)];
 
-            $scope.loadItems = () => {
-                $scope.items = $scope.field;
-                return $scope.items;
+            $scope.modelFields = index => {
+                return SIREPO.APP_SCHEMA.view[$scope.field[index].type].advanced;
+            }
+
+            $scope.moveItem = (direction, item) => {
+                const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
+                const currentIndex = itemIndex(item);
+                const newIndex = currentIndex + d;
+                if (newIndex >= 0 && newIndex < $scope.field.length) {
+                    const tmp = $scope.field[newIndex];
+                    $scope.field[newIndex] = item;
+                    $scope.field[currentIndex] = tmp;
+                }
             };
 
-            appState.whenModelsLoaded($scope, () => {
+            $scope.title = modelName => SIREPO.APP_SCHEMA.view[modelName].title;
 
-                $scope.$on('modelChanged', (e, modelName) => {
-                    if (! watchedModels.includes(modelName)) {
-                        return;
-                    }
-                    $scope.selectedItem = null;
-                    let m = appState.models[modelName];
-                    const d = m.cutAxis;
-                    const h = SIREPO.APP_SCHEMA.constants.heightAxisMap[d];
-                    const w = radiaService.calcWidthAxis(d, h);
-                    const dirs = radiaService.getGeomDirections(d, h, w);
-                    m.cutDir = dirs.depth;
-                    m.heightDir = dirs.height;
-                    m.widthDir = dirs.width;
-                    appState.saveQuietly(modelName);
-                    if (! isEditing) {
-                        $scope.field.push(m);
-                        isEditing = true;
-                    }
-                    radiaService.saveGeometry(true, false,() => {
-                        $scope.loadItems();
-                    });
-                });
+            $scope.toggleExpand = index => {
+                expanded[index] = ! expanded[index];
+            };
 
-                $scope.$on('cancelChanges', (e, name) => {
-                    if (! watchedModels.includes(name)) {
-                        return;
-                    }
-                    appState.removeModel(name);
-                });
-
-                $scope.loadItems();
+            $scope.$on('modelChanged', (e, modelName) => {
+                if (! watchedModels.includes(modelName)) {
+                    return;
+                }
+                $scope.selectedItem = null;
+                radiaService.saveGeometry(true, false);
             });
 
-        },
-    };
-});
-
-SIREPO.app.directive('filletTable', function(appState, panelState, radiaService) {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            fieldName: '=',
-            itemClass: '@',
-            model: '=',
-            modelName: '=',
-            parentController: '=',
-            object: '=',
-        },
-        template: `
-            <table class="table radia-table-dialog">
-              <colgroup>
-                <col span="4" style="width: 20ex">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Axis</th>
-                  <th>Edge</th>
-                  <th>Radius</th>
-                  <th>Resolution</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr data-ng-repeat="item in loadItems()">
-                  <td>{{ item.cutAxis }}</td>
-                  <td>{{ bevelEdge(item.edge) }}</td>
-                  <td>{{ item.radius }}mm</td>
-                  <td>{{ item.numSides }}</td>
-                  <td style="text-align: right">
-                    <div class="sr-button-bar-parent">
-                      <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
-                        <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
-                        <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <button data-ng-click="addItem()" id="sr-new-fillet" class="btn btn-info btn-xs pull-right">New Fillet <span class="glyphicon glyphicon-plus"></span></button>
-        `,
-        controller: function($scope, $element) {
-            let isEditing = false;
-            let itemModel = 'objectFillet';
-            let watchedModels = [itemModel];
-
-            $scope.items = [];
-            $scope.radiaService = radiaService;
-            $scope.selectedItem = null;
-
-            function itemIndex(data) {
-                return $scope.items.indexOf(data);
-            }
-
-            $scope.addItem = function() {
-                let b = appState.setModelDefaults({}, itemModel);
-                $scope.editItem(b, true);
-            };
-
-            $scope.bevelEdge = (index) => {
-                for (const e of SIREPO.APP_SCHEMA.enum.BevelEdge) {
-                    if (e[SIREPO.ENUM_INDEX_VALUE] === index) {
-                        return e[SIREPO.ENUM_INDEX_LABEL];
-                    }
-                }
-                return '';
-            };
-
-            $scope.deleteItem = function(item) {
-                const index = itemIndex(item);
-                if (index < 0) {
+            $scope.$on('cancelChanges', (e, name) => {
+                if (name === 'geometryReport') {
                     return;
                 }
-                $scope.field.splice(index, 1);
-                radiaService.saveGeometry(true);
-            };
-
-            $scope.editItem = function(item, isNew) {
-                isEditing = ! isNew;
-                $scope.selectedItem = item;
-                appState.models[itemModel] = item;
-                panelState.showModalEditor(itemModel);
-            };
-
-            $scope.getSelected = function() {
-                return $scope.selectedItem;
-            };
-
-            $scope.loadItems = function() {
-                $scope.items = $scope.field;
-                return $scope.items;
-            };
-
-            appState.whenModelsLoaded($scope, function() {
-
-                $scope.$on('modelChanged', function(e, modelName) {
-                    if (watchedModels.indexOf(modelName) < 0) {
-                        return;
-                    }
-                    $scope.selectedItem = null;
-                    let m = appState.models[modelName];
-                    const d = m.cutAxis;
-                    const h = SIREPO.APP_SCHEMA.constants.heightAxisMap[d];
-                    const w = radiaService.calcWidthAxis(d, h);
-                    const dirs = radiaService.getGeomDirections(d, h, w);
-                    m.cutDir = dirs.depth;
-                    appState.saveQuietly(modelName);
-                    if (! isEditing) {
-                        $scope.field.push(m);
-                        isEditing = true;
-                    }
-                    radiaService.saveGeometry(true, false,() => {
-                        $scope.loadItems();
-                    });
-                });
-
-                $scope.$on('cancelChanges', function(e, name) {
-                    if (watchedModels.indexOf(name) < 0) {
-                        return;
-                    }
-                    appState.removeModel(name);
-                });
-
-                $scope.loadItems();
+                if (! watchedModels.includes(name)) {
+                    return;
+                }
+                appState.removeModel(name);
+                appState.cancelChanges('geometryReport');
             });
 
         },
@@ -2434,12 +2284,15 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                       <span data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ fieldLabel(item.type, f) }}"></span>
                       <div data-field-editor="f" data-field-size="" data-model-name="item.type" data-model="item"></div>
                     </div>
-                    <td>
-                    <div class="sr-button-bar-parent">
-                      <div class="sr-button-bar">
-                        <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                      </div>                      
+                    <div data-ng-show="! isExpanded(item)">
+                    ...
                     </div>
+                    <td>
+                      <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar">
+                          <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>                      
+                      </div>
                     </td>
                   </td>
                 </tr>
@@ -2462,11 +2315,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 expanded[i] = false;
             }
 
-            let isEditing = false;
-            const spatialTransforms = [
-                'rotate',
-                'translate'
-            ];
             let watchedModels = [$scope.modelName];
 
             $scope.radiaService = radiaService;
@@ -2509,19 +2357,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 radiaService.saveGeometry(true);
             };
 
-            $scope.editItem = (item, isNew) => {
-                isEditing = ! isNew;
-                $scope.selectedItem = item;
-                if (isNew) {
-                    appState.models[item.model] = appState.setModelDefaults({}, item.model);
-                    appState.models[item.model].model = item.model;
-                }
-                else {
-                    appState.models[item.model] = item;
-                }
-                panelState.showModalEditor(item.model);
-            };
-
             $scope.editableFields = idx => detailFields[$scope.field[idx].type];
 
             $scope.fieldLabel = (modelName, field) => appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
@@ -2550,34 +2385,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 return res;
             };
 
-            $scope.itemFilter = item => {
-                let iIdx = -1;
-                for (const sIdx in $scope.toolbarSections) {
-                    iIdx = $scope.toolbarSections[sIdx].contents.indexOf(item);
-                    if (iIdx < 0) {
-                        continue;
-                    }
-                    break;
-                }
-                // item not in sections presented
-                if (iIdx < 0) {
-                    return false;
-                }
-                // cannot nest
-                if (item.model === $scope.modelName) {
-                    return false;
-                }
-                if ($scope.modelName === 'cloneTransform') {
-                    // don't include clone or symmetry if we are editing a clone already
-                    return spatialTransforms.includes(item.type);
-                }
-                return true;
-            };
-
-            $scope.itemGrid = item => {
-                return '';
-            };
-
             $scope.moveItem = (direction, item) => {
                 const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
                 const currentIndex = itemIndex(item);
@@ -2589,24 +2396,9 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 }
             };
 
-            $scope.numCols = () => {
-                return 1 + Math.max(
-                    ...Object.values(detailFields).map(v => v.length)
-                );
-            }
-
             $scope.toggleExpand = item => {
                 expanded[itemIndex(item)] = ! expanded[itemIndex(item)];
             };
-
-            $scope.toolbarItemForType = item => {
-                for (const i of $scope.toolbarItems) {
-                    if (i.model === item.type) {
-                        return i;
-                    }
-                }
-                return null;
-            }
 
             $scope.$on('modelChanged', (e, modelName) => {
                 if (! watchedModels.includes(modelName)) {

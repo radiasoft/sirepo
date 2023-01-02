@@ -157,6 +157,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                         b["cutRemoval"] = "1"
                 if not o.get("fillets"):
                     o.fillets = []
+                if not o.get("modifications"):
+                    o.modifications = o.bevels + o.fillets
+                for m in o.modifications:
+                    if m.get("amountHoriz") is not None:
+                        m.type = "objectBevel"
+                    if m.get("radius") is not None:
+                        m.type = "objectFillet"
                 if not o.get("segments"):
                     o.segments = o.get("division", [1, 1, 1])
                 for f in (

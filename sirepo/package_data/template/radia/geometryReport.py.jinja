@@ -34,14 +34,12 @@ def _add_object(o, radia_objs, id_map):
     sc = o.get('super_classes', [])
     mat = {{ matrix }}
     if _MODEL_OBJECT in sc:
-        ctr = o.center
-        sz = o.size
         m = radia_util.multiply_vector_by_matrix(o.magnetization, mat)
         segs = radia_util.multiply_vector_by_matrix(o.segments, mat)
     if t == _MODEL_CUBOID:
         g_id = radia_util.build_cuboid(
-            center=ctr,
-            size=sz,
+            center=o.center,
+            size=o.size,
             material=o.material,
             magnetization=m,
             rem_mag=o.remanentMag,
@@ -50,7 +48,7 @@ def _add_object(o, radia_objs, id_map):
         )
     if t == _MODEL_CYLINDER:
         g_id = radia_util.build_cylinder(
-            center=ctr,
+            center=o.center,
             extrusion_axis=o.extrusionAxis,
             h_m_curve=o.h_m_curve,
             material=o.material,
@@ -59,13 +57,13 @@ def _add_object(o, radia_objs, id_map):
             radius=o.radius,
             rem_mag=o.remanentMag,
             segments=segs,
-            size=sz,
+            size=o.size,
         )
     if _MODEL_EXTRUDED_POLY in sc:
         g_id = radia_util.extrude(
             area=o.area,
-            center=ctr,
-            size=sz,
+            center=o.center,
+            size=o.size,
             extrusion_axis=o.extrusionAxis,
             points=o.points,
             material=o.material,
@@ -91,7 +89,7 @@ def _add_object(o, radia_objs, id_map):
             filename = o.get('file'),
             center=o.center,
             centroid=o.stlCentroid,
-            size=sz,
+            size=o.size,
             vertices=o.stlVertices,
             faces=o.stlFaces,
             magnetization=m,
@@ -103,25 +101,17 @@ def _add_object(o, radia_objs, id_map):
             #slices=o.stlSlices
         )
     if t in _OBJ_MODELS:
-        for b in o.get('bevels', []):
-            g_id = radia_util.apply_bevel(
+        for b in o.get('modifications', []):
+            g_id = radia_util.apply_modification(
                 g_id,
-                center=ctr,
-                lenDir=b['cutDir'],
-                size=sz,
-                **b
-            )
-        for f in o.get('fillets', []):
-            g_id = radia_util.apply_fillet(
-                g_id,
-                center=ctr,
-                size=sz,
+                center=o.center,
+                size=o.size,
                 material=o.material,
                 magnetization=m,
                 rem_mag=o.remanentMag,
                 segments=segs,
                 h_m_curve=o.h_m_curve,
-                **f
+                **b
             )
         radia_util.apply_color(
             g_id,
