@@ -21,6 +21,7 @@ PATH_INFO_CHAR = "*"
 
 _cfg = sirepo.feature_config.cfg()
 
+
 def app_root(sim_type=None):
     """Generate uri for application root
 
