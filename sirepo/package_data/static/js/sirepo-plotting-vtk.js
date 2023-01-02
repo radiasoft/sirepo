@@ -1746,7 +1746,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.is3dPreview = false;
             $scope.isClientOnly = true;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
-            $scope.objects = [];
             $scope.width = $scope.height = 0;
 
             let didDrag = false;
@@ -2263,8 +2262,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 replot(true);
             };
 
+            $scope.getObjects = () => {
+                return (appState.models[$scope.modelName] || {}).objects;
+            };
+
             $scope.init = function() {
-                $scope.objects = (appState.models[$scope.modelName] || {}).objects;
                 $scope.shapes = $scope.source.getShapes();
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {

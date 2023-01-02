@@ -157,6 +157,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                         b["cutRemoval"] = "1"
                 if not o.get("fillets"):
                     o.fillets = []
+                if not o.get("modifications"):
+                    o.modifications = o.bevels + o.fillets
+                for m in o.modifications:
+                    if m.get("amountHoriz") is not None:
+                        m.type = "objectBevel"
+                    if m.get("radius") is not None:
+                        m.type = "objectFillet"
+                    for d in ("heightDir", "widthDir"):
+                        if d in m:
+                            del m[d]
                 if not o.get("segments"):
                     o.segments = o.get("division", [1, 1, 1])
                 for f in (
@@ -193,6 +203,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_transforms(model):
             _fixup_array(model, "model", "transforms")
+            for t in model.get("transforms", []):
+                if "model" in t:
+                    t.type = t.model
 
         dm = data.models
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
