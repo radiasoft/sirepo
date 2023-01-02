@@ -106,15 +106,13 @@ def _parse_activait_log_file(run_dir):
 
 
 def _range_error(error):
-    i = "^-?\d+$"
-    s = r"outside the valid range of \[{}, {}\)".format(i, i)
-    pkdp("\n\n\n" + s + "\n\n\n" + error)
-    e = re.search(s,
-        error
-    )
+    # i = "^\d+$"
+    # s = "[{}, {})".format(i, i)
+    # pkdp("\n\n\n" + s + "\n\n\n" + error)
+    # TODO (gurhar1133): need a better regex
+    e = re.search("outside the valid range of", error)
     if e:
-        pkdp("\n\n\n e={}", e)
-        return "Failed test"
+        return "Scaled outputs are out of range valid range."
     return error
 
 
