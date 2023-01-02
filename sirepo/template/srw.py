@@ -2492,7 +2492,6 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         return os.path.exists(os.path.realpath(dir_name + "/" + file_name))
 
     def file_attrs_ok(attrs):
-
         # ms-dos attributes only use two bytes and don't contain much useful info, so pass them
         if attrs < 2 << 16:
             return True
@@ -2510,7 +2509,6 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
     zip_file = zipfile.ZipFile(zip_file_name)
 
     for f in zip_file.namelist():
-
         i = zip_file.getinfo(f)
         s = i.file_size
         attrs = i.external_attr
