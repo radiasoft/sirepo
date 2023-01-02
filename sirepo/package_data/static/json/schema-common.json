@@ -115,6 +115,7 @@
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
+        "authState2": "/auth-state2",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
@@ -308,6 +309,20 @@
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
             ]
+        },
+        "reactRoutes": {
+            "completeRegistration": {
+                "route": "/complete-registration"
+            },
+            "login": {
+                "route": "/login"
+            },
+            "loginWithEmailConfirm": {
+                "route": "/login-confirm/email/:token/:needCompleteRegistration"
+            },
+            "source": {
+                "route": "/:simulationId"
+            }
         },
         "localRoutes": {
             "admJobs": {

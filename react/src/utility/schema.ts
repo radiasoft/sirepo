@@ -21,14 +21,17 @@ export type SchemaModelJson = {
     [fieldName: string]: ScheamFieldJson<any>
 }
 
+export type SchemaModelsJson = {[modelName: string]: SchemaModelJson};
+
 export type SchemaTypeJson = {
     base: string,
     config: {[key: string]: any}
 }
 
 export type SchemaJson = {
+    constants: {[key: string]: any},
     type: {[typeName: string]: SchemaTypeJson},
-    model: {[modelName: string]: SchemaModelJson},
+    model: SchemaModelsJson,
     view: SchemaLayoutJson[]
 }
 
@@ -48,8 +51,11 @@ export type SchemaModel = {
     [fieldName: string]: SchemaField<any>
 }
 
+export type SchemaModels = {[modelName: string]: SchemaModel}
+
 export type Schema = {
-    models: {[modelName: string]: SchemaModel},
+    constants: {[key: string]: any},
+    models: SchemaModels,
     views: SchemaLayout[]
 }
 
@@ -65,6 +71,10 @@ export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): Sc
     }
 
     return {
+        constants: {
+            ...(original.constants || {}),
+            ...(overrides.constants || {})
+        },
         view: [
             ...(original.view || []),
             ...(overrides.view || [])
@@ -77,7 +87,7 @@ export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): Sc
     }
 }
 
-export function compileSchemaFromJson(schemaObj: SchemaJson) {
+export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
     let types: {[typeName: string]: InputLayout} = {};
 
     if(schemaObj.type) {
@@ -122,6 +132,7 @@ export function compileSchemaFromJson(schemaObj: SchemaJson) {
     }
 
     return {
+        constants: schemaObj.constants,
         views: schemaObj.view,
         models
     }
