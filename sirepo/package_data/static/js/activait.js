@@ -2091,8 +2091,8 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
 
     showOrHideFieldRange();
     function showOrHideFieldRange() {
-        srdbg(appState.models.dataFile);
-        if (appState.models.dataFile.inputsScaler == 'MinMaxScaler' || appState.models.dataFile.outputsScaler == 'MinMaxScaler') {
+        const d = appState.models.dataFile;
+        if (d.inputsScaler == 'MinMaxScaler' || d.outputsScaler == 'MinMaxScaler') {
             featureRangesOn(true);
             return;
         }
@@ -2308,6 +2308,7 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         [`${modelName}.dataOrigin`, `${modelName}.file`, `${modelName}.dataFormat`], updateEditor,
         [`${modelName}.url`], validateURL,
         [`${modelName}.inputsScaler`], showOrHideFieldRange,
+        [`${modelName}.outputsScaler`], showOrHideFieldRange,
     ];
 
     $scope.whenSelected = () => {
