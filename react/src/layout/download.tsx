@@ -1,4 +1,3 @@
-import usePortal from "react-useportal";
 import React, { useContext, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
@@ -6,6 +5,7 @@ import html2canvas from 'html2canvas';
 import { downloadAs } from "../utility/download";
 import { CPanelController } from "../data/panel";
 import { LayoutProps, LayoutType } from "./layout";
+import { Portal } from "../component/reusable/portal";
 
 export function LayoutWithDownloadButton<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {    
     return class extends Child {
@@ -29,14 +29,6 @@ export function LayoutWithDownloadButton<C, P>(Child: LayoutType<C, P>): LayoutT
 
             if(panelController) {
                 let contentRef = useRef();
-                let { Portal: ButtonPortal, portalRef } = usePortal({
-                    bindTo: document && document.getElementById(panelController.buttonPortalId)
-                })
-
-                if(portalRef && portalRef.current) {
-                    portalRef.current.classList.add("d-inline");
-                }
-
                 let download = () => {
                     let contentElement = contentRef.current;
                     html2canvas(contentElement).then((canvas) => {
@@ -48,11 +40,11 @@ export function LayoutWithDownloadButton<C, P>(Child: LayoutType<C, P>): LayoutT
 
                 return (
                     <>
-                        <ButtonPortal>
+                        <Portal targetId={panelController.buttonPortalId} className="d-inline">
                             <a className="ms-2" onClick={download}>
                                 <FontAwesomeIcon fixedWidth icon={Icon.faDownload}/>
                             </a>
-                        </ButtonPortal>
+                        </Portal>
                         <div ref={contentRef}>
                             {props.children}
                         </div>

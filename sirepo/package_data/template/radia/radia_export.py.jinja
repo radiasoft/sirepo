@@ -184,9 +184,10 @@ field_points = {{ fieldPoints }}
 {% endif %}
 
 {% for fp in fieldPaths %}
-{% if fp["type"] == "line" %}
-p1 = [{{ fp["begin"] }}]
-p2 = [{{ fp["end"] }}]
+{% if fp.type == "line" or fp.type == "axis" %}
+# {{ fp.name }}
+p1 = {{ fp.begin }}
+p2 = {{ fp.end }}
 {% for fieldType in INTEGRABLE_FIELD_TYPES %}
 {{ fieldType.lower() }} = field_integral(g_id, "{{ fieldType }}", p1, p2)
 {% endfor %}

@@ -242,8 +242,6 @@ class _URIParams(PKDict):
 
 
 def _call_api(parent, route, kwargs, data=None):
-    import werkzeug.exceptions
-
     def _response(res):
         if isinstance(res, dict):
             return sirepo.http_reply.gen_json(res)
@@ -275,7 +273,7 @@ def _call_api(parent, route, kwargs, data=None):
             r = _response(getattr(qcall, qcall.uri_route.func_name)(**kwargs))
             c = True
         except Exception as e:
-            if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+            if isinstance(e, sirepo.util.Reply):
                 if isinstance(e, sirepo.util.OKReply):
                     c = True
                 pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())

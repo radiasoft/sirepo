@@ -423,7 +423,6 @@ def _generate_crl(item, source_distance, count, res, calc_beam_stats):
 
 
 def _generate_crl_lens(item, is_first, is_last, count, source, calc_beam_stats):
-
     half_lens = item.lensThickness / 2.0
     source_width = item.pilingThickness / 2.0 - half_lens
     diameter = item.rmirr * 2.0

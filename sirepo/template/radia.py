@@ -450,8 +450,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = f_path.begin
-    p2 = f_path.end
+    p1 = list(f_path.begin)
+    p2 = list(f_path.end)
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -1113,7 +1113,6 @@ def _get_jay_points(o, stemmed_info):
 
 
 def _get_radia_objects(geom_objs, model):
-
     o = PKDict(groupedObjects=PKDict())
     o_ids = []
     for f in model:
