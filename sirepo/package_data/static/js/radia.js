@@ -308,8 +308,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
 
-    self.scaledArray = function (arr=SIREPO.ZERO_ARR, scale = 1.0) {
-        return arr.map(x => scale * x);
+    self.scaledArray = function (arr=SIREPO.ZERO_ARR) {
+        return arr.map(x => SIREPO.APP_SCHEMA.constants.objectScale * x);
     };
 
     self.syncReports = () => {
@@ -594,9 +594,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = o => {
-        const scale = SIREPO.APP_SCHEMA.constants.objectScale;
-        let center = radiaService.scaledArray(o.center, scale);
-        let size =   radiaService.scaledArray(o.size, scale);
+        let center = radiaService.scaledArray(o.center);
+        let size =   radiaService.scaledArray(o.size);
         const isGroup = o.members && o.members.length;
 
         if (isGroup) {
@@ -609,7 +608,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let pts = {};
         if (l === 'polygon') {
             const k = radiaService.axisIndex(o.extrusionAxis);
-            const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
+            const scaledPts = o.points.map(p => radiaService.scaledArray(p));
             pts[o.extrusionAxis] = scaledPts;
             const cp = center[k] + size[k] / 2.0;
             const cm = center[k] - size[k] / 2.0;
@@ -691,6 +690,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.shapes.push(baseShape);
         }
 
+        let m = new SIREPO.GEOMETRY.IdentityMatrix(4);
         let txArr = [];
         let plIds = [];
         // probably better to create a transform and let svg do this work
@@ -705,6 +705,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 // these transforms do not copy the object
                 if (xform.model === 'rotate') {
                     srdbg('add r to', xShape);
+                    m = m.multiply(
+                        new SIREPO.GEOMETRY.RotationMatrix(
+                            radiaService.scaledArray(xform.axis),
+                            radiaService.scaledArray(xform.center),
+                            Math.PI * parseFloat(xform.angle) / 180.0
+                        )
+                    );
                     txArr.push(rotateFn(xform, 1));
                     //rotateFn(xform, 1)(xShape, xShape);
                     continue;
@@ -737,6 +744,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
                 if (xform.model === 'symmetryTransform') {
                     srdbg('add symm tto', xShape);
+
                     linkTx = mirrorFn(xform);
                     const txs = addTxShape(xShape, xform, linkTx);
                     transformMembers(xo, xform, linkTx);
@@ -744,7 +752,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         }
 
-        srdbg(o.id, txArr);
+        srdbg(o.id, txArr, m);
+        baseShape.affineMatrix = m;
         // apply non-copying transforms to the object and its members (if any)
         composeFn(txArr)(baseShape, baseShape);
         for (const m of getMembers(o)) {
@@ -769,10 +778,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             const cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
             const spl = geometry.plane(
                 xform.symmetryPlane,
-                geometry.pointFromArr(radiaService.scaledArray(
-                    xform.symmetryPoint,
-                    SIREPO.APP_SCHEMA.constants.objectScale)
-                ));
+                geometry.pointFromArr(radiaService.scaledArray(xform.symmetryPoint))
+            );
             if (cpl.equals(spl) || ! spl.intersection(cpl)) {
                 continue;
             }
@@ -888,8 +895,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
         b.forEach(function (c, i) {
             (objs || appState.models.geometryReport.objects || []).forEach(function (o) {
-                const ctr =  radiaService.scaledArray(o.center || SIREPO.ZERO_ARR, scale);
-                const sz =  radiaService.scaledArray(o.size || SIREPO.ZERO_ARR, scale);
+                const ctr =  radiaService.scaledArray(o.center);
+                const sz =  radiaService.scaledArray(o.size);
                 c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
                 c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
             });
@@ -918,7 +925,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             const pl = new SIREPO.GEOMETRY.Plane(
                 xform.symmetryPlane,
                 new SIREPO.GEOMETRY.Point(
-                    ...radiaService.scaledArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale)
+                    ...radiaService.scaledArray(xform.symmetryPoint)
                 )
             );
             shape2.setCenter(
@@ -941,7 +948,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function offsetFn(xform, i) {
         return function(shape1, shape2) {
-            const d = radiaService.scaledArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
+            const d = radiaService.scaledArray(xform.distance);
             shape2.setCenter(
                 shape1.getCenterCoords().map(function (c, j) {
                     return c + i * d[j];
@@ -953,10 +960,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function rotateFn(xform, i) {
         return (shape1, shape2) => {
-            const scale = SIREPO.APP_SCHEMA.constants.objectScale;
             shape2.rotationMatrix = new SIREPO.GEOMETRY.RotationMatrix(
-                radiaService.scaledArray(xform.axis, scale),
-                radiaService.scaledArray(xform.center, scale),
+                radiaService.scaledArray(xform.axis),
+                radiaService.scaledArray(xform.center),
                 i * Math.PI * parseFloat(xform.angle) / 180.0
             );
             shape2.rotateAroundShapeCenter = xform.useObjectCenter === "1";
