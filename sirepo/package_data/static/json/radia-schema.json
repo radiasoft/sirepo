@@ -38,18 +38,6 @@
                 "filePath": ["fileName"],
                 "linePath": ["begin", "end"],
                 "manualPath": ["ptX", "ptY", "ptZ"]
-            },
-            "modifications": {
-                "objectBevel": ["cutAxis", "edge", "amountVert", "amountHoriz", "cutRemoval"],
-                "objectFillet": ["cutAxis", "edge", "radius", "numSides"]
-            },
-            "transforms": {
-                "cloneTransform": ["numCopies", "alternateFields", "transforms"],
-                "symmetryTransform": ["symmetryPlane", "symmetryPoint", "symmetryType"],
-                "translate": ["distance"],
-                "rotate": ["angle", "axis", "center", "useObjectCenter"],
-                "translateClone": ["distance"],
-                "rotateClone": ["angle", "axis", "center", "useObjectCenter"]
             }
         },
         "fileTypeHM": "h-m",
@@ -217,53 +205,6 @@
                     }
                 ],
                 "name": "Field Sources"
-            },
-            {
-                "canDrag": true,
-                "contents": [
-                    {
-                        "isButton": false,
-                        "layoutShape": "rect",
-                        "model": "rotate",
-                        "title": "Rotate",
-                        "type": "rotate"
-                    },
-                    {
-                        "isButton": false,
-                        "layoutShape": "rect",
-                        "model": "symmetryTransform",
-                        "title": "Symmetry",
-                        "type": "symmetry"
-                    },
-                    {
-                        "isButton": false,
-                        "layoutShape": "rect",
-                        "model": "cloneTransform",
-                        "title": "Clone",
-                        "type": "clone"
-                    }
-                ],
-                "name": "Transforms"
-            },
-            {
-                "canDrag": true,
-                "contents": [
-                    {
-                        "isButton": false,
-                        "layoutShape": "rect",
-                        "model": "translateClone",
-                        "title": "Translate",
-                        "type": "translate"
-                    },
-                    {
-                        "isButton": false,
-                        "layoutShape": "rect",
-                        "model": "rotateClone",
-                        "title": "Rotate",
-                        "type": "rotate"
-                    }
-                ],
-                "name": "Transforms (clone)"
             }
         ],
         "viewTypeFields": "fields",
