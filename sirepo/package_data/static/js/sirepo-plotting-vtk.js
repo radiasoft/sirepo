@@ -28,7 +28,7 @@ class Elevation {
     }
 
     constructor(axis) {
-        if (! Object.keys(Elevation.PLANES()).includes(axis)) {
+        if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(axis)) {
             throw new Error('Invalid axis: ' + axis);
         }
         this.axis = axis;
@@ -49,6 +49,49 @@ class Elevation {
         return this.labDimensions[dim].axis;
     }
 }
+
+class ObjectViews {
+    constructor() {
+        this.shapes = {};
+    }
+
+    addView(axis, shape) {
+        if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(axis)) {
+            throw new Error('Invalid axis: ' + axis);
+        }
+        this.shapes[Elevation.NAMES()[axis]] = shape;
+    }
+
+    view(axis) {
+        return this.shapes[axis];
+    }
+}
+
+class CuboidViews extends ObjectViews {
+    constructor(size) {
+        super();
+    }
+}
+
+class CylinderViews extends ObjectViews {
+    constructor(radius, width, height) {
+        super();
+    }
+}
+
+
+class RacetrackViews extends CuboidViews {
+    constructor(size, innerRadius, outerRadius) {
+        super(size);
+    }
+}
+
+class ExtrudedPolygonViews extends ObjectViews {
+    constructor(points, width, height) {
+        super();
+    }
+}
+
 
 /**
  * Collection of static methods and fields related to vtk
@@ -2097,7 +2140,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function updateDragShadow(obj, p) {
                 clearDragShadow();
                 const shape = $scope.source.shapeForObject(obj);
-                //shape.elev = ELEVATION_INFO[$scope.elevation];
                 shape.elev = ELEVS[$scope.elevation];
                 shape.x = shapeOrigin(shape, 'x'); // axes.x.scale.invert(p[0]) + shape.size[0]/ 2;
                 shape.y = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;

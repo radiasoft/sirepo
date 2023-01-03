@@ -631,6 +631,44 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return shape;
     };
 
+    self.objectViews = o => {
+
+        if (isGroup) {
+            const b = groupBounds(o.members.map(id => self.getObject(id)));
+            center = b.map(c => (c[0] + c[1]) / 2);
+            size = b.map(c => Math.abs(c[1] - c[0]));
+        }
+
+        const l = o.isButton === undefined ? o.layoutShape : 'rect';
+        let pts = {};
+        if (l === 'polygon') {
+            const k = radiaService.axisIndex(o.extrusionAxis);
+            const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
+            pts[o.extrusionAxis] = scaledPts;
+            const cp = center[k] + size[k] / 2.0;
+            const cm = center[k] - size[k] / 2.0;
+            let p = scaledPts.map(x => x[1]);
+            let [mx, mn] = [Math.max(...p), Math.min(...p)];
+            pts[o.widthAxis] = [[mx, cm], [mx, cp], [mn, cp], [mn, cm]];
+            p = scaledPts.map(x => x[0]);
+            [mx, mn] = [Math.max(...p), Math.min(...p)];
+            pts[o.heightAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
+        }
+        const shape = vtkPlotting.plotShape(
+            o.id, o.name,
+            center, size,
+            o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
+            l,
+            pts
+        );
+        if (isGroup) {
+            shape.outlineOffset = 5.0;
+            shape.strokeWidth = 0.75;
+            shape.draggable = false;
+        }
+        return shape;
+    };
+
     self.viewTitle = () => {
         return {
             dipole: (
