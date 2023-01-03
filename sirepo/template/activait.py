@@ -110,6 +110,7 @@ def _range_error(error):
         re.compile("Received a label value of (.*?) (which .*?[\]\)])"), error
     )
     if e:
+        # TODO (gurhar1133): -1 produced by ... might not be correct
         return f"{e.groups()[0]} produced by output scaling, {e.groups()[1]}"
     return error
 
