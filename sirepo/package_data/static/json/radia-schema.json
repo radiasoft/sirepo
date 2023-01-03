@@ -1,7 +1,12 @@
 {
     "appModes": {
        "default": {
-            "localRoute": "visualization"
+           "localRoute": "source",
+           "includeMode": true
+        },
+       "imported": {
+           "localRoute": "visualization",
+           "includeMode": true
         }
     },
     "constants": {
@@ -220,6 +225,10 @@
         }
     },
     "enum": {
+        "ApplicationMode": [
+            ["default", "default"],
+            ["imported", "imported"]
+        ],
         "ArmPosition": [
             ["0", "Top"],
             ["1", "Bottom"]
@@ -875,6 +884,7 @@
             "useObjectCenter": ["use clone center as origin", "Boolean", "1"]
         },
         "simulation": {
+            "appMode": ["", "ApplicationMode", "default"],
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "coordinateSystem": ["Coordinate System", "CoordinateSystem" , "standard", "Ordering of spatial variables. Use Standard for [x, y, z] or Beam for [width, height, length]"],
             "dipoleType": ["Dipole Type", "DipoleType", "dipoleBasic"],

@@ -2878,7 +2878,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
         controller: function($scope) {
             $scope.revertToOriginal = () => {
                 $scope.nav.revertToOriginal(
-                    appDataService.getApplicationMode(),
+                    appState.models.simulation.appMode || appDataService.getApplicationMode(),
                     appState.models.simulation.name);
             };
             $scope.simulationName = () => {

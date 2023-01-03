@@ -1188,12 +1188,15 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.geometryReport.name = data.models.simulation.name
     if new_sim_data is None:
         return
-    data.models.simulation.beamAxis = new_sim_data.beamAxis
-    data.models.simulation.enableKickMaps = new_sim_data.enableKickMaps
+    sim = data.models.simulation
+    if new_sim_data.get("dmpImportFile"):
+        sim.appMode = "imported"
+    sim.beamAxis = new_sim_data.beamAxis
+    sim.enableKickMaps = new_sim_data.enableKickMaps
     t = new_sim_data.get("magnetType", "freehand")
     s = new_sim_data[f"{t}Type"]
     m = data.models[s]
-    data.models.simulation.notes = _MAGNET_NOTES[t][s]
+    sim.notes = _MAGNET_NOTES[t][s]
     data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
         new_sim_data.beamAxis,
         -1.0,
@@ -1201,7 +1204,7 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.fieldLineoutAnimation.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
-    data.models.simulation.coordinateSystem = "beam"
+    sim.coordinateSystem = "beam"
     if s == "undulatorBasic":
         data.models.geometryReport.isSolvable = "0"
     f = (m.numPeriods + 0.5) * m.periodLength
@@ -1211,7 +1214,7 @@ def _prep_new_sim(data, new_sim_data=None):
         -f,
     ).tolist()
     data.models.electronTrajectoryReport.finalBeamPosition = f
-    data.models.simulation.enableKickMaps = "1"
+    sim.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
 
 
