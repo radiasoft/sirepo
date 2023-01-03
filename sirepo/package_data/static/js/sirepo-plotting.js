@@ -72,6 +72,7 @@ class PlotShape {
 
         this.affineTransform = new SIREPO.GEOMETRY.IdentityMatrix(4);
         this.axes = ['x', 'y'];
+        this.elev = null;
         this.draggable = true;
         this.links = [];
     }
@@ -124,6 +125,13 @@ class PlotShape {
         return linkRes;
     }
 
+    scaledCenter(dim, scaleX, scaleY) {
+        return {
+            x: scaleX(this.center[this.elev.x.axis]),
+            y: scaleY(this.center[this.elev.y.axis]),
+        };
+    }
+
     setCenter(coords) {
         this.setCoords(this.center, coords);
     }
@@ -132,22 +140,23 @@ class PlotShape {
         this.setCoords(this.size, coords);
     }
 
-    svgTransform() {
+    svgTransform(scaleX, scaleY, rotateAroundShapeCenter) {
         const e = this.affineTransform.toEuler(true);
-        const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev.axis)];
-        const c = shape.getCenterCoords();
-        const rc = shape.rotationMatrix.multiply(
+        const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(this.elev.axis)];
+        const c = this.getCenterCoords();
+        const rc = this.affineTransform.multiply(
             new SIREPO.GEOMETRY.Matrix([...c, 0])
         ).val;
         const t = {x: 0, y: 0};
-        if (! shape.rotateAroundShapeCenter) {
+        if (! rotateAroundShapeCenter) {
             for (const dim in t) {
-                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev[dim].axis);
-                t[dim] = axes[dim].scale(rc[i]) - axes[dim].scale(c[i]);
+                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(this.elev[dim].axis);
+                t[dim] = scaleX(rc[i]) - scaleY(c[i]);
             }
         }
+        const sc = this.scaledCenter(scaleX, scaleY);
         return `
-            rotate(${-angle},${shapeCenter(shape, 'x')},${shapeCenter(shape, 'y')}) 
+            rotate(${-angle},${sc.x},${sc.y}) 
             translate(${t.x},${t.y})
         `;
     }
