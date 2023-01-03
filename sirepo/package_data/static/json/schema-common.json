@@ -52,10 +52,6 @@
             "longName": "Raydata",
             "shortName": "Raydata"
         },
-        "rcscon": {
-            "longName": "RCSCON",
-            "shortName": "RCSCON"
-        },
         "shadow": {
             "longName": "SHADOW",
             "shortName": "SHADOW"

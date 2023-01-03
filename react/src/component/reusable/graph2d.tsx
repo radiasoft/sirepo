@@ -39,6 +39,38 @@ export function Graph2d(props: Graph2dConfig) {
         return constrainZoom(transformMatrix, gc.width, 'X');
     }
 
+    function visibleYDomain(xDomain, plots) {
+        let start = 0;
+        const p0 = plots[0].points;
+        for (let i = 0; i < p0.length; i++) {
+            if (p0[i].x > xDomain[0]) {
+                start = Math.max(start, i - 1);
+                break;
+            }
+        }
+        let end = p0.length - 1;
+        for (let i = end; i >= 0; i--) {
+            if (p0[i].x < xDomain[1]) {
+                end = Math.min(end, i + 1);
+                break;
+            }
+        }
+
+        let range = [p0[start].y, p0[start].y];
+        for (const p of plots) {
+            for (let i = start; i <= end; i++) {
+                const y = p.points[i].y;
+                if (y < range[0]) {
+                    range[0] = y;
+                }
+                else if (y > range[1]) {
+                    range[1] = y;
+                }
+            }
+        }
+        return range;
+    }
+
     return (
         <div ref={ref}>
             <Zoom<SVGRectElement>
@@ -57,8 +89,9 @@ export function Graph2d(props: Graph2dConfig) {
                 ]);
 
                 let yScale = Scale.scaleLinear({
-                    //TODO(pjm): scale y range over visible points
-                    domain: [yRange.min, yRange.max],
+                    domain: zoom.transformMatrix.scaleX == 1
+                        ? [yRange.min, yRange.max]
+                        : visibleYDomain(xScale.domain(), plots),
                     range: [gc.height, 0],
                     nice: true
                 });
@@ -68,11 +101,9 @@ export function Graph2d(props: Graph2dConfig) {
                     range: plots.map(plot => plot.color)
                 })
 
-                let strokeWidth = Math.max(2 / zoom.transformMatrix.scaleX, 1);
-
                 let toPath = (plot, index) => {
                     return (
-                        <Shape.LinePath key={index} data={plot.points} x={(d: Point2d) => xScale(d.x)} y={(d: Point2d) => yScale(d.y)} stroke={plot.color} strokeWidth={strokeWidth}/>
+                        <Shape.LinePath key={index} data={plot.points} x={(d: Point2d) => xScale(d.x)} y={(d: Point2d) => yScale(d.y)} stroke={plot.color} strokeWidth={2}/>
                     )
                 }
 
@@ -101,9 +132,7 @@ export function Graph2d(props: Graph2dConfig) {
                                     top={0}
                                 />
                                 <g clipPath="url(#graph-clip)">
-                                    <g transform={zoom.toString()} >
-                                        {paths}
-                                    </g>
+                                    {paths}
                                 </g>
                                 {/* zoom container must be contained within svg so visx localPoint() works correctly */}
                                 <svg><rect
