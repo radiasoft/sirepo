@@ -106,9 +106,7 @@ def _parse_activait_log_file(run_dir):
 
 
 def _range_error(error):
-    e = re.search(
-        re.compile("Received a label value of (.*?) (is .*?[\]\)])"), error
-    )
+    e = re.search(re.compile("Received a label value of (.*?) (is .*?[\]\)])"), error)
     if e:
         return f"Output scaling result {e.groups()[1]}"
     return error
