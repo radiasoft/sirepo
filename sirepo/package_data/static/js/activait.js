@@ -2101,7 +2101,7 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
 
     function featureRangesOn(display) {
         ['featureRangeMin', 'featureRangeMax'].forEach(f => {
-            panelState.showField('dataFile', f, display)
+            panelState.showField('dataFile', f, display);
         });
     }
 

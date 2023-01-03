@@ -4,7 +4,7 @@ import sirepo.numpy
 import sirepo.sim_data.activait
 from sklearn.preprocessing import MinMaxScaler
 
-#TODO (gurhar1133): clean this up
+
 {% if dataFile_inputsScaler != 'None' and dataFile_inputsScaler != "MinMaxScaler" %}
 from sklearn.preprocessing import {{ dataFile_inputsScaler }}
 {% endif %}

@@ -107,11 +107,10 @@ def _parse_activait_log_file(run_dir):
 
 def _range_error(error):
     e = re.search(
-        re.compile("Received a label value of (.*?) (which .*?[\]\)])"), error
+        re.compile("Received a label value of (.*?) (is .*?[\]\)])"), error
     )
     if e:
-        # TODO (gurhar1133): -1 produced by ... might not be correct
-        return f"{e.groups()[0]} produced by output scaling, {e.groups()[1]}"
+        return f"Output scaling result {e.groups()[1]}"
     return error
 
 
@@ -930,7 +929,6 @@ def _fit_animation(frame_args):
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
-    pkdp("\n\n data.models.dataFile={}", dm.dataFile)
     res, v = template_common.generate_parameters_file(data)
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
