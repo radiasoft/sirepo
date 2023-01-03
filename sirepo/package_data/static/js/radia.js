@@ -633,6 +633,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.objectViews = o => {
 
+        const isGroup = o.members && o.members.length;
         if (isGroup) {
             const b = groupBounds(o.members.map(id => self.getObject(id)));
             center = b.map(c => (c[0] + c[1]) / 2);
