@@ -36,6 +36,152 @@ class PlottingUtils {
 
 }
 
+class PlotShape {
+    constructor(
+        id,
+        name,
+        {
+            center=[0, 0, 0],
+            size=[1, 1, 1],
+            color=null,
+            alpha=1.0,
+            fillStyle=null,
+            strokeStyle=null,
+            dashes=null,
+            layoutShape='rect',
+            points=[],
+        }
+    ) {
+        this.alpha = alpha;
+        this.center = {
+            x: center[0], y: center[1]
+        };
+        this.color = color;
+        this.dashes = dashes;
+        this.fillStyle = fillStyle;
+        this.id = id;
+        this.layoutShape = layoutShape;
+        this.name = name;
+        this.points = points;
+        this.size = {
+            x: size[0], y: size[1]
+        };
+        this.strokeStyle = strokeStyle;
+        this.x = center[0] + SIREPO.SCREEN_INFO.x.direction * size[0] / 2;
+        this.y = center[1] + SIREPO.SCREEN_INFO.y.direction * size[1] / 2;
+
+        this.affineTransform = new SIREPO.GEOMETRY.IdentityMatrix(4);
+        this.axes = ['x', 'y'];
+        this.draggable = true;
+        this.links = [];
+    }
+
+    getCoords(obj) {
+        const coords = [];
+        for (const dim in obj) {
+            coords.push(obj[dim]);
+        }
+        return coords;
+    }
+
+    selectionId(includeHash=true) {
+        return `${(includeHash ? '#' : '')}shape-${this.id}`;
+    }
+
+    setCoords(obj, coords) {
+        Object.keys(obj).forEach(function(dim, i) {
+            obj[dim] = coords[i];
+        });
+    }
+
+    addLink(otherShape, linkFunction) {
+        this.links.push(this.plotShapeLink(otherShape, linkFunction));
+    }
+
+    getCenterCoords() {
+        return this.getCoords(this.center);
+    }
+
+    getSizeCoords() {
+        return this.getCoords(this.size);
+    }
+
+    // link this shape to another so that some aspect of the linked shape is tied to
+    // this one via a provided function
+    plotShapeLink(linkedShape, linkFunction) {
+        return {
+            shape: this,
+            linkedShape: linkedShape,
+            fn: linkFunction,
+        };
+    }
+
+    runLinks() {
+        const linkRes = [];
+        this.links.forEach(function (l) {
+            linkRes.push(l.fn(l.shape, l.linkedShape));
+        });
+        return linkRes;
+    }
+
+    setCenter(coords) {
+        this.setCoords(this.center, coords);
+    }
+
+    setSize(coords) {
+        this.setCoords(this.size, coords);
+    }
+
+    svgTransform() {
+        const e = this.affineTransform.toEuler(true);
+        const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev.axis)];
+        const c = shape.getCenterCoords();
+        const rc = shape.rotationMatrix.multiply(
+            new SIREPO.GEOMETRY.Matrix([...c, 0])
+        ).val;
+        const t = {x: 0, y: 0};
+        if (! shape.rotateAroundShapeCenter) {
+            for (const dim in t) {
+                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev[dim].axis);
+                t[dim] = axes[dim].scale(rc[i]) - axes[dim].scale(c[i]);
+            }
+        }
+        return `
+            rotate(${-angle},${shapeCenter(shape, 'x')},${shapeCenter(shape, 'y')}) 
+            translate(${t.x},${t.y})
+        `;
+    }
+
+}
+
+class PlotLine extends PlotShape {
+    constructor(
+        id,
+        name,
+        line,
+        {
+            color=null,
+            alpha=1.0,
+            strokeStyle=null,
+            dashes=null,
+        }
+    ) {
+        super(
+            id,
+            name,
+            {
+                color: color,
+                alpha: alpha,
+                strokeStyle: strokeStyle,
+                dashes: dashes,
+                layoutShape: 'line',
+                size: [0, 0],
+            }
+        );
+        this.line = line;
+    }
+}
+
 SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
@@ -735,7 +881,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         // link on shape to another so that some aspect of the linked shape is tied to
-        // the main shape via a prvoided function
+        // the main shape via a provided function
         plotShapeLink: function(shape, linkedShape, linkFunction) {
             return {
                 shape: shape,
@@ -3979,5 +4125,6 @@ SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState
 });
 
 SIREPO.PLOTTING = {
+    PlotShape: PlotShape,
     Utils: PlottingUtils,
 };
