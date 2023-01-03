@@ -169,7 +169,7 @@ def raise_control_for_user(qcall, uid, role, sim_type):
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", PKDict(sim_type=sim_type))
     if s == sirepo.auth_role.ModerationStatus.DENY:
-        sirepo.util.raise_forbidden(f"uid={uid} role={role} already denied")
+        raise sirepo.util.Forbidden(f"uid={uid} role={role} already denied")
     assert s is None, f"Unexpected status={s} for uid={uid} and role={role}"
     qcall.auth.require_email_user()
     raise sirepo.util.SRException("moderationRequest", PKDict(sim_type=sim_type))

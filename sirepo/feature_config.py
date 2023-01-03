@@ -40,7 +40,6 @@ _NON_PROD_FOSS_CODES = frozenset(
     (
         "myapp",
         "cloudmc",
-        "rcscon",
         "silas",
     )
 )
@@ -161,6 +160,9 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
+        # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
+        # react_sim_types=(("myapp", "jspec", "genesis", "warppba"), set, "React apps"),
+        react_sim_types=(("jspec", "genesis", "warppba"), set, "React apps"),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         slack_uri=(
             "https://slack.com/",

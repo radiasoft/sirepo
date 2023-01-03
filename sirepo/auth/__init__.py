@@ -171,7 +171,7 @@ class _Auth(sirepo.quest.Attr):
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
         if r in sirepo.auth_role.for_moderated_sim_types():
             auth_role_moderation.raise_control_for_user(self.qcall, u, r, t)
-        sirepo.util.raise_forbidden(f"uid={u} does not have access to sim_type={t}")
+        raise sirepo.util.Forbidden(f"uid={u} does not have access to sim_type={t}")
 
     def complete_registration(self, name=None):
         """Update the database with the user's display_name and sets state to logged-in.
@@ -457,7 +457,7 @@ class _Auth(sirepo.quest.Attr):
         if not self.qcall.auth_db.model("UserRole").has_role(
             role=sirepo.auth_role.ROLE_ADM,
         ):
-            sirepo.util.raise_forbidden(f"uid={u} role=ROLE_ADM not found")
+            raise sirepo.util.Forbidden(f"uid={u} role=ROLE_ADM not found")
 
     def require_auth_basic(self):
         m = _METHOD_MODULES["basic"]
@@ -472,7 +472,7 @@ class _Auth(sirepo.quest.Attr):
         i = self.require_user()
         m = self._qcall_bound_method()
         if m != METHOD_EMAIL:
-            sirepo.util.raise_forbidden(f"method={m} is not email for uid={i}")
+            raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
 
     def require_user(self):
         """Asserts whether user is logged in
@@ -490,7 +490,6 @@ class _Auth(sirepo.quest.Attr):
             pass
         elif s == _STATE_LOGGED_IN:
             if m in _cfg.methods:
-
                 f = getattr(_METHOD_MODULES[m], "validate_login", None)
                 if f:
                     pkdc("validate_login method={}", m)

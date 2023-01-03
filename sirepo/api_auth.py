@@ -46,7 +46,7 @@ def check_api_call(qcall, func):
         pass
     elif expect == a.INTERNAL_TEST:
         if not pkconfig.channel_in_internal_test():
-            sirepo.util.raise_forbidden("Only available in internal test")
+            raise sirepo.util.Forbidden("Only available in internal test")
     elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
         qcall.cookie.set_sentinel()
         if expect == a.ALLOW_COOKIELESS_REQUIRE_USER:

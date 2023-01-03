@@ -17,7 +17,6 @@ import re
 
 
 class CodeVar:
-
     _INFIX_TO_RPN = PKDict(
         {
             ast.Add: "+",
@@ -329,7 +328,6 @@ class CodeVarDeleteIterator(lattice.ModelIterator):
 
 
 class PurePythonEval:
-
     _OPS = PKDict(
         {
             "*": operator.mul,

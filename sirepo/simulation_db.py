@@ -172,13 +172,13 @@ def find_global_simulation(sim_type, sid, checked=False):
         return str(paths[0])
     if len(paths) == 0:
         if checked:
-            util.raise_not_found(
+            raise util.NotFound(
                 "{}/{}: global simulation not found",
                 sim_type,
                 sid,
             )
         return None
-    util.raise_not_found(
+    raise util.NotFound(
         "{}: more than one path found for simulation={}/{}",
         paths,
         sim_type,
@@ -387,7 +387,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, save=False, qcall=
     p = path or sim_data_file(sim_type, sid, qcall=qcall)
     if not p.exists():
         if path:
-            util.raise_not_found("path={} not found", path)
+            raise util.NotFound("path={} not found", path)
         raise util.SPathNotFound(sim_type=sim_type, sid=sid, uid=_uid_arg(qcall))
     data = None
     try:
@@ -913,6 +913,7 @@ def _init_schemas():
             "notifications",
             "localRoutes",
             "model",
+            "reactRoutes",
             "strings",
             "view",
         ]:
