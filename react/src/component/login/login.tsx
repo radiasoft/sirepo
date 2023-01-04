@@ -61,7 +61,7 @@ export const NavbarAuthStatus = (props) => {
             <NavToggleDropdown title={
                 <>{
                     loginStatus.avatarUrl ? (
-                        <Image src={loginStatus.avatarUrl} fluid rounded={true}/>
+                        <Image className="sr-login-avatar" src={loginStatus.avatarUrl} fluid rounded={true}/>
                     ) : (
                         <FontAwesomeIcon icon={Icon.faPerson}/>
                     )
@@ -187,7 +187,7 @@ export const LoginRoot = (props) => {
             <Container className="sm-12 lg-6">
                 <LoginNeedCompleteRegistration/>
             </Container>
-            
+
         )
     }
 
@@ -211,7 +211,7 @@ export function LogoutRoot(props) {
     useEffect(() => {
         fetch(`/auth-logout/${appName}`).then(() => navigate(new AppWrapper(appName).getAppRootLink()));
     })
-    
+
 
     return <>Singing out...</>
 }
