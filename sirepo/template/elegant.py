@@ -801,10 +801,6 @@ def remove_last_frame(run_dir):
     pass
 
 
-def rcscon_generate_lattice(data, qcall=None):
-    return _Generate(data, validate=False, qcall=qcall).sim()
-
-
 def save_sequential_report_data(data, run_dir):
     a = copy.deepcopy(data.models[data.report])
     a.frameReport = data.report

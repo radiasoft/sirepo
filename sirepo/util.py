@@ -435,7 +435,7 @@ def secure_filename(path):
         )
     )
     p = _INVALID_PATH_CHARS.sub("", "_".join(p.split())).strip("._")
-    return "file" if p is "" else p
+    return "file" if p == "" else p
 
 
 def setattr_imports(imports):

@@ -468,6 +468,7 @@ def process_simulation_list(res, path, data):
     sim = data["models"]["simulation"]
     res.append(
         PKDict(
+            appMode=sim.get("appMode", "default"),
             simulationId=_sim_from_path(path)[0],
             name=sim["name"],
             folder=sim["folder"],
@@ -912,6 +913,7 @@ def _init_schemas():
             "notifications",
             "localRoutes",
             "model",
+            "reactRoutes",
             "strings",
             "view",
         ]:
