@@ -12,9 +12,9 @@ import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react
 import { SimulationRoot } from "./simulation";
 import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
 import "./simbrowser.scss";
-import { SrNavbar } from "./reusable/navbar";
-import { titleCaseString } from "../utility/string";
-import { CAppName, CSimulationList } from "../data/appwrapper";
+import { NavbarLeftContainerId } from "./reusable/navbar";
+import { CSimulationList } from "../data/appwrapper";
+import { Portal } from "./reusable/portal";
 
 function buildSimulationsTree(simulations) {
     let root = {
@@ -66,7 +66,7 @@ function SimulationTreeViewFolder(props) {
     let childElements = [];
     for(let child of tree.children) {
         if(child.children) {
-            let [_, ...restPath] = path;
+            let [, ...restPath] = path;
             childElements.push(<SimulationTreeViewFolder key={joinPath(child.folder, child.name)} tree={child} path={restPath}/>);
         } else {
             childElements.push(<SimulationTreeViewItem key={joinPath(child.folder, child.name)} item={child}/>);
@@ -143,7 +143,7 @@ function SimulationIconViewItem(props) {
 
     let routeHelper = useContext(CRelativeRouterHelper);
 
-    let path = routeHelper.getRelativePath(joinPath('source', tree.simulationId))
+    let path = routeHelper.getRelativePath(tree.simulationId)
 
     return (
         <Link to={path}>
@@ -223,19 +223,14 @@ function SimulationRouteHeader(props) {
 function SimulationBrowser(props) {
     let { tree } = props;
 
-    let appName = useContext(CAppName);
-    let routeHelper = useContext(CRelativeRouterHelper);
-
     return (
         <SimulationFolderRouter tree={tree}>
             {({routedTree, routedPath}) => {
                 return (
                     <>
-                        <SrNavbar title={`${titleCaseString(appName)} Simulations`} titleHref={routeHelper.getCurrentPath()}>
-                            <Col className="float-right">
-                                <SimulationRouteHeader path={routedPath}/>
-                            </Col>
-                        </SrNavbar>
+                        <Portal targetId={NavbarLeftContainerId} className="order-4">
+                            <SimulationRouteHeader path={routedPath}/>
+                        </Portal>
                         <div className="sr-sim-browser-outer">
                             <Container fluid className="sr-sim-browser">
                                 <Row sm={2}>
@@ -257,13 +252,8 @@ function SimulationBrowser(props) {
 }
 
 function SimulationRootWrapper(props) {
-    let { simulationList } = props;
     let { id } = useParams();
-
-
-    let simulation = simulationList.find(sim => sim.simulationId === id);
-
-    return <SimulationRoot simulation={simulation}/> // TODO: error/missing handling
+    return <SimulationRoot key={id} simulationId={id}/> // TODO: error/missing handling
 }
 
 export function SimulationBrowserRoot(props) {
@@ -278,9 +268,9 @@ export function SimulationBrowserRoot(props) {
                 <Route path="/" element={
                     <Navigate to={`simulations`}></Navigate>
                 }/>
-                <Route path="/simulations" element={<SimulationBrowser tree={simulationTree} />}/>
+                <Route path="/simulations/*" element={<SimulationBrowser tree={simulationTree} />}/>
                 <Route path="/simulations/:simulationFolder/*" element={<SimulationBrowser tree={simulationTree} />}/>
-                <Route path="/source/:id/*" element={
+                <Route path="/:id/*" element={
                     <SimulationRootWrapper simulationList={simulationList}/>
                 }/>
             </Routes>

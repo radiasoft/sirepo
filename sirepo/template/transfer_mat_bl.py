@@ -55,7 +55,6 @@ def shadow_src_beam(
 
 
 def create_mat_rays(epsilon, ph_energy):
-
     # Use Shadow MC generation for 5 rays from source in beam object
     beam = shadow_src_beam(n_rays=5, ph_energy=ph_energy)
 
@@ -301,6 +300,7 @@ def tmat_calc(beam, epsilon):
 
 # ---
 # from https://github.com/radiasoft/rslight/blob/main/Gaussian/gauss_apert-01.py
+
 
 #  Propagate a 4x4 covariance matrix Sigma through a Gaussian aperture of (Gaussian, not not hard-edge)
 #  size parameters a_gx, a_gy

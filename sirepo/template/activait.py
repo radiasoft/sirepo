@@ -699,7 +699,6 @@ def _compute_csv_info(filename):
 
 
 def _compute_clusters(report, plot_data):
-
     from sirepo.analysis import ml
 
     method_params = PKDict(

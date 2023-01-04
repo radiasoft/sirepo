@@ -450,8 +450,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = f_path.begin
-    p2 = f_path.end
+    p1 = list(f_path.begin)
+    p2 = list(f_path.end)
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -918,6 +918,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
             height_dir=dirs.height_dir,
             length_dir=dirs.length_dir,
             width_dir=dirs.width_dir,
+            qcall=qcall,
         )
     v.objects = g.get("objects", [])
     _validate_objects(v.objects)
@@ -925,15 +926,6 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     for o in v.objects:
         if o.get("type"):
             o.super_classes = SCHEMA.model[o.type]._super
-        # read in h-m curves if applicable
-        o.h_m_curve = (
-            _read_h_m_file(o.materialFile)
-            if o.get("material", None)
-            and o.material == "custom"
-            and o.get("materialFile", None)
-            and o.materialFile
-            else None
-        )
     v.geomName = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
@@ -1113,7 +1105,6 @@ def _get_jay_points(o, stemmed_info):
 
 
 def _get_radia_objects(geom_objs, model):
-
     o = PKDict(groupedObjects=PKDict())
     o_ids = []
     for f in model:
@@ -1197,12 +1188,15 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.geometryReport.name = data.models.simulation.name
     if new_sim_data is None:
         return
-    data.models.simulation.beamAxis = new_sim_data.beamAxis
-    data.models.simulation.enableKickMaps = new_sim_data.enableKickMaps
+    sim = data.models.simulation
+    if new_sim_data.get("dmpImportFile"):
+        sim.appMode = "imported"
+    sim.beamAxis = new_sim_data.beamAxis
+    sim.enableKickMaps = new_sim_data.enableKickMaps
     t = new_sim_data.get("magnetType", "freehand")
     s = new_sim_data[f"{t}Type"]
     m = data.models[s]
-    data.models.simulation.notes = _MAGNET_NOTES[t][s]
+    sim.notes = _MAGNET_NOTES[t][s]
     data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
         new_sim_data.beamAxis,
         -1.0,
@@ -1210,7 +1204,7 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.fieldLineoutAnimation.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
-    data.models.simulation.coordinateSystem = "beam"
+    sim.coordinateSystem = "beam"
     if s == "undulatorBasic":
         data.models.geometryReport.isSolvable = "0"
     f = (m.numPeriods + 0.5) * m.periodLength
@@ -1220,8 +1214,16 @@ def _prep_new_sim(data, new_sim_data=None):
         -f,
     ).tolist()
     data.models.electronTrajectoryReport.finalBeamPosition = f
-    data.models.simulation.enableKickMaps = "1"
+    sim.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
+
+
+def _read_data(view_type, field_type):
+    res = _read_h5_path(_GEOM_FILE, _geom_h5_path(view_type, field_type))
+    if res:
+        res.idMap = _read_id_map()
+        res.solution = _read_solution()
+    return res
 
 
 def _read_h5_path(filename, h5path):
@@ -1240,23 +1242,16 @@ def _read_h5_path(filename, h5path):
     # propagate other errors
 
 
-def _read_h_m_file(file_name):
+def _read_h_m_file(file_name, qcall=None):
     h_m_file = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM)
+        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
+        qcall=qcall,
     )
     lines = [r for r in sirepo.csv.open_csv(h_m_file)]
     f_lines = []
     for l in lines:
         f_lines.append([float(c.strip()) for c in l])
     return f_lines
-
-
-def _read_data(view_type, field_type):
-    res = _read_h5_path(_GEOM_FILE, _geom_h5_path(view_type, field_type))
-    if res:
-        res.idMap = _read_id_map()
-        res.solution = _read_solution()
-    return res
 
 
 def _read_id_map():
@@ -1305,6 +1300,16 @@ def _read_solution():
     if not s:
         return None
     return PKDict(steps=s[3], time=s[0], maxM=s[1], maxH=s[2])
+
+
+def _read_stl_file(file_name, qcall=None):
+    path = str(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeSTL),
+            qcall=qcall,
+        )
+    )
+    return _create_stl_trimesh(path)
 
 
 def _rotate_axis(to_axis="z", from_axis="x"):
@@ -1451,7 +1456,7 @@ def _update_extruded(o):
     return o
 
 
-def _update_dipoleBasic(model, assembly, **kwargs):
+def _update_dipoleBasic(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     sz = assembly.pole.size
     return _update_geom_obj(
@@ -1459,10 +1464,11 @@ def _update_dipoleBasic(model, assembly, **kwargs):
         size=sz,
         center=sz * d.height_dir / 2 + model.gap * d.height_dir / 2,
         transforms=[_build_symm_xform(d.height_dir, "parallel")],
+        qcall=qcall,
     )
 
 
-def _update_dipoleC(model, assembly, **kwargs):
+def _update_dipoleC(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     mag_sz = numpy.array(assembly.magnet.size)
     pole_sz, pole_ctr = _fit_poles_in_c_bend(
@@ -1478,18 +1484,20 @@ def _update_dipoleC(model, assembly, **kwargs):
         center=pole_ctr,
         size=pole_sz,
         transforms=[_build_symm_xform(d.height_dir, "parallel")],
+        qcall=qcall,
     )
-    _update_geom_obj(assembly.magnet, center=mag_ctr)
+    _update_geom_obj(assembly.magnet, center=mag_ctr, qcall=qcall)
     _update_geom_obj(
         assembly.coil,
         center=mag_ctr
         + mag_sz * d.width_dir / 2
         - model.magnet.stemWidth * d.width_dir / 2,
+        qcall=qcall,
     )
     return assembly.magnetCoilGroup
 
 
-def _update_dipoleH(model, assembly, **kwargs):
+def _update_dipoleH(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     # magnetSize is for the entire magnet - split it here so we can apply symmetries
     mag_sz = numpy.array(model.magnetSize) / 2
@@ -1500,9 +1508,9 @@ def _update_dipoleH(model, assembly, **kwargs):
         pole_width=model.poleWidth,
         **kwargs,
     )
-    _update_geom_obj(assembly.pole, center=pole_ctr, size=pole_sz)
-    _update_geom_obj(assembly.coil, center=pole_ctr * d.height_dir)
-    _update_geom_obj(assembly.magnet, size=mag_sz, center=mag_sz / 2)
+    _update_geom_obj(assembly.pole, center=pole_ctr, size=pole_sz, qcall=qcall)
+    _update_geom_obj(assembly.coil, center=pole_ctr * d.height_dir, qcall=qcall)
+    _update_geom_obj(assembly.magnet, size=mag_sz, center=mag_sz / 2, qcall=qcall)
     # length and width symmetries
     assembly.corePoleGroup.transforms = [
         _build_symm_xform(d.length_dir, "perpendicular"),
@@ -1513,25 +1521,25 @@ def _update_dipoleH(model, assembly, **kwargs):
     return assembly.magnetCoilGroup
 
 
-def _update_geom_from_dipole(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+def _update_geom_from_dipole(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
     return pkinspect.module_functions("_update_")[f"_update_{model.dipoleType}"](
         model, _get_radia_objects(geom_objs, model), **kwargs
     )
 
 
-def _update_geom_from_freehand(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+def _update_geom_from_freehand(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
 
 
-def _update_geom_from_undulator(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+def _update_geom_from_undulator(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
     return pkinspect.module_functions("_update_")[f"_update_{model.undulatorType}"](
-        model, _get_radia_objects(geom_objs, model), **kwargs
+        model, _get_radia_objects(geom_objs, model), qcall=qcall, **kwargs
     )
 
 
-def _update_undulatorBasic(model, assembly, **kwargs):
+def _update_undulatorBasic(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
 
     sz = numpy.array(model.magnet.size)
@@ -1541,6 +1549,7 @@ def _update_undulatorBasic(model, assembly, **kwargs):
         assembly.magnet,
         center=sz / 2 + model.gap / 2 * d.height_dir + model.airGap * d.length_dir / 2,
         size=sz,
+        qcall=qcall,
     )
 
     assembly.magnet.transforms = (
@@ -1567,7 +1576,7 @@ def _update_undulatorBasic(model, assembly, **kwargs):
     return assembly.octantGroup
 
 
-def _update_undulatorHybrid(model, assembly, **kwargs):
+def _update_undulatorHybrid(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
 
     pole_x = model.poleCrossSection
@@ -1593,7 +1602,9 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         "segments",
     ):
         assembly.halfPole[f] = copy.deepcopy(assembly.pole[f])
-    _update_geom_obj(assembly.halfPole, center=pos + sz / 2 + gap_half_height, size=sz)
+    _update_geom_obj(
+        assembly.halfPole, center=pos + sz / 2 + gap_half_height, size=sz, qcall=qcall
+    )
     pos += sz * d.length_dir
 
     sz = (
@@ -1602,7 +1613,10 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         + (model.periodLength / 2 - model.poleLength) * d.length_dir
     )
     _update_geom_obj(
-        assembly.magnet, center=pos + sz / 2 + gap_half_height + gap_offset, size=sz
+        assembly.magnet,
+        center=pos + sz / 2 + gap_half_height + gap_offset,
+        size=sz,
+        qcall=qcall,
     )
     pos += sz * d.length_dir
 
@@ -1615,6 +1629,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         assembly.pole,
         center=pos + sz / 2 + gap_half_height,
         size=sz,
+        qcall=qcall,
     )
 
     pos = (model.poleLength + model.numPeriods * model.periodLength) / 2 * d.length_dir
@@ -1629,6 +1644,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
             + t.airGap * d.length_dir
             + gap_half_height
             + t.gapOffset * d.height_dir,
+            qcall=qcall,
         )
         pos += sz * d.length_dir + t.airGap * d.length_dir
 
@@ -1652,12 +1668,12 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     return assembly.octantGroup
 
 
-def _update_geom_objects(objects):
+def _update_geom_objects(objects, qcall=None):
     for o in objects:
-        _update_geom_obj(o)
+        _update_geom_obj(o, qcall=qcall)
 
 
-def _update_geom_obj(o, **kwargs):
+def _update_geom_obj(o, qcall=None, **kwargs):
     # uses the "shoelace formula" to calculate the area of a polygon
     def _poly_area(pts):
         t = numpy.array(pts).T
@@ -1700,12 +1716,7 @@ def _update_geom_obj(o, **kwargs):
     if "points" in o:
         o.area = _poly_area(o.points)
     if o.type == "stl":
-        path = str(
-            _SIM_DATA.lib_file_abspath(
-                _SIM_DATA.lib_file_name_with_type(o.file, SCHEMA.constants.fileTypeSTL)
-            )
-        )
-        mesh = _create_stl_trimesh(path)
+        mesh = _read_stl_file(o.file, qcall=qcall)
         for v in list(mesh.vertices):
             d.stlVertices.append(list(v))
         for f in list(mesh.faces):
@@ -1737,6 +1748,11 @@ def _update_geom_obj(o, **kwargs):
             s[0] = sort_points_clockwise(s[0])
         o.stlSlices = formattedSlices
         """
+    o.h_m_curve = (
+        _read_h_m_file(o.materialFile, qcall=qcall)
+        if o.get("material") == "custom" and o.get("materialFile")
+        else None
+    )
     return o
 
 

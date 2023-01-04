@@ -14,7 +14,6 @@ import re
 
 
 class ConfigParser:
-
     # D <name> <comment> or D & <comment>
     # DATAFILES <wildcard>
     # LINKIF <filename> <unitename>
@@ -249,10 +248,10 @@ class ParameterParser:
 
     def __parse_values(self, fields):
         enum_map = PKDict()
-        for (e, items) in self.schema.enum.items():
+        for e, items in self.schema.enum.items():
             enum_map[e] = PKDict({v[0].lower(): v[0] for v in items})
         res = PKDict()
-        for (f, v) in fields.items():
+        for f, v in fields.items():
             if f not in self.field_map:
                 pkdlog(f"Unknown field: {f}: {v}")
                 continue
@@ -474,7 +473,7 @@ class SetupParameterParser:
 
     def __init_schema(self):
         enums = PKDict()
-        for (name, values) in PKDict(
+        for name, values in PKDict(
             DiffuseBoundaryType=["dirichlet", "neumann", "outflow", "zero-gradient"],
             GridBoundaryType=[
                 "reflect",

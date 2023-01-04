@@ -18,7 +18,6 @@ import zipfile
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     COMPILE_LOG = "compile.log"
     FLASH_PAR_FILE = "flash.par"
     SETUP_LOG = "setup.log"

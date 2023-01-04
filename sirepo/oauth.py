@@ -41,7 +41,7 @@ def check_authorized_callback(qcall, github_auth=False):
         return c, t
     except Exception as e:
         pkdlog("url={} exception={} stack={}", qcall.sreq.http_request_uri, e, pkdexc())
-    sirepo.util.raise_forbidden(f"user denied access from sim_type={t}")
+    raise sirepo.util.Forbidden(f"user denied access from sim_type={t}")
 
 
 def raise_authorize_redirect(qcall, sim_type, github_auth=False):

@@ -105,7 +105,7 @@ class API(sirepo.quest.API):
             finally:
                 if t:
                     pykern.pkio.unchecked_remove(t)
-            raise sirepo.util.raise_not_found(
+            raise sirepo.util.NotFound(
                 f"frame={frame} not found sid={req.id} sim_type={req.type}",
             )
 

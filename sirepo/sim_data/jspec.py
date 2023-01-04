@@ -12,7 +12,6 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     ANALYSIS_ONLY_FIELDS = frozenset(("notes",))
 
     JSPEC_ELEGANT_TWISS_FILENAME = "twiss_output.filename.sdds"
