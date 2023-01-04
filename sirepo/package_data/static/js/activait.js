@@ -1117,7 +1117,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             };
 
             function setImageFromUriIndex(index) {
-                if ($('.srw-processed-image').length) {
+                if ($('.srw-processed-image').length && uris) {
                     $('.srw-processed-image')[0].src = uris[index];
                 }
             }
