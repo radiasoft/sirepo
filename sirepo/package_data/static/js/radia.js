@@ -601,6 +601,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
 
         const l = o.isButton === undefined ? o.layoutShape : 'rect';
+        let s;
+        if (l === 'rect') {
+            s = new SIREPO.PLOTTING.PlotRect(o.id, o.name, center, size);
+            s.setAlpha(0.3);
+            s.setColor(o.color);
+            if (isGroup) {
+                s.setFillStyle(null);
+                s.setStrokeStyle('dashed');
+                s.setOutlineOffset(5.0);
+                s.setStrokeWidth(0.75);
+                s.setDraggable(false);
+            }
+            return s;
+        }
+
         let pts = {};
         if (l === 'polygon') {
             const k = radiaService.axisIndex(o.extrusionAxis);
@@ -622,11 +637,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             l,
             pts
         );
-        if (isGroup) {
-            shape.outlineOffset = 5.0;
-            shape.strokeWidth = 0.75;
-            shape.draggable = false;
-        }
         return shape;
     };
 
@@ -749,7 +759,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         }
 
-        srdbg(o.id, txArr, m);
+        //srdbg(o.id, txArr, m);
         baseShape.affineMatrix = m;
         // apply non-copying transforms to the object and its members (if any)
         composeFn(txArr)(baseShape, baseShape);

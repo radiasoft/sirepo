@@ -36,39 +36,22 @@ class PlottingUtils {
 
 }
 
-class PlotShape {
+class AbstractPlotShape {
     constructor(
         id,
         name,
-        {
-            center=[0, 0, 0],
-            size=[1, 1, 1],
-            color=null,
-            alpha=1.0,
-            fillStyle=null,
-            strokeStyle=null,
-            dashes=null,
-            layoutShape='rect',
-            points=[],
-        }
+        layoutShape
     ) {
-        this.alpha = alpha;
-        this.center = {
-            x: center[0], y: center[1]
-        };
-        this.color = color;
-        this.dashes = dashes;
-        this.fillStyle = fillStyle;
+        this.alpha = 1.0;
+        this.color = null;
+        this.dashes = null;
+        this.fillStyle = 'solid';
         this.id = id;
         this.layoutShape = layoutShape;
         this.name = name;
-        this.points = points;
-        this.size = {
-            x: size[0], y: size[1]
-        };
-        this.strokeStyle = strokeStyle;
-        this.x = center[0] + SIREPO.SCREEN_INFO.x.direction * size[0] / 2;
-        this.y = center[1] + SIREPO.SCREEN_INFO.y.direction * size[1] / 2;
+        this.outlineOffset = 0.0;
+        this.strokeStyle = 'solid';
+        this.strokeWidth = 1.0;
 
         this.affineTransform = new SIREPO.GEOMETRY.IdentityMatrix(4);
         this.axes = ['x', 'y'];
@@ -77,34 +60,16 @@ class PlotShape {
         this.links = [];
     }
 
+    addLink(otherShape, linkFunction) {
+        this.links.push(this.plotShapeLink(otherShape, linkFunction));
+    }
+
     getCoords(obj) {
         const coords = [];
         for (const dim in obj) {
             coords.push(obj[dim]);
         }
         return coords;
-    }
-
-    selectionId(includeHash=true) {
-        return `${(includeHash ? '#' : '')}shape-${this.id}`;
-    }
-
-    setCoords(obj, coords) {
-        Object.keys(obj).forEach(function(dim, i) {
-            obj[dim] = coords[i];
-        });
-    }
-
-    addLink(otherShape, linkFunction) {
-        this.links.push(this.plotShapeLink(otherShape, linkFunction));
-    }
-
-    getCenterCoords() {
-        return this.getCoords(this.center);
-    }
-
-    getSizeCoords() {
-        return this.getCoords(this.size);
     }
 
     // link this shape to another so that some aspect of the linked shape is tied to
@@ -125,19 +90,46 @@ class PlotShape {
         return linkRes;
     }
 
-    scaledCenter(dim, scaleX, scaleY) {
-        return {
-            x: scaleX(this.center[this.elev.x.axis]),
-            y: scaleY(this.center[this.elev.y.axis]),
-        };
+    selectionId(includeHash=true) {
+        return `${(includeHash ? '#' : '')}shape-${this.id}`;
     }
 
-    setCenter(coords) {
-        this.setCoords(this.center, coords);
+    setCoords(obj, coords) {
+        Object.keys(obj).forEach(function(dim, i) {
+            obj[dim] = coords[i];
+        });
     }
 
-    setSize(coords) {
-        this.setCoords(this.size, coords);
+    setAlpha(alpha) {
+        this.alpha = alpha;
+    }
+
+    setColor(color) {
+        this.color = color;
+    }
+
+    setDashes(dashes) {
+        this.dashes = dashes;
+    }
+
+    setDraggable(isDraggable) {
+        this.draggable = isDraggable;
+    }
+
+    setFillStyle(style) {
+        this.fillStyle = style;
+    }
+
+    setOutlineOffset(offset) {
+        this.outlineOffset = offset;
+    }
+
+    setStrokeStyle(style) {
+        this.strokeStyle = style;
+    }
+
+    setStrokeWidth(width) {
+        this.strokeWidth = width;
     }
 
     svgTransform(scaleX, scaleY, rotateAroundShapeCenter) {
@@ -163,33 +155,139 @@ class PlotShape {
 
 }
 
-class PlotLine extends PlotShape {
+class AbstractPlotShape2D extends AbstractPlotShape {
     constructor(
         id,
         name,
-        line,
-        {
-            color=null,
-            alpha=1.0,
-            strokeStyle=null,
-            dashes=null,
-        }
+        layoutShape,
+        center
     ) {
         super(
             id,
             name,
-            {
-                color: color,
-                alpha: alpha,
-                strokeStyle: strokeStyle,
-                dashes: dashes,
-                layoutShape: 'line',
-                size: [0, 0],
-            }
+            layoutShape
+        );
+        this.center = {
+            x: center[0],
+            y: center[1],
+        };
+   }
+
+    getCenterCoords() {
+        return this.getCoords(this.center);
+    }
+
+    scaledCenter(dim, scaleX, scaleY) {
+        return {
+            x: scaleX(this.center[this.elev.x.axis]),
+            y: scaleY(this.center[this.elev.y.axis]),
+        };
+    }
+
+    setCenter(coords) {
+        this.setCoords(this.center, coords);
+    }
+}
+
+// probably a placeholder until elevations get worked out
+class AbstractPlotShape3D extends AbstractPlotShape2D {
+    constructor(
+        id,
+        name,
+        layoutShape,
+        center
+    ) {
+        super(id, name, layoutShape, center);
+        this.axes = ['x', 'y', 'z'];
+        this.center = {
+            x: center[0],
+            y: center[1],
+            z: center[2],
+        };
+   }
+
+    getCenterCoords() {
+        return this.getCoords(this.center);
+    }
+
+    scaledCenter(dim, scaleX, scaleY) {
+        return {
+            x: scaleX(this.center[this.elev.x.axis]),
+            y: scaleY(this.center[this.elev.y.axis]),
+        };
+    }
+
+    setCenter(coords) {
+        this.setCoords(this.center, coords);
+    }
+}
+
+class PlotLine extends AbstractPlotShape {
+    constructor(
+        id,
+        name,
+        line
+    ) {
+        super(
+            id,
+            name,
+            'line'
         );
         this.line = line;
     }
 }
+
+class PlotPolygon extends AbstractPlotShape2D {
+    constructor(
+        id,
+        name,
+        center,
+        size
+    ) {
+        super(id, name, 'rect', center);
+        this.size = {
+            x: size[0],
+            y: size[1],
+        };
+        this.x = center[0] + size[0] / 2;
+        this.y = center[1] - size[1] / 2;
+    }
+
+    getSizeCoords() {
+        return this.getCoords(this.size);
+    }
+
+    setSize(coords) {
+        this.setCoords(this.size, coords);
+    }
+}
+
+class PlotRect extends AbstractPlotShape3D {
+    constructor(
+        id,
+        name,
+        center,
+        size
+    ) {
+        super(id, name, 'rect', center);
+        this.size = {
+            x: size[0],
+            y: size[1],
+            z: size[2],
+        };
+        this.x = center[0] + size[0] / 2;
+        this.y = center[1] - size[1] / 2;
+    }
+
+    getSizeCoords() {
+        return this.getCoords(this.size);
+    }
+
+    setSize(coords) {
+        this.setCoords(this.size, coords);
+    }
+}
+
 
 SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
@@ -4134,6 +4232,7 @@ SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState
 });
 
 SIREPO.PLOTTING = {
-    PlotShape: PlotShape,
+    PlotLine: PlotLine,
+    PlotRect: PlotRect,
     Utils: PlottingUtils,
 };
