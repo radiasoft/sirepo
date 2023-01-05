@@ -696,12 +696,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.shapes.push(baseShape);
         }
 
-        let m = new SIREPO.GEOMETRY.IdentityMatrix(4);
         let txArr = [];
         let plIds = [];
         // probably better to create a transform and let svg do this work
         for (const xform of o.transforms) {
-            srdbg(o.id, 'xform', xform);
+            //srdbg(o.id, 'xform', xform);
             const t = xform.type;
             // draw the shapes for symmetry planes once
             if (t === 'symmetryTransform') {
@@ -711,23 +710,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             for (const xShape of [baseShape, ...getVirtualShapes(baseShape, plIds)]) {
                 // these transforms do not copy the object
                 if (t === 'rotate') {
-                    srdbg('add r to', xShape);
-                    m = m.multiply(
-                        new SIREPO.GEOMETRY.RotationMatrix(
-                            radiaService.scaledArray(xform.axis),
-                            radiaService.scaledArray(xform.center),
-                            Math.PI * parseFloat(xform.angle) / 180.0
-                        )
+                    const r = new SIREPO.GEOMETRY.RotationMatrix(
+                        radiaService.scaledArray(xform.axis),
+                        radiaService.scaledArray(xform.useObjectCenter === "1" ? o.center : xform.center),
+                        Math.PI * parseFloat(xform.angle) / 180.0
                     );
+                    xShape.addTransform(r);
                     txArr.push(rotateFn(xform, 1));
                     //rotateFn(xform, 1)(xShape, xShape);
                     continue;
                 }
-                // deprecated
-                //if (xform.model === 'translate') {
-                //    txArr.push(offsetFn(xform, 1));
-                //    continue;
-                //}
 
                 let xo = self.getObject(xShape.id);
                 let linkTx;
@@ -751,7 +743,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
 
                 if (t === 'symmetryTransform') {
-                    srdbg('add symm tto', xShape);
                     linkTx = mirrorFn(xform);
                     const txs = addTxShape(xShape, xform, linkTx);
                     transformMembers(xo, xform, linkTx);
@@ -759,8 +750,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         }
 
-        //srdbg(o.id, txArr, m);
-        baseShape.affineMatrix = m;
         // apply non-copying transforms to the object and its members (if any)
         composeFn(txArr)(baseShape, baseShape);
         for (const m of getMembers(o)) {

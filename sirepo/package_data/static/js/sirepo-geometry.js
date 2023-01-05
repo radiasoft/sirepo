@@ -77,6 +77,15 @@ class GeometryUtils {
             return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
         });
     }
+
+    static toDegrees(rad) {
+        return 180.0 * rad / Math.PI;
+    }
+
+    static toRadians(deg) {
+        return Math.PI * deg / 180.0;
+    }
+
 }
 
 /**
@@ -474,6 +483,17 @@ class SquareMatrix extends Matrix {
         return new SquareMatrix(m);
     }
 
+    /**
+     * Trace of this matrix
+     */
+    trace() {
+        return this.val.reduce((p, n, i) => p + n[i], 0);
+    }
+
+    /**
+     * Transpose of this matrix, as a SquareMatrix
+     * @returns {SquareMatrix}
+     */
     transpose() {
         return new SquareMatrix(super.transpose().val);
     }
@@ -516,6 +536,10 @@ class AffineMatrix extends SquareMatrix {
 
     getRotation() {
         return RotationMatrix.fromVal(this.val);
+    }
+
+    getTranslation() {
+        return new TranslationMatrix(this.transpose().val[3].slice(0, 3));
     }
 }
 
@@ -576,6 +600,14 @@ class RotationMatrix extends AffineMatrix {
         super(m);
     }
 
+    /**
+     * The 3x3 submatrix that excludes translations
+     * @returns {SquareMatrix}
+     */
+    subMatrix() {
+        return new SquareMatrix(this.minor(3, 3).val);
+    }
+
     toEuler(toDegrees=false) {
         let theta = -Math.asin(this.val[2][0]);
         const c = Math.cos(theta);
@@ -595,14 +627,36 @@ class RotationMatrix extends AffineMatrix {
             psi = Math.atan2(this.val[2][1] / c, this.val[2][2] / c);
             phi = Math.atan2(this.val[1][0] / c, this.val[0][0] / c);
         }
-        return [psi, theta, phi].map(x => toDegrees ? 180.0 * x / Math.PI : x);
+        return [psi, theta, phi].map(x => toDegrees ? GeometryUtils.toDegrees(x) : x);
+    }
+
+    toAxisAngle(toDegrees=false) {
+        const s = this.subMatrix();
+        const angle = Math.acos((s.trace() - 1) / 2);
+        const v = s.val;
+        // arbitrary axis
+        let axis = [0, 0, 1];
+        if (Math.abs(angle) === Math.PI) {
+            // special case
+        }
+        if (angle !== 0) {
+            axis = [
+                (v[2][1] - v[1][2]),
+                (v[0][2] - v[2][0]),
+                (v[1][0] - v[0][1])
+            ];
+        }
+        return {
+            axis: VectorUtils.normalize(axis),
+            angle: toDegrees ? GeometryUtils.toDegrees(angle) : angle,
+        };
     }
 }
 
 /**
  * Affine transformation for reflections
  */
-class ReflectionMatrix extends SquareMatrix {
+class ReflectionMatrix extends AffineMatrix {
     /**
      * @param {Plane} plane - reflection plane
      */
@@ -629,12 +683,10 @@ class TranslationMatrix extends AffineMatrix {
      * @param {[number]} deltas - translation in each direction
      */
     constructor(deltas) {
-        super([
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 0, 1],
-            [...deltas, 1]
-        ]);
+        super();
+        for (let i in deltas) {
+            this.val[i][3] = deltas[i];
+        }
         this.deltas = deltas;
     }
 }

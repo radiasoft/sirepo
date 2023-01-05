@@ -2084,17 +2084,26 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeRotation(shape) {
-                const e = shape.rotationMatrix.toEuler(true);
+                //srdbg(shape.affineTransform);
+                const r = shape.affineTransform.getRotation();
+                srdbg(r.toAxisAngle(true));
+                const tl = shape.affineTransform.getTranslation();
+                const d = tl.deltas;
+                const e = r.toEuler(true);
                 const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev.axis)];
                 const c = shape.getCenterCoords();
-                const rc = shape.rotationMatrix.multiply(
+                const tc = c.map((x, i) => x + d[i]);
+                const rc = r.multiply(
                     new SIREPO.GEOMETRY.Matrix([...c, 0])
                 ).val;
+                //srdbg('cttr', c, 'rot cttr', rc, 'a', angle, 'd', d, 'tc', tc);
                 const t = {x: 0, y: 0};
                 if (! shape.rotateAroundShapeCenter) {
                     for (const dim in t) {
                         const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev[dim].axis);
-                        t[dim] = axes[dim].scale(rc[i]) - axes[dim].scale(c[i]);
+                        const s = axes[dim].scale;
+                        t[dim] = s(rc[i]) - s(c[i]);
+                        //t[dim] = s(d[i]);
                     }
                 }
                 return `
@@ -2102,7 +2111,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     translate(${t.x},${t.y})
                 `;
             }
-
 
             function linePoints(shape) {
                 if (! shape.line || shape.elev.coordPlane !== shape.coordPlane) {
