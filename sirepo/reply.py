@@ -472,7 +472,7 @@ class _SReply(sirepo.quest.Attr):
             and r not in _RELOAD_JS_ROUTES
         ):
             pkdc("POST response={} route={} params={}", SR_EXCEPTION_STATE, r, p)
-            return gen_json(
+            return self.gen_json(
                 PKDict(
                     {
                         STATE: SR_EXCEPTION_STATE,
@@ -489,7 +489,7 @@ class _SReply(sirepo.quest.Attr):
         )
 
     def _gen_exception_reply_Unauthorized(self, args):
-        return _gen_http_exception(401)
+        return self._gen_http_exception(401)
 
     def _gen_exception_reply_UserDirNotFound(self, args):
         return self.qcall.auth.user_dir_not_found(**args)

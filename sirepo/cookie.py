@@ -30,7 +30,10 @@ _cfg = None
 
 
 def init_quest(qcall):
-    qcall.attr_set("cookie", _Cookie(qcall))
+    c = _Cookie(qcall)
+    qcall.attr_set("cookie", c)
+    if qcall.bucket_unchecked_get("in_srunit"):
+        c.set_sentinel()
 
 
 class _Cookie(sirepo.quest.Attr):
@@ -75,13 +78,16 @@ class _Cookie(sirepo.quest.Attr):
         self.__values[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
 
     def set_value(self, key, value):
-        value = str(value)
+        v = str(value)
         assert (
-            not _SERIALIZER_SEP in value
-        ), 'value must not container serializer sep "{}"'.format(_SERIALIZER_SEP)
+            not _SERIALIZER_SEP in v
+        ), f"value={v} must not contain _SERIALIZER_SEP={_SERIALIZER_SEP}"
         assert (
-            key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in self.__values
-        ), "key={} is _COOKIE_SENTINEL={_COOKIE_SENTINEL} or exist in self".format(key)
+            key != _COOKIE_SENTINEL
+        ), f"key={key} is _COOKIE_SENTINEL={_COOKIE_SENTINEL}"
+        assert (
+            _COOKIE_SENTINEL in self.__values
+        ), f"_COOKIE_SENTINEL not set self keys={sorted(self.__values.keys())} for key={key}"
         self.__values[key] = value
 
     def unchecked_get_value(self, key, default=None):
