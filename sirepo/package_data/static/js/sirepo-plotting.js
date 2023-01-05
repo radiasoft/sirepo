@@ -53,7 +53,7 @@ class AbstractPlotShape {
         this.strokeStyle = 'solid';
         this.strokeWidth = 1.0;
 
-        this.affineTransform = new SIREPO.GEOMETRY.IdentityMatrix(4);
+        this.affineTransform = new SIREPO.GEOMETRY.AffineMatrix();
         this.axes = ['x', 'y'];
         this.elev = null;
         this.draggable = true;
@@ -62,6 +62,10 @@ class AbstractPlotShape {
 
     addLink(otherShape, linkFunction) {
         this.links.push(this.plotShapeLink(otherShape, linkFunction));
+    }
+
+    addTransform(t) {
+        this.affineTransform = this.affineTransform.multiplyAffine(t);
     }
 
     getCoords(obj) {
