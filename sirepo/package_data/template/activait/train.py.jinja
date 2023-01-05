@@ -37,7 +37,9 @@ testx = test[:, in_idx]
 
 {% endif %}
 {% if image_data %}
-p = split.test_gen.outScaler.inverse_transform(model.predict(x=testx))
+m = model.predict(x=testx)
+print(m)
+p = split.test_gen.outScaler.inverse_transform(m)
 {% else %}
 p = model.predict(x=testx)
 {% endif %}
