@@ -36,6 +36,12 @@ testy = test[:, out_idx]
 testx = test[:, in_idx]
 
 {% endif %}
+{% if image_data %}
+p = split.test_gen.outScaler.inverse_transform(model.predict(x=testx))
+{% else %}
+p = model.predict(x=testx)
+{% endif %}
+print("p=", p)
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', testy)
-np.save('{{ predictFile }}', model.predict(x=testx))
+np.save('{{ predictFile }}', p)

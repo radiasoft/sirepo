@@ -906,6 +906,9 @@ def _fit_animation(frame_args):
                 header.append(info.header[i])
     x = _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx]
     y = _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx]
+
+    pkdp("\n\n\n x={}\n\n", x)
+    pkdp("\n\ny={}\n\n", y)
     _write_csv_for_download(
         PKDict(predict=x, test=y),
         f"fitAnimation{idx}.csv",

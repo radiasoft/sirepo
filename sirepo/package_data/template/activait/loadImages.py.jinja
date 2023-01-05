@@ -177,4 +177,5 @@ with h5py.File("{{ dataFile }}", "r") as f:
 testy = []
 for y in split.test_gen.set_return_value("y"):
     testy += y.tolist()
+testy = split.test_gen.outScaler.inverse_transform(testy)
 testx = split.test_gen.set_return_value("x")
