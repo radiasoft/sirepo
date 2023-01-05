@@ -17,5 +17,11 @@
 
 .sr-navbar {
     padding: 0 !important;
-    height: 60px;
+    height: 50px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.sr-navbar-container .nav-tabs .nav-item .nav-link {
+  margin-top: 5px;
+  padding-bottom: 14px;
 }
