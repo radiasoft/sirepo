@@ -366,7 +366,7 @@ def stateful_compute_sample_images(data):
         if info.dtypeKind[idx] in {"U", "S"}:
             io.output.label_path = info.header[idx]
             break
-    pkdp("\n\n\n\nHELLO f={}\n\n\n", data.args)
+
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
         x = f[io.input.path]
         y = f[io.output.path]
