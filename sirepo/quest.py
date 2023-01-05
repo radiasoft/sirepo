@@ -125,9 +125,9 @@ class API(pykern.quest.API):
                 assert k not in self
                 self[k] = v
         self._bucket[_PARENT_ATTR] = qcall
-        self._bucket.in_srunit = qcall.in_srunit
+        self._bucket.in_srunit = qcall.bucket_unchecked_get("in_srunit")
         if "sreply" in qcall:
-            sirepo.sreply.init_quest(qcall)
+            qcall.sreply.init_child(self)
 
     def parse_json(self):
         return http_request.parse_json(self)

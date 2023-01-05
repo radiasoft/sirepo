@@ -121,6 +121,22 @@ class _SReply(sirepo.quest.Attr):
             r.set_cookie(**a.cookie)
         return _cache_control(r)
 
+    def from_api(self, res):
+        if isinstance(res, _SReply):
+            return res
+        if isinstance(res, dict):
+            return self.gen_json(res)
+        raise AssertionError(f"invalid return type={type(res)} from qcall={self.qcall}")
+
+    def from_kwargs(self, **kwargs):
+        """Saves reply attributes
+
+        While replies are global (qcall.sreply), the attributes
+
+        """
+        self.__attrs = PKDict(kwargs).pksetdefault(headers=PKDict)
+        return self
+
     def gen_exception(self, exc):
         """Generate from an Exception
 
@@ -175,11 +191,13 @@ class _SReply(sirepo.quest.Attr):
         if re.search(r"^\.\w+$", filename):
             # the safe filename has no basename, prefix with "download"
             filename = "download" + filename
-        return self.headers_for_no_cache(
-            f()._as_attachment(
+        return (
+            f()
+            ._as_attachment(
                 content_type or self._guess_content_type(filename)[0],
                 filename,
-            ),
+            )
+            .headers_for_no_cache()
         )
 
     def gen_json(self, value, pretty=False, response_kwargs=None):
@@ -281,23 +299,12 @@ class _SReply(sirepo.quest.Attr):
         self.__attrs.cache = PKDict(cache=False)
         return self
 
-    def from_api(self, res):
-        if isinstance(res, _SReply):
-            return res
-        if isinstance(res, dict):
-            return self.gen_json(res)
-        raise AssertionError(f"invalid return type={type(res)} from qcall={self.qcall}")
+    def init_child(self, qcall):
+        """Initialize child from parent (self)"""
+        # nothing to do with parent
+        init_quest(qcall)
 
-    def from_kwargs(self, **kwargs):
-        """Saves reply attributes
-
-        While replies are global (qcall.sreply), the attributes
-
-        """
-        self.__attrs = PKDict(kwargs).pksetdefault(headers=PKDict)
-        return self
-
-    def render_html(path, want_cache=True, attrs=None):
+    def render_html(self, path, want_cache=True, attrs=None):
         """Call sirepo.html.render with path
 
         Args:
@@ -314,9 +321,7 @@ class _SReply(sirepo.quest.Attr):
             **(attrs or PKDict()),
         )
         return (
-            self.headers_for_cache(r, path=path)
-            if want_cache
-            else self.headers_for_no_cache(r)
+            r.headers_for_cache(path=path) if want_cache else r.headers_for_no_cache()
         )
 
     def render_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
@@ -488,11 +493,11 @@ class _SReply(sirepo.quest.Attr):
             status=401,
         ).header_set("WWW-Authenticate", 'Basic realm="*"')
 
-    def _gen_http_exception(code):
+    def _gen_http_exception(self, code):
         x = simulation_db.SCHEMA_COMMON["customErrors"].get(str(code))
         if x:
             try:
-                return render_html(
+                return self.render_html(
                     path=sirepo.resource.static("html", x["url"]),
                     want_cache=False,
                     attrs=PKDict(status=code),
