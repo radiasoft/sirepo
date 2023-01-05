@@ -119,11 +119,12 @@ class _SReply(sirepo.quest.Attr):
             return res
 
         a = self.__attrs
-        if isinstance(a.content, PKDict):
+        c = a.get("content", "")
+        if isinstance(c, PKDict):
             r = _file()
         else:
             r = cls(
-                response=a.get("content"),
+                response=c,
                 mimetype=a.get("content_type"),
                 status=a.get("status"),
             )
