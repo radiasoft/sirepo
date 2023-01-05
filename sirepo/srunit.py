@@ -34,10 +34,12 @@ _DB_DIR = "db"
 
 
 @contextlib.contextmanager
-def quest_start():
+def quest_start(want_user=False):
     from sirepo import quest
 
     with quest.start(in_srunit=True) as qcall:
+        if want_user:
+            qcall.auth.login(is_mock=True)
         yield qcall
 
 
@@ -126,52 +128,6 @@ def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_DEFAULT_CODES, cfg
     return fc.sr_sim_data(sim_name=sim_name, sim_type=sim_type), fc
 
 
-def test_in_request(
-    op,
-    cfg=None,
-    before_request=None,
-    headers=None,
-    want_cookie=True,
-    want_user=True,
-    **kwargs,
-):
-    fc = flask_client(cfg, **kwargs)
-    try:
-        from pykern import pkunit
-        from pykern import pkcollections
-        from sirepo import flask
-
-        if before_request:
-            before_request(fc)
-        setattr(
-            flask.app(),
-            server.SRUNIT_TEST_IN_REQUEST,
-            PKDict(op=op, want_cookie=want_cookie, want_user=want_user),
-        )
-        from sirepo import uri_router
-
-        r = fc.get(
-            uri_router.srunit_uri,
-            headers=headers,
-        )
-        pkunit.pkeq(200, r.status_code, "FAIL: unexpected status={}", r.status)
-        if r.mimetype == "text/html":
-            m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(r.data))
-            if m:
-                pkunit.pkfail("unexpected redirect={}", m.group(1))
-            pkunit.pkfail("unexpected html response={}", r.data)
-        d = pkcollections.json_load_any(r.data)
-        pkunit.pkeq(
-            "ok", d.get("state"), "FAIL: expecting state=ok, but got data={}", d
-        )
-    finally:
-        try:
-            delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)
-        except AttributeError:
-            pass
-    return r
-
-
 class UwsgiClient(PKDict):
     def __init__(self, env, *args, **kwargs):
         from sirepo.pkcli import service
@@ -201,39 +157,6 @@ class UwsgiClient(PKDict):
         from sirepo import uri
 
         return uri.server_route(route_or_uri, None, None)
-
-
-def wrap_in_request(*args, **kwargs):
-    """Decorator for calling functions in `test_in_request`
-
-    Examples:
-        # note that the parens are required
-        @srunit.wrap_in_request()
-        def test_simple():
-            inside request context
-
-        @srunit.wrap_in_request(cfg={'SIREPO_AUTH_METHODS': 'github:guest'})
-        def test_myapp():
-            inside a request context here
-
-    Args:
-        func (callable): function to be wrapped
-        kwargs (dict): passed to test_in_request
-
-    Returns:
-        callable: replacement function
-    """
-
-    def _decorator(func):
-        def _wrapper(*ignore_args, **ignore_kwargs):
-            return test_in_request(
-                lambda qcall: func(qcall),
-                **kwargs,
-            )
-
-        return _wrapper
-
-    return _decorator
 
 
 class _TestClient(flask.testing.FlaskClient):

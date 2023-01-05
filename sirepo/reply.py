@@ -357,6 +357,9 @@ class _SReply(sirepo.quest.Attr):
             return r.headers_for_cache(path=p)
         return r.headers_for_no_cache()
 
+    def status_as_int(self):
+        return self.__attrs.get("status", 200)
+
     def _as_attachment(self, content_type, filename):
         self.header_set("Content-Disposition", f'attachment; filename="{filename}"')
         return self.__attrs.pkupdate(

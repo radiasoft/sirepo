@@ -328,11 +328,11 @@ class _Auth(sirepo.quest.Attr):
             model (auth_db.UserDbBase): user to login (overrides uid) [None]
             sim_type (str): app to redirect to [None]
             display_name (str): to save as the display_name [None]
-            is_mock (bool): simulationed login for api_srUnit [False]
+            is_mock (bool): simulated login for srunit.quest_start [False]
             want_redirect (bool): http redirect on success [False]
         """
         if method is None:
-            assert is_mock, "only used by api_srUnit"
+            assert is_mock, "only used by srunit.quest_start"
             method = METHOD_GUEST
         mm = _METHOD_MODULES[method] if isinstance(method, str) else method
         self._validate_method(mm, sim_type=sim_type)
