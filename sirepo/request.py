@@ -29,7 +29,6 @@ def init_quest(qcall):
             internal_req=None,
             remote_addr="0.0.0.0",
         )
-        qcall.attr_set("sreq", sreq)
     else:
         import flask
 

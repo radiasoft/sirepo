@@ -90,7 +90,11 @@ def init_quest(qcall, top_level_call_api=False):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
     sirepo.auth_db.init_quest(qcall)
-    if not _cfg.logged_in_user and top_level_call_api:
+    if (
+        not _cfg.logged_in_user
+        and top_level_call_api
+        or qcall.bucket_unchecked_get("in_srunit")
+    ):
         sirepo.request.init_quest(qcall)
         sirepo.reply.init_quest(qcall)
         # TODO(robnagler): process auth basic header, too. this

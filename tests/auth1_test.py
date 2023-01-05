@@ -20,7 +20,7 @@ def test_login():
         from sirepo.auth import guest
 
         r = qcall.call_api("authState")
-        pkre('LoggedIn": false.*Registration": false', pkcompat.from_bytes(r.data))
+        pkre('LoggedIn": false.*Registration": false', r.content_as_str())
         with pkunit.pkexcept("SRException.*routeName=login"):
             qcall.auth.logged_in_user()
         with pkexcept("SRException.*routeName=login"):
@@ -28,10 +28,10 @@ def test_login():
         qcall.cookie.set_sentinel()
         try:
             r = qcall.auth.login("guest", sim_type="myapp")
-            pkfail("expecting sirepo.util.Response")
-        except util.Response as e:
-            r = e.sr_args.response
-        pkre(r'LoggedIn":\s*true.*Registration":\s*false', pkcompat.from_bytes(r.data))
+            pkfail("expecting sirepo.util.SReply")
+        except util.SReply as e:
+            r = e.sr_args.sreply
+        pkre(r'LoggedIn":\s*true.*Registration":\s*false', r.content_as_str())
         u = qcall.auth.logged_in_user()
         pkok(u, "user should exist")
         # guests do not require completeRegistration

@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
@@ -68,6 +69,16 @@ def init_quest(qcall):
 
 
 class _SReply(sirepo.quest.Attr):
+    def content_as_str(
+        self,
+    ):
+        res = self.__attrs.get("content")
+        if res is None:
+            return ""
+        if isinstance(res, PKDict):
+            res = res.read()
+        return pkcompat.from_bytes(res)
+
     def cookie_set(self, **kwargs):
         assert "key" in kwargs
         assert "value" in kwargs
