@@ -88,7 +88,7 @@ class _Cookie(sirepo.quest.Attr):
         assert (
             _COOKIE_SENTINEL in self.__values
         ), f"_COOKIE_SENTINEL not set self keys={sorted(self.__values.keys())} for key={key}"
-        self.__values[key] = value
+        self.__values[key] = v
 
     def unchecked_get_value(self, key, default=None):
         return self.__values.get(key, default)
