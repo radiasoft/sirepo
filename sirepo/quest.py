@@ -152,7 +152,7 @@ class API(pykern.quest.API):
 
     def reply_attachment(self, content_or_path, filename=None, content_type=None):
         return self.sreply.gen_file_as_attachment(
-            self, content_or_path, filename=filename, content_type=content_type
+            content_or_path, filename=filename, content_type=content_type
         )
 
     def reply_file(self, path, content_type=None):
@@ -184,7 +184,6 @@ class API(pykern.quest.API):
         **kwargs,
     ):
         return self.sreply.gen_redirect_for_local_route(
-            self,
             sim_type=sim_type,
             route=route,
             params=params,

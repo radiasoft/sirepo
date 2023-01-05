@@ -87,6 +87,7 @@ class _SReply(sirepo.quest.Attr):
 
     def flask_response(self, cls):
         from werkzeug import utils
+        from flask import request
 
         def _cache_control(resp):
             if "cache" not in self.__attrs:
@@ -108,8 +109,9 @@ class _SReply(sirepo.quest.Attr):
         def _file():
             # Takes over some of the work for werkzeug.send_file
             c = self.__attrs.content
-            res = werkzeug.send_file(
+            res = utils.send_file(
                 c.handle,
+                environ=request.environ,
                 mimetype=self.__attrs.content_type,
                 download_name=c.path.basename,
                 last_modified=c.mtime,
@@ -362,9 +364,10 @@ class _SReply(sirepo.quest.Attr):
 
     def _as_attachment(self, content_type, filename):
         self.header_set("Content-Disposition", f'attachment; filename="{filename}"')
-        return self.__attrs.pkupdate(
+        self.__attrs.pkupdate(
             content_type=content_type,
         )
+        return self
 
     def _gen_exception_error(self, exc):
         pkdlog("unsupported exception={} msg={}", type(exc), exc)
@@ -524,7 +527,7 @@ class _SReply(sirepo.quest.Attr):
         # If there isn't a customError, then render empty reponse
         return self.from_kwargs(status=code).headers_for_no_cache()
 
-    def _guess_content_type(basename):
+    def _guess_content_type(self, basename):
         res = mimetypes.guess_type(basename)
         if res[0] is None:
             return "application/octet-stream", None
