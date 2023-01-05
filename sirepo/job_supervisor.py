@@ -70,6 +70,12 @@ _cfg = None
 _MAX_RETRIES = 10
 
 
+#: POSIT: same as sirepo.reply
+_REPLY_SR_EXCEPTION_STATE = "srException"
+_REPLY_ERROR_STATE = "error"
+_REPLY_STATE = "state"
+
+
 class Awaited(Exception):
     """An await occurred, restart operation"""
 
@@ -388,9 +394,19 @@ class _Supervisor(PKDict):
     def _reply_exception(cls, exc):
         n = exc.__class__
         if isinstance(exc, sirepo.util.SRException):
-            return PKDict({_STATE: SR_EXCEPTION_STATE, SR_EXCEPTION_STATE: exc.sr_args})
+            return PKDict(
+                {
+                    _REPLY_STATE: _REPLY_SR_EXCEPTION_STATE,
+                    _REPLY_SR_EXCEPTION_STATE: exc.sr_args,
+                }
+            )
         if isinstance(exc, sirepo.util.UserAlert):
-            return PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: exc.sr_args.error})
+            return PKDict(
+                {
+                    _REPLY_STATE: _REPLY_ERROR_STATE,
+                    _REPLY_ERROR_STATE: exc.sr_args.error,
+                }
+            )
         raise AssertionError(f"Reply class={exc.__class__.__name__} unknown exc={exc}")
 
 
