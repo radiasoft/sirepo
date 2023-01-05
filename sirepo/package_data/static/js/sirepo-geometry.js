@@ -439,7 +439,6 @@ class SquareMatrix extends Matrix {
             throw new Error(this.errorMessage('Matrix is not invertible'));
         }
         const mx = this.transpose();
-        srdbg('INV Y', mx);
         let inv = [];
         for (let i = 0; i < mx.size; ++i) {
             let invRow = [];
@@ -526,7 +525,7 @@ class AffineMatrix extends SquareMatrix {
 class RotationMatrix extends AffineMatrix {
 
     static fromVal(val) {
-        const r = new RotationMatrix([0, 0, 1], [0, 0, 0], 0.0);
+        const r = new RotationMatrix();
         r.val = val;
         const m = r.minor(3, 3);
         if (! m.equalWithin(m.det(), 1) || ! m.inverse().equals(m.transpose())) {
@@ -540,7 +539,7 @@ class RotationMatrix extends AffineMatrix {
      * @param {[number]} point - a point that the axis contains
      * @param {number} angle - rotation angle in radians
      */
-    constructor(axis, point, angle) {
+    constructor(axis=[0, 0, 1], point=[0, 0, 0], angle=0.0) {
         const cs = Math.cos(angle);
         const cs1 = 1 - cs;
         const s = Math.sin(angle);
