@@ -38,7 +38,7 @@ def init_quest(qcall):
             http_headers=flask.request.headers,
             http_method=flask.request.method,
             http_request_uri=flask.request.url,
-            http_server_uri=flask.url_for("_dispatch_empty", _external=True),
+            http_server_uri=flask.url_for("_flask_dispatch_empty", _external=True),
             internal_req=flask.request,
             remote_addr=flask.request.remote_addr,
         )

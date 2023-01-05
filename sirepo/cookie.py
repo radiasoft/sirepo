@@ -58,15 +58,13 @@ class _Cookie(sirepo.quest.Attr):
         self.__values.clear()
 
     def save_to_cookie(self, resp):
-        if not 200 <= resp.status_code < 400:
-            return
         self.set_sentinel()
         s = self._serialize()
         if s == self.__incoming_serialized:
             return
-        resp.set_cookie(
-            _cfg.http_name,
-            self._encrypt(s),
+        resp.cookie_set(
+            key=_cfg.http_name,
+            value=self._encrypt(s),
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=_cfg.is_secure,

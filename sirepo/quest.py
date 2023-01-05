@@ -44,10 +44,10 @@ def start(in_srunit=False):
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
-    def __init__(self, in_srunit):
+    def __init__(self, in_srunit=False):
         super().__init__()
         self.attr_set("_bucket", _Bucket())
-        self.bucket_set(in_srunit=in_srunit)
+        self.bucket_set("in_srunit", in_srunit)
 
     def absolute_uri(self, uri):
         """Convert to an absolute uri
@@ -141,8 +141,8 @@ class API(pykern.quest.API):
     def parse_post(self, **kwargs):
         return http_request.parse_post(self, PKDict(kwargs))
 
-    def reply(self, *args, **kwargs):
-        return self.sreply.from_attrs(*args, **kwargs)
+    def reply(self, **kwargs):
+        return self.sreply.from_kwargs(**kwargs)
 
     def reply_as_proxy(self, content, content_type):
         return self.sreply.from_kwargs(

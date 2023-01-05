@@ -412,8 +412,8 @@ class _Auth(sirepo.quest.Attr):
                 else None
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
-        raise sirepo.util.Response(
-            response=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
+        raise sirepo.util.SReply(
+            sreply=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
         )
 
     def need_complete_registration(self, model_or_uid):

@@ -11,6 +11,7 @@ from pykern import pkjinja
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+import email.utils
 import mimetypes
 import pykern.pkinspect
 import re
@@ -34,7 +35,7 @@ ERROR_STATE = "error"
 STATE = "state"
 
 #: Default response
-_RESPONSE_OK = PKDict({_STATE: "ok"})
+_RESPONSE_OK = PKDict({STATE: "ok"})
 
 #: routes that will require a reload
 _RELOAD_JS_ROUTES = None
@@ -67,21 +68,30 @@ def init_quest(qcall):
 
 
 class _SReply(sirepo.quest.Attr):
+    def cookie_set(self, **kwargs):
+        assert "key" in kwargs
+        assert "value" in kwargs
+        self.__attrs.cookie = PKDict(kwargs)
+        return self
+
     def flask_response(self, cls):
         from werkzeug import utils
 
         def _cache_control(resp):
-            if "cache" is not in self.__attrs:
+            if "cache" not in self.__attrs:
                 return resp
             c = self.__attrs.cache
-            if isinstance(c, bool):
-                assert c == False
+            if c.cache:
+                resp.cache_control.max_age = CACHE_MAX_AGE
+                resp.headers["Cache-Control"] = "private, max-age=43200"
+                if c.mtime is not None:
+                    resp.headers["Last-Modified"] = email.utils.formatdate(
+                        c.mtime,
+                        usegmt=True,
+                    )
+            else:
                 resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
                 resp.headers["Pragma"] = "no-cache"
-            else:
-                resp.cache_control.max_age = CACHE_MAX_AGE
-                if is not None:
-                    resp.last_modified = c
             return resp
 
         def _file():
@@ -99,17 +109,16 @@ class _SReply(sirepo.quest.Attr):
 
         a = self.__attrs
         if isinstance(a.content, PKDict):
-            assert "headers" not in a
             r = _file()
         else:
             r = cls(
                 response=a.get("content"),
-                headers=a.get("headers"),
                 mimetype=a.get("content_type"),
                 status=a.get("status"),
             )
-        if "content_disposition" in a:
-            r.headers["Content-Disposition"] = a.content_disposition
+        r.headers.update(a.headers)
+        if "cookie" in a and 200 <= r.status_code < 400:
+            r.set_cookie(**a.cookie)
         return _cache_control(r)
 
     def gen_exception(self, exc):
@@ -126,7 +135,7 @@ class _SReply(sirepo.quest.Attr):
 
     def gen_file(self, path, content_type):
         # Always (re-)initialize __attrs
-        self.gen_response()
+        self.from_kwargs()
         e = None
         if content_type is None:
             content_type, e = self._guess_content_type(path.basename)
@@ -156,8 +165,8 @@ class _SReply(sirepo.quest.Attr):
             if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
                 return self.gen_file(path=content_or_path, content_type=None)
             if content_type == "application/json":
-                return self.gen_response(pkjson.dump_pretty(content_or_path))
-            return self.gen_response(content=content_or_path)
+                return self.from_kwargs(content=pkjson.dump_pretty(content_or_path))
+            return self.from_kwargs(content=content_or_path)
 
         if filename is None:
             # dies if content_or_path is not a path
@@ -184,7 +193,7 @@ class _SReply(sirepo.quest.Attr):
         """
         if not response_kwargs:
             response_kwargs = PKDict()
-        return self.gen_response(
+        return self.from_kwargs(
             content=simulation_db.generate_json(value, pretty=pretty),
             content_type=MIME_TYPE.json,
             **response_kwargs,
@@ -260,21 +269,24 @@ class _SReply(sirepo.quest.Attr):
             **kwargs,
         )
 
-    def headers_for_cache(self, path=None):
-        self.__attrs.cache = path and path.mtime()
+    def header_set(self, name, value):
+        self.__attrs.headers[name] = value
         return self
 
-    def headers_for_no_cache():
-        self.__attrs.cache = False
+    def headers_for_cache(self, path=None):
+        self.__attrs.cache = PKDict(cache=True, mtime=path and path.mtime())
+        return self
+
+    def headers_for_no_cache(self):
+        self.__attrs.cache = PKDict(cache=False)
         return self
 
     def from_api(self, res):
+        if isinstance(res, _SReply):
+            return res
         if isinstance(res, dict):
             return self.gen_json(res)
-        if isinstance(res, _Reply):
-            return res
         raise AssertionError(f"invalid return type={type(res)} from qcall={self.qcall}")
-
 
     def from_kwargs(self, **kwargs):
         """Saves reply attributes
@@ -282,7 +294,7 @@ class _SReply(sirepo.quest.Attr):
         While replies are global (qcall.sreply), the attributes
 
         """
-        self.__attrs = PKDict(kwargs)
+        self.__attrs = PKDict(kwargs).pksetdefault(headers=PKDict)
         return self
 
     def render_html(path, want_cache=True, attrs=None):
@@ -296,16 +308,18 @@ class _SReply(sirepo.quest.Attr):
         Returns:
             _SReply: reply
         """
-        r = self.gen_response(
+        r = self.from_kwargs(
             content=sirepo.html.render(path),
             content_type=MIME_TYPE.html,
             **(attrs or PKDict()),
         )
         return (
-            headers_for_cache(r, path=path) if want_cache else headers_for_no_cache(r)
+            self.headers_for_cache(r, path=path)
+            if want_cache
+            else self.headers_for_no_cache(r)
         )
 
-    def render_static_jinja(base, ext, j2_ctx, cache_ok=False):
+    def render_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         """Render static template with jinja
 
         Args:
@@ -318,7 +332,7 @@ class _SReply(sirepo.quest.Attr):
             _SReply: reply
         """
         p = sirepo.resource.static(ext, f"{base}.{ext}")
-        r = self.gen_response(
+        r = self.from_kwargs(
             content=pkjinja.render_file(p, j2_ctx, strict_undefined=True),
             content_type=MIME_TYPE[ext],
         )
@@ -327,15 +341,15 @@ class _SReply(sirepo.quest.Attr):
         return r.headers_for_no_cache()
 
     def _as_attachment(self, content_type, filename):
+        self.header_set("Content-Disposition", f'attachment; filename="{filename}"')
         return self.__attrs.pkupdate(
             content_type=content_type,
-            content_disposition=f'attachment; filename="{filename}"',
         )
 
-    def _gen_exception_error(qcall, exc):
+    def _gen_exception_error(self, exc):
         pkdlog("unsupported exception={} msg={}", type(exc), exc)
-        if qcall.sreq.is_spider():
-            return gen_response(
+        if self.qcall.sreq.is_spider():
+            return self.from_kwargs(
                 content="""<!doctype html><html>
 <head><title>500 Internal Server Error</title></head>
 <body><h1>Internal Server Error</h1></body>
@@ -344,7 +358,7 @@ class _SReply(sirepo.quest.Attr):
                 content_type=MIME_TYPE.html,
                 status=500,
             )
-        return gen_redirect_for_local_route(qcall, None, route="error")
+        return self.gen_redirect_for_local_route(None, route="error")
 
     def _gen_exception_base(self, exc):
         return self._gen_exception_reply(exc)
@@ -360,10 +374,10 @@ class _SReply(sirepo.quest.Attr):
             return self._gen_exception_error(exc)
         return f(exc.sr_args)
 
-    def _gen_exception_reply_BadRequest(qcall, args):
-        return _gen_http_exception(400)
+    def _gen_exception_reply_BadRequest(self, args):
+        return self._gen_http_exception(400)
 
-    def _gen_exception_reply_Error(qcall, args):
+    def _gen_exception_reply_Error(self, args):
         try:
             t = qcall.sim_type_uget(args.pkdel("sim_type"))
             s = simulation_db.get_schema(sim_type=t)
@@ -372,8 +386,8 @@ class _SReply(sirepo.quest.Attr):
             # try to get the schema without the type
             t = None
             s = simulation_db.get_schema(sim_type=None)
-        if qcall.sreq.method_is_post():
-            return gen_json(args.pkupdate({STATE: ERROR_STATE}))
+        if self.qcall.sreq.method_is_post():
+            return self.gen_json(args.pkupdate({STATE: ERROR_STATE}))
         q = PKDict()
         for k, v in args.items():
             try:
@@ -383,16 +397,16 @@ class _SReply(sirepo.quest.Attr):
                 pkdlog('error in "error" query {}={} exception={}', k, v, e)
                 continue
             q[k] = v
-        return gen_redirect_for_local_route(qcall, t, route="error", query=q)
+        return self.gen_redirect_for_local_route(t, route="error", query=q)
 
-    def _gen_exception_reply_Forbidden(qcall, args):
-        return _gen_http_exception(403)
+    def _gen_exception_reply_Forbidden(self, args):
+        return self._gen_http_exception(403)
 
-    def _gen_exception_reply_NotFound(qcall, args):
-        return _gen_http_exception(404)
+    def _gen_exception_reply_NotFound(self, args):
+        return self._gen_http_exception(404)
 
-    def _gen_exception_reply_Redirect(qcall, args):
-        return gen_redirect(args.uri)
+    def _gen_exception_reply_Redirect(self, args):
+        return self.gen_redirect(args.uri)
 
     def _gen_exception_reply_SReply(self, args):
         r = args.sreply
@@ -400,12 +414,12 @@ class _SReply(sirepo.quest.Attr):
             raise AssertionError(f"invalid class={type(r)} response={r}")
         return r
 
-    def _gen_exception_reply_ServerError(qcall, args):
-        return _gen_http_exception(500)
+    def _gen_exception_reply_ServerError(self, args):
+        return self._gen_http_exception(500)
 
-    def _gen_exception_reply_SPathNotFound(qcall, args):
+    def _gen_exception_reply_SPathNotFound(self, args):
         pkdlog("uncaught SPathNotFound {}", args)
-        return gen_response(
+        return self.from_kwargs(
             content="""<!doctype html><html>
 <head><title>404 Not Found</title></head>
 <body><h1>Not Found</h1></body>
@@ -415,11 +429,11 @@ class _SReply(sirepo.quest.Attr):
             status=404,
         )
 
-    def _gen_exception_reply_SRException(qcall, args):
+    def _gen_exception_reply_SRException(self, args):
         r = args.routeName
         p = args.params or PKDict()
         try:
-            t = qcall.sim_type_uget(p.pkdel("sim_type"))
+            t = self.qcall.sim_type_uget(p.pkdel("sim_type"))
             s = simulation_db.get_schema(sim_type=t)
         except Exception as e:
             pkdc("exception={} stack={}", e, pkdexc())
@@ -438,43 +452,41 @@ class _SReply(sirepo.quest.Attr):
         if (
             # must be first, to always delete reload_js
             not p.pkdel("reload_js")
-            and qcall.sreq.method_is_post()
+            and self.qcall.sreq.method_is_post()
             and r not in _RELOAD_JS_ROUTES
         ):
             pkdc("POST response={} route={} params={}", SR_EXCEPTION_STATE, r, p)
             return gen_json(
                 PKDict(
                     {
-                        _STATE: SR_EXCEPTION_STATE,
+                        STATE: SR_EXCEPTION_STATE,
                         SR_EXCEPTION_STATE: args,
                     }
                 ),
             )
         pkdc("redirect to route={} params={} type={}", r, p, t)
-        return gen_redirect_for_local_route(
-            qcall,
+        return self.gen_redirect_for_local_route(
             t,
             route=r,
             params=p,
             sr_exception=pkjson.dump_pretty(args, pretty=False),
         )
 
-    def _gen_exception_reply_Unauthorized(qcall, args):
+    def _gen_exception_reply_Unauthorized(self, args):
         return _gen_http_exception(401)
 
-    def _gen_exception_reply_UserDirNotFound(qcall, args):
-        return qcall.auth.user_dir_not_found(**args)
+    def _gen_exception_reply_UserDirNotFound(self, args):
+        return self.qcall.auth.user_dir_not_found(**args)
 
-    def _gen_exception_reply_UserAlert(qcall, args):
-        return gen_json(
-            PKDict({_STATE: ERROR_STATE, ERROR_STATE: args.error}),
+    def _gen_exception_reply_UserAlert(self, args):
+        return self.gen_json(
+            PKDict({STATE: ERROR_STATE, ERROR_STATE: args.error}),
         )
 
-    def _gen_exception_reply_WWWAuthenticate(qcall, args):
-        return gen_response(
+    def _gen_exception_reply_WWWAuthenticate(self, args):
+        return self.from_kwargs(
             status=401,
-            headers=PKDict({"WWW-Authenticate": 'Basic realm="*"'}),
-        )
+        ).header_set("WWW-Authenticate", 'Basic realm="*"')
 
     def _gen_http_exception(code):
         x = simulation_db.SCHEMA_COMMON["customErrors"].get(str(code))
@@ -490,7 +502,7 @@ class _SReply(sirepo.quest.Attr):
                     "customErrors code={} render error={} stack={}", code, e, pkdexc()
                 )
         # If there isn't a customError, then render empty reponse
-        return self.gen_response(status=code).headers_for_no_cache()
+        return self.from_kwargs(status=code).headers_for_no_cache()
 
     def _guess_content_type(basename):
         res = mimetypes.guess_type(basename)

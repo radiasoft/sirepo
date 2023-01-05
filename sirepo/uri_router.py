@@ -278,7 +278,7 @@ def _call_api(parent, route, kwargs, data=None):
             r = qcall.sreply.gen_exception(e)
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
-            r.headers.add("Access-Control-Allow-Origin", "*")
+            r.header_set("Access-Control-Allow-Origin", "*")
         return r
     except:
         c = False
@@ -309,16 +309,12 @@ def _flask_dispatch(path):
     if error:
         pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
         route = _not_found_route
-    return _flask_reply(_call_api(None, route, kwargs=kwargs))
+    return _call_api(None, route, kwargs=kwargs).flask_response(_app.response_class)
 
 
 def _flask_dispatch_empty():
     """Hook for '/' route"""
     return _flask_dispatch(None)
-
-
-def _flask_reply(sreply):
-    return sreply.flask_response(_app.response_class)
 
 
 def _init_uris(simulation_db, sim_types):
