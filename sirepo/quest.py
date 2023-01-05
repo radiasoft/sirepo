@@ -147,7 +147,7 @@ class API(pykern.quest.API):
     def reply_as_proxy(self, content, content_type):
         return self.sreply.from_kwargs(
             content=content,
-            content_type=content,
+            content_type=content_type,
         ).headers_for_no_cache()
 
     def reply_attachment(self, content_or_path, filename=None, content_type=None):

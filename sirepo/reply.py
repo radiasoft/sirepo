@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Reply hold the response to API calls
+"""Reply hold the response to API calls.
 
-:copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
+Replies are independent of the web platform (tornado or flask). They
+are converted to the native format by the platform dispatcher at the
+time. Internal call_api returns an `_SReply` object.
+
+:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
+
 """
 from pykern import pkcompat
 from pykern import pkconfig
