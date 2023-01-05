@@ -312,12 +312,25 @@ class Matrix extends GeometricObject {
         if (matrix.dimension > this.dimension) {
             throw new Error(this.errorMessage(`Argument must have lesser or equal dimension (${matrix.dimension} > ${this.dimension})`));
         }
+
+        function dot(v1, v2) {
+            return v1.reduce((sum, x, i) => sum + x * v2[i], 0);
+        }
+
+        function vect(m, v) {
+            let r = [];
+            for (let x of m) {
+                r.push(dot(x, v));
+            }
+            return r;
+        }
+
         // vector * vector (dot product)
         if (this.dimension === 1) {
             if (this.numCols !== matrix.numCols) {
                 throw new Error(this.errorMessage(`Vectors must have same length (${this.numCols} != ${matrix.numCols})`));
             }
-            return this.val.reduce((sum, x, i) => sum + x * matrix.val[i], 0);
+            return dot(this.val, matrix.val);
         }
 
         if (this.numRows !== matrix.numCols) {
@@ -326,11 +339,7 @@ class Matrix extends GeometricObject {
 
         // matrix * vector
         if (matrix.dimension === 1) {
-            let v = [];
-            for (let x of this.val) {
-                v.push((new Matrix(x)).multiply(matrix));
-            }
-            return new Matrix(v);
+            return new Matrix(vect(this.val, matrix.val));
         }
 
         // matrix * matrix
@@ -340,7 +349,7 @@ class Matrix extends GeometricObject {
             for(let j in matrix.val) {
                 c.push(matrix.val[j][i]);
             }
-            m.push(this.multiply(new Matrix(c)).val);
+            m.push(vect(this.val, c));
         }
         return (new Matrix(m)).transpose();
     }
@@ -430,11 +439,12 @@ class SquareMatrix extends Matrix {
             throw new Error(this.errorMessage('Matrix is not invertible'));
         }
         const mx = this.transpose();
+        srdbg('INV Y', mx);
         let inv = [];
-        for (let i = 0; i < mx.length; ++i) {
+        for (let i = 0; i < mx.size; ++i) {
             let invRow = [];
             let mult = 1;
-            for(let j = 0; j < mx.length; ++j) {
+            for(let j = 0; j < mx.size; ++j) {
                 mult = Math.pow(-1,i + j);
                 invRow.push((mult / d) * mx.minor(i, j).det());
             }
@@ -464,10 +474,14 @@ class SquareMatrix extends Matrix {
         }
         return new SquareMatrix(m);
     }
+
+    transpose() {
+        return new SquareMatrix(super.transpose().val);
+    }
 }
 
 /*
- * The 2-dimensional identity matrix
+ * The n-dimensional identity matrix
  */
 class IdentityMatrix extends SquareMatrix {
     /**
@@ -486,16 +500,45 @@ class IdentityMatrix extends SquareMatrix {
     }
 }
 
+/**
+ * 4-dimensional transformation matrix
+ */
+class AffineMatrix extends SquareMatrix {
+    constructor(val=new IdentityMatrix(4).val) {
+        if (val.length !== 4) {
+            throw new Error ('Affine Matrix must be 4x4: ' + val);
+        }
+        super(val);
+    }
+
+    multiplyAffine(matrix) {
+        return new AffineMatrix(this.multiply(matrix).val);
+    }
+
+    getRotation() {
+        return RotationMatrix.fromVal(this.val);
+    }
+}
+
 /*
  * Rotation about arbitrary axis - note this is 4 x 4 and will need to multiply a vector [x, y, z, 0]
  */
-class RotationMatrix extends SquareMatrix {
+class RotationMatrix extends AffineMatrix {
+
+    static fromVal(val) {
+        const r = new RotationMatrix([0, 0, 1], [0, 0, 0], 0.0);
+        r.val = val;
+        const m = r.minor(3, 3);
+        if (! m.equalWithin(m.det(), 1) || ! m.inverse().equals(m.transpose())) {
+            throw new Error('Not a rotation: ' + val);
+        }
+        return r;
+    }
 
     /**
      * @param {[number]} axis - axis of rotation
      * @param {[number]} point - a point that the axis contains
      * @param {number} angle - rotation angle in radians
-     * @throws - if the number of rows and columns differ
      */
     constructor(axis, point, angle) {
         const cs = Math.cos(angle);
@@ -557,7 +600,6 @@ class RotationMatrix extends SquareMatrix {
     }
 }
 
-
 /**
  * Affine transformation for reflections
  */
@@ -583,7 +625,7 @@ class ReflectionMatrix extends SquareMatrix {
 /**
  * Affine transformation for translations
  */
-class TranslationMatrix extends SquareMatrix {
+class TranslationMatrix extends AffineMatrix {
     /**
      * @param {[number]} deltas - translation in each direction
      */
@@ -2335,6 +2377,7 @@ SIREPO.app.service('geometry', function(utilities) {
 });
 
 SIREPO.GEOMETRY = {
+    AffineMatrix: AffineMatrix,
     GeometricObject: GeometricObject,
     GeometryUtils: GeometryUtils,
     IdentityMatrix: IdentityMatrix,
