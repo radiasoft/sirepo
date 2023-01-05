@@ -1076,7 +1076,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
           <div data-ng-if="isLoading()" class="progress">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
           </div>
-          <div data-ng-if="showFileMissing">{{ fileName }} is missing</div>
+          <div data-ng-if="showFileMissing">Data file {{ fileName }} is missing</div>
           <div data-ng-if="! isLoading()">
             <div class="pull-left">
               <button class="btn btn-primary" title="first" data-ng-click="first()">|<</button>
