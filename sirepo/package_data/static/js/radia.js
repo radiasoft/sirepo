@@ -134,6 +134,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.axisIndex = axis => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
 
     self.buildShapePoints = (o, callback) => {
+        srdbg('BLD SH');
         requestSender.sendStatelessCompute(
             appState,
             callback,
@@ -153,6 +154,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.centerExtrudedPoints = o =>  {
+        srdbg('CTR EXTR', o);
         const idx = [self.axisIndex(o.widthAxis), self.axisIndex(o.heightAxis)];
         o.points = o.referencePoints.map(
             p => p.map(
@@ -320,6 +322,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             }
             return;
         }
+        srdbg('BLD SH FROMO UPDATET EXTR');
         self.buildShapePoints(o, d => {
             o.points = d.points;
             if (callback) {
@@ -583,6 +586,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = o => {
+        srdbg('SHAPE FOR', o);
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
         let center = radiaService.scaledArray(o.center, scale);
         let size =   radiaService.scaledArray(o.size, scale);
@@ -597,6 +601,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const l = o.isButton === undefined ? o.layoutShape : 'rect';
         let pts = {};
         if (l === 'polygon') {
+            srdbg('POLY PTS AT', center);
             const k = radiaService.axisIndex(o.extrusionAxis);
             const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
             pts[o.extrusionAxis] = scaledPts;
@@ -3580,18 +3585,56 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 
     $scope.$on('geomObject.changed', () => {
-        editedModels = [];
+        srdbg('GEOEM CH');
+        /*
+        if (editedModels.includes('extrudedPoly')) {
+            if (editedModels.includes('extrudedPoints')) {
+                loadPoints();
+            }
+            else {
+                radiaService.updateExtruded($scope.modelData, () => {
+                    radiaService.saveGeometry(true, false);
+                });
+            }
+        }
+        if (editedModels.includes('stl')) {
+            loadSTLSize();
+        }
+        
+         */
+        //editedModels = [];
+    });
+    
+    $scope.$on('modelChanged', (e, d) => {
+        if (! editedModels.includes(d)) {
+            return;
+        }
+        if (d === 'extrudedPoly') {
+            if (editedModels.includes('extrudedPoints')) {
+                srdbg('extrudedPoints');
+                loadPoints();
+            }
+            else {
+                srdbg('extrudedPoly');
+                radiaService.updateExtruded($scope.modelData, () => {
+                    radiaService.saveGeometry(true, false);
+                });
+            }
+        }
+        if (d === 'stl') {
+            loadSTLSize();
+        }
     });
 
-    $scope.$on('extrudedPoly.changed', () => {
-        radiaService.updateExtruded($scope.modelData, () => {
-            radiaService.saveGeometry(true, false);
-        });
-    });
-    $scope.$on('extrudedPoints.changed', () => {
-        loadPoints();
-    });
-    $scope.$on('stl.changed', loadSTLSize);
+    //$scope.$on('extrudedPoly.changed', () => {
+    //    radiaService.updateExtruded($scope.modelData, () => {
+    //        radiaService.saveGeometry(true, false);
+    //    });
+    //});
+    //$scope.$on('extrudedPoints.changed', () => {
+    //    loadPoints();
+    //});
+    //$scope.$on('stl.changed', loadSTLSize);
 
     function buildTriangulationLevelDelegate() {
         const m = 'extrudedPoly';
@@ -3611,18 +3654,19 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         $scope.fieldDelegate = d;
     }
 
+    function hasPoints() {
+        return ($scope.modelData.referencePoints || []).length;
+    }
+
     function loadPoints() {
+        srdbg("LOAD PTS");
         if (! $scope.modelData.pointsFile) {
             $scope.modelData.points = [];
             $scope.modelData.referencePoints = [];
             return;
         }
+        srdbg('BLD SHH FROM OBJ VIEW');
         radiaService.buildShapePoints($scope.modelData, setPoints);
-    }
-
-    function setSTLSize(data) {
-        $scope.modelData.size = data.size;
-        appState.saveQuietly(editedModels);
     }
 
     function loadSTLSize()  {
@@ -3644,10 +3688,16 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function setPoints(data) {
+        srdbg('SET', data);
         $scope.modelData.referencePoints = data.points;
         radiaService.updateExtruded($scope.modelData, () => {
             radiaService.saveGeometry(true, false);
         });
+    }
+
+    function setSTLSize(data) {
+        $scope.modelData.size = data.size;
+        appState.saveQuietly(editedModels);
     }
 
     function updateObjectEditor() {
@@ -3681,6 +3731,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         }
 
         panelState.showField('extrudedPoints', 'referencePoints', (o.referencePoints || []).length);
+        panelState.enableField('extrudedPoints', 'pointsFile', ! hasPoints());
         
         for (const i in axes) {
             panelState.enableArrayField('geomObject', 'size', i, axes[i] === o.extrusionAxis);
