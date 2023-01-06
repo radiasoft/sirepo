@@ -1775,16 +1775,22 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function d3DragEndShape(shape) {
-                const dragThreshold = 1e-3;
-                if (didDrag && Math.abs(dragX) < dragThreshold && Math.abs(dragY) < dragThreshold) {
+
+                function reset() {
                     resetDrag();
+                    d3.select(`.plot-viewport ${shapeSelectionId(shape, true)}`).call(updateShapeAttributes);
+                }
+
+                const dragThreshold = 1e-3;
+                if (! didDrag || Math.abs(dragX) < dragThreshold && Math.abs(dragY) < dragThreshold) {
+                    reset();
                     return;
                 }
                 $scope.$applyAsync(() => {
                     if (isShapeInBounds(shape)) {
                         const o = $scope.source.getObject(shape.id);
                         if (! o) {
-                            resetDrag();
+                            reset();
                             return;
                         }
                         o.center = [
@@ -1792,15 +1798,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             shape.center.y,
                             shape.center.z
                         ].map(x => x * invObjScale);
-                        $scope.source.saveObject(shape.id, function () {
-                            resetDrag();
-                            //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
-                            d3.select(`.plot-viewport ${shapeSelectionId(shape, true)}`).call(updateShapeAttributes);
-                        });
+                        $scope.source.saveObject(shape.id, reset);
                     }
                     else {
                         appState.cancelChanges($scope.modelName);
-                        resetDrag();
+                        reset();
                     }
                 });
             }
@@ -1823,7 +1825,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
-                shape.runLinks().forEach(function (linkedShape) {
+                shape.runLinks().forEach(linkedShape => {
                     d3.select(shapeSelectionId(linkedShape)).call(updateShapeAttributes);
                 });
             }
@@ -1878,7 +1880,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         })
                         .on('dblclick', editObject)
                         .on('dblclick.zoom', null)
-                        .on('click', selectObject);
+                        .on('click', null);
                     ds.call(updateShapeAttributes);
                     ds.call(dragShape);
                 }
