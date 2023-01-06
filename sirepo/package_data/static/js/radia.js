@@ -3642,6 +3642,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             return;
         }
 
+        panelState.showField('extrudedPoints', 'referencePoints', (o.referencePoints || []).length);
+        
         for (const i in axes) {
             panelState.enableArrayField('geomObject', 'size', i, axes[i] === o.extrusionAxis);
         }
