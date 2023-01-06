@@ -35,6 +35,7 @@ _models = None
 
 _created = False
 
+
 @sqlalchemy.ext.declarative.as_declarative()
 class UserDbBase:
     def as_pkdict(self):
