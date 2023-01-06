@@ -3545,14 +3545,23 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 
     $scope.$on('geomObject.changed', () => {
-        if (editedModels.includes('extrudedPoly')) {
-            radiaService.updateExtruded($scope.modelData, d => {
-                radiaService.saveGeometry(true, true);
-            });
-        }
+        //if (editedModels.includes('extrudedPoly')) {
+        //    radiaService.updateExtruded($scope.modelData, d => {
+        //        radiaService.saveGeometry(true, true);
+        //    });
+        //}
         editedModels = [];
     });
 
+    $scope.$on('extrudedPoly.changed', () => {
+        radiaService.updateExtruded($scope.modelData, () => {
+            radiaService.saveGeometry(true, true);
+        });
+    });
+    $scope.$on('extrudedPoints.changed', () => {
+        loadPoints();
+    });
+    $scope.$on('stl.changed', loadSTLSize);
 
     function buildTriangulationLevelDelegate() {
         const m = 'extrudedPoly';
@@ -3572,9 +3581,44 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         $scope.fieldDelegate = d;
     }
 
+    function loadPoints() {
+        if (! $scope.modelData.pointsFile) {
+            $scope.modelData.points = [];
+            $scope.modelData.referencePoints = [];
+            return;
+        }
+        radiaService.buildShapePoints($scope.modelData, setPoints);
+    }
+
+    function setSTLSize(data) {
+        $scope.modelData.size = data.size;
+        appState.saveQuietly(editedModels);
+    }
+
+    function loadSTLSize()  {
+        requestSender.sendStatelessCompute(
+            appState,
+            setSTLSize,
+            {
+                method: 'stl_size',
+                args: {
+                    file: $scope.modelData.file,
+                }
+            }
+        );
+    }
+
     function modelField(f) {
         const m = appState.parseModelField(f);
         return m ? m : [parent.modelName, f];
+    }
+
+    function setPoints(data) {
+        $scope.modelData.referencePoints = data.points;
+        radiaService.updateExtruded($scope.modelData, () => {
+            radiaService.saveGeometry(true, false);
+            //appState.saveChanges(editedModels);
+        });
     }
 
     function updateObjectEditor() {
