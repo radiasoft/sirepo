@@ -34,10 +34,19 @@ _DB_DIR = "db"
 
 
 @contextlib.contextmanager
-def quest_start(want_user=False):
+def quest_start(want_user=False, cfg=None):
+    if cfg is None:
+        cfg = {}
+    setup_srdb_root(cfg=cfg)
+
+    from pykern import pkconfig
+
+    pkconfig.reset_state_for_testing(cfg)
+
     from sirepo import quest
 
     with quest.start(in_srunit=True) as qcall:
+        qcall.auth_db.create_or_upgrade()
         if want_user:
             qcall.auth.login(is_mock=True)
         yield qcall

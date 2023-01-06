@@ -33,6 +33,7 @@ STRING_NAME = sqlalchemy.String(100)
 
 _models = None
 
+_created = False
 
 @sqlalchemy.ext.declarative.as_declarative()
 class UserDbBase:
@@ -160,6 +161,10 @@ class _AuthDb(sirepo.quest.Attr):
         self._commit_or_rollback(commit=True)
 
     def create_or_upgrade(self):
+        global _created
+        if _created:
+            return
+        _created = True
         from sirepo import db_upgrade
 
         self.metadata().create_all(bind=_engine)

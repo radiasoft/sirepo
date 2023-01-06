@@ -30,8 +30,7 @@ def test_migration():
     from sirepo import srunit
     from pykern import pkconfig
 
-    pkconfig.reset_state_for_testing(_cfg)
-    with srunit.quest_start() as qcall:
+    with srunit.quest_start(cfg=_cfg) as qcall:
         from pykern.pkunit import pkeq, pkok, pkexcept, work_dir
         from pykern.pkdebug import pkdp
 

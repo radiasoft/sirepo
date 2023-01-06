@@ -48,7 +48,7 @@ def import_and_init(name):
     _i("sirepo.reply", ["simulation_db"])
     _i("sirepo.uri", ["simulation_db", "uri_router"])
     _i("sirepo.quest", ["reply", "http_request", "uri_router"])
-    if name in ("sirepo.auth", "sirepo.uri"):
+    if name in ("sirepo.auth", "sirepo.uri", "sirepo.auth_db"):
         return values[_base(name)]
     if "sirepo.job_supervisor" == name:
         # job_supervisor doesn't need job_driver in its init so hack this
