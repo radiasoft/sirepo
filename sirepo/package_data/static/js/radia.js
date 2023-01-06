@@ -2087,7 +2087,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     };
 });
 
-SIREPO.app.directive('pointsTable', function(appState, panelState, radiaService, $rootScope) {
+SIREPO.app.directive('pointsTable', function() {
     return {
         restrict: 'A',
         scope: {
