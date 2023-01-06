@@ -47,7 +47,7 @@ SIREPO.app.config(function() {
           <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt,.csv"/>
         </div>
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
-          <div data-points-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Modification" data-models="info[4]"></div>
+          <div data-points-table="" data-field="model[field]" data-model="model"></div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
           <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
@@ -2092,11 +2092,7 @@ SIREPO.app.directive('pointsTable', function(appState, panelState, radiaService,
         restrict: 'A',
         scope: {
             field: '=',
-            fieldName: '=',
-            itemClass: '@',
             model: '=',
-            models: '=',
-            modelName: '=',
         },
         template: `
           <div class="col-sm-12">
@@ -2109,12 +2105,6 @@ SIREPO.app.directive('pointsTable', function(appState, panelState, radiaService,
                     <th scope="col" data-ng-hide="isExpanded">
                       <span title="click to expand" class="glyphicon glyphicon-chevron-up" data-ng-click="toggleExpand()"></span> 
                     </th>
-                    <!--<th data-ng-hide="isExpanded" data-ng-click="toggleExpand()">
-                      <span style="font-size: small; font-style: italic;"> click to expand</span>
-                    </th>
-                    <th data-ng-show="isExpanded" data-ng-click="toggleExpand()">
-                      <span style="font-size: small; font-style: italic;"> click to collapse</span>
-                    </th>-->
                   </tr>
                   <tr data-ng-show="isExpanded">
                     <th scope="col" style="text-align: left;">{{ model.widthAxis }}</th>
@@ -2129,9 +2119,8 @@ SIREPO.app.directive('pointsTable', function(appState, panelState, radiaService,
               </table>
           </div>
         `,
-        controller: function($scope, $element) {
+        controller: function($scope) {
             $scope.isExpanded = false;
-            // <label class="control-label col-sm-5" style="text-align: center">{{ model.widthAxis }}</label> <label class="control-label col-sm-5"  style="text-align: center">{{ model.heightAxis }}</label>
             $scope.toggleExpand = () => {
                 $scope.isExpanded = ! $scope.isExpanded;
             };
