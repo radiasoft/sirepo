@@ -47,14 +47,7 @@ SIREPO.app.config(function() {
           <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt,.csv"/>
         </div>
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
-          <div class="col-sm-12">
-              <table class="table-condensed table-striped">
-              <label class="control-label col-sm-5" style="text-align: center">{{ model.widthAxis }}</label> <label class="control-label col-sm-5"  style="text-align: center">{{ model.heightAxis }}</label>
-              <tr data-ng-repeat="p in model[field]">
-                <td data-ng-repeat="e in p track by $index" class="form-control sr-number-list">{{ e }}</td>
-              </tr>
-              </table>
-          </div>
+          <div data-points-table="" data-field="model[field]" data-model="model"></div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
           <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
@@ -2094,6 +2087,48 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     };
 });
 
+SIREPO.app.directive('pointsTable', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+        },
+        template: `
+          <div class="col-sm-12">
+              <table class="table-condensed table-striped table-bordered">
+                <thead>
+                  <tr>
+                    <th scope="col" data-ng-show="isExpanded">
+                      <span title="click to collapse" class="glyphicon glyphicon-chevron-down" data-ng-click="toggleExpand()"></span>
+                    </th>
+                    <th scope="col" data-ng-hide="isExpanded">
+                      <span title="click to expand" class="glyphicon glyphicon-chevron-up" data-ng-click="toggleExpand()"></span> 
+                    </th>
+                  </tr>
+                  <tr data-ng-show="isExpanded">
+                    <th scope="col" style="text-align: left;">{{ model.widthAxis }}</th>
+                    <th scope="col" style="text-align: left;">{{ model.heightAxis }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                <tr data-ng-show="isExpanded" data-ng-repeat="p in field">
+                  <td data-ng-repeat="e in p track by $index">{{ e }}</td>
+                </tr>
+                </tbody>
+              </table>
+          </div>
+        `,
+        controller: function($scope) {
+            $scope.isExpanded = false;
+            $scope.toggleExpand = () => {
+                $scope.isExpanded = ! $scope.isExpanded;
+            };
+        },
+    };
+});
+
+
 SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
     return {
         restrict: 'A',
@@ -3607,6 +3642,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             return;
         }
 
+        panelState.showField('extrudedPoints', 'referencePoints', (o.referencePoints || []).length);
+        
         for (const i in axes) {
             panelState.enableArrayField('geomObject', 'size', i, axes[i] === o.extrusionAxis);
         }
