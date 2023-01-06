@@ -3580,17 +3580,12 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 
     $scope.$on('geomObject.changed', () => {
-        //if (editedModels.includes('extrudedPoly')) {
-        //    radiaService.updateExtruded($scope.modelData, d => {
-        //        radiaService.saveGeometry(true, true);
-        //    });
-        //}
         editedModels = [];
     });
 
     $scope.$on('extrudedPoly.changed', () => {
         radiaService.updateExtruded($scope.modelData, () => {
-            radiaService.saveGeometry(true, true);
+            radiaService.saveGeometry(true, false);
         });
     });
     $scope.$on('extrudedPoints.changed', () => {
@@ -3652,7 +3647,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         $scope.modelData.referencePoints = data.points;
         radiaService.updateExtruded($scope.modelData, () => {
             radiaService.saveGeometry(true, false);
-            //appState.saveChanges(editedModels);
         });
     }
 
