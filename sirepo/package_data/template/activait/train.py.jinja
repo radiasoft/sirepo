@@ -37,13 +37,28 @@ testx = test[:, in_idx]
 
 {% endif %}
 {% if image_data %}
-m = model.predict(x=testx)
-print(m)
-p = split.test_gen.outScaler.inverse_transform(m)
+print("pre-scaled predictions=", model.predict(x=testx))
+print("testx", testx)
+p = model.predict(testx)
+
+{# p = model.predict(testx) #}
 {% else %}
 p = model.predict(x=testx)
 {% endif %}
-print("p=", p)
+
+{#
+
+TODO (gurhar1133): if ground truth for y is integers
+and range of y matches dimension of prediction, then np.argmax
+predictions before saving to predict file.
+
+Also, need to handle cases where there is no outScaler
+so that an inverse_transform is not accidentally called on
+y or predicted y
+
+#}
+
+print("predictions=", p)
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', testy)
-np.save('{{ predictFile }}', p)
+np.save('{{ predictFile }}', np.argmax(p, axis=1))

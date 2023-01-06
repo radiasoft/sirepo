@@ -918,8 +918,8 @@ def _fit_animation(frame_args):
         [x, y],
         frame_args,
         PKDict(
-            x_label="",
-            y_label="",
+            x_label="Prediction",
+            y_label="Ground Truth",
             title=header[idx],
             hideColorBar=True,
         ),
