@@ -36,12 +36,23 @@ testy = test[:, out_idx]
 testx = test[:, in_idx]
 
 {% endif %}
-{% if image_data %}
-print("pre-scaled predictions=", model.predict(x=testx))
-print("testx", testx)
-p = model.predict(testx)
 
-{# p = model.predict(testx) #}
+{% if image_data %}
+def _all_int(y_true):
+    for y in y_true:
+        if type(y) != int:
+            return False
+    return True
+
+if split.test_gen.outScaler:
+    p = split.test_gen.outScaler.inverse_transform(model.predict(testx))
+    testy = split.test_gen.outScaler.inverse_transform(testy)
+else:
+    p = model.predict(x=testx)
+if _all_int(testy):
+    print(p.shape)
+    if p.shape[-1] == len(set(testy)):
+        p = np.argmax(p, axis=1)
 {% else %}
 p = model.predict(x=testx)
 {% endif %}
@@ -61,4 +72,4 @@ y or predicted y
 print("predictions=", p)
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', testy)
-np.save('{{ predictFile }}', np.argmax(p, axis=1))
+np.save('{{ predictFile }}', p)
