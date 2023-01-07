@@ -137,6 +137,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         // once the points file has been read, no need to fetch it again
         if (o.type === 'extrudedPoints' && (o.points || []).length) {
             callback(o);
+            return;
         }
         requestSender.sendStatelessCompute(
             appState,
@@ -157,7 +158,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.centerExtrudedPoints = o =>  {
-        srdbg('CTR EXTR', o);
         const idx = [self.axisIndex(o.widthAxis), self.axisIndex(o.heightAxis)];
         o.points = o.referencePoints.map(
             p => p.map(
@@ -325,7 +325,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             }
             return;
         }
-        srdbg('BLD SH FROMO UPDATET EXTR');
         self.buildShapePoints(o, d => {
             o.points = d.points;
             if (callback) {
