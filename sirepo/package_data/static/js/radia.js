@@ -3730,7 +3730,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             return;
         }
 
-        panelState.showField('extrudedPoints', 'referencePoints', (o.referencePoints || []).length);
+        panelState.showField('extrudedPoints', 'referencePoints', hasPoints());
         panelState.enableField('extrudedPoints', 'pointsFile', ! hasPoints());
         
         for (const i in axes) {
