@@ -134,7 +134,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.axisIndex = axis => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
 
     self.buildShapePoints = (o, callback) => {
-        srdbg('BLD SH');
+        // once the points file has been read, no need to fetch it again
+        if (o.type === 'extrudedPoints' && (o.points || []).length) {
+            callback(o);
+        }
         requestSender.sendStatelessCompute(
             appState,
             callback,
@@ -586,7 +589,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = o => {
-        srdbg('SHAPE FOR', o);
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
         let center = radiaService.scaledArray(o.center, scale);
         let size =   radiaService.scaledArray(o.size, scale);
@@ -601,7 +603,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const l = o.isButton === undefined ? o.layoutShape : 'rect';
         let pts = {};
         if (l === 'polygon') {
-            srdbg('POLY PTS AT', center);
             const k = radiaService.axisIndex(o.extrusionAxis);
             const scaledPts = o.points.map(p => radiaService.scaledArray(p, scale));
             pts[o.extrusionAxis] = scaledPts;
@@ -3584,38 +3585,15 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         updateObjectEditor();
     };
 
-    $scope.$on('geomObject.changed', () => {
-        srdbg('GEOEM CH');
-        /*
-        if (editedModels.includes('extrudedPoly')) {
-            if (editedModels.includes('extrudedPoints')) {
-                loadPoints();
-            }
-            else {
-                radiaService.updateExtruded($scope.modelData, () => {
-                    radiaService.saveGeometry(true, false);
-                });
-            }
-        }
-        if (editedModels.includes('stl')) {
-            loadSTLSize();
-        }
-        
-         */
-        //editedModels = [];
-    });
-    
     $scope.$on('modelChanged', (e, d) => {
         if (! editedModels.includes(d)) {
             return;
         }
         if (d === 'extrudedPoly') {
             if (editedModels.includes('extrudedPoints')) {
-                srdbg('extrudedPoints');
                 loadPoints();
             }
             else {
-                srdbg('extrudedPoly');
                 radiaService.updateExtruded($scope.modelData, () => {
                     radiaService.saveGeometry(true, false);
                 });
@@ -3624,17 +3602,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         if (d === 'stl') {
             loadSTLSize();
         }
+        // save geom?
     });
-
-    //$scope.$on('extrudedPoly.changed', () => {
-    //    radiaService.updateExtruded($scope.modelData, () => {
-    //        radiaService.saveGeometry(true, false);
-    //    });
-    //});
-    //$scope.$on('extrudedPoints.changed', () => {
-    //    loadPoints();
-    //});
-    //$scope.$on('stl.changed', loadSTLSize);
 
     function buildTriangulationLevelDelegate() {
         const m = 'extrudedPoly';
@@ -3659,13 +3628,11 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function loadPoints() {
-        srdbg("LOAD PTS");
         if (! $scope.modelData.pointsFile) {
             $scope.modelData.points = [];
             $scope.modelData.referencePoints = [];
             return;
         }
-        srdbg('BLD SHH FROM OBJ VIEW');
         radiaService.buildShapePoints($scope.modelData, setPoints);
     }
 
@@ -3688,7 +3655,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function setPoints(data) {
-        srdbg('SET', data);
         $scope.modelData.referencePoints = data.points;
         radiaService.updateExtruded($scope.modelData, () => {
             radiaService.saveGeometry(true, false);
