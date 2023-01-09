@@ -487,7 +487,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.editObject = o => {
         self.selectObject(o);
-        panelState.showModalEditor(o.type);
+        panelState.showModalEditor(o.type, null, $scope);
     };
 
     self.showDesigner = () => {
@@ -534,7 +534,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.isDropEnabled = () => self.dropEnabled;
 
-    self.objectBounds = () => groupBounds();
+    self.loadShapes = loadShapes;
+
+    self.objectBounds = groupBounds;
 
     self.objectsOfType = type => appState.models.geometryReport.objects.filter(o => o.type === type);
 
@@ -899,6 +901,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function loadShapes() {
+        srdbg('LOAD SH');
         self.shapes = [];
         appState.models.geometryReport.objects.forEach(addShapesForObject);
         addBeamAxis();
@@ -3563,8 +3566,9 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     buildTriangulationLevelDelegate();
 });
 
-SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $scope) {
+SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
 
+    const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
     let editedModels = [];
     const parent = $scope.$parent;
 
@@ -3594,14 +3598,13 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             }
             else {
                 radiaService.updateExtruded($scope.modelData, () => {
-                    radiaService.saveGeometry(true, false);
+                    radiaService.saveGeometry(true, false, updateShapes);
                 });
             }
         }
         if (d === 'stl') {
             loadSTLSize();
         }
-        // save geom?
     });
 
     function buildTriangulationLevelDelegate() {
@@ -3653,11 +3656,16 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         return m ? m : [parent.modelName, f];
     }
 
+    function updateShapes() {
+        radiaService.saveGeometry(true, false, () => {
+            ctl.loadShapes();
+            $rootScope.$broadcast('shapes.loaded');
+        });
+    }
+
     function setPoints(data) {
         $scope.modelData.referencePoints = data.points;
-        radiaService.updateExtruded($scope.modelData, () => {
-            radiaService.saveGeometry(true, false);
-        });
+        radiaService.updateExtruded($scope.modelData, () => updateShapes);
     }
 
     function setSTLSize(data) {

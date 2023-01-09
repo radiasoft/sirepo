@@ -2329,6 +2329,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.is3dPreview = !$scope.is3dPreview;
             };
 
+            $scope.$on('shapes.loaded', () => {
+                drawShapes();
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
