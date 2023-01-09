@@ -901,7 +901,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function loadShapes() {
-        srdbg('LOAD SH');
         self.shapes = [];
         appState.models.geometryReport.objects.forEach(addShapesForObject);
         addBeamAxis();
