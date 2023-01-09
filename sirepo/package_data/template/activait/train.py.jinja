@@ -1,6 +1,7 @@
 import numpy as np
 import keras.losses
 from keras.callbacks import CSVLogger
+from pykern.pkcollections import PKDict
 {% if image_data %}
 
 model.compile(
@@ -38,37 +39,36 @@ testx = test[:, in_idx]
 {% endif %}
 
 {% if image_data %}
-def _all_int(y_true):
-    for y in y_true:
+def _all_int(testy):
+    for y in testy:
         if type(y) != int:
             return False
     return True
 
-if split.test_gen.outScaler:
-    p = split.test_gen.outScaler.inverse_transform(model.predict(testx))
-    testy = split.test_gen.outScaler.inverse_transform(testy)
-else:
-    p = model.predict(x=testx)
-if _all_int(testy):
-    print(p.shape)
-    if p.shape[-1] == len(set(testy)):
+def _prediction_shape(prediction, testy):
+    return prediction.shape[-1] == len(set(testy))
+
+def _classification_case(prediction, testy):
+    return _all_int(testy) and _prediction_shape(prediction, testy)
+
+def _predictions_final(p, testy):
+    if _classification_case(p, testy):
         p = np.argmax(p, axis=1)
+    return p
+
+def _predictions_initial(testx, testy):
+    if split.test_gen.outScaler:
+        return PKDict(
+            p=split.test_gen.outScaler.inverse_transform(model.predict(testx)),
+            testy=split.test_gen.outScaler.inverse_transform(testy),
+        )
+    return PKDict(p=model.predict(x=testx), testy=testy)
+
+o = _predictions_initial(testx, testy)
+p = _predictions_final(o.p, o.testy)
 {% else %}
 p = model.predict(x=testx)
 {% endif %}
-
-{#
-
-TODO (gurhar1133): if ground truth for y is integers
-and range of y matches dimension of prediction, then np.argmax
-predictions before saving to predict file.
-
-Also, need to handle cases where there is no outScaler
-so that an inverse_transform is not accidentally called on
-y or predicted y
-
-#}
-
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', testy)
 np.save('{{ predictFile }}', p)
