@@ -943,6 +943,7 @@ def _generate_parameters_file(data):
     v.outputsScaler = dm.dataFile.outputsScaler
     v.feature_min = dm.dataFile.featureRangeMin
     v.feature_max = dm.dataFile.featureRangeMax
+    pkdp("\n\n\n columnInfo: {}", dm.columnInfo)
     if v.image_data:
         v.inPath = None
         v.outPath = None
