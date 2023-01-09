@@ -49,10 +49,29 @@ def background_percent_complete(report, run_dir, is_running):
         percent_complete = 0
     elif percent_complete > 1.0:
         percent_complete = 1.0
+    fc = file_index + 1
     return PKDict(
         lastUpdateTime=last_update_time,
         percentComplete=percent_complete * 100,
-        frameCount=file_index + 1,
+        frameCount=fc,
+        result=PKDict(
+            reports=[
+                PKDict(
+                    modelName="fieldAnimation",
+                    frameCount=fc,
+                ),
+                PKDict(
+                    modelName="particleAnimation",
+                    frameCount=fc,
+                ),
+                PKDict(
+                    modelName="beamAnimation",
+                    frameCount=fc
+                    if data.models.simulation.sourceType == "electronBeam"
+                    else 0,
+                ),
+            ],
+        ),
     )
 
 
