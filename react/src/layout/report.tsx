@@ -123,8 +123,8 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
 
    //TODO(pjm): private method naming convention?
     _reportStatus(reportName, simulationData) {
-        if (simulationData.result && simulationData.result.reports) {
-            for (const r of simulationData.result.reports) {
+        if (simulationData.reports) {
+            for (const r of simulationData.reports) {
                 if (r.modelName === reportName) {
                     return {
                         frameCount: r.frameCount || r.lastUpdateTime || 0,

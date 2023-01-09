@@ -95,7 +95,7 @@ def background_percent_complete(report, run_dir, is_running):
 
     # convert v2 format to original format for old client
     t = None
-    for r in res.result.reports:
+    for r in res.reports:
         if r.modelName == "particleAnimation":
             res.hasParticles = True
             res.frameCount = r.frameCount
@@ -531,9 +531,9 @@ def _set_mass_and_charge(ion_beam):
         ]
 
 
-def _v2_add_report_mtime(result, model_name, path):
+def _v2_add_report_mtime(reports, model_name, path):
     if path.exists():
-        result.append(
+        reports.append(
             PKDict(
                 modelName=model_name,
                 lastUpdateTime=int(float(os.path.getmtime(str(path)))),
@@ -570,27 +570,27 @@ def _v2_report_status(run_dir, is_running):
     # particleAnimation
     #   settings.model == "particle" and settings.save_particle_interval > 0:
     #   frameCount: len(_ion_files()) - is_running ? 1 : 0
-    reports = []
     settings = simulation_db.read_json(
         run_dir.join(template_common.INPUT_BASE_NAME)
     ).models.simulationSettings
     res = PKDict(
         percentComplete=_v2_percent_complete(
             settings, run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
-        )
+        ),
+        reports=[],
     )
     if res.percentComplete:
         _v2_add_report_mtime(
-            reports, "forceTableAnimation", run_dir.join(_FORCE_TABLE_FILENAME)
+            res.reports, "forceTableAnimation", run_dir.join(_FORCE_TABLE_FILENAME)
         )
         _v2_add_report_mtime(
-            reports,
+            res.reports,
             "beamEvolutionAnimation",
             run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME),
         )
         if settings.ibs == "1" or settings.e_cool == "1":
             _v2_add_report_mtime(
-                reports,
+                res.reports,
                 "coolingRatesAnimation",
                 run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME),
             )
@@ -598,8 +598,5 @@ def _v2_report_status(run_dir, is_running):
         if count > 0 and is_running:
             count -= 1
         if count:
-            reports.append(PKDict(modelName="particleAnimation", frameCount=count))
-    res.result = PKDict(
-        reports=reports,
-    )
+            res.reports.append(PKDict(modelName="particleAnimation", frameCount=count))
     return res

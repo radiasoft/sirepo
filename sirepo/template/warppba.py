@@ -54,24 +54,22 @@ def background_percent_complete(report, run_dir, is_running):
         lastUpdateTime=last_update_time,
         percentComplete=percent_complete * 100,
         frameCount=fc,
-        result=PKDict(
-            reports=[
-                PKDict(
-                    modelName="fieldAnimation",
-                    frameCount=fc,
-                ),
-                PKDict(
-                    modelName="particleAnimation",
-                    frameCount=fc,
-                ),
-                PKDict(
-                    modelName="beamAnimation",
-                    frameCount=fc
-                    if data.models.simulation.sourceType == "electronBeam"
-                    else 0,
-                ),
-            ],
-        ),
+        reports=[
+            PKDict(
+                modelName="fieldAnimation",
+                frameCount=fc,
+            ),
+            PKDict(
+                modelName="particleAnimation",
+                frameCount=fc,
+            ),
+            PKDict(
+                modelName="beamAnimation",
+                frameCount=fc
+                if data.models.simulation.sourceType == "electronBeam"
+                else 0,
+            ),
+        ],
     )
 
 
