@@ -316,7 +316,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
-                      <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s);$event.stopPropagation();">run log</button></td>
+                      <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">run log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -532,7 +532,8 @@ SIREPO.app.directive('scansTable', function() {
                 return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
             };
 
-            $scope.showRunLogModal = (scan) => {
+            $scope.showRunLogModal = (scan, event) => {
+                event.stopPropagation();
                 $scope.runLogScanId = scan.uid;
                 clickViewLog();
             };
