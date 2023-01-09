@@ -1875,13 +1875,12 @@ SIREPO.app.directive('viewLogIframe', function() {
     return {
         restrict: 'A',
         scope: {
-            hideLink: '<',
+            loadingLog: '<',
+            logHtml: '<',
             logPath: '<',
-            wrapperViewLog: '<',
             wrapperDownloadLog: '<'
         },
         template: `
-            <a href data-ng-click="viewLog()" id="viewLogIframeLink">{{ linkText }}</a>
             <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -1897,34 +1896,20 @@ SIREPO.app.directive('viewLogIframe', function() {
                     </div>
                   </div>
                   <div class="modal-body" style="padding: 0">
-                    <div data-ng-if="logPath">{{ logPath }}</div>
-                    <iframe id="sr-text-iframe"
-                      style="border: 0; width: 100%; height: 80vh" src=""></iframe>
+                    <div data-ng-if="loadingLog">Loading...</div>
+                    <div data-ng-if="! loadingLog">
+                        <div data-ng-if="logPath">{{ logPath }}</div>
+                        <iframe id="sr-text-iframe"
+                          style="border: 0; width: 100%; height: 80vh" src="" srcdoc="{{ logHtml }}"></iframe>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
         `,
         controller: function($scope) {
-            $scope.linkText = generateLinkText();
-
-            function generateLinkText() {
-                if ($scope.hideLink) {
-                    return '';
-                } else {
-                    return 'View Log';
-                }
-            }
-
             $scope.downloadLog = function() {
                 return $scope.wrapperDownloadLog();
-            };
-
-            $scope.viewLog = function() {
-                $scope.wrapperViewLog((html) => {
-                    $('#sr-text-iframe').attr('srcdoc', html);
-                });
-                $('#sr-iframe-text-view').modal('show');
             };
         },
     };

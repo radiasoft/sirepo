@@ -365,7 +365,7 @@ SIREPO.app.directive('scansTable', function() {
             </div>
             <div data-view-log-iframe-wrapper data-scan-id="runLogScanId"></div>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
             // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
@@ -418,12 +418,6 @@ SIREPO.app.directive('scansTable', function() {
                     errorOptions
                 );
             };
-
-            function clickViewLog() {
-              $timeout(function() {
-                angular.element(document.querySelector('#viewLogIframeLink')).triggerHandler('click');
-              });
-            }
 
             function sendScanRequest () {
                 const m = appState.models[$scope.modelName];
@@ -535,7 +529,7 @@ SIREPO.app.directive('scansTable', function() {
             $scope.showRunLogModal = (scan, event) => {
                 event.stopPropagation();
                 $scope.runLogScanId = scan.uid;
-                clickViewLog();
+                $('#sr-iframe-text-view').modal('show');
             };
 
             $scope.sortCol = (column) => {
@@ -588,19 +582,21 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             scanId: '<',
         },
         template: `
-            <div data-view-log-iframe data-wrapper-view-log="viewLog" data-log-path="logPath" data-hide-link="true"></div>
+            <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-loading-log="loadingLog"></div>
         `,
         controller: function(appState, errorService, panelState, requestSender, $scope) {
+            $scope.loadingLog = false;
             $scope.log = null;
             $scope.logPath = null;
 
-            $scope.viewLog = function(onReturn) {
+            $('#sr-iframe-text-view').on('shown.bs.modal', function() {
+                $scope.loadingLog = true;
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
+                        $scope.loadingLog = false;
                         $scope.log = json.run_log;
                         $scope.logPath = json.log_path;
-                        onReturn($scope.log);
                     },
                     {
                         method: 'analysis_run_log',
@@ -611,13 +607,14 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                     {
                         modelName: $scope.modelName,
                         onError: (data) => {
+                            $scope.loadingLog = false;
                             errorService.alertText(data.error);
                             panelState.setLoading($scope.modelName, false);
                         },
                         panelState: panelState,
                     }
                 );
-            };
+            });
         },
     };
 });
