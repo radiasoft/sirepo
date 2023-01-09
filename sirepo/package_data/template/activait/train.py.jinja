@@ -69,7 +69,6 @@ y or predicted y
 
 #}
 
-print("predictions=", p)
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', testy)
 np.save('{{ predictFile }}', p)
