@@ -221,7 +221,6 @@ class API(sirepo.quest.API):
         req = self.parse_params(type=simulation_type)
         # TODO(pjm): need to unquote when redirecting from saved cookie redirect?
         simulation_name = urllib.parse.unquote(simulation_name)
-        n = None
         # use the existing named simulation, or copy it from the examples
         rows = simulation_db.iterate_simulation_datafiles(
             req.type,
@@ -236,7 +235,7 @@ class API(sirepo.quest.API):
             for s in simulation_db.examples(req.type):
                 if s["models"]["simulation"]["name"] != simulation_name:
                     continue
-                n = simulation_db.save_new_example(s, qcall=self)
+                simulation_db.save_new_example(s, qcall=self)
                 rows = simulation_db.iterate_simulation_datafiles(
                     req.type,
                     simulation_db.process_simulation_list,
@@ -253,9 +252,6 @@ class API(sirepo.quest.API):
                     req.type,
                 )
         m = simulation_db.get_schema(req.type).appModes[application_mode]
-
-        if simulation_type in sirepo.feature_config.cfg().react_sim_types:
-            return self.headers_for_no_cache(self.reply_json(n))
         return self.reply_redirect_for_local_route(
             req.type,
             m.localRoute,
