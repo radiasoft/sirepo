@@ -267,8 +267,8 @@ def _call_api(parent, route, kwargs, data=None):
             )
             c = True
         except Exception as e:
-            if isinstance(e, sirepo.util.Reply):
-                if isinstance(e, sirepo.util.OKReply):
+            if isinstance(e, sirepo.util.ReplyExc):
+                if isinstance(e, sirepo.util.OKReplyExc):
                     c = True
                 pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
             else:

@@ -630,7 +630,7 @@ def sim_frame(frame_id, op, qcall):
     try:
         x = op(f)
     except Exception as e:
-        if isinstance(e, sirepo.util.Reply):
+        if isinstance(e, sirepo.util.ReplyExc):
             return e
         raise sirepo.util.UserAlert(
             "Report not generated",

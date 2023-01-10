@@ -604,7 +604,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             except Exception:
                 pass
         raise
-    raise sirepo.util.SReply(
+    raise sirepo.util.SReplyExc(
         qcall.call_api(
             "simulationData",
             kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i),
