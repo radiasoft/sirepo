@@ -487,7 +487,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.editObject = o => {
         self.selectObject(o);
-        panelState.showModalEditor(o.type, null, $scope);
+        panelState.showModalEditor(o.type);
     };
 
     self.showDesigner = () => {
