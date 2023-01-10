@@ -1274,7 +1274,9 @@
                               "beamEvolutionAnimation.verticalSize",
                               "beamEvolutionAnimation.verticalOffset"
                             ],
-                            "reportLayout": { "layout": "graph2d", "config": {} }
+                            "frameCountFieldName": "frameCount",
+                            "reportLayout": { "layout": "graph2d", "config": {} },
+                            "singleFrameAnimation": true
                           }
                         }
                       ],
@@ -1362,7 +1364,8 @@
                               "coolingRatesAnimation.verticalOffset"
                             ],
                             "frameCountFieldName": "frameCount",
-                            "reportLayout": { "layout": "graph2d", "config": {} }
+                            "reportLayout": { "layout": "graph2d", "config": {} },
+                            "singleFrameAnimation": true
                           }
                         }
                       ],
