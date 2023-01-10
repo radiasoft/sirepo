@@ -33,7 +33,7 @@ class Elevation {
         }
         this.axis = axis;
         this.class = `.plot-viewport elevation-${axis}`;
-        this.coordPlane = Elevation.PLANES()[this.axis ];
+        this.coordPlane = Elevation.PLANES()[this.axis];
         this.name = Elevation.NAMES()[axis];
         this.labDimensions = {
             x: {
@@ -1764,56 +1764,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
         controller: function($scope, $element) {
             const ASPECT_RATIO = 1.0;
 
-            const ELEVATIONS = {
-                front: 'front',
-                side: 'side',
-                top: 'top'
-            };
-
-            const ELEVS = {};
+            const ELEVATIONS = {};
             for (const axis of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
                 const e = new Elevation(axis);
-                ELEVS[e.name] = e;
+                ELEVATIONS[e.name] = e;
             }
-
-            const ELEVATION_INFO = {
-                front: {
-                    axis: 'z',
-                    class: '.plot-viewport elevation-front',
-                    coordPlane: 'xy',
-                    name: ELEVATIONS.front,
-                    x: {
-                        axis: 'x',
-                    },
-                    y: {
-                        axis: 'y',
-                    }
-                },
-                side: {
-                    axis: 'x',
-                    class: '.plot-viewport elevation-side',
-                    coordPlane: 'yz',
-                    name: ELEVATIONS.side,
-                    x: {
-                        axis: 'y',
-                    },
-                    y: {
-                        axis: 'z',
-                    }
-                },
-                top: {
-                    axis: 'y',
-                    class: '.plot-viewport elevation-top',
-                    coordPlane: 'zx',
-                    name: ELEVATIONS.top,
-                    x: {
-                        axis: 'z',
-                    },
-                    y: {
-                        axis: 'x',
-                    }
-                }
-            };
 
             // svg shapes
             const LAYOUT_SHAPES = ['circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'];
@@ -1857,6 +1812,14 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function clearDragShadow() {
                 d3.selectAll('.vtk-object-layout-drag-shadow').remove();
+            }
+
+            function getElevation() {
+                return ELEVATIONS[$scope.elevation];
+            }
+
+            function getLabAxis(dim) {
+                return getElevation().labAxis(dim);
             }
 
             function resetDrag() {
@@ -1980,8 +1943,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function drawShapes() {
-                //drawObjects(ELEVATION_INFO[$scope.elevation]);
-                drawObjects(ELEVS[$scope.elevation]);
+                drawObjects(getElevation());
             }
 
             function editObject(shape) {
@@ -2083,7 +2045,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 const b = $scope.source.shapeBounds();
                 const newDomain = $scope.cfg.initDomian;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    const labDim = ELEVS[$scope.elevation].labAxis(dim);
+                    const labDim = getLabAxis(dim);
                     const axis = axes[dim];
                     const bd = b[labDim];
                     const nd = newDomain[labDim];
@@ -2142,7 +2104,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function updateDragShadow(obj, p) {
                 clearDragShadow();
                 const shape = $scope.source.shapeForObject(obj);
-                shape.elev = ELEVS[$scope.elevation];
+                shape.elev = getElevation();
                 shape.x = shapeOrigin(shape, 'x'); // axes.x.scale.invert(p[0]) + shape.size[0]/ 2;
                 shape.y = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;
                 showShapeLocation(shape);
@@ -2334,10 +2296,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.dropSuccess = function(obj, evt) {
                 const p = isMouseInBounds(evt);
                 if (p) {
-                    //const labXIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].x.axis);
-                    //const labYIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].y.axis);
-                    const labXIdx = geometry.basis.indexOf(ELEVS[$scope.elevation].labAxis('x'));
-                    const labYIdx = geometry.basis.indexOf(ELEVS[$scope.elevation].labAxis('y'));
+                    const labXIdx = geometry.basis.indexOf(getLabAxis('x'));
+                    const labYIdx = geometry.basis.indexOf(getLabAxis('y'));
                     const ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
@@ -2384,8 +2344,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     .on('drag', d3DragShape)
                     .on('dragstart', d3DragStartShape)
                     .on('dragend', d3DragEndShape);
-                axes.x.parseLabelAndUnits(ELEVS[$scope.elevation].labAxis('x') + ' [m]');
-                axes.y.parseLabelAndUnits(ELEVS[$scope.elevation].labAxis('y') + ' [m]');
+                ['x', 'y'].forEach(a => {
+                    axes[a].parseLabelAndUnits(`${getLabAxis(a)} [m]`);
+                });
+
+                axes.y.parseLabelAndUnits(`${getLabAxis('y')} [m]`);
                 replot();
             };
 
@@ -2411,8 +2374,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.setElevation = function(elev) {
                 $scope.elevation = elev;
-                axes.x.parseLabelAndUnits(ELEVS[$scope.elevation].labAxis('x') + ' [m]');
-                axes.y.parseLabelAndUnits(ELEVS[$scope.elevation].labAxis('y') + ' [m]');
+                axes.x.parseLabelAndUnits(getElevation().labAxis('x') + ' [m]');
+                axes.y.parseLabelAndUnits(getElevation().labAxis('y') + ' [m]');
                 replot();
             };
 
