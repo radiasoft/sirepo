@@ -835,6 +835,8 @@ def _write_csv_for_download(columns_dict, csv_name):
 
 
 def _discrete_out(column_info):
+    if not column_info.get("dtypeKind"):
+        return False
     return column_info.dtypeKind[column_info.inputOutput.index("output")] == "u"
 
 
