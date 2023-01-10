@@ -7,21 +7,14 @@
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
 import contextlib
-import flask
-import flask.testing
 import json
+import pykern.pkinspect
 import re
 import requests
-
+import urllib
 
 #: Default "app"
 MYAPP = "myapp"
-
-#: import sirepo.server
-server = None
-
-#: app result from server.init_app
-app = None
 
 #: Matches javascript-redirect.html
 _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
@@ -33,6 +26,8 @@ SR_SIM_TYPE_DEFAULT = MYAPP
 
 #: Sirepo db dir
 _DB_DIR = "db"
+
+_client = None
 
 
 @contextlib.contextmanager
@@ -56,6 +51,7 @@ def quest_start(want_user=False, cfg=None):
 
 def flask_client(env=None, sim_types=None, job_run_mode=None, empty_work_dir=True):
     """"""
+    global _client
     t = sim_types or CONFTEST_DEFAULT_CODES
     if t:
         if isinstance(t, (tuple, list)):
@@ -65,6 +61,8 @@ def flask_client(env=None, sim_types=None, job_run_mode=None, empty_work_dir=Tru
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing(env)
+    if _client:
+        return _client
 
     from pykern import pkunit
 
@@ -77,7 +75,8 @@ def flask_client(env=None, sim_types=None, job_run_mode=None, empty_work_dir=Tru
     from sirepo import modules
 
     modules.import_and_init("sirepo.uri")
-    return _TestClient(env=env, job_run_mode=job_run_mode)
+    _client = _TestClient(env=env, job_run_mode=job_run_mode)
+    return _client
 
 
 def setup_srdb_root(cfg=None):
@@ -153,7 +152,7 @@ class _TestClient:
         self.cookie_jar = self._session.cookies
 
     def get(self, uri, headers=None):
-        return _Response(self._session.get(self._http + uri, headers=headers))
+        return self._requests_op("get", uri, headers, kwargs=PKDict())
 
     def post(self, uri, data=None, json=None, headers=None):
         assert (data is None) != (json is None)
@@ -162,13 +161,7 @@ class _TestClient:
             k.data = data
         else:
             k.json = json
-        return _Response(
-            self._session.post(
-                self._http + uri,
-                headers=headers,
-                **k,
-            ),
-        )
+        return self._requests_op("post", uri, headers, k)
 
     def sr_animation_run(self, data, compute_model, reports=None, **kwargs):
         from pykern import pkunit
@@ -633,6 +626,22 @@ class _TestClient:
                     pkdexc(),
                 )
             raise
+
+    def _requests_op(self, op, uri, headers, kwargs):
+        if headers is None:
+            headers = PKDict()
+        headers["User-Agent"] = f"srunit/1.0 {pykern.pkinspect.caller()}"
+        return _Response(
+            getattr(self._session, op)(self._uri(uri), headers=headers, **kwargs),
+        )
+
+    def _uri(self, uri):
+        from pykern.pkdebug import pkdp
+
+        u = urllib.parse.urlparse(uri)
+        if u.scheme:
+            return uri
+        return self._http + uri
 
 
 class _Response:
