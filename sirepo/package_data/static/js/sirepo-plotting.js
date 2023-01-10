@@ -171,10 +171,7 @@ class AbstractPlotShape2D extends AbstractPlotShape {
             name,
             layoutShape
         );
-        this.center = {
-            x: center[0],
-            y: center[1],
-        };
+        this.center = new SIREPO.GEOMETRY.Point(...center);
    }
 
     getCenterCoords() {
@@ -203,11 +200,6 @@ class AbstractPlotShape3D extends AbstractPlotShape2D {
     ) {
         super(id, name, layoutShape, center);
         this.axes = ['x', 'y', 'z'];
-        this.center = {
-            x: center[0],
-            y: center[1],
-            z: center[2],
-        };
    }
 
     getCenterCoords() {
@@ -245,24 +237,28 @@ class PlotPolygon extends AbstractPlotShape2D {
     constructor(
         id,
         name,
-        center,
-        size
+        points
     ) {
-        super(id, name, 'rect', center);
+        if (points.length < 3) {
+            throw new Error('Polygons require at least 3 points: ' + points.length);
+        }
+        const p = points.map(x => new SIREPO.GEOMETRY.Point(...x));
+        const sx = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(p, 'x');
+        const sy = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(p, 'y');
+        super(
+            id,
+            name,
+            'polygon',
+            [
+                sx[0].x + (sx[sx.length - 1].x - sx[0].x) / 2,
+                sy[0].y + (sy[sy.length - 1].y - sy[0].y) / 2,
+            ]
+        );
+        this.points = p;
         this.size = {
-            x: size[0],
-            y: size[1],
+            x: Math.abs(sx[sx.length - 1].x - sx[0].x),
+            y: Math.abs(sy[sy.length - 1].y - sy[0].y),
         };
-        this.x = center[0] + size[0] / 2;
-        this.y = center[1] - size[1] / 2;
-    }
-
-    getSizeCoords() {
-        return this.getCoords(this.size);
-    }
-
-    setSize(coords) {
-        this.setCoords(this.size, coords);
     }
 }
 
@@ -4237,6 +4233,7 @@ SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState
 
 SIREPO.PLOTTING = {
     PlotLine: PlotLine,
+    PlotPolygon: PlotPolygon,
     PlotRect: PlotRect,
     Utils: PlottingUtils,
 };

@@ -40,6 +40,10 @@ class GeometryUtils {
         };
     }
 
+    static axisIndex(axis) {
+        return GeometryUtils.BASIS().indexOf(axis);
+    }
+
     /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
@@ -59,7 +63,7 @@ class GeometryUtils {
      */
     static nextAxis(axis) {
         const b = GeometryUtils.BASIS();
-        return b[(b.indexOf(axis) + 1) % b.length];
+        return b[(GeometryUtils.axisIndex(axis) + 1) % b.length];
     }
 
     /**
@@ -534,12 +538,20 @@ class AffineMatrix extends SquareMatrix {
         return new AffineMatrix(this.multiply(matrix).val);
     }
 
+    getLinearMinor() {
+        return this.minor(3, 3);
+    }
+
     getRotation() {
         return RotationMatrix.fromVal(this.val);
     }
 
     getTranslation() {
         return new TranslationMatrix(this.transpose().val[3].slice(0, 3));
+    }
+
+    hasReflection() {
+        return this.getLinearMinor().det() < 0;
     }
 }
 
@@ -654,7 +666,7 @@ class RotationMatrix extends AffineMatrix {
 }
 
 /**
- * Affine transformation for reflections
+ * Affine transformation for reflections through an arbitrary plane
  */
 class ReflectionMatrix extends AffineMatrix {
     /**
@@ -662,7 +674,7 @@ class ReflectionMatrix extends AffineMatrix {
      */
     constructor(plane) {
         const n = plane.norm;
-        const p = plane.point;
+        const p = plane.point.coords();
         const d = -n[0] * p[0] - n[1] * p[1] - n[2] * p[2];
         const m = [
             [1 - 2 * n[0] * n[0], -2 * n[0] * n[1], -2 * n[0] * n[2], -2 * n[0] * d],
