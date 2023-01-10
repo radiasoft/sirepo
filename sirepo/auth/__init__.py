@@ -9,10 +9,6 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from sirepo import events
-from sirepo import http_reply
-from sirepo import job
-from sirepo import util
 import contextlib
 import datetime
 import importlib
@@ -22,11 +18,13 @@ import sirepo.auth_role
 import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
+import sirepo.job
 import sirepo.quest
+import sirepo.reply
 import sirepo.request
+import sirepo.spa_session
 import sirepo.template
 import sirepo.uri
-import sirepo.spa_session
 import sirepo.util
 
 
@@ -92,8 +90,13 @@ def init_quest(qcall, top_level_call_api=False):
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
     sirepo.auth_db.init_quest(qcall)
-    if not _cfg.logged_in_user and top_level_call_api:
+    if (
+        not _cfg.logged_in_user
+        and top_level_call_api
+        or qcall.bucket_unchecked_get("in_srunit")
+    ):
         sirepo.request.init_quest(qcall)
+        sirepo.reply.init_quest(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
         sirepo.cookie.init_quest(qcall)
@@ -325,11 +328,11 @@ class _Auth(sirepo.quest.Attr):
             model (auth_db.UserDbBase): user to login (overrides uid) [None]
             sim_type (str): app to redirect to [None]
             display_name (str): to save as the display_name [None]
-            is_mock (bool): simulationed login for api_srUnit [False]
+            is_mock (bool): simulated login for srunit.quest_start [False]
             want_redirect (bool): http redirect on success [False]
         """
         if method is None:
-            assert is_mock, "only used by api_srUnit"
+            assert is_mock, "only used by srunit.quest_start"
             method = METHOD_GUEST
         mm = _METHOD_MODULES[method] if isinstance(method, str) else method
         self._validate_method(mm, sim_type=sim_type)
@@ -413,8 +416,8 @@ class _Auth(sirepo.quest.Attr):
                 else None
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
-        raise sirepo.util.Response(
-            response=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
+        raise sirepo.util.SReplyExc(
+            sreply=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
         )
 
     def need_complete_registration(self, model_or_uid):
@@ -543,7 +546,7 @@ class _Auth(sirepo.quest.Attr):
             return None
 
     def user_dir_not_found(self, user_dir, uid):
-        """Called by http_reply when user_dir is not found
+        """Called by sirepo.reply when user_dir is not found
 
         Deletes any user records and resets auth state.
 
@@ -635,7 +638,7 @@ class _Auth(sirepo.quest.Attr):
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:
-            v.sbatchQueueMaxes = job.NERSC_QUEUE_MAX
+            v.sbatchQueueMaxes = sirepo.job.NERSC_QUEUE_MAX
         u = self._qcall_bound_user()
         if v.isLoggedIn:
             if v.method == METHOD_GUEST:

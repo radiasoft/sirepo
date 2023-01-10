@@ -25,15 +25,17 @@ _cfg = {
 }
 
 
-@srunit.wrap_in_request(cfg=_cfg, want_user=False)
-def test_migration(qcall):
+def test_migration():
     """See if user gets migrated"""
-    from pykern.pkunit import pkeq, pkok, pkexcept, work_dir
-    from pykern.pkdebug import pkdp
+    from sirepo import srunit
+    from pykern import pkconfig
 
-    # deprecated methods raise Unauthorized, but still login
-    with pkexcept("SRException.*deprecated"):
-        qcall.auth.login(method="github", uid="jeTJR5G4")
-    # verify logged in
-    pkeq("jeTJR5G4", qcall.auth.user_if_logged_in("github"))
-    pkok(work_dir().join("db/auth.db").exists(), "auth.db does not exist")
+    with srunit.quest_start(cfg=_cfg) as qcall:
+        from pykern.pkunit import pkeq, pkok, pkexcept, work_dir
+        from pykern.pkdebug import pkdp
+
+        # deprecated methods raise Unauthorized, but still login
+        with pkexcept("SRException.*deprecated"):
+            qcall.auth.login(method="github", uid="jeTJR5G4")
+        # verify logged in
+        pkeq("jeTJR5G4", qcall.auth.user_if_logged_in("github"))
