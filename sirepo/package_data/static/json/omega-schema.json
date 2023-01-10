@@ -1,0 +1,24 @@
+{
+    "dynamicFiles": {
+        "sirepoLibs": {}
+    },
+    "enum": {
+        "CoupledSimType": [
+            ["elegant", "elegant"],
+            ["opal", "OPAL"],
+            ["genesis", "GENESIS 1.3"]
+        ]
+    },
+    "model": {
+        "coupledSim": {
+            "simulationType": ["SimulationType", "CoupledSimType"],
+            "simulationId": ["Simulation ID", "String"]
+        },
+        "simWorkflow": {
+            "coupledSims": ["Simulations", "SimArray", []]
+        },
+        "simulationStatus": {}
+    },
+    "view": {
+    }
+}

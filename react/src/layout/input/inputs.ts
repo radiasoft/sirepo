@@ -12,5 +12,7 @@ export const TYPE_BASES: {[baseName: string]: InputLayoutType} = {
     'Integer': IntegerInputLayout,
     'File': FileInputLayout,
     'Enum': EnumInputLayout,
-    'ComputeEnum': ComputeResultEnumInputLayout
+    'ComputeEnum': ComputeResultEnumInputLayout,
+    // for omega, replace with real implementation
+    'SimArray': StringInputLayout,
 }

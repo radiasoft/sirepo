@@ -13,6 +13,9 @@ from __future__ import absolute_import, division, print_function
 _DEPENDENT_CODES = [
     ["jspec", "elegant"],
     ["controls", "madx"],
+    ["omega", "elegant"],
+    ["omega", "madx"],
+    ["omega", "opal"],
 ]
 
 #: Codes on prod
@@ -41,6 +44,7 @@ _NON_PROD_FOSS_CODES = frozenset(
         "myapp",
         "cloudmc",
         "silas",
+        "omega",
     )
 )
 

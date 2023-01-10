@@ -1,0 +1,89 @@
+{
+    "type": {
+        "CoupledSimType": {
+            "base": "Enum",
+            "config": {
+                "allowedValues": [
+                    ["elegant", "elegant"],
+                    ["opal", "OPAL"],
+                    ["genesis", "GENESIS 1.3"]
+                ]
+            }
+        },
+        "SimArray": {
+            "base": "SimArray",
+            "config": {
+                "isRequired": false
+            }
+        }
+    },
+    "model": {
+        "coupledSim": {
+            "simulationType": {
+                "displayName": "Simulation Type",
+                "type": "CoupledSimType",
+                "defaultValue": ""
+            },
+            "simulationId": {
+                "displayName": "Simulation ID",
+                "type": "String",
+                "defaultValue": ""
+            }
+        },
+        "simWorkflow": {
+            "coupledSims": {
+                "displayName": "Simulations",
+                "type": "SimArray",
+                "defaultValue": []
+            }
+        },
+        "simulationStatus": {}
+    },
+    "view": [
+        {
+          "layout": "navbarModalButton",
+          "config": {
+            "name": "simulationRenameNavButton",
+            "title": "$(simulation.name)",
+            "icon": "faPencil",
+            "modal": {
+              "title": "Simulation",
+              "items": [
+                {
+                  "layout": "fieldList",
+                  "config": { "name": "simulation", "fields": ["simulation.name"] }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "layout": "navTabs",
+          "config": {
+            "name": "navtabs",
+            "tabs": [
+              {
+                "name": "source",
+                "title": "Source",
+                "icon": "",
+                "items": [
+                  {
+                    "layout": "panel",
+                    "config": {
+                      "name": "simulationStatus",
+                      "title": "Simulation Status",
+                      "basic": [
+                        {
+                          "layout": "startSimulation",
+                          "config": { "reportGroupName": "animation" }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+    ]
+}
