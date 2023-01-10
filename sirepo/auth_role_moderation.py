@@ -152,7 +152,6 @@ class API(sirepo.quest.API):
         l = self.absolute_uri(self.uri_for_api("admModerateRedirect"))
         if not req.req_data.get("reason"):
             raise sirepo.util.UserAlert("Reason for requesting access not provided")
-        # try:
         _send_request_email(
             PKDict(
                 display_name=self.auth.user_display_name(u),
@@ -164,14 +163,6 @@ class API(sirepo.quest.API):
                 uid=u,
             ).pkupdate(self.user_agent_headers())
         )
-        # except sqlalchemy.exc.IntegrityError as e:
-        #     pkdlog(
-        #          "Error={} saving moderatiion request for uid={} role={} stack={}",
-        #             e,
-        #             u,
-        #             r,
-        #             pkdexc(),
-        #     )
         return self.reply_ok()
 
 
