@@ -834,6 +834,10 @@ def _write_csv_for_download(columns_dict, csv_name):
     pandas.DataFrame(columns_dict).to_csv(csv_name, index=False)
 
 
+def _discrete_out(column_info):
+    return column_info.dtypeKind[column_info.inputOutput.index("output")] == "u"
+
+
 def _extract_fft_report(run_dir, sim_in):
     x, plots, title, summary_data = get_fft_report(run_dir, sim_in)
     _write_report(
@@ -943,7 +947,7 @@ def _generate_parameters_file(data):
     v.outputsScaler = dm.dataFile.outputsScaler
     v.feature_min = dm.dataFile.featureRangeMin
     v.feature_max = dm.dataFile.featureRangeMax
-    pkdp("\n\n\n columnInfo: {}", dm.columnInfo)
+    v.discreteOutputs = _discrete_out(dm.columnInfo)
     if v.image_data:
         v.inPath = None
         v.outPath = None

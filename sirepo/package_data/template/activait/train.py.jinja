@@ -39,17 +39,14 @@ testx = test[:, in_idx]
 {% endif %}
 
 {% if image_data %}
-def _all_int(testy):
-    for y in testy:
-        if type(y) != int:
-            return False
-    return True
+def _domain_len(outputs_true):
+    return len(numpy.unique(outputs_true))
 
 def _prediction_shape(prediction, testy):
-    return prediction.shape[-1] == len(set(testy))
+    return prediction.shape[-1] == _domain_len(testy)
 
 def _classification_case(prediction, testy):
-    return _all_int(testy) and _prediction_shape(prediction, testy)
+    return {{ discreteOutputs }} and _prediction_shape(prediction, testy)
 
 def _predictions_final(p, testy):
     if _classification_case(p, testy):
