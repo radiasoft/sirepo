@@ -15,7 +15,6 @@ def auth_fc(auth_fc_module):
     # set the sentinel
     auth_fc_module.cookie_jar.clear()
     auth_fc_module.sr_get_root()
-    auth_fc_module.sr_email_confirm = email_confirm
     return auth_fc_module
 
 
@@ -23,25 +22,6 @@ def auth_fc(auth_fc_module):
 def auth_fc_module(request):
     with _auth_client_module(request) as c:
         yield c
-
-
-def email_confirm(fc, resp, display_name=None):
-    import re
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdlog
-
-    fc.sr_get(resp.uri)
-    pkdlog(resp.uri)
-    m = re.search(r"/(\w+)$", resp.uri)
-    assert bool(m)
-    r = PKDict(token=m.group(1))
-    if display_name:
-        r.displayName = display_name
-    fc.sr_post(
-        resp.uri,
-        r,
-        raw_response=True,
-    )
 
 
 @pytest.fixture(scope="function")

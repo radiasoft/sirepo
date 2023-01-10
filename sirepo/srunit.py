@@ -163,6 +163,18 @@ class _TestClient:
             k.json = json
         return self._requests_op("post", uri, headers, k)
 
+    @contextlib.contextmanager
+    def sr_adjust_time(self, days):
+        from sirepo import srtime
+
+        def _do(days):
+            srtime.adjust_time(days)
+            self.sr_get_json("adjustTime", params=PKDict(days=days))
+
+        _do(days)
+        yield
+        _do(0)
+
     def sr_animation_run(self, data, compute_model, reports=None, **kwargs):
         from pykern import pkunit
         from pykern.pkcollections import PKDict
@@ -233,13 +245,25 @@ class _TestClient:
             )
         return s
 
+    def sr_email_confirm(self, resp, display_name=None):
+        from pykern.pkdebug import pkdlog
+
+        self.sr_get(resp.uri)
+        pkdlog(resp.uri)
+        m = re.search(r"/(\w+)$", resp.uri)
+        assert bool(m)
+        r = PKDict(token=m.group(1))
+        if display_name:
+            r.displayName = display_name
+        self.sr_post(resp.uri, r, raw_response=True)
+
     def sr_email_login(self, email):
         self.sr_logout()
         r = self.sr_post(
             "authEmailLogin",
             PKDict(email=email, simulationType=self.sr_sim_type),
         )
-        self.sr_email_confirm(self, r)
+        self.sr_email_confirm(r)
 
     def sr_email_register(self, email, sim_type=None):
         self.sr_sim_type_set(sim_type)
