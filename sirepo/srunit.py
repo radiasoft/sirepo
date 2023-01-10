@@ -29,7 +29,6 @@ _DB_DIR = "db"
 
 _client = None
 
-
 @contextlib.contextmanager
 def quest_start(want_user=False, cfg=None):
     if cfg is None:
@@ -138,6 +137,7 @@ class UwsgiClient(PKDict):
         return uri.server_route(route_or_uri, None, None)
 
 
+<<<<<<< HEAD
 class _TestClient:
     def __init__(self, env, job_run_mode):
         super().__init__()
@@ -174,6 +174,15 @@ class _TestClient:
         _do(days)
         yield
         _do(0)
+=======
+class _TestClient(flask.testing.FlaskClient):
+    def __init__(self, *args, **kwargs):
+        self.sr_job_run_mode = kwargs.pop("job_run_mode")
+        super(_TestClient, self).__init__(*args, **kwargs)
+        self.sr_sbatch_logged_in = False
+        self.sr_sim_type = None
+        self.sr_uid = None
+>>>>>>> master
 
     def sr_animation_run(self, data, compute_model, reports=None, **kwargs):
         from pykern import pkunit
