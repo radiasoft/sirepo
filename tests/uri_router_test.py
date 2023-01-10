@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import sirepo.srunit
 import pytest
 
 pytest.importorskip("srwl_bl")
@@ -48,18 +47,20 @@ def test_not_found(fc):
         pkeq(404, resp.status_code)
 
 
-@sirepo.srunit.wrap_in_request(want_user=False)
-def test_uri_for_api(qcall):
-    from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkeq, pkexcept, pkre, pkeq
-    from sirepo import uri_router
+def test_uri_for_api():
+    from sirepo import srunit
 
-    uri = uri_router.uri_for_api("homePage", params={"path_info": None})
-    pkeq("/en", uri)
-    uri = uri_router.uri_for_api("homePage", params={"path_info": "terms.html"})
-    pkeq("/en/terms.html", uri)
-    with pkexcept(KeyError):
-        uri_router.uri_for_api("notAnApi")
-    with pkexcept("missing parameter"):
-        uri_router.uri_for_api("exportArchive", {"simulation_type": "srw"})
-    pkeq("/", uri_router.uri_for_api("root", params={}))
+    with srunit.quest_start() as qcall:
+        from pykern.pkdebug import pkdp
+        from pykern.pkunit import pkeq, pkexcept, pkre, pkeq
+        from sirepo import uri_router
+
+        uri = uri_router.uri_for_api("homePage", params={"path_info": None})
+        pkeq("/en", uri)
+        uri = uri_router.uri_for_api("homePage", params={"path_info": "terms.html"})
+        pkeq("/en/terms.html", uri)
+        with pkexcept(KeyError):
+            uri_router.uri_for_api("notAnApi")
+        with pkexcept("missing parameter"):
+            uri_router.uri_for_api("exportArchive", {"simulation_type": "srw"})
+        pkeq("/", uri_router.uri_for_api("root", params={}))
