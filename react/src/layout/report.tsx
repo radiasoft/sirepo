@@ -106,7 +106,8 @@ export type ManualRunReportConfig = {
     reportGroupName: string,
     frameIdFields: string[],
     shown: string,
-    frameCountFieldName: string
+    frameCountFieldName: string,
+    singleFrameAnimation: boolean,
 }
 
 export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
@@ -123,7 +124,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        let { reportName, reportGroupName, frameIdFields, shown: shownConfig, frameCountFieldName } = this.config;
+        let { reportName, reportGroupName, frameIdFields, shown: shownConfig, frameCountFieldName, singleFrameAnimation } = this.config;
 
         let reportEventManager = useContext(CReportEventManager);
         let modelsWrapper = useContext(CModelsWrapper);
@@ -191,14 +192,14 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {this.reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={this.reportLayout} animationReader={animationReader}></ReportAnimationController>}
+                {this.reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={this.reportLayout} animationReader={animationReader} singleFrameAnimation={singleFrameAnimation}></ReportAnimationController>}
             </>
         )
     }
 }
-
-export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayout: ReportVisual, shown: boolean}) {
-    let { animationReader, reportLayout, shown } = props;
+                                                                   
+export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayout: ReportVisual, shown: boolean, singleFrameAnimation: boolean}) {
+    let { animationReader, reportLayout, shown, singleFrameAnimation } = props;
 
     let panelController = useContext(CPanelController);
 
@@ -218,33 +219,33 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
     }, [shown, !!currentFrame, animationReader?.frameCount])
 
     let animationControlButtons = (
-        <div className="d-flex flex-row justify-content-center w-100">
-            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
+        <div className="d-flex flex-row justify-content-center w-100 gap-1">
+            <Button variant="light" disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekBeginning();
                 animationReader.getNextFrame().then(reportDataCallback);
             }}>
                 <FontAwesomeIcon icon={Icon.faBackward}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.getPreviousFrame().then(reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faBackwardStep}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.beginPresentation('forward', presentationIntervalMs, reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faPlay}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.getNextFrame().then(reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faForwardStep}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekEnd();
                 animationReader.getNextFrame().then(reportDataCallback);
@@ -264,7 +265,7 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
                 canShowReport && shown && currentFrame && (
                     <>
                         <LayoutComponent data={reportLayoutConfig}/>
-                        {animationReader.getFrameCount() > 1 && animationControlButtons}
+                        {animationReader.getFrameCount() > 1 && ! singleFrameAnimation && animationControlButtons}
                     </>
                 )
             }
