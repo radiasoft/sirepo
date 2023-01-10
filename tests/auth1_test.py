@@ -28,8 +28,8 @@ def test_login():
         qcall.cookie.set_sentinel()
         try:
             r = qcall.auth.login("guest", sim_type="myapp")
-            pkfail("expecting sirepo.util.SReply")
-        except util.SReply as e:
+            pkfail("expecting sirepo.util.SReplyExc")
+        except util.SReplyExc as e:
             r = e.sr_args.sreply
         pkre(r'LoggedIn":\s*true.*Registration":\s*false', r.content_as_str())
         u = qcall.auth.logged_in_user()
