@@ -334,8 +334,8 @@ def _subprocess_setup(request, fc_args):
         SIREPO_PKCLI_SERVICE_IP=_LOCALHOST,
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
+    cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
     if fc_args.uwsgi:
-        cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port()
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
         cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
@@ -354,19 +354,21 @@ def _subprocess_setup(request, fc_args):
         u.append(env["SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT"])
     else:
         c = sirepo.srunit.flask_client(
-            cfg=cfg,
+            env=env,
             empty_work_dir=fc_args.empty_work_dir,
             job_run_mode="sbatch" if sbatch_module else None,
             sim_types=fc_args.sim_types,
         )
-
+        t = fc_args.sim_types
+        if isinstance(t, (tuple, list)):
+            t = ":".join(t)
+        cfg["SIREPO_FEATURE_CONFIG_SIM_TYPES"] = t
+        u.append(env["SIREPO_PKCLI_SERVICE_PORT"])
     for i in u:
         subprocess.run(["kill -9 $(lsof -t -i :" + i + ") >& /dev/null"], shell=True)
-
     if sbatch_module:
         # must be performed after fc initialized so work_dir is configured
         _config_sbatch_supervisor_env(env)
-
     _job_supervisor_check(env)
     return (env, c)
 
@@ -403,6 +405,7 @@ def _subprocess_start(request, fc_args):
     wd = pkunit.work_dir()
     p = []
     try:
+        _subprocess(("sirepo", "service", "flask"))
         _subprocess(("sirepo", "job_supervisor"))
         _post(
             env["SIREPO_JOB_API_SUPERVISOR_URI"] + "/job-api-ping",
