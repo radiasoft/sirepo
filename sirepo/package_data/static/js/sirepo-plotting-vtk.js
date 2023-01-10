@@ -1738,50 +1738,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
         controller: function($scope, $element) {
             const ASPECT_RATIO = 1.0;
 
-            const ELEVATIONS = {
-                front: 'front',
-                side: 'side',
-                top: 'top'
-            };
-
-            const ELEVATION_INFO = {
-                front: {
-                    axis: 'z',
-                    class: '.plot-viewport elevation-front',
-                    coordPlane: 'xy',
-                    name: ELEVATIONS.front,
-                    x: {
-                        axis: 'x',
-                    },
-                    y: {
-                        axis: 'y',
-                    }
-                },
-                side: {
-                    axis: 'x',
-                    class: '.plot-viewport elevation-side',
-                    coordPlane: 'yz',
-                    name: ELEVATIONS.side,
-                    x: {
-                        axis: 'y',
-                    },
-                    y: {
-                        axis: 'z',
-                    }
-                },
-                top: {
-                    axis: 'y',
-                    class: '.plot-viewport elevation-top',
-                    coordPlane: 'zx',
-                    name: ELEVATIONS.top,
-                    x: {
-                        axis: 'z',
-                    },
-                    y: {
-                        axis: 'x',
-                    }
-                }
-            };
+            const ELEVATIONS = {};
+            for (const axis of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+                const e = new Elevation(axis);
+                ELEVATIONS[e.name] = e;
+            }
 
             // svg shapes
             const LAYOUT_SHAPES = ['circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'];
@@ -1825,6 +1786,14 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function clearDragShadow() {
                 d3.selectAll('.vtk-object-layout-drag-shadow').remove();
+            }
+
+            function getElevation() {
+                return ELEVATIONS[$scope.elevation];
+            }
+
+            function getLabAxis(dim) {
+                return getElevation().labAxis(dim);
             }
 
             function resetDrag() {
@@ -1876,7 +1845,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 [dragX, dragY] = [d3.event.x, d3.event.y];
                 draggedShape = shape;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    const labDim = shape.elev[dim].axis;
+                    const labDim = shape.elev.labAxis(dim);
                     const dom = axes[dim].scale.domain();
                     const pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
                     shape.center[labDim] = dragStart.center[labDim] +
@@ -1948,7 +1917,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function drawShapes() {
-                drawObjects(ELEVATION_INFO[$scope.elevation]);
+                drawObjects(getElevation());
             }
 
             function editObject(shape) {
@@ -2026,7 +1995,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 resetZoom();
                 select('.plot-viewport').call(zoom);
                 $.each(axes, function(dim, axis) {
-                    var labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
                     var d = axes[dim].scale.domain();
                     var r = axes[dim].scale.range();
                     axisScale[dim] = Math.abs((d[1] - d[0]) / (r[1] - r[0]));
@@ -2051,7 +2019,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 const b = $scope.source.shapeBounds();
                 const newDomain = $scope.cfg.initDomian;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    const labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                    const labDim = getLabAxis(dim);
                     const axis = axes[dim];
                     const bd = b[labDim];
                     const nd = newDomain[labDim];
@@ -2109,9 +2077,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             // called when placing a new object, not dragging an existing object
             function updateDragShadow(obj, p) {
                 clearDragShadow();
-                var shape = $scope.source.shapeForObject(obj);
-                //shape.elev = ELEVATION_INFO.front;
-                shape.elev = ELEVATION_INFO[$scope.elevation];
+                const shape = $scope.source.shapeForObject(obj);
+                shape.elev = getElevation();
                 shape.x = shapeOrigin(shape, 'x'); // axes.x.scale.invert(p[0]) + shape.size[0]/ 2;
                 shape.y = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;
                 showShapeLocation(shape);
@@ -2124,7 +2091,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeOrigin(shape, dim) {
-                var labDim = shape.elev[dim].axis;
+                const labDim = shape.elev.labAxis(dim);
 
                 return axes[dim].scale(
                     shape.center[labDim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[labDim] / 2
@@ -2142,8 +2109,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeCenter(shape, dim) {
-                var labDim = shape.elev[dim].axis;
-                return axes[dim].scale(shape.center[labDim]);
+                return axes[dim].scale(shape.center[shape.elev.labAxis(dim)]);
             }
 
             function shapeRotation(shape) {
@@ -2185,9 +2151,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 //    return null;
                 //}
 
-                var lp = shape.line.points;
-                var labX = shape.elev.x.axis;
-                var labY = shape.elev.y.axis;
+                const lp = shape.line.points;
+                const labX = shape.elev.labAxis('x');
+                const labY = shape.elev.labAxis('y');
 
                 // same points in this coord plane
                 if (lp[0][labX] === lp[1][labX] && lp[0][labY] === lp[1][labY]) {
@@ -2198,8 +2164,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     lp.map(function (p) {
                         var sp = [];
                         SIREPO.SCREEN_DIMS.forEach(function (dim) {
-                            var labDim = shape.elev[dim].axis;
-                            sp.push(axes[dim].scale(p[labDim]));
+                            sp.push(axes[dim].scale(p[shape.elev.labAxis(dim)]));
                         });
                         return geometry.pointFromArr(sp);
                 }));
@@ -2209,7 +2174,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeSize(shape, screenDim) {
-                let labDim = shape.elev[screenDim].axis;
+                let labDim = shape.elev.labAxis(screenDim);
                 let c = shape.center[labDim] || 0;
                 let s = shape.size[labDim] || 0;
                 return  Math.abs(axes[screenDim].scale(c + s / 2) - axes[screenDim].scale(c - s / 2));
@@ -2314,8 +2279,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.dropSuccess = function(obj, evt) {
                 const p = isMouseInBounds(evt);
                 if (p) {
-                    const labXIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].x.axis);
-                    const labYIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].y.axis);
+                    const labXIdx = geometry.basis.indexOf(getLabAxis('x'));
+                    const labYIdx = geometry.basis.indexOf(getLabAxis('y'));
                     const ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
@@ -2362,8 +2327,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     .on('drag', d3DragShape)
                     .on('dragstart', d3DragStartShape)
                     .on('dragend', d3DragEndShape);
-                axes.x.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].x.axis + ' [m]');
-                axes.y.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].y.axis + ' [m]');
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
+                });
                 replot();
             };
 
@@ -2389,8 +2355,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.setElevation = function(elev) {
                 $scope.elevation = elev;
-                axes.x.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].x.axis + ' [m]');
-                axes.y.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].y.axis + ' [m]');
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
+                });
                 replot();
             };
 
