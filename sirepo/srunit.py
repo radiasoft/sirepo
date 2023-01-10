@@ -29,6 +29,7 @@ _DB_DIR = "db"
 
 _client = None
 
+
 @contextlib.contextmanager
 def quest_start(want_user=False, cfg=None):
     if cfg is None:
@@ -137,7 +138,6 @@ class UwsgiClient(PKDict):
         return uri.server_route(route_or_uri, None, None)
 
 
-<<<<<<< HEAD
 class _TestClient:
     def __init__(self, env, job_run_mode):
         super().__init__()
@@ -174,15 +174,6 @@ class _TestClient:
         _do(days)
         yield
         _do(0)
-=======
-class _TestClient(flask.testing.FlaskClient):
-    def __init__(self, *args, **kwargs):
-        self.sr_job_run_mode = kwargs.pop("job_run_mode")
-        super(_TestClient, self).__init__(*args, **kwargs)
-        self.sr_sbatch_logged_in = False
-        self.sr_sim_type = None
-        self.sr_uid = None
->>>>>>> master
 
     def sr_animation_run(self, data, compute_model, reports=None, **kwargs):
         from pykern import pkunit
@@ -290,7 +281,7 @@ class _TestClient(flask.testing.FlaskClient):
             params (dict): optional params to route_or_uri
 
         Returns:
-            flask.Response: reply object
+            SReply: reply object
         """
         return self.__req(
             route_or_uri,
@@ -329,7 +320,7 @@ class _TestClient(flask.testing.FlaskClient):
             sim_type (str): app name ['myapp' or default type]
 
         Returns:
-            flask.Response: reply object
+            SReply: reply object
         """
         self.sr_sim_type_set(sim_type)
         return self.__req(
@@ -624,7 +615,7 @@ class _TestClient(flask.testing.FlaskClient):
                             raw_response=raw_response,
                             __redirects=redirects,
                         )
-                    return flask.redirect(m.group(1))
+                    return r.change_to_redirect(m.group(1))
             if r.status_code in (301, 302, 303, 305, 307, 308):
                 if kwargs.get("redirect", True):
                     # Execute the redirect
@@ -636,7 +627,6 @@ class _TestClient(flask.testing.FlaskClient):
                         raw_response=raw_response,
                         __redirects=redirects,
                     )
-                return r
             if raw_response:
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
@@ -661,12 +651,17 @@ class _TestClient(flask.testing.FlaskClient):
             raise
 
     def _requests_op(self, op, uri, headers, kwargs):
+        u = self._uri(uri)
         if headers is None:
             headers = PKDict()
         headers["User-Agent"] = f"srunit/1.0 {pykern.pkinspect.caller()}"
-        return _Response(
-            getattr(self._session, op)(self._uri(uri), headers=headers, **kwargs),
-        )
+        try:
+            return _Response(
+                getattr(self._session, op)(u, headers=headers, **kwargs),
+            )
+        except requests.exceptions.ConnectionError as e:
+            pkdlog("op={} uri={} headers={}", op, u, headers)
+            raise
 
     def _uri(self, uri):
         from pykern.pkdebug import pkdp
@@ -685,6 +680,9 @@ class _Response:
     def data(self):
         return self._reply.content
 
+    def header_get(self, name):
+        return self._reply.headers[name]
+
     @property
     def mimetype(self):
         c = self._reply.headers.get("content-type")
@@ -695,3 +693,10 @@ class _Response:
     @property
     def status_code(self):
         return self._reply.status_code
+
+    def change_to_redirect(self, uri):
+        self._reply = PKDict(
+            status_code=302,
+            headers=PKDict(Location=uri),
+        )
+        return self

@@ -201,6 +201,7 @@ def _check_port(port):
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((_LOCALHOST, int(port)))
+    return str(port)
 
 
 def _config_sbatch_supervisor_env(env):
@@ -261,8 +262,7 @@ def _port():
 
     for p in random.sample(const.TEST_PORT_RANGE, 100):
         try:
-            _check_port(p)
-            return str(p)
+            return _check_port(p)
         except Exception:
             pass
     raise AssertionError(f"ip={_LOCALHOST} unable to allocate port")
@@ -357,6 +357,7 @@ def _subprocess_setup(request, fc_args):
 def _subprocess_start(request, fc_args):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdlog
     import sirepo.srunit
     import time
 
@@ -407,6 +408,9 @@ def _subprocess_start(request, fc_args):
                 "~/src/radiasoft/sirepo/sirepo/package_data/template/srw/predefined.json"
             )
             template.import_module("srw").get_predefined_beams()
+        for k in sorted(env.keys()):
+            if k.endswith("_PORT"):
+                pkdlog("{}={}", k, env[k])
         yield c
     finally:
         for x in p:
