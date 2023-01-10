@@ -8,7 +8,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import pykern.pkinspect
 import re
-import sirepo.feature_config
 import urllib.parse
 
 #: route parsing
@@ -18,8 +17,6 @@ PARAM_RE = r"([\?\*]?)<{}>"
 PATH_INFO_CHAR = "*"
 
 # TODO(robnagler): make class that gets returned
-
-_cfg = sirepo.feature_config.cfg()
 
 
 def app_root(sim_type=None):
@@ -61,8 +58,7 @@ def local_route(sim_type, route_name=None, params=None, query=None):
     s = simulation_db.get_schema(sim_type)
     if not route_name:
         route_name = default_local_route_name(s)
-    r = sim_type in _cfg.react_sim_types
-    parts = s["reactRoutes" if r else "localRoutes"][route_name].route.split("/:")
+    parts = s.localRoutes[route_name].route.split("/:")
     u = parts.pop(0)
     for p in parts:
         if p.endswith("?"):
@@ -70,9 +66,7 @@ def local_route(sim_type, route_name=None, params=None, query=None):
             if not params or p not in params:
                 continue
         u += "/" + _to_uri(params[p])
-    if not r:
-        return app_root(sim_type) + "#" + u + _query(query)
-    return app_root(sim_type) + u + _query(query)
+    return app_root(sim_type) + "#" + u + _query(query)
 
 
 def server_route(route_or_uri, params, query):
