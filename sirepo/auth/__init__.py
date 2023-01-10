@@ -416,7 +416,7 @@ class _Auth(sirepo.quest.Attr):
                 else None
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
-        raise sirepo.util.SReply(
+        raise sirepo.util.SReplyExc(
             sreply=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
         )
 

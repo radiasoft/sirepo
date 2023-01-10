@@ -53,7 +53,7 @@ _VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
 _INVALID_PATH_CHARS = re.compile(r"[^A-Za-z0-9_.-]")
 
 
-class Reply(Exception):
+class ReplyExc(Exception):
     """Raised to end the request.
 
     Args:
@@ -85,17 +85,17 @@ class Reply(Exception):
         return self.__repr__()
 
 
-class BadRequest(Reply):
+class BadRequest(ReplyExc):
     """Raised for bad request"""
 
     pass
 
 
-class OKReply(Reply):
-    """When a Reply exception is a successful response"""
+class OKReplyExc(ReplyExc):
+    """When a ReplyExc exception is a successful response"""
 
 
-class Error(Reply):
+class Error(ReplyExc):
     """Raised to send an error response
 
     Args:
@@ -110,19 +110,19 @@ class Error(Reply):
         super().__init__(*args, sr_args=values, **kwargs)
 
 
-class Forbidden(Reply):
+class Forbidden(ReplyExc):
     """Raised for forbidden"""
 
     pass
 
 
-class NotFound(Reply):
+class NotFound(ReplyExc):
     """Raised for not found"""
 
     pass
 
 
-class Redirect(OKReply):
+class Redirect(OKReplyExc):
     """Raised to redirect
 
     Args:
@@ -134,7 +134,7 @@ class Redirect(OKReply):
         super().__init__(*args, sr_args=PKDict(uri=uri), **kwargs)
 
 
-class ServerError(Reply):
+class ServerError(ReplyExc):
     """Raised for server error"""
 
     pass
@@ -157,7 +157,7 @@ class SPathNotFound(NotFound):
         )
 
 
-class SReply(OKReply):
+class SReplyExc(OKReplyExc):
     """Raise with an SReply object
 
     Args:
@@ -169,7 +169,7 @@ class SReply(OKReply):
         super().__init__(*args, sr_args=PKDict(sreply=sreply), **kwargs)
 
 
-class SRException(Reply):
+class SRException(ReplyExc):
     """Raised to communicate a local redirect and log info
 
     `params` may have ``sim_type`` and ``reload_js``, which
@@ -189,13 +189,13 @@ class SRException(Reply):
         )
 
 
-class Unauthorized(Reply):
+class Unauthorized(ReplyExc):
     """Raised to generate 401 response"""
 
     pass
 
 
-class UserAlert(Reply):
+class UserAlert(ReplyExc):
     """Raised to display a user error and log info
 
     Args:
@@ -223,7 +223,7 @@ class UserDirNotFound(NotFound):
         )
 
 
-class WWWAuthenticate(Reply):
+class WWWAuthenticate(ReplyExc):
     """Raised to generate 401 response with WWWAuthenticate response"""
 
     pass

@@ -331,7 +331,7 @@ class API(sirepo.quest.API):
                 if "error" in data:
                     return self.reply_json(data)
             return s(data)
-        except sirepo.util.Reply:
+        except sirepo.util.ReplyExc:
             raise
         except Exception as e:
             pkdlog("{}: exception: {}", f and f.filename, pkdexc())
@@ -666,7 +666,7 @@ class API(sirepo.quest.API):
             else:
                 p = path
             # do not call api_staticFile due to recursion of proxy_react
-            raise sirepo.util.SReply(
+            raise sirepo.util.SReplyExc(
                 self.reply_file(
                     sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
                 ),
@@ -676,7 +676,7 @@ class API(sirepo.quest.API):
             r = requests.get(cfg.react_server + path)
             # We want to throw an exception here, because it shouldn't happen
             r.raise_for_status()
-            raise sirepo.util.SReply(
+            raise sirepo.util.SReplyExc(
                 self.reply_as_proxy(
                     content=r.content,
                     content_type=r.headers["Content-Type"],

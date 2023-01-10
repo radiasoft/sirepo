@@ -164,7 +164,7 @@ class _SReply(sirepo.quest.Attr):
         """
         # If an exception occurs here, we'll fall through
         # to the server, which will have code to handle this case.
-        if isinstance(exc, sirepo.util.Reply):
+        if isinstance(exc, sirepo.util.ReplyExc):
             return self._gen_exception_reply(exc)
         return self._gen_exception_error(exc)
 
@@ -436,7 +436,7 @@ class _SReply(sirepo.quest.Attr):
     def _gen_exception_reply_Redirect(self, args):
         return self.gen_redirect(args.uri)
 
-    def _gen_exception_reply_SReply(self, args):
+    def _gen_exception_reply_SReplyExc(self, args):
         r = args.sreply
         if not isinstance(r, _SReply):
             raise AssertionError(f"invalid class={type(r)} response={r}")

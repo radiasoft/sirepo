@@ -243,7 +243,7 @@ class _Supervisor(PKDict):
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog("{} error={} stack={}", req, e, pkdexc())
-            if isinstance(e, sirepo.util.Reply):
+            if isinstance(e, sirepo.util.ReplyExc):
                 return cls._reply_exception(e)
             raise
 
