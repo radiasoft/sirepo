@@ -786,7 +786,8 @@
             "color": ["Color", "Color", "#cccccc"],
             "groupId": ["_", "String", ""],
             "id": ["_", "RandomId", ""],
-            "layoutShape":  ["_", "String", "rect"]
+            "layoutShape":  ["_", "String", "rect"],
+            "layoutShapes":  ["_", "Object", {"x": "rect", "y": "rect", "z": "rect"}]
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],

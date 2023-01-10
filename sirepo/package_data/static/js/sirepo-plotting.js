@@ -262,7 +262,7 @@ class PlotPolygon extends AbstractPlotShape2D {
     }
 }
 
-class PlotRect extends AbstractPlotShape3D {
+class PlotRect extends AbstractPlotShape2D {
     constructor(
         id,
         name,

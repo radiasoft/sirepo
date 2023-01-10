@@ -52,18 +52,23 @@ class Elevation {
 
 class ObjectViews {
     constructor() {
+        this.affineTransform = new SIREPO.GEOMETRY.AffineMatrix();
         this.shapes = {};
     }
 
-    addView(axis, shape) {
-        if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(axis)) {
-            throw new Error('Invalid axis: ' + axis);
-        }
-        this.shapes[Elevation.NAMES()[axis]] = shape;
+    addTransform(t) {
+        this.affineTransform = this.affineTransform.multiplyAffine(t);
     }
 
-    view(axis) {
-        return this.shapes[axis];
+    addView(dim, shape) {
+        if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(dim)) {
+            throw new Error('Invalid axis: ' + dim);
+        }
+        this.shapes[Elevation.NAMES()[dim]] = shape;
+    }
+
+    view(dim) {
+        return this.shapes[dim];
     }
 }
 
@@ -2944,6 +2949,7 @@ SIREPO.VTK = {
     BoxBundle: BoxBundle,
     CoordMapper: CoordMapper,
     LineBundle: LineBundle,
+    ObjectViews: ObjectViews,
     PlaneBundle: PlaneBundle,
     SphereBundle: SphereBundle,
     ViewPortBox: ViewPortBox,

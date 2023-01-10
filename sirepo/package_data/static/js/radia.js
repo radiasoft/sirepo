@@ -442,6 +442,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
         return item.name !== 'In Progress' && item.name.indexOf('Transforms') < 0;
     });
+    self.views = [];
 
 
     self.copyObject = o => {
@@ -523,6 +524,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.getShapes = () => self.shapes;
 
+    self.getShapeView = id => {
+        return self.views.filter( s => s.id === id)[0];
+    };
+
+    self.getShapeViews = () => self.views;
+
     self.getUndulatorType = () => {
         if (self.getMagnetType() !== 'undulator') {
             return null;
@@ -603,7 +610,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        const l = o.isButton === undefined ? o.layoutShape : 'rect';
+        const l = o.layoutShape;
         let s;
         if (l === 'rect') {
             s = new SIREPO.PLOTTING.PlotRect(o.id, o.name, center, size);
@@ -641,6 +648,83 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             pts
         );
         return shape;
+    };
+
+    self.shapeViewsForObject = o => {
+        let center = radiaService.scaledArray(o.center);
+        let size =   radiaService.scaledArray(o.size);
+        const isGroup = o.members && o.members.length;
+
+        if (isGroup) {
+            const b = groupBounds(o.members.map(id => self.getObject(id)));
+            center = b.map(c => (c[0] + c[1]) / 2);
+            size = b.map(c => Math.abs(c[1] - c[0]));
+        }
+
+        const u = SIREPO.GEOMETRY.GeometryUtils;
+        const v = new SIREPO.VTK.ObjectViews();
+
+        for (const dim in o.layoutShapes) {
+            const w = u.nextAxis(dim);
+            const h = u.nextAxis(w);
+            const i = u.axisIndex(w);
+            const j = u.axisIndex(h);
+            if (o.layoutShapes[dim] === 'rect') {
+                const s = new SIREPO.PLOTTING.PlotRect(
+                    `${o.id}-${dim}`,
+                    o.name,
+                    [center[i], center[j]],
+                    [size[i], size[j]],
+                );
+                s.setAlpha(0.3);
+                s.setColor(o.color);
+                v.addView(dim, s);
+            }
+            if (o.layoutShapes[dim] === 'polygon') {
+                const s = new SIREPO.PLOTTING.PlotRect(
+                    `${o.id}-${dim}`,
+                    o.name,
+                    [center[i], center[j]],
+                    [size[i], size[j]],
+                );
+                s.setAlpha(0.3);
+                s.setColor(o.color);
+                v.addView(dim, s);
+            }
+        }
+        for (const e in v.shapes) {
+            const s = v.shapes[v];
+            if (isGroup) {
+                s.setFillStyle(null);
+                s.setStrokeStyle('dashed');
+                s.setOutlineOffset(5.0);
+                s.setStrokeWidth(0.75);
+                s.setDraggable(false);
+            }
+        }
+
+        let pts = {};
+        if (l === 'polygon') {
+            const k = radiaService.axisIndex(o.extrusionAxis);
+            const scaledPts = o.points.map(p => radiaService.scaledArray(p));
+            pts[o.extrusionAxis] = scaledPts;
+            const cp = center[k] + size[k] / 2.0;
+            const cm = center[k] - size[k] / 2.0;
+            let p = scaledPts.map(x => x[1]);
+            let [mx, mn] = [Math.max(...p), Math.min(...p)];
+            pts[o.widthAxis] = [[mx, cm], [mx, cp], [mn, cp], [mn, cm]];
+            p = scaledPts.map(x => x[0]);
+            [mx, mn] = [Math.max(...p), Math.min(...p)];
+            pts[o.heightAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
+        }
+        const shape = vtkPlotting.plotShape(
+            o.id, o.name,
+            center, size,
+            o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
+            l,
+            pts
+        );
+        return v;
     };
 
     self.viewTitle = () => {
@@ -749,6 +833,84 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     linkTx = mirrorFn(xform);
                     const txs = addTxShape(xShape, xform, linkTx);
                     transformMembers(xo, xform, linkTx);
+                }
+            }
+        }
+
+        // apply non-copying transforms to the object and its members (if any)
+        composeFn(txArr)(baseShape, baseShape);
+        for (const m of getMembers(o)) {
+            let s = self.getShape(m.id);
+            composeFn(txArr)(s, s);
+        }
+
+        if (o.groupId !== '') {
+            let gShape = self.getShape(o.groupId);
+            if (! gShape) {
+                gShape = self.shapeForObject(self.getObject(o.groupId));
+                self.shapes.push(gShape);
+            }
+            fit(baseShape, gShape);
+            baseShape.addLink(gShape, fit);
+        }
+    }
+
+    function addViewsForObject(o) {
+        let baseViews = self.getShapeView(o.id);
+        if (! baseViews) {
+            baseViews = self.shapeViewsForObject(o);
+            self.views.push(baseViews);
+        }
+        let plIds = [];
+        for (const xform of o.transforms) {
+            const t = xform.type;
+            for (const e in baseViews) {
+                const baseShape = baseViews[e];
+                // draw the shapes for symmetry planes once
+                if (t === 'symmetryTransform') {
+                    plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
+                }
+                // each successive transform must be applied to all previous shapes
+                for (const xShape of [baseShape, ...getVirtualShapes(baseShape, plIds)]) {
+                    // these transforms do not copy the object
+                    if (t === 'rotate') {
+                        xShape.addTransform(
+                            new SIREPO.GEOMETRY.RotationMatrix(
+                                radiaService.scaledArray(xform.axis),
+                                radiaService.scaledArray(xform.useObjectCenter === "1" ? o.center : xform.center),
+                                Math.PI * parseFloat(xform.angle) / 180.0
+                            )
+                        );
+                        continue;
+                    }
+
+                    let xo = self.getObject(xShape.id);
+                    let linkTx;
+                    /*
+                    if (t === 'cloneTransform') {
+                        let clones = [];
+                        for (let i = 1; i <= xform.numCopies; ++i) {
+                            let cloneTx = txArr.slice(0);
+                            linkTx = composeFn(cloneTx);
+                            for (let j = 0; j < xform.transforms.length; ++j) {
+                                let cloneXform = xform.transforms[j];
+                                if (cloneXform.type === 'translateClone') {
+                                    cloneTx.push(offsetFn(cloneXform, i));
+                                }
+                                if (cloneXform.type === 'rotateClone') {
+                                    cloneTx.push(rotateFn(cloneXform, i));
+                                }
+                            }
+                            addTxShape(xShape, xform, linkTx);
+                            clones = clones.concat(transformMembers(xo, xform, linkTx, clones));
+                        }
+                    }
+                     */
+                    if (t === 'symmetryTransform') {
+                        linkTx = mirrorFn(xform);
+                        const txs = addTxShape(xShape, xform, linkTx);
+                        transformMembers(xo, xform, linkTx);
+                    }
                 }
             }
         }
