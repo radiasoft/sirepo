@@ -150,18 +150,21 @@ class API(sirepo.quest.API):
                 )
 
         l = self.absolute_uri(self.uri_for_api("admModerateRedirect"))
-        _send_request_email(
-            PKDict(
-                display_name=self.auth.user_display_name(u),
-                email_addr=self.auth.logged_in_user_name(),
-                link=l,
-                reason=req.req_data.reason,
-                role=sirepo.auth_role.for_sim_type(req.type),
-                sim_type=req.type,
-                uid=u,
-            ).pkupdate(self.user_agent_headers())
-        )
-        return self.reply_ok()
+        if req.req_data.get("reason"):
+            _send_request_email(
+                PKDict(
+                    display_name=self.auth.user_display_name(u),
+                    email_addr=self.auth.logged_in_user_name(),
+                    link=l,
+                    reason=req.req_data.reason,
+                    role=sirepo.auth_role.for_sim_type(req.type),
+                    sim_type=req.type,
+                    uid=u,
+                ).pkupdate(self.user_agent_headers())
+            )
+            return self.reply_ok()
+        raise sirepo.util.UserAlert("Reason for requesting access not provided")
+
 
 
 def raise_control_for_user(qcall, uid, role, sim_type):

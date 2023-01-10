@@ -3636,7 +3636,7 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
               <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
               <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
             </div>
-            <button data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
+            <button data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit aaa</button>
           </form>
           <div data-ng-show="submitted">Response submitted.</div>
         `,
