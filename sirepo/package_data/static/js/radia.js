@@ -552,8 +552,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.saveObject = function(id, callback) {
 
-        function save() {
-            appState.saveChanges('geomObject', d => {
+        function save(modelAndSupers) {
+            appState.saveChanges(modelAndSupers, d => {
                 transformShapesForObjects();
                 self.selectedObject = null;
                 radiaService.setSelectedObject(null);
@@ -567,11 +567,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (! o) {
             return;
         }
+        const s = [o.type, ...appState.superClasses(o.type)];
         if (o.layoutShape === 'polygon') {
-            radiaService.updateExtruded(o, save);
+            radiaService.updateExtruded(o, () => {
+                save(s);
+            });
         }
         else {
-            save();
+            save(s);
         }
     };
 
@@ -3587,11 +3590,11 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         updateObjectEditor();
     };
 
-    $scope.$on('modelChanged', (e, d) => {
-        if (! editedModels.includes(d)) {
+    $scope.$on('modelChanged', (e, modelName) => {
+        if (! editedModels.includes(modelName)) {
             return;
         }
-        if (d === 'extrudedPoly') {
+        if (modelName === 'extrudedPoly') {
             if (editedModels.includes('extrudedPoints')) {
                 loadPoints();
             }
@@ -3601,7 +3604,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
                 });
             }
         }
-        if (d === 'stl') {
+        if (modelName === 'stl') {
             loadSTLSize();
         }
     });
