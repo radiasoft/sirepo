@@ -2186,7 +2186,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 );
             },
             err => {
-                throw new Error(err)
+                throw new Error(err);
             }
         );
     };
