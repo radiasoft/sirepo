@@ -709,6 +709,10 @@ class API(sirepo.quest.API):
 def init_apis(*args, **kwargs):
     pass
 
+def _check_version(qcall):
+    # send version to api_versionCheck
+    # and recieve update on whether versions match up
+    assert 0, f"\n\n\nversion={sirepo.__version__}\n\n\n"
 
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
@@ -734,6 +738,7 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
 
         with sirepo.quest.start() as qcall:
             qcall.auth_db.create_or_upgrade()
+            _check_version(qcall)
 
         if cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>

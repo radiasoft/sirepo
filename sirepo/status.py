@@ -44,6 +44,10 @@ class API(sirepo.quest.API):
             }
         )
 
+    def api_versionCheck(self):
+        # compare inncoming version with latest
+        return self.reply_ok({})
+
     def _run_tests(self):
         """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
         self._validate_auth_state()
