@@ -24,7 +24,6 @@ import tornado.ioloop
 
 
 class SbatchDriver(job_driver.DriverBase):
-
     cfg = None
 
     _KNOWN_HOSTS = None

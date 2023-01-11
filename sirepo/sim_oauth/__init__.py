@@ -8,7 +8,6 @@ import sirepo.util
 
 
 def import_module(type_or_data):
-
     """Load the simulation_type module
 
     Args:

@@ -23,7 +23,6 @@ def test_srw_auth_login():
     )
     from sirepo import simulation_db
     from sirepo.auth import bluesky
-    import werkzeug.exceptions
 
     sim_type = "srw"
     uid = fc.sr_login_as_guest(sim_type)

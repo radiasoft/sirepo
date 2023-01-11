@@ -9,7 +9,6 @@ import radia
 
 
 def dipole_example():
-
     # Geometry Parameters
     gap = 10  # (mm)
     thick = 50
@@ -29,7 +28,6 @@ def dipole_example():
     n6 = [nx, 2, 2]  # inside the coil
 
     def geom(circ):
-
         eps = 0
         ironcolor = [0, 0.5, 1]
         coilcolor = [1, 0, 0]

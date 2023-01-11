@@ -537,8 +537,8 @@
                     "items": [
                         {
                             "layout": "fieldList",
-                            "config": { 
-                                "fields": ["simulation.name"] 
+                            "config": {
+                                "fields": ["simulation.name"]
                             }
                         }
                     ]
@@ -721,7 +721,7 @@
                                 }
                             }
                         ]
-                    }, 
+                    },
                     {
                         "name": "dynamics",
                         "title": "Dynamics",
@@ -735,7 +735,7 @@
                                     "basic": [
                                         {
                                             "layout": "startSimulation",
-                                            "config": { 
+                                            "config": {
                                                 "reportGroupName": "animation",
                                                 "items": [
                                                     {
@@ -767,7 +767,6 @@
                                                     "fieldAnimation.coordinate",
                                                     "fieldAnimation.mode"
                                                 ],
-                                                "frameCountFieldName": "frameCount",
                                                 "reportLayout": { "layout": "heatplot", "config": {} }
                                             }
                                         }
@@ -801,7 +800,6 @@
                                                     "particleAnimation.uzMin",
                                                     "particleAnimation.uzMax"
                                                 ],
-                                                "frameCountFieldName": "frameCount",
                                                 "reportLayout": { "layout": "heatplot", "config": {} }
                                             }
                                         }
@@ -823,7 +821,6 @@
                                                     "beamAnimation.y",
                                                     "beamAnimation.histogramBins"
                                                 ],
-                                                "frameCountFieldName": "frameCount",
                                                 "reportLayout": { "layout": "heatplot", "config": {} }
                                             }
                                         }

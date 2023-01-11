@@ -146,6 +146,7 @@ export type SimulationFrame<T = unknown> = {
 // This iterates all future frames assuming this data does not need to change/be current
 export class AnimationReader {
     frameCount: number;
+    hasAnimationControls: boolean;
     nextFrameIndex: number;
     getFrameId: (frameIndex: number) => string;
     presentationVersionNum: string;
@@ -157,9 +158,11 @@ export class AnimationReader {
         computeJobHash,
         computeJobSerial,
         frameIdValues,
-        frameCount
+        frameCount,
+        hasAnimationControls
     }) {
         this.frameCount = frameCount;
+        this.hasAnimationControls = hasAnimationControls;
         this.nextFrameIndex = 0;
         this.getFrameId = (frameIndex) => getFrameId({
             frameIndex,
