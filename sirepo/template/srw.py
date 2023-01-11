@@ -635,12 +635,18 @@ def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
 
 
 def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
+    compute_model=None,
+    is_parallel=True,
+    run_dir=None,
+    sim_id=None,
+    success_exit=True,
+    **kwargs,
 ):
+    assert compute_model
     if success_exit:
-        if _SIM_DATA.is_for_ml(kwargs.get("compute_model")):
+        if _SIM_DATA.is_for_ml(compute_model):
             f = _SIM_DATA.ML_OUTPUT
-            _SIM_DATA.put_sim_file(kwargs.get("sim_id"), run_dir.join(f), f)
+            _SIM_DATA.put_sim_file(sim_id, run_dir.join(f), f)
         return None
     return _parse_srw_log(run_dir)
 
