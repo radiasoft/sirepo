@@ -43,7 +43,6 @@ def run_background(cfg_dir):
 
 
 def run_elegant(with_mpi=False):
-    # also used by pkcli.rcscon
     r = template_common.exec_parameters()
     pkio.write_text("elegant.lte", r.lattice_file)
     ele = "elegant.ele"

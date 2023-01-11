@@ -538,7 +538,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
     i = None
     try:
         r = kwargs["reply_op"](simulation_db.default_data(SIM_TYPE))
-        d = pykern.pkjson.load_any(r.data)
+        d = pykern.pkjson.load_any(r.content_as_str())
         i = d.models.simulation.simulationId
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
@@ -557,21 +557,23 @@ def import_file(req, tmp_dir, qcall, **kwargs):
         )
         r = qcall.call_api("runSimulation", data=d)
         for _ in range(_IMPORT_PYTHON_POLLS):
-            if r.status_code != 200:
+            if r.status_as_int() != 200:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
                     "unexpected response status={} data={}",
-                    r.status_code,
-                    r.data,
+                    r.status_as_int(),
+                    r.content_as_str(),
                 )
+            c = None
             try:
-                r = pykern.pkjson.load_any(r.data)
+                c = r.content_as_str()
+                r = pykern.pkjson.load_any(c)
             except Exception as e:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
                     "error={} parsing response data={}",
                     e,
-                    r.data,
+                    c,
                 )
             if "error" in r:
                 pkdc("runSimulation error msg={}", r)
@@ -607,7 +609,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             except Exception:
                 pass
         raise
-    raise sirepo.util.Response(
+    raise sirepo.util.SReplyExc(
         qcall.call_api(
             "simulationData",
             kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i),
@@ -2541,7 +2543,6 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         return os.path.exists(os.path.realpath(dir_name + "/" + file_name))
 
     def file_attrs_ok(attrs):
-
         # ms-dos attributes only use two bytes and don't contain much useful info, so pass them
         if attrs < 2 << 16:
             return True
@@ -2559,7 +2560,6 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
     zip_file = zipfile.ZipFile(zip_file_name)
 
     for f in zip_file.namelist():
-
         i = zip_file.getinfo(f)
         s = i.file_size
         attrs = i.external_attr

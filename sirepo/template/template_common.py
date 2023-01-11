@@ -624,15 +624,13 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
 
 
 def sim_frame(frame_id, op, qcall):
-    from sirepo import http_reply, http_request
-
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
     qcall.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
         x = op(f)
     except Exception as e:
-        if isinstance(e, sirepo.util.Reply):
+        if isinstance(e, sirepo.util.ReplyExc):
             return e
         raise sirepo.util.UserAlert(
             "Report not generated",
@@ -643,10 +641,8 @@ def sim_frame(frame_id, op, qcall):
         )
     r = qcall.reply_json(x)
     if "error" not in x and s.want_browser_frame_cache(s.frameReport):
-        r.headers["Cache-Control"] = "private, max-age=31536000"
-    else:
-        http_reply.headers_for_no_cache(r)
-    return r
+        return qcall.headers_for_cache(r)
+    return qcall.headers_for_no_cache(r)
 
 
 def sim_frame_dispatch(frame_args):
@@ -701,7 +697,6 @@ def subprocess_output(cmd, env=None):
     err = None
     out = None
     try:
-
         p = subprocess.Popen(
             cmd,
             env=env,

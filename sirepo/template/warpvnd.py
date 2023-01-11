@@ -156,7 +156,6 @@ def generate_field_comparison_report(data, run_dir, args=None):
 
 
 def generate_field_report(data, run_dir, args=None):
-
     grid = data.models.simulationGrid
     axes, slice_axis, phi_slice, show3d = _field_input(args)
     slice_text = (

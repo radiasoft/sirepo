@@ -27,7 +27,7 @@ def do_form(form, qcall):
     from sirepo import simulation_db
 
     if not "zip" in form:
-        sirepo.util.raise_not_found("missing zip in form")
+        raise sirepo.util.NotFound("missing zip in form")
     data = read_zip(base64.decodebytes(pkcompat.to_bytes(form["zip"])), qcall)
     data.models.simulation.folder = "/Import"
     data.models.simulation.isExample = False

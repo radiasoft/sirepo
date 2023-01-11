@@ -168,7 +168,6 @@ def parse_frame_id(frame_id):
 
 
 class SimDataBase(object):
-
     ANALYSIS_ONLY_FIELDS = frozenset()
 
     WATCHPOINT_REPORT = "watchpointReport"
