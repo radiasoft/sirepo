@@ -660,6 +660,8 @@ class _TestClient:
                 getattr(self._session, op)(u, headers=headers, **kwargs),
             )
         except requests.exceptions.ConnectionError as e:
+            from pykern.pkdebug import pkdlog
+
             pkdlog("op={} uri={} headers={}", op, u, headers)
             raise
 

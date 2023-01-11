@@ -233,10 +233,6 @@ def _config_sbatch_supervisor_env(env):
     )
 
 
-def _job_supervisor_check(env):
-    _check_port(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT)
-
-
 def _fc(request, fc_module, new_user=False):
     """Flask client based logged in to specific code of test
 
@@ -349,7 +345,6 @@ def _subprocess_setup(request, fc_args):
     if sbatch_module:
         # must be performed after fc initialized so work_dir is configured
         _config_sbatch_supervisor_env(env)
-    _job_supervisor_check(env)
     return (env, c)
 
 
@@ -388,10 +383,6 @@ def _subprocess_start(request, fc_args):
     try:
         _subprocess(("sirepo", "service", "flask"))
         _subprocess(("sirepo", "job_supervisor"))
-        _post(
-            env["SIREPO_JOB_API_SUPERVISOR_URI"] + "/job-api-ping",
-            PKDict(ping="echoedValue"),
-        )
         if fc_args.uwsgi:
             for s in ("nginx-proxy", "uwsgi"):
                 _subprocess(("sirepo", "service", s))
@@ -400,6 +391,7 @@ def _subprocess_start(request, fc_args):
                 f"/job-supervisor-ping",
                 PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT),
             )
+        _post(c._http + "/job-supervisor-ping", None)
         from sirepo import feature_config, template
         from pykern import pkio
 
@@ -411,8 +403,11 @@ def _subprocess_start(request, fc_args):
         for k in sorted(env.keys()):
             if k.endswith("_PORT"):
                 pkdlog("{}={}", k, env[k])
+        #        threading? start a thread that reads from all processes so they don't block and writes to stderr
         yield c
     finally:
+        import sys
+
         for x in p:
             x.terminate()
             x.wait()
