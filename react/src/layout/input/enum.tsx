@@ -43,7 +43,7 @@ export class EnumInputLayout extends InputLayout<EnumConfig, string, string> {
 
         let { valid, touched, ...otherProps } = props;
 
-        return <Form.Select {...otherProps} onChange={onChange} isInvalid={!valid && touched}>
+        return <Form.Select {...otherProps} size="sm" onChange={onChange} isInvalid={!valid && touched}>
             {options}
         </Form.Select>
     }

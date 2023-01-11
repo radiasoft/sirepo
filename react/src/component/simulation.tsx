@@ -143,8 +143,8 @@ function SimulationCogMenu(props) {
 
     return (
         <>
-            <CopySimulationNamePickerModal 
-            show={showCopyModal} 
+            <CopySimulationNamePickerModal
+            show={showCopyModal}
             defaultName={simulationInfo ? `${simulationInfo.models.simulation.name} 2` : ""}
             onComplete={(name) => {
                 updateShowCopyModal(false);
@@ -162,11 +162,11 @@ function SimulationCogMenu(props) {
                         ) : (
                             <Dropdown.Item onClick={() => deleteSimulation()}><FontAwesomeIcon icon={Icon.faTrash}/> Delete</Dropdown.Item>
                         )
-                    ) 
+                    )
                 }
             </NavToggleDropdown>
         </>
-        
+
     )
 }
 
@@ -219,12 +219,9 @@ export function SimulationOuter(props) {
 
     // TODO: navbar should route to home, when one is made
     return (
-        <Container fluid>
-            <CRelativeRouterHelper.Provider value={currentRelativeRouter}>
-                {props.children}
-            </CRelativeRouterHelper.Provider>
-        </Container>
-
+        <CRelativeRouterHelper.Provider value={currentRelativeRouter}>
+            {props.children}
+        </CRelativeRouterHelper.Provider>
     )
 
 }
@@ -246,7 +243,7 @@ export function SimulationRoot(props: {simulationId: string}) {
     });
 
     // TODO: use multiple rows
-    return ( 
+    return (
         <SimulationInfoInitializer simulationId={simulationId}>
             <SimulationOuter>
                 <ReportEventManagerInitializer>
@@ -258,6 +255,6 @@ export function SimulationRoot(props: {simulationId: string}) {
                     </FormStateInitializer>
                 </ReportEventManagerInitializer>
             </SimulationOuter>
-        </SimulationInfoInitializer>    
+        </SimulationInfoInitializer>
     )
 }
