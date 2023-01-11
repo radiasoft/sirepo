@@ -56,9 +56,10 @@ class API(sirepo.quest.API):
                 simulation_name=_SIM_NAME,
             ),
         )
-        m = re.search(r'\/source\/(\w+)"', pkcompat.from_bytes(res.data))
+        c = res.content_as_str()
+        m = re.search(r'\/source\/(\w+)"', c)
         if not m:
-            raise RuntimeError("failed to find sid in resp={}".format(res.data))
+            raise RuntimeError("failed to find sid in resp={}".format(c))
         i = m.group(1)
         d = simulation_db.read_simulation_json(simulation_type, sid=i, qcall=self)
         try:
@@ -76,7 +77,7 @@ class API(sirepo.quest.API):
         try:
             resp = self.call_api("runSimulation", data=d)
             for _ in range(cfg.max_calls):
-                r = simulation_db.json_load(resp.data)
+                r = simulation_db.json_load(resp.content_as_str())
                 pkdlog("resp={}", r)
                 if r.state == "error":
                     raise RuntimeError("simulation error: resp={}".format(r))
@@ -101,7 +102,7 @@ class API(sirepo.quest.API):
                 pass
 
     def _validate_auth_state(self):
-        r = pkcompat.from_bytes(self.call_api("authState").data)
+        r = self.call_api("authState").content_as_str()
         m = re.search(r"SIREPO.authState\s*=\s*(.*?);", r)
         assert m, pkdformat("no authState in response={}", r)
         assert pkjson.load_any(m.group(1)).isLoggedIn, pkdformat(

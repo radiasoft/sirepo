@@ -35,7 +35,7 @@ export type AutoRunReportConfig = {
 
 export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
     reportLayout: ReportVisual;
-    
+
     constructor(config: AutoRunReportConfig) {
         super(config);
 
@@ -106,12 +106,11 @@ export type ManualRunReportConfig = {
     reportGroupName: string,
     frameIdFields: string[],
     shown: string,
-    frameCountFieldName: string
 }
 
 export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
     reportLayout: ReportVisual;
-    
+
     constructor(config: ManualRunReportConfig) {
         super(config);
 
@@ -122,9 +121,27 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         return this.reportLayout.getFormDependencies();
     }
 
+   //TODO(pjm): private method naming convention?
+    _reportStatus(reportName, simulationData) {
+        if (simulationData.reports) {
+            for (const r of simulationData.reports) {
+                if (r.modelName === reportName) {
+                    return {
+                        frameCount: r.frameCount || r.lastUpdateTime || 0,
+                        hasAnimationControls: ! r.lastUpdateTime,
+                    };
+                }
+            }
+        }
+        return {
+            frameCount: 0,
+            hasAnimationControls: false,
+        };
+    }
+
     component = (props: LayoutProps<{}>) => {
-        let { reportName, reportGroupName, frameIdFields, shown: shownConfig, frameCountFieldName } = this.config;
-        
+        let { reportName, reportGroupName, frameIdFields, shown: shownConfig } = this.config;
+
         let reportEventManager = useContext(CReportEventManager);
         let modelsWrapper = useContext(CModelsWrapper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
@@ -154,9 +171,9 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                 onReportData: (simulationData: ResponseHasState) => {
                     simulationInfoPromise.then(({simulationId}) => {
                         let { computeJobHash, computeJobSerial } = simulationData;
-                        let frameCount = frameCountFieldName ? simulationData[frameCountFieldName] : (simulationData.state === 'completed' ? 1 : 0);
-                        if(frameCount !== animationReader?.frameCount) {
-                            if(frameCount > 0) {
+                        const s = this._reportStatus(reportName, simulationData);
+                        if (s.frameCount !== animationReader?.frameCount) {
+                            if (s.frameCount > 0) {
                                 let newAnimationReader = new AnimationReader({
                                     reportName,
                                     simulationId,
@@ -164,8 +181,9 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                                     computeJobSerial,
                                     computeJobHash,
                                     frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
-                                    frameCount
-                                })
+                                    frameCount: s.frameCount,
+                                    hasAnimationControls: s.hasAnimationControls,
+                                });
 
                                 /*// if the reader is at the old end or was not previously defined
                                 if(!animationReader || animationReader.nextFrameIndex >= animationReader.frameCount - 1) {
@@ -176,7 +194,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                                     console.log(`seeking same; next=${animationReader.nextFrameIndex} oldcount=${animationReader.frameCount} newcount=${newAnimationReader.frameCount}`);
                                     newAnimationReader.seekFrame(animationReader.nextFrameIndex);
                                 }*/
-                                
+
                                 updateAnimationReader(newAnimationReader);
                             } else {
                                 updateAnimationReader(undefined);
@@ -218,33 +236,33 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
     }, [shown, !!currentFrame, animationReader?.frameCount])
 
     let animationControlButtons = (
-        <div className="d-flex flex-row justify-content-center w-100">
-            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
+        <div className="d-flex flex-row justify-content-center w-100 gap-1">
+            <Button variant="light" disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekBeginning();
                 animationReader.getNextFrame().then(reportDataCallback);
             }}>
                 <FontAwesomeIcon icon={Icon.faBackward}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.getPreviousFrame().then(reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faBackwardStep}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.beginPresentation('forward', presentationIntervalMs, reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faPlay}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.getNextFrame().then(reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faForwardStep}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekEnd();
                 animationReader.getNextFrame().then(reportDataCallback);
@@ -264,7 +282,7 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
                 canShowReport && shown && currentFrame && (
                     <>
                         <LayoutComponent data={reportLayoutConfig}/>
-                        {animationReader.getFrameCount() > 1 && animationControlButtons}
+                        {animationReader.getFrameCount() > 1 && animationReader.hasAnimationControls && animationControlButtons}
                     </>
                 )
             }
@@ -279,7 +297,7 @@ export type SimulationStartConfig = {
 
 export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
     childLayouts: Layout[];
-    
+
     constructor(config: SimulationStartConfig) {
         super(config);
 
@@ -392,7 +410,6 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
         });
 
         if(lastSimState) {
-            let elapsedTimeSeconds = stopwatch.isComplete() ? Math.ceil(stopwatch.getElapsedSeconds()) : undefined;
             let getStateBasedElement = (simState: ResponseHasState) => {
                 switch(simState.state) {
                     case 'pending':
@@ -407,7 +424,8 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span>{`Running`}</span>
-                                <ProgressBar animated now={Math.max((simState.percentComplete !== undefined) ? simState.percentComplete : 100, 5)}/>
+                                <span>{stopwatch.formatElapsedTime()}</span>
+                                <ProgressBar animated now={Math.max((simState.percentComplete !== undefined && simState.percentComplete > 0) ? simState.percentComplete : 100, 5)}/>
                                 {endSimulationButton}
                             </Stack>
                         )
@@ -415,7 +433,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span>{'Simulation Completed'}</span>
-                                <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
+                                <span>{stopwatch.formatElapsedTime()}</span>
                                 <div>{children}</div>
                                 {startSimulationButton}
                             </Stack>
@@ -433,7 +451,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         return (
                             <Stack gap={2}>
                                 <span>{'Simulation Error'}</span>
-                                <span>{`Elapsed time: ${elapsedTimeSeconds} ${'second' + (elapsedTimeSeconds !== 1 ? 's' : '')}`}</span>
+                                <span>{stopwatch.formatElapsedTime()}</span>
                                 <div>{children}</div>
                                 {startSimulationButton}
                             </Stack>

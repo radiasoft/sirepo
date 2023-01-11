@@ -72,7 +72,6 @@ def test_force_login(auth_fc):
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkok, pkre, pkeq, pkexcept
-    from sirepo import http_reply
     from sirepo import util
 
     # login as a new user, not in db

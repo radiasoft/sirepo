@@ -679,7 +679,6 @@ def _beam_pos_plots(data, history, start_time):
 
 # arrange historical data for ease of plotting
 def _bpm_readings_for_plots(data, history, start_time):
-
     bpms = _monitor_data_for_plots(data, history, start_time, "WATCH")
     all_times = numpy.array([])
     z = numpy.array([])

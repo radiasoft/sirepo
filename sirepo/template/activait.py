@@ -26,6 +26,8 @@ import urllib
 
 _CHUNK_SIZE = 1024 * 1024
 
+_LOG_FILE = "run.log"
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
@@ -90,7 +92,24 @@ def background_percent_complete(report, run_dir, is_running):
         max_frame = data.models.neuralNet.epochs
         res.frameCount = int(m.group(1)) + 1
         res.percentComplete = float(res.frameCount) * 100 / max_frame
+    error = _parse_activait_log_file(run_dir)
+    if error:
+        res.error = error
     return res
+
+
+def _parse_activait_log_file(run_dir):
+    for l in pkio.read_text(run_dir.join(_LOG_FILE)).split("\n"):
+        if re.search("AssertionError: Model training failed due to:", l):
+            return _range_error(l)
+    return ""
+
+
+def _range_error(error):
+    e = re.search(re.compile("Received a label value of (.*?) (is .*?[\]\)])"), error)
+    if e:
+        return f"Output scaling result {e.groups()[1]}"
+    return error
 
 
 def get_analysis_report(run_dir, data):
@@ -680,7 +699,6 @@ def _compute_csv_info(filename):
 
 
 def _compute_clusters(report, plot_data):
-
     from sirepo.analysis import ml
 
     method_params = PKDict(
@@ -909,6 +927,7 @@ def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
+    v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
@@ -920,6 +939,10 @@ def _generate_parameters_file(data):
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
     v.image_data = pkio.has_file_extension(v.dataFile, "h5")
+    v.inputsScaler = dm.dataFile.inputsScaler
+    v.outputsScaler = dm.dataFile.outputsScaler
+    v.feature_min = dm.dataFile.featureRangeMin
+    v.feature_max = dm.dataFile.featureRangeMax
     if v.image_data:
         v.inPath = None
         v.outPath = None

@@ -21,7 +21,6 @@ import numpy as np
 import py.path
 import re
 import sirepo.sim_data
-import werkzeug
 import zipfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()

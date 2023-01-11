@@ -1626,6 +1626,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('input.form-control').prop('readonly', ! isEnabled);
         $(fc).find('select.form-control').prop('disabled', ! isEnabled);
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
+        $(fc).find('button.dropdown-toggle').prop('disabled', ! isEnabled);
     };
 
     self.enableArrayField = function(model, field, index, isEnabled) {
@@ -2135,8 +2136,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         auxillaryData = {};
     };
 
-    self.defaultRouteName = function() {
-        return SIREPO.APP_SCHEMA.appModes.default.localRoute;
+    self.defaultRouteName = function(appMode=null) {
+        return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
 
     self.formatUrlLocal = function(routeName, params, app) {
@@ -2232,9 +2233,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         }
     };
 
-    self.localRedirectHome = function(simulationId) {
+    self.localRedirectHome = function(simulationId, appMode=null) {
         self.localRedirect(
-            self.defaultRouteName(),
+            self.defaultRouteName(appMode),
             {':simulationId': simulationId}
         );
     };
@@ -3279,6 +3280,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             }
 
             newItem = {
+                appMode: item.appMode,
                 parent: currentFolder,
                 name: item.name,
                 simulationId: item.simulationId,
@@ -3900,7 +3902,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             }
         }
         else {
-            requestSender.localRedirectHome(item.simulationId);
+            requestSender.localRedirectHome(item.simulationId, item.appMode);
         }
     };
 
