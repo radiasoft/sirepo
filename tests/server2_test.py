@@ -18,6 +18,5 @@ def test_user_alert(fc):
     d = fc.sr_sim_data()
     d.models.dog.breed = "user_alert=user visible text"
     r = fc.sr_run_sim(d, "heightWeightReport", expect_completed=False)
-    pkdp(r)
     pkeq("error", r.state)
     pkeq("user visible text", r.error)
