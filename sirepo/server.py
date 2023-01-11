@@ -713,10 +713,8 @@ def _check_version(qcall):
     import requests
 
     r = requests.post(
-        "http://URI_PLACEHOLDER",
-        json=PKDict(
-            version=sirepo.__version__
-        )
+        "http://v.radia.run:8000/version-check/post",
+        json=PKDict(version=sirepo.__version__)
     )
     # send version to api_versionCheck
     # and recieve update on whether versions match up
