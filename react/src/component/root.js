@@ -1,7 +1,6 @@
 import { useParams, Routes, Route } from "react-router-dom";
 import { CAppName } from "../data/appwrapper";
 import React from "react";
-import { LoginRoot } from "./login/login";
 
 function AppNameWrapper(props) {
     let { appName } = useParams();

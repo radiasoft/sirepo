@@ -28,11 +28,17 @@ export type SchemaTypeJson = {
     config: {[key: string]: any}
 }
 
+export type SchemaRoutesJson = {
+    [key: string]: string
+}
+
 export type SchemaJson = {
     constants: {[key: string]: any},
     type: {[typeName: string]: SchemaTypeJson},
     model: SchemaModelsJson,
-    view: SchemaLayoutJson[]
+    view: SchemaLayoutJson[],
+    routes: SchemaRoutesJson,
+    reactRoutes: SchemaRoutesJson
 }
 
 export type SchemaLayout = SchemaLayoutJson;
@@ -53,10 +59,33 @@ export type SchemaModel = {
 
 export type SchemaModels = {[modelName: string]: SchemaModel}
 
+export type SchemaRoutes = {
+    [key: string]: string
+}
+
 export type Schema = {
     constants: {[key: string]: any},
     models: SchemaModels,
-    views: SchemaLayout[]
+    views: SchemaLayout[],
+    routes: SchemaRoutes,
+    reactRoutes: SchemaRoutes
+}
+
+export const getAppCombinedSchema = (appName: string): Promise<Schema> => {
+    return new Promise<Schema>((resolve, reject) => {
+        Promise.all([
+            fetch(`/static/react-json/common-schema.json`),
+            fetch(`/static/react-json/${appName}-schema.json`)
+        ]).then(([commonResp, appResp]) => {
+            Promise.all([
+                commonResp.json(), 
+                appResp.json()
+            ]).then(([commonJson, appJson]) => {
+                let schemaJson = mergeSchemaJson(commonJson, appJson)
+                resolve(compileSchemaFromJson(schemaJson));
+            })
+        })
+    })
 }
 
 export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): SchemaJson {
@@ -83,6 +112,14 @@ export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): Sc
         type: {
             ...(original.type || {}),
             ...(overrides.type || {})
+        },
+        routes: {
+            ...(original.routes || {}),
+            ...(overrides.routes || {})
+        },
+        reactRoutes: {
+            ...(original.reactRoutes || {}),
+            ...(overrides.reactRoutes || {})
         }
     }
 }
@@ -134,6 +171,8 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
     return {
         constants: schemaObj.constants,
         views: schemaObj.view,
-        models
+        models,
+        routes: schemaObj.routes,
+        reactRoutes: schemaObj.reactRoutes
     }
 }

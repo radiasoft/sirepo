@@ -6,13 +6,14 @@ import { useSetup } from "../hook/setup";
 import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "./simbrowser";
 import "./app.scss";
-import { AppWrapper, CAppName, CSchema, CSimulationList } from "../data/appwrapper";
+import { AppWrapper, CAppName, CAppWrapper, CSchema, CSimulationList } from "../data/appwrapper";
 import { LoginRouter } from "./login/login";
 import { SrNavbar } from "./reusable/navbar";
 import { Container } from "react-bootstrap";
+import { CRouteHelper, RouteHelper } from "../utility/route";
+import { getAppCombinedSchema } from "../utility/schema";
 
-export const AppRoot = (props) => {
-
+export const AppContextWrapper = (props) => {
     const formStateStore = configureStore({
         reducer: {
             [modelsSlice.name]: modelsSlice.reducer,
@@ -20,7 +21,28 @@ export const AppRoot = (props) => {
         },
     });
     let appName = useContext(CAppName);
-    let appWrapper = new AppWrapper(appName);
+    const [hasAppSchema, schema] = useSetup(true, getAppCombinedSchema(appName));
+
+    if(hasAppSchema) {
+        const routeHelper = new RouteHelper(appName, schema);
+        let appWrapper = new AppWrapper(appName, routeHelper);
+        return (
+            <Provider store={formStateStore}>
+                <CAppWrapper.Provider value={appWrapper}>
+                    <CSchema.Provider value={schema}>
+                        <CRouteHelper.Provider value={routeHelper}>
+                            {props.children}
+                        </CRouteHelper.Provider>
+                    </CSchema.Provider>
+                </CAppWrapper.Provider>
+            </Provider>
+        )
+    }
+}
+
+export const AppComponent = (props) => {
+    let appName = useContext(CAppName);
+    let routeHelper = useContext(CRouteHelper);
 
     useEffect(() => {
         if (appName) {
@@ -28,30 +50,30 @@ export const AppRoot = (props) => {
         }
     }, [appName]);
 
-    const [hasAppSchema, schema] = useSetup(true, appWrapper.getSchema());
+    return (
+        <>
+            <SrNavbar title={appName.toUpperCase()} titleHref={routeHelper.localRoute("root")} simulationsHref={routeHelper.localRoute("simulations")}/>
+            <Container fluid className="app-body">
+                <LoginRouter>
+                    <SimulationListInitializer>
+                        <SimulationBrowserRoot/>
+                    </SimulationListInitializer>
+                </LoginRouter>
+            </Container>
+        </>
+    )
+}
 
-    if(hasAppSchema) {
-        return (
-            <Provider store={formStateStore}>
-                <CSchema.Provider value={schema}>
-                    <SrNavbar title={appName.toUpperCase()} titleHref={'/'} simulationsHref={`/react/${appName}/simulations`}/>
-                    <Container fluid className="app-body">
-                        <LoginRouter>
-                            <SimulationListInitializer>
-                                <SimulationBrowserRoot/>
-                            </SimulationListInitializer>
-                        </LoginRouter>
-                    </Container>
-                </CSchema.Provider>
-            </Provider>
-        )
-    }
-    return undefined;
+export const AppRoot = (props) => {
+    return (
+        <AppContextWrapper>
+            <AppComponent/>
+        </AppContextWrapper>
+    )
 }
 
 export const SimulationListInitializer = (props) => {
-    let appName = useContext(CAppName);
-    let appWrapper = new AppWrapper(appName);
+    let appWrapper = useContext(CAppWrapper);
 
     const [hasSimulationList, simulationList] = useSetup(true, appWrapper.getSimulationList());
 
