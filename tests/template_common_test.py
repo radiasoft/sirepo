@@ -33,6 +33,13 @@ def test_validate_safe_zip():
     with pkunit.pkexcept(AssertionError):
         srw._validate_safe_zip(zip_dir + "/bad_zip_executables.zip", zip_dir)
 
+    # Get error from validate_magnet_data_file
+    with pkunit.pkexcept("Index file bad_index_files.txt has bad format") as e:
+        # AssertionError: bad_zip_bad_index.zip failed validator: Index file bad_index_files.txt has bad format
+        srw._validate_safe_zip(
+            zip_dir + "/bad_zip_bad_index.zip", zip_dir, srw.validate_magnet_data_file
+        )
+
     # Finally, accept a zip file known to be safe
     srw._validate_safe_zip(
         zip_dir + "/good_zip.zip", zip_dir, srw.validate_magnet_data_file
