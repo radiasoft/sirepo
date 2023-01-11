@@ -155,6 +155,7 @@
         "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
+        "simulationRoute": "/simulation-route/<simulation_type>/<route>",
         "simulationSchema": "/simulation-schema",
         "srUnit": "/ srunit",
         "srwLight": "/light",

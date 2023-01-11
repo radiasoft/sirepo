@@ -524,6 +524,12 @@ class API(sirepo.quest.API):
             )
         )
 
+    @sirepo.quest.Spec("require_user")
+    def api_simulationRoute(self, simulation_type, route):
+        return self.reply_json(
+            simulation_db.get_schema(simulation_type).localRoutes[route],
+        )
+
     # visitor rather than user because error pages are rendered by the application
     @sirepo.quest.Spec("allow_visitor")
     def api_simulationSchema(self):
