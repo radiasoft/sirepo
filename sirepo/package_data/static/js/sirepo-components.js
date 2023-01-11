@@ -3636,14 +3636,15 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
               <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
               <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
             </div>
-            <button data-ng-disabled="disableSubmit" data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
+            <div data-disable-after-click>
+              <button data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
+            </div>
           </form>
           <div data-ng-show="submitted">Response submitted.</div>
         `,
         controller: function(requestSender, $scope) {
             $scope.data = {};
             $scope.submitted = false;
-            $scope.disableSubmit = false;
             $scope.submitRequest = function () {
                 const handleResponse = (data) => {
                     if (data.state === 'error') {
@@ -3662,7 +3663,6 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
                         simulationType: SIREPO.APP_NAME
                     }
                 );
-                $scope.disableSubmit = true;
             };
         },
     };
