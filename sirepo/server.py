@@ -710,9 +710,17 @@ def init_apis(*args, **kwargs):
     pass
 
 def _check_version(qcall):
+    import requests
+
+    r = requests.post(
+        "http://URI_PLACEHOLDER",
+        json=PKDict(
+            version=sirepo.__version__
+        )
+    )
     # send version to api_versionCheck
     # and recieve update on whether versions match up
-    assert 0, f"\n\n\nversion={sirepo.__version__}\n\n\n"
+    assert 0, f"\n\n\nreturn={r}\n\n\n"
 
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
