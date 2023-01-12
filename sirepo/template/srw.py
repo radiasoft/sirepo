@@ -635,14 +635,12 @@ def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
 
 
 def post_execution_processing(
-    compute_model=None,
-    is_parallel=True,
-    run_dir=None,
-    sim_id=None,
-    success_exit=True,
+    compute_model,
+    run_dir,
+    sim_id,
+    success_exit,
     **kwargs,
 ):
-    assert compute_model
     if success_exit:
         if _SIM_DATA.is_for_ml(compute_model):
             f = _SIM_DATA.ML_OUTPUT
