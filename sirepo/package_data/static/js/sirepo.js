@@ -2158,8 +2158,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         return auxillaryData[name];
     };
 
-    self.newLocalWindow = function(routeName, params, app) {
-        $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
+    self.newLocalWindow = function(routeName, params, app, map) {
+        $window.open(self.formatUrlLocal(routeName, params, app, map), '_blank');
     };
 
     self.newWindow = function(routeName, params) {
@@ -2167,13 +2167,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     };
 
     self.openSimulation = (app, route, simId) => {
-        $window.open(
-            self.formatUrlLocal(
-                route,
-                {':simulationId': simId},
-                app
-            ),
-            '_blank'
+        const m = {};
+        m[route] = routeMapLocal(route, `/${route}/:simulationId`);
+        self.newLocalWindow(
+            route,
+            {':simulationId': simId},
+            app,
+            m
         );
     };
 
