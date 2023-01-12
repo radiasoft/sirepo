@@ -3665,18 +3665,11 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
             };
 
             function reasonOk(reason) {
-                if (reason && reason.length > 4) {
-                    return true;
-                }
-                return false;
+                return reason && reason.trim().length > 4;
             }
 
             function validateReason() {
-                if (reasonOk($scope.data.reason) && !$scope.submitted) {
-                    $scope.disableSubmit = false;
-                    return;
-                }
-                $scope.disableSubmit = true;
+                $scope.disableSubmit = !reasonOk($scope.data.reason) || $scope.submitted;
             }
 
             $scope.$watch('data.reason', validateReason);
