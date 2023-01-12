@@ -2167,27 +2167,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
     };
 
     self.openSimulation = (app, route, simId) => {
-        self.sendRequest(
-            self.formatUrl('simulationRoute', {
-                '<simulation_type>': app,
-                '<route>': route
-            }),
-            d => {
-                const m = {};
-                m[route] = routeMapLocal(route, d.route);
-                $window.open(
-                    self.formatUrlLocal(
-                        route,
-                        {':simulationId': simId},
-                        app,
-                        m,
-                    ),
-                    '_blank'
-                );
-            },
-            err => {
-                throw new Error(err);
-            }
+        $window.open(
+            self.formatUrlLocal(
+                route,
+                {':simulationId': simId},
+                app
+            ),
+            '_blank'
         );
     };
 
