@@ -3665,8 +3665,7 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
             };
 
             function reasonOk(reason) {
-                // TODO (gurhar1133): needs to be more robust
-                if (reason) {
+                if (reason && reason.length > 4) {
                     return true;
                 }
                 return false;
