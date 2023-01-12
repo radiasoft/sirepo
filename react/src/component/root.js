@@ -21,9 +21,6 @@ export function RootRouter(props) {
 
     return (
         <Routes>
-            <Route path="react/*">
-                <Route path=":appName/*" element={child}/>
-            </Route>
             <Route path=":appName/*" element={child}/>
         </Routes>
     )
