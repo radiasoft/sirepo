@@ -43,14 +43,12 @@ export class RouteHelper {
         let route = routeTemplate;
 
         let allParamNames = [];
-        console.log("route", route);
         let match: RegExpExecArray;
         do {
             match = routePattern.exec(route);
             if(!match) {
                 break;
             }
-            console.log("match", match)
             let o = match[1] === '?'; // optional ?
             let p = match[2]; // matched word
             allParamNames.push(p);
@@ -65,7 +63,6 @@ export class RouteHelper {
             } else {
                 route = route.substring(0, match.index) + params[p] + s + (e < route.length ? route.substring(match.index + match[0].length) : "");
             }
-            console.log("route", route);
         } while(!!match)
 
         let unusedParams = Object.keys(params || {}).filter(p => !allParamNames.includes(p));
