@@ -8,7 +8,7 @@ import {
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { Link, Route, Routes, useResolvedPath, Navigate, useParams } from "react-router-dom";
+import { Link, Route, Routes, Navigate, useParams } from "react-router-dom";
 import { SimulationRoot } from "./simulation";
 import { CRouteHelper } from "../utility/route";
 import "./simbrowser.scss";
@@ -185,7 +185,7 @@ function SimulationIconViewItem(props: {
     )
 }
 
-function SimulationFolderRouter(props) {
+function SimulationFolderRouter(props: { tree: SimulationTreeNode, path: string[], children: ({routedTree, routedPath}: {routedTree: SimulationTreeNode, routedPath: string[]}) => React.ReactElement }) {
     let { tree, path } = props;
     path = path || [];
     let { simulationFolder } = useParams();
@@ -194,7 +194,7 @@ function SimulationFolderRouter(props) {
 
     if(simulationFolder) {
         path.push(simulationFolder);
-        let matchedFolder = tree.children.find(c => c.children && c.name === simulationFolder);
+        let matchedFolder = tree.folders.find(c => c.name === simulationFolder);
 
         if(!matchedFolder) {
             return <>Folder {simulationFolder} not found!</> //TODO 404
@@ -211,7 +211,7 @@ function SimulationFolderRouter(props) {
                 <>{el}</>
             }/>
             <Route path="/:simulationFolder/*" element={
-                <SimulationFolderRouter tree={tree} path={path}>{props.children}</SimulationFolderRouter>
+                <SimulationFolderRouter tree={tree} path={[]}>{props.children}</SimulationFolderRouter>
             }/>
         </Routes>
     )
@@ -253,7 +253,7 @@ function SimulationBrowser(props: {
     let { tree } = props;
 
     return (
-        <SimulationFolderRouter tree={tree}>
+        <SimulationFolderRouter path={[]} tree={tree}>
             {({routedTree, routedPath}) => {
                 return (
                     <>
@@ -295,8 +295,8 @@ export function SimulationBrowserRoot(props) {
             <Route path="/" element={
                 <Navigate to={routeHelper.localRoute("simulations")}></Navigate>
             }/>
-            <Route path={`${routeHelper.localRoute("simulations")}/*`} element={<SimulationBrowser tree={simulationTree} />}/>
-            <Route path={`${routeHelper.localRoute("source")}/*`} element={
+            <Route path={`${routeHelper.localRoutePattern("simulations")}/*`} element={<SimulationBrowser tree={simulationTree} />}/>
+            <Route path={`${routeHelper.localRoutePattern("source")}/*`} element={
                 <SimulationRootWrapper simulationList={simulationList}/>
             }/>
         </Routes>

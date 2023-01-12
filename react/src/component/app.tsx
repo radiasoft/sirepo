@@ -38,6 +38,7 @@ export const AppContextWrapper = (props) => {
             </Provider>
         )
     }
+    return undefined;
 }
 
 export const AppComponent = (props) => {

@@ -20,7 +20,7 @@ import { CRelativeRouterHelper, CRouteHelper, RelativeRouteHelper } from "../uti
 import { ReportEventManager } from "../data/report";
 import { CReportEventManager } from "../data/report";
 import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
-import { AppWrapper, CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { LAYOUTS } from "../layout/layouts";
 import { ModelsAccessor } from "../data/accessor";
 import { Dependency } from "../data/dependency";
@@ -219,7 +219,9 @@ function CopySimulationNamePickerModal({show, defaultName, onComplete, onCancel}
 }
 
 function ReportEventManagerInitializer(props) {
-    return <CReportEventManager.Provider value={new ReportEventManager()}>
+    let routeHelper = useContext(CRouteHelper);
+
+    return <CReportEventManager.Provider value={new ReportEventManager(routeHelper)}>
         {props.children}
     </CReportEventManager.Provider>
 }

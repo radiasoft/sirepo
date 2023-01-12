@@ -254,7 +254,7 @@
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/:simulation_type/:simulation_id/:file_type"
     },
-    "reactRoutes": {
+    "reactRoute": {
         "completeRegistration": "/complete-registration",
         "login": "/login",
         "logout": "/logout",

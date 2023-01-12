@@ -37,8 +37,8 @@ export type SchemaJson = {
     type: {[typeName: string]: SchemaTypeJson},
     model: SchemaModelsJson,
     view: SchemaLayoutJson[],
-    routes: SchemaRoutesJson,
-    reactRoutes: SchemaRoutesJson
+    route: SchemaRoutesJson,
+    reactRoute: SchemaRoutesJson
 }
 
 export type SchemaLayout = SchemaLayoutJson;
@@ -67,8 +67,8 @@ export type Schema = {
     constants: {[key: string]: any},
     models: SchemaModels,
     views: SchemaLayout[],
-    routes: SchemaRoutes,
-    reactRoutes: SchemaRoutes
+    route: SchemaRoutes,
+    reactRoute: SchemaRoutes
 }
 
 export const getAppCombinedSchema = (appName: string): Promise<Schema> => {
@@ -113,13 +113,13 @@ export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): Sc
             ...(original.type || {}),
             ...(overrides.type || {})
         },
-        routes: {
-            ...(original.routes || {}),
-            ...(overrides.routes || {})
+        route: {
+            ...(original.route || {}),
+            ...(overrides.route || {})
         },
-        reactRoutes: {
-            ...(original.reactRoutes || {}),
-            ...(overrides.reactRoutes || {})
+        reactRoute: {
+            ...(original.reactRoute || {}),
+            ...(overrides.reactRoute || {})
         }
     }
 }
@@ -172,7 +172,7 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
         constants: schemaObj.constants,
         views: schemaObj.view,
         models,
-        routes: schemaObj.routes,
-        reactRoutes: schemaObj.reactRoutes
+        route: schemaObj.route,
+        reactRoute: schemaObj.reactRoute
     }
 }

@@ -38,27 +38,34 @@ export class RouteHelper {
     }
 
     private replaceRouteParams = (routeTemplate: string, params?: RouteParams): string => {
-        let routePattern = /([?]?):(\w+)(\/)?/g;
+        let routePattern = /([?]?):(\w+)(\/)?/i;
+
+        let route = routeTemplate;
 
         let allParamNames = [];
-        
+        console.log("route", route);
         let match: RegExpExecArray;
         do {
-            match = routePattern.exec(routeTemplate);
-            let o = match.groups[0] === '?'; // optional ?
-            let p = match.groups[1]; // matched word
+            match = routePattern.exec(route);
+            if(!match) {
+                break;
+            }
+            console.log("match", match)
+            let o = match[1] === '?'; // optional ?
+            let p = match[2]; // matched word
             allParamNames.push(p);
-            let s = match.groups[2] || ""; // optional /
+            let s = match[3] || ""; // optional /
             let e = match.index + match.length;
 
             if(!params || !Object.keys(params).includes(p)) {
                 if(!o) {
                     throw new Error(`non optional param=${p} was missing for route=${routeTemplate}`)
                 }
-                routeTemplate = routeTemplate.substring(0, match.index) + (e < routeTemplate.length ? routeTemplate.substring(e) : "");
+                route = route.substring(0, match.index) + (e < route.length ? route.substring(e) : "");
             } else {
-                routeTemplate = routeTemplate.substring(0, match.index) + params[p] + s + (e < routeTemplate.length ? routeTemplate.substring(match.index + match.length) : "");
+                route = route.substring(0, match.index) + params[p] + s + (e < route.length ? route.substring(match.index + match[0].length) : "");
             }
+            console.log("route", route);
         } while(!!match)
 
         let unusedParams = Object.keys(params || {}).filter(p => !allParamNames.includes(p));
@@ -66,11 +73,15 @@ export class RouteHelper {
             throw new Error(`unused param(s)=${unusedParams} defined for route=${routeTemplate}; route params=${allParamNames}`)
         }
 
-        return `/${this.appName}/${routeTemplate}`;
+        return route;
     }
 
-    private getRoute = (routeType: 'reactRoutes' | 'routes', routeName: string) => {
+    private getRoute = (routeType: 'reactRoute' | 'route', routeName: string) => {
         let routes = this.schema[routeType];
+
+        if(!routes) {
+            throw new Error(`routes field=${routeType} was not found in schema=${Object.keys(this.schema)}`)
+        }
 
         if(!(Object.keys(routes).includes(routeName))) {
             throw new Error(`route name=${routeName} not found in routes=${routeType}`)
@@ -78,11 +89,19 @@ export class RouteHelper {
         return routes[routeName]
     }
 
+    localRoutePattern = (routeName: string): string => {
+        return this.getRoute('reactRoute', routeName);
+    }
+
     localRoute = (routeName: string, params?: RouteParams): string => {
-        return this.replaceRouteParams(this.getRoute('reactRoutes', routeName), params);
+        return `/${this.appName}${this.replaceRouteParams(this.localRoutePattern(routeName), params)}`;
+    }
+
+    globalRoutePattern = (routeName: string): string => {
+        return this.getRoute('route', routeName);
     }
 
     globalRoute = (routeName: string, params?: RouteParams): string => {
-        return this.replaceRouteParams(this.getRoute('routes', routeName), params);
+        return this.replaceRouteParams(this.globalRoutePattern(routeName), params);
     }
 }

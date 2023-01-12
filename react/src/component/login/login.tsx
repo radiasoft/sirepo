@@ -25,9 +25,9 @@ export const LoginRouter = (props) => {
                 <NavbarAuthStatus/>
             </Portal>
             <Routes>
-                <Route path={`${routeHelper.localRoute("logout")}/*`} element={<LogoutRoot/>}/>
-                <Route path={`${routeHelper.localRoute("login")}/*`} element={<LoginRoot/>}/>
-                <Route path={routeHelper.localRoute("loginConfirm")} element={<LoginConfirm/>}/>
+                <Route path={`${routeHelper.localRoutePattern("logout")}/*`} element={<LogoutRoot/>}/>
+                <Route path={`${routeHelper.localRoutePattern("login")}/*`} element={<LoginRoot/>}/>
+                <Route path={routeHelper.localRoutePattern("loginConfirm")} element={<LoginConfirm/>}/>
                 <Route path="*" element={<CatchLoggedOut>{props.children}</CatchLoggedOut>}/>
             </Routes>
         </CLoginStatus.Provider>
