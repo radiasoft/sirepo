@@ -3742,7 +3742,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             <span class="valueLabel">{{ model[field] }}{{ model.units }}</span>
         `,
         controller: function($scope, $element) {
-
+            srdbg($scope);
             let slider;
             let delegate = null;
 
@@ -3777,6 +3777,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 if ((val || val === 0) && $scope.model[$scope.field] !== val) {
                     $scope.model[$scope.field] = val;
                     const form = $element.find('input').eq(0).controller('form');
+                    srdbg($scope.modelName, form);
                     if (! form) {
                         return;
                     }

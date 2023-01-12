@@ -282,19 +282,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     <div class="colorbar"></div>
                 </div>
             </div>
-            <div data-ng-show="displayType === '2D'">
-               <div class="col-md-8 col-md-offset-4">
-                   <!--<input class="fieldClass col-sm-4" type="range" data-ng-model="tallyReport.planePos" min="tallyReport.zRange[0]" max="tallyReport.zRange[1]" step="tallyReport.zRange[2]">-->
-                   <!--<div class="row" data-field-editor="planePos" data-model="tallyReport" data-model-name="tallyReportName"></div>-->
-                   <div class="row" data-field-editor="planePos" data-model="tallyReport" data-model-name="tallyReportName"></div>
+            <div class="col-sm-12" data-ng-show="displayType === '2D'">
+               <div class="row">
+                   <div class="col-md-12" style="padding: 8px;" data-field-editor="'axis'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div class="col-md-12" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
                </div>
-               <!--<div data-basic-editor-panel="" data-view-name="tallyReport"></div>-->
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
         `,
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
-
+            srdbg($scope);
             $scope.displayType = '3D';
             $scope.isClientOnly = isGeometryOnly;
             $scope.tallyReportName = 'tallyReport';
@@ -409,27 +407,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function buildOpacityDelegate() {
-                const m = $scope.modelName;
-                const f = 'opacity';
-                const d = panelState.getFieldDelegate(m, f);
-                d.range = () => {
-                    return {
-                        min: appState.fieldProperties(m, f).min,
-                        max: appState.fieldProperties(m, f).max,
-                        step: 0.01
-                    };
-                };
-                d.readout = () => {
-                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
-                };
+                const d = buildRangeDelegate($scope.modelName, 'opacity');
                 d.update = setGlobalProperties;
                 return d;
             }
 
             function buildPlanePosDelegate() {
-                srdbg('BLD PP');
                 const d = buildRangeDelegate('tallyReport', 'planePos');
                 d.range = planePosRange;
+                d.update = () => {};
                 return d;
             }
 
@@ -631,7 +617,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                buildPlanePosDelegate();
             }
 
             function loadVolumes(volIds) {
@@ -644,7 +629,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function planePosRange() {
-                srdbg('m', mesh);
                 let r = {
                     min: -1,
                     max: 1,
@@ -726,17 +710,47 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 colorbarPtr.pointTo(f);
             }
 
-            function updatePlanePosDelegate() {
-                const m = 'tallyReport';
-                const f = 'planePos';
-                const d = panelState.getFieldDelegate(m, f);
-                d.range = planePosRange;
-                d.readout = () => {
-                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
-                };
-                d.update = () => {};
-                return d;
+            function updateSlice(f) {
+                srdbg('UPDATE', f);
+                appState.saveChanges('tallyReport', () => {
+                    srdbg('UPDATE SAVED SHOULD RELOAD');
+
+                    panelState.requestData(
+                        'tallyReport',
+                        data => {
+                            srdbg('TR OK', data);
+                        },
+                        true,
+                        err => {
+                            srdbg('TR OOPS', err);
+                        }
+                    );
+
+                });
             }
+
+/*
+            function reorder(arr, outerAxis, dims) {
+                const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(outerAxis);
+                const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(outerAxis);
+                const dd = dims.slice().reverse();
+                const f = getFieldData();
+                const d = arr.reshape();
+                const ff = numpy.zeros([dims[n], dims[m], dims[l]]);
+                for (let k = 0; k <  dims[n]; ++k) {
+                    for (let j = 0; j < dims[m]; ++j) {
+                        for (let i = 0; i < dims[l]; ++i) {
+                            const v = [0, 0, 0];
+                            v[l] = i;
+                            v[m] = j;
+                            v[n] = k;
+                            f[k][j][i] = (d[v[2]][v[1]][v[0]])
+                        }
+                    }
+                }
+                return f;
+            }
+*/
 
             function volumesError(reason) {
                 srlog(new Error(`Volume load failed: ${reason}`));
@@ -877,10 +891,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 setVolumeProperty(bundleByVolume[volId], prop, val);
             });
 
+            $scope.$on('tallyReport.changed', () => {
+                srdbg('TTALLYRPT CH');
+            });
+
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
             appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
 
+            appState.watchModelFields($scope, ['tallyReport.axis'], updateSlice);
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);

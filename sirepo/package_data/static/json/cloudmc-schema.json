@@ -440,7 +440,7 @@
             "colorMap": ["Color Map", "ColorMap", "jet"],
             "horizontalAxis": ["_", "Axis", "z"],
             "horizontalTrim": ["Trim", "FloatArray", []],
-            "planePos": ["{{ appState.models.tallyReport.axis }} [cm]", "Range", 0.0, ""],
+            "planePos": ["{{ tallyReport.axis }} [cm]", "Range", 0.0, ""],
             "verticalAxis": ["_", "Axis", "x"]
         },
         "tallyScore": {
@@ -613,9 +613,7 @@
                 "voxels.colorMap",
                 "opacity",
                 "bgColor",
-                "showEdges",
-                "tallyReport.axis",
-                "tallyReport.planePos"
+                "showEdges"
             ]
         },
         "particle": {
