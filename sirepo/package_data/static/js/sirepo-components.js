@@ -3649,11 +3649,8 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
                     if (data.state === 'error') {
                         errorService.alertText(data.error);
                     }
-                    $scope.submitted = true;
                 };
-                if (!$scope.data.reason) {
-                    return;
-                }
+                $scope.submitted = true;
                 requestSender.sendRequest(
                     'saveModerationReason',
                     handleResponse,
