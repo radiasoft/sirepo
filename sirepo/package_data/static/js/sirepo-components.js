@@ -3643,7 +3643,7 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
         controller: function(requestSender, $scope) {
             $scope.data = {};
             $scope.submitted = false;
-            $scope.disableSubmit = false;
+            $scope.disableSubmit = true;
             $scope.submitRequest = function () {
                 const handleResponse = (data) => {
                     if (data.state === 'error') {
@@ -3662,8 +3662,25 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
                         simulationType: SIREPO.APP_NAME
                     }
                 );
-                $scope.disableSubmit = true;
             };
+
+            function reasonOk(reason) {
+                // TODO (gurhar1133): needs to be more robust
+                if (reason) {
+                    return true;
+                }
+                return false;
+            }
+
+            function validateReason() {
+                if (reasonOk($scope.data.reason) && !$scope.submitted) {
+                    $scope.disableSubmit = false;
+                    return;
+                }
+                $scope.disableSubmit = true;
+            }
+
+            $scope.$watch('data.reason', validateReason);
         },
     };
 });
