@@ -3667,7 +3667,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     function setPoints(data) {
         $scope.modelData.referencePoints = data.points;
-        radiaService.updateExtruded($scope.modelData, () => updateShapes);
+        radiaService.updateExtruded($scope.modelData, updateShapes);
     }
 
     function setSTLSize(data) {
