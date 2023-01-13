@@ -34,11 +34,9 @@ def adjust_time(days, qcall=None):
     global _timedelta
     _timedelta = None
     try:
-        pkdp(days)
         d = int(days)
         if d != 0:
             _timedelta = datetime.timedelta(days=d)
-            pkdp(_timedelta)
     except Exception:
         pass
     if qcall:
@@ -55,8 +53,6 @@ class API(sirepo.quest.API):
         Args:
             days (str): must be integer. If None or 0, no adjustment.
         """
-
-        pkdp("days")
         adjust_time(days, qcall=self)
         return self.reply_ok(
             {

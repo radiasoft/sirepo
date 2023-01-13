@@ -30,27 +30,10 @@ _DB_DIR = "db"
 _client = None
 
 
-@contextlib.contextmanager
-def quest_start(want_user=False, cfg=None):
-    if cfg is None:
-        cfg = {}
-    setup_srdb_root(cfg=cfg)
-
-    from pykern import pkconfig
-
-    pkconfig.reset_state_for_testing(cfg)
-
-    from sirepo import quest
-
-    with quest.start(in_srunit=True) as qcall:
-        qcall.auth_db.create_or_upgrade()
-        if want_user:
-            qcall.auth.login(is_mock=True)
-        yield qcall
-
-
-def flask_client(env=None, sim_types=None, job_run_mode=None, empty_work_dir=True):
-    """"""
+def http_client(
+    env=None, sim_types=None, job_run_mode=None, empty_work_dir=True, port=None
+):
+    """Create an http_client that talks to server"""
     global _client
     t = sim_types or CONFTEST_DEFAULT_CODES
     if t:
@@ -75,8 +58,27 @@ def flask_client(env=None, sim_types=None, job_run_mode=None, empty_work_dir=Tru
     from sirepo import modules
 
     modules.import_and_init("sirepo.uri")
-    _client = _TestClient(env=env, job_run_mode=job_run_mode)
+    _client = _TestClient(env=env, job_run_mode=job_run_mode, port=port)
     return _client
+
+
+@contextlib.contextmanager
+def quest_start(want_user=False, cfg=None):
+    if cfg is None:
+        cfg = {}
+    setup_srdb_root(cfg=cfg)
+
+    from pykern import pkconfig
+
+    pkconfig.reset_state_for_testing(cfg)
+
+    from sirepo import quest
+
+    with quest.start(in_srunit=True) as qcall:
+        qcall.auth_db.create_or_upgrade()
+        if want_user:
+            qcall.auth.login(is_mock=True)
+        yield qcall
 
 
 def setup_srdb_root(cfg=None):
@@ -89,22 +91,6 @@ def setup_srdb_root(cfg=None):
     e.update(
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join(_DB_DIR))),
     )
-
-
-def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_DEFAULT_CODES, cfg=None):
-    """Get simulation data
-
-    Args:
-        sim_name (str): full name of simulation
-        sim_type (str): app [defaults to myapp]
-        sim_types (str): `SIREPO_FEATURE_CONFIG_SIM_TYPES` value
-    Returns:
-        PKDict: simulation data
-        object: flask client
-    """
-    fc = flask_client(sim_types=sim_types or [sim_type or MYAPP], cfg=cfg)
-    fc.sr_login_as_guest()
-    return fc.sr_sim_data(sim_name=sim_name, sim_type=sim_type), fc
 
 
 class UwsgiClient(PKDict):
@@ -139,15 +125,14 @@ class UwsgiClient(PKDict):
 
 
 class _TestClient:
-    def __init__(self, env, job_run_mode):
+    def __init__(self, env, job_run_mode, port):
         super().__init__()
         self.sr_job_run_mode = job_run_mode
         self.sr_sbatch_logged_in = False
         self.sr_sim_type = None
         self.sr_uid = None
-        self._http = (
-            f"http://{env.SIREPO_PKCLI_SERVICE_IP}:{env.SIREPO_PKCLI_SERVICE_PORT}"
-        )
+        self.port = port
+        self.http_prefix = f"http://{env.SIREPO_PKCLI_SERVICE_IP}:{port}"
         self._session = requests.Session()
         self.cookie_jar = self._session.cookies
 
@@ -260,6 +245,7 @@ class _TestClient:
         self.sr_post(resp.uri, r, raw_response=True)
 
     def sr_email_login(self, email, sim_type=None):
+        self.sr_sim_type_set(sim_type)
         self.sr_logout()
         r = self.sr_post(
             "authEmailLogin",
@@ -671,7 +657,7 @@ class _TestClient:
         u = urllib.parse.urlparse(uri)
         if u.scheme:
             return uri
-        return self._http + uri
+        return self.http_prefix + uri
 
 
 class _Response:

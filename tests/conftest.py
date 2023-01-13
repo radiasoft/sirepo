@@ -234,7 +234,7 @@ def _config_sbatch_supervisor_env(env):
 
 
 def _fc(request, fc_module, new_user=False):
-    """Flask client based logged in to specific code of test
+    """HTTP client based logged in to specific code of test
 
     Defaults to myapp.
     """
@@ -324,22 +324,21 @@ def _subprocess_setup(request, fc_args):
     import sirepo.srunit
 
     c = None
-    u = [env["SIREPO_PKCLI_JOB_SUPERVISOR_PORT"]]
-    if fc_args.uwsgi:
-        c = sirepo.srunit.UwsgiClient(env)
-        u.append(env["SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT"])
-    else:
-        c = sirepo.srunit.flask_client(
-            env=env,
-            empty_work_dir=fc_args.empty_work_dir,
-            job_run_mode="sbatch" if sbatch_module else None,
-            sim_types=fc_args.sim_types,
-        )
-        t = fc_args.sim_types
-        if isinstance(t, (tuple, list)):
-            t = ":".join(t)
-        cfg["SIREPO_FEATURE_CONFIG_SIM_TYPES"] = t
-        u.append(env["SIREPO_PKCLI_SERVICE_PORT"])
+    u = [env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT]
+    c = sirepo.srunit.http_client(
+        env=env,
+        empty_work_dir=fc_args.empty_work_dir,
+        job_run_mode="sbatch" if sbatch_module else None,
+        sim_types=fc_args.sim_types,
+        port=env.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT
+        if fc_args.uwsgi
+        else env.SIREPO_PKCLI_SERVICE_PORT,
+    )
+    u.append(c.port)
+    t = fc_args.sim_types
+    if isinstance(t, (tuple, list)):
+        t = ":".join(t)
+    cfg["SIREPO_FEATURE_CONFIG_SIM_TYPES"] = t
     for i in u:
         subprocess.run(["kill -9 $(lsof -t -i :" + i + ") >& /dev/null"], shell=True)
     if sbatch_module:
@@ -381,17 +380,13 @@ def _subprocess_start(request, fc_args):
     wd = pkunit.work_dir()
     p = []
     try:
-        _subprocess(("sirepo", "service", "flask"))
         _subprocess(("sirepo", "job_supervisor"))
         if fc_args.uwsgi:
-            for s in ("nginx-proxy", "uwsgi"):
-                _subprocess(("sirepo", "service", s))
-            _post(
-                f'http://{_LOCALHOST}:{env["SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT"]}'
-                f"/job-supervisor-ping",
-                PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT),
-            )
-        _post(c._http + "/job-supervisor-ping", None)
+            _subprocess(("sirepo", "service", "nginx-proxy"))
+            _subprocess(("sirepo", "service", "uwsgi"))
+        else:
+            _subprocess(("sirepo", "service", "flask"))
+        _post(c.http_prefix + "/job-supervisor-ping", None)
         from sirepo import feature_config, template
         from pykern import pkio
 
@@ -403,7 +398,6 @@ def _subprocess_start(request, fc_args):
         for k in sorted(env.keys()):
             if k.endswith("_PORT"):
                 pkdlog("{}={}", k, env[k])
-        #        threading? start a thread that reads from all processes so they don't block and writes to stderr
         yield c
     finally:
         import sys
