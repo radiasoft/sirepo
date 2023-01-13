@@ -2005,18 +2005,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
             isOptional: !! m[2],
         };
     }
-
     for (let n in SIREPO.APP_SCHEMA.localRoutes) {
-        localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
-    }
-
-    function routeMapLocal(name, route) {
-        const u = route.split('/');
+        let u = SIREPO.APP_SCHEMA.localRoutes[n].route.split('/');
         u.shift();
-        return {
-            name: name,
+        localMap[n] = {
+            name: n,
             baseUri: u.shift(),
-            params: u.map(_localIterator),
+            params: u.map(_localIterator)
         };
     }
 
@@ -2145,8 +2140,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
 
-    self.formatUrlLocal = function(routeName, params, app, routeMap=localMap) {
-        var u = '#' + formatUrl(routeMap, routeName, params);
+    self.formatUrlLocal = function(routeName, params, app) {
+        var u = '#' + formatUrl(localMap, routeName, params);
         return app ? '/' + app + u : u;
     };
 
@@ -2158,8 +2153,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         return auxillaryData[name];
     };
 
-    self.newLocalWindow = function(routeName, params, app, map) {
-        $window.open(self.formatUrlLocal(routeName, params, app, map), '_blank');
+    self.newLocalWindow = function(routeName, params, app) {
+        $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
     };
 
     self.newWindow = function(routeName, params) {
