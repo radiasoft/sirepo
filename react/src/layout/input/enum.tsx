@@ -51,7 +51,9 @@ export class EnumInputLayout extends InputLayout<EnumConfig, string, string> {
 
 export type ComputeResultEnumConfig = {
     computeMethod: string,
-    resultName: string
+    resultName: string,
+    keyName: string,
+    displayName: string
 } & InputConfigBase
 
 export class ComputeResultEnumInputLayout extends InputLayout<ComputeResultEnumConfig, string, string> {
@@ -97,8 +99,13 @@ export class ComputeResultEnumInputLayout extends InputLayout<ComputeResultEnumC
             props.onChange(event.target.value);
         }
 
-        // TODO: this is more of a mock element since this does not have
-        // a working example right now
-        return <Form.Select {...otherProps} onChange={onChange} isInvalid={!valid && touched}></Form.Select>
+        const options = optionList
+            ? optionList.map(v => (
+                <option key={v[this.config.keyName]} value={v[this.config.keyName]}>{v[this.config.displayName]}</option>
+            ))
+            : [];
+        return <Form.Select {...otherProps} onChange={onChange} isInvalid={!valid && touched}>
+            {options}
+        </Form.Select>
     }
 }
