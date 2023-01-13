@@ -25,8 +25,8 @@ def test_moderation(auth_fc):
     from sirepo.pkcli import roles
 
     fc = auth_fc
-    fc.sr_email_register("x@x.x", sim_type="srw")
-    fc.sr_sim_type = "myapp"
+    fc.sr_email_login("x@x.x", sim_type="srw")
+    fc.sr_sim_type_set("myapp")
     with srunit.quest_start() as qcall:
         qcall.auth_db.model("UserRole").delete_all()
         qcall.auth_db.model("UserRoleInvite").delete_all()

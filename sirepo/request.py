@@ -8,6 +8,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import email.utils
 import pykern.pkcompat
+import sirepo.const
 import sirepo.quest
 import sirepo.util
 import user_agents
@@ -67,6 +68,9 @@ class _SRequest(sirepo.quest.Attr):
         if not a:
             # assume it's a spider if there's no header
             return True
+        if a.startswith(sirepo.const.SRUNIT_USER_AGENT):
+            # So our unit tests can run
+            return False
         if "python-requests" in a:
             # user_agents doesn't see Python's requests module as a bot.
             # The package robot_detection does see it, but we don't want to introduce another dependency.

@@ -61,8 +61,8 @@ def test_myapp_free_user_sim_purged(auth_fc):
     m = "heightWeightReport"
     user_free = "free@b.c"
     user_premium = "premium@x.y"
-    fc.sr_email_register(user_free)
-    fc.sr_email_register(user_premium)
+    fc.sr_email_login(user_free)
+    fc.sr_email_login(user_premium)
     _make_user_premium(fc.sr_auth_state().uid)
     next_req_premium = _run_sim(fc.sr_sim_data())
     fc.sr_email_login(user_free)
@@ -83,7 +83,7 @@ def test_elegant_no_frame_after_purge(auth_fc):
 
     fc = auth_fc
     user_free = "free@b.c"
-    fc.sr_email_register(user_free)
+    fc.sr_email_login(user_free)
     d = fc.sr_sim_data(sim_name="Compact Storage Ring", sim_type="elegant")
     r = fc.sr_run_sim(d, "animation")
     with fc.sr_adjust_time(_PURGE_FREE_AFTER_DAYS + 1):

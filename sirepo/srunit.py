@@ -154,13 +154,15 @@ class _TestClient:
     def get(self, uri, headers=None):
         return self._requests_op("get", uri, headers, kwargs=PKDict())
 
-    def post(self, uri, data=None, json=None, headers=None):
+    def post(self, uri, data=None, json=None, headers=None, file_handle=None):
         assert (data is None) != (json is None)
         k = PKDict()
         if data is not None:
             k.data = data
         else:
             k.json = json
+        if file_handle is not None:
+            k.files = PKDict(file=file_handle)
         return self._requests_op("post", uri, headers, k)
 
     @contextlib.contextmanager
@@ -257,21 +259,14 @@ class _TestClient:
             r.displayName = display_name
         self.sr_post(resp.uri, r, raw_response=True)
 
-    def sr_email_login(self, email):
+    def sr_email_login(self, email, sim_type=None):
         self.sr_logout()
         r = self.sr_post(
             "authEmailLogin",
             PKDict(email=email, simulationType=self.sr_sim_type),
         )
-        self.sr_email_confirm(r)
-
-    def sr_email_register(self, email, sim_type=None):
-        self.sr_sim_type_set(sim_type)
-        self.sr_email_login(email)
-        self.sr_post(
-            "authCompleteRegistration",
-            PKDict(displayName=email, simulationType=self.sr_sim_type),
-        )
+        self.sr_email_confirm(r, display_name=email)
+        return self._verify_and_save_uid()
 
     def sr_get(self, route_or_uri, params=None, query=None, **kwargs):
         """Gets a request to route_or_uri to server
@@ -346,10 +341,7 @@ class _TestClient:
         # Get a cookie
         self.sr_get("authState")
         self.sr_get("authGuestLogin", {"simulation_type": self.sr_sim_type})
-        self.sr_uid = self.sr_auth_state(
-            needCompleteRegistration=False, isLoggedIn=True
-        ).uid
-        return self.sr_uid
+        return self._verify_and_save_uid()
 
     def sr_logout(self):
         """Logout but leave cookie in place
@@ -405,7 +397,7 @@ class _TestClient:
             p = file
             if isinstance(p, pkconfig.STRING_TYPES):
                 p = pkunit.data_dir().join(p)
-            k.file = open(str(p), "rb")
+            k.file_handle = open(str(p), "rb")
         return self.__req(
             route_or_uri,
             params,
@@ -567,6 +559,12 @@ class _TestClient:
             uid = self.sr_auth_state().uid
         return pkunit.work_dir().join(_DB_DIR, "user", uid)
 
+    def _verify_and_save_uid(self):
+        self.sr_uid = self.sr_auth_state(
+            needCompleteRegistration=False, isLoggedIn=True
+        ).uid
+        return self.sr_uid
+
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
         """Make request and parse result
 
@@ -651,10 +649,12 @@ class _TestClient:
             raise
 
     def _requests_op(self, op, uri, headers, kwargs):
+        from sirepo import const
+
         u = self._uri(uri)
         if headers is None:
             headers = PKDict()
-        headers["User-Agent"] = f"srunit/1.0 {pykern.pkinspect.caller()}"
+        headers["User-Agent"] = f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}"
         try:
             return _Response(
                 getattr(self._session, op)(u, headers=headers, **kwargs),
