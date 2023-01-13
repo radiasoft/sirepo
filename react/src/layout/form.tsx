@@ -78,8 +78,9 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
         let formState = useContext(CFormStateWrapper);
         let schema = useContext(CSchema);
         let store = useStore();
+        let gridShown = useShown(this.config.shown, true, formState, ValueSelectors.Fields);
 
-        if (! useShown(this.config.shown, true, formState, ValueSelectors.Fields)) {
+        if (! gridShown) {
             return <></>
         }
 
