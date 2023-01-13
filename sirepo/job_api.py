@@ -16,9 +16,7 @@ import re
 import requests
 import sirepo.quest
 import sirepo.auth
-import sirepo.http_reply
 import sirepo.job
-import sirepo.mpi
 import sirepo.sim_data
 import sirepo.uri_router
 import sirepo.util
@@ -323,7 +321,7 @@ class API(sirepo.quest.API):
 
     @contextlib.contextmanager
     def _reply_maybe_file(self, content):
-        s = self.bucket_uget("sim_data")
+        s = self.bucket_unchecked_get("sim_data")
         if (
             not s
             or content.api not in _MUST_HAVE_METHOD

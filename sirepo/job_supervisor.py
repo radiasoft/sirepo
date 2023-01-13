@@ -19,7 +19,6 @@ import inspect
 import pykern.pkio
 import re
 import sirepo.const
-import sirepo.http_reply
 import sirepo.quest
 import sirepo.sim_data
 import sirepo.simulation_db
@@ -69,6 +68,12 @@ _cfg = None
 
 #: how many times restart request when Awaited() raised
 _MAX_RETRIES = 10
+
+
+#: POSIT: same as sirepo.reply
+_REPLY_SR_EXCEPTION_STATE = "srException"
+_REPLY_ERROR_STATE = "error"
+_REPLY_STATE = "state"
 
 
 class Awaited(Exception):
@@ -238,7 +243,9 @@ class _Supervisor(PKDict):
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog("{} error={} stack={}", req, e, pkdexc())
-            return sirepo.http_reply.gen_tornado_exception(e)
+            if isinstance(e, sirepo.util.ReplyExc):
+                return cls._reply_exception(e)
+            raise
 
     async def op_run_timeout(self, op):
         pass
@@ -382,6 +389,25 @@ class _Supervisor(PKDict):
 
     async def _receive_api_ownJobs(self, req):
         return self._get_running_pending_jobs(uid=req.content.uid)
+
+    @classmethod
+    def _reply_exception(cls, exc):
+        n = exc.__class__
+        if isinstance(exc, sirepo.util.SRException):
+            return PKDict(
+                {
+                    _REPLY_STATE: _REPLY_SR_EXCEPTION_STATE,
+                    _REPLY_SR_EXCEPTION_STATE: exc.sr_args,
+                }
+            )
+        if isinstance(exc, sirepo.util.UserAlert):
+            return PKDict(
+                {
+                    _REPLY_STATE: _REPLY_ERROR_STATE,
+                    _REPLY_ERROR_STATE: exc.sr_args.error,
+                }
+            )
+        raise AssertionError(f"Reply class={exc.__class__.__name__} unknown exc={exc}")
 
 
 class _ComputeJob(_Supervisor):

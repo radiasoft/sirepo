@@ -1626,6 +1626,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('input.form-control').prop('readonly', ! isEnabled);
         $(fc).find('select.form-control').prop('disabled', ! isEnabled);
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
+        $(fc).find('button.dropdown-toggle').prop('disabled', ! isEnabled);
     };
 
     self.enableArrayField = function(model, field, index, isEnabled) {

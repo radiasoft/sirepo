@@ -1646,7 +1646,6 @@
                       "config": {
                         "reportGroupName": "animation",
                         "reportName": "particleAnimation",
-                        "frameCountFieldName": "particleFrameCount",
                         "frameIdFields": [
                           "particleAnimation.x",
                           "particleAnimation.y",
@@ -1668,7 +1667,6 @@
                       "config": {
                         "reportGroupName": "animation",
                         "reportName": "fieldDistributionAnimation",
-                        "frameCountFieldName": "fieldFrameCount",
                         "frameIdFields": [],
                         "reportLayout": { "layout": "heatplot", "config": {} }
                       }
