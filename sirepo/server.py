@@ -529,7 +529,7 @@ class API(sirepo.quest.API):
         return self.reply_redirect_for_local_route(
             sim_type=simulation_type,
             route=route,
-            params=PKDict(simulationId=simulation_id)
+            params=PKDict(simulationId=simulation_id),
         )
 
     # visitor rather than user because error pages are rendered by the application
