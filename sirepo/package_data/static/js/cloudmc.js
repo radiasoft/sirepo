@@ -617,6 +617,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
+                reorder('z', mesh.dimension);
             }
 
             function loadVolumes(volIds) {
@@ -729,13 +730,31 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 });
             }
 
-/*
-            function reorder(arr, outerAxis, dims) {
+
+            function reshape(arr, dims) {
+                if (dims.length === 0) {
+                    return arr;
+                }
+                const a = Array.from(arr).slice();
+                srdbg('reshape', a, dims);
+                const b = [];
+                const n = dims.reduce((p, c) => p * c, 1);
+                while(a.length) {
+                    const c = a.splice(0, dims[dims.length - 1]);
+                    srdbg('');
+                    b.push(reshape(c, dims.slice(0, dims.length - 1)));
+                }
+                return b;
+            }
+
+            function reorder(outerAxis, dims) {
                 const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(outerAxis);
                 const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(outerAxis);
                 const dd = dims.slice().reverse();
-                const f = getFieldData();
-                const d = arr.reshape();
+                //const d = reshape(getFieldData(), dd);
+                const d = reshape([0, 1, 2, 3, 4, 5], [1, 2, 3]);
+                srdbg(d);
+                /*
                 const ff = numpy.zeros([dims[n], dims[m], dims[l]]);
                 for (let k = 0; k <  dims[n]; ++k) {
                     for (let j = 0; j < dims[m]; ++j) {
@@ -744,13 +763,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                             v[l] = i;
                             v[m] = j;
                             v[n] = k;
-                            f[k][j][i] = (d[v[2]][v[1]][v[0]])
+                            ff[k][j][i] = (d[v[2]][v[1]][v[0]])
                         }
                     }
                 }
                 return f;
+
+                 */
             }
-*/
+
 
             function volumesError(reason) {
                 srlog(new Error(`Volume load failed: ${reason}`));
