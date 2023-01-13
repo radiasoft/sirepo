@@ -208,8 +208,6 @@ def test_token_expired(auth_fc):
         "authEmailLogin",
         {"email": "expired@b.c", "simulationType": fc.sr_sim_type},
     )
-    login_url = r.uri
-    fc.sr_adjust_time(1)
-    r = fc.sr_email_confirm(r)
-    fc.sr_adjust_time(0)
-    s = fc.sr_auth_state(isLoggedIn=False)
+    with fc.sr_adjust_time(1):
+        r = fc.sr_email_confirm(r)
+        fc.sr_auth_state(isLoggedIn=False)

@@ -22,9 +22,6 @@ import sirepo.quest
 import sirepo.uri
 import sirepo.util
 
-#: route for sirepo.srunit
-srunit_uri = None
-
 #: prefix for api functions
 _FUNC_PREFIX = "api_"
 
@@ -318,7 +315,7 @@ def _flask_dispatch_empty():
 
 
 def _init_uris(simulation_db, sim_types):
-    global _route_default, _not_found_route, srunit_uri, _api_to_route, _uri_to_route
+    global _route_default, _not_found_route, _api_to_route, _uri_to_route
 
     assert not _route_default, "_init_uris called twice"
     _uri_to_route = PKDict()
@@ -342,8 +339,6 @@ def _init_uris(simulation_db, sim_types):
             _route_default = r
         elif r.base_uri == _ROUTE_URI_NOT_FOUND:
             _not_found_route = r
-        elif "srunit" in v:
-            srunit_uri = v
     assert _route_default, f"missing constant route: default /{_ROUTE_URI_DEFAULT}"
     assert (
         _not_found_route
