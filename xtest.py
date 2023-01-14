@@ -23,7 +23,7 @@ def _read_file(run_dir, filename):
     if len(res.shape) == 1:
         res.shape = (res.shape[0], 1)
     return res
-idx = 600
+idx = 123
 x = _read_file(
     'run/user/g6gCou4N/activait/OVpLXmeG/animation',
     '/predict.npy')
