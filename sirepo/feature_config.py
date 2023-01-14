@@ -154,6 +154,11 @@ def _init():
             "codes that contain proprietary information and authorization to use is granted through oauth",
         ),
         raydata=dict(
+            pdf_temp_dir=(
+                "/home/vagrant/src/radiasoft/raydata/run/",
+                str,
+                "directory to share analysis pdfs between scan monitor and supervisor",
+            ),
             scan_monitor_url=(
                 "http://127.0.0.1:9001/scan-monitor",
                 str,

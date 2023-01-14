@@ -305,10 +305,12 @@ SIREPO.app.directive('scansTable', function() {
         template: `
             <div data-show-loading-and-error="" data-model-key="scans">
               <div>
-                <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right;"><span class="glyphicon glyphicon-plus"></span></button>
+                <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right; margin:5px;"><span class="glyphicon glyphicon-plus"></span></button>
+                <button class="btn btn-info btn-xs"  data-ng-show="showPdfColumn" data-ng-click="downloadSelectedAnalyses()" style="float: right; margin:5px;">Download Selected Analysis PDFs</button>
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
+                      <th style="width: 20px; height: 20px;" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> PDF</th>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
                         <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
                         {{ column }}
@@ -318,6 +320,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
+                      <td style="width: 20px; height: 20px;" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans.includes(s.uid)" data-ng-click="togglePdfSelectScan(s.uid, $event)"/></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -374,9 +377,12 @@ SIREPO.app.directive('scansTable', function() {
             $scope.images = null;
             $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
+            $scope.pdfSelectAllScans = false;
+            $scope.pdfSelectedScans = [];
             $scope.reverseSortScans = false;
             $scope.scans = [];
             $scope.selectedScan = null;
+            $scope.showPdfColumn = $scope.analysisStatus === 'executed';
 
             let cols = [];
             let hoveredIndex = null;
@@ -436,6 +442,11 @@ SIREPO.app.directive('scansTable', function() {
                             if ($scope.scans.length === 0) {
                                 $scope.noScansReturned = true;
                             }
+                            $scope.pdfSelectedScans.forEach(p => {
+                                if ($scope.scans.findIndex(s => s.uid === p) === -1) {
+                                    $scope.pdfSelectedScans.splice($scope.pdfSelectedScans.indexOf(p),1);
+                                }
+                            });
                         },
                         {
                             method: 'scans',
@@ -484,6 +495,26 @@ SIREPO.app.directive('scansTable', function() {
                 $scope.saveColumnChanges();
             };
 
+            $scope.downloadSelectedAnalyses = () => {
+                if (! $scope.pdfSelectedScans.length) {
+                    return;
+                }
+                requestSender.sendStatelessCompute(
+                    appState,
+                    function(data) {
+                        saveAs(data, "analysis_pdfs.zip");
+                    },
+                    {
+                        method: 'download_analysis_pdfs',
+                        responseType: 'blob',
+                        args: {
+                            uids: $scope.pdfSelectedScans,
+                        }
+                    },
+                    errorOptions,
+                );
+            };
+
             $scope.getHeader = function() {
                 return cols.length > 0 ? ['select'].concat(cols) : [];
             };
@@ -523,8 +554,16 @@ SIREPO.app.directive('scansTable', function() {
                 }
             };
 
+            $scope.showCheckbox = (scan) => {
+                return scan.pdf;
+            };
+
             $scope.showDeleteButton = (index) => {
                 return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
+            };
+
+            $scope.showSelectAllButton = (index) => {
+                return index === 0;
             };
 
             $scope.sortCol = (column) => {
@@ -533,6 +572,27 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 $scope.orderByColumn = column;
                 $scope.reverseSortScans = ! $scope.reverseSortScans;
+            };
+
+            $scope.togglePdfSelectAll = () => {
+                $scope.pdfSelectedScans = [];
+                if (! $scope.pdfSelectAllScans) {
+                    $scope.scans.forEach(s => {
+                        if (s.pdf) {
+                            $scope.pdfSelectedScans.push(s.uid);
+                        }
+                    });
+                }
+                $scope.pdfSelectAllScans = ! $scope.pdfSelectAllScans;
+            };
+
+            $scope.togglePdfSelectScan = (uid, event) => {
+                event.stopPropagation();
+                if ($scope.pdfSelectedScans.includes(uid)) {
+                    $scope.pdfSelectedScans.splice($scope.pdfSelectedScans.indexOf(uid), 1);
+                } else {
+                    $scope.pdfSelectedScans.push(uid);
+                }
             };
 
             $scope.$on(`${$scope.modelName}.changed`, sendScanRequest);

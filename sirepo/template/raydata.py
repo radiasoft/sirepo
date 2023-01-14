@@ -4,15 +4,18 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcompat
+from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdformat, pkdexc
+from sirepo.template import template_common
+import base64
 import requests
 import requests.exceptions
 import sirepo.feature_config
 import sirepo.sim_data
 import sirepo.util
-
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -21,12 +24,22 @@ def stateless_compute_analysis_output(data):
     return _request_scan_monitor(PKDict(method="analysis_output", uid=data.args.uid))
 
 
+def stateless_compute_begin_replay(data):
+    return PKDict(data=_request_scan_monitor(PKDict(method="begin_replay", data=data)))
+
+
 def stateless_compute_catalog_names(_):
     return _request_scan_monitor(PKDict(method="catalog_names"))
 
 
-def stateless_compute_begin_replay(data):
-    return PKDict(data=_request_scan_monitor(PKDict(method="begin_replay", data=data)))
+def stateless_compute_download_analysis_pdfs(data):
+    return template_common.JobCmdFile(
+        path=pkio.py_path(
+            _request_scan_monitor(
+                PKDict(method="download_analysis_pdfs", data=data)
+            ).path
+        )
+    )
 
 
 def stateless_compute_scans(data):
