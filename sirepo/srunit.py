@@ -640,7 +640,10 @@ class _TestClient:
         u = self._uri(uri)
         if headers is None:
             headers = PKDict()
-        headers["User-Agent"] = f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}"
+        headers.setdefault(
+            "User-Agent",
+            f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}",
+        )
         try:
             return _Response(
                 getattr(self._session, op)(u, headers=headers, **kwargs),
