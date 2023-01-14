@@ -493,8 +493,12 @@ def _build_model_py(v):
         else:
             return layer.dropoutRate
 
+    def _test_foo(layer):
+        pkdp("\n\n\n layer:{}\n\n\n",layer)
+        return f'"{layer.get("activation", "relu")}"'
+
     args_map = PKDict(
-        Activation=lambda layer: f'"{layer.activation}"',
+        Activation=lambda layer: _test_foo(layer),
         Add=lambda layer: _branch(layer, "Add"),
         AlphaDropout=lambda layer: _dropout_args(layer),
         AveragePooling2D=lambda layer: _pooling_args(layer),
@@ -545,6 +549,7 @@ def _build_model_py(v):
         return res
 
     net = PKDict(layers=v.neuralNetLayers)
+    pkdp("\n\n\nnet={}", net.layers[2])
     _name_layers(net, "input_args", first_level=True)
 
     return f"""
@@ -552,7 +557,6 @@ from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
 input_args = Input(shape=input_shape)
 {_build_layers(net)}
-x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """

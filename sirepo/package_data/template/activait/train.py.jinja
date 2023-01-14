@@ -14,7 +14,8 @@ try:
         split.train_gen,
         validation_data=split.val_gen,
         epochs={{ neuralNet_epochs }},
-        callbacks=[CSVLogger('fit.csv')])
+        {# callbacks=[CSVLogger('fit.csv')], #}
+    )
 except Exception as e:
     raise AssertionError(f"Model training failed due to:{e.message}")
 {% else %}

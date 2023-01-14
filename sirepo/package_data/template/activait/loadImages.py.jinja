@@ -153,8 +153,14 @@ def image_train_val_test_split(
         )
     return r
 
+with h5py.File("{{ dataFile }}", "r") as f:
+    input_shape = f["{{ inPath }}"].shape[1:]
+    o = f["{{outPath}}"][0].shape
+    if len(input_shape) < 3:
+        input_shape += (1,)
 
-output_shape = {{outputShape}}
+output_shape = {{outputShape}} if {{outputShape}} != 0 else o
+
 split = image_train_val_test_split(
     "{{ dataFile }}",
     "{{ inPath }}",
@@ -169,10 +175,7 @@ split = image_train_val_test_split(
     out_scaler={{ outputsScaler }},
     {% endif %}
 )
-with h5py.File("{{ dataFile }}", "r") as f:
-    input_shape = f["{{ inPath }}"].shape[1:]
-    if len(input_shape) < 3:
-        input_shape += (1,)
+
 
 testy = []
 for y in split.test_gen.set_return_value("y"):
