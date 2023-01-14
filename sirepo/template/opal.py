@@ -346,19 +346,13 @@ class OpalMadxConverter(MadxConverter):
                     d1 = 2 * length / angle
                     element_out.l = d1 * math.sin(length / d1)
             if element_in.type in ("SBEND", "RBEND"):
-                # kenetic energy in MeV
+                # kinetic energy in MeV
                 element_out.designenergy = round(
-                    (
-                        math.sqrt(
-                            self.particle_energy.energy**2 + self.beam.mass**2
-                        )
-                        - self.beam.mass
-                    )
-                    * 1e3,
+                    (self.particle_energy.energy - self.beam.mass) * 1e3,
                     6,
                 )
                 element_out.gap = 2 * self.__val(element_in.hgap)
-                element_out.fmapfn = "hard_edge_profile.txt"
+                # element_out.fmapfn = "hard_edge_profile.txt"
             if element_in.type == "QUADRUPOLE":
                 k1 = self.__val(element_out.k1)
                 if self.beam.charge < 0:
