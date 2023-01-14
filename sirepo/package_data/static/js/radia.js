@@ -651,6 +651,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.shapeViewsForObject = o => {
+        const supers = appState.superClasses(o.type);
         let center = radiaService.scaledArray(o.center);
         let size =   radiaService.scaledArray(o.size);
         const isGroup = o.members && o.members.length;
@@ -661,8 +662,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        const u = SIREPO.GEOMETRY.GeometryUtils;
-        const v = new SIREPO.VTK.ObjectViews();
+        let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size);
+        if (supers.includes('extrudedPoly')) {
+
+        }
 
         for (const dim in o.layoutShapes) {
             const w = u.nextAxis(dim);

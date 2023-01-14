@@ -51,7 +51,13 @@ class Elevation {
 }
 
 class ObjectViews {
-    constructor() {
+    // for convenience
+    _AXES = SIREPO.GEOMETRY.GeometryUtils.BASIS();
+
+    constructor(id, name, scale=1.0) {
+        this.id = id;
+        this.name = name;
+        this.scale = scale;
         this.affineTransform = new SIREPO.GEOMETRY.AffineMatrix();
         this.shapes = {};
     }
@@ -61,7 +67,7 @@ class ObjectViews {
     }
 
     addView(dim, shape) {
-        if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(dim)) {
+        if (! this._AXES.includes(dim)) {
             throw new Error('Invalid axis: ' + dim);
         }
         this.shapes[Elevation.NAMES()[dim]] = shape;
@@ -69,6 +75,60 @@ class ObjectViews {
 
     view(dim) {
         return this.shapes[dim];
+    }
+}
+
+class CuboidViews extends ObjectViews {
+    constructor(id, name, center, size) {
+        super(id, name);
+        this._AXES.forEach((dim, i) => {
+            const w = SIREPO.GEOMETRY.GeometryUtils.nextAxis(dim);
+            const h = SIREPO.GEOMETRY.GeometryUtils.nextAxis(w);
+            const j = SIREPO.GEOMETRY.GeometryUtils.axisIndex(w);
+            const k = SIREPO.GEOMETRY.GeometryUtils.axisIndex(h);
+            this.addView(
+                dim,
+                new SIREPO.PLOTTING.PlotRect(
+                    `${this.id}-${dim}`,
+                    this.name,
+                    [center[j], center[k]],
+                    [size[j], size[k]],
+                )
+            )
+        });
+    }
+}
+
+class ExtrudedViews extends ObjectViews {
+    constructor(id, name, center, size, axis, points) {
+        super(id, name);
+        const k = radiaService.axisIndex(o.extrusionAxis);
+            const scaledPts = o.points.map(p => radiaService.scaledArray(p));
+            pts[o.extrusionAxis] = scaledPts;
+            const cp = center[k] + size[k] / 2.0;
+            const cm = center[k] - size[k] / 2.0;
+            let p = scaledPts.map(x => x[1]);
+            let [mx, mn] = [Math.max(...p), Math.min(...p)];
+            pts[o.widthAxis] = [[mx, cm], [mx, cp], [mn, cp], [mn, cm]];
+            p = scaledPts.map(x => x[0]);
+            [mx, mn] = [Math.max(...p), Math.min(...p)];
+            pts[o.heightAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
+
+        this._AXES.forEach((dim, i) => {
+            const w = SIREPO.GEOMETRY.GeometryUtils.nextAxis(dim);
+            const h = SIREPO.GEOMETRY.GeometryUtils.nextAxis(w);
+            const j = SIREPO.GEOMETRY.GeometryUtils.axisIndex(w);
+            const k = SIREPO.GEOMETRY.GeometryUtils.axisIndex(h);
+            this.addView(
+                dim,
+                new SIREPO.PLOTTING.PlotRect(
+                    `${this.id}-${dim}`,
+                    this.name,
+                    [center[j], center[k]],
+                    [size[j], size[k]],
+                )
+            )
+        });
     }
 }
 
@@ -2948,6 +3008,7 @@ SIREPO.VTK = {
     ActorBundle: ActorBundle,
     BoxBundle: BoxBundle,
     CoordMapper: CoordMapper,
+    CuboidViews: CuboidViews,
     LineBundle: LineBundle,
     ObjectViews: ObjectViews,
     PlaneBundle: PlaneBundle,
