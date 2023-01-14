@@ -525,10 +525,10 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_user")
-    def api_simulationRedirect(self, simulation_type, route, simulation_id):
+    def api_simulationRedirect(self, simulation_type, local_route, simulation_id):
         return self.reply_redirect_for_local_route(
             sim_type=simulation_type,
-            route=route,
+            route=local_route,
             params=PKDict(simulationId=simulation_id),
         )
 

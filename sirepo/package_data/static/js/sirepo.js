@@ -2161,11 +2161,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         $window.open(self.formatUrl(routeName, params), '_blank');
     };
 
-    self.openSimulation = (app, route, simId) => {
+    self.openSimulation = (app, localRoute, simId) => {
         $window.open(
             self.formatUrl('simulationRedirect', {
                 simulation_type: app,
-                route: route,
+                local_route: localRoute,
                 simulation_id: simId,
             }),
             '_blank'
