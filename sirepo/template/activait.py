@@ -914,6 +914,7 @@ def _fit_animation(frame_args):
                 header += [info.header[i] for _ in range(info.outputShape[i])]
             else:
                 header.append(info.header[i])
+    # TODO (gurhar1133): NEED TO INCLUDE CLASSES IN PREDICTION TOO??
     x = _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx]
     y = _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx]
     _write_csv_for_download(
