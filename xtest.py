@@ -3,6 +3,7 @@ from PIL import ImageOps, Image
 import numpy
 from tensorflow.keras.preprocessing.image import load_img
 
+# TODO (gurhar1133): need classes too?
 with h5py.File("pets.h5", 'r') as f:
     print("h5 mask shape", f['masks'].shape)
     print("COMP", type(f['masks'][100][0][0]), f['masks'][100].shape, f['masks'][100])

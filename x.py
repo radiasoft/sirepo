@@ -7,6 +7,8 @@ from tensorflow.keras.preprocessing.image import load_img
 # from PIL import ImageOps
 import PIL.Image
 
+
+# TODO (gurhar1133): need classes too?
 input_dir = "images/"
 target_dir = "annotations/trimaps/"
 img_size = (160, 160)
