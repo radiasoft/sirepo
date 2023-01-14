@@ -484,7 +484,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
                 missingFiles=missing_files,
             )
     elif re.search(r"\.madx$", req.filename, re.IGNORECASE):
-        data = OpalMadxConverter(qcall=qcall).from_madx_text(text)
+        data = OpalMadxConverter(qcall=req.qcall).from_madx_text(text)
         data.models.simulation.name = re.sub(
             r"\.madx$", "", req.filename, flags=re.IGNORECASE
         )

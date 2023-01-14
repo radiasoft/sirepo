@@ -1,4 +1,5 @@
 import { ModelStates } from "../store/models";
+import { RouteHelper } from "./route";
 
 export type SrState = 'completed' | 'srException' | 'error' | 'running' | 'pending' | 'canceled' | 'missing';
 
@@ -11,7 +12,7 @@ export type BaseComputeParams = {
     callback: (resp: ResponseHasState) => void
 }
 
-export function pollCompute({ doFetch, callback }: BaseComputeParams & { doFetch: () => Promise<Response> }) {
+export function pollCompute(routeHelper: RouteHelper, { doFetch, callback }: BaseComputeParams & { doFetch: () => Promise<Response> }) {
     let iterate = () => {
         doFetch().then(async (resp) => {
             let respObj: ResponseHasState = await resp.json();
@@ -33,8 +34,8 @@ export type StatefulComputeParams = {
     appName: string
 } & BaseComputeParams
 
-export function pollStatefulCompute({ method, simulationId, appName, callback }: StatefulComputeParams & { method: string }) {
-    let doFetch = () => fetch('/stateful-compute', {
+export function pollStatefulCompute(routeHelper: RouteHelper, { method, simulationId, appName, callback }: StatefulComputeParams & { method: string }) {
+    let doFetch = () => fetch(routeHelper.globalRoute("statefulCompute"), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -46,7 +47,7 @@ export function pollStatefulCompute({ method, simulationId, appName, callback }:
         })
     });
 
-    pollCompute({
+    pollCompute(routeHelper, {
         doFetch,
         callback: (respObj) => {
             let { state } = respObj;
@@ -64,8 +65,8 @@ export type ReportComputeParams = {
     report: string
 } & StatefulComputeParams
 
-export function pollRunReport({ appName, models, simulationId, report, callback, forceRun }: ReportComputeParams) {
-    let doFetch = () => fetch('/run-simulation', {
+export function pollRunReport(routeHelper: RouteHelper, { appName, models, simulationId, report, callback, forceRun }: ReportComputeParams) {
+    let doFetch = () => fetch(routeHelper.globalRoute("runSimulation"), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -83,7 +84,7 @@ export function pollRunReport({ appName, models, simulationId, report, callback,
 
     doFetch().then(resp => {
         callback(resp);
-        pollRunStatus({
+        pollRunStatus(routeHelper, {
             callback,
             simulationId,
             models,
@@ -101,8 +102,8 @@ export type CancelComputeParams = {
     report: string
 }
 
-export function cancelReport({ appName, models, simulationId, report }: CancelComputeParams): Promise<Response> {
-    return fetch('/run-cancel', {
+export function cancelReport(routeHelper: RouteHelper, { appName, models, simulationId, report }: CancelComputeParams): Promise<Response> {
+    return fetch(routeHelper.globalRoute("runCancel"), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -125,8 +126,8 @@ export type RunStatusParams = {
     forceRun: boolean
 } & {[key: string]: any}
 
-export function getRunStatusOnce({ appName, ...otherParams }: RunStatusParams): Promise<ResponseHasState> {
-    let doStatus = () => fetch('/run-status', {
+export function getRunStatusOnce(routeHelper: RouteHelper, { appName, ...otherParams }: RunStatusParams): Promise<ResponseHasState> {
+    let doStatus = () => fetch(routeHelper.globalRoute("runStatus"), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -147,23 +148,23 @@ export type RunStatusPollParams = {
     callback: (simulationData: ResponseHasState) => void,
 } & RunStatusParams
 
-export function pollRunStatus({ callback, ...otherParams }: RunStatusPollParams) {
+export function pollRunStatus(routeHelper: RouteHelper, { callback, ...otherParams }: RunStatusPollParams) {
     let iterate = (lastResp: ResponseHasState) => {
         let { nextRequest, state, nextRequestSeconds } = lastResp;
 
         callback(lastResp);
 
         if (!state || state === 'pending' || state === 'running') {
-            setTimeout(() => getRunStatusOnce(nextRequest).then(iterate), nextRequestSeconds * 1000);
+            setTimeout(() => getRunStatusOnce(routeHelper, nextRequest).then(iterate), nextRequestSeconds * 1000);
         }
     }
 
-    getRunStatusOnce(otherParams).then(iterate);
+    getRunStatusOnce(routeHelper, otherParams).then(iterate);
 }
 
-export function getSimulationFrame(frameId: string) {
+export function getSimulationFrame(routeHelper: RouteHelper, frameId: string) {
     return new Promise((resolve, reject) => {
-        fetch(`/simulation-frame/${frameId}`).then(async (resp) => {
+        fetch(routeHelper.globalRoute("simulationFrame", { frame_id: frameId })).then(async (resp) => {
             let respObj = await resp.json();
             resolve(respObj);
         })
