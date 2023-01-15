@@ -70,6 +70,27 @@
                   {
                     "layout": "panel",
                     "config": {
+                      "name": "simWorkflow",
+                      "title": "Simulation Workflow",
+                      "basic": [
+                        {
+                          "layout": "fieldList",
+                          "config": {
+                            "fields": [
+                              "simWorkflow.coupledSims"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                      "layout": "columnBreak",
+                      "config": {}
+                  },
+                  {
+                    "layout": "panel",
+                    "config": {
                       "name": "simulationStatus",
                       "title": "Simulation Status",
                       "basic": [
