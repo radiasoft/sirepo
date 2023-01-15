@@ -8,7 +8,7 @@ import { useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/reusable/panel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
+import { CRelativeRouterHelper, RelativeRouteHelper } from "../utility/route";
 import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
@@ -202,7 +202,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
 
         let location = useResolvedPath('');
 
-        let routeHelper = new RouteHelper(location);
+        let routeHelper = new RelativeRouteHelper(location);
 
         let routedElement = useRoutes([
             {

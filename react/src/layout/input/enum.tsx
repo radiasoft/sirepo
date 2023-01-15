@@ -3,6 +3,7 @@ import { FunctionComponent } from "react";
 import { Form } from "react-bootstrap";
 import { CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
 import { pollStatefulCompute } from "../../utility/compute";
+import { CRouteHelper } from "../../utility/route";
 import { LayoutProps } from "../layout";
 import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
 
@@ -70,13 +71,14 @@ export class ComputeResultEnumInputLayout extends InputLayout<ComputeResultEnumC
     component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
         let appName = useContext(CAppName);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
+        let routeHelper = useContext(CRouteHelper);
 
         let [optionList, updateOptionList] = useState(undefined);
 
         useEffect(() => {
             let enumOptionsPromise = new Promise((resolve, reject) => {
                 simulationInfoPromise.then(({simulationId, version}) => {
-                    pollStatefulCompute({
+                    pollStatefulCompute(routeHelper, {
                         method: this.config.computeMethod,
                         appName,
                         simulationId,
