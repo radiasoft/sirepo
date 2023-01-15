@@ -522,13 +522,22 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.shapes.filter( s => s.id === id)[0];
     };
 
-    self.getShapes = () => self.shapes;
+    //self.getShapes = () => self.shapes;
 
-    self.getShapeView = id => {
+    //self.getShapes = elevation => self.shapes.concat(self.views.map(v => v.getView(elevation)));
+
+    self.getShapes = elevation => {
+        if (! elevation) {
+            return [];
+        }
+        return self.shapes.concat(self.views.map(v => v.getView(elevation)));
+    }
+
+    self.getObjectView = id => {
         return self.views.filter( s => s.id === id)[0];
     };
 
-    self.getShapeViews = () => self.views;
+    self.getObjectViews = () => self.views;
 
     self.getUndulatorType = () => {
         if (self.getMagnetType() !== 'undulator') {
@@ -542,6 +551,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.isDropEnabled = () => self.dropEnabled;
 
     self.loadShapes = loadShapes;
+
+    self.loadObjectViews = loadObjectViews;
 
     self.objectBounds = groupBounds;
 
@@ -596,7 +607,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.selectObjectWithId = id => self.selectObject(self.getObject(id));
 
-    self.shapeBounds = () => shapesBounds(self.shapes);
+    //self.shapeBounds = () => shapesBounds(self.shapes);
+
+    self.shapeBounds = elevation => shapesBounds(self.getShapes(elevation));
 
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = o => {
@@ -650,10 +663,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return shape;
     };
 
-    self.shapeViewsForObject = o => {
+    self.viewsForObject = o => {
         const supers = appState.superClasses(o.type);
-        let center = radiaService.scaledArray(o.center);
-        let size =   radiaService.scaledArray(o.size);
+        let center = o.center;
+        let size = o.size;
         const isGroup = o.members && o.members.length;
 
         if (isGroup) {
@@ -662,72 +675,28 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size);
+        let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, SIREPO.APP_SCHEMA.constants.objectScale);
         if (supers.includes('extrudedPoly')) {
-
+            view = new SIREPO.VTK.ExtrudedPolyViews(o.id, o.name);
         }
-
-        for (const dim in o.layoutShapes) {
-            const w = u.nextAxis(dim);
-            const h = u.nextAxis(w);
-            const i = u.axisIndex(w);
-            const j = u.axisIndex(h);
-            if (o.layoutShapes[dim] === 'rect') {
-                const s = new SIREPO.PLOTTING.PlotRect(
-                    `${o.id}-${dim}`,
-                    o.name,
-                    [center[i], center[j]],
-                    [size[i], size[j]],
-                );
-                s.setAlpha(0.3);
-                s.setColor(o.color);
-                v.addView(dim, s);
+        view.setShapeProperties(
+            {
+                alpha: 0.3,
+                color: o.color,
             }
-            if (o.layoutShapes[dim] === 'polygon') {
-                const s = new SIREPO.PLOTTING.PlotRect(
-                    `${o.id}-${dim}`,
-                    o.name,
-                    [center[i], center[j]],
-                    [size[i], size[j]],
-                );
-                s.setAlpha(0.3);
-                s.setColor(o.color);
-                v.addView(dim, s);
-            }
-        }
-        for (const e in v.shapes) {
-            const s = v.shapes[v];
-            if (isGroup) {
-                s.setFillStyle(null);
-                s.setStrokeStyle('dashed');
-                s.setOutlineOffset(5.0);
-                s.setStrokeWidth(0.75);
-                s.setDraggable(false);
-            }
-        }
-
-        let pts = {};
-        if (l === 'polygon') {
-            const k = radiaService.axisIndex(o.extrusionAxis);
-            const scaledPts = o.points.map(p => radiaService.scaledArray(p));
-            pts[o.extrusionAxis] = scaledPts;
-            const cp = center[k] + size[k] / 2.0;
-            const cm = center[k] - size[k] / 2.0;
-            let p = scaledPts.map(x => x[1]);
-            let [mx, mn] = [Math.max(...p), Math.min(...p)];
-            pts[o.widthAxis] = [[mx, cm], [mx, cp], [mn, cp], [mn, cm]];
-            p = scaledPts.map(x => x[0]);
-            [mx, mn] = [Math.max(...p), Math.min(...p)];
-            pts[o.heightAxis] = [[cm, mx], [cp, mx], [cp, mn], [cm, mn]];
-        }
-        const shape = vtkPlotting.plotShape(
-            o.id, o.name,
-            center, size,
-            o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
-            l,
-            pts
         );
-        return v;
+        if (isGroup) {
+            view.setShapeProperties(
+                {
+                    fillStyle: null,
+                    strokeStyle: 'dashed',
+                    outlineOffset: 5.0,
+                    strokeWidth: 0.75,
+                    draggable: false,
+                }
+            );
+        }
+        return view;
     };
 
     self.viewTitle = () => {
@@ -776,7 +745,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         (o.members || []).forEach(oId => {
             self.getObject(oId).groupId = o.id;
         });
-        addShapesForObject(o);
+        addViewsForObject(o);
+        //addShapesForObject(o);
     }
 
     function addShapesForObject(o) {
@@ -851,7 +821,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             let gShape = self.getShape(o.groupId);
             if (! gShape) {
                 gShape = self.shapeForObject(self.getObject(o.groupId));
-                self.shapes.push(gShape);
+                //self.shapes.push(gShape);
             }
             fit(baseShape, gShape);
             baseShape.addLink(gShape, fit);
@@ -859,33 +829,34 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addViewsForObject(o) {
-        let baseViews = self.getShapeView(o.id);
+        let baseViews = self.getObjectView(o.id);
         if (! baseViews) {
-            baseViews = self.shapeViewsForObject(o);
+            baseViews = self.viewsForObject(o);
             self.views.push(baseViews);
         }
+        return;
         let plIds = [];
         for (const xform of o.transforms) {
             const t = xform.type;
-            for (const e in baseViews) {
-                const baseShape = baseViews[e];
+            if (t === 'rotate') {
+                baseViews.addTransform(
+                    new SIREPO.GEOMETRY.RotationMatrix(
+                        radiaService.scaledArray(xform.axis),
+                        radiaService.scaledArray(xform.useObjectCenter === "1" ? o.center : xform.center),
+                        Math.PI * parseFloat(xform.angle) / 180.0
+                    )
+                );
+                continue;
+            }
+            for (const e in baseViews.shapes) {
+                const baseShape = baseViews.shapes[e];
                 // draw the shapes for symmetry planes once
                 if (t === 'symmetryTransform') {
                     plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
                 }
-                // each successive transform must be applied to all previous shapes
+               // each successive transform must be applied to all previous shapes
                 for (const xShape of [baseShape, ...getVirtualShapes(baseShape, plIds)]) {
                     // these transforms do not copy the object
-                    if (t === 'rotate') {
-                        xShape.addTransform(
-                            new SIREPO.GEOMETRY.RotationMatrix(
-                                radiaService.scaledArray(xform.axis),
-                                radiaService.scaledArray(xform.useObjectCenter === "1" ? o.center : xform.center),
-                                Math.PI * parseFloat(xform.angle) / 180.0
-                            )
-                        );
-                        continue;
-                    }
 
                     let xo = self.getObject(xShape.id);
                     let linkTx;
@@ -929,7 +900,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             let gShape = self.getShape(o.groupId);
             if (! gShape) {
                 gShape = self.shapeForObject(self.getObject(o.groupId));
-                self.shapes.push(gShape);
+                //self.shapes.push(gShape);
             }
             fit(baseShape, gShape);
             baseShape.addLink(gShape, fit);
@@ -981,14 +952,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function deleteShapesForObject(o) {
-        for (const s of getTransformedShapes(o)) {
-            self.shapes.splice(indexOfShape(s), 1);
-        }
-        let shape = self.shapeForObject(o);
-        for (const s of getVirtualShapes(shape)) {
-            self.shapes.splice(indexOfShape(s), 1);
-        }
-        self.shapes.splice(indexOfShape(shape), 1);
+        //for (const s of getTransformedShapes(o)) {
+        //    self.shapes.splice(indexOfShape(s), 1);
+        //}
+        //let shape = self.shapeForObject(o);
+        //for (const s of getVirtualShapes(shape)) {
+        //    self.shapes.splice(indexOfShape(s), 1);
+        //}
+        //self.shapes.splice(indexOfShape(shape), 1);
+        const v = self.viewsForObject(o);
+        self.views.splice(self.views.indexOf(v), 1);
     }
 
     // shape - in group; linkedShape: group
@@ -1041,6 +1014,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // may have to flatten
     function getVirtualShapes(baseShape, excludedIds = []) {
+        return [];
         let v = self.shapes.filter(s => ! excludedIds.includes(s.id) && hasBaseShape(s, baseShape));
         let v2 = [];
         for (const s of v) {
@@ -1082,6 +1056,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         self.shapes = [];
         appState.models.geometryReport.objects.forEach(addShapesForObject);
         addBeamAxis();
+    }
+
+    function loadObjectViews() {
+        self.views = [];
+        appState.models.geometryReport.objects.forEach(addViewsForObject);
     }
 
     function mirrorFn(xform) {
@@ -1138,7 +1117,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let b = {
             x: [Number.MAX_VALUE, -Number.MAX_VALUE],
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
-            z: [Number.MAX_VALUE, -Number.MAX_VALUE]
+            //z: [Number.MAX_VALUE, -Number.MAX_VALUE]
         };
         shapes.forEach(s => {
             let vs = getVirtualShapes(s);
@@ -1162,7 +1141,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const r = Math.hypot(
             (b.x[1] - b.x[0]) / 2,
             (b.y[1] - b.y[0]) / 2,
-            (b.z[1] - b.z[0]) / 2,
+            //(b.z[1] - b.z[0]) / 2,
         );
         for (const dim in b) {
             const c = b[dim][0] + (b[dim][1] - b[dim][0]) / 2;
@@ -1230,7 +1209,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     if (! appState.models.geometryReport.objects) {
         appState.models.geometryReport.objects = [];
     }
-    loadShapes();
+    //loadShapes();
+    loadObjectViews();
 
     $scope.$on('modelChanged', function(e, modelName) {
         if (! watchedModels.includes(modelName)) {
@@ -1265,7 +1245,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         radiaService.saveGeometry(true, false, () => {
             if (self.selectedObject) {
-                loadShapes();
+                //loadShapes();
+                loadObjectViews();
             }
         });
     });
@@ -3834,7 +3815,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     function updateShapes() {
         radiaService.saveGeometry(true, false, () => {
-            ctl.loadShapes();
+            //ctl.loadShapes();
+            ctl.loadObjectViews();
             $rootScope.$broadcast('shapes.loaded');
         });
     }

@@ -273,7 +273,7 @@ class PlotRect extends AbstractPlotShape2D {
         this.size = {
             x: size[0],
             y: size[1],
-            z: size[2],
+            //z: size[2],
         };
         this.x = center[0] + size[0] / 2;
         this.y = center[1] - size[1] / 2;
