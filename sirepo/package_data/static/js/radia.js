@@ -668,6 +668,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let center = o.center;
         let size = o.size;
         const isGroup = o.members && o.members.length;
+        const scale = SIREPO.APP_SCHEMA.constants.objectScale;
 
         if (isGroup) {
             const b = groupBounds(o.members.map(id => self.getObject(id)));
@@ -675,9 +676,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, SIREPO.APP_SCHEMA.constants.objectScale);
+        let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
         if (supers.includes('extrudedPoly')) {
-            view = new SIREPO.VTK.ExtrudedPolyViews(o.id, o.name);
+            view = new SIREPO.VTK.ExtrudedPolyViews(o.id, o.name, center, size, o.extrusionAxis, o.points, scale);
         }
         view.setShapeProperties(
             {
@@ -1061,6 +1062,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function loadObjectViews() {
         self.views = [];
         appState.models.geometryReport.objects.forEach(addViewsForObject);
+        addBeamAxis();
     }
 
     function mirrorFn(xform) {

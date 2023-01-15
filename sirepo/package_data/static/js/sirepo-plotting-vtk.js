@@ -2093,7 +2093,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function replot(doFit=false) {
                 const b = $scope.source.shapeBounds(getElevation());
-                srdbg(b);
                 const newDomain = $scope.cfg.initDomian;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     const axis = axes[dim];
