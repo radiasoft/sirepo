@@ -1,4 +1,4 @@
-import { Nav , Modal, Col, Row, Container } from "react-bootstrap";
+import { Nav , Modal, Col, Row } from "react-bootstrap";
 import { Navigate, useRoutes, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarLeftContainerId, NavbarRightContainerId } from "../component/reusable/navbar";
 import { useInterpolatedString, ValueSelectors } from "../hook/string";
@@ -53,8 +53,8 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
 
         let schema = useContext(CSchema);
 
-        
-        
+
+
         let store = useStore();
 
         let _cancel = () => {
@@ -152,11 +152,9 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         })
 
         return (
-            <Container fluid className="mt-3">
-                <Row>
-                    {children}
-                </Row>
-            </Container>
+            <Row>
+                {children}
+            </Row>
         );
     }
 
@@ -190,7 +188,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
                             <this.TabsContent key={tab.name} tab={tab}/>
                         </div>
                     ))
-                }              
+                }
             </>
         )
     }
@@ -220,7 +218,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         return (
             <CRelativeRouterHelper.Provider value={routeHelper}>
                 {routedElement}
-            </CRelativeRouterHelper.Provider> 
+            </CRelativeRouterHelper.Provider>
         )
     }
 }
