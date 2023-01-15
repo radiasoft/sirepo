@@ -1203,6 +1203,7 @@
                         {
                           "layout": "fieldTable",
                           "config": {
+                            "shown": "$(simulationSettings.model) == 'particle' && $(simulationSettings.e_cool) == '0'",
                             "columns": ["Horizontal", "Vertical"],
                             "rows": [
                               {
@@ -1210,8 +1211,7 @@
                                 "fields": [
                                   "simulationSettings.ref_bet_x",
                                   "simulationSettings.ref_bet_y"
-                                ],
-                                "shown": "$(simulationSettings.model) == 'particle' && $(simulationSettings.e_cool) == '0'"
+                                ]
                               },
                               {
                                 "label": "Alpha Reference Point",
