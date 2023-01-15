@@ -58,6 +58,10 @@ class AbstractPlotShape {
         this.elev = null;
         this.draggable = true;
         this.links = [];
+
+        // d3 events require x and y
+        this.x = 0;
+        this.y = 0;
     }
 
     addLink(otherShape, linkFunction) {
@@ -178,41 +182,6 @@ class AbstractPlotShape2D extends AbstractPlotShape {
         return this.getCoords(this.center);
     }
 
-    scaledCenter(dim, scaleX, scaleY) {
-        return {
-            x: scaleX(this.center[this.elev.x.axis]),
-            y: scaleY(this.center[this.elev.y.axis]),
-        };
-    }
-
-    setCenter(coords) {
-        this.setCoords(this.center, coords);
-    }
-}
-
-// probably a placeholder until elevations get worked out
-class AbstractPlotShape3D extends AbstractPlotShape2D {
-    constructor(
-        id,
-        name,
-        layoutShape,
-        center
-    ) {
-        super(id, name, layoutShape, center);
-        this.axes = ['x', 'y', 'z'];
-   }
-
-    getCenterCoords() {
-        return this.getCoords(this.center);
-    }
-
-    scaledCenter(dim, scaleX, scaleY) {
-        return {
-            x: scaleX(this.center[this.elev.x.axis]),
-            y: scaleY(this.center[this.elev.y.axis]),
-        };
-    }
-
     setCenter(coords) {
         this.setCoords(this.center, coords);
     }
@@ -260,6 +229,11 @@ class PlotPolygon extends AbstractPlotShape2D {
             y: Math.abs(sy[sy.length - 1].y - sy[0].y),
         };
     }
+
+    getSizeCoords() {
+        return this.getCoords(this.size);
+    }
+
 }
 
 class PlotRect extends AbstractPlotShape2D {
@@ -273,7 +247,6 @@ class PlotRect extends AbstractPlotShape2D {
         this.size = {
             x: size[0],
             y: size[1],
-            //z: size[2],
         };
         this.x = center[0] + size[0] / 2;
         this.y = center[1] - size[1] / 2;

@@ -667,7 +667,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.viewShadow = o => self.viewsForObject(appState.setModelDefaults({}, 'cuboid'));
 
     self.viewsForObject = o => {
-        srdbg('V FOR', o);
+        srdbg('V FOR', appState.clone(o));
         const supers = appState.superClasses(o.type);
         let center = o.center;
         let size = o.size;
@@ -682,6 +682,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
         let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
         if (supers.includes('extrudedPoly')) {
+            if (! o.points.length) {
+                return null;
+            }
             view = new SIREPO.VTK.ExtrudedPolyViews(o.id, o.name, center, size, o.extrusionAxis, o.points, scale);
         }
         view.setShapeProperties(
@@ -837,6 +840,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let baseViews = self.getObjectView(o.id);
         if (! baseViews) {
             baseViews = self.viewsForObject(o);
+            if (! baseViews) {
+                return;
+            }
             self.views.push(baseViews);
         }
         return;

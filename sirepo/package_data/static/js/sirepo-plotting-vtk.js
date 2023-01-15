@@ -2177,8 +2177,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 //TODO(mvk): apply transforms to dx, dy
                 const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragX, dragY] : [0, 0];
                 let pts = '';
-                for (const p in shape.points) {
-                    pts += `${dx + axes.x.scale(p[0])},${dy + axes.y.scale(p[1])} `;
+                for (const p of shape.points) {
+                    pts += `${dx + axes.x.scale(p.x)},${dy + axes.y.scale(p.y)} `;
                 }
                 return pts;
             }
@@ -2246,13 +2246,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return pts;
             }
 
-            function shapeSize(shape, screenDim) {
-                //let labDim = getElevation().labAxis(screenDim);
-                //let c = shape.center[labDim] || 0;
-                //let s = shape.size[labDim] || 0;
-                let c = shape.center[screenDim] || 0;
-                let s = shape.size[screenDim] || 0;
-                return Math.abs(axes[screenDim].scale(c + s / 2) - axes[screenDim].scale(c - s / 2));
+            function shapeSize(shape, dim) {
+                let c = shape.center[dim] || 0;
+                let s = shape.size[dim] || 0;
+                return Math.abs(axes[dim].scale(c + s / 2) - axes[dim].scale(c - s / 2));
             }
 
             function updateShapeAttributes(selection) {
