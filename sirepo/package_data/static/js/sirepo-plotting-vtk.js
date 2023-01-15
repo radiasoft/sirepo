@@ -140,7 +140,7 @@ class ExtrudedPolyViews extends ObjectViews {
         const k = this._AXES.indexOf(axis);
         const cp = this.center[k] + this.size[k] / 2.0;
         const cm = this.center[k] - this.size[k] / 2.0;
-        const [w, h] = this.nextAxes(dim);
+        const [w, h] = this.nextAxes(axis);
         let p = this.points.map(x => x[1]);
         let [mx, mn] = [Math.max(...p), Math.min(...p)];
         this.addView(

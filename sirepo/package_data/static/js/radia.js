@@ -663,7 +663,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return shape;
     };
     
-    self.viewShadow = o => self.viewsForObject(appState.setModelDefaults({}, o.type));
+    self.viewShadow = o => self.viewsForObject(appState.setModelDefaults({}, 'cuboid'));
 
     self.viewsForObject = o => {
         const supers = appState.superClasses(o.type);
