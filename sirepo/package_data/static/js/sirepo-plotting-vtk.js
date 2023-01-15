@@ -54,6 +54,10 @@ class ObjectViews {
     // for convenience
     _AXES = SIREPO.GEOMETRY.GeometryUtils.BASIS();
 
+    static scaledArray(arr, scale) {
+        return arr.map(x => scale * x);
+    };
+
     constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], scale=1.0) {
         this.id = id;
         this.name = name;
@@ -93,7 +97,7 @@ class ObjectViews {
     }
 
     scaledArray(arr) {
-        return arr.map(x => this.scale * x);
+        return ObjectViews.scaledArray(arr, this.scale);
     };
     
     setShapeProperties(props) {
@@ -1981,7 +1985,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     ds.exit().remove();
                     // function must return a DOM object in the SVG namespace
                     ds.enter()
-                        .append(function (d) {
+                        .append(d => {
                             return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
                         })
                         .on('dblclick', editObject)
@@ -2149,20 +2153,18 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return utilities.roundToPlaces(invObjScale * val, 4);
             }
 
-            // called when placing a new object, not dragging an existing object
-            function updateDragShadow(obj, p) {
-                clearDragShadow();
-                //const shape = $scope.source.shapeForObject(obj);
-                const shape = $scope.source.viewsForObject(obj).getView(getElevation());
-                shape.x = shapeOrigin(shape, 'x'); // axes.x.scale.invert(p[0]) + shape.size[0]/ 2;
-                shape.y = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;
-                showShapeLocation(shape);
-                d3.select('.plot-viewport')
-                    .append('rect').attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
-                    .attr('x', function() { return shapeOrigin(shape, 'x'); })
-                    .attr('y', function() { return shapeOrigin(shape, 'y'); })
-                    .attr('width', function() { return shapeSize(shape, 'x'); })
-                    .attr('height', function() { return shapeSize(shape, 'y'); });
+            // called when dragging a new object, not an existing object
+            function updateDragShadow(o, p) {
+                let r = d3.select('.plot-viewport rect.vtk-object-layout-drag-shadow');
+                if (r.empty()) {
+                    const s = $scope.source.viewShadow(o).getView(getElevation());
+                    r = d3.select('.plot-viewport').append('rect')
+                        .attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
+                        .attr('width', shapeSize(s, 'x'))
+                        .attr('height', shapeSize(s, 'y'));
+                }
+                //showShapeLocation(shape);
+                r.attr('x', p[0]).attr('y', p[1]);
             }
 
             function shapeOrigin(shape, dim) {
@@ -2336,7 +2338,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.dragMove = function(obj, evt) {
-                var p = isMouseInBounds(evt);
+                const p = isMouseInBounds(evt);
                 if (p) {
                     d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
                     updateDragShadow(obj, p);
@@ -2350,6 +2352,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             // called when dropping new objects, not existing
             $scope.dropSuccess = function(obj, evt) {
+                clearDragShadow();
                 const p = isMouseInBounds(evt);
                 if (p) {
                     const labXIdx = geometry.basis.indexOf(getLabAxis('x'));
