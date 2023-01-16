@@ -352,7 +352,6 @@ def stateful_compute_sample_images(data):
         if "output" in info.inputOutput:
             return PKDict(path=info.header[info.inputOutput.index("output")])
         for idx in range(len(info.header)):
-            pkdp("\n\n\ninfo.shape[idx]={}\ninfo.shape[idx][0]={}\n\n", info.shape[idx], info.shape[idx][0])
             if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
                 return PKDict(path=info.header[idx])
         raise AssertionError(f"No matching dimension found output size: {output_size}")
@@ -360,7 +359,6 @@ def stateful_compute_sample_images(data):
     # take first dimension size and look for other columns with that single dimension
     io = PKDict()
     info = data.args.columnInfo
-    pkdp("\n\n\ninfo={}\n\n\n", info)
     for idx in range(len(info.header)):
         if len(info.shape[idx]) >= 3:
             io.input = PKDict(
@@ -369,6 +367,7 @@ def stateful_compute_sample_images(data):
                 count=info.shape[idx][0],
             )
             break
+    # TODO (gurhar1133): check needed here too for if image to image
     if "input" not in io:
         raise AssertionError("No multidimensional data found in dataset")
     io.output = _output(info, io)
@@ -498,7 +497,6 @@ def _build_model_py(v):
             return layer.dropoutRate
 
     def _test_foo(layer):
-        pkdp("\n\n\n layer:{}\n\n\n",layer)
         return f'"{layer.get("activation", "relu")}"'
 
     args_map = PKDict(
@@ -553,7 +551,6 @@ def _build_model_py(v):
         return res
 
     net = PKDict(layers=v.neuralNetLayers)
-    pkdp("\n\n\nnet={}", net.layers[2])
     _name_layers(net, "input_args", first_level=True)
 
     return f"""
@@ -918,7 +915,6 @@ def _fit_animation(frame_args):
                 header += [info.header[i] for _ in range(info.outputShape[i])]
             else:
                 header.append(info.header[i])
-    # TODO (gurhar1133): NEED TO INCLUDE CLASSES IN PREDICTION TOO??
     x = _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx]
     y = _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx]
     _write_csv_for_download(
@@ -938,11 +934,20 @@ def _fit_animation(frame_args):
     )
 
 
+def _image_to_image(info):
+    idx = info.inputOutput.index("output")
+    pkdp("\n\n\ncheck dim={}\n\n\n", info.shape[idx][1:])
+    return len(info.shape[idx][1:]) > 1
+
+
+
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     # TODO (gurhar1133): set flag for image to image case here
+    pkdp("\n\n\ndm.columnInfo={}\n\n\n", dm.columnInfo)
+    v.imageToImage = _image_to_image(dm.columnInfo)
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel

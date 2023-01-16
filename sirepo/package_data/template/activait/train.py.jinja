@@ -49,16 +49,24 @@ def _prediction_shape(prediction, testy):
 def _classification_case(prediction, testy):
     return {{ discreteOutputs }} and _prediction_shape(prediction, testy)
 
-def _predictions_final(p, testy):
-    return np.argmax(p, axis=1) if _classification_case(p, testy) else p
+def _predictions_final(predictions, testy):
+    p = predictions
+    if _classification_case(predictions, testy):
+        p = np.argmax(predictions, axis=1)
+    if {{ imageToImage }}:
+        p = p.flatten()
 
 def _predictions_initial(testx, testy):
     if split.test_gen.outScaler:
+        t = split.test_gen.outScaler.inverse_transform(testy)
         return PKDict(
             p=split.test_gen.outScaler.inverse_transform(model.predict(testx)),
-            testy=split.test_gen.outScaler.inverse_transform(testy),
+            testy=t.flatten() if {{ imageToImage }} else t,
         )
-    return PKDict(p=model.predict(x=testx), testy=testy)
+    return PKDict(
+        p=model.predict(x=testx),
+        testy=np.array(testy).flatten() if {{ imageToImage }} else testy,
+    )
 
 o = _predictions_initial(testx, testy)
 p = _predictions_final(o.p, o.testy)
