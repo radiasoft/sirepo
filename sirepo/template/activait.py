@@ -348,6 +348,14 @@ def stateful_compute_sample_images(data):
         num_pages = min(5, 1 + (num_images - 1) // 25)
         return [min(25, num_images - 25 * i) for i in range(num_pages)]
 
+    def _output(info, io):
+        if "output" in info.inputOutput:
+            return PKDict(path=info.header[info.inputOutput.index("output")])
+        for idx in range(len(info.header)):
+            pkdp("\n\n\ninfo.shape[idx]={}\ninfo.shape[idx][0]={}\n\n", info.shape[idx], info.shape[idx][0])
+            if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
+                return PKDict(path=info.header[idx])
+        raise AssertionError(f"No matching dimension found output size: {output_size}")
     # go through columnInfo, find first multidimensional col
     # take first dimension size and look for other columns with that single dimension
     io = PKDict()
@@ -363,13 +371,7 @@ def stateful_compute_sample_images(data):
             break
     if "input" not in io:
         raise AssertionError("No multidimensional data found in dataset")
-    # TODO (gurhar1133): needs an update
-    for idx in range(len(info.header)):
-        if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
-            io.output = PKDict(path=info.header[idx])
-            break
-    if "output" not in io:
-        raise AssertionError(f"No matching dimension found output size: {output_size}")
+    io.output = _output(info, io)
     # look for a string column for labels
     for idx in range(len(info.header)):
         if info.dtypeKind[idx] in {"U", "S"}:
