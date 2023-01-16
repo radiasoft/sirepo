@@ -48,7 +48,7 @@ def test_elegant_data_file(fc):
         ),
     )
     pkunit.pkeq(200, r.status_code)
-    pkunit.pkre("no-cache", r.headers.get("Cache-Control"))
+    pkunit.pkre("no-cache", r.header_get("Cache-Control"))
     rows = csv.reader(six.StringIO(pkcompat.from_bytes(r.data)))
     pkunit.pkeq(50001, len(list(rows)), "50,000 particles plus header row")
     r = fc.sr_get(
@@ -63,7 +63,7 @@ def test_elegant_data_file(fc):
     pkunit.pkeq(200, r.status_code)
     m = re.search(
         r'attachment; filename="([^"]+)"',
-        r.headers.get("Content-Disposition"),
+        r.header_get("Content-Disposition"),
     )
     d = pkunit.work_dir()
     path = d.join(m.group(1))
@@ -148,7 +148,7 @@ def test_synergia_data_file(fc):
     pkunit.pkeq(200, r.status_code)
     m = re.search(
         r'attachment; filename="([^"]+)"',
-        r.headers.get("Content-Disposition"),
+        r.header_get("Content-Disposition"),
     )
     d = pkunit.work_dir()
     path = d.join(m.group(1))
@@ -167,7 +167,7 @@ def test_synergia_data_file(fc):
     pkunit.pkeq(200, r.status_code)
     m = re.search(
         r'attachment; filename="([^"]+)"',
-        r.headers.get("Content-Disposition"),
+        r.header_get("Content-Disposition"),
     )
     d = pkunit.work_dir()
     path = d.join(m.group(1))
