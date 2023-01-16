@@ -134,7 +134,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.axisIndex = axis => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
 
     self.buildShapePoints = (o, callback) => {
-        srdbg('BLD SH', o);
         // once the points file has been read, no need to fetch it again
         if (o.type === 'extrudedPoints' && (o.points || []).length) {
             callback(o);
@@ -667,7 +666,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.viewShadow = o => self.viewsForObject(appState.setModelDefaults({}, 'cuboid'));
 
     self.viewsForObject = o => {
-        srdbg('V FOR', appState.clone(o));
         const supers = appState.superClasses(o.type);
         let center = o.center;
         let size = o.size;
@@ -1187,7 +1185,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function transformShapesForObject(o) {
         let baseShape = self.getShape(o.id);
         [baseShape, ...getVirtualShapes(baseShape)].forEach(function (s) {
-            s.runLinks();
+            //TODO??
+            //s.runLinks();
         });
     }
 
