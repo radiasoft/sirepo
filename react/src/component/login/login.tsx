@@ -21,7 +21,7 @@ export const LoginRouter = (props) => {
             <Portal targetId={NavbarRightContainerId} className="order-3">
                 <NavbarSlack/>
             </Portal>
-            <Portal targetId={NavbarRightContainerId} className="order-5 sr-navbar-auth">
+            <Portal targetId={NavbarRightContainerId} className="order-5">
                 <NavbarAuthStatus/>
             </Portal>
             <Routes>
