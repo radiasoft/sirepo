@@ -101,11 +101,14 @@ class ObjectViews {
     }
 
     copy(exclude=[]) {
-        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'affineTransform', 'shapes']));
+        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'affineTransform', 'shapes', 'virtualViews']));
         c.affineTransform = SIREPO.UTILS.copyInstance(this.affineTransform);
         for (const e in this.shapes) {
             c.shapes[e] = this.shapes[e].copy();
             c.shapes[e].affineTransform = SIREPO.UTILS.copyInstance(this.shapes[e].affineTransform);
+        }
+        for (const v of this.virtualViews) {
+            c.addVirtualView(v.copy());
         }
         return c;
     }
@@ -204,6 +207,25 @@ class ExtrudedPolyViews extends ObjectViews {
                 return new SIREPO.GEOMETRY.Point(...m.multiply(new Matrix(p.coords())).val);
             });
         }
+    }
+}
+
+class ExtrudedCuboidViews extends ExtrudedPolyViews {
+    constructor(id, name, center, size, scale) {
+        super(
+            id,
+            name,
+            center,
+            size,
+            'z',
+            [
+                [center[0] - size[0] / 2, center[1] - size[1] / 2],
+                [center[0] - size[0] / 2, center[1] + size[1] / 2],
+                [center[0] + size[0] / 2, center[1] + size[1] / 2],
+                [center[0] + size[0] / 2, center[1] - size[1] / 2],
+            ],
+            scale
+        );
     }
 }
 
@@ -3059,6 +3081,7 @@ SIREPO.VTK = {
     BoxBundle: BoxBundle,
     CoordMapper: CoordMapper,
     CuboidViews: CuboidViews,
+    ExtrudedCuboidViews: ExtrudedCuboidViews,
     ExtrudedPolyViews: ExtrudedPolyViews,
     LineBundle: LineBundle,
     ObjectViews: ObjectViews,
