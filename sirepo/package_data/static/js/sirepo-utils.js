@@ -55,6 +55,18 @@ class SirepoUtils {
         return this.applyInChunks(Math.max, array, -Number.MAX_VALUE);
     }
 
+    static copyInstance(o, excludedProperties=[]) {
+        const c = new o.constructor();
+        const s = structuredClone(o);
+        for (const p in s) {
+            if (excludedProperties.includes(p)) {
+                continue;
+            }
+            c[p] = s[p];
+        }
+        return c;
+    }
+
     static linearlySpacedArray(start, stop, nsteps) {
         if (nsteps < 1) {
             throw new Error("linearlySpacedArray: steps " + nsteps + " < 1");

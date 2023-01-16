@@ -58,7 +58,7 @@ class ObjectViews {
         return arr.map(x => scale * x);
     };
 
-    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], scale=1.0) {
+    constructor(id=SIREPO.UTILS.randomString(), name, center=[0, 0, 0], size=[1, 1, 1], scale=1.0) {
         this.id = id;
         this.name = name;
         this.scale = scale;
@@ -67,10 +67,13 @@ class ObjectViews {
 
         this.affineTransform = new SIREPO.GEOMETRY.AffineMatrix();
         this.shapes = {};
+        this.virtualViews = [];
     }
 
     addTransform(t) {
-        this.affineTransform = this.affineTransform.multiplyAffine(t);
+        for (const v of [this, ...this.virtualViews]) {
+            v.affineTransform = this.affineTransform.multiplyAffine(t);
+        }
     }
 
     addView(dim, shape) {
@@ -80,6 +83,16 @@ class ObjectViews {
         shape.id = this.id;
         shape.name = this.name;
         this.shapes[Elevation.NAMES()[dim]] = shape;
+    }
+
+    copy() {
+        const c = SIREPO.UTILS.copyInstance(this, ['id', 'affineTransform', 'shapes']);
+        c.affineTransform = SIREPO.UTILS.copyInstance(this.affineTransform);
+        for (const e in this.shapes) {
+            c.shapes[e] = this.shapes[e].copy();
+            c.shapes[e].affineTransform = SIREPO.UTILS.copyInstance(this.shapes[e].affineTransform);
+        }
+        return c;
     }
 
     getView(elevation) {
@@ -129,6 +142,7 @@ class CuboidViews extends ObjectViews {
 }
 
 class ExtrudedPolyViews extends ObjectViews {
+
     constructor(id, name, center, size, axis, points, scale) {
         super(id, name, center, size, scale);
         this.axis = axis;
@@ -162,6 +176,19 @@ class ExtrudedPolyViews extends ObjectViews {
                 [[cm, mx], [cp, mx], [cp, mn], [cm, mn]]
             )
         );
+    }
+
+    addTransform(t) {
+        super.addTransform(t);
+        const l = t.getLinearMinor();
+        for (const e in this.views) {
+            const i = this._AXES.indexOf(e.axis);
+            const m = l.minor(i, i);
+            const s = this.views[e];
+            s.points = s.points.map(p => {
+                new Point(...m.multiply(new Matrix(p.coords())).val);
+            });
+        }
     }
 }
 

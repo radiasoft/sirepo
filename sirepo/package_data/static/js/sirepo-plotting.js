@@ -38,7 +38,7 @@ class PlottingUtils {
 
 class AbstractPlotShape {
     constructor(
-        id,
+        id=SIREPO.UTILS.randomString(),
         name,
         layoutShape
     ) {
@@ -70,6 +70,10 @@ class AbstractPlotShape {
 
     addTransform(t) {
         this.affineTransform = this.affineTransform.multiplyAffine(t);
+    }
+
+    copy() {
+        return SIREPO.UTILS.copyInstance(this, ['id', 'affineTransform']);
     }
 
     getCoords(obj) {
@@ -168,7 +172,7 @@ class AbstractPlotShape2D extends AbstractPlotShape {
         id,
         name,
         layoutShape,
-        center
+        center=[0, 0, 0]
     ) {
         super(
             id,
@@ -241,15 +245,15 @@ class PlotRect extends AbstractPlotShape2D {
         id,
         name,
         center,
-        size
+        size=[1, 1]
     ) {
         super(id, name, 'rect', center);
         this.size = {
             x: size[0],
             y: size[1],
         };
-        this.x = center[0] + size[0] / 2;
-        this.y = center[1] - size[1] / 2;
+        this.x = this.center.x + this.size.x / 2;
+        this.y = this.center.y - this.size.y / 2;
     }
 
     getSizeCoords() {

@@ -554,8 +554,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.loadObjectViews = loadObjectViews;
 
-    self.objectBounds = groupBounds;
-
     self.objectsOfType = type => appState.models.geometryReport.objects.filter(o => o.type === type);
 
     self.objectTypes = () => {
@@ -859,7 +857,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             self.views.push(baseViews);
         }
-        return;
         let plIds = [];
         for (const xform of o.transforms) {
             const t = xform.type;
@@ -873,6 +870,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 );
                 continue;
             }
+            if (t === 'symmetryTransform') {
+                //plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
+                const v = baseViews.copy();
+                v.addTransform(
+                    new SIREPO.GEOMETRY.ReflectionMatrix(
+                        new SIREPO.GEOMETRY.Plane(
+                            xform.symmetryPlane,
+                            new SIREPO.GEOMETRY.Point(...radiaService.scaledArray(xform.symmetryPoint))
+                        )
+                    )
+                );
+                baseViews.virtualViews.push(v);
+                continue;
+            }
+            /*
             for (const e in baseViews.shapes) {
                 const baseShape = baseViews.shapes[e];
                 // draw the shapes for symmetry planes once
@@ -885,7 +897,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
                     let xo = self.getObject(xShape.id);
                     let linkTx;
-                    /*
+                    /asterisk
                     if (t === 'cloneTransform') {
                         let clones = [];
                         for (let i = 1; i <= xform.numCopies; ++i) {
@@ -904,7 +916,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                             clones = clones.concat(transformMembers(xo, xform, linkTx, clones));
                         }
                     }
-                     */
+                     asterisk/
                     if (t === 'symmetryTransform') {
                         linkTx = mirrorFn(xform);
                         const txs = addTxShape(xShape, xform, linkTx);
@@ -912,9 +924,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     }
                 }
             }
+            */
         }
 
         // apply non-copying transforms to the object and its members (if any)
+        /*
         composeFn(txArr)(baseShape, baseShape);
         for (const m of getMembers(o)) {
             let s = self.getShape(m.id);
@@ -930,6 +944,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             fit(baseShape, gShape);
             baseShape.addLink(gShape, fit);
         }
+
+         */
     }
 
     function addSymmetryPlane(baseShape, xform) {
@@ -1055,13 +1071,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             [Number.MAX_VALUE, -Number.MAX_VALUE],
             [Number.MAX_VALUE, -Number.MAX_VALUE]
         ];
-        const scale = SIREPO.APP_SCHEMA.constants.objectScale;
         b.forEach(function (c, i) {
             (objs || appState.models.geometryReport.objects || []).forEach(function (o) {
-                const ctr =  radiaService.scaledArray(o.center);
-                const sz =  radiaService.scaledArray(o.size);
-                c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
-                c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
+                c[0] = Math.min(c[0], o.center[i] - o.size[i] / 2);
+                c[1] = Math.max(c[1], o.center[i] + o.size[i] / 2);
             });
         });
         return b;
