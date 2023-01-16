@@ -352,6 +352,7 @@ def stateful_compute_sample_images(data):
     # take first dimension size and look for other columns with that single dimension
     io = PKDict()
     info = data.args.columnInfo
+    pkdp("\n\n\ninfo={}\n\n\n", info)
     for idx in range(len(info.header)):
         if len(info.shape[idx]) >= 3:
             io.input = PKDict(
@@ -362,6 +363,7 @@ def stateful_compute_sample_images(data):
             break
     if "input" not in io:
         raise AssertionError("No multidimensional data found in dataset")
+    # TODO (gurhar1133): needs an update
     for idx in range(len(info.header)):
         if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
             io.output = PKDict(path=info.header[idx])
