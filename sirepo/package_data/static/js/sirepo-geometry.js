@@ -809,7 +809,7 @@ class Point extends GeometricObject {
      * @returns {[number]}
      */
     coords() {
-        return [this.x, this.y, this.z];
+        return [this.x, this.y, this.z].slice(0, this.dimension);
     }
 
     /**
@@ -819,7 +819,7 @@ class Point extends GeometricObject {
      * @throws - if the two points have different dimensions
      */
     dist(point) {
-        if (this.dimension != point.dimension) {
+        if (this.dimension !== point.dimension) {
             throw new Error('Points in array have different dimensions: ' + this.dimension + ' != ' + point.dimension);
         }
         return Math.hypot(point.x - this.x, point.y - this.y, point.z - this.z);

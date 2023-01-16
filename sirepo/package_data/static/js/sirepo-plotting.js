@@ -55,7 +55,6 @@ class AbstractPlotShape {
 
         this.affineTransform = new SIREPO.GEOMETRY.AffineMatrix();
         this.axes = ['x', 'y'];
-        this.elev = null;
         this.draggable = true;
         this.links = [];
 
@@ -72,8 +71,8 @@ class AbstractPlotShape {
         this.affineTransform = this.affineTransform.multiplyAffine(t);
     }
 
-    copy() {
-        return SIREPO.UTILS.copyInstance(this, ['id', 'affineTransform']);
+    copy(exclude=[]) {
+        return SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'affineTransform']));
     }
 
     getCoords(obj) {
@@ -210,7 +209,7 @@ class PlotPolygon extends AbstractPlotShape2D {
     constructor(
         id,
         name,
-        points
+        points=[[0,0],[0,1],[1,1]]
     ) {
         if (points.length < 3) {
             throw new Error('Polygons require at least 3 points: ' + points.length);
@@ -232,6 +231,15 @@ class PlotPolygon extends AbstractPlotShape2D {
             x: Math.abs(sx[sx.length - 1].x - sx[0].x),
             y: Math.abs(sy[sy.length - 1].y - sy[0].y),
         };
+    }
+
+    copy() {
+        const c = super.copy(['points']);
+        c.points = [];
+        for (const p of this.points) {
+            c.points.push(new SIREPO.GEOMETRY.Point(...p.coords()));
+        }
+        return c;
     }
 
     getSizeCoords() {

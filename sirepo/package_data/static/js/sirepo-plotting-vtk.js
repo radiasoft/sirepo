@@ -82,11 +82,26 @@ class ObjectViews {
         }
         shape.id = this.id;
         shape.name = this.name;
-        this.shapes[Elevation.NAMES()[dim]] = shape;
+        this.shapes[dim] = shape;
     }
 
-    copy() {
-        const c = SIREPO.UTILS.copyInstance(this, ['id', 'affineTransform', 'shapes']);
+    addVirtualView(v) {
+        for (const dim in v.shapes) {
+            v.shapes[dim].draggable = false;
+        }
+        this.virtualViews.push(v);
+    }
+
+    allViews(elevation) {
+        let v = [this.getView(elevation)];
+        for (const vv of this.virtualViews) {
+            v = v.concat(vv.allViews(elevation));
+        }
+        return v;
+    }
+
+    copy(exclude=[]) {
+        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'affineTransform', 'shapes']));
         c.affineTransform = SIREPO.UTILS.copyInstance(this.affineTransform);
         for (const e in this.shapes) {
             c.shapes[e] = this.shapes[e].copy();
@@ -96,7 +111,7 @@ class ObjectViews {
     }
 
     getView(elevation) {
-        return this.shapes[elevation.name];
+        return this.shapes[elevation.axis];
     }
 
     nextAxes(dim) {
@@ -143,7 +158,7 @@ class CuboidViews extends ObjectViews {
 
 class ExtrudedPolyViews extends ObjectViews {
 
-    constructor(id, name, center, size, axis, points, scale) {
+    constructor(id, name, center, size, axis='z', points=[[0,0],[0,1],[1,1]], scale) {
         super(id, name, center, size, scale);
         this.axis = axis;
         this.points = points.map(p => this.scaledArray(p));
@@ -181,12 +196,12 @@ class ExtrudedPolyViews extends ObjectViews {
     addTransform(t) {
         super.addTransform(t);
         const l = t.getLinearMinor();
-        for (const e in this.views) {
-            const i = this._AXES.indexOf(e.axis);
+        for (const dim in this.shapes) {
+            const i = this._AXES.indexOf(dim);
             const m = l.minor(i, i);
-            const s = this.views[e];
+            const s = this.shapes[dim];
             s.points = s.points.map(p => {
-                new Point(...m.multiply(new Matrix(p.coords())).val);
+                return new SIREPO.GEOMETRY.Point(...m.multiply(new Matrix(p.coords())).val);
             });
         }
     }
@@ -2403,7 +2418,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.init = function() {
-                $scope.shapes = $scope.source.getShapes();
+                $scope.shapes = $scope.source.getShapes(getElevation());
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
                     $scope.shapes = $scope.source.getShapes();

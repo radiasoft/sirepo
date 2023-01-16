@@ -519,18 +519,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.getShape = id => {
-        return self.shapes.filter( s => s.id === id)[0];
+        return self.shapes.filter(s => s.id === id)[0];
     };
 
-    //self.getShapes = () => self.shapes;
-
     //self.getShapes = elevation => self.shapes.concat(self.views.map(v => v.getView(elevation)));
+
 
     self.getShapes = elevation => {
         if (! elevation) {
             return [];
         }
-        return self.shapes.concat(self.views.map(v => v.getView(elevation)));
+        let s = [];
+        for (const v of self.views) {
+            s = s.concat(v.allViews(elevation));
+        }
+        return self.shapes.concat(s);
     }
 
     self.getObjectView = id => {
@@ -881,7 +884,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                         )
                     )
                 );
-                baseViews.virtualViews.push(v);
+                baseViews.addVirtualView(v);
                 continue;
             }
             /*
@@ -1156,7 +1159,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let b = {
             x: [Number.MAX_VALUE, -Number.MAX_VALUE],
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
-            //z: [Number.MAX_VALUE, -Number.MAX_VALUE]
         };
         shapes.forEach(s => {
             let vs = getVirtualShapes(s);
