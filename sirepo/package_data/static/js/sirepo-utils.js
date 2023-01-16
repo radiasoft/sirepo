@@ -79,6 +79,14 @@ class SirepoUtils {
         });
     }
 
+    static randomString(length=32) {
+        const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        return new Array(length)
+            .fill('')
+            .map(x => BASE62[Math.floor(BASE62.length * Math.random())])
+            .join('');
+    };
+
     static roundToPlaces(val, p) {
         if (p < 0) {
             return val;
