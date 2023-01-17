@@ -390,6 +390,7 @@ def stateful_compute_sample_images(data):
             plt.figure(figsize=[10, 10])
             if _image_to_image(info):
                 f, axarr = plt.subplots(3, 2)
+                plt.setp(axarr, xticks=[], yticks=[])
             for j in range(i):
                 v = x[k + j]
                 if io.input.kind == "f":
@@ -403,7 +404,6 @@ def stateful_compute_sample_images(data):
                     plt.xticks([])
                     plt.yticks([])
                     plt.imshow(v)
-                # plt.imshow(mask)
                 if not _image_to_image(info):
                     if len(f[io.output.path].shape) == 1:
                         if "label_path" in io.output:
