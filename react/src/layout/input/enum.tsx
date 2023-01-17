@@ -1,11 +1,13 @@
 import React, { ChangeEventHandler, useContext, useEffect, useState } from "react";
 import { FunctionComponent } from "react";
 import { Form } from "react-bootstrap";
-import { CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
+import { AppWrapper, CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
+import { CFormController } from "../../data/formController";
 import { pollStatefulCompute } from "../../utility/compute";
 import { CRouteHelper } from "../../utility/route";
 import { LayoutProps } from "../layout";
 import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
+import { Dependency } from "../../data/dependency";
 
 export type EnumAllowedValues = { value: string, displayName: string }[]
 
@@ -30,7 +32,7 @@ export class EnumInputLayout extends InputLayout<EnumConfig, string, string> {
     fromModelValue: (value: string) => string = (v) => v;
 
     validate: (value: string) => boolean = (value: string) => {
-        return (!this.config.isRequired) || (this.hasValue(value) && this.config.allowedValues.filter(av => av.value == value).length > 0);
+        return (!this.config.isRequired) || (this.hasValue(value) && this.config.allowedValues.filter(av => av.value === value).length > 0);
     };
 
     component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
@@ -58,10 +60,6 @@ export type ComputeResultEnumConfig = {
 } & InputConfigBase
 
 export class ComputeResultEnumInputLayout extends InputLayout<ComputeResultEnumConfig, string, string> {
-    constructor(config) {
-        super(config);
-    }
-
     fromModelValue: (value: string) => string = (v) => v;
     toModelValue: (value: string) => string = (v) => v;
 
@@ -106,8 +104,62 @@ export class ComputeResultEnumInputLayout extends InputLayout<ComputeResultEnumC
                 <option key={v[this.config.keyName]} value={v[this.config.keyName]}>{v[this.config.displayName]}</option>
             ))
             : [];
-        return <Form.Select {...otherProps} onChange={onChange} isInvalid={!valid && touched}>
+        return <Form.Select size="sm" {...otherProps} onChange={onChange} isInvalid={!valid && touched}>
             {options}
         </Form.Select>
     }
 }
+
+//TODO(pjm): mostly copied from ComputeResultEnumInputLayout above
+// need to share more implementation with a base class
+export class SimulationListEnumInputLayout extends InputLayout<InputConfigBase, string, string> {
+    fromModelValue: (value: string) => string = (v) => v;
+    toModelValue: (value: string) => string = (v) => v;
+
+    validate: (value: string) => boolean = (v) => {
+        // TODO: implement when working example of this input is available
+        return true;
+    };
+
+    component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
+        let routeHelper = useContext(CRouteHelper);
+        let [optionList, updateOptionList] = useState(undefined);
+        let formController = useContext(CFormController);
+        //TODO(pjm): this is specific to the omega app but could be generalized
+        let suffix = props.dependency.fieldName.match(/_\d+/);
+        let simType = formController.getFormStateAccessor().getFieldValue(new Dependency(
+            `simWorkflow.simType${suffix}`)).value as string;
+        useEffect(() => {
+            if (! simType) {
+                return;
+            }
+            let appWrapper = new AppWrapper(simType, routeHelper);
+            appWrapper.getSimulationList().then(list => {
+                list.unshift({
+                    simulationId: "",
+                    name: "",
+                    folder: "",
+                    isExample: false,
+                    simulation: null,
+                });
+                updateOptionList(list);
+            });
+        }, [simType])
+
+        let {valid, touched, ...otherProps} = props;
+
+        let onChange: ChangeEventHandler<HTMLSelectElement> = (event) => {
+            props.onChange(event.target.value);
+        }
+
+        const options = optionList
+            ? optionList.map(v => (
+                <option key={v.simulationId} value={v.simulationId}>{v.name}</option>
+            ))
+            : [];
+        return <Form.Select size="sm" {...otherProps} onChange={onChange} isInvalid={!valid && touched}>
+            {options}
+        </Form.Select>
+    }
+}
+                                            
