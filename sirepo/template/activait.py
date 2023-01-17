@@ -921,6 +921,8 @@ def _fit_animation(frame_args):
         PKDict(predict=x, test=y),
         f"fitAnimation{idx}.csv",
     )
+    pkdp("\n\n\nheader={}, idx={}\n\n", header, idx)
+
     # TODO(pjm): for a classification-like regression, set heatmap resolution to domain size
     return template_common.heatmap(
         [x, y],
@@ -928,7 +930,7 @@ def _fit_animation(frame_args):
         PKDict(
             x_label="Prediction",
             y_label="Ground Truth",
-            title=header[idx],
+            title=header[idx] if header else "Fit",
             hideColorBar=True,
         ),
     )

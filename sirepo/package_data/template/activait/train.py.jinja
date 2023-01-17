@@ -51,12 +51,14 @@ def _classification_case(prediction, testy):
 
 def _predictions_final(predictions, testy):
     p = predictions
-    print("pre check p=", p)
+    print("pre check p.shape=", p.shape)
+    print("pre check testy.shape=", testy.shape)
     if _classification_case(predictions, testy):
         p = np.argmax(predictions, axis=1)
     {# TODO (gurhar1133) argmax or something for image to image predictions? #}
     if {{ imageToImage }}:
-        p = np.argmax(predictions, axis=1).flatten()
+        p = numpy.array([numpy.expand_dims(numpy.argmax(x, axis=-1), axis=-1) for x in predictions]).flatten()
+        {# p = np.argmax(predictions, axis=1).flatten() #}
     return p
 
 def _predictions_initial(testx, testy):
@@ -73,7 +75,8 @@ def _predictions_initial(testx, testy):
 
 o = _predictions_initial(testx, testy)
 p = _predictions_final(o.p, o.testy)
-print(p)
+print(p.shape)
+print(o.testy.shape)
 {% else %}
 p = model.predict(x=testx)
 {% endif %}
