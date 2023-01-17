@@ -5,9 +5,8 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-import sirepo.mpi
-import sirepo.template.omega as template
+from sirepo.template import template_common
 
 
-def run(cfg_dir):
-    r = template_common.exec_parameters()
+def run_background(cfg_dir):
+    template_common.exec_parameters()

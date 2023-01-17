@@ -1,0 +1,121 @@
+
+from pykern import pkio
+from pykern.pkcollections import PKDict
+from rsbeams.rsdata import switchyard
+from sirepo.template.lattice import LatticeUtil
+import os
+import re
+import sirepo.pkcli.elegant
+import sirepo.pkcli.opal
+import sirepo.sim_data
+import sirepo.simulation_db
+import sirepo.template.opal
+
+
+_OMEGA_SIM_NAME = '{{ simulation_name }}'
+assert os.environ['SIREPO_SIMULATION_DB_LOGGED_IN_USER'], 'missing user id env var'
+
+
+def convert_bunched_beam_to_sdds_beam(data, filename):
+    s = sirepo.sim_data.get_class('elegant')
+    cmd = LatticeUtil.find_first_command(data, "bunched_beam")
+    for k in list(cmd.keys()):
+        if k != '_id':
+            del cmd[k]
+    s.update_model_defaults(cmd, 'command_sdds_beam')
+    cmd._type = 'sdds_beam'
+    cmd.input = filename
+    data.models.bunchSource.inputSource = 'sdds_beam'
+
+
+def elegant_lib_file(model, field, filename):
+    s = sirepo.sim_data.get_class('elegant')
+    #TODO(pjm): need an API to add/update lib files
+    if 'lib_file_uri' in sirepo.sim_data._cfg:
+        sirepo.sim_data._cfg.lib_file_uri = ''
+    return s.lib_file_write_path(
+        s.lib_file_name_with_model_field(model, field, filename),
+    )
+
+
+def file_name_from_sim_name(sim_name):
+    res = re.sub(r'[^0-9a-zA-Z]', '_', sim_name)
+    res = re.sub(r'^\_+|\_+$', '', res)
+    res = re.sub(r'\_+', '_', res)
+    return f'{res}.sdds'
+
+
+def prep_run_dir(run_dir, data):
+    pkio.unchecked_remove(run_dir)
+    pkio.mkdir_parent(run_dir)
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    return run_dir
+
+
+def read_sim(sim_type, sim_id):
+    return sirepo.simulation_db.read_simulation_json(sim_type, sim_id, None)
+
+
+def run_elegant(run_dir, elegant_id, prev_sim=None):
+    data = read_sim('elegant', elegant_id)
+    if prev_sim:
+        assert prev_sim.outfile_path
+        filename = file_name_from_sim_name(f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        data = update_elegant_sim(data, filename)
+        if prev_sim.sim_type == 'elegant':
+            p = pkio.py_path(prev_sim.outfile_path)
+            p.copy(elegant_lib_file('bunchFile', 'sourceFile', filename))
+            p.copy(elegant_lib_file('command_run_setup', 'expand_for', filename))
+        else:
+            sw = switchyard.Switchyard()
+            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+            sw.write(elegant_lib_file('bunchFile', 'sourceFile', filename), 'elegant')
+            sw.write(elegant_lib_file('command_run_setup', 'expand_for', filename), 'elegant')
+    data.computeModel = 'animation'
+    if 'report' in data:
+        del data['report']
+    with pkio.save_chdir(prep_run_dir(run_dir, data)):
+        sirepo.pkcli.elegant.run_elegant()
+    return f'{run_dir}/run_setup.output.sdds'
+
+
+def run_opal(run_dir, opal_id, prev_sim=None):
+    assert not prev_sim
+    data = read_sim('opal', opal_id)
+    data.computeModel = 'animation'
+    LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
+    with pkio.save_chdir(prep_run_dir(run_dir, data)):
+        sirepo.pkcli.opal.run_opal(with_mpi=True)
+    return f'{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}'
+
+
+def run_sims(sim_list):
+    prev = None
+    for idx in range(len(sim_list)):
+        run_dir = pkio.py_path(f'run{idx + 1}')
+        s = sim_list[idx]
+        if s.sim_type == 'opal':
+            s.outfile_path = run_opal(run_dir, s.sim_id, prev)
+        elif s.sim_type == 'elegant':
+            s.outfile_path = run_elegant(run_dir, s.sim_id, prev)
+        else:
+            assert False
+        prev = s
+
+
+def update_elegant_sim(data, filename):
+    if data.models.bunchSource.inputSource == 'bunched_beam':
+        convert_bunched_beam_to_sdds_beam(data, filename)
+    assert data.models.bunchSource.inputSource == 'sdds_beam'
+    LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
+    return data
+
+
+run_sims([
+{% for sim in simList %}
+    PKDict(
+        sim_type="{{sim.sim_type}}",
+        sim_id="{{sim.sim_id}}",
+    ),
+{% endfor %}
+])
