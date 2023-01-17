@@ -869,7 +869,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                             self.views.push(mv);
                         }
                         addCopyingTransform(mv, r);
-                        srdbg('symm', r, mv.name, mv.virtualViews);
                     }
                 }
                 continue;

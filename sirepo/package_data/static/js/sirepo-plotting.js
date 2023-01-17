@@ -53,7 +53,7 @@ class AbstractPlotShape {
         this.strokeStyle = 'solid';
         this.strokeWidth = 1.0;
 
-        this.affineTransform = new SIREPO.GEOMETRY.AffineMatrix();
+        this.transform = new SIREPO.GEOMETRY.IdentityMatrix(2);
         this.axes = ['x', 'y'];
         this.draggable = true;
         this.links = [];
@@ -68,7 +68,10 @@ class AbstractPlotShape {
     }
 
     addTransform(t) {
-        this.affineTransform = this.affineTransform.multiplyAffine(t);
+        this.transform = this.transform.multiply(t);
+    }
+
+    translate(x) {
     }
 
     copy(exclude=[]) {
@@ -142,28 +145,6 @@ class AbstractPlotShape {
     setStrokeWidth(width) {
         this.strokeWidth = width;
     }
-
-    svgTransform(scaleX, scaleY, rotateAroundShapeCenter) {
-        const e = this.affineTransform.toEuler(true);
-        const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(this.elev.axis)];
-        const c = this.getCenterCoords();
-        const rc = this.affineTransform.multiply(
-            new SIREPO.GEOMETRY.Matrix([...c, 0])
-        ).val;
-        const t = {x: 0, y: 0};
-        if (! rotateAroundShapeCenter) {
-            for (const dim in t) {
-                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(this.elev[dim].axis);
-                t[dim] = scaleX(rc[i]) - scaleY(c[i]);
-            }
-        }
-        const sc = this.scaledCenter(scaleX, scaleY);
-        return `
-            rotate(${-angle},${sc.x},${sc.y}) 
-            translate(${t.x},${t.y})
-        `;
-    }
-
 }
 
 class AbstractPlotShape2D extends AbstractPlotShape {
@@ -171,7 +152,7 @@ class AbstractPlotShape2D extends AbstractPlotShape {
         id,
         name,
         layoutShape,
-        center=[0, 0, 0]
+        center=[0, 0]
     ) {
         super(
             id,
@@ -179,7 +160,13 @@ class AbstractPlotShape2D extends AbstractPlotShape {
             layoutShape
         );
         this.center = new SIREPO.GEOMETRY.Point(...center);
-   }
+    }
+
+    translate(x) {
+       super.translate(x);
+       this.center.x += x[0];
+       this.center.y += x[1];
+    }
 
     getCenterCoords() {
         return this.getCoords(this.center);
@@ -231,6 +218,23 @@ class PlotPolygon extends AbstractPlotShape2D {
             x: Math.abs(sx[sx.length - 1].x - sx[0].x),
             y: Math.abs(sy[sy.length - 1].y - sy[0].y),
         };
+    }
+
+    addTransform(t) {
+        super.addTransform(t);
+        for (let p of this.points) {
+            const pp = t.multiply(new Matrix(p.coords())).val;
+            p.x = pp[0];
+            p.y = pp[1];
+        }
+    }
+
+    translate(x) {
+        super.translate(x);
+        for (let p of this.points) {
+            p.x += x[0];
+            p.y += x[1];
+        }
     }
 
     copy() {

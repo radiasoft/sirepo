@@ -71,8 +71,9 @@ class ObjectViews {
     }
 
     addTransform(t) {
-        for (const v of [this, ...this.virtualViews]) {
-            v.affineTransform = this.affineTransform.multiplyAffine(t);
+        this.affineTransform = this.affineTransform.multiplyAffine(t);
+        for (const v of this.virtualViews) {
+            v.addTransform(t);
         }
     }
 
@@ -105,7 +106,7 @@ class ObjectViews {
         c.affineTransform = SIREPO.UTILS.copyInstance(this.affineTransform);
         for (const e in this.shapes) {
             c.shapes[e] = this.shapes[e].copy();
-            c.shapes[e].affineTransform = SIREPO.UTILS.copyInstance(this.shapes[e].affineTransform);
+            c.shapes[e].transform = SIREPO.UTILS.copyInstance(this.shapes[e].transform);
         }
         for (const v of this.virtualViews) {
             c.addVirtualView(v.copy());
@@ -203,12 +204,8 @@ class ExtrudedPolyViews extends ObjectViews {
         for (const dim in this.shapes) {
             const i = this._AXES.indexOf(dim);
             const s = this.shapes[dim];
-            s.points = s.points.map(p => {
-                const pp = l.minor(i, i).multiply(new Matrix(p.coords())).val;
-                pp[0] += x[0];
-                pp[1] += x[1];
-                return new SIREPO.GEOMETRY.Point(...pp);
-            });
+            s.addTransform(l.minor(i, i));
+            s.translate(x);
         }
     }
 }
