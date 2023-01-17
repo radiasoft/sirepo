@@ -3523,6 +3523,9 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             },
             {
                 onError: res => {
+                    if (res.error.includes('does not exist')) {
+                        throw new Error('STL file ' + $scope.modelData.file + ' does not exist');
+                    }
                     throw new Error(res.error);
                 }
             }
@@ -3665,6 +3668,9 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             },
             {
                 onError: res => {
+                    if (res.error.includes('does not exist')) {
+                        throw new Error('STL file ' + $scope.modelData.file + ' does not exist');
+                    }
                     throw new Error(res.error);
                 }
             }
