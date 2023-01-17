@@ -355,6 +355,7 @@ def stateful_compute_sample_images(data):
             if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
                 return PKDict(path=info.header[idx])
         raise AssertionError(f"No matching dimension found output size: {output_size}")
+
     # go through columnInfo, find first multidimensional col
     # take first dimension size and look for other columns with that single dimension
     io = PKDict()
@@ -367,7 +368,6 @@ def stateful_compute_sample_images(data):
                 count=info.shape[idx][0],
             )
             break
-    # TODO (gurhar1133): check needed here too for if image to image
     if "input" not in io:
         raise AssertionError("No multidimensional data found in dataset")
     io.output = _output(info, io)
@@ -383,26 +383,37 @@ def stateful_compute_sample_images(data):
         u = []
         k = 0
         g = _image_grid(len(x))
+        if _image_to_image(info):
+            g = [3]*5
+        # TODO (gurhar1133): need to remove ticks
         for i in g:
             plt.figure(figsize=[10, 10])
+            if _image_to_image(info):
+                f, axarr = plt.subplots(3, 2)
             for j in range(i):
                 v = x[k + j]
                 if io.input.kind == "f":
                     v = v.astype(float)
-                plt.subplot(5, 5, j + 1)
-                plt.xticks([])
-                plt.yticks([])
-                plt.imshow(v)
-
-                if len(f[io.output.path].shape) == 1:
-                    if "label_path" in io.output:
-                        plt.xlabel(
-                            pkcompat.from_bytes(f[io.output.label_path][y[k + j]])
-                        )
-                    else:
-                        plt.xlabel(y[k + j])
+                if _image_to_image(info):
+                    mask = y[k + j]
+                    axarr[j,0].imshow(v)
+                    axarr[j,1].imshow(mask)
                 else:
-                    plt.xlabel("\n".join([str(l) for l in y[k + j]]))
+                    plt.subplot(5, 5, j + 1)
+                    plt.xticks([])
+                    plt.yticks([])
+                    plt.imshow(v)
+                # plt.imshow(mask)
+                if not _image_to_image(info):
+                    if len(f[io.output.path].shape) == 1:
+                        if "label_path" in io.output:
+                            plt.xlabel(
+                                pkcompat.from_bytes(f[io.output.label_path][y[k + j]])
+                            )
+                        else:
+                            plt.xlabel(y[k + j])
+                    else:
+                        plt.xlabel("\n".join([str(l) for l in y[k + j]]))
             p = (
                 _SIM_DATA.lib_file_write_path(data.args.imageFilename)
                 + f"_{int(k/25)}.png"
@@ -561,7 +572,7 @@ input_args = Input(shape=input_shape)
 model = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
-
+# TODO (gurhar1133): need to handle different last layer for image to image
 
 def _build_ui_nn(model):
     return _set_children(_set_outbound(_set_inbound(model, _make_layers(model))))
@@ -947,8 +958,6 @@ def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
-    # TODO (gurhar1133): set flag for image to image case here
-    pkdp("\n\n\ndm.columnInfo={}\n\n\n", dm.columnInfo)
     v.imageToImage = _image_to_image(dm.columnInfo)
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
