@@ -147,6 +147,14 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
                 args: {
                     object: o,
                 }
+            },
+            {
+                onError: res => {
+                    if (res.error.includes('does not exist')) {
+                        throw new Error('Points file ' + o.pointsFile + ' does not exist');
+                    }
+                    throw new Error(res.error);
+                }
             }
         );
     };
@@ -3512,6 +3520,11 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
                 args: {
                     file: $scope.modelData.file,
                 }
+            },
+            {
+                onError: res => {
+                    throw new Error(res.error);
+                }
             }
         );
     }
@@ -3648,6 +3661,11 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
                 method: 'stl_size',
                 args: {
                     file: $scope.modelData.file,
+                }
+            },
+            {
+                onError: res => {
+                    throw new Error(res.error);
                 }
             }
         );
