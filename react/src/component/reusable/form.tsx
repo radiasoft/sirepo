@@ -21,7 +21,7 @@ import { CSchema } from "../../data/appwrapper";
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
     return (
-        <Form.Group {...passedProps} size="sm" as={Row} className="sr-form-row justify-content-center">
+        <Form.Group {...passedProps} size="sm" as={Row} className="mb-2 justify-content-center">
             <Form.Label column className="text-end">
                 {label}
                 {tooltip &&

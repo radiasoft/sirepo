@@ -1,6 +1,7 @@
 import React from "react"
 import { SimulationInfo } from "../component/simulation"
-import { compileSchemaFromJson, mergeSchemaJson, Schema } from "../utility/schema"
+import { RouteHelper } from "../utility/route"
+import { Schema } from "../utility/schema"
 
 export type ApiSimulation = {
     documentationUrl: string,
@@ -46,9 +47,10 @@ export const CSimulationInfoPromise = React.createContext<Promise<SimulationInfo
 export const CAppName = React.createContext<string>(undefined);
 export const CSchema = React.createContext<Schema>(undefined);
 export const CLoginStatus = React.createContext<LoginStatus>(undefined);
+export const CAppWrapper = React.createContext<AppWrapper>(undefined);
 
 export class AppWrapper {
-    constructor(private appName: string) {
+    constructor(private appName: string, private routeHelper: RouteHelper) {
 
     }
 
@@ -57,30 +59,9 @@ export class AppWrapper {
         return schema.constants.paymentPlans[paymentPlan];
     }
 
-    getAppRootLink: () => string = () => {
-        return `/react/${this.appName}`;
-    }
-
-    getSchema = (): Promise<Schema> => {
-        return new Promise<Schema>((resolve, reject) => {
-            Promise.all([
-                fetch(`/static/react-json/common-schema.json`),
-                fetch(`/static/react-json/${this.appName}-schema.json`)
-            ]).then(([commonResp, appResp]) => {
-                Promise.all([
-                    commonResp.json(), 
-                    appResp.json()
-                ]).then(([commonJson, appJson]) => {
-                    let schemaJson = mergeSchemaJson(commonJson, appJson)
-                    resolve(compileSchemaFromJson(schemaJson));
-                })
-            })
-        })
-    }
-
     private simulationListPromise: () => Promise<Response> = () => {
         return new Promise((resolve, reject) => {
-            fetch('/simulation-list', {
+            fetch(this.routeHelper.globalRoute("listSimulations"), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -105,15 +86,15 @@ export class AppWrapper {
 
     // TODO @garsuga: this should be its own api call, http errors should be used to signal login missing
     getLoginStatus: () => Promise<LoginStatus> = async () => {
-        return await fetch('/auth-state2').then(async (resp) => await resp.json() as LoginStatus)
+        return await fetch(this.routeHelper.globalRoute("authState2")).then(async (resp) => await resp.json() as LoginStatus)
     }
 
     doGuestLogin = (): Promise<void> => {
-        return fetch(`/auth-guest-login/${this.appName}`).then();
+        return fetch(this.routeHelper.globalRoute("authGuestLogin", { simulation_type: this.appName })).then();
     }
 
     doEmailLogin = (email: string): Promise<void> => {
-        return fetch(`/auth-email-login`, {
+        return fetch(this.routeHelper.globalRoute("authEmailLogin"), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

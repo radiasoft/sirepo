@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import React from "react";
 import { ModelStates } from "../store/models";
 import { mapProperties } from "../utility/object";
+import { RouteHelper } from "../utility/route";
 
 export const CReportEventManager = React.createContext<ReportEventManager>(undefined);
 
@@ -29,6 +30,8 @@ type RunStatusParams = {
 }
 
 export class ReportEventManager {
+    constructor(private routeHelper: RouteHelper) {}
+
     reportEventListeners: {[reportName: string]: {[key: string]: ReportEventSubscriber}} = {}
 
     addListener = (key: string, reportName: string, listener: ReportEventSubscriber): void => {
@@ -59,7 +62,7 @@ export class ReportEventManager {
         simulationId,
         report
     }) => {
-        return getRunStatusOnce({
+        return getRunStatusOnce(this.routeHelper, {
             appName,
             models,
             simulationId,
@@ -82,7 +85,7 @@ export class ReportEventManager {
         simulationId: string,
         report: string
     }) => {
-        pollRunReport({
+        pollRunReport(this.routeHelper, {
             appName,
             models,
             simulationId,
@@ -151,7 +154,7 @@ export class AnimationReader {
     getFrameId: (frameIndex: number) => string;
     presentationVersionNum: string;
 
-    constructor({
+    constructor(private routeHelper: RouteHelper, {
         reportName,
         simulationId,
         appName,
@@ -186,7 +189,7 @@ export class AnimationReader {
             throw new Error(`frame index out of bounds: ${frameIndex}, frame count was ${this.frameCount}`)
         }
 
-        return getSimulationFrame(this.getFrameId(frameIndex)).then(data => {
+        return getSimulationFrame(this.routeHelper, this.getFrameId(frameIndex)).then(data => {
             return {
                 index: frameIndex,
                 data
