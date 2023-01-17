@@ -410,13 +410,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     let self = this;
 
-    const editorFields = [
-        'geomObject.magnetization',
-        'geomObject.material',
-        'geomObject.symmetryType',
-        'simulation.beamAxis',
-        'simulation.heightAxis',
-    ];
     const watchedModels = [
         'geomObject',
         'geomGroup',
@@ -521,9 +514,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.getShape = id => {
         return self.shapes.filter(s => s.id === id)[0];
     };
-
-    //self.getShapes = elevation => self.shapes.concat(self.views.map(v => v.getView(elevation)));
-
 
     self.getShapes = elevation => {
         if (! elevation) {
@@ -677,10 +667,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
-        if (o.type === 'cuboid' || o.type === 'racetrack') {
-            view = new SIREPO.VTK.ExtrudedCuboidViews(o.id, o.name, center, size, scale);
-        }
+        let view = new SIREPO.VTK.ExtrudedCuboidViews(o.id, o.name, center, size, scale);
         if (supers.includes('extrudedPoly')) {
             if (! o.points.length) {
                 return null;
@@ -754,7 +741,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.getObject(oId).groupId = o.id;
         });
         addViewsForObject(o);
-        //addShapesForObject(o);
     }
 
     function addShapesForObject(o) {
@@ -877,24 +863,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 addCopyingTransform(baseViews, r);
                 if (isGroup) {
                     for (const m_id of o.members) {
-                        const mv = self.viewsForObject(self.getObject(m_id));
-                        srdbg('member', m_id, mv);
+                        let mv = self.getObjectView(m_id);
+                        if (! mv) {
+                            mv = self.viewsForObject(self.getObject(m_id));
+                            self.views.push(mv);
+                        }
                         addCopyingTransform(mv, r);
-                        //addViewsForObject(self.getObject(m_id));
+                        srdbg('symm', r, mv.name, mv.virtualViews);
                     }
                 }
-                //const gid = o.groupId;
-                //if (gid !== '') {
-                //    let gv = self.getObjectView(gid);
-                //    if (! gv) {
-                //        gv = self.viewsForObject(self.getObject(gid));
-                //        //self.shapes.push(gShape);
-                //    }
-                //}
-                //for (const m_id of (o.members || [])) {
-                //    srdbg('member', m_id);
-                //    addViewsForObject(self.getObject(m_id));
-                //}
                 continue;
             }
             /*
