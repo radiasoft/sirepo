@@ -608,8 +608,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.selectObjectWithId = id => self.selectObject(self.getObject(id));
 
-    //self.shapeBounds = () => shapesBounds(self.shapes);
-
     self.shapeBounds = elevation => shapesBounds(self.getShapes(elevation));
 
     // seems like a lot of this shape stuff can be refactored out to a common area
@@ -839,6 +837,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addViewsForObject(o) {
+
+        function addCopyingTransform(v, t) {
+            const c = v.copy();
+            c.addTransform(t);
+            v.addVirtualView(c);
+        }
+
+        const isGroup = (o.members || []).length;
         let baseViews = self.getObjectView(o.id);
         if (! baseViews) {
             baseViews = self.viewsForObject(o);
@@ -862,16 +868,33 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             if (t === 'symmetryTransform') {
                 //plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
-                const v = baseViews.copy();
-                v.addTransform(
-                    new SIREPO.GEOMETRY.ReflectionMatrix(
-                        new SIREPO.GEOMETRY.Plane(
-                            xform.symmetryPlane,
-                            new SIREPO.GEOMETRY.Point(...radiaService.scaledArray(xform.symmetryPoint))
-                        )
+                const r = new SIREPO.GEOMETRY.ReflectionMatrix(
+                    new SIREPO.GEOMETRY.Plane(
+                        xform.symmetryPlane,
+                        new SIREPO.GEOMETRY.Point(...radiaService.scaledArray(xform.symmetryPoint))
                     )
                 );
-                baseViews.addVirtualView(v);
+                addCopyingTransform(baseViews, r);
+                if (isGroup) {
+                    for (const m_id of o.members) {
+                        const mv = self.viewsForObject(self.getObject(m_id));
+                        srdbg('member', m_id, mv);
+                        addCopyingTransform(mv, r);
+                        //addViewsForObject(self.getObject(m_id));
+                    }
+                }
+                //const gid = o.groupId;
+                //if (gid !== '') {
+                //    let gv = self.getObjectView(gid);
+                //    if (! gv) {
+                //        gv = self.viewsForObject(self.getObject(gid));
+                //        //self.shapes.push(gShape);
+                //    }
+                //}
+                //for (const m_id of (o.members || [])) {
+                //    srdbg('member', m_id);
+                //    addViewsForObject(self.getObject(m_id));
+                //}
                 continue;
             }
             /*

@@ -161,7 +161,7 @@ class CuboidViews extends ObjectViews {
 
 class ExtrudedPolyViews extends ObjectViews {
 
-    constructor(id, name, center, size, axis='z', points=[[0,0],[0,1],[1,1]], scale) {
+    constructor(id, name, center=[0, 0], size=[1, 1], axis='z', points=[[0,0],[0,1],[1,1]], scale) {
         super(id, name, center, size, scale);
         this.axis = axis;
         this.points = points.map(p => this.scaledArray(p));
@@ -199,19 +199,22 @@ class ExtrudedPolyViews extends ObjectViews {
     addTransform(t) {
         super.addTransform(t);
         const l = t.getLinearMinor();
+        const x = t.getTranslation().deltas;
         for (const dim in this.shapes) {
             const i = this._AXES.indexOf(dim);
-            const m = l.minor(i, i);
             const s = this.shapes[dim];
             s.points = s.points.map(p => {
-                return new SIREPO.GEOMETRY.Point(...m.multiply(new Matrix(p.coords())).val);
+                const pp = l.minor(i, i).multiply(new Matrix(p.coords())).val;
+                pp[0] += x[0];
+                pp[1] += x[1];
+                return new SIREPO.GEOMETRY.Point(...pp);
             });
         }
     }
 }
 
 class ExtrudedCuboidViews extends ExtrudedPolyViews {
-    constructor(id, name, center, size, scale) {
+    constructor(id, name, center=[0, 0], size=[1, 1], scale) {
         super(
             id,
             name,
