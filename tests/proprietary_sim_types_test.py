@@ -27,21 +27,11 @@ def test_myapp(auth_fc):
     sirepo.pkcli.setup_dev.default_command()
     fc = auth_fc
     # POSIT: Guests get all roles
-    fc.sr_get("authGuestLogin", {"simulation_type": fc.sr_sim_type})
+    fc.sr_login_as_guest()
     # no forbidden
     fc.sr_sim_data()
     fc.sr_logout()
-    r = fc.sr_post(
-        "authEmailLogin", {"email": "a@b.c", "simulationType": fc.sr_sim_type}
-    )
-    fc.sr_email_confirm(fc, r)
-    fc.sr_post(
-        "authCompleteRegistration",
-        {
-            "displayName": "abc",
-            "simulationType": fc.sr_sim_type,
-        },
-    )
+    fc.sr_email_login("a@b.c")
     r = fc.sr_post(
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
     )

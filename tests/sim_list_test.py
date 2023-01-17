@@ -133,7 +133,7 @@ def test_srw_discard_example(fc):
         ),
         redirect=False,
     )
-    i = r.headers["Location"].split("/").pop()
+    i = r.header_get("Location").split("/").pop()
     r = fc.sr_get(
         "pythonSource",
         PKDict(

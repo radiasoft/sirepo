@@ -121,6 +121,7 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
         return m;
     }
 
+    // TODO: this should not be housed here, need separate abstraction to communicate to server, should just return formatted models
     saveToServer = (simulationInfo: any, modelNames: string[], state: any) => {
         let models = Object.fromEntries(modelNames.map(mn => [mn, this.getModel(mn, state)]));
         simulationInfo.models = models;

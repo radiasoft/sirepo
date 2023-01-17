@@ -53,7 +53,6 @@ class API(sirepo.quest.API):
         Args:
             days (str): must be integer. If None or 0, no adjustment.
         """
-
         adjust_time(days, qcall=self)
         return self.reply_ok(
             {
