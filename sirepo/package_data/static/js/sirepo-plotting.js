@@ -77,7 +77,7 @@ class AbstractPlotShape {
 
     getCoords(obj) {
         const coords = [];
-        for (const dim in obj) {
+        for (const dim of this.axes) {
             coords.push(obj[dim]);
         }
         return coords;

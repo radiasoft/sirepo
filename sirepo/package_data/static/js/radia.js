@@ -982,16 +982,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function deleteShapesForObject(o) {
-        //for (const s of getTransformedShapes(o)) {
-        //    self.shapes.splice(indexOfShape(s), 1);
-        //}
-        //let shape = self.shapeForObject(o);
-        //for (const s of getVirtualShapes(shape)) {
-        //    self.shapes.splice(indexOfShape(s), 1);
-        //}
-        //self.shapes.splice(indexOfShape(shape), 1);
-        const v = self.viewsForObject(o);
-        self.views.splice(self.views.indexOf(v), 1);
+        self.views.splice(indexOfViews(self.viewsForObject(o)), 1);
     }
 
     // shape - in group; linkedShape: group
@@ -1070,9 +1061,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     // indexOf does not work right...explicitly match by id here
-    function indexOfShape(shape) {
-        for (let i = 0; i < self.shapes.length; ++i) {
-            if (self.shapes[i].id === shape.id) {
+    function indexOfViews(v) {
+        for (let i = 0; i < self.views.length; ++i) {
+            if (self.views[i].id === v.id) {
                 return i;
             }
         }
