@@ -158,7 +158,6 @@
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
-        "srUnit": "/ srunit",
         "srwLight": "/light",
         "statefulCompute": "/stateful-compute",
         "statelessCompute": "/stateless-compute",

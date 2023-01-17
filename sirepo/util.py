@@ -94,6 +94,8 @@ class BadRequest(ReplyExc):
 class OKReplyExc(ReplyExc):
     """When a ReplyExc exception is a successful response"""
 
+    pass
+
 
 class Error(ReplyExc):
     """Raised to send an error response

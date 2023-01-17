@@ -972,7 +972,7 @@ def validate_file(file_type, path):
         try:
             _validate_safe_zip(str(path), ".", validate_magnet_data_file)
         except AssertionError as err:
-            return err.message
+            return str(err)
     elif file_type == "sample":
         srwl_uti_smp.SRWLUtiSmp(
             file_path=str(path),
@@ -1034,8 +1034,10 @@ def validate_magnet_data_file(zf):
     file_names_in_index = []
     for line in lines:
         cols = line.split()
+        if not cols:
+            continue
         if len(cols) <= file_name_column:
-            return False, "Index file {} has bad format".format(index_file_name())
+            return False, "Index file {} has bad format".format(index_file_name(zf))
         file_names_in_index.append(cols[file_name_column].decode())
 
     # Compare index and zip contents
