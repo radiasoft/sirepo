@@ -71,9 +71,6 @@ class AbstractPlotShape {
         this.transform = this.transform.multiply(t);
     }
 
-    translate(x) {
-    }
-
     copy(exclude=[]) {
         return SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'affineTransform']));
     }
@@ -163,7 +160,6 @@ class AbstractPlotShape2D extends AbstractPlotShape {
     }
 
     translate(x) {
-       super.translate(x);
        this.center.x += x[0];
        this.center.y += x[1];
     }
@@ -229,12 +225,27 @@ class PlotPolygon extends AbstractPlotShape2D {
         }
     }
 
-    translate(x) {
-        super.translate(x);
-        for (let p of this.points) {
-            p.x += x[0];
-            p.y += x[1];
+    bounds() {
+        let b = {
+            x: [Number.MAX_VALUE, -Number.MAX_VALUE],
+            y: [Number.MAX_VALUE, -Number.MAX_VALUE],
+        };
+        const pts = this.points;
+        const ex = SIREPO.GEOMETRY.GeometryUtils.extrema;
+        for (const dim in b) {
+            b[dim] = [ex(pts, dim, true)[0][dim], ex(pts, dim, false)[0][dim]];
         }
+        // use an enclosing circle to take rotations into account
+        const r = Math.hypot(
+            (b.x[1] - b.x[0]) / 2,
+            (b.y[1] - b.y[0]) / 2,
+        );
+        for (const dim in b) {
+            const c = b[dim][0] + (b[dim][1] - b[dim][0]) / 2;
+            b[dim][0] = c - r;
+            b[dim][1] = c + r;
+        }
+        return b;
     }
 
     copy() {
@@ -250,6 +261,13 @@ class PlotPolygon extends AbstractPlotShape2D {
         return this.getCoords(this.size);
     }
 
+    translate(x) {
+        super.translate(x);
+        for (let p of this.points) {
+            p.x += x[0];
+            p.y += x[1];
+        }
+    }
 }
 
 class PlotRect extends AbstractPlotShape2D {

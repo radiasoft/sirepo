@@ -1147,16 +1147,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
         };
         shapes.forEach(s => {
-            let vs = getVirtualShapes(s);
-            let sr = shapesBounds(vs);
+            if (! s.bounds) {
+                return;
+            }
+            //let vs = getVirtualShapes(s);
+            //let sr = shapesBounds(vs);
+            const sb = s.bounds();
             for (const dim in b) {
-                if (s.center[dim] === undefined) {
-                    continue;
-                }
                 b[dim] = [
-                    Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2, sr[dim][0]),
-                    Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2, sr[dim][1])
+                    Math.min(b[dim][0], sb[dim][0]),
+                    Math.max(b[dim][1], sb[dim][1])
                 ];
+                //if (s.center[dim] === undefined) {
+                //    continue;
+               // }
+                //b[dim] = [
+                //    Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2, sr[dim][0]),
+                //    Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2, sr[dim][1])
+                //];
             }
         });
         for (const dim in b) {
@@ -1164,11 +1172,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 return b;
             }
         }
-        // use an enclosing sphere to take rotations into account
+        // use an enclosing circle to take rotations into account
         const r = Math.hypot(
             (b.x[1] - b.x[0]) / 2,
             (b.y[1] - b.y[0]) / 2,
-            //(b.z[1] - b.z[0]) / 2,
         );
         for (const dim in b) {
             const c = b[dim][0] + (b[dim][1] - b[dim][0]) / 2;
