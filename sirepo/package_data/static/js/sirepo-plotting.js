@@ -145,6 +145,11 @@ class AbstractPlotShape {
 }
 
 class AbstractPlotShape2D extends AbstractPlotShape {
+
+    static sss() {
+
+    }
+
     constructor(
         id,
         name,
@@ -226,26 +231,7 @@ class PlotPolygon extends AbstractPlotShape2D {
     }
 
     bounds() {
-        let b = {
-            x: [Number.MAX_VALUE, -Number.MAX_VALUE],
-            y: [Number.MAX_VALUE, -Number.MAX_VALUE],
-        };
-        const pts = this.points;
-        const ex = SIREPO.GEOMETRY.GeometryUtils.extrema;
-        for (const dim in b) {
-            b[dim] = [ex(pts, dim, true)[0][dim], ex(pts, dim, false)[0][dim]];
-        }
-        // use an enclosing circle to take rotations into account
-        const r = Math.hypot(
-            (b.x[1] - b.x[0]) / 2,
-            (b.y[1] - b.y[0]) / 2,
-        );
-        for (const dim in b) {
-            const c = b[dim][0] + (b[dim][1] - b[dim][0]) / 2;
-            b[dim][0] = c - r;
-            b[dim][1] = c + r;
-        }
-        return b;
+        return SIREPO.GEOMETRY.GeometryUtils.bounds(this.points);
     }
 
     copy() {
