@@ -14,7 +14,7 @@ try:
         split.train_gen,
         validation_data=split.val_gen,
         epochs={{ neuralNet_epochs }},
-        {# callbacks=[CSVLogger('fit.csv')], #}
+        callbacks=[CSVLogger('fit.csv')],
     )
 except Exception as e:
     raise AssertionError(f"Model training failed due to:{e.message}")
@@ -51,10 +51,13 @@ def _classification_case(prediction, testy):
 
 def _predictions_final(predictions, testy):
     p = predictions
+    print("pre check p=", p)
     if _classification_case(predictions, testy):
         p = np.argmax(predictions, axis=1)
+    {# TODO (gurhar1133) argmax or something for image to image predictions? #}
     if {{ imageToImage }}:
-        p = p.flatten()
+        p = np.argmax(predictions, axis=1).flatten()
+    return p
 
 def _predictions_initial(testx, testy):
     if split.test_gen.outScaler:
@@ -70,6 +73,7 @@ def _predictions_initial(testx, testy):
 
 o = _predictions_initial(testx, testy)
 p = _predictions_final(o.p, o.testy)
+print(p)
 {% else %}
 p = model.predict(x=testx)
 {% endif %}
