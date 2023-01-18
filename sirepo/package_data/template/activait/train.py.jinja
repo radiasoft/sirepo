@@ -50,14 +50,16 @@ def _classification_case(prediction, testy):
     return {{ discreteOutputs }} and _prediction_shape(prediction, testy)
 
 def _predictions_final(predictions, testy):
-    p = predictions
-    print("pre check p.shape=", p.shape)
+    {# p = predictions #}
+    {# print("pre argmax and flatten p", predictions) #}
     print("pre check testy.shape=", testy.shape)
     if _classification_case(predictions, testy) and not {{ imageToImage }}:
         p = np.argmax(predictions, axis=1)
     {# TODO (gurhar1133) argmax or something for image to image predictions? #}
     if {{ imageToImage }}:
-        p = numpy.array([numpy.expand_dims(numpy.argmax(x, axis=-1), axis=-1) for x in predictions]).flatten()
+        p = numpy.array([numpy.expand_dims(numpy.argmax(x, axis=-1), axis=-1) for x in predictions])
+        print("p after reshape and argmax", p)
+        p = p.flatten()
         {# p = np.argmax(predictions, axis=1).flatten() #}
     return p
 
