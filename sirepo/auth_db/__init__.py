@@ -6,14 +6,10 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import contextlib
 import importlib
 import inspect
 import pykern.pkconfig
-import pykern.pkio
 import pykern.pkinspect
-import sirepo.auth_role
-import sirepo.feature_config
 import sirepo.quest
 import sirepo.srdb
 import sqlalchemy
@@ -116,7 +112,7 @@ def init_module():
 
     if _engine:
         return
-    _cfg = pkconfig.init(
+    _cfg = pykern.pkconfig.init(
         sqlite_timeout=(20, int, "sqlite connection timeout"),
     )
     _models = _classes()
