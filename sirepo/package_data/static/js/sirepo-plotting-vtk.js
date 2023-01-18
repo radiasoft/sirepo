@@ -81,16 +81,10 @@ class ObjectViews {
         if (! this._AXES.includes(dim)) {
             throw new Error('Invalid axis: ' + dim);
         }
+        shape.elevation = new Elevation(dim);
         shape.id = this.id;
         shape.name = this.name;
         this.shapes[dim] = shape;
-    }
-
-    addVirtualView(v) {
-        for (const dim in v.shapes) {
-            v.shapes[dim].draggable = false;
-        }
-        this.virtualViews.push(v);
     }
 
     allViews(elevation) {
@@ -99,6 +93,13 @@ class ObjectViews {
             v = v.concat(vv.allViews(elevation));
         }
         return v;
+    }
+
+    addVirtualView(v) {
+        for (const dim in v.shapes) {
+            v.shapes[dim].draggable = false;
+        }
+        this.virtualViews.push(v);
     }
 
     copy(exclude=[]) {
@@ -204,6 +205,9 @@ class ExtrudedPolyViews extends ObjectViews {
         for (const dim in this.shapes) {
             const i = this._AXES.indexOf(dim);
             const s = this.shapes[dim];
+            const xi = this._AXES.indexOf(s.elevation.labDimensions.x.axis);
+            const yi = this._AXES.indexOf(s.elevation.labDimensions.y.axis);
+            srdbg(dim, xi, yi);
             s.addTransform(l.minor(i, i));
             s.translate(x);
         }

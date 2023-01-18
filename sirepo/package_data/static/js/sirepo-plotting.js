@@ -53,9 +53,10 @@ class AbstractPlotShape {
         this.strokeStyle = 'solid';
         this.strokeWidth = 1.0;
 
-        this.transform = new SIREPO.GEOMETRY.IdentityMatrix(2);
         this.axes = ['x', 'y'];
         this.draggable = true;
+        this.elevation = null;
+        this.transform = new SIREPO.GEOMETRY.IdentityMatrix(2);
         this.links = [];
 
         // d3 events require x and y
@@ -228,6 +229,7 @@ class PlotPolygon extends AbstractPlotShape2D {
             p.x = pp[0];
             p.y = pp[1];
         }
+        srdbg(this.id, this.points, t.val);
     }
 
     bounds() {
@@ -235,7 +237,8 @@ class PlotPolygon extends AbstractPlotShape2D {
     }
 
     copy() {
-        const c = super.copy(['points']);
+        const c = super.copy(['elevation', 'points']);
+        c.elevation = new Elevation(this.elevation.axis);
         c.points = [];
         for (const p of this.points) {
             c.points.push(new SIREPO.GEOMETRY.Point(...p.coords()));
