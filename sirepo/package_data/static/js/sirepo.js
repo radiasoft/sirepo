@@ -10,6 +10,21 @@ SIREPO.nonDataFileFrame = -1;
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.moduleError = {
+    hasError: false,
+    errorLoadingModules: () => {
+        if (! SIREPO.moduleError.hasError) {
+            alert('There was an error loading the Sirepo JavaScript libraries.\nPlease reload your browser page.');
+            SIREPO.moduleError.hasError = true;
+            throw new Error('Sirepo JavasScript library failure');
+        }
+    }
+};
+
+if (! window.angular || ! window.$) {
+    SIREPO.moduleError.errorLoadingModules();
+}
+
 SIREPO.beamlineItemLogic = function(name, init) {
     SIREPO.app.directive(name, function(beamlineService, utilities) {
 
@@ -107,6 +122,7 @@ angular.element(document).ready(function() {
         t.onload = function () {
             d.resolve();
         };
+        t.onerror = () => SIREPO.moduleError.errorLoadingModules();
         return d.promise();
     }
 
