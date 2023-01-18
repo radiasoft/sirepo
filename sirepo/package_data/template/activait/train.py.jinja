@@ -62,14 +62,15 @@ def _predictions_final(predictions, testy):
     return p
 
 def _predictions_initial(testx, testy):
+    pred = model.predict(testx)
+    print(pred.shape)
     if split.test_gen.outScaler:
-        t = split.test_gen.outScaler.inverse_transform(testy)
         return PKDict(
-            p=split.test_gen.outScaler.inverse_transform(model.predict(testx)),
-            testy=t.flatten() if {{ imageToImage }} else t,
+            p=split.test_gen.outScaler.inverse_transform(pred),
+            testy=split.test_gen.outScaler.inverse_transform(t).flatten() if {{ imageToImage }} else split.test_gen.outScaler.inverse_transform(t),
         )
     return PKDict(
-        p=model.predict(x=testx),
+        p=pred,
         testy=np.array(testy).flatten() if {{ imageToImage }} else testy,
     )
 
