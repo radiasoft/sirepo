@@ -14,7 +14,7 @@ SIREPO.moduleError = {
     hasError: false,
     errorLoadingModules: () => {
         if (! SIREPO.moduleError.hasError) {
-            alert('There was an error loading the Sirepo JavaScript libraries.\nPlease reload your browser page.');
+            window.alert('There was an error loading the Sirepo JavaScript libraries.\nPlease reload your browser page.');
             SIREPO.moduleError.hasError = true;
             throw new Error('Sirepo JavasScript library failure');
         }
