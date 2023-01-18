@@ -153,8 +153,7 @@ class API(sirepo.quest.API):
                 "ip={}: error parsing javascript exception={} input={}",
                 ip,
                 e,
-                self.sreq.internal_req.data
-                and self.sreq.internal_req.data.decode("unicode-escape"),
+                self.sreq.body_as_unicode_escape(),
             )
         return self.reply_ok()
 
@@ -285,7 +284,7 @@ class API(sirepo.quest.API):
                 raise sirepo.util.Error(
                     "must supply a file",
                     "no file in request={}",
-                    self.sreq.internal_req.data,
+                    self.sreq.body_as_unicode_escape(),
                 )
             req = self.parse_params(
                 filename=f.filename,

@@ -39,6 +39,25 @@ import time
 __cfg = None
 
 
+def tornado():
+    with pkio.save_chdir(_run_dir()) as r:
+        sirepo.pkcli.setup_dev.default_command()
+        # above will throw better assertion, but just in case
+        assert pkconfig.channel_in("dev")
+        if _cfg().use_reloader:
+            import tornado.autoreload
+
+            for f in sirepo.util.files_to_watch_for_reload("json", "py"):
+                tornado.autoreload.watch(f)
+        pkdlog("ip={} port={}", _cfg().ip, _cfg().port)
+        sirepo.modules.import_and_init("sirepo.auth")
+        sirepo.modules.import_and_init("sirepo.uri_router").start_tornado(
+            ip=_cfg().ip,
+            port=_cfg().port,
+            debug=True,
+        )
+
+
 def flask():
     from werkzeug import serving
 

@@ -6,6 +6,7 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+import base64
 import email.utils
 import pykern.pkcompat
 import sirepo.const
@@ -19,7 +20,7 @@ _POST_ATTR = "sirepo_http_request_post"
 _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
 
-def init_quest(qcall):
+def init_quest(qcall, internal_req=None):
     if qcall.bucket_unchecked_get("in_srunit"):
         sreq = _SRequest(
             http_authorization=None,
@@ -27,22 +28,56 @@ def init_quest(qcall):
             http_method="GET",
             http_request_uri="/",
             http_server_uri="http://localhost",
-            internal_req=None,
+            internal_req=internal_req,
             remote_addr="0.0.0.0",
         )
-    else:
+    elif "werkzeug" in str(type(internal_req)):
         import flask
 
         sreq = _SRequest(
-            http_authorization=flask.request.authorization,
-            http_headers=flask.request.headers,
-            http_method=flask.request.method,
-            http_request_uri=flask.request.url,
+            http_authorization=internal_req.authorization,
+            http_headers=internal_req.headers,
+            http_method=internal_req.method,
+            http_request_uri=internal_req.url,
             http_server_uri=flask.url_for("_flask_dispatch_empty", _external=True),
-            internal_req=flask.request,
-            remote_addr=flask.request.remote_addr,
+            internal_req=internal_req,
+            remote_addr=internal_req.remote_addr,
         )
+    elif "tornado" in str(type(internal_req)):
+        r = internal_req.request
+        sreq = _SRequest(
+            http_authorization=_parse_authorization(r.headers.get("Authorization")),
+            http_headers=r.headers,
+            http_method=r.method,
+            http_request_uri=r.uri,
+            http_server_uri=f"{r.protocol}://{r.host}",
+            internal_req=internal_req,
+            remote_addr=r.remote_ip,
+        )
+    else:
+        raise AssertionError(f"unknown internal_req={type(internal_req)}")
     qcall.attr_set("sreq", sreq)
+
+
+def _parse_authorization(value):
+    if not value:
+        return None
+    try:
+        t, i = value.split(None, 1)
+        t = t.lower()
+    except Exception:
+        raise sirepo.util.Forbidden("unparseable authorization header={}", value)
+    if t != "basic":
+        raise sirepo.util.Forbidden("unhandled authorization type={}", t)
+    try:
+        u, p = base64.b64decode(i).split(b":", 1)
+    except Exception:
+        raise sirepo.util.Forbidden("unparseable authorization info={} type={}", i, t)
+    return PKDict(
+        type=t,
+        username=pykern.pkcompat.from_bytes(u),
+        password=pykern.pkcompat.from_bytes(p),
+    )
 
 
 class _SRequest(sirepo.quest.Attr):
@@ -50,6 +85,9 @@ class _SRequest(sirepo.quest.Attr):
 
     def body_as_bytes(self):
         return self.internal_req.get_data(cache=False)
+
+    def body_as_unicode_escape(self):
+        return self.internal_req.data or self.internal_req.data.decode("unicode-escape")
 
     def content_type_encoding(self):
         return self.__content_type().get("charset")
