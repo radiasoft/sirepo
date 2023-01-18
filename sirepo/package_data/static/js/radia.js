@@ -667,7 +667,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        let view = new SIREPO.VTK.ExtrudedCuboidViews(o.id, o.name, center, size, scale);
+        let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
         if (supers.includes('extrudedPoly')) {
             if (! o.points.length) {
                 return null;

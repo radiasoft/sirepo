@@ -27,6 +27,14 @@ class Elevation {
         };
     }
 
+    static POINT_TRANSFORMS() {
+        return {
+            x: [[1, 0], [0, 1]],
+            y: [[0, 1], [1, 0]],
+            z: [[1, 0], [0, 1]],
+        };
+    }
+
     constructor(axis) {
         if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(axis)) {
             throw new Error('Invalid axis: ' + axis);
@@ -81,7 +89,7 @@ class ObjectViews {
         if (! this._AXES.includes(dim)) {
             throw new Error('Invalid axis: ' + dim);
         }
-        shape.elevation = new Elevation(dim);
+        shape.transform = Elevation.POINT_TRANSFORMS()[dim];
         shape.id = this.id;
         shape.name = this.name;
         this.shapes[dim] = shape;
@@ -162,7 +170,6 @@ class CuboidViews extends ObjectViews {
 }
 
 class ExtrudedPolyViews extends ObjectViews {
-
     constructor(id, name, center=[0, 0], size=[1, 1], axis='z', points=[[0,0],[0,1],[1,1]], scale) {
         super(id, name, center, size, scale);
         this.axis = axis;
@@ -205,16 +212,16 @@ class ExtrudedPolyViews extends ObjectViews {
         for (const dim in this.shapes) {
             const i = this._AXES.indexOf(dim);
             const s = this.shapes[dim];
-            const xi = this._AXES.indexOf(s.elevation.labDimensions.x.axis);
-            const yi = this._AXES.indexOf(s.elevation.labDimensions.y.axis);
-            srdbg(dim, xi, yi);
+            //const xi = this._AXES.indexOf(s.elevation.labAxis('x'));
+            //const yi = this._AXES.indexOf(s.elevation.labAxis('y'));
+            srdbg(dim, 'xl', x);
             s.addTransform(l.minor(i, i));
             s.translate(x);
         }
     }
 }
 
-class ExtrudedCuboidViews extends ExtrudedPolyViews {
+class CuboidViews extends ExtrudedPolyViews {
     constructor(id, name, center=[0, 0], size=[1, 1], scale) {
         super(
             id,
@@ -3085,7 +3092,6 @@ SIREPO.VTK = {
     BoxBundle: BoxBundle,
     CoordMapper: CoordMapper,
     CuboidViews: CuboidViews,
-    ExtrudedCuboidViews: ExtrudedCuboidViews,
     ExtrudedPolyViews: ExtrudedPolyViews,
     LineBundle: LineBundle,
     ObjectViews: ObjectViews,

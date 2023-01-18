@@ -73,7 +73,9 @@ class AbstractPlotShape {
     }
 
     copy(exclude=[]) {
-        return SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'affineTransform']));
+        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'transform']))
+        c.transform = new SIREPO.GEOMETRY.SquareMatrix(this.transform.val);
+        return c;
     }
 
     getCoords(obj) {
@@ -166,8 +168,9 @@ class AbstractPlotShape2D extends AbstractPlotShape {
     }
 
     translate(x) {
-       this.center.x += x[0];
-       this.center.y += x[1];
+        const t = this.transform.multiply(x);
+        this.center.x += t[0];
+        this.center.y += t[1];
     }
 
     getCenterCoords() {
@@ -237,8 +240,7 @@ class PlotPolygon extends AbstractPlotShape2D {
     }
 
     copy() {
-        const c = super.copy(['elevation', 'points']);
-        c.elevation = new Elevation(this.elevation.axis);
+        const c = super.copy(['points']);
         c.points = [];
         for (const p of this.points) {
             c.points.push(new SIREPO.GEOMETRY.Point(...p.coords()));
