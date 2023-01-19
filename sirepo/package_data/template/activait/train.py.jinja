@@ -57,9 +57,17 @@ def _predictions_final(predictions, testy):
         p = np.argmax(predictions, axis=1)
     {# TODO (gurhar1133) argmax or something for image to image predictions? #}
     if {{ imageToImage }}:
-        p = numpy.array([numpy.expand_dims(numpy.argmax(x, axis=-1), axis=-1) for x in predictions])
+        print("pre agmax predictions=", predictions)
+        f = []
+        for prediction in predictions:
+            mask = numpy.argmax(prediction, axis=-1)
+            mask = numpy.expand_dims(mask, axis=-1)
+            f.append(mask)
+        {# p = numpy.array([numpy.expand_dims(numpy.argmax(x, axis=-1), axis=-1) for x in predictions]) #}
+        {# print("f=", f) #}
+
+        p = numpy.array(f).flatten()
         print("p after reshape and argmax", p)
-        p = p.flatten()
         {# p = np.argmax(predictions, axis=1).flatten() #}
     return p
 
