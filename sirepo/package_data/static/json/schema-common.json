@@ -113,7 +113,7 @@
         "authGithubAuthorized": "/auth-github-authorized",
         "authGithubLogin": "/auth-github-login/<simulation_type>",
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
-        "authLdapAuthorized": "/auth-ldap-authorized",
+        "authLdapLogin": "/auth-ldap-login",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
         "beginSession": "/begin-session",

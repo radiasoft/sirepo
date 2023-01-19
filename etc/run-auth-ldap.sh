@@ -11,21 +11,17 @@ export PYKERN_PKDEBUG_WANT_PID_TIME=1
 
 # primary cause of failed wheel generation
 pip install --upgrade pip
-echo "upgraded pip"
 
 # install prerequisites
 sudo yum groupinstall "Development tools"
 sudo yum install openldap-devel python-devel
-echo "installed prerequisites"
 
 # secondary cause of failed wheel generation
 pip install --upgrade setuptools wheel
-echo "installed wheel setup"
 
 # main installs
 pip install python-ldap
 sudo yum -y install openldap-clients openldap-servers
-echo "installed ldap"
 
 sudo systemctl start slapd
 sudo systemctl enable slapd

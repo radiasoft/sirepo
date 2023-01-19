@@ -3061,12 +3061,12 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
                 else {
                     $scope.showWarning = false;
                     requestSender.sendRequest(
-                        'authLdapAuthorized',
+                        'authLdapLogin',
                         handleResponse,
                         {
                             username: $scope.data.username,
                             password: $scope.data.password,
-                            simulation_type: SIREPO.APP_SCHEMA.simulationType
+                            simulationType: SIREPO.APP_SCHEMA.simulationType
                         }
                     );
                 }
