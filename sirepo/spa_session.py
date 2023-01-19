@@ -15,11 +15,7 @@ import sirepo.srtime
 import sirepo.util
 import sqlalchemy
 
-_RENEW_SESSION_TIMEOUT_SECS = 5 * 60
-
-_USER_AGENT_ID_HEADER = "X-Sirepo-UserAgentId"
-
-_ID_ATTR = "session_id"
+_REFRESH_SESSION = datetime.timedelta(seconds=5 * 60)
 
 _DB = PKDict()
 
@@ -31,7 +27,6 @@ def init_module():
     if _initialized:
         return
     _initialized = True
-    # sirepo.events.register(PKDict(end_api_call=_end_api_call))
 
 
 def init_quest(qcall):
@@ -41,30 +36,20 @@ def init_quest(qcall):
         except Exception as e:
             pkdlog("error={} trying api_beginSession stack={}", e, pkdexc())
 
-    def _new_session(user_agent_id=None):
-        if not qcall.auth.is_logged_in():
-            return
-        with sirepo.util.THREAD_LOCK:
-            _DB[qcall.auth.logged_in_user(check_path=False)] = sirepo.srtime.utc_now()
-        _begin()
-
-    def _update_session():
-        s = _DB.get(qcall.auth.logged_in_user(check_path=False))
+    def _check():
+        u = qcall.auth.logged_in_user(check_path=False)
+        t = sirepo.srtime.utc_now()
+        s = _DB.get(u)
         if s:
-            t = sirepo.srtime.utc_now()
-            if (
-                t - s.request_time
-                > datetime.timedelta(seconds=_RENEW_SESSION_TIMEOUT_SECS)
-            ):
-                _begin()
-        # don't need THREAD_LOCK here, because these values are likely to be constant
-        s.request_time =
-        return user_agent_id
+            if t - s.request_time < _REFRESH_SESSION:
+                return False
+            with sirepo.util.THREAD_LOCK:
+                s.request_time = t
+        else:
+            s = PKDict(request_time=t)
+            with sirepo.util.THREAD_LOCK:
+                _DB[u] = s
+        return True
 
-    if qcall.sreq.method_is_post() or not qcall.auth.is_logged_in():
-        _update_session()
-
-def _end_api_call(qcall, kwargs):
-    i = qcall.bucket_unchecked_get(_ID_ATTR)
-    if i:
-        kwargs.resp.header_set(_USER_AGENT_ID_HEADER, i)
+    if qcall.sreq.method_is_post() and qcall.auth.is_logged_in() and _check():
+        _begin()
