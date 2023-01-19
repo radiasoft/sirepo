@@ -175,10 +175,9 @@ class ExtrudedPolyViews extends ObjectViews {
             }
         }
         for (const dim of [axis, w, h]) {
-            this.addView(
-                dim,
-                new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(dim))
-            );
+            const s = new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(dim));
+            s.z = this.center[this._AXES.indexOf(dim)];
+            this.addView(dim, s);
         }
     }
 
@@ -2061,7 +2060,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     const norm = 'xyz'.replace(new RegExp('[' + elevation.coordPlane + ']', 'g'), '');
                     layouts[l] = shapes
                         .filter(s => s.layoutShape === l)
-                        .sort((s1, s2) => (s2.center[norm] - s2.size[norm] / 2) - (s1.center[norm] - s1.size[norm] / 2))
+                        .sort((s1, s2) => s2.z - s1.z)
                         .sort((s1, s2) => s1.draggable - s2.draggable);
                 });
 

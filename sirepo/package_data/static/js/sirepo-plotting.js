@@ -54,14 +54,19 @@ class AbstractPlotShape {
         this.strokeWidth = 1.0;
 
         this.axes = ['x', 'y'];
+        this.center = new SIREPO.GEOMETRY.Point(0, 0);
         this.draggable = true;
         this.elevation = null;
-        this.transform = new SIREPO.GEOMETRY.IdentityMatrix(2);
         this.links = [];
+        this.size = {x: 0.0, y: 0.0};
+        this.transform = new SIREPO.GEOMETRY.IdentityMatrix(2);
 
         // d3 events require x and y
         this.x = 0;
         this.y = 0;
+
+        // used to sort
+        this.z = 0;
     }
 
     addLink(otherShape, linkFunction) {
@@ -70,6 +75,13 @@ class AbstractPlotShape {
 
     addTransform(t) {
         this.transform = this.transform.multiply(t);
+    }
+
+    bounds() {
+        return {
+            x: [0.0, 0.0],
+            y: [0.0, 0.0],
+        };
     }
 
     copy(exclude=[]) {

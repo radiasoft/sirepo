@@ -551,8 +551,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.isDropEnabled = () => self.dropEnabled;
 
-    self.loadShapes = loadShapes;
-
     self.loadObjectViews = loadObjectViews;
 
     self.objectsOfType = type => appState.models.geometryReport.objects.filter(o => o.type === type);
@@ -1076,12 +1074,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return -1;
     }
 
-    function loadShapes() {
-        self.shapes = [];
-        appState.models.geometryReport.objects.forEach(addShapesForObject);
-        addBeamAxis();
-    }
-
     function loadObjectViews() {
         self.views = [];
         appState.models.geometryReport.objects.forEach(addViewsForObject);
@@ -1144,10 +1136,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
         };
         shapes.forEach(s => {
-            if (! s.bounds) {
-                return;
-            }
-            const sb = s.bounds();
+            const sb = s.bounds ? s.bounds() : {x: [0, 0], y: [0, 0]};
             for (const dim in b) {
                 b[dim] = [
                     Math.min(b[dim][0], sb[dim][0]),
@@ -1222,7 +1211,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     if (! appState.models.geometryReport.objects) {
         appState.models.geometryReport.objects = [];
     }
-    //loadShapes();
     loadObjectViews();
 
     $scope.$on('modelChanged', function(e, modelName) {
@@ -1258,7 +1246,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         radiaService.saveGeometry(true, false, () => {
             if (self.selectedObject) {
-                //loadShapes();
                 loadObjectViews();
             }
         });
@@ -3844,7 +3831,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     function updateShapes() {
         radiaService.saveGeometry(true, false, () => {
-            //ctl.loadShapes();
             ctl.loadObjectViews();
             $rootScope.$broadcast('shapes.loaded');
         });
