@@ -675,13 +675,17 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        let view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
+        let view;
         if (supers.includes('extrudedPoly')) {
             if (! o.points.length) {
                 return null;
             }
             view = new SIREPO.VTK.ExtrudedPolyViews(o.id, o.name, center, size, o.extrusionAxis, o.points, scale);
         }
+        else {
+            view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
+        }
+
         view.setShapeProperties(
             {
                 alpha: 0.3,
@@ -832,12 +836,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addViewsForObject(o) {
 
-        function addCopyingTransform(v, t) {
-            const c = v.copy();
-            c.addTransform(t);
-            v.addVirtualView(c);
-        }
-
         const isGroup = (o.members || []).length;
         let baseViews = self.getObjectView(o.id);
         if (! baseViews) {
@@ -868,7 +866,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                         new SIREPO.GEOMETRY.Point(...radiaService.scaledArray(xform.symmetryPoint))
                     )
                 );
-                addCopyingTransform(baseViews, r);
+                baseViews.addCopyingTransform(r);
                 if (isGroup) {
                     for (const m_id of o.members) {
                         let mv = self.getObjectView(m_id);
@@ -876,7 +874,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                             mv = self.viewsForObject(self.getObject(m_id));
                             self.views.push(mv);
                         }
-                        addCopyingTransform(mv, r);
+                        mv.addCopyingTransform(r);
                     }
                 }
                 continue;

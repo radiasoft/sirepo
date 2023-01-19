@@ -217,6 +217,30 @@ class GeometricObject {
  */
 class Matrix extends GeometricObject {
 
+    static dot(v1, v2) {
+        return v1.reduce((sum, x, i) => sum + x * v2[i], 0);
+    }
+
+    static mult(m1, m2) {
+        let m = [];
+        for(let i in m1) {
+            let c = [];
+            for(let j in m2) {
+                c.push(m2[j][i]);
+            }
+            m.push(Matrix.vect(m1, c));
+        }
+        return m;
+    }
+
+    static vect(m, v) {
+        let r = [];
+        for (let x of m) {
+            r.push(Matrix.dot(x, v));
+        }
+        return r;
+    }
+
     /**
      * @param {[number] | [[number]]} val - an array representing the matrix
      * @throws - if the dimension is > 2
@@ -355,24 +379,12 @@ class Matrix extends GeometricObject {
             throw new Error(this.errorMessage(`Argument must have lesser or equal dimension (${matrix.dimension} > ${this.dimension})`));
         }
 
-        function dot(v1, v2) {
-            return v1.reduce((sum, x, i) => sum + x * v2[i], 0);
-        }
-
-        function vect(m, v) {
-            let r = [];
-            for (let x of m) {
-                r.push(dot(x, v));
-            }
-            return r;
-        }
-
         // vector * vector (dot product)
         if (this.dimension === 1) {
             if (this.numCols !== matrix.numCols) {
                 throw new Error(this.errorMessage(`Vectors must have same length (${this.numCols} != ${matrix.numCols})`));
             }
-            return dot(this.val, matrix.val);
+            return Matrix.dot(this.val, matrix.val);
         }
 
         if (this.numRows !== matrix.numCols) {
@@ -381,19 +393,11 @@ class Matrix extends GeometricObject {
 
         // matrix * vector
         if (matrix.dimension === 1) {
-            return new Matrix(vect(this.val, matrix.val));
+            return new Matrix(Matrix.vect(this.val, matrix.val));
         }
 
         // matrix * matrix
-        let m = [];
-        for(let i in this.val) {
-            let c = [];
-            for(let j in matrix.val) {
-                c.push(matrix.val[j][i]);
-            }
-            m.push(vect(this.val, c));
-        }
-        return (new Matrix(m)).transpose();
+        return (new Matrix(Matrix.mult(this.val, matrix.val))).transpose();
     }
 
     /**

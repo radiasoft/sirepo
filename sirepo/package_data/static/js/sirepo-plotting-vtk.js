@@ -78,6 +78,12 @@ class ObjectViews {
         this.virtualViews = [];
     }
 
+    addCopyingTransform(t) {
+        const c = this.copy();
+        c.addTransform(t);
+        this.addVirtualView(c);
+    }
+
     addTransform(t) {
         this.affineTransform = this.affineTransform.multiplyAffine(t);
         for (const v of this.virtualViews) {
@@ -89,7 +95,6 @@ class ObjectViews {
         if (! this._AXES.includes(dim)) {
             throw new Error('Invalid axis: ' + dim);
         }
-        shape.transform = Elevation.POINT_TRANSFORMS()[dim];
         shape.id = this.id;
         shape.name = this.name;
         this.shapes[dim] = shape;
@@ -151,78 +156,84 @@ class ObjectViews {
     }
 }
 
-class CuboidViews extends ObjectViews {
-    constructor(id, name, center, size, scale) {
-        super(id, name, center, size, scale);
-        this._AXES.forEach((dim, k) => {
-            const [i, j]  = this.nextAxisIndices(dim);
-            this.addView(
-                dim,
-                new SIREPO.PLOTTING.PlotRect(
-                    this.id,
-                    this.name,
-                    [this.center[i], this.center[j]],
-                    [this.size[i], this.size[j]],
-                )
-            )
-        });
-    }
-}
-
 class ExtrudedPolyViews extends ObjectViews {
-    constructor(id, name, center=[0, 0], size=[1, 1], axis='z', points=[[0,0],[0,1],[1,1]], scale) {
+    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], axis='z', points=[[0,0],[0,1],[1,1]], scale) {
         super(id, name, center, size, scale);
         this.axis = axis;
-        this.points = points.map(p => this.scaledArray(p));
-        this.addView(
-            this.axis,
-            new SIREPO.PLOTTING.PlotPolygon(id, name, this.points)
-        );
         const k = this._AXES.indexOf(axis);
-        const cp = this.center[k] + this.size[k] / 2.0;
-        const cm = this.center[k] - this.size[k] / 2.0;
         const [w, h] = this.nextAxes(axis);
-        let p = this.points.map(x => x[1]);
-        let [mx, mn] = [Math.max(...p), Math.min(...p)];
-        this.addView(
-            w,
-            new SIREPO.PLOTTING.PlotPolygon(
-                id,
-                name,
-                [[mx, cm], [mx, cp], [mn, cp], [mn, cm]]
-            )
-        );
-
-        p = this.points.map(x => x[0]);
-        [mx, mn] = [Math.max(...p), Math.min(...p)];
-        this.addView(
-            h,
-            new SIREPO.PLOTTING.PlotPolygon(
-                id,
-                name,
-                [[cm, mx], [cp, mx], [cp, mn], [cm, mn]]
-            )
-        );
+        const [i, j] = this.nextAxisIndices(axis);
+        this.points = [];
+        const pts = points.map(p => this.scaledArray(p));
+        for (const z of [this.center[k] - this.size[k] / 2.0,this.center[k] + this.size[k] / 2.0]) {
+            for (const p of pts) {
+                let pp = [0, 0, 0];
+                pp[i] = p[0];
+                pp[j] = p[1];
+                pp[k] = z;
+                this.points.push(new SIREPO.GEOMETRY.Point(...pp));
+            }
+        }
+        for (const dim of [axis, w, h]) {
+            this.addView(
+                dim,
+                new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(dim))
+            );
+        }
     }
 
     addTransform(t) {
         super.addTransform(t);
         const l = t.getLinearMinor();
         const x = t.getTranslation().deltas;
-        for (const dim in this.shapes) {
-            const i = this._AXES.indexOf(dim);
-            const s = this.shapes[dim];
-            //const xi = this._AXES.indexOf(s.elevation.labAxis('x'));
-            //const yi = this._AXES.indexOf(s.elevation.labAxis('y'));
-            srdbg(dim, 'xl', x);
-            s.addTransform(l.minor(i, i));
-            s.translate(x);
+        for (let p of this.points) {
+            const c = SIREPO.GEOMETRY.Matrix.vect(l.val, p.coords());
+            p.x = c[0] + x[0];
+            p.y = c[1] + x[1];
+            p.z = c[2] + x[2];
         }
+        for (const dim in this.shapes) {
+            const sp = this.shapePoints(dim);
+            this.shapes[dim].points.forEach((p, i) => {
+                p.x = sp[i][0];
+                p.y = sp[i][1];
+            });
+        }
+    }
+
+    copy(exclude = []) {
+        const c = super.copy(exclude.concat('points'));
+        c.points = [];
+        for (const p of this.points) {
+            c.points.push(new SIREPO.GEOMETRY.Point(p.x, p.y, p.z));
+        }
+        return c;
+    }
+
+    shapePoints(dim) {
+        const inds = this.nextAxisIndices(this.axis);
+        if (dim === this.axis) {
+            return this.points.slice(0, this.points.length / 2).map(x => {
+                const c = x.coords();
+                return [c[inds[0]], c[inds[1]]];
+            });
+        }
+
+        const k = this._AXES.indexOf(this.axis);
+        let lp = this.points.map(x => x.coords()[k]);
+        let [ln, lx] = [Math.min(...lp), Math.max(...lp)];
+        const j = inds.indexOf(this._AXES.indexOf(dim));
+        let p = this.points.map(x => x.coords()[inds[1 - j]]);
+        let [mn, mx] = [Math.min(...p), Math.max(...p)];
+        return [
+            [[mx, ln], [mx, lx], [mn, lx], [mn, ln]],
+            [[lx, mx], [ln, mx], [ln, mn], [lx, mn]]
+        ][j];
     }
 }
 
 class CuboidViews extends ExtrudedPolyViews {
-    constructor(id, name, center=[0, 0], size=[1, 1], scale) {
+    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], scale) {
         super(
             id,
             name,

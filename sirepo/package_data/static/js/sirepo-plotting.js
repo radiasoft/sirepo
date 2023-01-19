@@ -148,11 +148,6 @@ class AbstractPlotShape {
 }
 
 class AbstractPlotShape2D extends AbstractPlotShape {
-
-    static sss() {
-
-    }
-
     constructor(
         id,
         name,
@@ -168,9 +163,8 @@ class AbstractPlotShape2D extends AbstractPlotShape {
     }
 
     translate(x) {
-        const t = this.transform.multiply(x);
-        this.center.x += t[0];
-        this.center.y += t[1];
+        this.center.x += x[0];
+        this.center.y += x[1];
     }
 
     getCenterCoords() {
@@ -232,7 +226,6 @@ class PlotPolygon extends AbstractPlotShape2D {
             p.x = pp[0];
             p.y = pp[1];
         }
-        srdbg(this.id, this.points, t.val);
     }
 
     bounds() {
