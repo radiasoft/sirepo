@@ -437,7 +437,7 @@ def _split_uri(uri):
             rp.is_path_info = False
         rp.name = m.group(2)
         if rp.is_optional:
-            assert not in_optional, "{}: too many optional parameters".format(uri)
+            #assert not in_optional, "{}: too many optional parameters".format(uri)
             in_optional = True
         else:
             assert (
