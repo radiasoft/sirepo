@@ -56,10 +56,16 @@ def stateless_compute_scan_fields(data):
 
 
 def _request_scan_monitor(data):
+    c = sirepo.feature_config.for_sim_type(SIM_TYPE)
     try:
         r = requests.post(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).scan_monitor_url,
+            c.scan_monitor_url,
             json=data,
+            headers=PKDict(
+                {
+                    sirepo.util.AUTH_HEADER: f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} {c.scan_monitor_api_secret}"
+                }
+            ),
         )
         r.raise_for_status()
     except requests.exceptions.ConnectionError as e:

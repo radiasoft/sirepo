@@ -179,6 +179,11 @@ def _init():
                 str,
                 "url to reach scan monitor daemon",
             ),
+            scan_monitor_api_secret=(
+                "a secret",
+                str,
+                "secret to secure communication with scan monitor",
+            ),
         ),
         # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
         react_sim_types=(
