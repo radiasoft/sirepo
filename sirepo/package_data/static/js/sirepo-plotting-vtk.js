@@ -2268,42 +2268,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return axes[dim].scale(shape.center[getElevation().labAxis(dim)]);
             }
 
-            function shapeRotation(shape) {
-                //srdbg(shape.affineTransform);
-                const r = shape.affineTransform.getRotation();
-                srdbg(r.toAxisAngle(true));
-                const tl = shape.affineTransform.getTranslation();
-                const d = tl.deltas;
-                const e = r.toEuler(true);
-                const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(getElevation().axis)];
-                const c = shape.getCenterCoords();
-                const tc = c.map((x, i) => x + d[i]);
-                const rc = r.multiply(
-                    new SIREPO.GEOMETRY.Matrix([...c, 0])
-                ).val;
-                const t = {x: 0, y: 0};
-                if (! shape.rotateAroundShapeCenter) {
-                    for (const dim in t) {
-                        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(getElevation()[dim].axis);
-                        const s = axes[dim].scale;
-                        t[dim] = s(rc[i]) - s(c[i]);
-                    }
-                }
-                return `
-                    rotate(${-angle},${shapeCenter(shape, 'x')},${shapeCenter(shape, 'y')}) 
-                    translate(${t.x},${t.y})
-                `;
-            }
-
             function linePoints(shape) {
                 if (! shape.line || getElevation().coordPlane !== shape.coordPlane) {
                     return null;
                 }
-
-                //var pl = geometry.plane(vtkPlotting.COORDINATE_PLANES[shape.elev.coordPlane], geometry.point());
-                //if (! pl.intersectsLine(shape.line)) {
-                //    return null;
-                //}
 
                 const lp = shape.line.points;
                 const labX = getElevation().labAxis('x');
@@ -2333,6 +2301,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return Math.abs(axes[dim].scale(c + s / 2) - axes[dim].scale(c - s / 2));
             }
 
+            //TODO(mvk): set only those attributes that pertain to each svg shape
             function updateShapeAttributes(selection) {
                 selection
                     .attr('class', 'vtk-object-layout-shape')
@@ -2378,13 +2347,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             return `${fill}; stroke: ${shapeColor(d.color)}; stroke-width: ${d.strokeWidth || 1.0}`;
                         }
                     })
-                    .attr('stroke-dasharray', d => d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "")
-                    .attr('transform', d => {
-                        if (d.rotationMatrix) {
-                            return shapeRotation(d);
-                        }
-                        return '';
-                    });
+                    .attr('stroke-dasharray', d => d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "");
                 let tooltip = selection.select('title');
                 if (tooltip.empty()) {
                     tooltip = selection.append('title');
