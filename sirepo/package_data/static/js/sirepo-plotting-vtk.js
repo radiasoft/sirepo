@@ -78,10 +78,13 @@ class ObjectViews {
         this.virtualViews = [];
     }
 
-    addCopyingTransform(t) {
-        const c = this.copy();
-        c.addTransform(t);
-        this.addVirtualView(c);
+    addCopyingTransform(t, numCopies=1) {
+        let c = this;
+        for (let i = 1; i <= numCopies; ++i) {
+            c = c.copy();
+            c.addTransform(t);
+            this.addVirtualView(c);
+        }
     }
 
     addTransform(t) {

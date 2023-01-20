@@ -711,13 +711,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             self.views.push(baseViews);
         }
-        let plIds = [];
         for (const xform of o.transforms) {
             const t = xform.type;
             if (t === 'rotate') {
                 baseViews.addTransform(
                     new SIREPO.GEOMETRY.RotationMatrix(
-                        radiaService.scaledArray(xform.axis),
+                        xform.axis,
                         radiaService.scaledArray(xform.useObjectCenter === "1" ? o.center : xform.center),
                         Math.PI * parseFloat(xform.angle) / 180.0
                     )
@@ -745,68 +744,31 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
                 continue;
             }
-            /*
-            for (const e in baseViews.shapes) {
-                const baseShape = baseViews.shapes[e];
-                // draw the shapes for symmetry planes once
-                if (t === 'symmetryTransform') {
-                    plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
-                }
-               // each successive transform must be applied to all previous shapes
-                for (const xShape of [baseShape, ...getVirtualShapes(baseShape, plIds)]) {
-                    // these transforms do not copy the object
-
-                    let xo = self.getObject(xShape.id);
-                    let linkTx;
-                    /asterisk
-                    if (t === 'cloneTransform') {
-                        let clones = [];
-                        for (let i = 1; i <= xform.numCopies; ++i) {
-                            let cloneTx = txArr.slice(0);
-                            linkTx = composeFn(cloneTx);
-                            for (let j = 0; j < xform.transforms.length; ++j) {
-                                let cloneXform = xform.transforms[j];
-                                if (cloneXform.type === 'translateClone') {
-                                    cloneTx.push(offsetFn(cloneXform, i));
-                                }
-                                if (cloneXform.type === 'rotateClone') {
-                                    cloneTx.push(rotateFn(cloneXform, i));
-                                }
-                            }
-                            addTxShape(xShape, xform, linkTx);
-                            clones = clones.concat(transformMembers(xo, xform, linkTx, clones));
-                        }
+            if (t === 'cloneTransform') {
+                let xf = new SIREPO.GEOMETRY.AffineMatrix();
+                for (const cloneXform of xform.transforms) {
+                    const ct = cloneXform.type;
+                    if (ct === 'translate') {
+                        xf = xf.multiplyAffine(
+                            new SIREPO.GEOMETRY.TranslationMatrix(radiaService.scaledArray(cloneXform.distance))
+                        );
                     }
-                     asterisk/
-                    if (t === 'symmetryTransform') {
-                        linkTx = mirrorFn(xform);
-                        const txs = addTxShape(xShape, xform, linkTx);
-                        transformMembers(xo, xform, linkTx);
+                    else if (cloneXform.type === 'rotate') {
+                        xf = xf.multiplyAffine(
+                            new SIREPO.GEOMETRY.RotationMatrix(
+                                cloneXform.axis,
+                                radiaService.scaledArray(cloneXform.useObjectCenter === "1" ? o.center : cloneXform.center),
+                                Math.PI * parseFloat(cloneXform.angle) / 180.0
+                            )
+                        )
+                    }
+                    else {
+                        continue;
                     }
                 }
+                baseViews.addCopyingTransform(xf, xform.numCopies);
             }
-            */
         }
-
-        // apply non-copying transforms to the object and its members (if any)
-        /*
-        composeFn(txArr)(baseShape, baseShape);
-        for (const m of getMembers(o)) {
-            let s = self.getShape(m.id);
-            composeFn(txArr)(s, s);
-        }
-
-        if (o.groupId !== '') {
-            let gShape = self.getShape(o.groupId);
-            if (! gShape) {
-                gShape = self.shapeForObject(self.getObject(o.groupId));
-                //self.shapes.push(gShape);
-            }
-            fit(baseShape, gShape);
-            baseShape.addLink(gShape, fit);
-        }
-
-         */
     }
 
     function addSymmetryPlane(baseShape, xform) {
