@@ -998,7 +998,7 @@ class Plane extends GeometricObject {
         return this.equalWithin(this.A, otherPlane.A) &&
             this.equalWithin(this.B, otherPlane.B) &&
             this.equalWithin(this.C, otherPlane.C);
-    };
+    }
 
     mirrorPoint(p) {
         const cp = this.closestPointToPoint(p).coords();
@@ -1028,7 +1028,7 @@ class Plane extends GeometricObject {
                 t * (this.norm[i] * otherPlane.norm[freeIndex] - otherPlane.norm[i] * this.norm[freeIndex])) / d;
             return p;
         };
-    };
+    }
 
     pointInPlane(fixedVal) {
         if (fixedVal !== 0 && ! fixedVal) {
@@ -1051,7 +1051,7 @@ class Plane extends GeometricObject {
         ptArr[nzIdxs[0]] = fixedVal;
         ptArr[nzIdxs[1]] = -fixedVal * this.norm[nzIdxs[0]] / this.norm[nzIdxs[1]];
         return new Point(...ptArr);
-    };
+    }
 }
 
 /*
@@ -1501,7 +1501,7 @@ class VectorUtils {
         return v1.map((x, i) => x + c * v2[i]);
     }
 
-    subtract(v1, v2) {
+    static subtract(v1, v2) {
         return this.combine(v1, v2, -1);
     }
 }

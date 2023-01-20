@@ -532,7 +532,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             s = s.concat(v.allViews(elevation));
         }
         return self.shapes.concat(s);
-    }
+    };
 
     self.getObjectView = id => {
         return self.views.filter( s => s.id === id)[0];
@@ -762,7 +762,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 radiaService.scaledArray(cloneXform.useObjectCenter === "1" ? o.center : cloneXform.center),
                                 Math.PI * parseFloat(cloneXform.angle) / 180.0
                             )
-                        )
+                        );
                     }
                     else {
                         continue;
