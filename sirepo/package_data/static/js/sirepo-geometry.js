@@ -816,6 +816,11 @@ class Transform extends GeometricObject {
  * A point in 2 or 3 dimensions
  */
 class Point extends GeometricObject {
+
+    static sortClockwise(arr, p0) {
+        return arr.sort((p1, p2) => p0.angle(p2) - p0.angle(p1));
+    }
+
     /**
      * @param {number} x - the x coordinate
      * @param {number} y - the y coordinate
@@ -835,6 +840,13 @@ class Point extends GeometricObject {
 
         /** @member {number} - the dimension: 3 if a z value is provided, 2 otherwise */
         this.dimension = 2 + (z === undefined ? 0 : 1);
+    }
+
+    angle(otherPoint) {
+        if (this.x === otherPoint.x) {
+            return 0;
+        }
+        return Math.atan2((otherPoint.y - this.y), (otherPoint.x - this.x));
     }
 
     /**

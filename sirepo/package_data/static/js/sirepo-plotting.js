@@ -85,7 +85,8 @@ class AbstractPlotShape {
     }
 
     copy(exclude=[]) {
-        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'transform']))
+        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['center', 'id', 'transform']))
+        c.center = new SIREPO.GEOMETRY.Point(...this.center.coords());
         c.transform = new SIREPO.GEOMETRY.SquareMatrix(this.transform.val);
         return c;
     }
@@ -174,11 +175,6 @@ class AbstractPlotShape2D extends AbstractPlotShape {
         this.center = new SIREPO.GEOMETRY.Point(...center);
     }
 
-    translate(x) {
-        this.center.x += x[0];
-        this.center.y += x[1];
-    }
-
     getCenterCoords() {
         return this.getCoords(this.center);
     }
@@ -215,20 +211,25 @@ class PlotPolygon extends AbstractPlotShape2D {
         const p = points.map(x => new SIREPO.GEOMETRY.Point(...x));
         const sx = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(p, 'x');
         const sy = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(p, 'y');
+        const ctr = [
+            sx[0].x + (sx[sx.length - 1].x - sx[0].x) / 2,
+            sy[0].y + (sy[sy.length - 1].y - sy[0].y) / 2,
+        ];
+
         super(
             id,
             name,
             'polygon',
-            [
-                sx[0].x + (sx[sx.length - 1].x - sx[0].x) / 2,
-                sy[0].y + (sy[sy.length - 1].y - sy[0].y) / 2,
-            ]
+            ctr
         );
-        this.points = p;
         this.size = {
             x: Math.abs(sx[sx.length - 1].x - sx[0].x),
             y: Math.abs(sy[sy.length - 1].y - sy[0].y),
         };
+        this.center.x = ctr[0];
+        this.center.y = ctr[1];
+
+        this.setPoints(p);
     }
 
     addTransform(t) {
@@ -257,12 +258,9 @@ class PlotPolygon extends AbstractPlotShape2D {
         return this.getCoords(this.size);
     }
 
-    translate(x) {
-        super.translate(x);
-        for (let p of this.points) {
-            p.x += x[0];
-            p.y += x[1];
-        }
+    setPoints(arr) {
+        this.points = arr;
+        //this.points = SIREPO.GEOMETRY.Point.sortClockwise(arr, this.center);
     }
 }
 

@@ -110,6 +110,7 @@ class ObjectViews {
 
     addVirtualView(v) {
         for (const dim in v.shapes) {
+            v.id = `${this.id}-${v.id}`;
             v.shapes[dim].draggable = false;
         }
         this.virtualViews.push(v);
@@ -193,10 +194,7 @@ class ExtrudedPolyViews extends ObjectViews {
         }
         for (const dim in this.shapes) {
             const sp = this.shapePoints(dim);
-            this.shapes[dim].points.forEach((p, i) => {
-                p.x = sp[i][0];
-                p.y = sp[i][1];
-            });
+            this.shapes[dim].setPoints(sp.map(p => new SIREPO.GEOMETRY.Point(...p)));
         }
     }
 
@@ -218,6 +216,9 @@ class ExtrudedPolyViews extends ObjectViews {
             });
         }
 
+        //TODO(mvk): this is for now just a projection of the points so rotations about an
+        // axis other than the extrusion axis will not be accurate in the other planes. Figure
+        // out a generic polygon construction
         const k = this._AXES.indexOf(this.axis);
         let lp = this.points.map(x => x.coords()[k]);
         let [ln, lx] = [Math.min(...lp), Math.max(...lp)];
