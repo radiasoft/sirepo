@@ -582,10 +582,6 @@ class AffineMatrix extends SquareMatrix {
     getTranslation() {
         return new TranslationMatrix(this.transpose().val[3].slice(0, 3));
     }
-
-    hasReflection() {
-        return this.getLinearMinor().det() < 0;
-    }
 }
 
 /*
