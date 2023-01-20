@@ -711,9 +711,10 @@ def init_apis(*args, **kwargs):
 
 def _check_version(qcall):
     import requests
+    assert 0
     pkdp("\n\n\n your version={}", sirepo.__version__)
     r = requests.post(
-        "http://v.radia.run:8000/version-check/post",
+        "http://v.radia.run:8000/version-check/",
         json=PKDict(version=sirepo.__version__)
     )
     # send version to api_versionCheck
