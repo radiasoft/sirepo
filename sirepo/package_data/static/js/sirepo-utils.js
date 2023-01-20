@@ -55,9 +55,11 @@ class SirepoUtils {
         return this.applyInChunks(Math.max, array, -Number.MAX_VALUE);
     }
 
+    // regular cloning etc. does not include methods on class instances
     static copyInstance(o, excludedProperties=[]) {
         const c = new o.constructor();
-        const s = structuredClone(o);
+        // NOTE: structuredClone is recommended, but not defined according to the current jslinter
+        const s = JSON.parse(JSON.stringify(o));  //structuredClone(o);
         for (const p in s) {
             if (excludedProperties.includes(p)) {
                 continue;
@@ -97,7 +99,7 @@ class SirepoUtils {
             .fill('')
             .map(x => BASE62[Math.floor(BASE62.length * Math.random())])
             .join('');
-    };
+    }
 
     static roundToPlaces(val, p) {
         if (p < 0) {

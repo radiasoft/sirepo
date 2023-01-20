@@ -39,8 +39,8 @@ class PlottingUtils {
 class AbstractPlotShape {
     constructor(
         id=SIREPO.UTILS.randomString(),
-        name,
-        layoutShape
+        name='AbstractPlotShape',
+        layoutShape=''
     ) {
         this.alpha = 1.0;
         this.color = null;
@@ -85,7 +85,7 @@ class AbstractPlotShape {
     }
 
     copy(exclude=[]) {
-        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['center', 'id', 'transform']))
+        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['center', 'id', 'transform']));
         c.center = new SIREPO.GEOMETRY.Point(...this.center.coords());
         c.transform = new SIREPO.GEOMETRY.SquareMatrix(this.transform.val);
         return c;
@@ -232,15 +232,6 @@ class PlotPolygon extends AbstractPlotShape2D {
         this.setPoints(p);
     }
 
-    addTransform(t) {
-        super.addTransform(t);
-        for (let p of this.points) {
-            const pp = t.multiply(new Matrix(p.coords())).val;
-            p.x = pp[0];
-            p.y = pp[1];
-        }
-    }
-
     bounds() {
         return SIREPO.GEOMETRY.GeometryUtils.bounds(this.points);
     }
@@ -260,7 +251,6 @@ class PlotPolygon extends AbstractPlotShape2D {
 
     setPoints(arr) {
         this.points = arr;
-        //this.points = SIREPO.GEOMETRY.Point.sortClockwise(arr, this.center);
     }
 }
 

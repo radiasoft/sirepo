@@ -51,19 +51,20 @@ class Elevation {
 }
 
 class ObjectViews {
-    // for convenience
-    _AXES = SIREPO.GEOMETRY.GeometryUtils.BASIS();
 
     static scaledArray(arr, scale) {
         return arr.map(x => scale * x);
-    };
+    }
 
-    constructor(id=SIREPO.UTILS.randomString(), name, center=[0, 0, 0], size=[1, 1, 1], scale=1.0) {
+    constructor(id=SIREPO.UTILS.randomString(), name='ObjectViews', center=[0, 0, 0], size=[1, 1, 1], scale=1.0) {
         this.id = id;
         this.name = name;
         this.scale = scale;
         this.center = this.scaledArray(center);
         this.size = this.scaledArray(size);
+
+        // for convenience
+        this._AXES = SIREPO.GEOMETRY.GeometryUtils.BASIS();
 
         this.affineTransform = new SIREPO.GEOMETRY.AffineMatrix();
         this.shapes = {};
@@ -140,7 +141,7 @@ class ObjectViews {
 
     scaledArray(arr) {
         return ObjectViews.scaledArray(arr, this.scale);
-    };
+    }
     
     setShapeProperties(props) {
         for (const e in this.shapes) {
@@ -153,7 +154,7 @@ class ObjectViews {
 }
 
 class ExtrudedPolyViews extends ObjectViews {
-    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], axis='z', points=[[0,0],[0,1],[1,1]], scale) {
+    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], axis='z', points=[[0,0],[0,1],[1,1]], scale=1.0) {
         super(id, name, center, size, scale);
         this.axis = axis;
         const k = this._AXES.indexOf(axis);
@@ -228,7 +229,7 @@ class ExtrudedPolyViews extends ObjectViews {
 }
 
 class CuboidViews extends ExtrudedPolyViews {
-    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], scale) {
+    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], scale=1.0) {
         super(
             id,
             name,
