@@ -301,6 +301,15 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "fieldPath", data.fieldType, data.name + "." + data.fileType
                 )
             )
+        for o in filter(
+            lambda x: "pointsFile" in x, data.models.geometryReport.objects
+        ):
+            res.append(
+                cls.lib_file_name_with_model_field(
+                    "extrudedPoints", "pointsFile", o.pointsFile
+                )
+            )
+
         return res
 
     @classmethod

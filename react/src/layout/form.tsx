@@ -9,7 +9,6 @@ import {
 import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
 import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
-import "./form.scss";
 import { useShown } from "../hook/shown";
 import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
 import { useStore } from "react-redux";
@@ -61,7 +60,8 @@ export type FieldGridRow = {
 
 export type FieldGridConfig = {
     columns: string[],
-    rows: FieldGridRow[]
+    rows: FieldGridRow[],
+    shown?: string,
 }
 
 export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
@@ -78,6 +78,11 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
         let formState = useContext(CFormStateWrapper);
         let schema = useContext(CSchema);
         let store = useStore();
+        let gridShown = useShown(this.config.shown, true, formState, ValueSelectors.Fields);
+
+        if (! gridShown) {
+            return <></>
+        }
 
         let columns = this.config.columns;
         let rows = this.config.rows;
@@ -85,11 +90,10 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
         let els = [];
 
         let someRowHasLabel = rows.reduce<boolean>((prev: boolean, cur: FieldGridRow) => prev || !!cur.label, false);
-
         els.push( // header row
-            <Row className="sr-form-row" key={"header"}>
+            <Row className="mb-2" key={"header"}>
                 {(someRowHasLabel ? <Col key={"label_dummy"}></Col> : undefined)}
-                {columns.map(colName => <Col key={colName}><Form.Label size={"sm"}>{colName}</Form.Label></Col>)}
+                {columns.map(colName => <Col key={colName}><div className={"lead text-center"}>{colName}</div></Col>)}
             </Row>
         )
 
@@ -99,8 +103,8 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
             let fields = row.fields;
             let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
             let rowElement = shown ? (
-                <Row className="sr-form-row" key={idx}>
-                    {labelElement ? <Col>{labelElement}</Col> : undefined}
+                <Row className="mb-2" key={idx}>
+                    {labelElement ? <Col className="text-end">{labelElement}</Col> : undefined}
                     {columns.map((_, index) => {
                         let fieldDepString = fields[index];
                         let fieldDependency = new Dependency(fieldDepString);
@@ -126,7 +130,7 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
             els.push(rowElement);
         }
 
-        return <Container>{els}</Container>
+        return <>{els}</>
     }
 }
 
@@ -151,7 +155,7 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
 
         let fields = this.config.fields;
 
-        return <Container>
+        return <>
             {fields.map((fieldDepString, idx) => {
                 let fieldDep = new Dependency(fieldDepString);
                 let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDep);
@@ -177,6 +181,6 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
 
                 return undefined;
             })}
-        </Container>
+        </>
     }
 }

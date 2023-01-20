@@ -332,7 +332,7 @@
         "simFolder": {},
         "simulation": {
             "folder": "/Examples",
-            "name": "Reactor"
+            "name": "Tokamak Reactor"
         },
         "volumes": {
             "blanket": {

@@ -12,6 +12,7 @@ import pytest
 
 def test_user_alert(fc):
     from pykern.pkunit import pkeq, pkre
+    from pykern.pkdebug import pkdp
     from sirepo import srunit
 
     d = fc.sr_sim_data()
