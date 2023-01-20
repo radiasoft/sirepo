@@ -641,14 +641,6 @@ class RotationMatrix extends AffineMatrix {
         super(m);
     }
 
-    /**
-     * The 3x3 submatrix that excludes translations
-     * @returns {SquareMatrix}
-     */
-    subMatrix() {
-        return new SquareMatrix(this.minor(3, 3).val);
-    }
-
     toEuler(toDegrees=false) {
         let theta = -Math.asin(this.val[2][0]);
         const c = Math.cos(theta);
@@ -669,28 +661,6 @@ class RotationMatrix extends AffineMatrix {
             phi = Math.atan2(this.val[1][0] / c, this.val[0][0] / c);
         }
         return [psi, theta, phi].map(x => toDegrees ? GeometryUtils.toDegrees(x) : x);
-    }
-
-    toAxisAngle(toDegrees=false) {
-        const s = this.subMatrix();
-        const angle = Math.acos((s.trace() - 1) / 2);
-        const v = s.val;
-        // arbitrary axis
-        let axis = [0, 0, 1];
-        if (Math.abs(angle) === Math.PI) {
-            // special case
-        }
-        if (angle !== 0) {
-            axis = [
-                (v[2][1] - v[1][2]),
-                (v[0][2] - v[2][0]),
-                (v[1][0] - v[0][1])
-            ];
-        }
-        return {
-            axis: VectorUtils.normalize(axis),
-            angle: toDegrees ? GeometryUtils.toDegrees(angle) : angle,
-        };
     }
 }
 
@@ -813,10 +783,6 @@ class Transform extends GeometricObject {
  */
 class Point extends GeometricObject {
 
-    static sortClockwise(arr, p0) {
-        return arr.sort((p1, p2) => p0.angle(p2) - p0.angle(p1));
-    }
-
     /**
      * @param {number} x - the x coordinate
      * @param {number} y - the y coordinate
@@ -836,13 +802,6 @@ class Point extends GeometricObject {
 
         /** @member {number} - the dimension: 3 if a z value is provided, 2 otherwise */
         this.dimension = 2 + (z === undefined ? 0 : 1);
-    }
-
-    angle(otherPoint) {
-        if (this.x === otherPoint.x) {
-            return 0;
-        }
-        return Math.atan2((otherPoint.y - this.y), (otherPoint.x - this.x));
     }
 
     /**
