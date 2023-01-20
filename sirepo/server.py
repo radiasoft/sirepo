@@ -709,17 +709,20 @@ class API(sirepo.quest.API):
 def init_apis(*args, **kwargs):
     pass
 
+
 def _check_version(qcall):
     import requests
-    assert 0
+
     pkdp("\n\n\n your version={}", sirepo.__version__)
     r = requests.post(
         "http://v.radia.run:8000/version-check/",
-        json=PKDict(version=sirepo.__version__)
+        json=PKDict(version=sirepo.__version__),
     )
     # send version to api_versionCheck
     # and recieve update on whether versions match up
+    r.raise_for_status()
     assert 0, f"\n\n\nreturn={r}\n\n\n"
+
 
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
