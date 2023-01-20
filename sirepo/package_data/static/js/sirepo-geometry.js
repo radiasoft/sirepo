@@ -52,7 +52,7 @@ class GeometryUtils {
         if (points[0].dimension === 3) {
             b.z = [Number.MAX_VALUE, -Number.MAX_VALUE];
         }
-        const ex = SIREPO.GEOMETRY.GeometryUtils.extrema;
+        const ex = GeometryUtils.extrema;
         for (const dim in b) {
             b[dim] = [ex(points, dim, true)[0][dim], ex(points, dim, false)[0][dim]];
         }
