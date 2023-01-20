@@ -925,7 +925,7 @@ class Plane extends GeometricObject {
      * @param {[number]} normal vector - will be normalized
      * @param {Point} point
      */
-    constructor(norm, point) {
+    constructor(norm, point=new Point()) {
         if (VectorUtils.isZero(norm)) {
             throw new Error('Must specify a non-zero plane normal: ' + norm);
         }

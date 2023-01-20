@@ -724,13 +724,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 continue;
             }
             if (t === 'symmetryTransform') {
-                //plIds = plIds.concat(addSymmetryPlane(baseShape, xform));
-                const r = new SIREPO.GEOMETRY.ReflectionMatrix(
-                    new SIREPO.GEOMETRY.Plane(
-                        xform.symmetryPlane,
-                        new SIREPO.GEOMETRY.Point(...radiaService.scaledArray(xform.symmetryPoint))
-                    )
+                const plane = new SIREPO.GEOMETRY.Plane(
+                    xform.symmetryPlane,
+                    new SIREPO.GEOMETRY.Point(...radiaService.scaledArray(xform.symmetryPoint))
                 );
+                //TODO(mvk): symmetry plane shapes
+                const r = new SIREPO.GEOMETRY.ReflectionMatrix(plane);
                 baseViews.addCopyingTransform(r);
                 if (isGroup) {
                     for (const m_id of o.members) {

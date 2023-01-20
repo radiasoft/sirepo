@@ -27,14 +27,6 @@ class Elevation {
         };
     }
 
-    static POINT_TRANSFORMS() {
-        return {
-            x: [[1, 0], [0, 1]],
-            y: [[0, 1], [1, 0]],
-            z: [[1, 0], [0, 1]],
-        };
-    }
-
     constructor(axis) {
         if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(axis)) {
             throw new Error('Invalid axis: ' + axis);
