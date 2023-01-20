@@ -1497,7 +1497,7 @@ class VectorUtils {
         return this.combine(v1, v2, 1);
     }
 
-    static combine = function (v1, v2, c) {
+    static combine(v1, v2, c) {
         return v1.map((x, i) => x + c * v2[i]);
     }
 
