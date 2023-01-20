@@ -74,7 +74,7 @@ export class TabLayout extends Layout<TabsConfig, {}> {
         }
 
         return (
-            <Tabs defaultActiveKey={firstTabKey}>
+            <Tabs className="mb-3" defaultActiveKey={firstTabKey}>
                 {tabEls}
             </Tabs>
         )

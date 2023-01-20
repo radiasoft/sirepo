@@ -150,6 +150,8 @@ class API(sirepo.quest.API):
                 )
 
         l = self.absolute_uri(self.uri_for_api("admModerateRedirect"))
+        if len(req.req_data.get("reason", "").strip()) == 0:
+            raise sirepo.util.UserAlert("Reason for requesting access not provided")
         _send_request_email(
             PKDict(
                 display_name=self.auth.user_display_name(u),
