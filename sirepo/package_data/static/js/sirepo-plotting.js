@@ -73,10 +73,6 @@ class AbstractPlotShape {
         this.links.push(this.plotShapeLink(otherShape, linkFunction));
     }
 
-    addTransform(t) {
-        this.transform = this.transform.multiply(t);
-    }
-
     bounds() {
         return {
             x: [0.0, 0.0],

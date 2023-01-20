@@ -2016,6 +2016,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
+            //TODO(mvk): live update of virtual shapes
             function d3DragShape(shape) {
                 if (! shape.draggable) {
                     return;

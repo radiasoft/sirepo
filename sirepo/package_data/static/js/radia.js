@@ -721,7 +721,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     new SIREPO.GEOMETRY.RotationMatrix(
                         xform.axis,
                         radiaService.scaledArray(xform.useObjectCenter === "1" ? o.center : xform.center),
-                        Math.PI * parseFloat(xform.angle) / 180.0
+                        SIREPO.GEOMETRY.GeometryUtils.toRadians(parseFloat(xform.angle))
                     )
                 );
                 continue;
@@ -760,7 +760,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                             new SIREPO.GEOMETRY.RotationMatrix(
                                 cloneXform.axis,
                                 radiaService.scaledArray(cloneXform.useObjectCenter === "1" ? o.center : cloneXform.center),
-                                Math.PI * parseFloat(cloneXform.angle) / 180.0
+                                SIREPO.GEOMETRY.GeometryUtils.toRadians(parseFloat(cloneXform.angle))
                             )
                         );
                     }
