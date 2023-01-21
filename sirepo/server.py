@@ -712,16 +712,23 @@ def init_apis(*args, **kwargs):
 
 def _check_version(qcall):
     import requests
+    from pykern import pkjson
 
     pkdp("\n\n\n your version={}", sirepo.__version__)
-    r = requests.post(
-        "http://v.radia.run:8000/version-check/",
-        json=PKDict(version=sirepo.__version__),
+    r = requests.get(
+        f"http://v.radia.run:8000/version-check/{sirepo.__version__}"
     )
     # send version to api_versionCheck
     # and recieve update on whether versions match up
-    r.raise_for_status()
-    assert 0, f"\n\n\nreturn={r}\n\n\n"
+    pkdp("\n\n\ncontent type={}, content={}", type(r.content), pkjson.load_any(r.content))
+    res = pkjson.load_any(r.content)
+    # assert 0
+    if not res.up_to_date:
+        raise sirepo.util.UserAlert(
+                "Your version needs update"
+        )
+    # r.raise_for_status()
+    # assert 0, f"\n\n\nreturn={r}\n\n\n"
 
 
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
