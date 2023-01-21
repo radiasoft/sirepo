@@ -44,11 +44,12 @@ class API(sirepo.quest.API):
             }
         )
 
+    @sirepo.quest.Spec("allow_visitor")
     def api_versionCheck(self, incoming_version):
         # compare inncoming version with latest
         return self.reply_ok(
             {
-                "up_to_date":sirepo.__version__==incoming_version,
+                "up_to_date": sirepo.__version__ == incoming_version,
             }
         )
 
