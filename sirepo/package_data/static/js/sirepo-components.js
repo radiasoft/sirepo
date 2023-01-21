@@ -3753,7 +3753,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             <span class="valueLabel">{{ model[field] }}{{ model.units }}</span>
         `,
         controller: function($scope, $element) {
-            srdbg($scope);
             let slider;
             let delegate = null;
 

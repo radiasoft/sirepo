@@ -292,7 +292,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
         `,
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
-            srdbg($scope);
             $scope.displayType = '3D';
             $scope.isClientOnly = isGeometryOnly;
             $scope.tallyReportName = 'tallyReport';
