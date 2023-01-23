@@ -23,3 +23,5 @@ PORT_DEFAULTS = PKDict(
 )
 
 TEST_PORT_RANGE = range(10000, 11000)
+
+SRUNIT_USER_AGENT = "srunit/1.0"

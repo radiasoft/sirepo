@@ -42,7 +42,7 @@ class API(sirepo.quest.API):
         Token must exist in db and not be expired.
         """
         if self.sreq.is_spider():
-            sirepo.util.raise_forbidden("robots not allowed")
+            raise sirepo.util.Forbidden("robots not allowed")
         req = self.parse_params(type=simulation_type)
         with sirepo.util.THREAD_LOCK:
             m = self.auth_db.model(UserModel)

@@ -52,10 +52,6 @@
             "longName": "Raydata",
             "shortName": "Raydata"
         },
-        "rcscon": {
-            "longName": "RCSCON",
-            "shortName": "RCSCON"
-        },
         "shadow": {
             "longName": "SHADOW",
             "shortName": "SHADOW"
@@ -115,6 +111,7 @@
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
+        "authState2": "/auth-state2",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
@@ -132,7 +129,6 @@
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "forbidden": "/forbidden",
         "notFound": "/not-found",
-        "getApplicationData": "/get-application-data/?<filename>",
         "getModerationRequestRows": "/get-moderation-request-rows",
         "homePage": "/en/*<path_info>",
         "importFile": "/import-file/<simulation_type>",
@@ -160,7 +156,6 @@
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
-        "srUnit": "/ srunit",
         "srwLight": "/light",
         "statefulCompute": "/stateful-compute",
         "statelessCompute": "/stateless-compute",
@@ -309,6 +304,20 @@
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
             ]
+        },
+        "reactRoutes": {
+            "completeRegistration": {
+                "route": "/complete-registration"
+            },
+            "login": {
+                "route": "/login"
+            },
+            "loginWithEmailConfirm": {
+                "route": "/login-confirm/email/:token/:needCompleteRegistration"
+            },
+            "source": {
+                "route": "/:simulationId"
+            }
         },
         "localRoutes": {
             "admJobs": {

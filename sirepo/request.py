@@ -8,6 +8,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import email.utils
 import pykern.pkcompat
+import sirepo.const
 import sirepo.quest
 import sirepo.util
 import user_agents
@@ -19,21 +20,32 @@ _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
 
 def init_quest(qcall):
-    import flask
+    if qcall.bucket_unchecked_get("in_srunit"):
+        sreq = _SRequest(
+            http_authorization=None,
+            http_headers=PKDict(),
+            http_method="GET",
+            http_request_uri="/",
+            http_server_uri="http://localhost",
+            internal_req=None,
+            remote_addr="0.0.0.0",
+        )
+    else:
+        import flask
 
-    sreq = _Request(
-        http_authorization=flask.request.authorization,
-        http_headers=flask.request.headers,
-        http_method=flask.request.method,
-        http_request_uri=flask.request.url,
-        http_server_uri=flask.url_for("_dispatch_empty", _external=True),
-        internal_req=flask.request,
-        remote_addr=flask.request.remote_addr,
-    )
+        sreq = _SRequest(
+            http_authorization=flask.request.authorization,
+            http_headers=flask.request.headers,
+            http_method=flask.request.method,
+            http_request_uri=flask.request.url,
+            http_server_uri=flask.url_for("_flask_dispatch_empty", _external=True),
+            internal_req=flask.request,
+            remote_addr=flask.request.remote_addr,
+        )
     qcall.attr_set("sreq", sreq)
 
 
-class _Request(sirepo.quest.Attr):
+class _SRequest(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
     def body_as_bytes(self):
@@ -43,6 +55,9 @@ class _Request(sirepo.quest.Attr):
         return self.__content_type().get("charset")
 
     def content_type_eq(self, value):
+        c = self.__content_type()._key
+        if c is None:
+            return False
         return self.__content_type()._key.lower() == value.lower()
 
     def header_uget(self, key):
@@ -53,6 +68,9 @@ class _Request(sirepo.quest.Attr):
         if not a:
             # assume it's a spider if there's no header
             return True
+        if a.startswith(sirepo.const.SRUNIT_USER_AGENT):
+            # So our unit tests can run
+            return False
         if "python-requests" in a:
             # user_agents doesn't see Python's requests module as a bot.
             # The package robot_detection does see it, but we don't want to introduce another dependency.

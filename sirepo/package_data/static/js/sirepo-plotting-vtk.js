@@ -1746,9 +1746,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.is3dPreview = false;
             $scope.isClientOnly = true;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
-            $scope.objects = [];
             $scope.width = $scope.height = 0;
 
+            let didDrag = false;
             let dragShape, dragStart, zoom;
             let [dragX, dragY] = [0, 0];
             let draggedShape = null;
@@ -1767,17 +1767,30 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function resetDrag() {
+                didDrag = false;
+                hideShapeLocation();
                 [dragX, dragY] = [0, 0];
                 draggedShape = null;
                 selectedObject = null;
             }
 
             function d3DragEndShape(shape) {
+
+                function reset() {
+                    resetDrag();
+                    d3.select(`.plot-viewport ${shapeSelectionId(shape, true)}`).call(updateShapeAttributes);
+                }
+
+                const dragThreshold = 1e-3;
+                if (! didDrag || Math.abs(dragX) < dragThreshold && Math.abs(dragY) < dragThreshold) {
+                    reset();
+                    return;
+                }
                 $scope.$applyAsync(() => {
                     if (isShapeInBounds(shape)) {
                         const o = $scope.source.getObject(shape.id);
                         if (! o) {
-                            resetDrag();
+                            reset();
                             return;
                         }
                         o.center = [
@@ -1785,24 +1798,20 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             shape.center.y,
                             shape.center.z
                         ].map(x => x * invObjScale);
-                        $scope.source.saveObject(shape.id, function () {
-                            resetDrag();
-                            //TODO(mvk): this will re-apply transforms to objects!  Need a way around that
-                            d3.select(`.plot-viewport ${shapeSelectionId(shape, true)}`).call(updateShapeAttributes);
-                        });
+                        $scope.source.saveObject(shape.id, reset);
                     }
                     else {
                         appState.cancelChanges($scope.modelName);
-                        resetDrag();
+                        reset();
                     }
                 });
-                hideShapeLocation();
             }
 
             function d3DragShape(shape) {
                 if (! shape.draggable) {
                     return;
                 }
+                didDrag = true;
                 [dragX, dragY] = [d3.event.x, d3.event.y];
                 draggedShape = shape;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
@@ -1816,7 +1825,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
-                shape.runLinks().forEach(function (linkedShape) {
+                shape.runLinks().forEach(linkedShape => {
                     d3.select(shapeSelectionId(linkedShape)).call(updateShapeAttributes);
                 });
             }
@@ -1871,7 +1880,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         })
                         .on('dblclick', editObject)
                         .on('dblclick.zoom', null)
-                        .on('click', selectObject);
+                        .on('click', null);
                     ds.call(updateShapeAttributes);
                     ds.call(dragShape);
                 }
@@ -2062,6 +2071,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapePoints(shape) {
+                //TODO(mvk): apply transforms to dx, dy
                 const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragX, dragY] : [0, 0];
                 let pts = '';
                 for (const p of shape.points[shape.elev.axis]) {
@@ -2233,16 +2243,16 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             // called when dropping new objects, not existing
             $scope.dropSuccess = function(obj, evt) {
-                var p = isMouseInBounds(evt);
+                const p = isMouseInBounds(evt);
                 if (p) {
-                    var shape = $scope.source.shapeForObject(obj);
-                    var labXIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].x.axis);
-                    var labYIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].y.axis);
-                    var ctr = [0, 0, 0];
+                    const labXIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].x.axis);
+                    const labYIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].y.axis);
+                    const ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
                     obj.center = ctr.map(x => x * invObjScale);
                     $scope.$emit('layout.object.dropped', obj);
+                    drawShapes();
                 }
             };
 
@@ -2254,8 +2264,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 replot(true);
             };
 
+            $scope.getObjects = () => {
+                return (appState.models[$scope.modelName] || {}).objects;
+            };
+
             $scope.init = function() {
-                $scope.objects = (appState.models[$scope.modelName] || {}).objects;
                 $scope.shapes = $scope.source.getShapes();
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
@@ -2315,6 +2328,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.toggle3dPreview = function() {
                 $scope.is3dPreview = !$scope.is3dPreview;
             };
+
+            $scope.$on('shapes.loaded', () => {
+                drawShapes();
+            });
 
         },
         link: function link(scope, element) {

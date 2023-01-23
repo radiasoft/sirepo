@@ -26,6 +26,8 @@ import urllib
 
 _CHUNK_SIZE = 1024 * 1024
 
+_LOG_FILE = "run.log"
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
@@ -90,7 +92,24 @@ def background_percent_complete(report, run_dir, is_running):
         max_frame = data.models.neuralNet.epochs
         res.frameCount = int(m.group(1)) + 1
         res.percentComplete = float(res.frameCount) * 100 / max_frame
+    error = _parse_activait_log_file(run_dir)
+    if error:
+        res.error = error
     return res
+
+
+def _parse_activait_log_file(run_dir):
+    for l in pkio.read_text(run_dir.join(_LOG_FILE)).split("\n"):
+        if re.search("AssertionError: Model training failed due to:", l):
+            return _range_error(l)
+    return ""
+
+
+def _range_error(error):
+    e = re.search(re.compile("Received a label value of (.*?) (is .*?[\]\)])"), error)
+    if e:
+        return f"Output scaling result {e.groups()[1]}"
+    return error
 
 
 def get_analysis_report(run_dir, data):
@@ -325,6 +344,10 @@ def stateful_compute_sample_images(data):
         f.close()
         return u
 
+    def _image_grid(num_images):
+        num_pages = min(5, 1 + (num_images - 1) // 25)
+        return [min(25, num_images - 25 * i) for i in range(num_pages)]
+
     # go through columnInfo, find first multidimensional col
     # take first dimension size and look for other columns with that single dimension
     io = PKDict()
@@ -355,10 +378,12 @@ def stateful_compute_sample_images(data):
         x = f[io.input.path]
         y = f[io.output.path]
         u = []
-        for i in range(0, 125, 25):
+        k = 0
+        g = _image_grid(len(x))
+        for i in g:
             plt.figure(figsize=[10, 10])
-            for j in range(25):
-                v = x[i + j]
+            for j in range(i):
+                v = x[k + j]
                 if io.input.kind == "f":
                     v = v.astype(float)
                 plt.subplot(5, 5, j + 1)
@@ -369,20 +394,24 @@ def stateful_compute_sample_images(data):
                 if len(f[io.output.path].shape) == 1:
                     if "label_path" in io.output:
                         plt.xlabel(
-                            pkcompat.from_bytes(f[io.output.label_path][y[i + j]])
+                            pkcompat.from_bytes(f[io.output.label_path][y[k + j]])
                         )
                     else:
-                        plt.xlabel(y[i + j])
+                        plt.xlabel(y[k + j])
                 else:
-                    plt.xlabel("\n".join([str(l) for l in y[i + j]]))
+                    plt.xlabel("\n".join([str(l) for l in y[k + j]]))
             p = (
                 _SIM_DATA.lib_file_write_path(data.args.imageFilename)
-                + f"_{int(i/25)}.png"
+                + f"_{int(k/25)}.png"
             )
             plt.tight_layout()
             plt.savefig(p)
             u.append(_data_url(p))
-        return PKDict(uris=u)
+            k += i
+        return PKDict(
+            numPages=len(g),
+            uris=u,
+        )
 
 
 def stateless_compute_get_remote_data(data):
@@ -670,7 +699,6 @@ def _compute_csv_info(filename):
 
 
 def _compute_clusters(report, plot_data):
-
     from sirepo.analysis import ml
 
     method_params = PKDict(
@@ -806,6 +834,12 @@ def _write_csv_for_download(columns_dict, csv_name):
     pandas.DataFrame(columns_dict).to_csv(csv_name, index=False)
 
 
+def _discrete_out(column_info):
+    if not column_info.get("dtypeKind"):
+        return False
+    return column_info.dtypeKind[column_info.inputOutput.index("output")] == "u"
+
+
 def _extract_fft_report(run_dir, sim_in):
     x, plots, title, summary_data = get_fft_report(run_dir, sim_in)
     _write_report(
@@ -887,8 +921,8 @@ def _fit_animation(frame_args):
         [x, y],
         frame_args,
         PKDict(
-            x_label="",
-            y_label="",
+            x_label="Prediction",
+            y_label="Ground Truth",
             title=header[idx],
             hideColorBar=True,
         ),
@@ -899,6 +933,7 @@ def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
+    v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
@@ -910,6 +945,11 @@ def _generate_parameters_file(data):
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
     v.image_data = pkio.has_file_extension(v.dataFile, "h5")
+    v.inputsScaler = dm.dataFile.inputsScaler
+    v.outputsScaler = dm.dataFile.outputsScaler
+    v.feature_min = dm.dataFile.featureRangeMin
+    v.feature_max = dm.dataFile.featureRangeMax
+    v.discreteOutputs = _discrete_out(dm.columnInfo)
     if v.image_data:
         v.inPath = None
         v.outPath = None

@@ -1,6 +1,7 @@
 import numpy as np
 import keras.losses
 from keras.callbacks import CSVLogger
+from pykern.pkcollections import PKDict
 {% if image_data %}
 
 model.compile(
@@ -8,16 +9,14 @@ model.compile(
     loss={{ neuralNet_losses }},
     metrics=['accuracy'],
 )
-
-history = model.fit(
-    x=trainx,
-    y=trainy,
-    epochs={{ neuralNet_epochs }},
-    validation_data=(valx, valy),
-    batch_size={{ neuralNet_batch_size }},
-    callbacks=[CSVLogger('{{ fitCSVFile }}')],
-)
-
+try:
+    history = model.fit(
+        split.train_gen,
+        validation_data=split.val_gen,
+        epochs={{ neuralNet_epochs }},
+        callbacks=[CSVLogger('fit.csv')])
+except Exception as e:
+    raise AssertionError(f"Model training failed due to:{e.message}")
 {% else %}
 
 model.compile(
@@ -38,6 +37,33 @@ testy = test[:, out_idx]
 testx = test[:, in_idx]
 
 {% endif %}
+
+{% if image_data %}
+def _domain_len(outputs_true):
+    return len(numpy.unique(outputs_true))
+
+def _prediction_shape(prediction, testy):
+    return prediction.shape[-1] == _domain_len(testy)
+
+def _classification_case(prediction, testy):
+    return {{ discreteOutputs }} and _prediction_shape(prediction, testy)
+
+def _predictions_final(p, testy):
+    return np.argmax(p, axis=1) if _classification_case(p, testy) else p
+
+def _predictions_initial(testx, testy):
+    if split.test_gen.outScaler:
+        return PKDict(
+            p=split.test_gen.outScaler.inverse_transform(model.predict(testx)),
+            testy=split.test_gen.outScaler.inverse_transform(testy),
+        )
+    return PKDict(p=model.predict(x=testx), testy=testy)
+
+o = _predictions_initial(testx, testy)
+p = _predictions_final(o.p, o.testy)
+{% else %}
+p = model.predict(x=testx)
+{% endif %}
 model.save('{{ weightedFile }}')
-np.save('{{ testFile }}', testy)
-np.save('{{ predictFile }}', model.predict(x=testx))
+np.save('{{ testFile }}', o.testy)
+np.save('{{ predictFile }}', p)

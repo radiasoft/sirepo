@@ -13,7 +13,6 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     ANALYSIS_ONLY_FIELDS = frozenset(
         (
             "alpha",
@@ -50,14 +49,17 @@ class SimData(sirepo.sim_data.SimDataBase):
             model[field] = "cuboid"
 
     @classmethod
-    def _fixup_example(cls, models):
-        if not models.simulation.get("exampleName"):
-            models.simulation.exampleName = models.simulation.name
-        if models.simulation.name == "Dipole":
-            models.simulation.beamAxis = "x"
-            models.simulation.heightAxis = "z"
-            models.simulation.widthAxis = "y"
-        if models.simulation.name == "Wiggler":
+    def _fixup_examples(cls, models):
+        sim = models.simulation
+        if not sim.get("exampleName"):
+            sim.exampleName = sim.name
+        if sim.name in cls.schema().constants.rawExamples:
+            sim.appMode = "imported"
+        if sim.name == "Dipole":
+            sim.beamAxis = "x"
+            sim.heightAxis = "z"
+            sim.widthAxis = "y"
+        if sim.name == "Wiggler":
             models.geometryReport.isSolvable = "0"
             if not len(models.fieldPaths.paths):
                 models.fieldPaths.paths.append(
@@ -158,6 +160,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                         b["cutRemoval"] = "1"
                 if not o.get("fillets"):
                     o.fillets = []
+                if not o.get("modifications"):
+                    o.modifications = o.bevels + o.fillets
+                for m in o.modifications:
+                    if m.get("amountHoriz") is not None:
+                        m.type = "objectBevel"
+                    if m.get("radius") is not None:
+                        m.type = "objectFillet"
+                    for d in ("heightDir", "widthDir"):
+                        if d in m:
+                            del m[d]
                 if not o.get("segments"):
                     o.segments = o.get("division", [1, 1, 1])
                 for f in (
@@ -194,9 +206,14 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_transforms(model):
             _fixup_array(model, "model", "transforms")
+            for t in model.get("transforms", []):
+                if "model" in t:
+                    t.type = t.model
 
         dm = data.models
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))
+        if dm.simulation.get("dmpImportFile"):
+            dm.simulation.appMode = "imported"
         if dm.get("geometry"):
             dm.geometryReport = dm.geometry.copy()
             del dm["geometry"]
@@ -206,7 +223,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not dm.fieldPaths.get("paths"):
             dm.fieldPaths.paths = []
         if dm.simulation.get("isExample"):
-            cls._fixup_example(dm)
+            cls._fixup_examples(dm)
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
@@ -245,7 +262,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         u = dm.undulatorHybrid
         g = dm.geometryReport
 
-        for (k, v) in PKDict(
+        for k, v in PKDict(
             halfPole="Half Pole",
             magnet="Magnet Block",
             pole="Pole",
@@ -276,7 +293,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         res = []
         if "dmpImportFile" in data.models.simulation:
             res.append(
-                f"{cls.schema().constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}"
+                f"{cls.schema().constants.fileTypeRadiaDmp}.{data.models.simulation.dmpImportFile}"
             )
         if "fieldType" in data:
             res.append(
@@ -284,6 +301,15 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "fieldPath", data.fieldType, data.name + "." + data.fileType
                 )
             )
+        for o in filter(
+            lambda x: "pointsFile" in x, data.models.geometryReport.objects
+        ):
+            res.append(
+                cls.lib_file_name_with_model_field(
+                    "extrudedPoints", "pointsFile", o.pointsFile
+                )
+            )
+
         return res
 
     @classmethod

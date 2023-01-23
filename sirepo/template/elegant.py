@@ -720,7 +720,7 @@ def import_file(req, test_data=None, **kwargs):
         simulation_db.delete_simulation(
             SIM_TYPE,
             d.models.simulation.simulationId,
-            qcall=req.call,
+            qcall=req.qcall,
         )
     return res
 
@@ -799,10 +799,6 @@ os.system('elegant elegant.ele')
 
 def remove_last_frame(run_dir):
     pass
-
-
-def rcscon_generate_lattice(data, qcall=None):
-    return _Generate(data, validate=False, qcall=qcall).sim()
 
 
 def save_sequential_report_data(data, run_dir):

@@ -16,7 +16,6 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     ANALYSIS_ONLY_FIELDS = frozenset(
         (
             "aspectRatio",
@@ -544,7 +543,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             if dm[r].coherentModesFile:
                 res.append(dm[r].coherentModesFile)
         if cls.srw_uses_tabulated_zipfile(data):
-            if "tabulatedUndulator" in dm and dm.tabulatedUndulator.magneticFile:
+            if "tabulatedUndulator" in dm and dm.tabulatedUndulator.get("magneticFile"):
                 res.append(dm.tabulatedUndulator.magneticFile)
         if cls.srw_is_arbitrary_source(dm.simulation):
             res.append(dm.arbitraryMagField.magneticFile)

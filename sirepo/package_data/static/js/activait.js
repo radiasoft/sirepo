@@ -1076,37 +1076,55 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
           <div data-ng-if="isLoading()" class="progress">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
           </div>
-          <div style="display: flex; justify-content: space-between;" data-ng-if="! isLoading()">
-            <button data-ng-click="prev()"> < prev image set </button>
-            <button data-ng-click="next()"> next image set > </button>
+          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
+          <div data-ng-if="! isLoading()">
+            <div class="pull-left">
+              <button class="btn btn-primary" title="first" data-ng-click="first()">|<</button>
+              <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
+            </div>
+            <div class="pull-right">
+              <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
+              <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
+            </div>
           </div>
         </div>
         `,
         controller: function($scope, appState) {
             let idx = 0;
-            let uris;
             let loading = true;
+            let numPages = 0;
+            let uris;
+            $scope.dataFileMissing = false;
+
+            $scope.canUpdateUri = increment => {
+                return idx + increment >= 0 && idx + increment < numPages;
+            };
+
+            $scope.first = () => {
+                setImageFromUriIndex(idx = 0);
+            };
 
             $scope.isLoading = () => loading;
 
-            $scope.updateUriIndex = increment => {
-                if ((0 <= idx + increment) && (idx + increment <= 4)) {
-                    idx = idx + increment;
-                    setImageFromUriIndex(idx);
-                }
-            };
-
-            $scope.prev = () => {
-                $scope.updateUriIndex(-1);
+            $scope.last = () => {
+                setImageFromUriIndex(idx = uris.length - 1);
             };
 
             $scope.next = () => {
-                $scope.updateUriIndex(1);
+                setImageFromUriIndex(idx += 1);
+            };
+
+            $scope.prev = () => {
+                setImageFromUriIndex(idx -= 1);
             };
 
             function setImageFromUriIndex(index) {
-                if ($('.srw-processed-image').length) {
+                if ($('.srw-processed-image').length && uris) {
                     $('.srw-processed-image')[0].src = uris[index];
+                }
+                if (! uris) {
+                    $scope.dataFileMissing = true;
+                    $scope.fileName = appState.models.dataFile.file;
                 }
             }
 
@@ -1114,6 +1132,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 requestSender.sendStatefulCompute(
                     appState,
                     response => {
+                        numPages = response.numPages;
                         uris = response.uris;
                         setImageFromUriIndex(0);
                         loading = false;
@@ -1775,11 +1794,11 @@ SIREPO.app.directive('partitionSelection', function(appState) {
 
             function drawCarats(parts) {
                 const viewport = plotScope.select('.plot-viewport');
-                viewport.selectAll('.rcscon-cell-selector').remove();
-                viewport.selectAll('.rcscon-cell-selector')
+                viewport.selectAll('.activait-cell-selector').remove();
+                viewport.selectAll('.activait-cell-selector')
                     .data(parts)
                     .enter().append('path')
-                    .attr('class', 'rcscon-cell-selector')
+                    .attr('class', 'activait-cell-selector')
                     .attr('d', 'M-2,-28L-2,-3000 2,-3000 2,-28 14,0 -14,0Z')
                     .style('cursor', 'ew-resize')
                     .style('fill-opacity', 0.8)
@@ -2076,6 +2095,22 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
     const modelName = $scope.modelName;
     const self = this;
 
+    showOrHideFieldRange();
+    function showOrHideFieldRange() {
+        const d = appState.models.dataFile;
+        if (d.inputsScaler == 'MinMaxScaler' || d.outputsScaler == 'MinMaxScaler') {
+            featureRangesOn(true);
+            return;
+        }
+        featureRangesOn(false);
+    }
+
+    function featureRangesOn(display) {
+        ['featureRangeMin', 'featureRangeMax'].forEach(f => {
+            panelState.showField('dataFile', f, display);
+        });
+    }
+
     function computeColumnInfo() {
         const dataFile = appState.models.dataFile;
         if (! dataFile.file) {
@@ -2278,6 +2313,8 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         [`${modelName}.appMode`], processAppMode,
         [`${modelName}.dataOrigin`, `${modelName}.file`, `${modelName}.dataFormat`], updateEditor,
         [`${modelName}.url`], validateURL,
+        [`${modelName}.inputsScaler`], showOrHideFieldRange,
+        [`${modelName}.outputsScaler`], showOrHideFieldRange,
     ];
 
     $scope.whenSelected = () => {

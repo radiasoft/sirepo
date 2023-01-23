@@ -719,7 +719,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             <div data-ng-switch="info[1]">
               <div data-ng-switch-when="Integer" data-ng-class="fieldClass">
                 <input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
-            </div>
+              </div>
               <div data-ng-switch-when="Float" data-ng-class="fieldClass">
                 <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
                 <div class="sr-input-warning"></div>
@@ -2923,7 +2923,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
         controller: function($scope) {
             $scope.revertToOriginal = () => {
                 $scope.nav.revertToOriginal(
-                    appDataService.getApplicationMode(),
+                    appState.models.simulation.appMode || appDataService.getApplicationMode(),
                     appState.models.simulation.name);
             };
             $scope.simulationName = () => {
@@ -3681,20 +3681,21 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
               <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
               <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
             </div>
-            <button data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
+            <button data-ng-disabled="disableSubmit" data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
           </form>
           <div data-ng-show="submitted">Response submitted.</div>
         `,
         controller: function(requestSender, $scope) {
             $scope.data = {};
             $scope.submitted = false;
+            $scope.disableSubmit = true;
             $scope.submitRequest = function () {
                 const handleResponse = (data) => {
                     if (data.state === 'error') {
                         errorService.alertText(data.error);
                     }
-                    $scope.submitted = true;
                 };
+                $scope.submitted = true;
                 requestSender.sendRequest(
                     'saveModerationReason',
                     handleResponse,
@@ -3704,6 +3705,16 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
                     }
                 );
             };
+
+            function reasonOk(reason) {
+                return reason && reason.trim().length > 4;
+            }
+
+            function validateReason() {
+                $scope.disableSubmit = !reasonOk($scope.data.reason) || $scope.submitted;
+            }
+
+            $scope.$watch('data.reason', validateReason);
         },
     };
 });
@@ -3980,7 +3991,7 @@ SIREPO.app.directive('toolbarIcon', function() {
         scope: {
             item: '=',
         },
-        template: '<ng-include src="iconUrl()" onload="iconLoaded()"/>',
+        template: '<ng-include title="{{ item.title }}" src="iconUrl()" onload="iconLoaded()"/>',
         controller: function($scope, $element) {
             var adjustmentsByType = {
             };

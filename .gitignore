@@ -1,6 +1,6 @@
 # output from protractor
 reports/
-package-lock.json
+/package-lock.json
 node_modules
 run/
 .eggs/

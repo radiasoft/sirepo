@@ -6,24 +6,29 @@
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+from pykern.pkcollections import PKDict
 
 
-def test_srw_auth_login():
-    from pykern import pkcollections
+pytestmark = pytest.mark.sirepo_args(
+    fc_module=PKDict(
+        cfg=PKDict(
+            {
+                "SIREPO_AUTH_BLUESKY_SECRET": "3SExmbOzn1WeoCWeJxekaE6bMDUj034Pu5az1hLNnvENyvL1FAJ1q3eowwODoa3f",
+                "SIREPO_AUTH_METHODS": "bluesky:guest",
+                "SIREPO_FEATURE_CONFIG_SIM_TYPES": "srw:myapp",
+            },
+        ),
+    ),
+)
+
+
+def test_srw_auth_login(fc):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkexcept
     from sirepo import srunit
 
-    fc = srunit.flask_client(
-        cfg={
-            "SIREPO_AUTH_BLUESKY_SECRET": "3SExmbOzn1WeoCWeJxekaE6bMDUj034Pu5az1hLNnvENyvL1FAJ1q3eowwODoa3f",
-            "SIREPO_AUTH_METHODS": "bluesky:guest",
-            "SIREPO_FEATURE_CONFIG_SIM_TYPES": "srw:myapp",
-        }
-    )
     from sirepo import simulation_db
     from sirepo.auth import bluesky
-    import werkzeug.exceptions
 
     sim_type = "srw"
     uid = fc.sr_login_as_guest(sim_type)
@@ -34,7 +39,7 @@ def test_srw_auth_login():
     fc.cookie_jar.clear()
     fc.sr_get("authState")
     data = data[0].simulation
-    req = pkcollections.Dict(
+    req = PKDict(
         simulationType="srw",
         simulationId=data.simulationId,
     )
