@@ -105,11 +105,11 @@ def _dispatch_compute(msg, template):
         ).does_api_reply_with_file(msg.api, msg.data.method)
         if x:
             with simulation_db.tmp_dir(chdir=True) as d:
-                if sirepo.feature_config.for_sim_type(template.SIM_TYPE).pdf_temp_dir:
+                if sirepo.feature_config.for_sim_type(template.SIM_TYPE).pdf_tmp_dir:
                     with tempfile.TemporaryDirectory(
                         dir=sirepo.feature_config.for_sim_type(
                             template.SIM_TYPE
-                        ).pdf_temp_dir
+                        ).pdf_tmp_dir
                     ) as t:
                         msg.data.temp_dir = t
                         return _op(expect_file=x)

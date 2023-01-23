@@ -10,6 +10,7 @@ from __future__ import absolute_import, division, print_function
 
 
 #: Codes that depend on other codes. [x][0] depends on [x][1]
+
 _DEPENDENT_CODES = [
     ["jspec", "elegant"],
     ["controls", "madx"],
@@ -154,9 +155,9 @@ def _init():
             "codes that contain proprietary information and authorization to use is granted through oauth",
         ),
         raydata=dict(
-            pdf_temp_dir=(
-                "/home/vagrant/src/radiasoft/raydata/run/",
-                str,
+            pdf_tmp_dir=pkconfig.RequiredUnlessDev(
+                "raydata_pdf_tmp_dir",
+                _tmp_dir,
                 "directory to share analysis pdfs between scan monitor and supervisor",
             ),
             scan_monitor_url=(
@@ -224,3 +225,17 @@ def _check_packages(packages):
 
     for p in packages:
         importlib.import_module(p)
+
+
+def _tmp_dir(dir):
+    from pykern import pkconfig
+    from pykern import pkio
+    import os.path
+
+    if pkconfig.channel_in("dev"):
+        assert not os.path.isabs(dir), f"must use a relative path in dev dir={dir}"
+        import sirepo.srdb
+
+        return pkio.mkdir_parent(sirepo.srdb.root().join(dir))
+    assert os.path.isabs(dir), f"must use an absolute path outside of dev dir={dir}"
+    return pkio.py_path(dir)
