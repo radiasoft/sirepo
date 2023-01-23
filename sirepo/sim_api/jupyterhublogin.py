@@ -10,8 +10,6 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
 import sirepo.api_perm
 import sirepo.events
-import sirepo.http_reply
-import sirepo.http_request
 import sirepo.oauth
 import sirepo.quest
 import sirepo.srdb
@@ -202,7 +200,7 @@ def _event_auth_logout(qcall, kwargs):
 
 
 def _event_end_api_call(qcall, kwargs):
-    u = qcall.bucket_uget(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR)
+    u = qcall.bucket_unchecked_get(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR)
     if not u:
         return
     # Delete the JupyterHub cookies, because we are logging out of Sirepo.

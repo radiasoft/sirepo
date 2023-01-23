@@ -14,4 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: curl -LsS https://radia.run | bash -s python-ci
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: curl -LsS https://radia.run | bash -s python-ci

@@ -16,16 +16,7 @@ import sirepo.quest
 import time
 
 
-#: basic auth "app" initilized in `init_apis`
-_basic_auth = None
-
 _SLEEP = 1
-
-_SIM_TYPE = "srw"
-
-_SIM_NAME = "Undulator Radiation"
-
-_SIM_REPORT = "initialIntensityReport"
 
 
 class API(sirepo.quest.API):
@@ -47,18 +38,19 @@ class API(sirepo.quest.API):
     def _run_tests(self):
         """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
         self._validate_auth_state()
-        simulation_type = _SIM_TYPE
+        simulation_type = _cfg.sim_type
         res = self.call_api(
             "findByNameWithAuth",
             dict(
                 simulation_type=simulation_type,
                 application_mode="default",
-                simulation_name=_SIM_NAME,
+                simulation_name=_cfg.sim_name,
             ),
         )
-        m = re.search(r'\/source\/(\w+)"', pkcompat.from_bytes(res.data))
+        c = res.content_as_str()
+        m = re.search(r'\/source\/(\w+)"', c)
         if not m:
-            raise RuntimeError("failed to find sid in resp={}".format(res.data))
+            raise RuntimeError("failed to find sid in resp={}".format(c))
         i = m.group(1)
         d = simulation_db.read_simulation_json(simulation_type, sid=i, qcall=self)
         try:
@@ -67,16 +59,16 @@ class API(sirepo.quest.API):
             )
         except AttributeError:
             assert (
-                _SIM_TYPE == "myapp"
-            ), f"{_SIM_TYPE} should be myapp or have models.electronBeam.current"
+                _cfg.sim_type == "myapp"
+            ), f"{_cfg.sim_type} should be myapp or have models.electronBeam.current"
             pass
         d.simulationId = i
-        d.report = _SIM_REPORT
+        d.report = _cfg.sim_report
         r = None
         try:
             resp = self.call_api("runSimulation", data=d)
-            for _ in range(cfg.max_calls):
-                r = simulation_db.json_load(resp.data)
+            for _ in range(_cfg.max_calls):
+                r = simulation_db.json_load(resp.content_as_str())
                 pkdlog("resp={}", r)
                 if r.state == "error":
                     raise RuntimeError("simulation error: resp={}".format(r))
@@ -91,7 +83,7 @@ class API(sirepo.quest.API):
                 time.sleep(_SLEEP)
             raise RuntimeError(
                 "simulation timed out: seconds={} resp=".format(
-                    cfg.max_calls * _SLEEP, r
+                    _cfg.max_calls * _SLEEP, r
                 ),
             )
         finally:
@@ -101,7 +93,7 @@ class API(sirepo.quest.API):
                 pass
 
     def _validate_auth_state(self):
-        r = pkcompat.from_bytes(self.call_api("authState").data)
+        r = self.call_api("authState").content_as_str()
         m = re.search(r"SIREPO.authState\s*=\s*(.*?);", r)
         assert m, pkdformat("no authState in response={}", r)
         assert pkjson.load_any(m.group(1)).isLoggedIn, pkdformat(
@@ -113,6 +105,10 @@ def init_apis(*args, **kwargs):
     pass
 
 
-cfg = pkconfig.init(
+_cfg = pkconfig.init(
     max_calls=(15, int, "1 second calls"),
+    # only used for srunit
+    sim_name=("Undulator Radiation", str, "which sim"),
+    sim_report=("initialIntensityReport", str, "which report"),
+    sim_type=("srw", str, "which app to test"),
 )

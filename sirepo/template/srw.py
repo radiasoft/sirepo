@@ -533,7 +533,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
     i = None
     try:
         r = kwargs["reply_op"](simulation_db.default_data(SIM_TYPE))
-        d = pykern.pkjson.load_any(r.data)
+        d = pykern.pkjson.load_any(r.content_as_str())
         i = d.models.simulation.simulationId
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
@@ -552,21 +552,23 @@ def import_file(req, tmp_dir, qcall, **kwargs):
         )
         r = qcall.call_api("runSimulation", data=d)
         for _ in range(_IMPORT_PYTHON_POLLS):
-            if r.status_code != 200:
+            if r.status_as_int() != 200:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
                     "unexpected response status={} data={}",
-                    r.status_code,
-                    r.data,
+                    r.status_as_int(),
+                    r.content_as_str(),
                 )
+            c = None
             try:
-                r = pykern.pkjson.load_any(r.data)
+                c = r.content_as_str()
+                r = pykern.pkjson.load_any(c)
             except Exception as e:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
                     "error={} parsing response data={}",
                     e,
-                    r.data,
+                    c,
                 )
             if "error" in r:
                 pkdc("runSimulation error msg={}", r)
@@ -602,7 +604,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             except Exception:
                 pass
         raise
-    raise sirepo.util.Response(
+    raise sirepo.util.SReplyExc(
         qcall.call_api(
             "simulationData",
             kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i),
@@ -970,7 +972,7 @@ def validate_file(file_type, path):
         try:
             _validate_safe_zip(str(path), ".", validate_magnet_data_file)
         except AssertionError as err:
-            return err.message
+            return str(err)
     elif file_type == "sample":
         srwl_uti_smp.SRWLUtiSmp(
             file_path=str(path),
@@ -1032,8 +1034,10 @@ def validate_magnet_data_file(zf):
     file_names_in_index = []
     for line in lines:
         cols = line.split()
+        if not cols:
+            continue
         if len(cols) <= file_name_column:
-            return False, "Index file {} has bad format".format(index_file_name())
+            return False, "Index file {} has bad format".format(index_file_name(zf))
         file_names_in_index.append(cols[file_name_column].decode())
 
     # Compare index and zip contents

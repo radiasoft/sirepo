@@ -1203,6 +1203,7 @@
                         {
                           "layout": "fieldTable",
                           "config": {
+                            "shown": "$(simulationSettings.model) == 'particle' && $(simulationSettings.e_cool) == '0'",
                             "columns": ["Horizontal", "Vertical"],
                             "rows": [
                               {
@@ -1210,8 +1211,7 @@
                                 "fields": [
                                   "simulationSettings.ref_bet_x",
                                   "simulationSettings.ref_bet_y"
-                                ],
-                                "shown": "$(simulationSettings.model) == 'particle' && $(simulationSettings.e_cool) == '0'"
+                                ]
                               },
                               {
                                 "label": "Alpha Reference Point",
@@ -1274,9 +1274,7 @@
                               "beamEvolutionAnimation.verticalSize",
                               "beamEvolutionAnimation.verticalOffset"
                             ],
-                            "frameCountFieldName": "frameCount",
-                            "reportLayout": { "layout": "graph2d", "config": {} },
-                            "singleFrameAnimation": true
+                            "reportLayout": { "layout": "graph2d", "config": {} }
                           }
                         }
                       ],
@@ -1363,9 +1361,7 @@
                               "coolingRatesAnimation.verticalSize",
                               "coolingRatesAnimation.verticalOffset"
                             ],
-                            "frameCountFieldName": "frameCount",
-                            "reportLayout": { "layout": "graph2d", "config": {} },
-                            "singleFrameAnimation": true
+                            "reportLayout": { "layout": "graph2d", "config": {} }
                           }
                         }
                       ],
@@ -1529,7 +1525,6 @@
                             "reportGroupName": "animation",
                             "reportName": "particleAnimation",
                             "shown": "$(simulationSettings.model) == 'particle'",
-                            "frameCountFieldName": "frameCount",
                             "frameIdFields": [
                               "particleAnimation.x",
                               "particleAnimation.y",

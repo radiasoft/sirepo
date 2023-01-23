@@ -55,9 +55,11 @@ def test_jspec(fc):
         PKDict(
             # TODO(robnagler) these are sometimes off, just rerun
             beamEvolutionAnimation=PKDict(
+                frame_index=0,
                 expect_y_range=r"2.15e-06",
             ),
             coolingRatesAnimation=PKDict(
+                frame_index=0,
                 expect_x_range=r"0, 1\.0",
             ),
         ),

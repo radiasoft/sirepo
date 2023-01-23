@@ -36,12 +36,6 @@ _google_tag_manager = None
 #: what to match in landing pages to insert `_google_tag_manager`
 _google_tag_manager_re = re.compile("(?=</head>)", flags=re.IGNORECASE)
 
-#: See sirepo.srunit
-SRUNIT_TEST_IN_REQUEST = "srunit_test_in_request"
-
-#: Default file to serve on errors
-DEFAULT_ERROR_FILE = "server-error.html"
-
 _ROBOTS_TXT = None
 
 #: Global app value (only here so instance not lost)
@@ -227,7 +221,6 @@ class API(sirepo.quest.API):
         req = self.parse_params(type=simulation_type)
         # TODO(pjm): need to unquote when redirecting from saved cookie redirect?
         simulation_name = urllib.parse.unquote(simulation_name)
-        n = None
         # use the existing named simulation, or copy it from the examples
         rows = simulation_db.iterate_simulation_datafiles(
             req.type,
@@ -242,7 +235,7 @@ class API(sirepo.quest.API):
             for s in simulation_db.examples(req.type):
                 if s["models"]["simulation"]["name"] != simulation_name:
                     continue
-                n = simulation_db.save_new_example(s, qcall=self)
+                simulation_db.save_new_example(s, qcall=self)
                 rows = simulation_db.iterate_simulation_datafiles(
                     req.type,
                     simulation_db.process_simulation_list,
@@ -259,9 +252,6 @@ class API(sirepo.quest.API):
                     req.type,
                 )
         m = simulation_db.get_schema(req.type).appModes[application_mode]
-
-        if simulation_type in sirepo.feature_config.cfg().react_sim_types:
-            return self.headers_for_no_cache(self.reply_json(n))
         return self.reply_redirect_for_local_route(
             req.type,
             m.localRoute,
@@ -337,7 +327,7 @@ class API(sirepo.quest.API):
                 if "error" in data:
                     return self.reply_json(data)
             return s(data)
-        except sirepo.util.Reply:
+        except sirepo.util.ReplyExc:
             raise
         except Exception as e:
             pkdlog("{}: exception: {}", f and f.filename, pkdexc())
@@ -448,7 +438,7 @@ class API(sirepo.quest.API):
             _ROBOTS_TXT = "".join(
                 ["User-agent: *\n"] + ["Disallow: {}\n".format(x) for x in u],
             )
-        return self.reply(_ROBOTS_TXT, content_type="text/plain")
+        return self.reply(content=_ROBOTS_TXT, content_type="text/plain")
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo")
     def api_root(self, path_info):
@@ -549,17 +539,6 @@ class API(sirepo.quest.API):
     def api_srwLight(self):
         return self._render_root_page("light", PKDict())
 
-    @sirepo.quest.Spec("allow_visitor")
-    def api_srUnit(self):
-        v = getattr(sirepo.flask.app(), SRUNIT_TEST_IN_REQUEST)
-        if v.want_user:
-            self.cookie.set_sentinel()
-            self.auth.login(is_mock=True)
-        if v.want_cookie:
-            self.cookie.set_sentinel()
-        v.op(self)
-        return self.reply_ok()
-
     @sirepo.quest.Spec("allow_visitor", path_info="FilePath")
     def api_staticFile(self, path_info=None):
         """Send file from static folder.
@@ -567,7 +546,7 @@ class API(sirepo.quest.API):
         Args:
             path_info (str): relative path to join
         Returns:
-            Response: reply with file
+            Reply: reply with file
         """
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
@@ -576,7 +555,7 @@ class API(sirepo.quest.API):
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
             return self.headers_for_cache(
                 self.reply(
-                    _google_tag_manager_re.sub(
+                    content=_google_tag_manager_re.sub(
                         _google_tag_manager,
                         pkio.read_text(p),
                     ),
@@ -683,10 +662,9 @@ class API(sirepo.quest.API):
             else:
                 p = path
             # do not call api_staticFile due to recursion of proxy_react
-            raise sirepo.util.Response(
-                flask.send_file(
+            raise sirepo.util.SReplyExc(
+                self.reply_file(
                     sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
-                    conditional=True,
                 ),
             )
 
@@ -694,7 +672,12 @@ class API(sirepo.quest.API):
             r = requests.get(cfg.react_server + path)
             # We want to throw an exception here, because it shouldn't happen
             r.raise_for_status()
-            raise sirepo.util.Response(self.reply_as_proxy(r))
+            raise sirepo.util.SReplyExc(
+                self.reply_as_proxy(
+                    content=r.content,
+                    content_type=r.headers["Content-Type"],
+                ),
+            )
 
         if not path or not cfg.react_server:
             return
