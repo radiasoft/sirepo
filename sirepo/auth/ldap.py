@@ -19,13 +19,14 @@ AUTH_METHOD_VISIBLE = True
 
 _cfg = None
 
-_ESCAPE_DN_MAIL = re.compile(r'([,\\#<>;\"=+])')
+_ESCAPE_DN_MAIL = re.compile(r"([,\\#<>;\"=+])")
 
 #: module handle
 this_module = pkinspect.this_module()
 
 #: Well known alias for auth
 user_model = "AuthEmailUser"
+
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel")
@@ -34,20 +35,23 @@ class API(sirepo.quest.API):
         # validates username/password, escapes special chars for ldap dn
         def _validate_escape_credentials(req):
             email = req.req_data.email.lower()
-            if (len(email) > 256 or len(req.req_data.password) > 256):
+            if len(email) > 256 or len(req.req_data.password) > 256:
                 raise sirepo.util.UserAlert(
                     "invalid user and/or password",
                     f"email={email} or password greater than 256 chars",
                 )
-            if (not email or not req.req_data.password):
+            if not email or not req.req_data.password:
                 raise sirepo.util.UserAlert(
                     "invalid user and/or password",
                     f"email={email} or password is none/zero length",
                 )
-            return ("mail=" + re.sub(_ESCAPE_DN_MAIL, r"\\\1", email) + _cfg.base_dn, email, req.req_data.password)
+            return (
+                "mail=" + re.sub(_ESCAPE_DN_MAIL, r"\\\1", email) + _cfg.base_dn,
+                email,
+                req.req_data.password,
+            )
 
-        def _authorize_ldap(dn,email,p):
-
+        def _authorize_ldap(dn, email, p):
             try:
                 c = ldap.initialize(_cfg.ldap_server)
                 c.simple_bind_s(dn, p)
@@ -70,7 +74,10 @@ class API(sirepo.quest.API):
         req = self.parse_post()
         (dn, e, p) = _validate_escape_credentials(req)
         _authorize_ldap(dn, e, p)
-        self.auth.login(this_module, sim_type=req.type, model=_user(e), want_redirect=True)
+        self.auth.login(
+            this_module, sim_type=req.type, model=_user(e), want_redirect=True
+        )
+
 
 def init_apis(*args, **kwargs):
     global _cfg
