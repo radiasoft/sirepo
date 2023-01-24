@@ -616,8 +616,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                const a = reorder('z', mesh.dimension);
-                srdbg(a);
+                panelState.requestData('tallyReport', d => {
+                    srdbg(d);
+                });
             }
 
             function loadVolumes(volIds) {
@@ -711,31 +712,62 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 colorbarPtr.pointTo(f);
             }
 
-            function updateSlice(f) {
-                srdbg('UPDATE', f);
-                /*
-                appState.saveChanges('tallyReport', () => {
-                    srdbg('UPDATE SAVED SHOULD RELOAD');
+            function tallyReportAxes() {
+                return [
+                    $scope.tallyReport.axis,
+                    ...SIREPO.GEOMETRY.GeometryUtils.nextAxes($scope.tallyReport.axis)
+                ];
+            }
 
-                    panelState.requestData(
-                        'tallyReport',
-                        data => {
-                            srdbg('TR OK', data);
-                        },
-                        true,
-                        err => {
-                            srdbg('TR OOPS', err);
-                        }
+            function tallyReportAxisIndices() {
+                return [
+                    SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.tallyReport.axis),
+                    ...SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices($scope.tallyReport.axis)
+                ];
+            }
+
+            function updateSlice(f) {
+
+                function rpt() {
+                    const [z, y, x] = tallyReportAxes();
+                    const [n, l, m] = tallyReportAxisIndices();
+                    const r = [0, 1, 2].map(i => [
+                        scale * mesh.lower_left[i], scale * mesh.upper_right[i], mesh.dimension[i]
+                    ]);
+                    srdbg(r);
+                    const p = Math.min(
+                        mesh.dimension[n] - 1,
+                        Math.max(
+                            0,
+                            Math.floor(
+                                mesh.dimension[n] * (scale * $scope.tallyReport.planePos - r[n][0]) /
+                                (r[n][1] - r[n][0])
+                            )
+                        )
                     );
 
-                });
-
-                 */
+                    return {
+                        aspectRatio: Math.abs(r[m][1] - r[m][0]) / Math.abs(r[l][1] - r[l][0]),
+                        title: `Score at ${z} = ${scale * $scope.tallyReport.planePos}m`,
+                        x_label: `${x} [m]`,
+                        x_range: [r[l]],
+                        y_label: `${y} [m]`,
+                        y_range: [r[m]],
+                        z_matrix: reorder(z, mesh.dimension)[p],
+                        z_range: [r[n]],
+                    }
+                }
+                if (! mesh) {
+                    return;
+                }
+                const r = rpt();
+                srdbg('RRPT', r);
+                panelState.setData('tallyReport', r);
+                $scope.$broadcast('tallyReport.reload', r);
             }
 
             function reorder(outerAxis, dims) {
-                const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(outerAxis);
-                const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(outerAxis);
+                const [n, l, m] = tallyReportAxisIndices();
                 const fd = getFieldData();
                 const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
                 const ff = SIREPO.UTILS.reshape(

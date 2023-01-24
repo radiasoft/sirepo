@@ -3175,6 +3175,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 refresh();
             };
+
+            $scope.$on(`${$scope.modelName}.reload`, (e, d) => {
+                srdbg('RESLOD', d);
+                $scope.load(d);
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);

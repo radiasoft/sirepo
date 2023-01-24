@@ -446,6 +446,13 @@
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
         },
+        "tallySlice": {
+            "axis": ["Axis", "Axis", "y"],
+            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "horizontalAxis": ["_", "Axis", "z"],
+            "planePos": ["{{ tallySlice.axis }} [cm]", "Range", 0.0, ""],
+            "verticalAxis": ["_", "Axis", "x"]
+        },
         "uniform": {
             "_super": [ "_", "model", "univariate"],
             "a": ["Lower bound", "Float", 0],

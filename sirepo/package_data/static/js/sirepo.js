@@ -1674,6 +1674,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return scope[name];
     };
 
+    self.getData = name => getPanelValue(name, 'data');
+
     self.getError = function(name) {
         return getPanelValue(name, 'error');
     };
@@ -1814,6 +1816,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
+
+    self.setData = (name, data) => setPanelValue(name, 'data', data);
 
     self.showEnum = function(model, field, value, isShown) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
