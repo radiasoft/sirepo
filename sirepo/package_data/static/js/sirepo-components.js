@@ -4730,7 +4730,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                 if ($scope.model && $scope.model[$scope.field]) {
                     requestSender.openSimulation(
                         $scope.code,
-                        $scope.route || 'visualization',
+                        $scope.route,
                         $scope.model[$scope.field]
                     );
                 }
