@@ -733,36 +733,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                  */
             }
 
-
-            function reshape(arr, dims) {
-                if (dims.length === 0) {
-                    return arr;
-                }
-                const a = Array.from(arr).slice();
-                if (dims.length === 1) {
-                    return a;
-                }
-                const n = dims.reduce((p, c) => p * c, 1);
-                if (a.length !== n) {
-                    throw new Error(`Product of shape dimensions must equal array length: ${a.length} != ${n}`);
-                }
-                const b = [];
-                const d = dims[0];
-                const m = a.length / d;
-                for (let i = 0; i < d; ++i) {
-                    const s = a.slice(m * i, m * (i + 1));
-                    b.push(reshape(s, dims.slice(1)));
-                }
-                return b;
-            }
-
             function reorder(outerAxis, dims) {
                 const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(outerAxis);
                 const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(outerAxis);
                 const dd = dims.slice().reverse();
-                const d = reshape(getFieldData(), dd);
+                const d = SIREPO.UTILS.reshape(getFieldData(), dd);
                 const z = new Array(getFieldData().length).fill(0);
-                const ff = reshape(z, [dims[n], dims[m], dims[l]]);
+                const ff = SIREPO.UTILS.reshape(z, [dims[n], dims[m], dims[l]]);
                 for (let k = 0; k < dims[n]; ++k) {
                     for (let j = 0; j < dims[m]; ++j) {
                         for (let i = 0; i < dims[l]; ++i) {
@@ -770,7 +747,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                             v[l] = i;
                             v[m] = j;
                             v[n] = k;
-                            ff[k][j][i] = (d[v[2]][v[1]][v[0]])
+                            ff[k][j][i] = (d[v[2]][v[1]][v[0]]);
                         }
                     }
                 }
