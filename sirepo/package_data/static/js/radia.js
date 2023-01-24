@@ -784,7 +784,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             [Number.MAX_VALUE, -Number.MAX_VALUE]
         ];
         b.forEach(function (c, i) {
-            (objs || appState.models.geometryReport.objects || []).forEach(function (o) {
+            (objs || appState.models.geometryReport.objects || []).forEach(o => {
+                if ((o.members || []).length) {
+                    const g = groupBounds(o.members.map(mId => self.getObject(mId)));
+                    c[0] = Math.min(c[0], g[i][0]);
+                    c[1] = Math.max(c[1], g[i][1]);
+                    return;
+                }
                 c[0] = Math.min(c[0], o.center[i] - o.size[i] / 2);
                 c[1] = Math.max(c[1], o.center[i] + o.size[i] / 2);
             });
