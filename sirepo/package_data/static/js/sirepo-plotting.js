@@ -3177,7 +3177,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
 
             $scope.$on(`${$scope.modelName}.reload`, (e, d) => {
-                srdbg('RESLOD', d);
                 $scope.load(d);
             });
 

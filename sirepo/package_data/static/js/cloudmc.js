@@ -484,7 +484,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                         }
                     }
                 }
-                srdbg('MIN', minField, 'MAX', maxField);
                 basePolyData.getPoints().setData(new window.Float32Array(points), 3);
                 basePolyData.getPolys().setData(new window.Uint32Array(polys));
                 basePolyData.buildCells();
@@ -734,13 +733,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     const r = [0, 1, 2].map(i => [
                         scale * mesh.lower_left[i], scale * mesh.upper_right[i], mesh.dimension[i]
                     ]);
-                    srdbg(r);
                     const p = Math.min(
                         mesh.dimension[n] - 1,
                         Math.max(
                             0,
                             Math.floor(
-                                mesh.dimension[n] * (scale * $scope.tallyReport.planePos - r[n][0]) /
+                                mesh.dimension[n] * ($scope.tallyReport.planePos - r[n][0]) /
                                 (r[n][1] - r[n][0])
                             )
                         )
@@ -748,21 +746,21 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
                     return {
                         aspectRatio: Math.abs(r[m][1] - r[m][0]) / Math.abs(r[l][1] - r[l][0]),
-                        title: `Score at ${z} = ${scale * $scope.tallyReport.planePos}m`,
+                        title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
                         x_label: `${x} [m]`,
-                        x_range: [r[l]],
+                        x_range: r[l],
                         y_label: `${y} [m]`,
-                        y_range: [r[m]],
+                        y_range: r[m],
                         z_matrix: reorder(z, mesh.dimension)[p],
-                        z_range: [r[n]],
+                        z_range: r[n],
                     }
                 }
                 if (! mesh) {
                     return;
                 }
                 const r = rpt();
-                srdbg('RRPT', r);
                 panelState.setData('tallyReport', r);
+                appState.saveQuietly('tallyReport');
                 $scope.$broadcast('tallyReport.reload', r);
             }
 
@@ -829,7 +827,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             };
 
             $scope.load = json => {
-                srdbg('load', json);
                 if (vtkScene) {
                     $rootScope.$broadcast('vtk.showLoader');
                     addTally(json.content, model().aspect);
@@ -929,7 +926,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             });
 
             $scope.$on('tallyReport.changed', () => {
-                srdbg('TTALLYRPT CH');
             });
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);

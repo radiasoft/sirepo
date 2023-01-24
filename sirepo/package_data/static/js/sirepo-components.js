@@ -3787,7 +3787,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 if ((val || val === 0) && $scope.model[$scope.field] !== val) {
                     $scope.model[$scope.field] = val;
                     const form = $element.find('input').eq(0).controller('form');
-                    srdbg($scope.modelName, form);
                     if (! form) {
                         return;
                     }
