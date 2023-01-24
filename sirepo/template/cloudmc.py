@@ -61,10 +61,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 def extract_report_data(run_dir, sim_in):
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
-    if sim_in.report == "tallyReport":
-        template_common.write_sequential_result(
-            _tally_report_plot(run_dir, sim_in)
-        )
+    #if sim_in.report == "tallyReport":
+    #    template_common.write_sequential_result(
+    #        _tally_report_plot(run_dir, sim_in)
+    #    )
 
 
 def _next_axis(axis):

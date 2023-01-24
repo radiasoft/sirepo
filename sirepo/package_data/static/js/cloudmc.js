@@ -418,6 +418,40 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 return d;
             }
 
+            function buildTallyReport() {
+                if (! mesh) {
+                    return;
+                }
+                const [z, y, x] = tallyReportAxes();
+                const [n, l, m] = tallyReportAxisIndices();
+                const ranges = [0, 1, 2].map(i => [
+                    scale * mesh.lower_left[i], scale * mesh.upper_right[i], mesh.dimension[i]
+                ]);
+                const p = Math.min(
+                    mesh.dimension[n] - 1,
+                    Math.max(
+                        0,
+                        Math.floor(
+                            mesh.dimension[n] * ($scope.tallyReport.planePos - ranges[n][0]) /
+                            (ranges[n][1] - ranges[n][0])
+                        )
+                    )
+                );
+
+                const r =  {
+                    aspectRatio: Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0]),
+                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
+                    x_label: `${x} [m]`,
+                    x_range: ranges[l],
+                    y_label: `${y} [m]`,
+                    y_range: ranges[m],
+                    z_matrix: reorder(z, mesh.dimension)[p],
+                    z_range: ranges[n],
+                }
+                panelState.setData('tallyReport', r);
+                $scope.$broadcast('tallyReport.reload', r);
+            }
+
             function buildVoxel(lowerLeft, wx, wy, wz, points, polys) {
                 const pi = points.length / 3;
                 points.push(...lowerLeft);
@@ -615,9 +649,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                panelState.requestData('tallyReport', d => {
-                    srdbg(d);
-                });
+                buildTallyReport();
             }
 
             function loadVolumes(volIds) {
@@ -726,42 +758,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function updateSlice(f) {
-
-                function rpt() {
-                    const [z, y, x] = tallyReportAxes();
-                    const [n, l, m] = tallyReportAxisIndices();
-                    const r = [0, 1, 2].map(i => [
-                        scale * mesh.lower_left[i], scale * mesh.upper_right[i], mesh.dimension[i]
-                    ]);
-                    const p = Math.min(
-                        mesh.dimension[n] - 1,
-                        Math.max(
-                            0,
-                            Math.floor(
-                                mesh.dimension[n] * ($scope.tallyReport.planePos - r[n][0]) /
-                                (r[n][1] - r[n][0])
-                            )
-                        )
-                    );
-
-                    return {
-                        aspectRatio: Math.abs(r[m][1] - r[m][0]) / Math.abs(r[l][1] - r[l][0]),
-                        title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
-                        x_label: `${x} [m]`,
-                        x_range: r[l],
-                        y_label: `${y} [m]`,
-                        y_range: r[m],
-                        z_matrix: reorder(z, mesh.dimension)[p],
-                        z_range: r[n],
-                    }
-                }
-                if (! mesh) {
-                    return;
-                }
-                const r = rpt();
-                panelState.setData('tallyReport', r);
+                buildTallyReport();
                 appState.saveQuietly('tallyReport');
-                $scope.$broadcast('tallyReport.reload', r);
             }
 
             function reorder(outerAxis, dims) {
