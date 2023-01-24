@@ -736,10 +736,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function reorder(outerAxis, dims) {
                 const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(outerAxis);
                 const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(outerAxis);
-                const dd = dims.slice().reverse();
-                const d = SIREPO.UTILS.reshape(getFieldData(), dd);
-                const z = new Array(getFieldData().length).fill(0);
-                const ff = SIREPO.UTILS.reshape(z, [dims[n], dims[m], dims[l]]);
+                const fd = getFieldData();
+                const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
+                const ff = SIREPO.UTILS.reshape(
+                    new Array(fd.length),
+                    [dims[n], dims[m], dims[l]]
+                );
                 for (let k = 0; k < dims[n]; ++k) {
                     for (let j = 0; j < dims[m]; ++j) {
                         for (let i = 0; i < dims[l]; ++i) {
