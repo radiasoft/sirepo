@@ -3016,7 +3016,10 @@ SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
 SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            email: '@',
+            password: '@',
+        },
         template: `
             <form class="form-horizontal" autocomplete="off" novalidate>
               <div class="form-group">
@@ -3027,11 +3030,11 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
               <div class="form-group">
                 <label class="col-sm-2 control-label">Email</label>
                 <div class="col-sm-10">
-                  <input type="text" class="form-control" data-ng-model="data.username"/>
+                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="email"/>
                 </div>
                 <label class="col-sm-2 control-label">Password</label>
                 <div class="col-sm-10">
-                  <input type="text" class="form-control" data-ng-model="data.password"/>
+                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="password"/>
                 </div>
               </div>
               <div class="form-group">
@@ -3047,15 +3050,17 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
         `,
         controller: function($scope) {
             function handleResponse(data) {
-                $scope.showWarning = false;
-                $scope.data.username = null;
-                $scope.data.password = null;
+                if (data.state == 'ok') {
+                    $scope.showWarning = true;
+                    $scope.warningText = data.formError;
+                    $scope.$broadcast('sr-clearDisableAfterClick');
+                }
             }
 
             $scope.login = function() {
-                if($scope.data.username.length > 256 || $scope.data.password.length > 256) {
+                if(!$scope.email || !$scope.password) {
                     $scope.showWarning = true;
-                    $scope.warningText = 'Username and Password cannot exceed 256 characters.';
+                    $scope.warningText = 'Empty field(s)';
                     $scope.$broadcast('sr-clearDisableAfterClick');
                 }
                 else {
@@ -3064,8 +3069,8 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
                         'authLdapLogin',
                         handleResponse,
                         {
-                            username: $scope.data.username,
-                            password: $scope.data.password,
+                            email: $scope.email,
+                            password: $scope.password,
                             simulationType: SIREPO.APP_SCHEMA.simulationType
                         }
                     );
