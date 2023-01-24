@@ -616,7 +616,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                reorder('z', mesh.dimension);
+                const a = reorder('z', mesh.dimension);
+                srdbg(a);
             }
 
             function loadVolumes(volIds) {
@@ -712,6 +713,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             function updateSlice(f) {
                 srdbg('UPDATE', f);
+                /*
                 appState.saveChanges('tallyReport', () => {
                     srdbg('UPDATE SAVED SHOULD RELOAD');
 
@@ -727,6 +729,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     );
 
                 });
+
+                 */
             }
 
 
@@ -735,13 +739,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     return arr;
                 }
                 const a = Array.from(arr).slice();
-                srdbg('reshape', a, dims);
-                const b = [];
+                if (dims.length === 1) {
+                    return a;
+                }
                 const n = dims.reduce((p, c) => p * c, 1);
-                while(a.length) {
-                    const c = a.splice(0, dims[dims.length - 1]);
-                    srdbg('');
-                    b.push(reshape(c, dims.slice(0, dims.length - 1)));
+                if (a.length !== n) {
+                    throw new Error(`Product of shape dimensions must equal array length: ${a.length} != ${n}`);
+                }
+                const b = [];
+                const d = dims[0];
+                const m = a.length / d;
+                for (let i = 0; i < d; ++i) {
+                    const s = a.slice(m * i, m * (i + 1));
+                    b.push(reshape(s, dims.slice(1)));
                 }
                 return b;
             }
@@ -750,12 +760,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(outerAxis);
                 const [l, m] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(outerAxis);
                 const dd = dims.slice().reverse();
-                //const d = reshape(getFieldData(), dd);
-                const d = reshape([0, 1, 2, 3, 4, 5], [1, 2, 3]);
-                srdbg(d);
-                /*
-                const ff = numpy.zeros([dims[n], dims[m], dims[l]]);
-                for (let k = 0; k <  dims[n]; ++k) {
+                const d = reshape(getFieldData(), dd);
+                const z = new Array(getFieldData().length).fill(0);
+                const ff = reshape(z, [dims[n], dims[m], dims[l]]);
+                for (let k = 0; k < dims[n]; ++k) {
                     for (let j = 0; j < dims[m]; ++j) {
                         for (let i = 0; i < dims[l]; ++i) {
                             const v = [0, 0, 0];
@@ -766,11 +774,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                         }
                     }
                 }
-                return f;
-
-                 */
+                return ff;
             }
-
 
             function volumesError(reason) {
                 srlog(new Error(`Volume load failed: ${reason}`));
@@ -813,6 +818,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             };
 
             $scope.load = json => {
+                srdbg('load', json);
                 if (vtkScene) {
                     $rootScope.$broadcast('vtk.showLoader');
                     addTally(json.content, model().aspect);
@@ -919,7 +925,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
 
-            appState.watchModelFields($scope, ['tallyReport.axis'], updateSlice);
+            appState.watchModelFields($scope, ['tallyReport.axis', 'tallyReport.planePos'], updateSlice);
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
