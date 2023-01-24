@@ -523,6 +523,14 @@ class API(sirepo.quest.API):
             )
         )
 
+    @sirepo.quest.Spec("require_user")
+    def api_simulationRedirect(self, simulation_type, local_route, simulation_id):
+        return self.reply_redirect_for_local_route(
+            sim_type=simulation_type,
+            route=local_route,
+            params=PKDict(simulationId=simulation_id),
+        )
+
     # visitor rather than user because error pages are rendered by the application
     @sirepo.quest.Spec("allow_visitor")
     def api_simulationSchema(self):
