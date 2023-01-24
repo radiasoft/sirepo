@@ -180,7 +180,7 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
             scan_monitor_api_secret=(
-                "a secret",
+                "a_secret",
                 str,
                 "secret to secure communication with scan monitor",
             ),
