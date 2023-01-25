@@ -16,16 +16,7 @@ import sirepo.quest
 import time
 
 
-#: basic auth "app" initilized in `init_apis`
-_basic_auth = None
-
 _SLEEP = 1
-
-_SIM_TYPE = "srw"
-
-_SIM_NAME = "Undulator Radiation"
-
-_SIM_REPORT = "initialIntensityReport"
 
 
 class API(sirepo.quest.API):
@@ -55,13 +46,13 @@ class API(sirepo.quest.API):
     def _run_tests(self):
         """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
         self._validate_auth_state()
-        simulation_type = _SIM_TYPE
+        simulation_type = _cfg.sim_type
         res = self.call_api(
             "findByNameWithAuth",
             dict(
                 simulation_type=simulation_type,
                 application_mode="default",
-                simulation_name=_SIM_NAME,
+                simulation_name=_cfg.sim_name,
             ),
         )
         c = res.content_as_str()
@@ -76,15 +67,15 @@ class API(sirepo.quest.API):
             )
         except AttributeError:
             assert (
-                _SIM_TYPE == "myapp"
-            ), f"{_SIM_TYPE} should be myapp or have models.electronBeam.current"
+                _cfg.sim_type == "myapp"
+            ), f"{_cfg.sim_type} should be myapp or have models.electronBeam.current"
             pass
         d.simulationId = i
-        d.report = _SIM_REPORT
+        d.report = _cfg.sim_report
         r = None
         try:
             resp = self.call_api("runSimulation", data=d)
-            for _ in range(cfg.max_calls):
+            for _ in range(_cfg.max_calls):
                 r = simulation_db.json_load(resp.content_as_str())
                 pkdlog("resp={}", r)
                 if r.state == "error":
@@ -100,7 +91,7 @@ class API(sirepo.quest.API):
                 time.sleep(_SLEEP)
             raise RuntimeError(
                 "simulation timed out: seconds={} resp=".format(
-                    cfg.max_calls * _SLEEP, r
+                    _cfg.max_calls * _SLEEP, r
                 ),
             )
         finally:
@@ -122,6 +113,10 @@ def init_apis(*args, **kwargs):
     pass
 
 
-cfg = pkconfig.init(
+_cfg = pkconfig.init(
     max_calls=(15, int, "1 second calls"),
+    # only used for srunit
+    sim_name=("Undulator Radiation", str, "which sim"),
+    sim_report=("initialIntensityReport", str, "which report"),
+    sim_type=("srw", str, "which app to test"),
 )

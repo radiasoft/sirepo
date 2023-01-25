@@ -6,14 +6,10 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import contextlib
 import importlib
 import inspect
 import pykern.pkconfig
-import pykern.pkio
 import pykern.pkinspect
-import sirepo.auth_role
-import sirepo.feature_config
 import sirepo.quest
 import sirepo.srdb
 import sqlalchemy
@@ -112,15 +108,21 @@ def init_module():
                 res[n] = PKDict(module_name=q, cls=c)
         return res
 
-    global _engine, _models
+    global _cfg, _engine, _models
 
     if _engine:
         return
+    _cfg = pykern.pkconfig.init(
+        sqlite_timeout=(20, int, "sqlite connection timeout"),
+    )
     _models = _classes()
     _engine = sqlalchemy.create_engine(
         f"sqlite:///{db_filename()}",
         # We ensure single threaded access through locking
-        connect_args={"check_same_thread": False},
+        connect_args={
+            "check_same_thread": False,
+            "timeout": _cfg.sqlite_timeout,
+        },
         # echo=True,
         # echo_pool=True,
     )
@@ -156,7 +158,7 @@ class _AuthDb(sirepo.quest.Attr):
         )
 
     def all_uids(self):
-        return self.model("UserRegistration").search_all_for_column("uid")
+        return list(self.model("UserRegistration").search_all_for_column("uid"))
 
     def commit(self):
         self._commit_or_rollback(commit=True)

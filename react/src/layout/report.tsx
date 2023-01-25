@@ -19,6 +19,7 @@ import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
 import { SchemaLayout } from "../utility/schema";
+import { CRouteHelper } from "../utility/route";
 
 
 export type ReportVisualProps<L> = { data: L };
@@ -51,6 +52,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
 
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let modelsWrapper = useContext(CModelsWrapper);
         let formController = useContext(CFormController);
 
@@ -68,7 +70,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
             let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
             simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-                pollRunReport({
+                pollRunReport(routeHelper, {
                     appName,
                     models,
                     simulationId,
@@ -146,6 +148,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         let modelsWrapper = useContext(CModelsWrapper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let panelController = useContext(CPanelController);
 
         let reportEventsVersionRef = useRef(uuidv4())
@@ -174,7 +177,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                         const s = this._reportStatus(reportName, simulationData);
                         if (s.frameCount !== animationReader?.frameCount) {
                             if (s.frameCount > 0) {
-                                let newAnimationReader = new AnimationReader({
+                                let newAnimationReader = new AnimationReader(routeHelper, {
                                     reportName,
                                     simulationId,
                                     appName,
@@ -313,6 +316,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
 
         let reportEventManager = useContext(CReportEventManager);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let modelsWrapper = useContext(CModelsWrapper);
         let schema = useContext(CSchema);
@@ -392,7 +396,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
             simulationPollingVersionRef.current = uuidv4();
 
             simulationInfoPromise.then(({simulationId}) => {
-                cancelReport({
+                cancelReport(routeHelper, {
                     appName,
                     models: getModelValues(modelNames, modelsWrapper, store.getState()),
                     simulationId,

@@ -1099,15 +1099,6 @@ SIREPO.app.factory('timeService', function() {
     return self;
 });
 
-SIREPO.app.factory('userAgent', function() {
-    var self = {
-        HEADER: 'X-Sirepo-UserAgentId'
-    };
-
-    self.id = null;
-    return self;
-});
-
 // manages validators for ngModels and provides other validation services
 SIREPO.app.service('validationService', function(utilities) {
 
@@ -1972,7 +1963,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, userAgent, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2173,6 +2164,17 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         $window.open(self.formatUrl(routeName, params), '_blank');
     };
 
+    self.openSimulation = (app, localRoute, simId) => {
+        $window.open(
+            self.formatUrl('simulationRedirect', {
+                simulation_type: app,
+                local_route: localRoute,
+                simulation_id: simId,
+            }),
+            '_blank'
+        );
+    };
+
     self.globalRedirect = function(routeNameOrUrl, params) {
         var u = routeNameOrUrl;
         if (u.indexOf('/') < 0) {
@@ -2325,7 +2327,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         const http_config = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
-            headers: userAgent.id ? {[userAgent.HEADER]: userAgent.id} : {}
         };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
@@ -2419,10 +2420,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         };
         req.then(
             function(response) {
-                const i = response.headers(userAgent.HEADER);
-                if (i) {
-                    userAgent.id = i;
-                }
                 if (http_config.responseType === 'blob') {
                     $interval.cancel(interval);
                     blobResponse(response, successCallback, thisErrorCallback);

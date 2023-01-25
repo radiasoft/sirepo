@@ -11,7 +11,7 @@ export abstract class NumberInputLayout extends InputLayout<InputConfigBase, str
 
         let { valid, touched, ...otherProps } = props;
 
-        return <Form.Control className={'text-end'} type="text" {...otherProps} onChange={onChange} isInvalid={!valid && touched}></Form.Control>
+        return <Form.Control size="sm" className={'text-end'} type="text" {...otherProps} onChange={onChange} isInvalid={!valid && touched}></Form.Control>
     };
 }
 

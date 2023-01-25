@@ -14,7 +14,7 @@ SIREPO.app.config(function() {
     `;
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">
-          <div data-sim-list="" data-model="model" data-field="field" data-code="elegant"></div>
+          <div data-sim-list="" data-model="model" data-field="field" data-code="elegant" data-route="visualization"></div>
         </div>
         <div data-ng-switch-when="TwissFile" class="col-sm-7">
           <div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>

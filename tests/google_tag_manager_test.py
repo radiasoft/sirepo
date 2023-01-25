@@ -24,7 +24,7 @@ def test_injection(fc):
     import re
 
     # test non-static page
-    r = fc.get("myapp")
+    r = fc.get("/myapp")
     pkok(
         not re.search(r"googletag", pkcompat.from_bytes(r.data)),
         "Unexpected injection of googletag data={}",

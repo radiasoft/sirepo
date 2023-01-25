@@ -10,7 +10,7 @@ export function LayoutWithSpacing<C, P>(Child: LayoutType<C, P>): LayoutType<C, 
             this.component = (props: LayoutProps<P>) => {
                 let ChildComponent = childComponent;
                 return (
-                    <div className="sr-form-layout">
+                    <div>
                         <ChildComponent {...props} />
                     </div>
                 )

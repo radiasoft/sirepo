@@ -19,6 +19,7 @@ _DEPENDENT_CODES = [
 PROD_FOSS_CODES = frozenset(
     (
         "activait",
+        "cloudmc",
         "controls",
         "elegant",
         "genesis",
@@ -39,7 +40,6 @@ PROD_FOSS_CODES = frozenset(
 _NON_PROD_FOSS_CODES = frozenset(
     (
         "myapp",
-        "cloudmc",
         "silas",
     )
 )
