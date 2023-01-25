@@ -32,6 +32,9 @@ a {
   background-color: #fad8de;
   padding-right: 0.75rem;
 }
+.form-select.is-invalid {
+  background-color: #fad8de;
+}
 
 /* couldn't get a border via sass on standard bootstrap tooltip */
 .tooltip-inner {
