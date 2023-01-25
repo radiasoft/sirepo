@@ -2156,6 +2156,17 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         $window.open(self.formatUrl(routeName, params), '_blank');
     };
 
+    self.openSimulation = (app, localRoute, simId) => {
+        $window.open(
+            self.formatUrl('simulationRedirect', {
+                simulation_type: app,
+                local_route: localRoute,
+                simulation_id: simId,
+            }),
+            '_blank'
+        );
+    };
+
     self.globalRedirect = function(routeNameOrUrl, params) {
         var u = routeNameOrUrl;
         if (u.indexOf('/') < 0) {
