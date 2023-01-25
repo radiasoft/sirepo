@@ -37,19 +37,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
-        try:
-            super().sim_files_to_run_dir(data, run_dir)
-        except sirepo.sim_data.SimDbFileNotFound as e:
-            if post_init:
-                raise e
-
-    @classmethod
-    def statepoint_filename(cls, data):
-        return f"statepoint.{data.models.settings.batches}.h5"
-
-
-    @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
         return []
 
@@ -61,12 +48,4 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _lib_file_basenames(cls, data):
         return [
             cls.dagmc_filename(data),
-        ]
-
-    @classmethod
-    def _sim_file_basenames(cls, data):
-        return [
-            PKDict(
-                basename=cls.statepoint_filename(data),
-            )
         ]

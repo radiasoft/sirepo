@@ -60,7 +60,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
-    _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     # dummy result
     if sim_in.report == "tallyReport":
         template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
