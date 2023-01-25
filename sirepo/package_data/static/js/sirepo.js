@@ -1674,8 +1674,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return scope[name];
     };
 
-    self.getData = name => getPanelValue(name, 'data');
-
     self.getError = function(name) {
         return getPanelValue(name, 'error');
     };
