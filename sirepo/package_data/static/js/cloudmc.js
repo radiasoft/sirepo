@@ -946,7 +946,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 setVolumeProperty(bundleByVolume[volId], prop, val);
             });
 
-            $scope.$on('tallyReport.summaryData', () => updateSliceAxis);
+            $scope.$on('tallyReport.summaryData', updateSliceAxis);
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
