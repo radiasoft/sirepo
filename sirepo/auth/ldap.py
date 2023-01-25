@@ -33,7 +33,6 @@ user_model = "AuthEmailUser"
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel")
     def api_authLdapLogin(self):
-
         def _bind(creds):
             try:
                 ldap.initialize(_cfg.server).simple_bind_s(creds.dn, creds.password)
@@ -88,6 +87,10 @@ class API(sirepo.quest.API):
 def init_apis(*args, **kwargs):
     global _cfg
     _cfg = pkconfig.init(
-        server=pkconfig.RequiredUnlessDev("ldap://127.0.0.1:389", str, " ldap://ip:port"),
-        dn_suffix=pkconfig.RequiredUnlessDev(",ou=users,dc=example,dc=com", str, "ou and dc values of dn"),
+        server=pkconfig.RequiredUnlessDev(
+            "ldap://127.0.0.1:389", str, " ldap://ip:port"
+        ),
+        dn_suffix=pkconfig.RequiredUnlessDev(
+            ",ou=users,dc=example,dc=com", str, "ou and dc values of dn"
+        ),
     )
