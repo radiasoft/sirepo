@@ -447,7 +447,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     y_range: ranges[m],
                     z_matrix: reorderFieldData(z, mesh.dimension)[p],
                     z_range: ranges[n],
-                }
+                };
                 panelState.setData('tallyReport', r);
                 $scope.$broadcast('tallyReport.reload', r);
             }
