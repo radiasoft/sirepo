@@ -284,8 +284,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             </div>
             <div class="col-sm-12" data-ng-show="displayType === '2D'">
                <div class="row">
-                   <div class="col-md-12" style="padding: 8px;" data-field-editor="'axis'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
-                   <div class="col-md-12" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div class="col-md-6" style="padding: 8px;" data-field-editor="'axis'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="4"></div>
                </div>
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
@@ -402,6 +402,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     return appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
                 };
                 d.update = () => {};
+                d.watchFields = [];
                 return d;
             }
 
@@ -415,6 +416,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 const d = buildRangeDelegate('tallyReport', 'planePos');
                 d.range = planePosRange;
                 d.update = () => {};
+                d.watchFields.push('tallyReport.axis');
                 return d;
             }
 
@@ -445,7 +447,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
                     y_range: ranges[m],
-                    z_matrix: reorder(z, mesh.dimension)[p],
+                    z_matrix: reorderFieldData(z, mesh.dimension)[p],
                     z_range: ranges[n],
                 }
                 panelState.setData('tallyReport', r);
@@ -677,6 +679,28 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 return r;
             }
 
+            function reorderFieldData(outerAxis, dims) {
+                const [n, l, m] = tallyReportAxisIndices();
+                const fd = getFieldData();
+                const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
+                const ff = SIREPO.UTILS.reshape(
+                    new Array(fd.length),
+                    [dims[n], dims[m], dims[l]]
+                );
+                for (let k = 0; k < dims[n]; ++k) {
+                    for (let j = 0; j < dims[m]; ++j) {
+                        for (let i = 0; i < dims[l]; ++i) {
+                            const v = [0, 0, 0];
+                            v[l] = i;
+                            v[m] = j;
+                            v[n] = k;
+                            ff[k][j][i] = (d[v[2]][v[1]][v[0]]);
+                        }
+                    }
+                }
+                return ff;
+            }
+
             function scoreUnits() {
                 return SIREPO.APP_SCHEMA.constants.scoreUnits[appState.models.openmcAnimation.score] || '';
             }
@@ -758,30 +782,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function updateSlice(f) {
+                srdbg('UPDATE SLOCE');
                 buildTallyReport();
                 appState.saveQuietly('tallyReport');
-            }
-
-            function reorder(outerAxis, dims) {
-                const [n, l, m] = tallyReportAxisIndices();
-                const fd = getFieldData();
-                const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
-                const ff = SIREPO.UTILS.reshape(
-                    new Array(fd.length),
-                    [dims[n], dims[m], dims[l]]
-                );
-                for (let k = 0; k < dims[n]; ++k) {
-                    for (let j = 0; j < dims[m]; ++j) {
-                        for (let i = 0; i < dims[l]; ++i) {
-                            const v = [0, 0, 0];
-                            v[l] = i;
-                            v[m] = j;
-                            v[n] = k;
-                            ff[k][j][i] = (d[v[2]][v[1]][v[0]]);
-                        }
-                    }
-                }
-                return ff;
             }
 
             function volumesError(reason) {
