@@ -191,8 +191,7 @@ def start_tornado(ip, port, debug=False):
 
     class _Handler(tornado.web.RequestHandler):
         def _route(self):
-            e, r, k = _path_to_route(self.request.uri[1:])
-            pkdlog("uri={} {}; route={} kwargs={} ", self.request.uri, e, r, k)
+            e, r, k = _path_to_route(self.request.path[1:])
             if e:
                 pkdlog("uri={} {}; route={} kwargs={} ", self.request.uri, e, r, k)
                 r = _not_found_route

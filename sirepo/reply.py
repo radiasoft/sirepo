@@ -186,7 +186,6 @@ class _SReply(sirepo.quest.Attr):
         if content_type is None:
             content_type, e = self._guess_content_type(path.basename)
         self._download_name(filename or path.basename)
-        pkdp(self.__attrs.download_name)
         self.__attrs.content_type = content_type
         self.__attrs.content = PKDict(
             encoding=e,
