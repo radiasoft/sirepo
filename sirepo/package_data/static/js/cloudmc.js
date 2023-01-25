@@ -285,7 +285,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             <div class="col-sm-12" data-ng-show="displayType === '2D'">
                <div class="row">
                    <div class="col-md-6" style="padding: 8px;" data-field-editor="'axis'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
-                   <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="4"></div>
+               </div>
+               <div class="row">
+                   <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>
                </div>
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
@@ -294,9 +296,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.displayType = '3D';
             $scope.isClientOnly = isGeometryOnly;
-            $scope.tallyReportName = 'tallyReport';
-            $scope.planePos = 'planePos';
-            $scope.tallyReport = appState.models[$scope.tallyReportName ];
+            $scope.tallyReport = appState.models.tallyReport;
 
             let axesBoxes = {};
             let basePolyData = null;
@@ -424,7 +424,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
-                const [z, y, x] = tallyReportAxes();
+                const [z, x, y] = tallyReportAxes();
                 const [n, l, m] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
                 const p = Math.min(
@@ -831,6 +831,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             $scope.onlyClientFieldsChanged = false;
 
+            $scope.axisLabel = () => SIREPO.APP_SCHEMA.model.tallyReport.planePos[SIREPO.INFO_INDEX_LABEL];
+
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
                 vtkScene = null;
@@ -858,6 +860,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             $scope.setDisplay = d => {
                 $scope.displayType = d;
                 appState.saveChanges('tallyReport');
+                if (d === '2D') {
+                    $scope.$applyAsync();
+                }
             };
 
             $scope.sizeStyle = () => {

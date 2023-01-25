@@ -1832,6 +1832,7 @@ SIREPO.app.directive('textWithMath', function(appState, mathRendering, utilities
             <span data-ng-if="isDynamic" data-ng-bind-html="getHTML()"></span>
         `,
         controller: function($scope) {
+            srdbg('TWM', $scope.textWithMath);
             $scope.appState = appState;
             $scope.getHTML = function() {
                 return $sce.trustAsHtml(mathRendering.mathAsHTML(
@@ -4801,6 +4802,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     this.interpolateString = (str, context) => {
         context.SIREPO = SIREPO;
+        srdbg('INTERP', str, context);
         return $interpolate(str)(context);
     };
 
