@@ -1,5 +1,5 @@
 """LDAP authentication support
-:copyright: Copyright (c) 2018-2022 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2022-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkconfig
@@ -21,6 +21,8 @@ _cfg = None
 
 _ESCAPE_DN_MAIL = re.compile(r"([,\\#<>;\"=+])")
 
+_MAX_ENTRY = 127
+
 #: module handle
 this_module = pkinspect.this_module()
 
@@ -32,35 +34,15 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel")
     def api_authLdapLogin(self):
 
-        # validates username/password, escapes special chars for ldap dn
-        def _validate_escape_credentials(req):
-            email = req.req_data.email.lower()
-            if len(email) > 256 or len(req.req_data.password) > 256:
-                raise sirepo.util.UserAlert(
-                    "invalid user and/or password",
-                    f"email={email} or password greater than 256 chars",
-                )
-            if not email or not req.req_data.password:
-                raise sirepo.util.UserAlert(
-                    "invalid user and/or password",
-                    f"email={email} or password is none/zero length",
-                )
-            return (
-                "mail=" + re.sub(_ESCAPE_DN_MAIL, r"\\\1", email) + _cfg.base_dn,
-                email,
-                req.req_data.password,
-            )
-
-        def _authorize_ldap(dn, email, p):
+        def _bind(creds):
             try:
-                c = ldap.initialize(_cfg.ldap_server)
-                c.simple_bind_s(dn, p)
+                ldap.initialize(_cfg.server).simple_bind_s(creds.dn, creds.password)
             except Exception as e:
                 m = "Unable to contact LDAP server"
                 if isinstance(e, ldap.INVALID_CREDENTIALS):
                     m = "Incorrect email or password"
                 else:
-                    pkdlog("email={} exception={}", email, e)
+                    pkdlog("email={} exception={}", creds.email, e)
                 raise sirepo.util.Response(self.reply_ok(PKDict(formError=m)))
 
         def _user(email):
@@ -71,17 +53,41 @@ class API(sirepo.quest.API):
                 u.save()
             return u
 
+        def _validate_and_escape_creds(req):
+            email = req.req_data.email.lower()
+            password = req.req_data.password
+            if len(email) > _MAX_ENTRY or len(password) > _MAX_ENTRY:
+                raise sirepo.util.UserAlert(
+                    "invalid user and/or password",
+                    f"email={email} or password greater than 127 chars",
+                )
+            if len(_cfg.dn_suffix) > _MAX_ENTRY:
+                raise sirepo.util.UserAlert(
+                    "invalid LDAP dn",
+                    f"dn={_cfg.base_dn} greater than 127 chars",
+                )
+            if not email or not password:
+                raise sirepo.util.UserAlert(
+                    "invalid user and/or password",
+                    f"email={email} or password is none/zero length",
+                )
+            return PKDict(
+                dn=("mail=" + re.sub(_ESCAPE_DN_MAIL, r"\\\1", email) + _cfg.dn_suffix),
+                email=email,
+                password=password,
+            )
+
         req = self.parse_post()
-        (dn, e, p) = _validate_escape_credentials(req)
-        _authorize_ldap(dn, e, p)
+        creds = _validate_and_escape_creds(req)
+        _bind(creds)
         self.auth.login(
-            this_module, sim_type=req.type, model=_user(e), want_redirect=True
+            this_module, sim_type=req.type, model=_user(creds.email), want_redirect=True
         )
 
 
 def init_apis(*args, **kwargs):
     global _cfg
     _cfg = pkconfig.init(
-        ldap_server=("ldap://10.10.10.10:389", str, " ldap://ip:port"),
-        base_dn=(",ou=users,dc=example,dc=com", str, "ou and dc values of DN"),
+        server=pkconfig.RequiredUnlessDev("ldap://127.0.0.1:389", str, " ldap://ip:port"),
+        dn_suffix=pkconfig.RequiredUnlessDev(",ou=users,dc=example,dc=com", str, "ou and dc values of dn"),
     )

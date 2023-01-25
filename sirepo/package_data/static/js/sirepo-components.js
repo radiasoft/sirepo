@@ -3051,17 +3051,22 @@ SIREPO.app.directive('ldapLogin', function(requestSender, errorService) {
         controller: function($scope) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
-                    $scope.showWarning = true;
-                    $scope.warningText = data.formError;
-                    $scope.$broadcast('sr-clearDisableAfterClick');
+                    showWarning(data.formError);
                 }
+                else {
+                    showWarning('Server reported an error, please contact support@sirepo.com.');
+                }
+            }
+
+            function showWarning(msg) {
+                $scope.showWarning = true;
+                $scope.warningText = msg;
+                $scope.$broadcast('sr-clearDisableAfterClick');
             }
 
             $scope.login = function() {
                 if(!$scope.email || !$scope.password) {
-                    $scope.showWarning = true;
-                    $scope.warningText = 'Empty field(s)';
-                    $scope.$broadcast('sr-clearDisableAfterClick');
+                    showWarning('Empty field(s)');
                 }
                 else {
                     $scope.showWarning = false;
