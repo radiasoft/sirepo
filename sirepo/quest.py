@@ -155,8 +155,8 @@ class API(pykern.quest.API):
             content_or_path, filename=filename, content_type=content_type
         )
 
-    def reply_file(self, path, content_type=None):
-        return self.sreply.gen_file(path, content_type)
+    def reply_file(self, path, content_type=None, filename=None):
+        return self.sreply.gen_file(path, content_type, filename)
 
     def reply_html(self, path):
         return self.sreply.render_html(path)
