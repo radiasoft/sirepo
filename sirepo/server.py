@@ -433,7 +433,7 @@ class API(sirepo.quest.API):
         return self.reply(content=_ROBOTS_TXT, content_type="text/plain")
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo")
-    def api_root(self, path_info):
+    def api_root(self, path_info=None):
         from sirepo import template
 
         self._proxy_react(path_info)

@@ -419,15 +419,16 @@ class _SReply(sirepo.quest.Attr):
                     if c[k]:
                         r.append("HttpOnly")
                 elif k == "max_age":
-                    r.append("Max-Age={c[k]}")
+                    r.append(f"Max-Age={c[k]}")
                 elif k == "samesite":
-                    r.append("SameSite={c[k]}")
+                    r.append(f"SameSite={c[k]}")
                 elif k == "secure":
                     if c[k]:
                         r.append("Secure")
                 else:
                     raise AssertionError(f"unhandled cookie attr={k}")
             resp.set_header("Set-Cookie", "; ".join(r))
+            pkdp(resp._headers)
 
         def _file(resp):
             a = self.__attrs
