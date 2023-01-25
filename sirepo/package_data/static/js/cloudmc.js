@@ -426,9 +426,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 }
                 const [z, y, x] = tallyReportAxes();
                 const [n, l, m] = tallyReportAxisIndices();
-                const ranges = [0, 1, 2].map(i => [
-                    scale * mesh.lower_left[i], scale * mesh.upper_right[i], mesh.dimension[i]
-                ]);
+                const ranges = getMeshRanges();
                 const p = Math.min(
                     mesh.dimension[n] - 1,
                     Math.max(
@@ -550,6 +548,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 return null;
             }
 
+            function getMeshRanges() {
+                return [0, 1, 2].map(i => [
+                    scale * mesh.lower_left[i], scale * mesh.upper_right[i], mesh.dimension[i]
+                ]);
+            }
+
             function getVolumeById(volId) {
                 for (const n in appState.models.volumes) {
                     const v = appState.models.volumes[n];
@@ -620,38 +624,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 return value > 0;
             }
 
-            function setTallyColors() {
-                appState.models.tallyReport.colorMap = appState.models.voxels.colorMap;
-                appState.saveChanges('tallyReport');
-                const cellsPerVoxel = voxelPoly.length;
-                const s = SIREPO.PLOTTING.Utils.colorScale(
-                    minField,
-                    maxField,
-                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.voxels.colorMap],
-                );
-                colorbar.scale(s);
-                colorbarPtr = d3.select('.colorbar').call(colorbar);
-                const sc = [];
-                const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
-                for (const f of getFieldData()) {
-                    if (! isInFieldThreshold(f)) {
-                        continue;
-                    }
-                    const c = SIREPO.VTK.VTKUtils.colorToFloat(s(f)).map(v => Math.floor(255 * v));
-                    c.push(o);
-                    for (let j = 0; j < cellsPerVoxel; j++) {
-                        sc.push(...c);
-                    }
-                }
-                tallyBundle.setColorScalarsForCells(sc, 4);
-                basePolyData.modified();
-                vtkScene.render();
-            }
-
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
                 buildTallyReport();
+                $scope.$broadcast('sliderParent.ready', appState.models.tallyReport);
             }
 
             function loadVolumes(volIds) {
@@ -725,6 +702,34 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 vtkScene.render();
             }
 
+            function setTallyColors() {
+                appState.models.tallyReport.colorMap = appState.models.voxels.colorMap;
+                appState.saveChanges('tallyReport');
+                const cellsPerVoxel = voxelPoly.length;
+                const s = SIREPO.PLOTTING.Utils.colorScale(
+                    minField,
+                    maxField,
+                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.models.voxels.colorMap],
+                );
+                colorbar.scale(s);
+                colorbarPtr = d3.select('.colorbar').call(colorbar);
+                const sc = [];
+                const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
+                for (const f of getFieldData()) {
+                    if (! isInFieldThreshold(f)) {
+                        continue;
+                    }
+                    const c = SIREPO.VTK.VTKUtils.colorToFloat(s(f)).map(v => Math.floor(255 * v));
+                    c.push(o);
+                    for (let j = 0; j < cellsPerVoxel; j++) {
+                        sc.push(...c);
+                    }
+                }
+                tallyBundle.setColorScalarsForCells(sc, 4);
+                basePolyData.modified();
+                vtkScene.render();
+            }
+
             function setVolumeProperty(bundle, name, value) {
                 bundle.setActorProperty(name, value);
                 vtkScene.render();
@@ -775,14 +780,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             }
 
             function tallyReportAxisIndices() {
-                return [
-                    SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.tallyReport.axis),
-                    ...SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices($scope.tallyReport.axis)
-                ];
+                return SIREPO.GEOMETRY.GeometryUtils.axisIndices($scope.tallyReport.axis);
             }
 
             function updateSlice(f) {
-                srdbg('UPDATE SLOCE');
+                if (! mesh) {
+                    return;
+                }
+                const pos = scale * appState.models.tallyReport.planePos;
+                const r = getMeshRanges()[tallyReportAxisIndices()[0]];
+                if (pos < r[0] || pos > r[1]) {
+                    appState.models.tallyReport.planePos = Math.floor(r[2] / 2) * (r[1] - r[0]) / r[2];
+                }
                 buildTallyReport();
                 appState.saveQuietly('tallyReport');
             }
@@ -933,7 +942,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
 
             appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
 
-            appState.watchModelFields($scope, ['tallyReport.axis', 'tallyReport.planePos'], updateSlice);
+            appState.watchModelFields(
+                $scope,
+                ['tallyReport.axis', 'tallyReport.planePos'],
+                updateSlice
+            );
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);

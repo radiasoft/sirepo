@@ -41,6 +41,15 @@ class GeometryUtils {
     }
     
     /**
+     * Get the indices of the given axis and the two axes in BASIS that comes after it axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {[number]}
+     */
+    static axisIndices(axis) {
+        return ([axis, ...GeometryUtils.nextAxes(axis)]).map(x => GeometryUtils.BASIS().indexOf(x));
+    }
+
+    /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
      * @param {string} dim - the dimension in which to sort (x|y|z)
