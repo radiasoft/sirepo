@@ -149,12 +149,11 @@ class API(sirepo.quest.API):
                 simulation_db.generate_json(self.parse_json(), pretty=True),
             )
         except Exception as e:
-            pkdlog(
-                "ip={}: error parsing javascript exception={} input={}",
-                ip,
-                e,
-                self.sreq.body_as_unicode_escape(),
-            )
+            try:
+                b = self.sreq.body_as_bytes().decode("unicode-escape")
+            except Exception as e:
+                b = f"error={e}"
+            pkdlog("ip={}: error parsing javascript exception={} input={}", ip, e, b)
         return self.reply_ok()
 
     @sirepo.quest.Spec(
@@ -284,17 +283,17 @@ class API(sirepo.quest.API):
                 raise sirepo.util.Error(
                     "must supply a file",
                     "no file in request={}",
-                    self.sreq.body_as_unicode_escape(),
+                    self.sreq,
                 )
             req = self.parse_params(
                 filename=f.filename,
-                folder=self.sreq.internal_req.form.get("folder"),
-                id=self.sreq.internal_req.form.get("simulationId"),
+                folder=self.sreq.form_get("folder", None),
+                id=self.sreq.form_get("simulationId", None),
                 template=True,
                 type=simulation_type,
             )
             req.file_stream = f.stream
-            req.import_file_arguments = self.sreq.internal_req.form.get("arguments", "")
+            req.import_file_arguments = self.sreq.form_get("arguments", "")
 
             def s(data):
                 data.models.simulation.folder = req.folder
@@ -537,7 +536,7 @@ class API(sirepo.quest.API):
         return self.reply_json(
             simulation_db.get_schema(
                 self.parse_params(
-                    type=self.sreq.internal_req.form["simulationType"],
+                    type=self.sreq.form_get("simulationType", "simulationType-missing"),
                 ).type,
             ),
         )
@@ -634,7 +633,7 @@ class API(sirepo.quest.API):
             if (
                 not e
                 and req.sim_data.lib_file_exists(req.filename, qcall=self)
-                and not self.sreq.internal_req.form.get("confirm")
+                and not self.sreq.form_get("confirm", False)
             ):
                 in_use = _simulations_using_file(req, ignore_sim_id=req.id)
                 if in_use:

@@ -35,6 +35,8 @@ def init_quest(qcall, internal_req=None):
         import flask
 
         sreq = _SRequest(
+            _body_as_bytes=lambda: internal_req.get_data(cache=False),
+            _form_get=internal_req.form.get,
             http_authorization=internal_req.authorization,
             http_headers=internal_req.headers,
             http_method=internal_req.method,
@@ -46,6 +48,8 @@ def init_quest(qcall, internal_req=None):
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request
         sreq = _SRequest(
+            _body_as_bytes=lambda: internal_req.request.body,
+            _form_get=internal_req.get_argument,
             http_authorization=_parse_authorization(r.headers.get("Authorization")),
             http_headers=r.headers,
             http_method=r.method,
@@ -84,10 +88,7 @@ class _SRequest(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
     def body_as_bytes(self):
-        return self.internal_req.get_data(cache=False)
-
-    def body_as_unicode_escape(self):
-        return self.internal_req.data or self.internal_req.data.decode("unicode-escape")
+        return self._body_as_bytes()
 
     def content_type_encoding(self):
         return self.__content_type().get("charset")
@@ -97,6 +98,9 @@ class _SRequest(sirepo.quest.Attr):
         if c is None:
             return False
         return self.__content_type()._key.lower() == value.lower()
+
+    def form_get(self, name, default):
+        return self._form_get(name, default)
 
     def header_uget(self, key):
         return self.http_headers.get(key)
