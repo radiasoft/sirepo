@@ -222,7 +222,7 @@ def nginx_proxy():
 
 
 def server():
-    if _cfg().tornado_server:
+    if _cfg().tornado:
         tornado()
     else:
         flask()
@@ -299,7 +299,7 @@ def _cfg():
             # so limit to 128, which is probably more than enough with
             # this application.
             threads=(10, _cfg_int(1, 128), "how many uwsgi threads in each process"),
-            tornado_server=(False, bool, "use tornado for server"),
+            tornado=(False, bool, "use tornado for server"),
             use_reloader=(pkconfig.channel_in("dev"), bool, "use the server reloader"),
         )
     return __cfg
