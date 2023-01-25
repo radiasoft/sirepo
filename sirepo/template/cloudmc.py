@@ -15,7 +15,6 @@ import re
 import sirepo.sim_data
 
 
-_AXES = ["x", "y", "z"]
 VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
