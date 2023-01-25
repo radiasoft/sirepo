@@ -710,22 +710,6 @@ def init_apis(*args, **kwargs):
     pass
 
 
-def _check_version(qcall):
-    import requests
-    from pykern import pkjson
-
-    pkdp("\n\n\n your version={}", sirepo.__version__)
-    r = requests.get(
-        # TODO (gurhar1133): build url somehow
-        f"http://v.radia.run:8000/version-check/{sirepo.__version__}"
-    )
-    r.raise_for_status()
-    if not pkjson.load_any(r.content).up_to_date:
-        raise sirepo.util.UserAlert(
-            "Your version needs update"
-        )
-
-
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     import flask
@@ -750,7 +734,6 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
 
         with sirepo.quest.start() as qcall:
             qcall.auth_db.create_or_upgrade()
-            _check_version(qcall)
 
         if cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>

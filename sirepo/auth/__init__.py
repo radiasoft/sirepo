@@ -621,6 +621,17 @@ class _Auth(sirepo.quest.Attr):
                 self._qcall_bound_user() or ""
             )
 
+        def _check_version():
+            import requests
+            from pykern import pkjson
+
+            r = requests.get(
+                f"http://v.radia.run:8000/version-check/{sirepo.__version__}"
+            )
+            r.raise_for_status()
+            return pkjson.load_any(r.content).up_to_date
+
+
         s = self._qcall_bound_state()
         v = pkcollections.Dict(
             avatarUrl=None,
@@ -635,6 +646,7 @@ class _Auth(sirepo.quest.Attr):
             roles=[],
             slackUri=_get_slack_uri(),
             userName=None,
+            versionUpToDate=_check_version(),
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:

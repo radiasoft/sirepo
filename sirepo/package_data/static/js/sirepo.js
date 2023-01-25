@@ -260,6 +260,20 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         );
     }
 
+    if (! SIREPO.authState.versionUpToDate) {
+        appState.whenModelsLoaded(
+            $rootScope,
+            function() {
+        //         if (appDataService.isApplicationMode('default')) {
+                    errorService.alertText(
+                        'Your sirepo version is not up to date. ' +
+                            'Make sure to update to the newest sirepo version. '
+                    );
+                // }
+            }
+        );
+    }
+
     SIREPO.APP_SCHEMA.enum.JobRunMode = SIREPO.APP_SCHEMA.enum.JobRunMode.map(
         function (x) {
             return [x[0], self.jobRunModeMap[x[0]]];
