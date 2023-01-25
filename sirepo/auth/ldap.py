@@ -11,16 +11,16 @@ import re
 import sirepo.quest
 import sirepo.util
 
-# TODO(BG): Write test
-
 AUTH_METHOD = "ldap"
 
 AUTH_METHOD_VISIBLE = True
 
 _cfg = None
 
+# ldap dn requires escaped special chars
 _ESCAPE_DN_MAIL = re.compile(r"([,\\#<>;\"=+])")
 
+# windows login dialogue char limit for passwords
 _MAX_ENTRY = 127
 
 #: module handle
