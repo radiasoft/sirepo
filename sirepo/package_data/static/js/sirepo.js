@@ -264,12 +264,10 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         appState.whenModelsLoaded(
             $rootScope,
             function() {
-        //         if (appDataService.isApplicationMode('default')) {
-                    errorService.alertText(
-                        'Your sirepo version is not up to date. ' +
-                            'Make sure to update to the newest sirepo version. '
-                    );
-                // }
+                errorService.alertText(
+                    'Your sirepo version is not up to date. ' +
+                        'Make sure to update to the newest sirepo version. '
+                );
             }
         );
     }

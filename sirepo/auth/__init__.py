@@ -631,7 +631,6 @@ class _Auth(sirepo.quest.Attr):
             r.raise_for_status()
             return pkjson.load_any(r.content).up_to_date
 
-
         s = self._qcall_bound_state()
         v = pkcollections.Dict(
             avatarUrl=None,
