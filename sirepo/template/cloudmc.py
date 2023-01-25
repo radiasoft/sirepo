@@ -61,10 +61,9 @@ def background_percent_complete(report, run_dir, is_running):
 
 def extract_report_data(run_dir, sim_in):
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
-    #if sim_in.report == "tallyReport":
-    #    template_common.write_sequential_result(
-    #        _tally_report_plot(run_dir, sim_in)
-    #    )
+    # dummy result
+    if sim_in.report == "tallyReport":
+        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
 
 
 def _next_axis(axis):
@@ -94,57 +93,6 @@ def _get_mesh(tally):
         return tally.find_filter(openmc.MeshFilter).mesh
     except ValueError:
         return None
-
-
-def _tally_report_plot(run_dir, sim_in):
-    import math
-
-    t = sim_in.models.tallyReport
-    scale = 0.01
-    n = _AXES.index(t.axis)
-    l, m = _next_axis_indices(t.axis)
-    tally = _get_tally(run_dir, sim_in)
-    fields = getattr(tally, sim_in.models.openmcAnimation.aspect)[
-        :, :, tally.get_score_index(sim_in.models.openmcAnimation.score)
-    ]
-    mesh = _get_mesh(tally)
-    dims = mesh.dimension
-    d = _reorder(fields, t.axis, dims)
-    ranges = scale * numpy.array([[x, mesh.upper_right[i]] for i, x in enumerate(mesh.lower_left)])
-    p = min(dims[n] - 1, max(0, math.floor(
-        dims[n] * (scale * t.planePos - ranges[n][0]) /
-        (ranges[n][1] - ranges[n][0])
-    )))
-    score = d[p].tolist()
-
-    return PKDict(
-        aspectRatio=abs(ranges[m][1] - ranges[m][0]) / abs(ranges[l][1] - ranges[l][0]),
-        title=f"Score at {t.axis} = {scale * t.planePos}m",
-        x_label=f"{_AXES[l]} [m]",
-        x_range=[ranges[l][0], ranges[l][1], int(dims[l])],
-        y_label=f"{_AXES[m]} [m]",
-        y_range=[ranges[m][0], ranges[m][1], int(dims[m])],
-        z_matrix=score,
-        z_range=[ranges[n][0], ranges[n][1], int(dims[n])],
-    )
-
-
-# assumes the original flat data is ordered by x then y then z
-# returns data ordered by x (y, z) then y (z, x) then z (x, y)
-def _reorder(flat_data, outer_axis, dims):
-    n = _AXES.index(outer_axis)
-    l, m = _next_axis_indices(outer_axis)
-    d = flat_data.reshape(list(reversed(dims)))
-    f = numpy.zeros([dims[n], dims[m], dims[l]])
-    for k in range(dims[n]):
-        for j in range(dims[m]):
-            for i in range(dims[l]):
-                v = [0, 0, 0]
-                v[l] = i
-                v[m] = j
-                v[n] = k
-                f[k][j][i] = (d[v[2]][v[1]][v[0]])
-    return f
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -189,9 +137,6 @@ def sim_frame(frame_args):
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
     try:
-        pkdp("VTK DS {}", getattr(t, frame_args.aspect)[
-                    :, :, t.get_score_index(frame_args.score)
-                ])
         t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
             filename=f,
             datasets={

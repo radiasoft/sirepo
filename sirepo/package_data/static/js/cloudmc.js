@@ -255,7 +255,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRendering, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache, mathRendering, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -627,7 +627,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                buildTallyReport();
+                updateSliceAxis();
                 $scope.$broadcast('sliderParent.ready', appState.models.tallyReport);
             }
 
@@ -783,7 +783,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 return SIREPO.GEOMETRY.GeometryUtils.axisIndices($scope.tallyReport.axis);
             }
 
-            function updateSlice(f) {
+            function updateSlice() {
+                buildTallyReport();
+                appState.saveQuietly('tallyReport');
+            }
+
+            function updateSliceAxis() {
                 if (! mesh) {
                     return;
                 }
@@ -792,8 +797,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 if (pos < r[0] || pos > r[1]) {
                     appState.models.tallyReport.planePos = Math.floor(r[2] / 2) * (r[1] - r[0]) / r[2];
                 }
-                buildTallyReport();
-                appState.saveQuietly('tallyReport');
+                appState.saveChanges('tallyReport');
+                updateSlice();
             }
 
             function volumesError(reason) {
@@ -875,6 +880,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 $scope.onlyClientFieldsChanged = modelFields && modelFields.every(x => clientOnlyFields.includes(x));
             });
 
+            $scope.$on('openmcAnimation.saved', () => {
+                frameCache.getFrame('openmcAnimation', -1, false, (i, d) => {
+                    $scope.load(d);
+                });
+            });
+
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
                 colorbar = Colorbar()
@@ -935,18 +946,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, mathRender
                 setVolumeProperty(bundleByVolume[volId], prop, val);
             });
 
-            $scope.$on('tallyReport.changed', () => {
-            });
+            $scope.$on('tallyReport.summaryData', () => updateSliceAxis);
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
             appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
 
-            appState.watchModelFields(
-                $scope,
-                ['tallyReport.axis', 'tallyReport.planePos'],
-                updateSlice
-            );
+            appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
+
+            appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice);
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
