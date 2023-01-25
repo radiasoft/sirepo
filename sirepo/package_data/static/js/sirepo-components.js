@@ -3794,16 +3794,16 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                     form.$setPristine();
                 }
 
+                $scope.$on(`${$scope.modelName}.changed`, () => {
+                    delegate.storedVal = $scope.model[$scope.field];
+                });
+
                 $scope.$on('cancelChanges', (e, d) => {
                     if (d !== $scope.modelName) {
                         return;
                     }
                     delegate.update();
                 });
-            });
-
-            $scope.$on(`${$scope.modelName}.changed`, () => {
-                delegate.storedVal = $scope.model[$scope.field];
             });
 
             $scope.$on('sliderParent.ready', function (e, m) {
