@@ -65,35 +65,6 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
 
 
-def _next_axis(axis):
-    return _AXES[(_AXES.index(axis) + 1) % len(_AXES)]
-
-
-def _next_axis_indices(axis):
-    def _next_axes(a):
-        w = _next_axis(a)
-        return [w, _next_axis(w)]
-
-    return [_AXES.index(x) for x in _next_axes(axis)]
-
-
-def _get_tally(run_dir, sim_in):
-    import openmc
-
-    return openmc.StatePoint(
-        run_dir.join(_statepoint_filename(sim_in))
-    ).get_tally(name=sim_in.models.openmcAnimation.tally)
-
-
-def _get_mesh(tally):
-    import openmc
-
-    try:
-        return tally.find_filter(openmc.MeshFilter).mesh
-    except ValueError:
-        return None
-
-
 def get_data_file(run_dir, model, frame, options):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if model == "dagmcAnimation":
