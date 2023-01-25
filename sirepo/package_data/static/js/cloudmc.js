@@ -831,8 +831,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             $scope.onlyClientFieldsChanged = false;
 
-            $scope.axisLabel = () => SIREPO.APP_SCHEMA.model.tallyReport.planePos[SIREPO.INFO_INDEX_LABEL];
-
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
                 vtkScene = null;
@@ -860,9 +858,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             $scope.setDisplay = d => {
                 $scope.displayType = d;
                 appState.saveChanges('tallyReport');
-                if (d === '2D') {
-                    $scope.$applyAsync();
-                }
             };
 
             $scope.sizeStyle = () => {
@@ -1767,15 +1762,5 @@ SIREPO.app.directive('materialList', function(appState, cloudmcService) {
 SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panelState, $scope) {
     $scope.watchFields = [
         ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
-        ['tallyReport.axis'], updateEditor,
     ];
-
-    function updateEditor() {
-        [
-            appState.models.tallyReport.horizontalAxis,
-            appState.models.tallyReport.verticalAxis
-        ] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.tallyReport.axis);
-
-    }
-    $scope.whenSelected = updateEditor;
 });
