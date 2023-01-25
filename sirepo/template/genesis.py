@@ -120,7 +120,7 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def import_file(req, **kwargs):
-    text = pkcompat.from_bytes(req.file_stream.read())
+    text = req.form_file.as_str()
     if not bool(re.search(r"\.in$", req.filename, re.IGNORECASE)):
         raise AssertionError("invalid file extension, expecting .in")
     res = sirepo.simulation_db.default_data(SIM_TYPE)

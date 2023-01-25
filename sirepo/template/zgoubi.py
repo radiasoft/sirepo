@@ -465,7 +465,7 @@ def stateful_compute_tosca_info(data):
 
 def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(
-        pkcompat.from_bytes(req.file_stream.read()),
+        req.form_file.as_str(),
         unit_test_mode=unit_test_mode,
     )
 

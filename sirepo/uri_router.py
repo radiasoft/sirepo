@@ -203,6 +203,7 @@ def start_tornado(ip, port, debug=False):
         async def post(self):
             self._route()
 
+    sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = tornado.httpserver.HTTPServer(
         tornado.web.Application([("/.*", _Handler)], debug=True),
         xheaders=True,

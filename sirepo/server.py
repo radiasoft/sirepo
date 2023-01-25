@@ -278,13 +278,7 @@ class API(sirepo.quest.API):
         f = None
 
         try:
-            f = self.sreq.internal_req.files.get("file")
-            if not f:
-                raise sirepo.util.Error(
-                    "must supply a file",
-                    "no file in request={}",
-                    self.sreq,
-                )
+            f = self.sreq.form_file_get()
             req = self.parse_params(
                 filename=f.filename,
                 folder=self.sreq.form_get("folder", None),
@@ -292,7 +286,7 @@ class API(sirepo.quest.API):
                 template=True,
                 type=simulation_type,
             )
-            req.file_stream = f.stream
+            req.form_file = f
             req.import_file_arguments = self.sreq.form_get("arguments", "")
 
             def s(data):
@@ -301,12 +295,12 @@ class API(sirepo.quest.API):
                 return self._save_new_and_reply(req, data)
 
             if pkio.has_file_extension(req.filename, "json"):
-                data = importer.read_json(req.file_stream.read(), self, req.type)
+                data = importer.read_json(req.form_file.as_bytes(), self, req.type)
             # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
             # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, "zip"):
                 data = importer.read_zip(
-                    req.file_stream.read(), self, sim_type=req.type
+                    req.form_file.as_bytes(), self, sim_type=req.type
                 )
             else:
                 if not hasattr(req.template, "import_file"):
@@ -614,7 +608,7 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     def api_uploadFile(self, simulation_type, simulation_id, file_type):
-        f = self.sreq.internal_req.files["file"]
+        f = self.sreq.form_file_get()
         req = self.parse_params(
             file_type=file_type,
             filename=f.filename,
@@ -716,6 +710,15 @@ def init_apis(*args, **kwargs):
     pass
 
 
+def init_tornado(uwsgi=None, use_reloader=False, is_server=False):
+    """Initialize globals and create/upgrade db"""
+    _init_proxy_react()
+    from sirepo import auth_db
+
+    with sirepo.quest.start() as qcall:
+        qcall.auth_db.create_or_upgrade()
+
+
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     import flask
@@ -730,7 +733,6 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
         static_folder=None,
     )
     _app.sirepo_uwsgi = uwsgi
-    _app.sirepo_use_reloader = use_reloader
     _init_proxy_react()
     sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
     sirepo.flask.app_set(_app)

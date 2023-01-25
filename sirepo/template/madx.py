@@ -354,7 +354,7 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def import_file(req, **kwargs):
-    text = pkcompat.from_bytes(req.file_stream.read())
+    text = req.form_file.as_str()
     if not bool(re.search(r"\.madx$|\.seq$", req.filename, re.IGNORECASE)):
         raise AssertionError("invalid file extension, expecting .madx or .seq")
     data = madx_parser.parse_file(text, downcase_variables=True)
