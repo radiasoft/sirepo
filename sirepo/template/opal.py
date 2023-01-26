@@ -643,40 +643,16 @@ def sim_frame_plotAnimation(frame_args):
 def sim_frame_plot2Animation(frame_args):
     from sirepo.template import sdds_util
 
-    x = None
-    plots = []
-    for f in ("x", "y1", "y2", "y3"):
-        name = frame_args[f].replace(" ", "_")
-        if name == "none":
-            continue
-        col = sdds_util.extract_sdds_column(
-            str(frame_args.run_dir.join(_OPAL_SDDS_FILE)), name, 0
+    def _format_plot(plot, sdds_label, sdds_units):
+        _field_units(sdds_units, plot)
+
+    return sdds_util.SDDSUtil(_OPAL_SDDS_FILE).lineplot(
+        PKDict(
+            x=("x",),
+            y=("y1", "y2", "y3"),
+            format_plot=_format_plot,
+            frame_args=frame_args,
         )
-        if col.err:
-            return col.err
-        field = PKDict(
-            points=col["values"],
-            label=frame_args[f],
-        )
-        _field_units(col.column_def[1], field)
-        if f == "x":
-            x = field
-        else:
-            plots.append(field)
-    # independent reads of file may produce more columns, trim to match x length
-    for p in plots:
-        if len(x.points) < len(p.points):
-            p.points = p.points[: len(x.points)]
-    return template_common.parameter_plot(
-        x.points,
-        plots,
-        {},
-        {
-            "title": "",
-            "dynamicYLabel": True,
-            "y_label": "",
-            "x_label": x.label,
-        },
     )
 
 

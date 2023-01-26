@@ -10,6 +10,7 @@ from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.template import elegant_common
+from sirepo.template import template_common
 import math
 import re
 import sdds
@@ -39,6 +40,53 @@ MADX_TWISS_COLUMS = map(lambda row: row[1], _ELEGANT_TO_MADX_COLUMNS)
 _SDDS_INDEX = 1
 _MAX_SDDS_INDEX = 19
 _sdds_lock = threading.RLock()
+
+
+class SDDSUtil:
+    def __init__(self, filename):
+        self.filename = filename
+
+    # where plot_attrs is a PKDict of values, x, x_label, title, ...
+    def heatmap(self, plot_attrs):
+        pass
+
+    def lineplot(self, plot_attrs):
+        x = None
+        plots = []
+        for f in plot_attrs.x + plot_attrs.y:
+            name = plot_attrs.frame_args[f].replace(" ", "_")
+            if name == "none":
+                continue
+            col = extract_sdds_column(
+                str(plot_attrs.frame_args.run_dir.join(self.filename)), name, 0
+            )
+            if col.err:
+                return col.err
+            field = PKDict(
+                points=col["values"],
+                label=plot_attrs.frame_args[f],
+            )
+            plot_attrs.format_plot(field, None, col.column_def[1])
+            if f == "x":
+                x = field
+            else:
+                plots.append(field)
+        # independent reads of file may produce more columns, trim to match x length
+        for p in plots:
+            if len(x.points) < len(p.points):
+                p.points = p.points[: len(x.points)]
+
+        return template_common.parameter_plot(
+            x=x.points,
+            plots=plots,
+            model={},
+            plot_fields={
+                "title": "",
+                "dynamicYLabel": True,
+                "y_label": "",
+                "x_label": x.label,
+            },
+        )
 
 
 def extract_sdds_column(filename, field, page_index):
