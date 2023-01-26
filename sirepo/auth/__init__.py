@@ -621,21 +621,6 @@ class _Auth(sirepo.quest.Attr):
                 self._qcall_bound_user() or ""
             )
 
-        def _check_version():
-            import requests
-            from pykern import pkjson
-
-            if self.qcall.bucket_unchecked_get("in_srunit"):
-                return True
-            r = requests.get(
-                sirepo.feature_config.cfg().sirepo_version_uri
-                + sirepo.uri.server_route(
-                    "versionCheck", {"version": str(sirepo.__version__)}, None
-                )
-            )
-            r.raise_for_status()
-            return pkjson.load_any(r.content).up_to_date
-
         s = self._qcall_bound_state()
         v = pkcollections.Dict(
             avatarUrl=None,
@@ -650,7 +635,6 @@ class _Auth(sirepo.quest.Attr):
             roles=[],
             slackUri=_get_slack_uri(),
             userName=None,
-            versionUpToDate=_check_version(),
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:

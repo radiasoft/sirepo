@@ -39,7 +39,8 @@ class API(sirepo.quest.API):
     def api_versionCheck(self, version):
         return self.reply_ok(
             {
-                "up_to_date": sirepo.__version__ == version,
+                # "up_to_date": sirepo.__version__ == version,
+                "up_to_date": False,
             }
         )
 

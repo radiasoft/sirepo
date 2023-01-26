@@ -260,17 +260,18 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         );
     }
 
-    if (! SIREPO.authState.versionUpToDate) {
-        appState.whenModelsLoaded(
-            $rootScope,
-            function() {
-                errorService.alertText(
-                    'Your sirepo version is not up to date. ' +
-                        'Make sure to update to the newest sirepo version. '
-                );
-            }
-        );
-    }
+    // TODO (gurhar1133): maybe scrap this?
+    // if (! SIREPO.authState.versionUpToDate) {
+    //     appState.whenModelsLoaded(
+    //         $rootScope,
+    //         function() {
+    //             errorService.alertText(
+    //                 'Your sirepo version is not up to date. ' +
+    //                     'Make sure to update to the newest sirepo version. '
+    //             );
+    //         }
+    //     );
+    // }
 
     SIREPO.APP_SCHEMA.enum.JobRunMode = SIREPO.APP_SCHEMA.enum.JobRunMode.map(
         function (x) {

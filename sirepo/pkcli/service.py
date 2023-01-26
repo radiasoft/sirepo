@@ -39,7 +39,7 @@ import time
 __cfg = None
 
 
-def flask():
+def flask(is_server=None):
     from werkzeug import serving
 
     with pkio.save_chdir(_run_dir()) as r:
@@ -48,7 +48,7 @@ def flask():
         assert pkconfig.channel_in("dev")
         app = sirepo.modules.import_and_init("sirepo.server").init_app(
             use_reloader=_cfg().use_reloader,
-            is_server=True,
+            is_server=not is_server,
         )
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = "development"
@@ -65,7 +65,7 @@ def flask():
         )
 
 
-def http():
+def http(is_server=None):
     """Starts the Flask server and job_supervisor.
 
     Used for development only.
@@ -144,7 +144,10 @@ def http():
                 )
                 e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
             time.sleep(0.3)
-            _start(("service", "flask"), extra_environ=e)
+            a = ["service", "flask"]
+            if is_server:
+                a += ["--is-server", is_server]
+            _start(tuple(a), extra_environ=e)
             p, _ = os.wait()
     except ChildProcessError:
         pass

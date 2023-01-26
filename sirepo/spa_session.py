@@ -36,6 +36,23 @@ def init_quest(qcall):
         except Exception as e:
             pkdlog("error={} trying api_beginSession stack={}", e, pkdexc())
 
+    def _check_version():
+        import requests
+        from pykern import pkjson
+
+        # if qcall.bucket_unchecked_get("in_srunit"):
+        #     return True
+        r = requests.get(
+            f"http://v.radia.run:8000/version-check/{sirepo.__version__}"
+            # sirepo.feature_config.cfg().sirepo_version_uri
+            # + sirepo.uri.server_route(
+            #     "versionCheck", {"version": str(sirepo.__version__)}, None
+            # )
+        )
+        # assert 0, f"r={r}"
+        r.raise_for_status()
+        return pkjson.load_any(r.content).up_to_date
+
     def _check():
         u = qcall.auth.logged_in_user(check_path=False)
         t = sirepo.srtime.utc_now()
@@ -50,6 +67,7 @@ def init_quest(qcall):
             with sirepo.util.THREAD_LOCK:
                 _DB[u] = s
         return True
-
+    if not _check_version():
+        raise sirepo.util.UserAlert("Sirepo version is out of date")
     if qcall.sreq.method_is_post() and qcall.auth.is_logged_in() and _check():
         _begin()
