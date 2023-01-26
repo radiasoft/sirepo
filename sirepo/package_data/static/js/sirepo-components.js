@@ -1875,19 +1875,20 @@ SIREPO.app.directive('viewLogIframe', function() {
     return {
         restrict: 'A',
         scope: {
-            loadingLog: '<',
+            logIsLoading: '<',
             logHtml: '<',
             logPath: '<',
-            wrapperDownloadLog: '<'
+            uniqueModalId: '<',
+            downloadLog: '<'
         },
         template: `
-            <div class="modal fade" id="sr-iframe-text-view" tabindex="-1" role="dialog">
+            <div class="modal fade" id="{{ modalId }}" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
                     <span class="lead modal-title text-info">Log</span>
                     <div class="sr-panel-options pull-right">
-                      <a data-ng-if="wrapperDownloadLog" data-ng-href="{{ downloadLog() }}" target="_blank">
+                      <a data-ng-if="downloadLog" data-ng-href="{{ downloadLog() }}" target="_blank">
                         <span class="sr-panel-heading glyphicon glyphicon-cloud-download"></span>
                       </a>
                       <button type="button" class="close" data-dismiss="modal" style="margin-left: 10px">
@@ -1896,8 +1897,8 @@ SIREPO.app.directive('viewLogIframe', function() {
                     </div>
                   </div>
                   <div class="modal-body" style="padding: 0">
-                    <div data-ng-if="loadingLog">Loading...</div>
-                    <div data-ng-if="! loadingLog">
+                    <div data-ng-if="logIsLoading">Loading...</div>
+                    <div data-ng-if="! logIsLoading">
                         <div data-ng-if="logPath">{{ logPath }}</div>
                         <iframe id="sr-text-iframe"
                           style="border: 0; width: 100%; height: 80vh" src="" srcdoc="{{ logHtml }}"></iframe>
@@ -1908,9 +1909,7 @@ SIREPO.app.directive('viewLogIframe', function() {
             </div>
         `,
         controller: function($scope) {
-            $scope.downloadLog = function() {
-                return $scope.wrapperDownloadLog();
-            };
+            $scope.modalId = $scope.uniqueModalId ? $scope.uniqueModalId : 'sr-view-log-iframe';
         },
     };
 });

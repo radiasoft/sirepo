@@ -156,8 +156,8 @@ SIREPO.app.directive('columnPicker', function() {
                   </div>
                   <div class="modal-body">
                     <div class="container-fluid">
-                      <label for="scans-columns" style="margin-right: 10px;">Field:</label>
-                      <select name="scans-columns" id="scans-columns" data-ng-model="selected" ng-change="selectColumn()">
+                      <label style="margin-right: 10px;">Field:</label>
+                      <select data-ng-model="selected" ng-change="selectColumn()">
                         <option ng-repeat="column in availableColumns">{{column}}</option>
                       </select>
                     </div>
@@ -319,7 +319,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
-                      <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">run log</button></td>
+                      <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">View Log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -366,9 +366,9 @@ SIREPO.app.directive('scansTable', function() {
                 </div>
               </div>
             </div>
-            <div data-view-log-iframe-wrapper data-scan-id="runLogScanId"></div>
+            <div data-view-log-iframe-wrapper data-scan-id="runLogScanId" data-unique-modal-id="runLogModalId"></div>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
@@ -378,6 +378,7 @@ SIREPO.app.directive('scansTable', function() {
             $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
             $scope.reverseSortScans = false;
+            $scope.runLogModalId = 'sr-view-log-iframe-' + $scope.analysisStatus;
             $scope.runLogScanId = null;
             $scope.scans = [];
             $scope.selectedScan = null;
@@ -533,7 +534,9 @@ SIREPO.app.directive('scansTable', function() {
             $scope.showRunLogModal = (scan, event) => {
                 event.stopPropagation();
                 $scope.runLogScanId = scan.uid;
-                $('#sr-iframe-text-view').modal('show');
+                $timeout(function(){
+                    $('#' + $scope.runLogModalId).modal('show');
+                });
             };
 
             $scope.sortCol = (column) => {
@@ -584,21 +587,22 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
         restrict: 'A',
         scope: {
             scanId: '<',
+            uniqueModalId: '<',
         },
         template: `
-            <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-loading-log="loadingLog"></div>
+            <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-unique-modal-id="uniqueModalId"></div>
         `,
         controller: function(appState, errorService, panelState, requestSender, $scope) {
-            $scope.loadingLog = false;
+            $scope.logIsLoading = false;
             $scope.log = null;
             $scope.logPath = null;
 
-            $('#sr-iframe-text-view').on('shown.bs.modal', function() {
-                $scope.loadingLog = true;
+            $(document).on('show.bs.modal','#' + $scope.uniqueModalId, function() {
+                $scope.logIsLoading = true;
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
-                        $scope.loadingLog = false;
+                        $scope.logIsLoading = false;
                         $scope.log = json.run_log;
                         $scope.logPath = json.log_path;
                     },
@@ -611,7 +615,7 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                     {
                         modelName: $scope.modelName,
                         onError: (data) => {
-                            $scope.loadingLog = false;
+                            $scope.logIsLoading = false;
                             errorService.alertText(data.error);
                             panelState.setLoading($scope.modelName, false);
                         },

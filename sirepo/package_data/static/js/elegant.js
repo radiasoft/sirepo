@@ -1452,10 +1452,10 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
         scope: {},
         template: `
             <a href data-ng-click="viewLog()">View Log</a>
-            <div data-view-log-iframe data-wrapper-download-log="downloadLog" data-log-html="log" data-loading-log="loadingLog"></div>
+            <div data-view-log-iframe data-download-log="downloadLog" data-log-html="log" data-log-is-loading="logIsLoading"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
-            $scope.loadingLog = false;
+            $scope.logIsLoading = false;
             $scope.log = null;
             $scope.logPath = null;
 
@@ -1473,12 +1473,12 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             };
 
             $scope.viewLog = function () {
-                $scope.loadingLog = true;
-                $('#sr-iframe-text-view').modal('show');
+                $scope.logIsLoading = true;
+                $('#sr-view-log-iframe').modal('show');
                 requestSender.sendAnalysisJob(
                     appState,
                     (data) => {
-                        $scope.loadingLog = false;
+                        $scope.logIsLoading = false;
                         $scope.log = data.html;
                     },
                     {
