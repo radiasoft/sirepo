@@ -625,8 +625,13 @@ class _Auth(sirepo.quest.Attr):
             import requests
             from pykern import pkjson
 
+            if self.qcall.bucket_unchecked_get("in_srunit"):
+                return True
             r = requests.get(
-                f"http://v.radia.run:8000/version-check/{sirepo.__version__}"
+                sirepo.feature_config.cfg().sirepo_version_uri
+                + sirepo.uri.server_route(
+                    "versionCheck", {"version": str(sirepo.__version__)}, None
+                )
             )
             r.raise_for_status()
             return pkjson.load_any(r.content).up_to_date

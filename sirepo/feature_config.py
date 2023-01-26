@@ -169,6 +169,11 @@ def _init():
             "React apps",
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
+        sirepo_version_uri=(
+            "https://sirepo.com",
+            str,
+            "Link to sirepo for version checking",
+        ),
         slack_uri=(
             "https://slack.com/",
             str,
