@@ -82,12 +82,14 @@ class API(sirepo.quest.API):
             this_module, sim_type=req.type, model=_user(res.email), want_redirect=True
         )
 
+
 def _cfg_dn_suffix(value):
     if len(value) > _MAX_ENTRY:
         raise AssertionError(f"value={value} is too long (>{_MAX_ENTRY})")
     elif value == None:
         raise AssertionError(f"yee")
     return value
+
 
 def init_apis(*args, **kwargs):
     global _cfg
