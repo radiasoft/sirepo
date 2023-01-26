@@ -1794,12 +1794,10 @@ def _update_group(g, members, do_replace=False):
 
 
 def _update_kickmap(km, und, beam_axis):
-    km.direction = list(radia_util.AXIS_VECTORS[beam_axis])
-    km.transverseDirection = list(
-        radia_util.AXIS_VECTORS[
-            SCHEMA.constants.heightAxisMap[beam_axis]
-        ]
-    )
+    km.direction = radia_util.AXIS_VECTORS[beam_axis].tolist()
+    km.transverseDirection = radia_util.AXIS_VECTORS[
+        SCHEMA.constants.heightAxisMap[beam_axis]
+    ].tolist()
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
