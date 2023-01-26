@@ -814,7 +814,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     self.setFieldDefaults = function(model, field, fieldInfo, overWrite=false) {
         let defaultVal = fieldInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE];
         if (fieldInfo[SIREPO.INFO_INDEX_TYPE] === 'RandomId') {
-            defaultVal = utilities.randomString();
+            defaultVal = SIREPO.UTILS.randomString();
         }
         if (! model[field] || overWrite) {
             if (defaultVal !== undefined) {
@@ -2150,6 +2150,17 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
 
     self.newWindow = function(routeName, params) {
         $window.open(self.formatUrl(routeName, params), '_blank');
+    };
+
+    self.openSimulation = (app, localRoute, simId) => {
+        $window.open(
+            self.formatUrl('simulationRedirect', {
+                simulation_type: app,
+                local_route: localRoute,
+                simulation_id: simId,
+            }),
+            '_blank'
+        );
     };
 
     self.globalRedirect = function(routeNameOrUrl, params) {

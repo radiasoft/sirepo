@@ -36,75 +36,63 @@ class PlottingUtils {
 
 }
 
-class PlotShape {
+class AbstractPlotShape {
     constructor(
-        id,
-        name,
-        {
-            center=[0, 0, 0],
-            size=[1, 1, 1],
-            color=null,
-            alpha=1.0,
-            fillStyle=null,
-            strokeStyle=null,
-            dashes=null,
-            layoutShape='rect',
-            points=[],
-        }
+        id=SIREPO.UTILS.randomString(),
+        name='AbstractPlotShape',
+        layoutShape=''
     ) {
-        this.alpha = alpha;
-        this.center = {
-            x: center[0], y: center[1]
-        };
-        this.color = color;
-        this.dashes = dashes;
-        this.fillStyle = fillStyle;
+        this.alpha = 1.0;
+        this.color = null;
+        this.dashes = null;
+        this.fillStyle = 'solid';
         this.id = id;
         this.layoutShape = layoutShape;
         this.name = name;
-        this.points = points;
-        this.size = {
-            x: size[0], y: size[1]
-        };
-        this.strokeStyle = strokeStyle;
-        this.x = center[0] + SIREPO.SCREEN_INFO.x.direction * size[0] / 2;
-        this.y = center[1] + SIREPO.SCREEN_INFO.y.direction * size[1] / 2;
+        this.outlineOffset = 0.0;
+        this.strokeStyle = 'solid';
+        this.strokeWidth = 1.0;
 
-        this.affineTransform = new SIREPO.GEOMETRY.IdentityMatrix(4);
         this.axes = ['x', 'y'];
-        this.elev = null;
+        this.center = new SIREPO.GEOMETRY.Point(0, 0);
         this.draggable = true;
+        this.elevation = null;
         this.links = [];
-    }
+        this.size = {x: 0.0, y: 0.0};
+        this.transform = new SIREPO.GEOMETRY.IdentityMatrix(2);
 
-    getCoords(obj) {
-        const coords = [];
-        for (const dim in obj) {
-            coords.push(obj[dim]);
-        }
-        return coords;
-    }
+        // d3 events require x and y
+        this.x = 0;
+        this.y = 0;
 
-    selectionId(includeHash=true) {
-        return `${(includeHash ? '#' : '')}shape-${this.id}`;
-    }
-
-    setCoords(obj, coords) {
-        Object.keys(obj).forEach(function(dim, i) {
-            obj[dim] = coords[i];
-        });
+        // used to sort
+        this.z = 0;
     }
 
     addLink(otherShape, linkFunction) {
         this.links.push(this.plotShapeLink(otherShape, linkFunction));
     }
 
-    getCenterCoords() {
-        return this.getCoords(this.center);
+    bounds() {
+        return {
+            x: [0.0, 0.0],
+            y: [0.0, 0.0],
+        };
     }
 
-    getSizeCoords() {
-        return this.getCoords(this.size);
+    copy(exclude=[]) {
+        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['center', 'id', 'transform']));
+        c.center = new SIREPO.GEOMETRY.Point(...this.center.coords());
+        c.transform = new SIREPO.GEOMETRY.SquareMatrix(this.transform.val);
+        return c;
+    }
+
+    getCoords(obj) {
+        const coords = [];
+        for (const dim of this.axes) {
+            coords.push(obj[dim]);
+        }
+        return coords;
     }
 
     // link this shape to another so that some aspect of the linked shape is tied to
@@ -125,71 +113,168 @@ class PlotShape {
         return linkRes;
     }
 
-    scaledCenter(dim, scaleX, scaleY) {
-        return {
-            x: scaleX(this.center[this.elev.x.axis]),
-            y: scaleY(this.center[this.elev.y.axis]),
-        };
+    selectionId(includeHash=true) {
+        return `${(includeHash ? '#' : '')}shape-${this.id}`;
+    }
+
+    setCoords(obj, coords) {
+        Object.keys(obj).forEach(function(dim, i) {
+            obj[dim] = coords[i];
+        });
+    }
+
+    setAlpha(alpha) {
+        this.alpha = alpha;
+    }
+
+    setColor(color) {
+        this.color = color;
+    }
+
+    setDashes(dashes) {
+        this.dashes = dashes;
+    }
+
+    setDraggable(isDraggable) {
+        this.draggable = isDraggable;
+    }
+
+    setFillStyle(style) {
+        this.fillStyle = style;
+    }
+
+    setOutlineOffset(offset) {
+        this.outlineOffset = offset;
+    }
+
+    setStrokeStyle(style) {
+        this.strokeStyle = style;
+    }
+
+    setStrokeWidth(width) {
+        this.strokeWidth = width;
+    }
+}
+
+class AbstractPlotShape2D extends AbstractPlotShape {
+    constructor(
+        id,
+        name,
+        layoutShape,
+        center=[0, 0]
+    ) {
+        super(
+            id,
+            name,
+            layoutShape
+        );
+        this.center = new SIREPO.GEOMETRY.Point(...center);
+    }
+
+    getCenterCoords() {
+        return this.getCoords(this.center);
     }
 
     setCenter(coords) {
         this.setCoords(this.center, coords);
     }
-
-    setSize(coords) {
-        this.setCoords(this.size, coords);
-    }
-
-    svgTransform(scaleX, scaleY, rotateAroundShapeCenter) {
-        const e = this.affineTransform.toEuler(true);
-        const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(this.elev.axis)];
-        const c = this.getCenterCoords();
-        const rc = this.affineTransform.multiply(
-            new SIREPO.GEOMETRY.Matrix([...c, 0])
-        ).val;
-        const t = {x: 0, y: 0};
-        if (! rotateAroundShapeCenter) {
-            for (const dim in t) {
-                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(this.elev[dim].axis);
-                t[dim] = scaleX(rc[i]) - scaleY(c[i]);
-            }
-        }
-        const sc = this.scaledCenter(scaleX, scaleY);
-        return `
-            rotate(${-angle},${sc.x},${sc.y}) 
-            translate(${t.x},${t.y})
-        `;
-    }
-
 }
 
-class PlotLine extends PlotShape {
+class PlotLine extends AbstractPlotShape {
     constructor(
         id,
         name,
-        line,
-        {
-            color=null,
-            alpha=1.0,
-            strokeStyle=null,
-            dashes=null,
-        }
+        line
     ) {
         super(
             id,
             name,
-            {
-                color: color,
-                alpha: alpha,
-                strokeStyle: strokeStyle,
-                dashes: dashes,
-                layoutShape: 'line',
-                size: [0, 0],
-            }
+            'line'
         );
         this.line = line;
     }
 }
+
+class PlotPolygon extends AbstractPlotShape2D {
+    constructor(
+        id,
+        name,
+        points=[[0,0],[0,1],[1,1]]
+    ) {
+        if (points.length < 3) {
+            throw new Error('Polygons require at least 3 points: ' + points.length);
+        }
+        const p = points.map(x => new SIREPO.GEOMETRY.Point(...x));
+        const sx = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(p, 'x');
+        const sy = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(p, 'y');
+        const ctr = [
+            sx[0].x + (sx[sx.length - 1].x - sx[0].x) / 2,
+            sy[0].y + (sy[sy.length - 1].y - sy[0].y) / 2,
+        ];
+
+        super(
+            id,
+            name,
+            'polygon',
+            ctr
+        );
+        this.size = {
+            x: Math.abs(sx[sx.length - 1].x - sx[0].x),
+            y: Math.abs(sy[sy.length - 1].y - sy[0].y),
+        };
+        this.center.x = ctr[0];
+        this.center.y = ctr[1];
+
+        this.setPoints(p);
+    }
+
+    bounds() {
+        return SIREPO.GEOMETRY.GeometryUtils.bounds(this.points);
+    }
+
+    copy() {
+        const c = super.copy(['points']);
+        c.points = [];
+        for (const p of this.points) {
+            c.points.push(new SIREPO.GEOMETRY.Point(...p.coords()));
+        }
+        return c;
+    }
+
+    getSizeCoords() {
+        return this.getCoords(this.size);
+    }
+
+    setPoints(arr) {
+        this.points = arr;
+    }
+}
+
+class PlotRect extends AbstractPlotShape2D {
+    constructor(
+        id,
+        name,
+        center,
+        size=[1, 1]
+    ) {
+        super(id, name, 'rect', center);
+        this.size = {
+            x: size[0],
+            y: size[1],
+        };
+        this.x = this.center.x + this.size.x / 2;
+        this.y = this.center.y - this.size.y / 2;
+    }
+
+    getSizeCoords() {
+        return this.getCoords(this.size);
+    }
+
+    setSize(coords) {
+        this.setCoords(this.size, coords);
+    }
+}
+
 
 SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
@@ -890,7 +975,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         // link on shape to another so that some aspect of the linked shape is tied to
-        // the main shape via a prvoided function
+        // the main shape via a provided function
         plotShapeLink: function(shape, linkedShape, linkFunction) {
             return {
                 shape: shape,
@@ -4134,5 +4219,8 @@ SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState
 });
 
 SIREPO.PLOTTING = {
+    PlotLine: PlotLine,
+    PlotPolygon: PlotPolygon,
+    PlotRect: PlotRect,
     Utils: PlottingUtils,
 };
