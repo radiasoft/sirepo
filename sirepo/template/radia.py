@@ -417,8 +417,8 @@ def _build_dipole_objects(geom_objs, model, **kwargs):
 def _build_field_axis(length, axis):
     beam_dir = radia_util.AXIS_VECTORS[axis]
     f = PKDict(
-        begin=list((-length / 2) * beam_dir),
-        end=list((length / 2) * beam_dir),
+        begin=((-length / 2) * beam_dir).tolist(),
+        end=((length / 2) * beam_dir).tolist(),
         name=f"{axis.upper()}-Axis",
         numPoints=round(length / 2) + 1,
         start=-length / 2,
