@@ -83,13 +83,11 @@ class API(sirepo.quest.API):
         )
 
 def _cfg_dn_suffix(value):
-    if not value:
-        e = "falsey"
-    elif len(value) > _MAX_ENTRY:
-        e = "over max chars"
-    else:
-        return value
-    raise AssertionError(f"{e} value={value}")
+    if len(value) > _MAX_ENTRY:
+        raise AssertionError(f"value={value} is too long (>{_MAX_ENTRY})")
+    elif value == None:
+        raise AssertionError(f"yee")
+    return value
 
 def init_apis(*args, **kwargs):
     global _cfg
