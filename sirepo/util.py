@@ -239,7 +239,7 @@ def assert_sim_type(sim_type):
 
 def auth_header(token):
     return PKDict(
-        {sirepo.const.AUTH_HEADER: "{sirepo.const.AUTH_HEADER_SCHEME_BEARER} " + token}
+        {sirepo.const.AUTH_HEADER: f"{sirepo.const.AUTH_HEADER_SCHEME_BEARER} {token}"}
     )
 
 
