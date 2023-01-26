@@ -52,45 +52,54 @@ class API(sirepo.quest.API):
                 u.save()
             return u
 
-        def _validate_and_escape_creds(req):
-            email = req.req_data.email.lower()
-            password = req.req_data.password
-            if len(email) > _MAX_ENTRY or len(password) > _MAX_ENTRY:
-                raise sirepo.util.UserAlert(
-                    "invalid user and/or password",
-                    f"email={email} or password greater than 127 chars",
-                )
-            if len(_cfg.dn_suffix) > _MAX_ENTRY:
-                raise sirepo.util.UserAlert(
-                    "invalid LDAP dn",
-                    f"dn={_cfg.base_dn} greater than 127 chars",
-                )
-            if not email or not password:
-                raise sirepo.util.UserAlert(
-                    "invalid user and/or password",
-                    f"email={email} or password is none/zero length",
-                )
-            return PKDict(
-                dn=("mail=" + re.sub(_ESCAPE_DN_MAIL, r"\\\1", email) + _cfg.dn_suffix),
-                email=email,
-                password=password,
+        def _validate_entry(creds, field):
+            if not creds[field]:
+                e = "falsey"
+            elif len(creds[field]) > _MAX_ENTRY:
+                e = "over max chars"
+            else:
+                return
+            raise sirepo.util.UserAlert(
+                "invalid user and/or password",
+                "{} field={}; email={}",
+                e,
+                field,
+                creds.email,
             )
 
         req = self.parse_post()
-        creds = _validate_and_escape_creds(req)
-        _bind(creds)
+        res = PKDict(
+            email=req.req_data.email,
+            password=req.req_data.password,
+            dn="mail="
+            + re.sub(_ESCAPE_DN_MAIL, r"\\\1", req.req_data.email)
+            + _cfg.dn_suffix,
+        )
+        _validate_entry(res, "email")
+        _validate_entry(res, "password")
+        _bind(res)
         self.auth.login(
-            this_module, sim_type=req.type, model=_user(creds.email), want_redirect=True
+            this_module, sim_type=req.type, model=_user(res.email), want_redirect=True
         )
 
 
 def init_apis(*args, **kwargs):
     global _cfg
+
+    def _valid_suffix(value):
+        if not value:
+            e = "falsey"
+        elif len(value) > _MAX_ENTRY:
+            e = "over max chars"
+        else:
+            return value
+        raise AssertionError(e + " value={}".format(value))
+
     _cfg = pkconfig.init(
         server=pkconfig.RequiredUnlessDev(
             "ldap://127.0.0.1:389", str, " ldap://ip:port"
         ),
         dn_suffix=pkconfig.RequiredUnlessDev(
-            ",ou=users,dc=example,dc=com", str, "ou and dc values of dn"
+            ",ou=users,dc=example,dc=com", _valid_suffix, "ou and dc values of dn"
         ),
     )
