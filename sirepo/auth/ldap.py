@@ -82,24 +82,23 @@ class API(sirepo.quest.API):
             this_module, sim_type=req.type, model=_user(res.email), want_redirect=True
         )
 
+def _cfg_dn_suffix(value):
+    if not value:
+        e = "falsey"
+    elif len(value) > _MAX_ENTRY:
+        e = "over max chars"
+    else:
+        return value
+    raise AssertionError(f"{e} value={value}")
 
 def init_apis(*args, **kwargs):
     global _cfg
-
-    def _valid_suffix(value):
-        if not value:
-            e = "falsey"
-        elif len(value) > _MAX_ENTRY:
-            e = "over max chars"
-        else:
-            return value
-        raise AssertionError(e + " value={}".format(value))
 
     _cfg = pkconfig.init(
         server=pkconfig.RequiredUnlessDev(
             "ldap://127.0.0.1:389", str, " ldap://ip:port"
         ),
         dn_suffix=pkconfig.RequiredUnlessDev(
-            ",ou=users,dc=example,dc=com", _valid_suffix, "ou and dc values of dn"
+            ",ou=users,dc=example,dc=com", _cfg_dn_suffix, "ou and dc values of dn"
         ),
     )
