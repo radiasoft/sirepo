@@ -8,19 +8,12 @@ from pykern import pkio
 from pykern.pkdebug import pkdp, pkdlog
 from pykern.pkcollections import PKDict
 import re
+import sirepo.const
 import sirepo.job
 import sirepo.simulation_db
 import sirepo.tornado
-import sirepo.util
 import tornado.web
 
-_AUTH_HEADER_RE = re.compile(
-    sirepo.util.AUTH_HEADER_SCHEME_BEARER
-    + r"\s("
-    + sirepo.job.UNIQUE_KEY_CHARS_RE
-    + ")",
-    re.IGNORECASE,
-)
 
 # TODO(robnagler) figure out how to do in tornado, e.g. get path_info
 _URI_RE = re.compile(f"^{sirepo.job.SIM_DB_FILE_URI}/(.+)")
@@ -43,13 +36,13 @@ class FileReq(tornado.web.RequestHandler):
         self.__authenticated_path().write_binary(self.request.body)
 
     def __authenticate(self):
-        t = self.request.headers.get(sirepo.util.AUTH_HEADER)
+        t = self.request.headers.get(sirepo.const.AUTH_HEADER)
         if not t:
             raise sirepo.tornado.error_forbidden()
         p = t.split(" ")
         if len(p) != 2:
             raise sirepo.tornado.error_forbidden()
-        m = _AUTH_HEADER_RE.search(t)
+        m = sirepo.const.AUTH_HEADER_RE.search(t)
         if not m:
             pkdlog("invalid auth header={}", t)
             raise sirepo.tornado.error_forbidden()

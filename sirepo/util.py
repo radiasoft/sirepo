@@ -15,14 +15,13 @@ import hashlib
 import importlib
 import inspect
 import numconv
-import posixpath
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import re
 import random
+import sirepo.const
 import six
-import sys
 import threading
 import unicodedata
 import zipfile
@@ -32,12 +31,6 @@ cfg = None
 
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
-
-#: Http auth header name
-AUTH_HEADER = "Authorization"
-
-#: http auth header scheme bearer
-AUTH_HEADER_SCHEME_BEARER = "Bearer"
 
 #: Lock for operations across Sirepo (server)
 THREAD_LOCK = threading.RLock()
@@ -242,6 +235,12 @@ def assert_sim_type(sim_type):
     """
     assert is_sim_type(sim_type), f"invalid simulation type={sim_type}"
     return sim_type
+
+
+def auth_header(token):
+    return PKDict(
+        {sirepo.const.AUTH_HEADER: "{sirepo.const.AUTH_HEADER_SCHEME_BEARER} " + token}
+    )
 
 
 def create_token(value):

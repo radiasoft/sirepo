@@ -61,11 +61,7 @@ def _request_scan_monitor(data):
         r = requests.post(
             c.scan_monitor_url,
             json=data,
-            headers=PKDict(
-                {
-                    sirepo.util.AUTH_HEADER: f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} {c.scan_monitor_api_secret}"
-                }
-            ),
+            headers=sirepo.util.auth_header(c.scan_monitor_api_secret),
         )
         r.raise_for_status()
     except requests.exceptions.ConnectionError as e:

@@ -29,9 +29,6 @@ _cfg = None
 #: default compute_model
 _ANIMATION_NAME = "animation"
 
-#: prefix for auth header of sim_db_file requests
-_AUTH_HEADER_PREFIX = f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} "
-
 _MODEL_RE = re.compile(r"^[\w-]+$")
 
 _IS_PARALLEL_RE = re.compile("animation", re.IGNORECASE)
@@ -891,12 +888,7 @@ def _request(method, uri, data=None):
         uri,
         data=data,
         verify=sirepo.job.cfg().verify_tls,
-        headers=PKDict(
-            {
-                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX
-                + _cfg.supervisor_sim_db_file_token,
-            }
-        ),
+        headers=sirepo.util.auth_header(_cfg.supervisor_sim_db_file_token),
     )
     if method == "GET" and r.status_code == 404:
         raise SimDbFileNotFound(f"uri={uri} not found")
