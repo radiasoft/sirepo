@@ -292,6 +292,7 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
     pkinspect.module_functions("_build_")[f"_build_{t}_objects"](
         data.models.geometryReport.objects,
         m,
+        qcall=qcall,
         matrix=_get_coord_matrix(dirs, data.models.simulation.coordinateSystem),
         height_dir=dirs.height_dir,
         length_dir=dirs.length_dir,
@@ -416,8 +417,8 @@ def _build_dipole_objects(geom_objs, model, **kwargs):
 def _build_field_axis(length, axis):
     beam_dir = radia_util.AXIS_VECTORS[axis]
     f = PKDict(
-        begin=(-length / 2) * beam_dir,
-        end=(length / 2) * beam_dir,
+        begin=((-length / 2) * beam_dir).tolist(),
+        end=((length / 2) * beam_dir).tolist(),
         name=f"{axis.upper()}-Axis",
         numPoints=round(length / 2) + 1,
         start=-length / 2,
@@ -1793,10 +1794,10 @@ def _update_group(g, members, do_replace=False):
 
 
 def _update_kickmap(km, und, beam_axis):
-    km.direction = radia_util.AXIS_VECTORS[beam_axis]
+    km.direction = radia_util.AXIS_VECTORS[beam_axis].tolist()
     km.transverseDirection = radia_util.AXIS_VECTORS[
         SCHEMA.constants.heightAxisMap[beam_axis]
-    ]
+    ].tolist()
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
