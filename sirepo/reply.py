@@ -413,7 +413,7 @@ class _SReply(sirepo.quest.Attr):
             if not ("cookie" in a and 200 <= a.status < 400):
                 return
             c = a.cookie
-            r = [f'{c.pkdel("key")}="{c.pkdel("value")}"']
+            r = [f'{c.pkdel("key")}={c.pkdel("value")}', "Path=/"]
             for k in sorted(c.keys()):
                 if k == "httponly":
                     if c[k]:
@@ -428,7 +428,6 @@ class _SReply(sirepo.quest.Attr):
                 else:
                     raise AssertionError(f"unhandled cookie attr={k}")
             resp.set_header("Set-Cookie", "; ".join(r))
-            pkdp(resp._headers)
 
         def _file(resp):
             a = self.__attrs
