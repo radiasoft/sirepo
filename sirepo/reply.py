@@ -433,7 +433,7 @@ class _SReply(sirepo.quest.Attr):
             a = self.__attrs
             c = a.content
             resp.write(c.handle.read())
-            if _DISPOSITION not in a:
+            if _DISPOSITION not in a.headers:
                 self._disposition("inline")
             resp.set_header(
                 "Last-Modified",

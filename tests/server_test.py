@@ -61,6 +61,7 @@ def test_elegant_data_file(fc):
         ),
     )
     pkunit.pkeq(200, r.status_code)
+
     m = re.search(
         r'attachment; filename="([^"]+)"',
         r.header_get("Content-Disposition"),
