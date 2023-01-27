@@ -44,6 +44,8 @@ def fc_module(request):
 def import_req(request):
     def w(path):
         from sirepo import srunit
+        from pykern.pkcollections import PKDict
+        from pykern import pkcompat
 
         with srunit.quest_start() as qcall:
             req = qcall.parse_params(
@@ -52,8 +54,11 @@ def import_req(request):
                 template=True,
                 type=_sim_type(request),
             )
-            # Supports read() for elegant and zgoubi
-            req.file_stream = path
+            # Mock sirepo.request._FormFileBase
+            req.form_file = PKDict(
+                as_str=lambda: pkcompat.from_bytes(path.read_binary()),
+                filename=path.basename,
+            )
             return req
 
     return w

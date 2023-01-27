@@ -30,7 +30,7 @@ def init_quest(qcall, internal_req=None):
             http_headers=PKDict(),
             http_method="GET",
             http_request_uri="/",
-            http_server_uri="http://localhost",
+            http_server_uri="http://localhost/",
             internal_req=internal_req,
             remote_addr="0.0.0.0",
         )
@@ -56,7 +56,7 @@ def init_quest(qcall, internal_req=None):
             http_headers=r.headers,
             http_method=r.method,
             http_request_uri=r.path,
-            http_server_uri=f"{r.protocol}://{r.host}",
+            http_server_uri=f"{r.protocol}://{r.host}/",
             internal_req=internal_req,
             remote_addr=r.remote_ip,
             _body_as_bytes=lambda: internal_req.request.body,
@@ -116,7 +116,12 @@ class _FormFileTornado(_FormFileBase):
         return self._internal.body
 
     def _get(self, internal_req):
-        return internal_req.request.files.get(_FORM_FILE_NAME)
+        res = internal_req.request.files.get(_FORM_FILE_NAME)
+        if not res:
+            return None
+        if len(res) > 1:
+            raise sirepo.util.BadRequest("too many files={} in form", len(res))
+        return res[0]
 
 
 class _SRequest(sirepo.quest.Attr):
