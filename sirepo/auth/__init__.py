@@ -9,10 +9,6 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from sirepo import events
-from sirepo import http_reply
-from sirepo import job
-from sirepo import util
 import contextlib
 import datetime
 import importlib
@@ -22,9 +18,11 @@ import sirepo.auth_role
 import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
+import sirepo.job
 import sirepo.quest
+import sirepo.reply
 import sirepo.request
-import sirepo.session
+import sirepo.spa_session
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -82,23 +80,29 @@ non_guest_methods = None
 _cfg = None
 
 
-def hack_logged_in_user():
-    # avoids case of no quest (sirepo.agent)
-    return _cfg.logged_in_user or sirepo.quest.hack_current().auth.logged_in_user()
+def init_quest(qcall, top_level_call_api=False):
+    """Under development
 
+    Only use as `init_quest(qcall)`.
 
-def init_quest(qcall):
+    top_level_call_api only used by uri_router.
+    """
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
     sirepo.auth_db.init_quest(qcall)
-    if not _cfg.logged_in_user and sirepo.flask.in_request():
+    if (
+        not _cfg.logged_in_user
+        and top_level_call_api
+        or qcall.bucket_unchecked_get("in_srunit")
+    ):
         sirepo.request.init_quest(qcall)
+        sirepo.reply.init_quest(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
         sirepo.cookie.init_quest(qcall)
         # TODO(robnagler) auth_db
         o._set_log_user()
-        sirepo.session.init_quest(qcall)
+        sirepo.spa_session.init_quest(qcall)
 
 
 def init_module(**imports):
@@ -107,7 +111,6 @@ def init_module(**imports):
     def _init_full():
         global visible_methods, valid_methods, non_guest_methods
 
-        simulation_db.hook_auth_user = hack_logged_in_user
         p = pkinspect.this_module().__name__
         visible_methods = []
         valid_methods = _cfg.methods.union(_cfg.deprecated_methods)
@@ -163,15 +166,15 @@ class _Auth(sirepo.quest.Attr):
             return
         u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
-        if sirepo.auth_db.UserRole.has_role(
-            u, r
-        ) and not sirepo.auth_db.UserRole.is_expired(u, r):
+        if self.qcall.auth_db.model("UserRole").has_role(
+            role=r
+        ) and not self.qcall.auth_db.model("UserRole").is_expired(role=r):
             return
         elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
         if r in sirepo.auth_role.for_moderated_sim_types():
             auth_role_moderation.raise_control_for_user(self.qcall, u, r, t)
-        sirepo.util.raise_forbidden(f"uid={u} does not have access to sim_type={t}")
+        raise sirepo.util.Forbidden(f"uid={u} does not have access to sim_type={t}")
 
     def complete_registration(self, name=None):
         """Update the database with the user's display_name and sets state to logged-in.
@@ -225,10 +228,15 @@ class _Auth(sirepo.quest.Attr):
         values[_COOKIE_STATE] = _STATE_LOGGED_OUT
         return values
 
-    def create_user(self, uid_generated_callback, module):
-        u = simulation_db.user_create()
-        uid_generated_callback(u)
-        self._create_roles_for_new_user(u, module.AUTH_METHOD)
+    def create_user_from_email(self, email, display_name):
+        u = self._create_user(_METHOD_MODULES[METHOD_EMAIL], want_login=False)
+        self.user_registration(uid=u, display_name=display_name)
+        self.qcall.auth_db.model(
+            self.get_module(METHOD_EMAIL).UserModel,
+            unverified_email=email,
+            uid=u,
+            user_name=email,
+        ).save()
         return u
 
     def get_module(self, name):
@@ -236,7 +244,7 @@ class _Auth(sirepo.quest.Attr):
 
     def guest_uids(self):
         """All of the uids corresponding to guest users."""
-        return sirepo.auth_db.UserRegistration.search_all_for_column(
+        return self.qcall.auth_db.model("UserRegistration").search_all_for_column(
             "uid", display_name=None
         )
 
@@ -252,9 +260,8 @@ class _Auth(sirepo.quest.Attr):
         return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
 
     def is_premium_user(self):
-        return sirepo.auth_db.UserRole.has_role(
-            self.logged_in_user(),
-            sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+        return self.qcall.auth_db.model("UserRole").has_role(
+            role=sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         )
 
     def logged_in_user(self, check_path=True):
@@ -265,8 +272,6 @@ class _Auth(sirepo.quest.Attr):
         Returns:
             str: uid of authenticated user
         """
-        if self._logged_in_user:
-            return self._logged_in_user
         u = self._qcall_bound_user()
         if not self.is_logged_in():
             raise sirepo.util.SRException(
@@ -280,7 +285,7 @@ class _Auth(sirepo.quest.Attr):
             self._qcall_bound_method(),
         )
         if check_path:
-            simulation_db.user_path(u, check=True)
+            simulation_db.user_path(uid=u, check=True)
         return u
 
     def logged_in_user_name(self):
@@ -290,10 +295,18 @@ class _Auth(sirepo.quest.Attr):
             method=self._qcall_bound_method(),
         )
 
+    @contextlib.contextmanager
     def logged_in_user_set(self, uid, method=METHOD_GUEST):
-        """Ephemeral login"""
-        self._logged_in_user = uid
-        self._logged_in_method = method
+        """Ephemeral login or may be used to logout"""
+        u = self._logged_in_user
+        m = self._logged_in_method
+        try:
+            self._logged_in_user = uid
+            self._logged_in_method = None if uid is None else method
+            yield
+        finally:
+            self._logged_in_user = u
+            self._logged_in_method = m
 
     def login(
         self,
@@ -310,38 +323,37 @@ class _Auth(sirepo.quest.Attr):
         Raises an exception if successful, except in the case of methods
 
         Args:
-            method (module): method module (only if is_mock) [None]
+            method (module or str): method module (only if is_mock) [None]
             uid (str): user to login [None]
             model (auth_db.UserDbBase): user to login (overrides uid) [None]
             sim_type (str): app to redirect to [None]
             display_name (str): to save as the display_name [None]
-            is_mock (bool): simulationed login for api_srUnit [False]
+            is_mock (bool): simulated login for srunit.quest_start [False]
             want_redirect (bool): http redirect on success [False]
         """
         if method is None:
-            assert is_mock, "only used by api_srUnit"
+            assert is_mock, "only used by srunit.quest_start"
             method = METHOD_GUEST
-        if isinstance(method, str):
-            method = _METHOD_MODULES[method]
-        self._validate_method(method, sim_type=sim_type)
+        mm = _METHOD_MODULES[method] if isinstance(method, str) else method
+        self._validate_method(mm, sim_type=sim_type)
         guest_uid = None
         if model:
             uid = model.uid
             # if previously cookied as a guest, move the non-example simulations into uid below
             m = self._qcall_bound_method()
-            if m == METHOD_GUEST and method.AUTH_METHOD != METHOD_GUEST:
+            if m == METHOD_GUEST and mm.AUTH_METHOD != METHOD_GUEST:
                 guest_uid = self._qcall_bound_user() if self.is_logged_in() else None
         if uid:
-            self._login_user(method, uid)
-        if method.AUTH_METHOD in _cfg.deprecated_methods:
-            pkdlog("deprecated auth method={} uid={}".format(method.AUTH_METHOD, uid))
+            self._login_user(mm, uid)
+        if mm.AUTH_METHOD in _cfg.deprecated_methods:
+            pkdlog("deprecated auth method={} uid={}".format(mm.AUTH_METHOD, uid))
             if not uid:
                 # No user so clear cookie so this method is removed
                 self.reset_state()
             # We are logged in with a deprecated method, and now the user
             # needs to login with an allowed method.
             self.login_fail_redirect(
-                sim_type=sim_type, module=method, reason="deprecated", reload_js=not uid
+                sim_type=sim_type, module=mm, reason="deprecated", reload_js=not uid
             )
         if not uid:
             # No user in the cookie and method didn't provide one so
@@ -351,13 +363,13 @@ class _Auth(sirepo.quest.Attr):
             # Or, this is just a new user, and we'll create one.
             uid = self._qcall_bound_user() if self.is_logged_in() else None
             m = self._qcall_bound_method()
-            if uid and method.AUTH_METHOD not in (m, METHOD_GUEST):
+            if uid and mm.AUTH_METHOD not in (m, METHOD_GUEST):
                 # switch this method to this uid (even for methods)
                 # except if the same method, then assuming logging in as different user.
                 # This handles the case where logging in as guest, creates a user every time
-                self._login_user(method, uid)
+                self._login_user(mm, uid)
             else:
-                uid = self.create_user(lambda u: self._login_user(method, u), method)
+                uid = self._create_user(mm, want_login=True)
             if model:
                 model.uid = uid
                 model.save()
@@ -369,7 +381,7 @@ class _Auth(sirepo.quest.Attr):
             if guest_uid and guest_uid != uid:
                 simulation_db.migrate_guest_to_persistent_user(guest_uid, uid)
             self.login_success_response(sim_type, want_redirect)
-        assert not method.AUTH_METHOD_VISIBLE
+        assert not mm.AUTH_METHOD_VISIBLE
 
     def login_fail_redirect(
         self, sim_type=None, module=None, reason=None, reload_js=False
@@ -404,11 +416,11 @@ class _Auth(sirepo.quest.Attr):
                 else None
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
-        raise sirepo.util.Response(
-            response=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
+        raise sirepo.util.SReplyExc(
+            sreply=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
         )
 
-    def need_complete_registration(self, model):
+    def need_complete_registration(self, model_or_uid):
         """Does unauthenticated user need to complete registration?
 
         If the current method is deprecated, then we will end up asking
@@ -417,13 +429,14 @@ class _Auth(sirepo.quest.Attr):
         Does not work for guest (which don't have their own models anyway).
 
         Args:
-            model (auth_db.UserDbBase): unauthenticated user record
+            model_or_uid (object): unauthenticated user record or uid
         Returns:
             bool: True if user will be redirected to needCompleteRegistration
         """
-        if not model.uid:
+        u = model_or_uid if isinstance(model_or_uid, str) else model_or_uid.uid
+        if not u:
             return True
-        return not sirepo.auth_db.UserRegistration.search_by(uid=model.uid).display_name
+        return not self.user_display_name(uid=u)
 
     def only_for_api_auth_state(self):
         return self._auth_state()
@@ -444,8 +457,10 @@ class _Auth(sirepo.quest.Attr):
 
     def require_adm(self):
         u = self.require_user()
-        if not sirepo.auth_db.UserRole.has_role(u, sirepo.auth_role.ROLE_ADM):
-            sirepo.util.raise_forbidden(f"uid={u} role=ROLE_ADM not found")
+        if not self.qcall.auth_db.model("UserRole").has_role(
+            role=sirepo.auth_role.ROLE_ADM,
+        ):
+            raise sirepo.util.Forbidden(f"uid={u} role=ROLE_ADM not found")
 
     def require_auth_basic(self):
         m = _METHOD_MODULES["basic"]
@@ -460,7 +475,7 @@ class _Auth(sirepo.quest.Attr):
         i = self.require_user()
         m = self._qcall_bound_method()
         if m != METHOD_EMAIL:
-            sirepo.util.raise_forbidden(f"method={m} is not email for uid={i}")
+            raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
 
     def require_user(self):
         """Asserts whether user is logged in
@@ -478,7 +493,6 @@ class _Auth(sirepo.quest.Attr):
             pass
         elif s == _STATE_LOGGED_IN:
             if m in _cfg.methods:
-
                 f = getattr(_METHOD_MODULES[m], "validate_login", None)
                 if f:
                     pkdc("validate_login method={}", m)
@@ -524,13 +538,15 @@ class _Auth(sirepo.quest.Attr):
 
     def unchecked_get_user(self, uid):
         with sirepo.util.THREAD_LOCK:
-            u = sirepo.auth_db.UserRegistration.search_by(uid=uid)
+            u = self.qcall.auth_db.model("UserRegistration").unchecked_search_by(
+                uid=uid
+            )
             if u:
                 return u.uid
             return None
 
     def user_dir_not_found(self, user_dir, uid):
-        """Called by http_reply when user_dir is not found
+        """Called by sirepo.reply when user_dir is not found
 
         Deletes any user records and resets auth state.
 
@@ -543,7 +559,9 @@ class _Auth(sirepo.quest.Attr):
                 u = self._method_user_model(m, uid)
                 if u:
                     u.delete()
-            u = sirepo.auth_db.UserRegistration.search_by(uid=uid)
+            u = self.qcall.auth_db.model("UserRegistration").unchecked_search_by(
+                uid=uid
+            )
             if u:
                 u.delete()
         self.reset_state()
@@ -551,7 +569,9 @@ class _Auth(sirepo.quest.Attr):
         return self.qcall.reply_redirect_for_app_root()
 
     def user_display_name(self, uid):
-        return sirepo.auth_db.UserRegistration.search_by(uid=uid).display_name
+        return (
+            self.qcall.auth_db.model("UserRegistration").search_by(uid=uid).display_name
+        )
 
     def user_if_logged_in(self, method):
         """Verify user is logged in and method matches
@@ -570,8 +590,7 @@ class _Auth(sirepo.quest.Attr):
         """Return user_name"""
         u = getattr(_METHOD_MODULES[method], "UserModel", None)
         if u:
-            with sirepo.util.THREAD_LOCK:
-                return u.search_by(uid=uid).user_name
+            return self.qcall.auth_db.model(u).search_by(uid=uid).user_name
         elif method == METHOD_GUEST:
             return f"{METHOD_GUEST}-{uid}"
         raise AssertionError(f"user_name not found for uid={uid} with method={method}")
@@ -585,9 +604,10 @@ class _Auth(sirepo.quest.Attr):
         Returns:
             auth.UserRegistration: record (potentially blank)
         """
-        res = sirepo.auth_db.UserRegistration.search_by(uid=uid)
+        res = self.qcall.auth_db.model("UserRegistration").unchecked_search_by(uid=uid)
         if not res:
-            res = sirepo.auth_db.UserRegistration(
+            res = self.qcall.auth_db.model(
+                "UserRegistration",
                 created=datetime.datetime.utcnow(),
                 display_name=display_name,
                 uid=uid,
@@ -618,7 +638,7 @@ class _Auth(sirepo.quest.Attr):
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:
-            v.sbatchQueueMaxes = job.NERSC_QUEUE_MAX
+            v.sbatchQueueMaxes = sirepo.job.NERSC_QUEUE_MAX
         u = self._qcall_bound_user()
         if v.isLoggedIn:
             if v.method == METHOD_GUEST:
@@ -631,10 +651,12 @@ class _Auth(sirepo.quest.Attr):
                 v.needCompleteRegistration = False
                 v.visibleMethods = non_guest_methods
             else:
-                r = sirepo.auth_db.UserRegistration.search_by(uid=u)
+                r = self.qcall.auth_db.model("UserRegistration").unchecked_search_by(
+                    uid=u
+                )
                 if r:
                     v.displayName = r.display_name
-            v.roles = sirepo.auth_db.UserRole.get_roles(u)
+            v.roles = self.qcall.auth_db.model("UserRole").get_roles()
             self._plan(v)
             self._method_auth_state(v, u)
         if pkconfig.channel_in_internal_test():
@@ -643,10 +665,20 @@ class _Auth(sirepo.quest.Attr):
         pkdc("state={}", v)
         return v
 
-    def _create_roles_for_new_user(self, uid, method):
-        r = sirepo.auth_role.for_new_user(method == METHOD_GUEST)
+    def _create_roles_for_new_user(self, method):
+        r = sirepo.auth_role.for_new_user(is_guest=method == METHOD_GUEST)
         if r:
-            sirepo.auth_db.UserRole.add_roles(uid, r)
+            self.qcall.auth_db.model("UserRole").add_roles(roles=r)
+
+    def _create_user(self, module, want_login):
+        u = simulation_db.user_create()
+        if want_login:
+            self._login_user(module, u)
+            self._create_roles_for_new_user(module.AUTH_METHOD)
+        else:
+            with self.logged_in_user_set(u, method=module.AUTH_METHOD):
+                self._create_roles_for_new_user(module.AUTH_METHOD)
+        return u
 
     def _login_user(self, module, uid):
         """Set up the cookie for logged in state
@@ -688,7 +720,7 @@ class _Auth(sirepo.quest.Attr):
     def _method_user_model(self, module, uid):
         if not hasattr(module, "UserModel"):
             return None
-        return module.UserModel.search_by(uid=uid)
+        return self.qcall.auth_db.model(module.UserModel).unchecked_search_by(uid=uid)
 
     def _plan(self, data):
         r = data.roles
@@ -713,7 +745,7 @@ class _Auth(sirepo.quest.Attr):
         return self.qcall.cookie.unchecked_get_value(_COOKIE_STATE)
 
     def _qcall_bound_user(self):
-        return _cfg.logged_in_user or self.qcall.cookie.unchecked_get_value(
+        return self._logged_in_user or self.qcall.cookie.unchecked_get_value(
             _COOKIE_USER
         )
 

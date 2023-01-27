@@ -7,8 +7,8 @@ Radia "instance" goes away and references no longer have any meaning.
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import inspect
 
+import inspect
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -30,6 +30,7 @@ import sdds
 import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
+import trimesh
 import uuid
 
 _AXES_UNIT = [1, 1, 1]
@@ -143,11 +144,11 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def create_archive(sim, qcall):
-    from sirepo import http_reply
-
     if sim.filename.endswith("dat"):
         return qcall.reply_attachment(
-            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
+            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(
+                _DMP_FILE
+            ),
             content_type="application/octet-stream",
             filename=sim.filename,
         )
@@ -282,7 +283,7 @@ def import_file(req, tmp_dir=None, **kwargs):
     return data
 
 
-def new_simulation(data, new_sim_data):
+def new_simulation(data, new_sim_data, qcall, **kwargs):
     _prep_new_sim(data, new_sim_data=new_sim_data)
     dirs = _geom_directions(new_sim_data.beamAxis, new_sim_data.heightAxis)
     t = new_sim_data.get("magnetType", "freehand")
@@ -291,6 +292,7 @@ def new_simulation(data, new_sim_data):
     pkinspect.module_functions("_build_")[f"_build_{t}_objects"](
         data.models.geometryReport.objects,
         m,
+        qcall=qcall,
         matrix=_get_coord_matrix(dirs, data.models.simulation.coordinateSystem),
         height_dir=dirs.height_dir,
         length_dir=dirs.length_dir,
@@ -317,29 +319,58 @@ def sim_frame_fieldLineoutAnimation(frame_args):
     )
 
 
-def stateful_compute_build_shape_points(data):
+def stateless_compute_build_shape_points(data):
     pts = []
+    o = data.args.object
+    if not o.get("pointsFile"):
+        return PKDict(
+            points=pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
+                o, _get_stemmed_info(o)
+            )
+        )
     with open(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
-                "extrudedPoints", "pointsFile", data.args.points_file
+                "extrudedPoints", "pointsFile", o.pointsFile
             )
         ),
         "rt",
     ) as f:
         for r in csv.reader(f):
             pts.append([float(x) for x in r])
+    # Radia does not like it if the path is closed
+    if all(numpy.isclose(pts[0], pts[-1])):
+        del pts[-1]
     return PKDict(points=pts)
 
 
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data, False, for_export=True)
+def stateless_compute_stl_size(data):
+    f = _SIM_DATA.lib_file_abspath(
+        _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
+    )
+    return PKDict(size=_create_stl_trimesh(f).bounding_box.primitive.extents.tolist())
+
+
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
+
+
+def validate_file(file_path, path):
+    if path.ext not in (".csv", ".dat", ".stl", ".txt"):
+        return f"invalid file type: {path.ext}"
+    if path.ext == ".stl":
+        mesh = _create_stl_trimesh(path)
+        if trimesh.convex.is_convex(mesh) == False:
+            return f"not convex model: {path.basename}"
+        elif len(mesh.faces) > 600:
+            return f"too many faces({len(mesh.faces)}): {path.basename}"
+    return None
 
 
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, is_parallel, run_dir=run_dir),
+        _generate_parameters_file(data, is_parallel, run_dir=run_dir, qcall=None),
     )
     if is_parallel:
         return template_common.get_exec_parameters_cmd(is_mpi=True)
@@ -386,8 +417,8 @@ def _build_dipole_objects(geom_objs, model, **kwargs):
 def _build_field_axis(length, axis):
     beam_dir = radia_util.AXIS_VECTORS[axis]
     f = PKDict(
-        begin=(-length / 2) * beam_dir,
-        end=(length / 2) * beam_dir,
+        begin=((-length / 2) * beam_dir).tolist(),
+        end=((length / 2) * beam_dir).tolist(),
         name=f"{axis.upper()}-Axis",
         numPoints=round(length / 2) + 1,
         start=-length / 2,
@@ -401,7 +432,7 @@ def _build_field_axis(length, axis):
 def _build_field_file_pts(f_path):
     pts_file = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(
-            f_path.fileName, SCHEMA.constants.pathPtsFileType
+            f_path.fileName, SCHEMA.constants.fileTypePathPts
         )
     )
     lines = [float(l.strip()) for l in pkio.read_text(pts_file).split(",")]
@@ -418,8 +449,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = f_path.begin
-    p2 = f_path.end
+    p1 = list(f_path.begin)
+    p2 = list(f_path.end)
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -565,6 +596,34 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
     geom_objs.append(_update_group(model.octantGroup, oct_grp, do_replace=True))
 
     return _update_geom_from_undulator(geom_objs, model, **kwargs)
+
+
+def _is_binary(file_path):
+    return bool(
+        open(file_path, "rb")
+        .read(1024)
+        .translate(
+            None,
+            bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F}),
+        )
+    )
+
+
+def _create_stl_trimesh(file_path):
+    readParam = "r"
+    keyType = "ascii"
+    if _is_binary(file_path):
+        readParam = "rb"
+        keyType = "binary"
+    with open(file_path, readParam) as f:
+        m = trimesh.exchange.stl.load_stl(file_obj=f)
+        if "geometry" in m:
+            return trimesh.Trimesh(
+                vertices=m["geometry"][keyType]["vertices"],
+                faces=m["geometry"][keyType]["faces"],
+                process=True,
+            )
+        return trimesh.Trimesh(vertices=m["vertices"], faces=m["faces"], process=True)
 
 
 # deep copy of an object, but with a new id
@@ -779,7 +838,7 @@ def _generate_obj_data(g_id, name):
     return radia_util.geom_to_data(g_id, name=name)
 
 
-def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None):
+def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_dir=None):
     import jinja2
 
     report = data.get("report", "")
@@ -832,8 +891,8 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         v.dmpImportFile = (
             data.models.simulation.dmpImportFile
             if for_export
-            else simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                f"{SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}"
+            else simulation_db.simulation_lib_dir(SIM_TYPE, qcall=qcall).join(
+                f"{SCHEMA.constants.fileTypeRadiaDmp}.{data.models.simulation.dmpImportFile}"
             )
         )
     v.isExample = (
@@ -858,6 +917,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
             height_dir=dirs.height_dir,
             length_dir=dirs.length_dir,
             width_dir=dirs.width_dir,
+            qcall=qcall,
         )
     v.objects = g.get("objects", [])
     _validate_objects(v.objects)
@@ -865,15 +925,6 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     for o in v.objects:
         if o.get("type"):
             o.super_classes = SCHEMA.model[o.type]._super
-        # read in h-m curves if applicable
-        o.h_m_curve = (
-            _read_h_m_file(o.materialFile)
-            if o.get("material", None)
-            and o.material == "custom"
-            and o.get("materialFile", None)
-            and o.materialFile
-            else None
-        )
     v.geomName = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
@@ -1053,7 +1104,6 @@ def _get_jay_points(o, stemmed_info):
 
 
 def _get_radia_objects(geom_objs, model):
-
     o = PKDict(groupedObjects=PKDict())
     o_ids = []
     for f in model:
@@ -1137,12 +1187,15 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.geometryReport.name = data.models.simulation.name
     if new_sim_data is None:
         return
-    data.models.simulation.beamAxis = new_sim_data.beamAxis
-    data.models.simulation.enableKickMaps = new_sim_data.enableKickMaps
+    sim = data.models.simulation
+    if new_sim_data.get("dmpImportFile"):
+        sim.appMode = "imported"
+    sim.beamAxis = new_sim_data.beamAxis
+    sim.enableKickMaps = new_sim_data.enableKickMaps
     t = new_sim_data.get("magnetType", "freehand")
     s = new_sim_data[f"{t}Type"]
     m = data.models[s]
-    data.models.simulation.notes = _MAGNET_NOTES[t][s]
+    sim.notes = _MAGNET_NOTES[t][s]
     data.models.electronTrajectoryReport.initialPosition = _electron_initial_pos(
         new_sim_data.beamAxis,
         -1.0,
@@ -1150,7 +1203,7 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.fieldLineoutAnimation.plotAxis = new_sim_data.beamAxis
     if t != "undulator":
         return
-    data.models.simulation.coordinateSystem = "beam"
+    sim.coordinateSystem = "beam"
     if s == "undulatorBasic":
         data.models.geometryReport.isSolvable = "0"
     f = (m.numPeriods + 0.5) * m.periodLength
@@ -1160,8 +1213,16 @@ def _prep_new_sim(data, new_sim_data=None):
         -f,
     ).tolist()
     data.models.electronTrajectoryReport.finalBeamPosition = f
-    data.models.simulation.enableKickMaps = "1"
+    sim.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
+
+
+def _read_data(view_type, field_type):
+    res = _read_h5_path(_GEOM_FILE, _geom_h5_path(view_type, field_type))
+    if res:
+        res.idMap = _read_id_map()
+        res.solution = _read_solution()
+    return res
 
 
 def _read_h5_path(filename, h5path):
@@ -1180,23 +1241,16 @@ def _read_h5_path(filename, h5path):
     # propagate other errors
 
 
-def _read_h_m_file(file_name):
+def _read_h_m_file(file_name, qcall=None):
     h_m_file = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_type(file_name, "h-m")
+        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
+        qcall=qcall,
     )
     lines = [r for r in sirepo.csv.open_csv(h_m_file)]
     f_lines = []
     for l in lines:
         f_lines.append([float(c.strip()) for c in l])
     return f_lines
-
-
-def _read_data(view_type, field_type):
-    res = _read_h5_path(_GEOM_FILE, _geom_h5_path(view_type, field_type))
-    if res:
-        res.idMap = _read_id_map()
-        res.solution = _read_solution()
-    return res
 
 
 def _read_id_map():
@@ -1245,6 +1299,16 @@ def _read_solution():
     if not s:
         return None
     return PKDict(steps=s[3], time=s[0], maxM=s[1], maxH=s[2])
+
+
+def _read_stl_file(file_name, qcall=None):
+    path = str(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeSTL),
+            qcall=qcall,
+        )
+    )
+    return _create_stl_trimesh(path)
 
 
 def _rotate_axis(to_axis="z", from_axis="x"):
@@ -1391,7 +1455,7 @@ def _update_extruded(o):
     return o
 
 
-def _update_dipoleBasic(model, assembly, **kwargs):
+def _update_dipoleBasic(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     sz = assembly.pole.size
     return _update_geom_obj(
@@ -1399,10 +1463,11 @@ def _update_dipoleBasic(model, assembly, **kwargs):
         size=sz,
         center=sz * d.height_dir / 2 + model.gap * d.height_dir / 2,
         transforms=[_build_symm_xform(d.height_dir, "parallel")],
+        qcall=qcall,
     )
 
 
-def _update_dipoleC(model, assembly, **kwargs):
+def _update_dipoleC(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     mag_sz = numpy.array(assembly.magnet.size)
     pole_sz, pole_ctr = _fit_poles_in_c_bend(
@@ -1418,18 +1483,20 @@ def _update_dipoleC(model, assembly, **kwargs):
         center=pole_ctr,
         size=pole_sz,
         transforms=[_build_symm_xform(d.height_dir, "parallel")],
+        qcall=qcall,
     )
-    _update_geom_obj(assembly.magnet, center=mag_ctr)
+    _update_geom_obj(assembly.magnet, center=mag_ctr, qcall=qcall)
     _update_geom_obj(
         assembly.coil,
         center=mag_ctr
         + mag_sz * d.width_dir / 2
         - model.magnet.stemWidth * d.width_dir / 2,
+        qcall=qcall,
     )
     return assembly.magnetCoilGroup
 
 
-def _update_dipoleH(model, assembly, **kwargs):
+def _update_dipoleH(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
     # magnetSize is for the entire magnet - split it here so we can apply symmetries
     mag_sz = numpy.array(model.magnetSize) / 2
@@ -1440,9 +1507,9 @@ def _update_dipoleH(model, assembly, **kwargs):
         pole_width=model.poleWidth,
         **kwargs,
     )
-    _update_geom_obj(assembly.pole, center=pole_ctr, size=pole_sz)
-    _update_geom_obj(assembly.coil, center=pole_ctr * d.height_dir)
-    _update_geom_obj(assembly.magnet, size=mag_sz, center=mag_sz / 2)
+    _update_geom_obj(assembly.pole, center=pole_ctr, size=pole_sz, qcall=qcall)
+    _update_geom_obj(assembly.coil, center=pole_ctr * d.height_dir, qcall=qcall)
+    _update_geom_obj(assembly.magnet, size=mag_sz, center=mag_sz / 2, qcall=qcall)
     # length and width symmetries
     assembly.corePoleGroup.transforms = [
         _build_symm_xform(d.length_dir, "perpendicular"),
@@ -1453,25 +1520,25 @@ def _update_dipoleH(model, assembly, **kwargs):
     return assembly.magnetCoilGroup
 
 
-def _update_geom_from_dipole(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+def _update_geom_from_dipole(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
     return pkinspect.module_functions("_update_")[f"_update_{model.dipoleType}"](
         model, _get_radia_objects(geom_objs, model), **kwargs
     )
 
 
-def _update_geom_from_freehand(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+def _update_geom_from_freehand(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
 
 
-def _update_geom_from_undulator(geom_objs, model, **kwargs):
-    _update_geom_objects(geom_objs)
+def _update_geom_from_undulator(geom_objs, model, qcall=None, **kwargs):
+    _update_geom_objects(geom_objs, qcall=qcall)
     return pkinspect.module_functions("_update_")[f"_update_{model.undulatorType}"](
-        model, _get_radia_objects(geom_objs, model), **kwargs
+        model, _get_radia_objects(geom_objs, model), qcall=qcall, **kwargs
     )
 
 
-def _update_undulatorBasic(model, assembly, **kwargs):
+def _update_undulatorBasic(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
 
     sz = numpy.array(model.magnet.size)
@@ -1481,6 +1548,7 @@ def _update_undulatorBasic(model, assembly, **kwargs):
         assembly.magnet,
         center=sz / 2 + model.gap / 2 * d.height_dir + model.airGap * d.length_dir / 2,
         size=sz,
+        qcall=qcall,
     )
 
     assembly.magnet.transforms = (
@@ -1507,7 +1575,7 @@ def _update_undulatorBasic(model, assembly, **kwargs):
     return assembly.octantGroup
 
 
-def _update_undulatorHybrid(model, assembly, **kwargs):
+def _update_undulatorHybrid(model, assembly, qcall=None, **kwargs):
     d = PKDict(kwargs)
 
     pole_x = model.poleCrossSection
@@ -1533,7 +1601,9 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         "segments",
     ):
         assembly.halfPole[f] = copy.deepcopy(assembly.pole[f])
-    _update_geom_obj(assembly.halfPole, center=pos + sz / 2 + gap_half_height, size=sz)
+    _update_geom_obj(
+        assembly.halfPole, center=pos + sz / 2 + gap_half_height, size=sz, qcall=qcall
+    )
     pos += sz * d.length_dir
 
     sz = (
@@ -1542,7 +1612,10 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         + (model.periodLength / 2 - model.poleLength) * d.length_dir
     )
     _update_geom_obj(
-        assembly.magnet, center=pos + sz / 2 + gap_half_height + gap_offset, size=sz
+        assembly.magnet,
+        center=pos + sz / 2 + gap_half_height + gap_offset,
+        size=sz,
+        qcall=qcall,
     )
     pos += sz * d.length_dir
 
@@ -1555,6 +1628,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         assembly.pole,
         center=pos + sz / 2 + gap_half_height,
         size=sz,
+        qcall=qcall,
     )
 
     pos = (model.poleLength + model.numPeriods * model.periodLength) / 2 * d.length_dir
@@ -1569,6 +1643,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
             + t.airGap * d.length_dir
             + gap_half_height
             + t.gapOffset * d.height_dir,
+            qcall=qcall,
         )
         pos += sz * d.length_dir + t.airGap * d.length_dir
 
@@ -1592,12 +1667,12 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     return assembly.octantGroup
 
 
-def _update_geom_objects(objects):
+def _update_geom_objects(objects, qcall=None):
     for o in objects:
-        _update_geom_obj(o)
+        _update_geom_obj(o, qcall=qcall)
 
 
-def _update_geom_obj(o, **kwargs):
+def _update_geom_obj(o, qcall=None, **kwargs):
     # uses the "shoelace formula" to calculate the area of a polygon
     def _poly_area(pts):
         t = numpy.array(pts).T
@@ -1610,6 +1685,11 @@ def _update_geom_obj(o, **kwargs):
         magnetization=[0.0, 0.0, 0.0],
         segments=[1, 1, 1],
         size=[1.0, 1.0, 1.0],
+        stlVertices=[],
+        stlFaces=[],
+        stlCentroid=[],
+        # TODO(BG) Not implemented
+        # stlSlices = [],
     )
     for k in d:
         v = kwargs.get(k)
@@ -1634,6 +1714,44 @@ def _update_geom_obj(o, **kwargs):
         )
     if "points" in o:
         o.area = _poly_area(o.points)
+    if o.type == "stl":
+        mesh = _read_stl_file(o.file, qcall=qcall)
+        for v in list(mesh.vertices):
+            d.stlVertices.append(list(v))
+        for f in list(mesh.faces):
+            d.stlFaces.append(list(f))
+        o.stlVertices = d.stlVertices
+        o.stlFaces = d.stlFaces
+        o.size = list(mesh.bounding_box.primitive.extents)
+        o.stlCentroid = mesh.centroid.tolist()
+
+        # TODO(BG) Mesh slicing implementation, option for meshes with 400+ faces although will be approximation
+        """
+        z_extents = mesh.bounds[:,2]
+        z_levels  = numpy.arange(*z_extents, step=1)
+        meshSlices = trimesh.intersections.mesh_multiplane(mesh=mesh, plane_origin=mesh.bounds[0], plane_normal=[0,0,1], heights=z_levels)[0]
+        formattedSlices = []
+        index = 0
+        for s in meshSlices:
+            slicePoints = []
+            for l in s:
+                for p in l:
+                    #Remove redundant points by rounding
+                    p[0] = round(p[0],5)
+                    p[1] = round(p[1],5)
+                    if list(p) not in slicePoints:
+                        slicePoints.append(list(p))
+            formattedSlices.append([list(slicePoints), z_levels[index]])
+            index += 1
+        for s in formattedSlices:
+            s[0] = sort_points_clockwise(s[0])
+        o.stlSlices = formattedSlices
+        """
+    o.h_m_curve = (
+        _read_h_m_file(o.materialFile, qcall=qcall)
+        if o.get("material") == "custom" and o.get("materialFile")
+        else None
+    )
     return o
 
 
@@ -1676,13 +1794,39 @@ def _update_group(g, members, do_replace=False):
 
 
 def _update_kickmap(km, und, beam_axis):
-    km.direction = radia_util.AXIS_VECTORS[beam_axis]
+    km.direction = radia_util.AXIS_VECTORS[beam_axis].tolist()
     km.transverseDirection = radia_util.AXIS_VECTORS[
         SCHEMA.constants.heightAxisMap[beam_axis]
-    ]
+    ].tolist()
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
+
+
+# TODO(BG) Necessary helper function to implement object slicing with radia.radObjMltExtPgn()
+# Edge Case: Need to remove linear points along same vecter before returning
+"""
+def _sort_points_clockwise(points):
+    angles = []
+    center = (sum([p[0] for p in points]) / len(points), sum([p[1] for p in points]) / len(points))
+    for p in points:
+        vector = [p[0] - center[0], p[1] - center[1]]
+        vlength = math.sqrt(pow(vector[0], 2) + pow(vector[1], 2))
+        if vlength == 0:
+            angles.append(-numpy.pi)
+        else:
+            normalized = [vector[0] / vlength, vector[1] / vlength]
+            angle = math.atan2(normalized[0], normalized[1])
+            # function checks against x-positive, if negative angle add to 2pi for mirror
+            if angle < 0:
+                angle = 2 * numpy.pi + angle
+            angles.append(angle)
+    for i in range(len(angles)):
+        angles[i] = [angles[i], points[i]]
+    angles.sort()
+    # might have to check by lengths as well if angles are the same
+    return [x[1] for x in angels]
+"""
 
 
 def _validate_objects(objects):

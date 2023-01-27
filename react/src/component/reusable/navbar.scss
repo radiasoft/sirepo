@@ -1,0 +1,26 @@
+.sr-navbar-spacer {
+    padding-right: 25px;
+}
+
+.sr-navbar-simulations-button {
+    text-decoration: underline;
+}
+
+.sr-navbar-container {
+    display: flex;
+    flex-flow: row nowrap;
+    width: 100%;
+    padding-left: 10px;
+    align-items: center;
+}
+
+.sr-navbar {
+    padding: 0 !important;
+    height: 50px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.sr-navbar-container .nav-tabs .nav-item .nav-link {
+  margin-top: 5px;
+  padding-bottom: 14px;
+}

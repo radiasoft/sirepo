@@ -5,7 +5,7 @@ $info: #5bc0de;
 $warning: #f0ad4e;
 $danger: #d9534f;
 
-$font-size-base: 0.875rem;
+$font-size-base: 0.9rem;
 $form-label-font-weight: 700;
 $form-feedback-icon-invalid: none;
 
@@ -38,4 +38,16 @@ a {
   background-color: #f9f9f9;
   color: black;
   border: 1px solid black;
+}
+
+.app-body {
+    margin-top: 25px;
+}
+
+.btn-light {
+  --bs-btn-border-color: #ccc;
+}
+
+.form-label {
+  padding-top: 2px;
 }

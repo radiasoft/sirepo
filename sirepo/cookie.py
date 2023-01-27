@@ -4,13 +4,11 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import base64
-import contextlib
 import cryptography.fernet
 import itertools
 import re
@@ -32,7 +30,10 @@ _cfg = None
 
 
 def init_quest(qcall):
-    qcall.attr_set("cookie", _Cookie(qcall))
+    c = _Cookie(qcall)
+    qcall.attr_set("cookie", c)
+    if qcall.bucket_unchecked_get("in_srunit"):
+        c.set_sentinel()
 
 
 class _Cookie(sirepo.quest.Attr):
@@ -60,34 +61,34 @@ class _Cookie(sirepo.quest.Attr):
         self.__values.clear()
 
     def save_to_cookie(self, resp):
-        if not 200 <= resp.status_code < 400:
-            return
         self.set_sentinel()
         s = self._serialize()
         if s == self.__incoming_serialized:
             return
-        resp.set_cookie(
-            _cfg.http_name,
-            self._encrypt(s),
+        resp.cookie_set(
+            key=_cfg.http_name,
+            value=self._encrypt(s),
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=_cfg.is_secure,
-            # TODO(pjm): enabling this causes self-extracting simulations to break
-            # samesite='Strict',
+            samesite="Lax",
         )
 
     def set_sentinel(self):
         self.__values[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
 
     def set_value(self, key, value):
-        value = str(value)
+        v = str(value)
         assert (
-            not _SERIALIZER_SEP in value
-        ), 'value must not container serializer sep "{}"'.format(_SERIALIZER_SEP)
+            not _SERIALIZER_SEP in v
+        ), f"value={v} must not contain _SERIALIZER_SEP={_SERIALIZER_SEP}"
         assert (
-            key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in self.__values
-        ), "key={} is _COOKIE_SENTINEL={_COOKIE_SENTINEL} or exist in self".format(key)
-        self.__values[key] = value
+            key != _COOKIE_SENTINEL
+        ), f"key={key} is _COOKIE_SENTINEL={_COOKIE_SENTINEL}"
+        assert (
+            _COOKIE_SENTINEL in self.__values
+        ), f"_COOKIE_SENTINEL not set self keys={sorted(self.__values.keys())} for key={key}"
+        self.__values[key] = v
 
     def unchecked_get_value(self, key, default=None):
         return self.__values.get(key, default)

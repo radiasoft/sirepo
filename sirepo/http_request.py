@@ -23,7 +23,7 @@ def parse_json(qcall):
     if d:
         return d
     if not qcall.sreq.content_type_eq("application/json"):
-        sirepo.util.raise_bad_request(
+        raise sirepo.util.BadRequest(
             "Content-Type={} must be application/json",
             qcall.sreq.header_uget("Content-Type"),
         )
@@ -61,12 +61,12 @@ def parse_post(qcall, kwargs):
     Returns:
         PKDict: with arg names set to parsed values
     """
-    res = PKDict()
+    res = PKDict(qcall=qcall)
     r = kwargs.pkdel("req_data")
     if r is None:
         r = parse_json(qcall)
     if kwargs.pkdel("fixup_old_data"):
-        r = simulation_db.fixup_old_data(r)[0]
+        r = simulation_db.fixup_old_data(r, qcall=qcall)[0]
     res.pkupdate(req_data=r)
     kwargs.pksetdefault(type=True)
 
@@ -106,8 +106,8 @@ def parse_post(qcall, kwargs):
         res[n] = f(v)
     if (
         kwargs.pkdel("check_sim_exists")
-        and not simulation_db.sim_data_file(res.type, res.id).exists()
+        and not simulation_db.sim_data_file(res.type, res.id, qcall=qcall).exists()
     ):
-        sirepo.util.raise_not_found("type={} sid={} does not exist", res.type, res.id)
+        raise sirepo.util.NotFound("type={} sid={} does not exist", res.type, res.id)
     assert not kwargs, "unexpected kwargs={}".format(kwargs)
     return res

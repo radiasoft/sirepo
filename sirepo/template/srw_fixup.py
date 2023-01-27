@@ -14,7 +14,7 @@ from sirepo.template import srw_common
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("srw")
 
 
-def do(template, data):
+def do(template, data, qcall):
     _do_beamline(template, data)
     dm = data.models
     data = _do_electron_beam(template, data)
@@ -32,7 +32,7 @@ def do(template, data):
             ).undulator_parameter
     if "length" in dm.tabulatedUndulator:
         tabulated_undulator = dm.tabulatedUndulator
-        und_length = template.compute_undulator_length(tabulated_undulator)
+        und_length = template.compute_undulator_length(tabulated_undulator, qcall=qcall)
         if _SIM_DATA.srw_uses_tabulated_zipfile(data) and "length" in und_length:
             dm.undulator.length = und_length.length
         del dm.tabulatedUndulator["length"]
@@ -54,10 +54,9 @@ def _do_beamline(template, data):
                 i.tvx = i.tvy = 0
                 _SIM_DATA.srw_compute_crystal_grazing_angle(i)
         _SIM_DATA.update_model_defaults(i, t)
-        if t in {"crystal"}:
+        if t == "crystal":
             template._compute_crystal_orientation(i)
-        if t in {"grating"}:
-            i.energyAvg = dm.simulation.photonEnergy
+        if t == "grating":
             template._compute_PGM_value(i)
 
 

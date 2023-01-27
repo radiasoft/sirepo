@@ -6,6 +6,7 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import sirepo.auth
 import sirepo.quest
 import sirepo.util
 
@@ -16,7 +17,7 @@ class API(sirepo.quest.API):
         # Needs to be explicit, because we would need a special permission
         # for just this API.
         if not self.auth.is_logged_in():
-            raise sirepo.util.SRException(LOGIN_ROUTE_NAME, None)
+            raise sirepo.util.SRException(sirepo.auth.LOGIN_ROUTE_NAME, None)
         self.auth.complete_registration(
             self.auth.parse_display_name(self.parse_json().get("displayName")),
         )
@@ -29,6 +30,17 @@ class API(sirepo.quest.API):
             "js",
             PKDict(auth_state=self.auth.only_for_api_auth_state()),
         )
+
+    @sirepo.quest.Spec("allow_visitor")
+    def api_authState2(self):
+        """is alternative to auth_state that returns the JSON struct instead of static JS"""
+        a = self.auth.only_for_api_auth_state()
+        # only one method is valid, replace visibleMethods array with single value including guest
+        assert a["guestIsOnlyMethod"] or len(a["visibleMethods"]) == 1
+        m = "guest" if a["guestIsOnlyMethod"] else a["visibleMethods"][0]
+        a.pkdel("visibleMethods")
+        a.pkupdate({"visibleMethod": m})
+        return a
 
     @sirepo.quest.Spec("allow_visitor")
     def api_authLogout(self, simulation_type=None):

@@ -1,9 +1,51 @@
-.table-hover > tbody > tr {
-  border-style: solid;
-  border-width: thin;
-  border-color: #00a2c5;
+.radia-table-hover > tbody > tr {
+  outline-style: solid;
+  outline-width: 1px;
+  outline-color: lightgray;
+  outline-offset: -1px;
 }
 
-.table-hover > tbody > tr:hover {
-  border-width: 2px;
+.radia-table-hover > tbody > tr:hover {
+  outline-width: 2px;
+  outline-offset: -2px;
+  outline-color: #00a2c5;
+}
+
+.radia-table-dialog .control-label {
+    font-size: smaller !important;
+    padding-left: 0;
+    text-align: left;
+}
+
+.radia-table-dialog div:is([data-ng-switch-when=Float], div[data-ng-switch-when=FloatArray], div[data-ng-switch-when=Boolean]) {
+    width: 100%;
+    padding-left: 0;
+}
+
+.radia-table-dialog .toggle label {
+    font-size: small !important;
+}
+
+.radia-table-dialog input[data-string-to-number] {
+    width: 4em;
+    margin-right: 2px;
+}
+
+.radia-table-dialog div.item-name {
+    padding-right: 6px;
+}
+
+.radia-table-dialog div[data-num-array] label {
+    font-size: smaller;
+    margin-right: 0 !important;
+}
+
+.radia-table-dialog div[data-ng-switch-default] {
+    width: 100% !important;
+    padding-left: 0;
+}
+
+.radia-table-dialog .toggle {
+    min-height: 30px !important;
+    height: 30px !important;
 }

@@ -18,7 +18,6 @@ import zipfile
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     COMPILE_LOG = "compile.log"
     FLASH_PAR_FILE = "flash.par"
     SETUP_LOG = "setup.log"
@@ -28,7 +27,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     _FLASH_SRC_TARBALL_BASENAME = "flash.tar.gz"
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         cls._init_models(
             dm,

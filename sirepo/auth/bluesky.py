@@ -53,7 +53,7 @@ class API(sirepo.quest.API):
         )
         return self.reply_ok(
             PKDict(
-                data=simulation_db.open_json_file(req.type, sid=req.id),
+                data=simulation_db.open_json_file(req.type, sid=req.id, qcall=self),
                 schema=simulation_db.get_schema(req.type),
             ),
         )
@@ -68,7 +68,7 @@ def auth_hash(http_post, verify=False):
     now = int(time.time())
     if not "authNonce" in http_post:
         if verify:
-            util.raise_unauthorized("authNonce: missing field in request")
+            raise util.Unauthorized("authNonce: missing field in request")
         http_post.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
     h = hashlib.sha256()
     h.update(
@@ -90,7 +90,7 @@ def auth_hash(http_post, verify=False):
         http_post.authHash = res
         return
     if res != http_post.authHash:
-        util.raise_unauthorized(
+        raise util.Unauthorized(
             "{}: hash mismatch expected={} nonce={}",
             http_post.authHash,
             res,
@@ -100,14 +100,14 @@ def auth_hash(http_post, verify=False):
     try:
         t = int(t)
     except ValueError as e:
-        util.raise_unauthorized(
+        raise util.Unauthorized(
             "{}: auth_nonce prefix not an int: nonce={}",
             t,
             http_post.authNonce,
         )
     delta = now - t
     if abs(delta) > _AUTH_NONCE_REPLAY_SECS:
-        util.raise_unauthorized(
+        raise util.Unauthorized(
             "{}: auth_nonce time outside replay window={} now={} nonce={}",
             t,
             _AUTH_NONCE_REPLAY_SECS,

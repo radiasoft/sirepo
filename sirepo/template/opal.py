@@ -245,8 +245,8 @@ class OpalMadxConverter(MadxConverter):
         ],
     ]
 
-    def __init__(self):
-        super().__init__(SIM_TYPE, self._FIELD_MAP)
+    def __init__(self, qcall, **kwargs):
+        super().__init__(SIM_TYPE, self._FIELD_MAP, qcall=qcall, **kwargs)
 
     def to_madx(self, data):
         def _get_len_by_id(data, id):
@@ -412,6 +412,14 @@ class OpalMadxConverter(MadxConverter):
         return self.vars.eval_var_with_assert(var_value)
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_frames,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
         percentComplete=0,
@@ -452,15 +460,6 @@ def code_var(variables):
     )
 
 
-def get_application_data(data, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_frames)
-    if code_var(data.variables).get_application_data(
-        data, SCHEMA, ignore_array_values=True
-    ):
-        return data
-
-
 def get_data_file(run_dir, model, frame, options):
     if frame < 0:
         return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
@@ -483,7 +482,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
         data, input_files = opal_parser.parse_file(text, filename=req.filename)
         missing_files = []
         for infile in input_files:
-            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
+            if not _SIM_DATA.lib_file_exists(infile.lib_filename, qcall=req.qcall):
                 missing_files.append(infile)
         if missing_files:
             return PKDict(
@@ -491,7 +490,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
                 missingFiles=missing_files,
             )
     elif re.search(r"\.madx$", req.filename, re.IGNORECASE):
-        data = OpalMadxConverter().from_madx_text(text)
+        data = OpalMadxConverter(qcall=req.qcall).from_madx_text(text)
         data.models.simulation.name = re.sub(
             r"\.madx$", "", req.filename, flags=re.IGNORECASE
         )
@@ -500,7 +499,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
     return data
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
@@ -514,7 +513,7 @@ def post_execution_processing(
     return _parse_opal_log(run_dir)
 
 
-def prepare_for_client(data):
+def prepare_for_client(data, qcall, **kwargs):
     code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
 
@@ -532,10 +531,10 @@ def prepare_sequential_output_file(run_dir, data):
                 pass
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     if model == "madx":
-        return OpalMadxConverter().to_madx_text(data)
-    return _generate_parameters_file(data)
+        return OpalMadxConverter(qcall=qcall).to_madx_text(data)
+    return _generate_parameters_file(data, qcall=qcall)
 
 
 def save_sequential_report_data(data, run_dir):
@@ -695,8 +694,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 class _Generate(sirepo.lib.GenerateBase):
-    def __init__(self, data):
+    def __init__(self, data, qcall=None):
         self.data = data
+        self.qcall = qcall
         self._schema = SCHEMA
 
     def sim(self):
@@ -879,8 +879,8 @@ def _compute_3d_bounds(run_dir):
     return bounds
 
 
-def _generate_parameters_file(data):
-    return _Generate(data).sim()
+def _generate_parameters_file(data, qcall=None):
+    return _Generate(data, qcall=qcall).sim()
 
 
 def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
@@ -909,7 +909,7 @@ def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
     )
 
 
-def _compute_range_across_frames(run_dir, data):
+def _compute_range_across_frames(run_dir, **kwargs):
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res:

@@ -4,8 +4,6 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
@@ -44,6 +42,19 @@ _PARTICLE_FILE = "particles.h5"
 _PARTICLE_PERIOD = 100
 _POTENTIAL_FILE = "potential.h5"
 _STL_POLY_FILE = "polygons.h5"
+
+
+def analysis_job_compute_simulation_steps(data, run_dir, **kwargs):
+    f = run_dir.join(_FIELD_ESTIMATE_FILE)
+    if f.exists():
+        res = simulation_db.read_json(f)
+        if res and "tof_expected" in res:
+            return PKDict(
+                timeOfFlight=res["tof_expected"],
+                steps=res["steps_expected"],
+                electronFraction=res["e_cross"] if "e_cross" in res else 0,
+            )
+    return PKDict()
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -145,7 +156,6 @@ def generate_field_comparison_report(data, run_dir, args=None):
 
 
 def generate_field_report(data, run_dir, args=None):
-
     grid = data.models.simulationGrid
     axes, slice_axis, phi_slice, show3d = _field_input(args)
     slice_text = (
@@ -177,28 +187,6 @@ def generate_field_report(data, run_dir, args=None):
     res.global_max = np.max(potential) if vals_equal else None
     res.frequency_title = "Volts"
     return res
-
-
-def get_application_data(data, **kwargs):
-    if data.method == "compute_simulation_steps":
-        field_file = (
-            simulation_db.simulation_dir(SIM_TYPE, data["simulationId"])
-            .join("fieldCalculationAnimation")
-            .join(_FIELD_ESTIMATE_FILE)
-        )
-        if field_file.exists():
-            res = simulation_db.read_json(field_file)
-            if res and "tof_expected" in res:
-                return {
-                    "timeOfFlight": res["tof_expected"],
-                    "steps": res["steps_expected"],
-                    "electronFraction": res["e_cross"] if "e_cross" in res else 0,
-                }
-        return {}
-    if data.method == "save_stl_polys" and "polys" in data:
-        _save_stl_polys(data)
-        return {}
-    raise RuntimeError("unknown application data method: {}".format(data["method"]))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -244,7 +232,7 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
     return current * constants.elementary_charge / dz
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
     if "conductorFile" in new_simulation_data:
         c_file = new_simulation_data.conductorFile
         if c_file:
@@ -289,8 +277,8 @@ def prepare_sequential_output_file(run_dir, data):
                 )
 
 
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data)[0]
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(data, qcall=qcall)[0]
 
 
 def remove_last_frame(run_dir):
@@ -298,6 +286,15 @@ def remove_last_frame(run_dir):
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
+
+
+def stateful_compute_save_stl_polys(data, **kwargs):
+    assert "polys" in data
+    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.filename))
+    # write once
+    if not p.exists():
+        template_common.write_dict_to_h5(data, p, h5_path="/")
+    return PKDict()
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -841,7 +838,7 @@ def _generate_optimizer_file(data, v):
     return _render_jinja("optimizer", v)
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, qcall=None):
     v = None
     template_common.validate_models(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
@@ -852,7 +849,7 @@ def _generate_parameters_file(data):
     v["densityFile"] = _DENSITY_FILE
     v["egunCurrentFile"] = _EGUN_CURRENT_FILE
     v["estimateFile"] = _FIELD_ESTIMATE_FILE
-    v["conductors"] = _prepare_conductors(data)
+    v["conductors"] = _prepare_conductors(data, qcall=qcall)
     v["maxConductorVoltage"] = _max_conductor_voltage(data)
     v["is3D"] = _SIM_DATA.warpvnd_is_3d(data)
     v["saveIntercept"] = (
@@ -864,6 +861,7 @@ def _generate_parameters_file(data):
             v["saveIntercept"] = False
             v["polyFile"] = _SIM_DATA.lib_file_abspath(
                 _stl_polygon_file(c.conductor_type.name),
+                qcall=qcall,
             )
             break
         if c.conductor_type.reflectorType != "none":
@@ -1007,7 +1005,7 @@ def _particle_line_has_slope(curr, next, prev, i1, i2):
     )
 
 
-def _prepare_conductors(data):
+def _prepare_conductors(data, qcall):
     type_by_id = {}
     for ct in data.models.conductorTypes:
         if ct is None:
@@ -1019,7 +1017,11 @@ def _prepare_conductors(data):
         if not _SIM_DATA.warpvnd_is_3d(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == "0" else "None"
-        ct.file = _SIM_DATA.lib_file_abspath(_stl_file(ct)) if "file" in ct else "None"
+        ct.file = (
+            _SIM_DATA.lib_file_abspath(_stl_file(ct), qcall=qcall)
+            if "file" in ct
+            else "None"
+        )
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
@@ -1162,15 +1164,3 @@ def _stl_file(conductor_type):
 
 def _stl_polygon_file(filename):
     return _SIM_DATA.lib_file_name_with_model_field("stl", filename, _STL_POLY_FILE)
-
-
-def _save_stl_polys(data):
-    try:
-        template_common.write_dict_to_h5(
-            data,
-            _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file)),
-            h5_path="/",
-        )
-    except Exception as e:
-        pkdlog("save_stl_polys error={}", e)
-        pass

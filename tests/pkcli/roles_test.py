@@ -18,18 +18,14 @@ def setup_module(module):
 def test_flash_change_role_change_lib_files(auth_fc):
     from pykern import pkio
     from pykern import pkunit
-    import sirepo.auth_db
-    import sirepo.auth_role
-    import sirepo.pkcli.roles
-    import sirepo.srdb
+    from sirepo import auth_role, srdb
+    from sirepo.pkcli import roles
 
     def _change_role(add=True):
-        f = getattr(sirepo.pkcli.roles, "add_roles")
-        if not add:
-            f = getattr(sirepo.pkcli.roles, "delete_roles")
+        f = getattr(roles, "add" if add else "delete")
         f(
             fc.sr_auth_state().uid,
-            sirepo.auth_role.for_sim_type(fc.sr_sim_type),
+            auth_role.for_sim_type(fc.sr_sim_type),
         )
 
     def _check_file(exists=True):
@@ -38,10 +34,10 @@ def test_flash_change_role_change_lib_files(auth_fc):
             [x.basename for x in pkio.walk_tree(fc.sr_user_dir(), _proprietary_file)],
         )
 
-    pkunit.data_dir().join("db").copy(sirepo.srdb.root())
+    pkunit.data_dir().join("db").copy(srdb.root())
     _proprietary_file = "flash.tar.gz"
     fc = auth_fc
-    fc.sr_email_register("a@b.c", sim_type="flash")
+    fc.sr_email_login("a@b.c", sim_type="flash")
     r = fc.sr_post(
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
     )
@@ -56,11 +52,13 @@ def test_flash_change_role_change_lib_files(auth_fc):
 
 def test_flash_list_role_by_email(auth_fc):
     from pykern import pkunit
-    import sirepo.pkcli.roles
+    from sirepo import srdb
+    from sirepo.pkcli import roles
 
     e = "a@b.c"
     r = ["premium"]
-    auth_fc.sr_email_register(e, sim_type="flash")
-    sirepo.pkcli.roles.add_roles(e, *r)
-    pkunit.pkeq(r, sirepo.pkcli.roles.list_roles(e))
-    pkunit.pkeq(r, sirepo.pkcli.roles.list_roles(auth_fc.sr_auth_state().uid))
+    pkunit.data_dir().join("db").copy(srdb.root())
+    auth_fc.sr_email_login(e, sim_type="flash")
+    roles.add(e, *r)
+    pkunit.pkeq(r, roles.list(e))
+    pkunit.pkeq(r, roles.list(auth_fc.sr_auth_state().uid))

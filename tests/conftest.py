@@ -15,7 +15,6 @@ def auth_fc(auth_fc_module):
     # set the sentinel
     auth_fc_module.cookie_jar.clear()
     auth_fc_module.sr_get_root()
-    auth_fc_module.sr_email_confirm = email_confirm
     return auth_fc_module
 
 
@@ -25,33 +24,19 @@ def auth_fc_module(request):
         yield c
 
 
-def email_confirm(fc, resp, display_name=None):
-    import re
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdlog
-
-    fc.sr_get(resp.uri)
-    pkdlog(resp.uri)
-    m = re.search(r"/(\w+)$", resp.uri)
-    assert bool(m)
-    r = PKDict(token=m.group(1))
-    if display_name:
-        r.displayName = display_name
-    fc.sr_post(
-        resp.uri,
-        r,
-        raw_response=True,
-    )
-
-
 @pytest.fixture(scope="function")
 def fc(request, fc_module):
     return _fc(request, fc_module)
 
 
 @pytest.fixture(scope="module")
-def fc_module(request, cfg=None):
-    with _subprocess_start(request) as c:
+def fc_module(request):
+    from pykern.pkcollections import PKDict
+
+    a = _sirepo_args(request, "fc_module", PKDict())
+    if "setup_func" in a:
+        a.setup_func()
+    with _subprocess_start(request, fc_args=a) as c:
         yield c
 
 
@@ -170,6 +155,7 @@ def pytest_configure(config):
         config.option,
         namespace=config.option,
     )
+    config.addinivalue_line("markers", "sirepo_args: pass parameters to fixtures")
 
 
 @pytest.fixture
@@ -206,7 +192,7 @@ def _auth_client_module(request, uwsgi=False):
 
     pkconfig.reset_state_for_testing(cfg)
 
-    with _subprocess_start(request, cfg=cfg, uwsgi=uwsgi) as c:
+    with _subprocess_start(request, fc_args=PKDict(cfg=cfg, uwsgi=uwsgi)) as c:
         yield c
 
 
@@ -215,6 +201,7 @@ def _check_port(port):
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((_LOCALHOST, int(port)))
+    return str(port)
 
 
 def _config_sbatch_supervisor_env(env):
@@ -246,12 +233,8 @@ def _config_sbatch_supervisor_env(env):
     )
 
 
-def _job_supervisor_check(env):
-    _check_port(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT)
-
-
 def _fc(request, fc_module, new_user=False):
-    """Flask client based logged in to specific code of test
+    """HTTP client based logged in to specific code of test
 
     Defaults to myapp.
     """
@@ -275,8 +258,7 @@ def _port():
 
     for p in random.sample(const.TEST_PORT_RANGE, 100):
         try:
-            _check_port(p)
-            return str(p)
+            return _check_port(p)
         except Exception:
             pass
     raise AssertionError(f"ip={_LOCALHOST} unable to allocate port")
@@ -301,15 +283,22 @@ def _slurm_not_installed():
     return False
 
 
-def _subprocess_setup(request, cfg=None, uwsgi=False):
+def _sirepo_args(request, name, default):
+    m = request.node.get_closest_marker("sirepo_args")
+    res = None
+    if m and m.kwargs and name in m.kwargs:
+        res = m.kwargs.get(name)
+    return default if res is None else res
+
+
+def _subprocess_setup(request, fc_args):
     """setup the supervisor"""
     import os
     from pykern.pkcollections import PKDict
 
     sbatch_module = "sbatch" in request.module.__name__
     env = PKDict(os.environ)
-    if not cfg:
-        cfg = PKDict()
+    cfg = fc_args.cfg
     from pykern import pkunit
     from pykern import pkio
 
@@ -321,8 +310,8 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         SIREPO_PKCLI_SERVICE_IP=_LOCALHOST,
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
-    if uwsgi:
-        cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
+    cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
+    if fc_args.uwsgi:
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port()
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
         cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
@@ -335,33 +324,44 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     import sirepo.srunit
 
     c = None
-    u = [env["SIREPO_PKCLI_JOB_SUPERVISOR_PORT"]]
-    if uwsgi:
-        c = sirepo.srunit.UwsgiClient(env)
-        u.append(env["SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT"])
-    else:
-        c = sirepo.srunit.flask_client(
-            cfg=cfg,
-            job_run_mode="sbatch" if sbatch_module else None,
-        )
-
+    u = [env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT]
+    c = sirepo.srunit.http_client(
+        env=env,
+        empty_work_dir=fc_args.empty_work_dir,
+        job_run_mode="sbatch" if sbatch_module else None,
+        sim_types=fc_args.sim_types,
+        port=env.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT
+        if fc_args.uwsgi
+        else env.SIREPO_PKCLI_SERVICE_PORT,
+    )
+    u.append(c.port)
+    t = fc_args.sim_types
+    if isinstance(t, (tuple, list)):
+        t = ":".join(t)
+    cfg["SIREPO_FEATURE_CONFIG_SIM_TYPES"] = t
     for i in u:
         subprocess.run(["kill -9 $(lsof -t -i :" + i + ") >& /dev/null"], shell=True)
-
     if sbatch_module:
         # must be performed after fc initialized so work_dir is configured
         _config_sbatch_supervisor_env(env)
-
-    _job_supervisor_check(env)
     return (env, c)
 
 
 @contextlib.contextmanager
-def _subprocess_start(request, cfg=None, uwsgi=False):
+def _subprocess_start(request, fc_args):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdlog
     import sirepo.srunit
     import time
+
+    fc_args.pksetdefault(
+        uwsgi=False,
+        cfg=PKDict,
+        sim_types=None,
+        append_package=None,
+        empty_work_dir=True,
+    )
 
     def _post(uri, data):
         for _ in range(30):
@@ -376,25 +376,32 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))
 
-    env, c = _subprocess_setup(request, cfg, uwsgi)
+    env, c = _subprocess_setup(request, fc_args)
     wd = pkunit.work_dir()
     p = []
     try:
         _subprocess(("sirepo", "job_supervisor"))
-        _post(
-            env["SIREPO_JOB_API_SUPERVISOR_URI"] + "/job-api-ping",
-            PKDict(ping="echoedValue"),
-        )
-        if uwsgi:
-            for s in ("nginx-proxy", "uwsgi"):
-                _subprocess(("sirepo", "service", s))
-            _post(
-                f'http://{_LOCALHOST}:{env["SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT"]}'
-                f"/job-supervisor-ping",
-                PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT),
+        if fc_args.uwsgi:
+            _subprocess(("sirepo", "service", "nginx-proxy"))
+            _subprocess(("sirepo", "service", "uwsgi"))
+        else:
+            _subprocess(("sirepo", "service", "flask"))
+        _post(c.http_prefix + "/job-supervisor-ping", None)
+        from sirepo import feature_config, template
+        from pykern import pkio
+
+        if template.is_sim_type("srw"):
+            pkio.unchecked_remove(
+                "~/src/radiasoft/sirepo/sirepo/package_data/template/srw/predefined.json"
             )
+            template.import_module("srw").get_predefined_beams()
+        for k in sorted(env.keys()):
+            if k.endswith("_PORT"):
+                pkdlog("{}={}", k, env[k])
         yield c
     finally:
+        import sys
+
         for x in p:
             x.terminate()
             x.wait()

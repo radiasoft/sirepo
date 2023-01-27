@@ -94,7 +94,7 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("unknown model={}".format(model))
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
         data.report = "crystalAnimation"
     else:
@@ -215,7 +215,7 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
     )
 
 
-def stateless_compute_compute_rms_size(data):
+def stateless_compute_rms_size(data):
     return _compute_rms_size(data.args)
 
 

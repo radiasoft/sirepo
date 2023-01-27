@@ -719,7 +719,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             <div data-ng-switch="info[1]">
               <div data-ng-switch-when="Integer" data-ng-class="fieldClass">
                 <input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
-            </div>
+              </div>
               <div data-ng-switch-when="Float" data-ng-class="fieldClass">
                 <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
                 <div class="sr-input-warning"></div>
@@ -1796,7 +1796,6 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 if ($scope.simState.isStatePurged()) {
                     return $sce.trustAsHtml([
                         `<div>Data purged on ${appState.formatDate($scope.simState.getDbUpdateTime())}.</div>`,
-                        `<div>Upgrade to ${authState.upgradePlanLink()} for persistent data storage.</div>`,
                     ].join(''));
                 }
 
@@ -2068,7 +2067,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
             <span class="sr-panel-heading">{{ simpleHeading }}</span>
             <div class="sr-panel-options pull-right">
               <a href data-ng-class="{\'sr-disabled-link\': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
-              <a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
+              <a href data-ng-click="panelState.toggleHiddenAndNotify(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
             </div>
             <div class="sr-panel-options pull-right" data-ng-transclude="" ></div>
         `,
@@ -2077,7 +2076,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
             $scope.utilities = utilities;
             $scope.toggleHidden = function() {
                 if(! utilities.isFullscreen()) {
-                    panelState.toggleHidden($scope.modelKey);
+                    panelState.toggleHiddenAndNotify($scope.modelKey);
                 }
             };
         },
@@ -2877,22 +2876,12 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
             <div data-confirmation-modal="" data-id="reset-confirmation" data-title="Reset Simulation?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()">Discard changes to &quot;{{ simulationName() }}&quot;?</div>
         `,
         controller: function($scope) {
-            function revertSimulation() {
+            $scope.revertToOriginal = () => {
                 $scope.nav.revertToOriginal(
-                    appDataService.getApplicationMode(),
+                    appState.models.simulation.appMode || appDataService.getApplicationMode(),
                     appState.models.simulation.name);
-            }
-
-            $scope.revertToOriginal = function() {
-                var resetData = appDataService.appDataForReset();
-                if (resetData) {
-                    requestSender.getApplicationData(resetData, revertSimulation);
-                }
-                else {
-                    revertSimulation();
-                }
             };
-            $scope.simulationName = function() {
+            $scope.simulationName = () => {
                 if (appState.isLoaded()) {
                     return appState.models.simulation.name;
                 }
@@ -3647,20 +3636,21 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
               <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
               <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
             </div>
-            <button data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
+            <button data-ng-disabled="disableSubmit" data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
           </form>
           <div data-ng-show="submitted">Response submitted.</div>
         `,
         controller: function(requestSender, $scope) {
             $scope.data = {};
             $scope.submitted = false;
+            $scope.disableSubmit = true;
             $scope.submitRequest = function () {
                 const handleResponse = (data) => {
                     if (data.state === 'error') {
                         errorService.alertText(data.error);
                     }
-                    $scope.submitted = true;
                 };
+                $scope.submitted = true;
                 requestSender.sendRequest(
                     'saveModerationReason',
                     handleResponse,
@@ -3670,6 +3660,16 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
                     }
                 );
             };
+
+            function reasonOk(reason) {
+                return reason && reason.trim().length > 4;
+            }
+
+            function validateReason() {
+                $scope.disableSubmit = !reasonOk($scope.data.reason) || $scope.submitted;
+            }
+
+            $scope.$watch('data.reason', validateReason);
         },
     };
 });
@@ -3946,7 +3946,7 @@ SIREPO.app.directive('toolbarIcon', function() {
         scope: {
             item: '=',
         },
-        template: '<ng-include src="iconUrl()" onload="iconLoaded()"/>',
+        template: '<ng-include title="{{ item.title }}" src="iconUrl()" onload="iconLoaded()"/>',
         controller: function($scope, $element) {
             var adjustmentsByType = {
             };
@@ -4632,12 +4632,8 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             controller.fieldRange = null;
             controller.isComputingRanges = true;
             setRunningState(name);
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_particle_ranges',
-                    simulationId: appState.models.simulation.simulationId,
-                    modelName: name,
-                },
+            requestSender.sendAnalysisJob(
+                appState,
                 function(data) {
                     controller.isComputingRanges = false;
                     if (appState.isLoaded() && data.fieldRange) {
@@ -4653,7 +4649,12 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
                         }
                         controller.fieldRange = data.fieldRange;
                     }
-                });
+                },
+                {
+                    method: 'compute_particle_ranges',
+                    modelName: name,
+                },
+            );
         }
     };
 
@@ -4724,13 +4725,11 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
 
             $scope.openSimulation = function() {
                 if ($scope.model && $scope.model[$scope.field]) {
-                    //TODO(e-carlin): this depends on the visualization route
-                    // being present in both the caller and callee apps.
-                    // Need meta data for a page in another app
-                    requestSender.newLocalWindow(
-                        $scope.route || 'visualization',
-                        {':simulationId': $scope.model[$scope.field]},
-                        $scope.code);
+                    requestSender.openSimulation(
+                        $scope.code,
+                        $scope.route,
+                        $scope.model[$scope.field]
+                    );
                 }
             };
             appState.whenModelsLoaded($scope, function() {
@@ -4891,15 +4890,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         };
     };
 
-    // create a non-cryptographic base62 string
-    this.randomString = function(length=32) {
-        const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        return new Array(length)
-            .fill('')
-            .map(x => BASE62[Math.floor(BASE62.length * Math.random())])
-            .join('');
-    };
-
     this.indexArray = function(size) {
         var res = [];
         for (var i = 0; i < size; res.push(i++)) {}
@@ -4922,21 +4912,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         }
         var r = Math.pow(10, p);
         return Math.round(val * r) / r;
-    };
-
-    // Sequentially applies a function to an array - useful for large arrays which
-    // can exceed the stack limit
-    this.seqApply = function(fn, array, initVal) {
-        var start = 0;
-        var inc = 1000;
-        var res = initVal;
-
-        do {
-            var sub = fn.apply(null, array.slice(start, Math.min(array.length, start + inc)));
-            res = fn.apply(null, [res, sub]);
-            start += inc;
-        } while (start < array.length);
-        return res;
     };
 
     // returns an array containing the unique elements of the input,

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # Compact Storage Ring
 execution_mode = 'serial'
 

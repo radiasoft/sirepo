@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # IOTA 6-6 with NLINSERT
 
 import synergia

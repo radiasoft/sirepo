@@ -34,7 +34,7 @@ def import_and_init(name):
     _i("sirepo.simulation_db", [])
     if name != "sirepo.pkcli.job_agent":
         _i("sirepo.auth_db", [])
-        _i("sirepo.session", [])
+        _i("sirepo.spa_session", [])
         _i("sirepo.cookie", [])
     _i("sirepo.auth", ["simulation_db"])
     if name in "sirepo.pkcli.job_agent":
@@ -45,10 +45,10 @@ def import_and_init(name):
         return m
     m = _i("sirepo.uri", ["simulation_db", "uri_router"])
     _i("sirepo.http_request", ["simulation_db"])
-    _i("sirepo.http_reply", ["simulation_db"])
+    _i("sirepo.reply", ["simulation_db"])
     _i("sirepo.uri", ["simulation_db", "uri_router"])
-    _i("sirepo.quest", ["http_reply", "http_request", "uri_router"])
-    if name in ("sirepo.auth", "sirepo.uri"):
+    _i("sirepo.quest", ["reply", "http_request", "uri_router"])
+    if name in ("sirepo.auth", "sirepo.uri", "sirepo.auth_db"):
         return values[_base(name)]
     if "sirepo.job_supervisor" == name:
         # job_supervisor doesn't need job_driver in its init so hack this

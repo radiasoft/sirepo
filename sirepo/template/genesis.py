@@ -90,6 +90,22 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         particleFrameCount=c.particle,
         fieldFrameCount=c.field,
+        reports=[
+            PKDict(
+                modelName="fieldDistributionAnimation",
+                frameCount=c.field,
+            ),
+            PKDict(
+                modelName="parameterAnimation",
+                # TODO(pjm): if this is changed to update when is_running, then it
+                # should be a file last update time
+                frameCount=1,
+            ),
+            PKDict(
+                modelName="particleAnimation",
+                frameCount=c.particle,
+            ),
+        ],
     )
 
 
@@ -119,7 +135,7 @@ def post_execution_processing(run_dir=None, **kwargs):
     return _parse_genesis_error(run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 

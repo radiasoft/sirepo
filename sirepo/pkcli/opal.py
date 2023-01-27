@@ -32,7 +32,7 @@ def _run_opal(with_mpi=False, compute_positions=False):
     if with_mpi and sirepo.mpi.cfg().cores < 2:
         with_mpi = False
     if with_mpi:
-        mpi.run_program(
+        sirepo.mpi.run_program(
             ["opal", template.OPAL_INPUT_FILE],
             output=template.OPAL_OUTPUT_FILE,
         )

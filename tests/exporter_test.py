@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-"""?
+"""exporter test
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 
 
@@ -38,29 +37,21 @@ def test_create_zip(fc):
             "simulationId"
         ]
         with pkio.save_chdir(pkunit.work_dir()) as d:
-            for t in "zip", "html":
-                r = fc.sr_get(
-                    "exportArchive",
-                    PKDict(
-                        simulation_type=sim_type,
-                        simulation_id=sim_id,
-                        filename="anything." + t,
-                    ),
-                )
-                p = d.join(sim_name + "." + t)
-                x = r.data
-                if t == "html":
-                    x = pkcompat.from_bytes(x)
-                    m = re.search(r'name="zip" \S+ value="([^"]+)"', x, flags=re.DOTALL)
-                    x = base64.b64decode(pkcompat.to_bytes(m.group(1)))
-                p.write_binary(x)
-                e = expect
-                if t == "html":
-                    e.remove("run.py")
-                pkeq(
-                    e,
-                    sorted(zipfile.ZipFile(str(p)).namelist()),
-                )
+            r = fc.sr_get(
+                "exportArchive",
+                PKDict(
+                    simulation_type=sim_type,
+                    simulation_id=sim_id,
+                    filename="anything.zip",
+                ),
+            )
+            p = d.join(sim_name + ".zip")
+            x = r.data
+            p.write_binary(x)
+            pkeq(
+                expect,
+                sorted(zipfile.ZipFile(str(p)).namelist()),
+            )
 
 
 def _import(fc):

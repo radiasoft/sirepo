@@ -10,14 +10,16 @@ from sirepo import srunit
 import pytest
 
 
-@srunit.wrap_in_request(want_user=False)
-def test_set_get(qcall):
-    from pykern import pkunit, pkcompat
-    from pykern.pkunit import pkeq
-    from pykern.pkdebug import pkdp
-    from sirepo import cookie
+def test_set_get():
+    from sirepo import srunit
 
-    with pkunit.pkexcept("KeyError"):
-        qcall.cookie.get_value("hi1")
-    qcall.cookie.set_value("hi2", "hello")
-    pkeq("hello", qcall.cookie.unchecked_get_value("hi2"))
+    with srunit.quest_start() as qcall:
+        from pykern import pkunit, pkcompat
+        from pykern.pkunit import pkeq
+        from pykern.pkdebug import pkdp
+        from sirepo import cookie
+
+        with pkunit.pkexcept("KeyError"):
+            qcall.cookie.get_value("hi1")
+        qcall.cookie.set_value("hi2", "hello")
+        pkeq("hello", qcall.cookie.unchecked_get_value("hi2"))

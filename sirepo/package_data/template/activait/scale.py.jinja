@@ -2,11 +2,13 @@ import numpy as np
 import os
 import sirepo.numpy
 import sirepo.sim_data.activait
+from sklearn.preprocessing import MinMaxScaler
 
-{% if dataFile_inputsScaler != 'None' %}
+
+{% if dataFile_inputsScaler != 'None' and dataFile_inputsScaler != "MinMaxScaler" %}
 from sklearn.preprocessing import {{ dataFile_inputsScaler }}
 {% endif %}
-{% if dataFile_outputsScaler != 'None' and dataFile_outputsScaler != dataFile_inputsScaler %}
+{% if dataFile_outputsScaler != 'None' and dataFile_outputsScaler != dataFile_inputsScaler  and dataFile_outputsScaler != "MinMaxScaler" %}
 from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 {% endif %}
 
@@ -60,17 +62,21 @@ def read_data_and_encode_output_column(data_reader, column_types):
 
 def scale_columns(values, column_types, col_type, scaler):
     columns = list(filter(lambda idx: column_types[idx] == col_type, range(len(column_types))))
-    if scaler and len(columns):
+    if not len(columns):
+        return columns
+    if scaler and scaler == MinMaxScaler:
+        values[:, columns] = scaler(feature_range=({{ feature_min }}, {{ feature_max }})).fit_transform(values[:, columns])
+    if scaler:
         values[:, columns] = scaler().fit_transform(values[:, columns])
     return columns
 
 
 def scale_file(data_reader, column_types, inputs_scaler, outputs_scaler):
     {% if dataFile_appMode == 'classification' or dataFile_appMode == 'regression' %}
-    {% if dataFile_dataFormat == 'text' %}
-    v = read_data_and_encode_output_column(data_reader, column_types)
-    {% else %}
+    {% if image_data %}
     v = read_data(data_reader)
+    {% else %}
+    v = read_data_and_encode_output_column(data_reader, column_types)
     {% endif %}
     {% else %}
     v = read_data(data_reader)
@@ -92,3 +98,6 @@ scaled, in_idx, out_idx = scale_file(
     {{ dataFile_outputsScaler }},
 {% endif %}
 )
+
+input_shape = (len(in_idx),)
+output_shape = len(out_idx)

@@ -13,7 +13,7 @@ from sirepo.template.lattice import LatticeUtil
 
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         cls._init_models(
             dm,

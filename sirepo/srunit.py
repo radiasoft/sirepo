@@ -7,19 +7,14 @@
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
 import contextlib
-import flask
-import flask.testing
 import json
+import pykern.pkinspect
 import re
+import requests
+import urllib
 
 #: Default "app"
 MYAPP = "myapp"
-
-#: import sirepo.server
-server = None
-
-#: app result from server.init_app
-app = None
 
 #: Matches javascript-redirect.html
 _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
@@ -32,69 +27,58 @@ SR_SIM_TYPE_DEFAULT = MYAPP
 #: Sirepo db dir
 _DB_DIR = "db"
 
-
-@contextlib.contextmanager
-def quest_start():
-    from sirepo import quest
-
-    with quest.start() as qcall:
-        yield qcall
+_client = None
 
 
-def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=False):
-    """Return FlaskClient with easy access methods.
-
-    Creates a new run directory every test file so can assume
-    sharing of state on the server within a file (module).
-
-    Two methods of interest: `sr_post` and `sr_get`.
-
-    Args:
-        cfg (dict): extra configuration for reset_state_for_testing
-        sim_types (str): value for SIREPO_FEATURE_CONFIG_SIM_TYPES [CONFTEST_DEFAULT_CODES]
-        no_chdir_work (bool): If True do not save and chdir to the work dir.
-                              The caller is expected to do it before calling this function.
-
-    Returns:
-        FlaskClient: for local requests to Flask server
-    """
-    global server, app
-
-    a = "srunit_flask_client"
-    if not cfg:
-        cfg = PKDict()
+def http_client(
+    env=None, sim_types=None, job_run_mode=None, empty_work_dir=True, port=None
+):
+    """Create an http_client that talks to server"""
+    global _client
     t = sim_types or CONFTEST_DEFAULT_CODES
     if t:
         if isinstance(t, (tuple, list)):
             t = ":".join(t)
-        cfg["SIREPO_FEATURE_CONFIG_SIM_TYPES"] = t
-    if not (server and hasattr(app, a)):
-        from pykern import pkconfig
+        env.SIREPO_FEATURE_CONFIG_SIM_TYPES = t
 
-        # initialize pkdebug with correct values
-        pkconfig.reset_state_for_testing(cfg)
+    from pykern import pkconfig
 
-        from pykern import pkunit
+    pkconfig.reset_state_for_testing(env)
+    if _client:
+        return _client
 
-        with contextlib.nullcontext() if no_chdir_work else pkunit.save_chdir_work():
-            from pykern import pkio
-            from sirepo import modules
+    from pykern import pkunit
 
-            setup_srdb_root(cfg=cfg)
-            pkconfig.reset_state_for_testing(cfg)
-            server = modules.import_and_init("sirepo.server")
-            app = server.init_app(is_server=True)
-            app.config["TESTING"] = True
-            app.test_client_class = _TestClient
-            setattr(app, a, app.test_client(job_run_mode=job_run_mode))
-    return getattr(app, a)
+    if empty_work_dir:
+        pkunit.empty_work_dir()
+    else:
+        pkunit.work_dir()
+    setup_srdb_root(cfg=env)
+
+    from sirepo import modules
+
+    modules.import_and_init("sirepo.uri")
+    _client = _TestClient(env=env, job_run_mode=job_run_mode, port=port)
+    return _client
 
 
-def init_auth_db():
-    """Force a request that creates a user in db with just myapp"""
-    fc = flask_client(sim_types=MYAPP)
-    fc.sr_login_as_guest()
-    return fc, fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
+@contextlib.contextmanager
+def quest_start(want_user=False, cfg=None):
+    if cfg is None:
+        cfg = {}
+    setup_srdb_root(cfg=cfg)
+
+    from pykern import pkconfig
+
+    pkconfig.reset_state_for_testing(cfg)
+
+    from sirepo import quest
+
+    with quest.start(in_srunit=True) as qcall:
+        qcall.auth_db.create_or_upgrade()
+        if want_user:
+            qcall.auth.login(is_mock=True)
+        yield qcall
 
 
 def setup_srdb_root(cfg=None):
@@ -107,68 +91,6 @@ def setup_srdb_root(cfg=None):
     e.update(
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join(_DB_DIR))),
     )
-
-
-def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_DEFAULT_CODES, cfg=None):
-    """Get simulation data
-
-    Args:
-        sim_name (str): full name of simulation
-        sim_type (str): app [defaults to myapp]
-        sim_types (str): `SIREPO_FEATURE_CONFIG_SIM_TYPES` value
-    Returns:
-        PKDict: simulation data
-        object: flask client
-    """
-    fc = flask_client(sim_types=sim_types or [sim_type or MYAPP], cfg=cfg)
-    fc.sr_login_as_guest()
-    return fc.sr_sim_data(sim_name=sim_name, sim_type=sim_type), fc
-
-
-def test_in_request(
-    op,
-    cfg=None,
-    before_request=None,
-    headers=None,
-    want_cookie=True,
-    want_user=True,
-    **kwargs,
-):
-    fc = flask_client(cfg, **kwargs)
-    try:
-        from pykern import pkunit
-        from pykern import pkcollections
-        from sirepo import flask
-
-        if before_request:
-            before_request(fc)
-        setattr(
-            flask.app(),
-            server.SRUNIT_TEST_IN_REQUEST,
-            PKDict(op=op, want_cookie=want_cookie, want_user=want_user),
-        )
-        from sirepo import uri_router
-
-        r = fc.get(
-            uri_router.srunit_uri,
-            headers=headers,
-        )
-        pkunit.pkeq(200, r.status_code, "FAIL: unexpected status={}", r.status)
-        if r.mimetype == "text/html":
-            m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(r.data))
-            if m:
-                pkunit.pkfail("unexpected redirect={}", m.group(1))
-            pkunit.pkfail("unexpected html response={}", r.data)
-        d = pkcollections.json_load_any(r.data)
-        pkunit.pkeq(
-            "ok", d.get("state"), "FAIL: expecting state=ok, but got data={}", d
-        )
-    finally:
-        try:
-            delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)
-        except AttributeError:
-            pass
-    return r
 
 
 class UwsgiClient(PKDict):
@@ -202,46 +124,43 @@ class UwsgiClient(PKDict):
         return uri.server_route(route_or_uri, None, None)
 
 
-def wrap_in_request(*args, **kwargs):
-    """Decorator for calling functions in `test_in_request`
-
-    Examples:
-        # note that the parens are required
-        @srunit.wrap_in_request()
-        def test_simple():
-            inside request context
-
-        @srunit.wrap_in_request(cfg={'SIREPO_AUTH_METHODS': 'github:guest'})
-        def test_myapp():
-            inside a request context here
-
-    Args:
-        func (callable): function to be wrapped
-        kwargs (dict): passed to test_in_request
-
-    Returns:
-        callable: replacement function
-    """
-
-    def _decorator(func):
-        def _wrapper(*ignore_args, **ignore_kwargs):
-            return test_in_request(
-                lambda qcall: func(qcall),
-                **kwargs,
-            )
-
-        return _wrapper
-
-    return _decorator
-
-
-class _TestClient(flask.testing.FlaskClient):
-    def __init__(self, *args, **kwargs):
-        self.sr_job_run_mode = kwargs.pop("job_run_mode")
-        super(_TestClient, self).__init__(*args, **kwargs)
+class _TestClient:
+    def __init__(self, env, job_run_mode, port):
+        super().__init__()
+        self.sr_job_run_mode = job_run_mode
         self.sr_sbatch_logged_in = False
         self.sr_sim_type = None
         self.sr_uid = None
+        self.port = port
+        self.http_prefix = f"http://{env.SIREPO_PKCLI_SERVICE_IP}:{port}"
+        self._session = requests.Session()
+        self.cookie_jar = self._session.cookies
+
+    def get(self, uri, headers=None):
+        return self._requests_op("get", uri, headers, kwargs=PKDict())
+
+    def post(self, uri, data=None, json=None, headers=None, file_handle=None):
+        assert (data is None) != (json is None)
+        k = PKDict()
+        if data is not None:
+            k.data = data
+        else:
+            k.json = json
+        if file_handle is not None:
+            k.files = PKDict(file=file_handle)
+        return self._requests_op("post", uri, headers, k)
+
+    @contextlib.contextmanager
+    def sr_adjust_time(self, days):
+        from sirepo import srtime
+
+        def _do(days):
+            srtime.adjust_time(days)
+            self.sr_get_json("adjustTime", params=PKDict(days=days))
+
+        _do(days)
+        yield
+        _do(0)
 
     def sr_animation_run(self, data, compute_model, reports=None, **kwargs):
         from pykern import pkunit
@@ -313,21 +232,27 @@ class _TestClient(flask.testing.FlaskClient):
             )
         return s
 
-    def sr_email_login(self, email):
+    def sr_email_confirm(self, resp, display_name=None):
+        from pykern.pkdebug import pkdlog
+
+        self.sr_get(resp.uri)
+        pkdlog(resp.uri)
+        m = re.search(r"/(\w+)$", resp.uri)
+        assert bool(m)
+        r = PKDict(token=m.group(1))
+        if display_name:
+            r.displayName = display_name
+        self.sr_post(resp.uri, r, raw_response=True)
+
+    def sr_email_login(self, email, sim_type=None):
+        self.sr_sim_type_set(sim_type)
         self.sr_logout()
         r = self.sr_post(
             "authEmailLogin",
             PKDict(email=email, simulationType=self.sr_sim_type),
         )
-        self.sr_email_confirm(self, r)
-
-    def sr_email_register(self, email, sim_type=None):
-        self.sr_sim_type_set(sim_type)
-        self.sr_email_login(email)
-        self.sr_post(
-            "authCompleteRegistration",
-            PKDict(displayName=email, simulationType=self.sr_sim_type),
-        )
+        self.sr_email_confirm(r, display_name=email)
+        return self._verify_and_save_uid()
 
     def sr_get(self, route_or_uri, params=None, query=None, **kwargs):
         """Gets a request to route_or_uri to server
@@ -337,10 +262,15 @@ class _TestClient(flask.testing.FlaskClient):
             params (dict): optional params to route_or_uri
 
         Returns:
-            flask.Response: reply object
+            SReply: reply object
         """
         return self.__req(
-            route_or_uri, params, query, self.get, raw_response=True, **kwargs
+            route_or_uri,
+            params=params,
+            query=query,
+            op=self.get,
+            raw_response=True,
+            **kwargs,
         )
 
     def sr_get_json(
@@ -357,9 +287,9 @@ class _TestClient(flask.testing.FlaskClient):
         """
         return self.__req(
             route_or_uri,
-            params,
-            query,
-            lambda r: self.get(r, headers=headers),
+            params=params,
+            query=query,
+            op=lambda r: self.get(r, headers=headers),
             raw_response=False,
             **kwargs,
         )
@@ -371,14 +301,14 @@ class _TestClient(flask.testing.FlaskClient):
             sim_type (str): app name ['myapp' or default type]
 
         Returns:
-            flask.Response: reply object
+            SReply: reply object
         """
         self.sr_sim_type_set(sim_type)
         return self.__req(
             "root",
-            {"path_info": self.sr_sim_type},
-            None,
-            self.get,
+            params={"path_info": self.sr_sim_type},
+            query=None,
+            op=self.get,
             raw_response=True,
             **kwargs,
         )
@@ -397,10 +327,7 @@ class _TestClient(flask.testing.FlaskClient):
         # Get a cookie
         self.sr_get("authState")
         self.sr_get("authGuestLogin", {"simulation_type": self.sr_sim_type})
-        self.sr_uid = self.sr_auth_state(
-            needCompleteRegistration=False, isLoggedIn=True
-        ).uid
-        return self.sr_uid
+        return self._verify_and_save_uid()
 
     def sr_logout(self):
         """Logout but leave cookie in place
@@ -425,11 +352,14 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: Parsed JSON result
         """
-        op = lambda r: self.post(
-            r, data=json.dumps(data), content_type="application/json"
-        )
+        op = lambda r: self.post(r, json=data)
         return self.__req(
-            route_or_uri, params, {}, op, raw_response=raw_response, **kwargs
+            route_or_uri,
+            params=params,
+            query={},
+            op=op,
+            raw_response=raw_response,
+            **kwargs,
         )
 
     def sr_post_form(
@@ -439,7 +369,7 @@ class _TestClient(flask.testing.FlaskClient):
 
         Args:
             route_or_uri (str): identifies route in schema-common.json
-            data (dict): will be formatted as JSON
+            data (dict): will be formatted as form-data
             params (dict): optional params to route_or_uri
             file (object): if str, will look in data_dir, else assumed py.path
 
@@ -448,16 +378,17 @@ class _TestClient(flask.testing.FlaskClient):
         """
         from pykern import pkunit, pkconfig
 
+        k = PKDict(data=data)
         if file:
             p = file
             if isinstance(p, pkconfig.STRING_TYPES):
                 p = pkunit.data_dir().join(p)
-            data.file = (open(str(p), "rb"), p.basename)
+            k.file_handle = open(str(p), "rb")
         return self.__req(
             route_or_uri,
             params,
-            PKDict(),
-            lambda r: self.post(r, data=data),
+            query=PKDict(),
+            op=lambda r: self.post(r, **k),
             raw_response=raw_response,
             **kwargs,
         )
@@ -614,6 +545,12 @@ class _TestClient(flask.testing.FlaskClient):
             uid = self.sr_auth_state().uid
         return pkunit.work_dir().join(_DB_DIR, "user", uid)
 
+    def _verify_and_save_uid(self):
+        self.sr_uid = self.sr_auth_state(
+            needCompleteRegistration=False, isLoggedIn=True
+        ).uid
+        return self.sr_uid
+
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
         """Make request and parse result
 
@@ -627,7 +564,7 @@ class _TestClient(flask.testing.FlaskClient):
         """
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
         from pykern import pkjson
-        from sirepo import uri, util, http_reply
+        from sirepo import uri, util, reply
 
         redirects = kwargs.setdefault("__redirects", 0) + 1
         assert redirects <= 5
@@ -656,37 +593,36 @@ class _TestClient(flask.testing.FlaskClient):
                         # Execute the redirect
                         return self.__req(
                             m.group(1),
-                            None,
-                            None,
-                            self.get,
-                            raw_response,
+                            params=None,
+                            query=None,
+                            op=self.get,
+                            raw_response=raw_response,
                             __redirects=redirects,
                         )
-                    return flask.redirect(m.group(1))
+                    return r.change_to_redirect(m.group(1))
             if r.status_code in (301, 302, 303, 305, 307, 308):
                 if kwargs.get("redirect", True):
                     # Execute the redirect
                     return self.__req(
                         r.headers["Location"],
-                        None,
-                        None,
-                        self.get,
-                        raw_response,
+                        params=None,
+                        query=None,
+                        op=self.get,
+                        raw_response=raw_response,
                         __redirects=redirects,
                     )
-                return r
             if raw_response:
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
             d = pkjson.load_any(r.data)
-            if isinstance(d, dict) and d.get("state") == http_reply.SR_EXCEPTION_STATE:
+            if isinstance(d, dict) and d.get("state") == reply.SR_EXCEPTION_STATE:
                 raise util.SRException(
                     d.srException.routeName,
                     d.srException.params,
                 )
             return d
         except Exception as e:
-            if not isinstance(e, (util.Reply)):
+            if not isinstance(e, (util.ReplyExc)):
                 pkdlog(
                     "Exception: {}: msg={} uri={} status={} data={} stack={}",
                     type(e),
@@ -697,3 +633,61 @@ class _TestClient(flask.testing.FlaskClient):
                     pkdexc(),
                 )
             raise
+
+    def _requests_op(self, op, uri, headers, kwargs):
+        from sirepo import const
+
+        u = self._uri(uri)
+        if headers is None:
+            headers = PKDict()
+        headers.setdefault(
+            "User-Agent",
+            f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}",
+        )
+        try:
+            return _Response(
+                getattr(self._session, op)(u, headers=headers, **kwargs),
+            )
+        except requests.exceptions.ConnectionError as e:
+            from pykern.pkdebug import pkdlog
+
+            pkdlog("op={} uri={} headers={}", op, u, headers)
+            raise
+
+    def _uri(self, uri):
+        from pykern.pkdebug import pkdp
+
+        u = urllib.parse.urlparse(uri)
+        if u.scheme:
+            return uri
+        return self.http_prefix + uri
+
+
+class _Response:
+    def __init__(self, reply):
+        self._reply = reply
+
+    @property
+    def data(self):
+        return self._reply.content
+
+    def header_get(self, name):
+        return self._reply.headers[name]
+
+    @property
+    def mimetype(self):
+        c = self._reply.headers.get("content-type")
+        if not c:
+            return ""
+        return c.split(";")[0].strip()
+
+    @property
+    def status_code(self):
+        return self._reply.status_code
+
+    def change_to_redirect(self, uri):
+        self._reply = PKDict(
+            status_code=302,
+            headers=PKDict(Location=uri),
+        )
+        return self

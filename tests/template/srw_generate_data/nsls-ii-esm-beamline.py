@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 try:
     __IPYTHON__
@@ -402,9 +403,9 @@ varParam = [
     ['op_Grating_size_sag', 'f', 0.015, 'sagittalSize'],
     ['op_Grating_nvx', 'f', 0.0, 'nvx'],
     ['op_Grating_nvy', 'f', 0.9999160776602402, 'nvy'],
-    ['op_Grating_nvz', 'f', -0.012955216577139016, 'nvz'],
+    ['op_Grating_nvz', 'f', -0.012955216577138128, 'nvz'],
     ['op_Grating_tvx', 'f', 0.0, 'tvx'],
-    ['op_Grating_tvy', 'f', 0.012955216577139016, 'tvy'],
+    ['op_Grating_tvy', 'f', 0.012955216577138128, 'tvy'],
     ['op_Grating_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Grating_y', 'f', 0.0, 'verticalOffset'],
     ['op_Grating_m', 'f', 1.0, 'diffractionOrder'],
@@ -418,8 +419,8 @@ varParam = [
     ['op_Grating_ang', 'f', 0.012955579, 'grazingAngle'],
     ['op_Grating_rollAngle', 'f', 0.0, 'rollAngle'],
     ['op_Grating_outoptvx', 'f', 0.0, 'outoptvx'],
-    ['op_Grating_outoptvy', 'f', 0.08093357816613847, 'outoptvy'],
-    ['op_Grating_outoptvz', 'f', 0.996719497113017, 'outoptvz'],
+    ['op_Grating_outoptvy', 'f', 0.08093357816613758, 'outoptvy'],
+    ['op_Grating_outoptvz', 'f', 0.9967194971130171, 'outoptvz'],
     ['op_Grating_outframevx', 'f', 1.0, 'outframevx'],
     ['op_Grating_outframevy', 'f', 0.0, 'outframevy'],
     ['op_Grating_computeParametersFrom', 'f', 2, 'computeParametersFrom'],

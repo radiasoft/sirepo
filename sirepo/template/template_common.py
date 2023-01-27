@@ -55,6 +55,33 @@ _PLOT_LINE_COLOR = [
 ]
 
 
+class JobCmdFile(PKDict):
+    """Returned by dispatched job commands
+
+    `analysis_job_dispatch`, `stateless_compute_dispatch`, and
+    `stateful_compute_dispatch` support file returns.
+
+    Args:
+        content (object): what to send [path.read()]
+        path (py.path): py.path of file to read
+        uri (str): what to call the file [path.basename]
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.pksetdefault(
+            error=None,
+            uri=lambda: self.path.basename,
+        )
+        self.pksetdefault(
+            content=lambda: (
+                pkcompat.to_bytes(pkio.read_text(self.path))
+                if self.uri.endswith((".py", ".txt", ".csv"))
+                else self.path.read_binary()
+            ),
+        )
+
+
 class ModelUnits:
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
@@ -251,31 +278,22 @@ def analysis_job_dispatch(data):
     )(data, simulation_db.simulation_run_dir(data))
 
 
-def compute_field_range(args, compute_range):
+def compute_field_range(args, compute_range, run_dir):
     """Computes the fieldRange values for all parameters across all animation files.
     Caches the value on the animation input file. compute_range() is called to
     read the simulation specific datafiles and extract the ranges by field.
     """
     from sirepo import simulation_db
 
-    run_dir = simulation_db.simulation_run_dir(
-        PKDict(
-            simulationType=args["simulationType"],
-            simulationId=args["simulationId"],
-            # TODO(pjm): pass animation model name in, default to "animation"
-            report="animation",
-        )
-    )
     data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
     res = None
-    model_name = args["modelName"]
-    if model_name in data.models:
-        if "fieldRange" in data.models[model_name]:
-            res = data.models[model_name].fieldRange
+    n = args.modelName
+    if n in data.models:
+        if "fieldRange" in data.models[n]:
+            res = data.models[n].fieldRange
         else:
-            # TODO(pjm): second arg was never used
-            res = compute_range(run_dir, None)
-            data.models[model_name].fieldRange = res
+            res = compute_range(run_dir)
+            data.models[n].fieldRange = res
             simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
     return PKDict(fieldRange=res)
 
@@ -606,15 +624,13 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
 
 
 def sim_frame(frame_id, op, qcall):
-    from sirepo import http_reply, http_request
-
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
     qcall.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
         x = op(f)
     except Exception as e:
-        if isinstance(e, sirepo.util.Reply):
+        if isinstance(e, sirepo.util.ReplyExc):
             return e
         raise sirepo.util.UserAlert(
             "Report not generated",
@@ -625,10 +641,8 @@ def sim_frame(frame_id, op, qcall):
         )
     r = qcall.reply_json(x)
     if "error" not in x and s.want_browser_frame_cache(s.frameReport):
-        r.headers["Cache-Control"] = "private, max-age=31536000"
-    else:
-        http_reply.headers_for_no_cache(r)
-    return r
+        return qcall.headers_for_cache(r)
+    return qcall.headers_for_no_cache(r)
 
 
 def sim_frame_dispatch(frame_args):
@@ -656,15 +670,12 @@ def sim_frame_dispatch(frame_args):
 def stateful_compute_dispatch(data):
     t = sirepo.template.import_module(data.simulationType)
     m = _validate_method(t, data)
+    k = PKDict(data=data)
     if re.search(r"(?:^rpn|_rpn)_", m):
-        assert getattr(t, "code_var")(data.variables).get_application_data(
-            data, getattr(t, "SCHEMA"), getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True)
-        ), f"unexpected false return data={data}"
-        return data
-    return getattr(
-        t,
-        f"stateful_compute_{m}",
-    )(data)
+        k.schema = getattr(t, "SCHEMA")
+        t = getattr(t, "code_var")(data.variables)
+        k.ignore_array_values = getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True)
+    return getattr(t, f"stateful_compute_{m}")(**k)
 
 
 def stateless_compute_dispatch(data):
@@ -686,7 +697,6 @@ def subprocess_output(cmd, env=None):
     err = None
     out = None
     try:
-
         p = subprocess.Popen(
             cmd,
             env=env,

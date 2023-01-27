@@ -49,7 +49,6 @@ FIELD_UNITS = PKDict(
     }
 )
 
-
 _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
 
@@ -77,25 +76,86 @@ class MPI:
         self._uti_mpi("barrier")
 
 
+def _apply_bevel(g_id, **kwargs):
+    d = PKDict(kwargs)
+    dirs = _calc_directions(d.cutAxis)
+
+    e = int(d.edge)
+    w_offset, h_offset = _bevel_offsets_for_axes(e, **dirs, **kwargs)
+
+    v = w_offset - h_offset
+    vx2 = numpy.dot(w_offset, w_offset)
+    vg2 = numpy.dot(h_offset, h_offset)
+    v2 = numpy.dot(v, v)
+
+    plane = int(d.cutRemoval) * (
+        numpy.array(dirs.widthDir) * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2)
+        + numpy.array(dirs.heightDir) * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
+    )
+
+    # args are object id, point in plane, plane normal - returns array of new ids
+    return radia.ObjCutMag(
+        g_id,
+        (_corner_for_axes(e, **dirs, **kwargs) + w_offset).tolist(),
+        plane.tolist(),
+        "Frame->Lab",
+    )[0]
+
+
 def _apply_clone(g_id, xform):
     xform = PKDict(xform)
     # start with 'identity'
-    xf = radia.TrfTrsl([0, 0, 0])
+    total_xform = radia.TrfTrsl([0, 0, 0])
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
-        if cxf.model == "translateClone":
-            txf = radia.TrfTrsl(cxf.distance)
-            xf = radia.TrfCmbL(xf, txf)
-        if cxf.model == "rotateClone":
-            rxf = radia.TrfRot(
-                xf.center,
-                cxf.axis,
-                numpy.pi * float(cxf.angle) / 180.0,
+        if cxf.type == "translate":
+            total_xform = radia.TrfCmbL(total_xform, radia.TrfTrsl(cxf.distance))
+        if cxf.type == "rotate":
+            total_xform = radia.TrfCmbL(
+                total_xform,
+                radia.TrfRot(
+                    cxf.center,
+                    cxf.axis,
+                    numpy.pi * float(cxf.angle) / 180.0,
+                ),
             )
-            xf = radia.TrfCmbL(xf, rxf)
     if xform.alternateFields != "0":
-        xf = radia.TrfCmbL(xf, radia.TrfInv())
-    radia.TrfMlt(g_id, xf, xform.numCopies + 1)
+        total_xform = radia.TrfCmbL(total_xform, radia.TrfInv())
+    radia.TrfMlt(g_id, total_xform, xform.numCopies + 1)
+
+
+def _apply_fillet(g_id, **kwargs):
+    d = PKDict(kwargs)
+
+    dirs = _calc_directions(d.cutAxis)
+    cut_amts = PKDict(
+        amountVert=d.radius,
+        amountHoriz=d.radius,
+    )
+    g_id = _apply_bevel(
+        g_id,
+        cutRemoval=1,
+        **cut_amts,
+        **kwargs,
+    )
+    w_offset, h_offset = _bevel_offsets_for_axes(
+        int(d.edge), **dirs, **cut_amts, **kwargs
+    )
+    ctr = (
+        _corner_for_axes(int(d.edge), **dirs, **kwargs)
+        + w_offset
+        + h_offset
+        - (numpy.array(d.size) / 2) * dirs.lenDir
+    )
+    c_id = build_cylinder(
+        extrusion_axis=d.cutAxis,
+        center=ctr,
+        num_sides=d.numSides,
+        seg_type="pln",
+        **{k: v for k, v in kwargs.items() if k != "center"},
+    )
+    c_id = _apply_bevel(c_id, cutRemoval=-1, **cut_amts, **kwargs)
+    return build_container([g_id, c_id])
 
 
 def _apply_rotation(g_id, xform):
@@ -103,7 +163,11 @@ def _apply_rotation(g_id, xform):
     radia.TrfOrnt(
         g_id,
         radia.TrfRot(
-            xform.center,
+            (
+                _geom_bounds(g_id)
+                if xform.get("useObjectCenter", "0") == "1"
+                else xform
+            ).center,
             xform.axis,
             numpy.pi * float(xform.angle) / 180.0,
         ),
@@ -156,11 +220,19 @@ def axes_index(axis):
 
 def _bevel_offsets_for_axes(edge_index, **kwargs):
     d = PKDict(kwargs)
-    h = numpy.array(d.heightDir)
-    w = numpy.array(d.widthDir)
     return (
-        d.amountHoriz * w * [1, -1, -1, 1][edge_index],
-        d.amountVert * h * [-1, -1, 1, 1][edge_index],
+        d.amountHoriz * numpy.array(d.widthDir) * [1, -1, -1, 1][edge_index],
+        d.amountVert * numpy.array(d.heightDir) * [-1, -1, 1, 1][edge_index],
+    )
+
+
+def _calc_directions(axis):
+    w = next_axis(axis)
+    h = next_axis(w)
+    return PKDict(
+        lenDir=AXIS_VECTORS[axis],
+        widthDir=AXIS_VECTORS[w],
+        heightDir=AXIS_VECTORS[h],
     )
 
 
@@ -189,8 +261,8 @@ def _corner_for_axes(edge_index, **kwargs):
 def _geom_bounds(g_id):
     bnds = radia.ObjGeoLim(g_id)
     return PKDict(
-        center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
-        size=[abs(bnds[i + 1] - bnds[i]) for i in range(3)],
+        center=[bnds[2 * i] + (bnds[2 * i + 1] - bnds[2 * i]) / 2 for i in range(3)],
+        size=[abs(bnds[2 * i + 1] - bnds[2 * i]) for i in range(3)],
     )
 
 
@@ -202,6 +274,13 @@ def _radia_material(material_type, magnetization_magnitude, h_m_curve):
     return radia.MatStd(material_type, magnetization_magnitude)
 
 
+_MODS = PKDict(
+    objectBevel=_apply_bevel,
+    objectFillet=_apply_fillet,
+    rotate=_apply_rotation,
+    translate=_apply_translation,
+)
+
 _TRANSFORMS = PKDict(
     cloneTransform=_apply_clone,
     symmetryTransform=_apply_symmetry,
@@ -210,82 +289,20 @@ _TRANSFORMS = PKDict(
 )
 
 
-def apply_bevel(g_id, **kwargs):
-    d = PKDict(kwargs)
-
-    e = int(d.edge)
-    w_offset, h_offset = _bevel_offsets_for_axes(e, **kwargs)
-
-    v = w_offset - h_offset
-    vx2 = numpy.dot(w_offset, w_offset)
-    vg2 = numpy.dot(h_offset, h_offset)
-    v2 = numpy.dot(v, v)
-
-    plane = int(d.cutRemoval) * (
-        numpy.array(d.widthDir) * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2)
-        + numpy.array(d.heightDir) * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
-    )
-
-    # object id, plane normal, point in plane - returns a new id in an array for some reason
-    return radia.ObjCutMag(
-        g_id,
-        (_corner_for_axes(e, **kwargs) + w_offset).tolist(),
-        plane.tolist(),
-        "Frame->Lab",
-    )[0]
-
-
 def apply_color(g_id, color):
     radia.ObjDrwAtr(g_id, color)
-
-
-def apply_fillet(g_id, **kwargs):
-    d = PKDict(kwargs)
-
-    w = next_axis(d.cutAxis)
-    h = next_axis(w)
-    dirs = PKDict(
-        lenDir=AXIS_VECTORS[d.cutAxis],
-        widthDir=AXIS_VECTORS[w],
-        heightDir=AXIS_VECTORS[h],
-    )
-    cut_amts = PKDict(
-        amountVert=d.radius,
-        amountHoriz=d.radius,
-    )
-    g_id = apply_bevel(
-        g_id,
-        cutRemoval=1,
-        **dirs,
-        **cut_amts,
-        **kwargs,
-    )
-    w_offset, h_offset = _bevel_offsets_for_axes(
-        int(d.edge), **dirs, **cut_amts, **kwargs
-    )
-    ctr = (
-        _corner_for_axes(int(d.edge), **dirs, **kwargs)
-        + w_offset
-        + h_offset
-        - (numpy.array(d.size) / 2) * dirs.lenDir
-    )
-    c_id = build_cylinder(
-        extrusion_axis=d.cutAxis,
-        center=ctr,
-        num_sides=d.numSides,
-        seg_type="pln",
-        **{k: v for k, v in kwargs.items() if k != "center"},
-    )
-    c_id = apply_bevel(c_id, cutRemoval=-1, **dirs, **cut_amts, **kwargs)
-    return build_container([g_id, c_id])
 
 
 def multiply_vector_by_matrix(v, m):
     return numpy.array(m).dot(numpy.array(v)).tolist()
 
 
-def apply_transform(g_id, xform):
-    _TRANSFORMS[xform["model"]](g_id, xform)
+def apply_transform(g_id, **kwargs):
+    _TRANSFORMS[kwargs["type"]](g_id, kwargs)
+
+
+def apply_modification(g_id, **kwargs):
+    return _MODS[kwargs["type"]](g_id, **kwargs)
 
 
 def build_container(g_ids):
@@ -295,6 +312,18 @@ def build_container(g_ids):
 def build_cuboid(**kwargs):
     d = PKDict(kwargs)
     g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
+    _apply_segments(g_id, d.segments)
+    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
+    return g_id
+
+
+def build_stl(**kwargs):
+    d = PKDict(kwargs)
+    g_id = radia.ObjPolyhdr(
+        d.vertices, (numpy.array(d.faces) + 1).tolist(), d.magnetization
+    )
+    center = [x - d.centroid[i] for i, x in enumerate(d.center)]
+    radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
     _apply_segments(g_id, d.segments)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id

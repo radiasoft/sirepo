@@ -6,11 +6,9 @@
 """
 from __future__ import absolute_import, division, print_function
 import pytest
-from sirepo import srunit
 
 
-@srunit.wrap_in_request(want_cookie=True, want_user=True)
-def test_srw_1(qcall):
+def test_srw_1():
     _t(
         {
             "amx": ("amx", None),
@@ -24,12 +22,11 @@ def test_srw_1(qcall):
             "exported_undulator_radiation": ("exported_undulator_radiation", None),
             "lcls_simplified": ("lcls_simplified", None),
             "lcls_sxr": ("lcls_sxr", None),
-        }
+        },
     )
 
 
-@srunit.wrap_in_request(want_cookie=True, want_user=True)
-def test_srw_2(qcall):
+def test_srw_2():
     _t(
         {
             "nsls-ii-esm-beamline": ("nsls-ii-esm-beamline", None),
@@ -42,27 +39,32 @@ def test_srw_2(qcall):
             "srx_bl2": ("srx", "--op_BL=2"),
             "srx_bl3": ("srx", "--op_BL=3"),
             "srx_bl4": ("srx", "--op_BL=4"),
-        }
+        },
     )
 
 
 def _t(tests):
-    from sirepo.template.srw_importer import import_python
-    from pykern import pkio, pkjson
-    from pykern import pkunit
-    from pykern.pkdebug import pkdc, pkdp
-    import glob
-    import py
+    from sirepo import srunit
 
-    with pkio.save_chdir(pkunit.work_dir()):
-        for b in sorted(tests.keys()):
-            base_py = "{}.py".format(tests[b][0])
-            code = pkio.read_text(pkunit.data_dir().join(base_py))
-            actual = import_python(
-                code,
-                tmp_dir=".",
-                user_filename=r"c:\anything\{}.anysuffix".format(tests[b][0]),
-                arguments=tests[b][1],
-            )
-            actual["version"] = "IGNORE-VALUE"
-            pkunit.assert_object_with_json(b, actual)
+    with srunit.quest_start(want_user=True) as qcall:
+        from sirepo import quest
+        from sirepo.template.srw_importer import import_python
+        from pykern import pkio, pkjson
+        from pykern import pkunit
+        from pykern.pkdebug import pkdc, pkdp
+        import glob
+        import py
+
+        with pkio.save_chdir(pkunit.work_dir()):
+            for b in sorted(tests.keys()):
+                base_py = "{}.py".format(tests[b][0])
+                code = pkio.read_text(pkunit.data_dir().join(base_py))
+                actual = import_python(
+                    code,
+                    tmp_dir=".",
+                    user_filename=r"c:\anything\{}.anysuffix".format(tests[b][0]),
+                    arguments=tests[b][1],
+                    qcall=qcall,
+                )
+                actual["version"] = "IGNORE-VALUE"
+                pkunit.assert_object_with_json(b, actual)

@@ -19,6 +19,7 @@ _DEPENDENT_CODES = [
 PROD_FOSS_CODES = frozenset(
     (
         "activait",
+        "cloudmc",
         "controls",
         "elegant",
         "genesis",
@@ -38,11 +39,7 @@ PROD_FOSS_CODES = frozenset(
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset(
     (
-        "irad",
         "myapp",
-        "cloudmc",
-        "rcscon",
-        "rs4pi",
         "silas",
     )
 )
@@ -162,6 +159,14 @@ def _init():
                 str,
                 "url to reach scan monitor daemon",
             ),
+        ),
+        # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
+        react_sim_types=(
+            ("jspec", "genesis", "warppba", "omega")
+            if pkconfig.channel_in("dev")
+            else (),
+            set,
+            "React apps",
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         slack_uri=(

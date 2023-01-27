@@ -25,52 +25,29 @@ _SIM_TYPE_ATTR = "sim_type"
 
 _SPEC_ATTR = "quest_spec"
 
-_hack_current = None
-
 _SPEC_SIM_TYPE_CONST = re.compile(r"\s*SimType\s+const=(\S+)")
 
 
-def hack_current():
-    if sirepo.flask.in_request():
-        return sirepo.flask.g().get("sirepo_quest", None)
-    else:
-        global _hack_current
-
-        return _hack_current
-
-
 @contextlib.contextmanager
-def start():
+def start(in_srunit=False):
     auth = sirepo.modules.import_and_init("sirepo.auth")
-    qcall = API()
+    qcall = API(in_srunit=in_srunit)
+    c = False
     try:
         auth.init_quest(qcall)
         yield qcall
+        c = True
     finally:
-        qcall.destroy()
+        qcall.destroy(commit=c)
 
 
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, in_srunit=False):
+        super().__init__()
         self.attr_set("_bucket", _Bucket())
-        if sirepo.flask.in_request():
-            sirepo.flask.g().sirepo_quest = self
-        else:
-            global _hack_current
-
-            _hack_current = self
-
-    # #TODO
-    #     def handle_api_destroy(): called on the API
-    #     call commit?
-    #     implemented by the objects added
-    #     order can be controlled eg auth, auth_db, cookie,
-
-    #     need a save request, too.
-    #     deferring to subrequests?
+        self.bucket_set("in_srunit", in_srunit)
 
     def absolute_uri(self, uri):
         """Convert to an absolute uri
@@ -90,10 +67,12 @@ class API(pykern.quest.API):
         self[name] = obj
 
     def bucket_set(self, name, value):
-        assert name not in self._bucket
+        assert (
+            name not in self._bucket
+        ), f"duplicate name={name} in _bucket={list(self._bucket.keys())}"
         self._bucket[name] = value
 
-    def bucket_uget(self, name):
+    def bucket_unchecked_get(self, name):
         return self._bucket.get(name)
 
     def call_api(self, name, kwargs=None, data=None):
@@ -104,49 +83,51 @@ class API(pykern.quest.API):
             kwargs (dict): to be passed to API [None]
             data (dict): will be returned `self.parse_json` [None]
         Returns:
-            flask.Response: result
+            Reply: result
         """
         return uri_router.call_api(self, name, kwargs=kwargs, data=data)
 
-    def destroy(self):
-        if sirepo.flask.in_request():
-            sirepo.flask.g().pop("sirepo_quest")
-            sirepo.flask.g().sirepo_quest = self.bucket_uget(_PARENT_ATTR)
-        else:
-            global _hack_current
-
-            _hack_current = self.bucket_uget(_PARENT_ATTR)
+    def destroy(self, commit=False):
         for k, v in reversed(list(self.items())):
             if hasattr(v, "destroy"):
                 try:
-                    v.destroy()
+                    v.destroy(commit=commit)
                 except Exception:
                     pkdlog("destroy failed attr={} stack={}", v, pkdexc())
             self.pkdel(k)
 
     def headers_for_cache(self, resp, path=None):
-        return http_reply.headers_for_cache(resp, path)
+        return resp.headers_for_cache(path)
 
     def headers_for_no_cache(self, resp):
-        return http_reply.headers_for_no_cache(resp)
+        return resp.headers_for_no_cache()
 
     def http_data_set(self, data):
         self.bucket_set(_HTTP_DATA_ATTR, data)
 
     def http_data_uget(self):
         """Unchecked get for http_request.parse_post"""
-        return self.bucket_uget(_HTTP_DATA_ATTR)
+        return self.bucket_unchecked_get(_HTTP_DATA_ATTR)
 
     def parent_set(self, qcall):
         assert isinstance(qcall, API)
         # must be right after initialization
-        assert not self._bucket
+        assert len(self._bucket.keys()) == 1
         assert len(self.keys()) == 1
+        # TODO(robnagler): Consider nested transactions
+        #
+        # For now, we have to commit because we don't have nesting.
+        # Commit at the end of this child-qcall which shares auth_db.
+        # auth_db is robust here since it dynamically creates sessions.
+        qcall.auth_db.commit()
         for k, v in qcall.items():
-            if k not in ("uri_route", "_bucket"):
+            if k not in ("uri_route", "_bucket", "sreply"):
                 assert k not in self
                 self[k] = v
         self._bucket[_PARENT_ATTR] = qcall
+        self._bucket.in_srunit = qcall.bucket_unchecked_get("in_srunit")
+        if "sreply" in qcall:
+            qcall.sreply.init_child(self)
 
     def parse_json(self):
         return http_request.parse_json(self)
@@ -160,39 +141,36 @@ class API(pykern.quest.API):
     def parse_post(self, **kwargs):
         return http_request.parse_post(self, PKDict(kwargs))
 
-    def reply(self, *args, **kwargs):
-        return http_reply.gen_response(*args, **kwargs)
+    def reply(self, **kwargs):
+        return self.sreply.from_kwargs(**kwargs)
 
-    def reply_as_proxy(self, response):
-        r = http_reply.gen_response(response.content)
-        # TODO(robnagler) requests seems to return content-encoding gzip, but
-        # it doesn't seem to be coming from npm
-        r.headers["Content-Type"] = response.headers["Content-Type"]
-        return http_reply.headers_for_no_cache(r)
+    def reply_as_proxy(self, content, content_type):
+        return self.sreply.from_kwargs(
+            content=content,
+            content_type=content_type,
+        ).headers_for_no_cache()
 
     def reply_attachment(self, content_or_path, filename=None, content_type=None):
-        return http_reply.gen_file_as_attachment(
-            self, content_or_path, filename=filename, content_type=content_type
+        return self.sreply.gen_file_as_attachment(
+            content_or_path, filename=filename, content_type=content_type
         )
 
     def reply_file(self, path, content_type=None):
-        return sirepo.flask.send_file(
-            str(path), mimetype=content_type, conditional=True
-        )
+        return self.sreply.gen_file(path, content_type)
 
     def reply_html(self, path):
-        return http_reply.render_html(path)
+        return self.sreply.render_html(path)
 
     def reply_json(self, value, pretty=False, response_kwargs=None):
-        return http_reply.gen_json(
+        return self.sreply.gen_json(
             value, pretty=pretty, response_kwargs=response_kwargs
         )
 
     def reply_ok(self, *args, **kwargs):
-        return http_reply.gen_json_ok(*args, **kwargs)
+        return self.sreply.gen_json_ok(*args, **kwargs)
 
     def reply_redirect(self, uri):
-        return http_reply.gen_redirect(uri)
+        return self.sreply.gen_redirect(uri)
 
     def reply_redirect_for_app_root(self, sim_type=None):
         return self.reply_redirect(self.uri_for_app_root(sim_type))
@@ -205,8 +183,7 @@ class API(pykern.quest.API):
         query=None,
         **kwargs,
     ):
-        return http_reply.gen_redirect_for_local_route(
-            self,
+        return self.sreply.gen_redirect_for_local_route(
             sim_type=sim_type,
             route=route,
             params=params,
@@ -215,7 +192,7 @@ class API(pykern.quest.API):
         )
 
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
-        return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
+        return self.sreply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
     def sim_type_set(self, sim_type):
         """Set sim_type if there, else don't set"""
@@ -328,5 +305,5 @@ class _Bucket(Attr):
 def init_module(**imports):
     import sirepo.util
 
-    # import http_reply, http_request, uri_router, simulation_db
+    # import http_request, uri_router, simulation_db
     sirepo.util.setattr_imports(imports)

@@ -73,7 +73,6 @@ SIREPO.APP_SCHEMA = {
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "errorLogging": "/error-logging",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
-        "getApplicationData": "/get-application-data",
         "importFile": "/import-file/<simulation_type>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
