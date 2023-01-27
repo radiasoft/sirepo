@@ -40,9 +40,12 @@ class API(sirepo.quest.API):
                 m = "Unable to contact LDAP server"
                 if isinstance(e, ldap.INVALID_CREDENTIALS):
                     m = "Incorrect email or password"
-                else:
-                    pkdlog("email={} exception={}", creds.email, e)
-                raise sirepo.util.Response(self.reply_ok(PKDict(formError=m)))
+                raise sirepo.util.UserAlert(
+                    m,
+                    "email={} exception={}",
+                    creds.email,
+                    e,
+                )
 
         def _user(email):
             m = self.auth_db.model(user_model)
@@ -60,7 +63,7 @@ class API(sirepo.quest.API):
             else:
                 return
             raise sirepo.util.UserAlert(
-                "invalid user and/or password",
+                "Invalid user and/or password",
                 "{} field={}; email={}",
                 e,
                 field,
@@ -86,8 +89,6 @@ class API(sirepo.quest.API):
 def _cfg_dn_suffix(value):
     if len(value) > _MAX_ENTRY:
         raise AssertionError(f"value={value} is too long (>{_MAX_ENTRY})")
-    elif value == None:
-        raise AssertionError(f"yee")
     return value
 
 
