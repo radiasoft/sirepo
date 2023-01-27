@@ -226,6 +226,7 @@ class _SReply(sirepo.quest.Attr):
                     content_type=content_type or self._guess_content_type(filename)[0],
                 )
             self._download_name(filename)
+            return self
 
         return _reply(filename)._disposition("attachment").headers_for_no_cache()
 
