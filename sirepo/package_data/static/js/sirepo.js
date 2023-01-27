@@ -814,7 +814,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     self.setFieldDefaults = function(model, field, fieldInfo, overWrite=false) {
         let defaultVal = fieldInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE];
         if (fieldInfo[SIREPO.INFO_INDEX_TYPE] === 'RandomId') {
-            defaultVal = utilities.randomString();
+            defaultVal = SIREPO.UTILS.randomString();
         }
         if (! model[field] || overWrite) {
             if (defaultVal !== undefined) {
