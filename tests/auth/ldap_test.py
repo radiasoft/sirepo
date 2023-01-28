@@ -5,48 +5,29 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import pytest
-from pykern.pkdebug import pkdlog, pkdp
-
 
 def test_happy_path():
-    from pykern.pkcollections import PKDict
     from pykern import pkunit
 
-    res = PKDict(
-        email="vagrant@radiasoft.net",
-        password="vagrant",
-    )
-    r, u = _call_login(res)
+    r, u = _call_login("vagrant@radiasoft.net", "vagrant")
     pkunit.pkeq(200, r.status_as_int())
     pkunit.pkre("location.*/complete-registration", r.content_as_str())
     pkunit.pkne(None, u)
 
 
 def test_cred_validation():
-    from pykern.pkcollections import PKDict
     from pykern import pkunit
 
-    res = PKDict(
-        email="any-user",
-        password="",
-    )
-    r = _call_login(res)[0]
-    pkunit.pkok("form_error" in r.content_as_str(), "did not return form_error")
+    pkunit.pkre("Invalid user and/or password", _call_login("any-user", "")[0]._SReply__attrs.content)
 
 
 def test_incorrect_creds():
-    from pykern.pkcollections import PKDict
     from pykern import pkunit
 
-    res = PKDict(
-        email="not-a-user",
-        password="any-password",
-    )
-    r = _call_login(res)[0]
-    pkunit.pkok("form_error" in r.content_as_str(), "did not return form_error")
+    pkunit.pkre("Invalid user and/or password", _call_login("not-a-user", "any-password")[0]._SReply__attrs.content)
 
 
-def _call_login(res):
+def _call_login(email, password):
     from pykern import pkinspect
     from sirepo import srunit
     import sys
@@ -59,16 +40,16 @@ def _call_login(res):
             "authLdapLogin",
             data=PKDict(
                 simulationType="myapp",
-                email=res.email,
-                password=res.password,
+                email=email,
+                password=password,
             ),
         )
         m = qcall.auth_db.model("AuthEmailUser")
-        u = m.unchecked_search_by(unverified_email=res.email)
+        u = m.unchecked_search_by(unverified_email=email)
         return r, u
 
 
-# Mock ldap.INVALID_CREDENTIALS
+# mock ldap.INVALID_CREDENTIALS
 class INVALID_CREDENTIALS(Exception):
     pass
 
@@ -77,7 +58,7 @@ def initialize(*args, **kwargs):
     """Mock ldap.initialize"""
     from pykern.pkcollections import PKDict
 
-    # Mock ldap.simple_bind_s
+    # mock ldap.simple_bind_s
     def _bind(dn, password):
         if (
             dn != "mail=vagrant@radiasoft.net,ou=users,dc=example,dc=com"

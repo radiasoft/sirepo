@@ -23,10 +23,13 @@ _ESCAPE_DN_MAIL = re.compile(r"([,\\#<>;\"=+])")
 # windows login dialogue char limit for passwords
 _MAX_ENTRY = 127
 
+# shared error for _validate and _bind
+_INVALID_CREDENTIALS = "Invalid user and/or password"
+
 #: module handle
 this_module = pkinspect.this_module()
 
-#: Well known alias for auth
+#: well known alias for auth
 user_model = "AuthEmailUser"
 
 
@@ -39,9 +42,9 @@ class API(sirepo.quest.API):
             except Exception as e:
                 m = "Unable to contact LDAP server"
                 if isinstance(e, ldap.INVALID_CREDENTIALS):
-                    m = "Incorrect email or password"
+                    m = _INVALID_CREDENTIALS
                 pkdlog("{} email={}", e, creds.email)
-                return sirepo.util.SReplyExc(self.reply_ok(PKDict(form_error=m)))
+                return m
 
         def _user(email):
             m = self.auth_db.model(user_model)
@@ -59,9 +62,7 @@ class API(sirepo.quest.API):
             else:
                 return
             pkdlog("{} field={}; email={}", e, field, creds.email)
-            return sirepo.util.SReplyExc(
-                self.reply_ok(PKDict(form_error="Invalid user and/or password"))
-            )
+            return _INVALID_CREDENTIALS
 
         req = self.parse_post()
         res = PKDict(
@@ -77,7 +78,7 @@ class API(sirepo.quest.API):
             or _bind(res)
         )
         if r:
-            raise r
+            return self.reply_ok(PKDict(form_error=r))
         self.auth.login(
             this_module, sim_type=req.type, model=_user(res.email), want_redirect=True
         )
