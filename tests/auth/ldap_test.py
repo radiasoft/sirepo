@@ -6,6 +6,7 @@
 """
 import pytest
 
+
 def test_happy_path():
     from pykern import pkunit
 
@@ -18,13 +19,19 @@ def test_happy_path():
 def test_cred_validation():
     from pykern import pkunit
 
-    pkunit.pkre("Invalid user and/or password", _call_login("any-user", "")[0]._SReply__attrs.content)
+    pkunit.pkre(
+        "Invalid user and/or password",
+        _call_login("any-user", "")[0]._SReply__attrs.content,
+    )
 
 
 def test_incorrect_creds():
     from pykern import pkunit
 
-    pkunit.pkre("Invalid user and/or password", _call_login("not-a-user", "any-password")[0]._SReply__attrs.content)
+    pkunit.pkre(
+        "Invalid user and/or password",
+        _call_login("not-a-user", "any-password")[0]._SReply__attrs.content,
+    )
 
 
 def _call_login(email, password):
