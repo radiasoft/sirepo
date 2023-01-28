@@ -13,7 +13,7 @@ def test_happy_path():
     from pykern import pkunit
 
     res = PKDict(
-        email="vagrant1@radiasoft.net",
+        email="vagrant@radiasoft.net",
         password="vagrant",
     )
     r, u = _call_login(res)
