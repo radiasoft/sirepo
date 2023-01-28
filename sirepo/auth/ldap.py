@@ -40,12 +40,8 @@ class API(sirepo.quest.API):
                 m = "Unable to contact LDAP server"
                 if isinstance(e, ldap.INVALID_CREDENTIALS):
                     m = "Incorrect email or password"
-                raise sirepo.util.UserAlert(
-                    m,
-                    "email={} exception={}",
-                    creds.email,
-                    e,
-                )
+                pkdlog("{} email={}", e, creds.email)
+                return sirepo.util.SReplyExc(self.reply_ok(PKDict(form_error=m)))
 
         def _user(email):
             m = self.auth_db.model(user_model)
@@ -62,12 +58,9 @@ class API(sirepo.quest.API):
                 e = "over max chars"
             else:
                 return
-            raise sirepo.util.UserAlert(
-                "Invalid user and/or password",
-                "{} field={}; email={}",
-                e,
-                field,
-                creds.email,
+            pkdlog("{} field={}; email={}", e, field, creds.email)
+            return sirepo.util.SReplyExc(
+                self.reply_ok(PKDict(form_error="Invalid user and/or password"))
             )
 
         req = self.parse_post()
@@ -78,9 +71,13 @@ class API(sirepo.quest.API):
             + re.sub(_ESCAPE_DN_MAIL, r"\\\1", req.req_data.email)
             + _cfg.dn_suffix,
         )
-        _validate_entry(res, "email")
-        _validate_entry(res, "password")
-        _bind(res)
+        r = (
+            _validate_entry(res, "email")
+            or _validate_entry(res, "password")
+            or _bind(res)
+        )
+        if r:
+            raise r
         self.auth.login(
             this_module, sim_type=req.type, model=_user(res.email), want_redirect=True
         )

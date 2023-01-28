@@ -3096,7 +3096,12 @@ SIREPO.app.directive('ldapLogin', function (requestSender, errorService) {
         `,
         controller: function ($scope) {
             function handleResponse(data) {
-                showWarning(data.error);
+                if (data.state == 'ok') {
+                    showWarning(data.form_error);
+                }
+                else {
+                    showWarning('Server reported an error, please contact support@sirepo.com.');
+                }
             }
 
             function showWarning(msg) {
