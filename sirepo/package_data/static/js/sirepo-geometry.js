@@ -73,6 +73,52 @@ class GeometryUtils {
         return b;
     }
 
+    static convexHull(arrOfPointsOrCoords) {
+
+        function findHull(h, s, p1, p2) {
+            if (s.length === 0) {
+                return;
+            }
+            const l = new LineSegment(p1, p2);
+            const p0 = s.sort((a, b) => l.distToPoint(b) - l.distToPoint(a))[0];
+            srdbg('p1', hull.indexOf(p1), 'p2', hull.indexOf(p2));
+            const i = p1.x < p2.x ? hull.indexOf(p1) + 1 : hull.indexOf(p2) + 1;
+            srdbg('insert', p0, 'at', i, 'in', hull.slice());
+            hull.splice(i, 0, p0);
+            findHull(
+                hull,
+                s.filter(p => (new LineSegment(p1, p0)).comparePoint(p, 'x') < 0),
+                p1,
+                p0
+            );
+            findHull(
+                hull,
+                s.filter(p => (new LineSegment(p0, p2)).comparePoint(p, 'x') > 0),
+                p0,
+                p2
+            );
+        }
+
+        if (arrOfPointsOrCoords.length < 3) {
+            return [];
+        }
+
+        srdbg('hull from', arrOfPointsOrCoords);
+        const usePoints = arrOfPointsOrCoords[0] instanceof Point;
+        const c = usePoints ? arrOfPointsOrCoords : arrOfPointsOrCoords.map(p => new Point(...p));
+        const p1 = GeometryUtils.extrema(c, 'x', false)[0];
+        const p2 = GeometryUtils.extrema(c, 'x', true)[0];
+        let hull = [p1, p2];
+        srdbg('init hull', hull.slice());
+        c.splice(c.indexOf(p1), 1).splice(c.indexOf(p2), 1);
+        const l = new LineSegment(p1, p2);
+        srdbg('left', c.filter(p => l.comparePoint(p, 'x') < 0));
+        srdbg('right', c.filter(p => l.comparePoint(p, 'x') > 0));
+        findHull(hull, c.filter(p => l.comparePoint(p, 'x') < 0), p1, p2);
+        findHull(hull, c.filter(p => l.comparePoint(p, 'x') > 0), p2, p1);
+        return usePoints ? hull : hull.map(p => [p.x, p.y]);
+    }
+
     /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
@@ -93,6 +139,20 @@ class GeometryUtils {
     static nextAxis(axis) {
         const b = GeometryUtils.BASIS();
         return b[(GeometryUtils.axisIndex(axis) + 1) % b.length];
+    }
+
+    static nextAxes(dim) {
+        const w = GeometryUtils.nextAxis(dim);
+        const h = GeometryUtils.nextAxis(w);
+        return [w, h];
+    }
+
+    static nextAxisIndex(dim) {
+        return GeometryUtils.BASIS().indexOf(dim);
+    }
+
+    static nextAxisIndices(dim) {
+        return GeometryUtils.nextAxes(dim).map(x => GeometryUtils.BASIS().indexOf(x));
     }
 
     /**

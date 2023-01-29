@@ -627,6 +627,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             view = new SIREPO.VTK.ExtrudedPolyViews(o.id, o.name, center, size, o.extrusionAxis, o.points, scale);
         }
+        else if (o.type === 'cylinder') {
+            view = new SIREPO.VTK.CylinderViews(o.id, o.name, center, size, o.extrusionAxis, o.numSides, scale)
+        }
         else {
             view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
         }

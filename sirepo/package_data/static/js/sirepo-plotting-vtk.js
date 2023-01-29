@@ -129,16 +129,6 @@ class ObjectViews {
         return this.shapes[elevation.axis];
     }
 
-    nextAxes(dim) {
-        const w = SIREPO.GEOMETRY.GeometryUtils.nextAxis(dim);
-        const h = SIREPO.GEOMETRY.GeometryUtils.nextAxis(w);
-        return [w, h];
-    }
-
-    nextAxisIndices(dim) {
-        return this.nextAxes(dim).map(x => this._AXES.indexOf(x));
-    }
-
     scaledArray(arr) {
         return ObjectViews.scaledArray(arr, this.scale);
     }
@@ -157,9 +147,9 @@ class ExtrudedPolyViews extends ObjectViews {
     constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], axis='z', points=[[0,0],[0,1],[1,1]], scale=1.0) {
         super(id, name, center, size, scale);
         this.axis = axis;
-        const k = this._AXES.indexOf(axis);
-        const [w, h] = this.nextAxes(axis);
-        const [i, j] = this.nextAxisIndices(axis);
+        const k = SIREPO.GEOMETRY.GeometryUtils.axisIndex(axis);
+        const [w, h] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(axis);
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
         this.points = [];
         const pts = points.map(p => this.scaledArray(p));
         for (const z of [this.center[k] - this.size[k] / 2.0,this.center[k] + this.size[k] / 2.0]) {
@@ -204,7 +194,7 @@ class ExtrudedPolyViews extends ObjectViews {
     }
 
     shapePoints(dim) {
-        const inds = this.nextAxisIndices(this.axis);
+        const inds = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(this.axis);
         if (dim === this.axis) {
             return this.points.slice(0, this.points.length / 2).map(x => {
                 const c = x.coords();
@@ -242,6 +232,39 @@ class CuboidViews extends ExtrudedPolyViews {
                 [center[0] + size[0] / 2, center[1] + size[1] / 2],
                 [center[0] + size[0] / 2, center[1] - size[1] / 2],
             ],
+            scale
+        );
+    }
+}
+
+class CylinderViews extends ExtrudedPolyViews {
+    constructor(
+        id,
+        name,
+        center=[0, 0, 0],
+        size=[1, 1, 1],
+        axis='z',
+        numSides=8,
+        scale=1.0
+    ) {
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
+        const pts = [];
+        for (let n = 0; n < numSides; ++n) {
+            const t = 2 * n * Math.PI / numSides;
+            pts.push(
+                [
+                    center[i] + 0.5 * Math.cos(t) * size[i],
+                    center[j] + 0.5 * Math.sin(t) * size[j],
+                ]
+            )
+        }
+        super(
+            id,
+            name,
+            center,
+            size,
+            axis,
+            pts,
             scale
         );
     }
@@ -3062,6 +3085,7 @@ SIREPO.VTK = {
     BoxBundle: BoxBundle,
     CoordMapper: CoordMapper,
     CuboidViews: CuboidViews,
+    CylinderViews: CylinderViews,
     ExtrudedPolyViews: ExtrudedPolyViews,
     LineBundle: LineBundle,
     ObjectViews: ObjectViews,
