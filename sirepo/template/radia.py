@@ -320,6 +320,10 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 
 
 def stateless_compute_build_shape_points(data):
+    import codecs
+    import pandas
+    import charset_normalizer
+
     pts = []
     o = data.args.object
     if not o.get("pointsFile"):
@@ -328,14 +332,15 @@ def stateless_compute_build_shape_points(data):
                 o, _get_stemmed_info(o)
             )
         )
-    with open(
-        _SIM_DATA.lib_file_abspath(
+    p = _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
                 "extrudedPoints", "pointsFile", o.pointsFile
             )
-        ),
-        "rt",
-    ) as f:
+        )
+    with open(p, "rb") as f:
+        result = charset_normalizer.detect(f.read(2048))
+        pkdp("CHARSET {}", result)
+    with open(p, "rb") as f:
         for r in csv.reader(f):
             pts.append([float(x) for x in r])
     # Radia does not like it if the path is closed
