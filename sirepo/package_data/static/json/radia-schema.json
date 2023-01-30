@@ -706,8 +706,7 @@
             "name": ["Name", "String", ""]
         },
         "fieldPaths": {
-            "paths": ["", "ModelArrayTable", [], "", ["axisPath" ,"linePath", "circlePath", "fieldMapPath", "filePath"]],
-            "selectedPath": ["Path", "PathType", "linePath"]
+            "paths": ["", "ModelArrayTable", [], "", ["axisPath" ,"linePath", "circlePath", "fieldMapPath", "filePath"]]
         },
         "filePath": {
             "_super": ["_", "model", "fieldPath"],

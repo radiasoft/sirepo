@@ -968,7 +968,7 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
                       <label>{{ title(item.type) }}</label>
                     </div>
                     <div data-ng-show="isExpanded(item)" data-ng-repeat="f in modelFields($index)" style="padding-left: 6px; min-width: {{ fieldMinWidth(item.type, f) }}">
-                      <div data-field-editor="f" data-label-size="12" data-field-size="" data-model-name="item.type" data-model="item"></div>
+                      <div data-field-editor="f" data-label-size="12" data-field-size="fieldSize(item.type, f)" data-model-name="item.type" data-model="item"></div>
                     </div>
                     <div data-ng-show="! isExpanded(item)">...</div>
                     </td>
@@ -1005,6 +1005,11 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
             function itemIndex(data) {
                 return $scope.field.indexOf(data);
             }
+
+            function info(modelName, field) {
+                return appState.modelInfo(modelName)[field];
+            }
+
             $scope.addItem = () => {
                 if (! $scope.selectedItem) {
                     return;
@@ -1021,10 +1026,14 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
                 radiaService.saveGeometry(true);
             };
 
-            $scope.fieldLabel = (modelName, field) => appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
+            $scope.fieldLabel = (modelName, field) => info(modelName, field)[SIREPO.INFO_INDEX_LABEL];
 
             $scope.fieldMinWidth = (modelName, field) => {
-                return appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_TYPE] === 'ModelArrayTable' ? '900px' : '0';
+                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'ModelArrayTable' ? '900px' : '0';
+            };
+
+            $scope.fieldSize = (modelName, field) => {
+                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'String' ? 8 : null;
             };
 
             $scope.isExpanded = item => expanded[itemIndex(item)];
