@@ -171,6 +171,17 @@ class AbstractPlotShape2D extends AbstractPlotShape {
         this.center = new SIREPO.GEOMETRY.Point(...center);
     }
 
+    boundingRect() {
+        return new SIREPO.GEOMETRY.Rect(
+            new SIREPO.GEOMETRY.Point(
+                this.center.x - 0.5 * this.size.x, this.center.y - 0.5 * this.size.y
+            ),
+            new SIREPO.GEOMETRY.Point(
+                this.center.x + 0.5 * this.size.x, this.center.y + 0.5 * this.size.y
+            )
+        )
+    }
+
     getCenterCoords() {
         return this.getCoords(this.center);
     }
@@ -218,14 +229,23 @@ class PlotPolygon extends AbstractPlotShape2D {
             'polygon',
             ctr
         );
+
         this.size = {
             x: Math.abs(sx[sx.length - 1].x - sx[0].x),
             y: Math.abs(sy[sy.length - 1].y - sy[0].y),
         };
+
         this.center.x = ctr[0];
         this.center.y = ctr[1];
 
         this.setPoints(p);
+    }
+
+    addFillet(corner, radius, numPoints) {
+        if (! this.boundingRect().corners().includes(corner)) {
+            return;
+        }
+
     }
 
     bounds() {
@@ -243,6 +263,12 @@ class PlotPolygon extends AbstractPlotShape2D {
 
     getSizeCoords() {
         return this.getCoords(this.size);
+    }
+
+    lineSegments() {
+        return this.points.map(
+            (p, i) => new SIREPO.GEOMETRY.LineSegment(p, this.points[(i + 1) % this.points.length])
+        );
     }
 
     setPoints(arr) {

@@ -906,7 +906,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (o.type === 'racetrack') {
                 // calculate the size
                 let s = [0, 0, 0];
-                const i = geometry.basis.indexOf(o.axis);
+                const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
                 s[i] = o.height;
                 for (const j of [0, 1]) {
                     s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
@@ -2373,6 +2373,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 // scene -> multiple data -> multiple actors
                 let name = sceneData.name;
                 let data = sceneData.data;
+                srdbg(data);
 
                 $scope.vtkScene.removeActors();
                 let didModifyGeom = false;

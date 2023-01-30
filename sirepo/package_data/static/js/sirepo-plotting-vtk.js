@@ -258,15 +258,24 @@ class CylinderViews extends ExtrudedPolyViews {
                 ]
             )
         }
-        super(
-            id,
-            name,
-            center,
-            size,
-            axis,
-            pts,
-            scale
-        );
+        super(id, name, center, size, axis, pts, scale);
+    }
+}
+
+class RacetrackView extends ExtrudedPolyViews {
+    constructor(
+        id,
+        name,
+        center=[0, 0, 0],
+        size=[1, 1, 1],
+        axis='z',
+        numSides=8,
+        outerRadius=1.0,
+        scale=1.0
+
+    ) {
+        const pts = [];
+        super(id, name, center, size, axis, pts, scale);
     }
 }
 

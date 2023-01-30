@@ -44,7 +44,7 @@ class GeometryUtils {
         return GeometryUtils.BASIS().indexOf(axis);
     }
 
-    static bounds(points) {
+    static bounds(points, useRadius=false) {
         let b = {
             x: [Number.MAX_VALUE, -Number.MAX_VALUE],
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
@@ -56,7 +56,7 @@ class GeometryUtils {
         for (const dim in b) {
             b[dim] = [ex(points, dim, true)[0][dim], ex(points, dim, false)[0][dim]];
         }
-        return GeometryUtils.boundsRadius(b);
+        return useRadius ? GeometryUtils.boundsRadius(b) : b;
     }
 
     static boundsRadius(b) {
