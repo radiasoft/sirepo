@@ -479,12 +479,12 @@ def _build_field_map_pts(f_path):
 
 
 def _build_field_circle_pts(f_path):
-    ctr = [float(f_path.ctrX), float(f_path.ctrY), float(f_path.ctrZ)]
+    ctr = f_path.center
     r = float(f_path.radius)
     # theta is a rotation about the x-axis
-    th = float(f_path.theta)
+    th = float(f_path.eulers[0])
     # phi is a rotation about the z-axis
-    phi = float(f_path.phi)
+    phi = float(f_path.eulers[1])
     n = int(f_path.numPoints)
     dpsi = 2.0 * math.pi / n
     # psi is the angle in the circle's plane

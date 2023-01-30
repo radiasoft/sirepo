@@ -1457,6 +1457,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             };
 
             function getPath(id) {
+                srdbg(appState.models.fieldPaths.paths);
                 for (const p of appState.models.fieldPaths.paths) {
                     if (p.id === id) {
                         return p;
@@ -2088,6 +2089,7 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
     return {
         restrict: 'A',
         scope: {
+            form: '=',
             modelName: '@',
         },
         template: `
@@ -2095,16 +2097,10 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
                 <div class="panel panel-info">
                     <div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>
                     <div class="panel-body">
-                    <div data-field-editor="'paths'" data-label-size="" data-model-name="modelName" data-model="model"></div>
-                    <!--
-                        <button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>
-                        <div data-field-path-table="" data-paths="model.paths"></div>
-                        <button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-show="hasPaths()" data-ng-click="confirmClear()">Clear</button>
-                        -->
+                      <div data-field-editor="'paths'" data-label-size="" data-model-name="modelName" data-model="model"></div>
                     </div>
                 </div>
             </div>
-            <div data-confirmation-modal="" data-id="sr-clear-paths-confirmation" data-title="Clear All Paths?" data-ok-text="OK" data-ok-clicked="clearPaths()">Clear All Paths?</div>
         `,
         controller: function($scope) {
             $scope.modelsLoaded = false;
