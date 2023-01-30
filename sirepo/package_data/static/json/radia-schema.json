@@ -392,13 +392,8 @@
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
             "center": ["Center [mm]", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
-            "ctrX": ["Center x (mm)", "Float", 0.0],
-            "ctrY": ["Center y (mm)", "Float", 0.0],
-            "ctrZ": ["Center z (mm)", "Float", 0.0],
             "eulers": ["Euler Angles", "FloatArray", [0, 0], "", ["\uD835\uDFB1", "\uD835\uDFBF"]],
             "radius": ["Radius", "Float", 10.0],
-            "theta": ["\uD835\uDFB1", "Float", 0.0, "Euler 2", -3.14159, 3.14159],
-            "phi": ["\uD835\uDFBF", "Float", 0.0, "Euler 3", 0.0, 6.2832],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "circlePath"]
         },

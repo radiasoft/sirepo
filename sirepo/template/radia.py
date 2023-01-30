@@ -467,7 +467,11 @@ def _build_field_manual_pts(f_path):
 def _build_field_map_pts(f_path):
     res = []
     n = int(f_path.numPoints)
-    dx, dy, dz = f_path.size[0] / (n - 1), f_path.size[1] / (n - 1), f_path.size[2] / (n - 1)
+    dx, dy, dz = (
+        f_path.size[0] / (n - 1),
+        f_path.size[1] / (n - 1),
+        f_path.size[2] / (n - 1),
+    )
     for i in range(n):
         x = f_path.center[0] - 0.5 * f_path.size[0] + i * dx
         for j in range(n):

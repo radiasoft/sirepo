@@ -86,7 +86,14 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "type",
             ):
                 cls._fixup_box_to_cuboid(dm[m], f)
-        for m in ("axisPath", "circlePath", "fieldMapPath", "filePath", "linePath", "manualPath"):
+        for m in (
+            "axisPath",
+            "circlePath",
+            "fieldMapPath",
+            "filePath",
+            "linePath",
+            "manualPath",
+        ):
             if dm.get(m):
                 dm[m].type = m
         for o in dm.geometryReport.objects:
