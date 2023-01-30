@@ -1138,7 +1138,6 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
                 if (! watchedModels.includes(name)) {
                     return;
                 }
-                appState.removeModel(name);
                 appState.cancelChanges('geometryReport');
             });
 
@@ -1703,106 +1702,6 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
     };
 });
 
-SIREPO.app.directive('fieldPathTable', function(appState, geometry, panelState, radiaService, utilities) {
-    return {
-        restrict: 'A',
-        scope: {
-            paths: '='
-        },
-        template: `
-            <table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table radia-table-hover">
-              <colgroup>
-                <col style="width: 20ex">
-                <col style="width: 10ex">
-                <col style="width: 10ex">
-                <col style="width: 100%">
-                <col style="width: 10ex">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Num. points</th>
-                  <th>Details</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr data-ng-repeat="path in paths track by $index">
-                  <td><div class="badge sr-badge-icon sr-lattice-icon"><span>{{ path.name }}</span></div></td>
-                  <td><span>{{ path.type }}</span></td>
-                  <td><span>{{ path.numPoints }}</span></td>
-                  <td><span>{{ pathDetails(path) }}</span></td>
-                  <td style="text-align: right">
-                    <div class="sr-button-bar-parent">
-                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
-                            <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyPath(path)">Copy</button>
-                             <button data-ng-click="editPath(path)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
-                             <button data-ng-click="svc.showFieldDownload(true, path)" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-cloud-download"></span></button>
-                             <button data-ng-click="deletePath(path, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                        </div>
-                    <div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-        `,
-        controller: function($scope) {
-            const watchedModels = SIREPO.APP_SCHEMA.enum.PathType.map(function (e) {
-                return e[SIREPO.ENUM_INDEX_VALUE];
-            });
-
-            $scope.paths = appState.models.fieldPaths.paths;
-            $scope.svc = radiaService;
-
-            $scope.hasPaths = () => $scope.paths && $scope.paths.length;
-
-            $scope.copyPath = path => {
-                const copy = appState.clone(path);
-                copy.name = newPathName(copy);
-                copy.id = radiaService.generateId();
-                $scope.paths.push(copy);
-                appState.saveChanges(['fieldPaths', radiaService.pathTypeModel(copy.type)], () => {
-                    $scope.editPath(copy);
-                });
-            };
-
-           $scope.deletePath = (path, index) => {
-                $scope.paths.splice(index, 1);
-                appState.saveChanges('fieldPaths');
-           };
-
-           $scope.editPath = path => {
-               appState.models[radiaService.pathTypeModel(path.type)] = path;
-               appState.models.fieldPaths.selectedPath = path.type;
-               radiaService.showPathPicker(true, false);
-           };
-
-           $scope.pathDetails = path => {
-               let res = '';
-               const pt = radiaService.pathTypeModel(path.type);
-               const d = SIREPO.APP_SCHEMA.constants.detailFields.fieldPath[pt];
-               d.forEach((f, i) => {
-                   res += (appState.modelInfo(pt)[f][0] + ': ' + path[f] + (i < d.length - 1 ? '; ' : ''));
-               });
-               return res;
-           };
-
-           function newPathName(path) {
-               return appState.uniqueName(appState.models.fieldPaths, 'name', path.name + ' {}');
-           }
-
-           $scope.$on('axisPath.changed', (e, d) => {
-               const m = appState.models.axisPath;
-               m.name = `${m.axis.toUpperCase()}-Axis`;
-               m.begin = geometry.basisVectors[m.axis].map(x => m.start * x);
-               m.end = geometry.basisVectors[m.axis].map(x => m.stop * x);
-               appState.saveQuietly('axisPath');
-           });
-        },
-    };
-});
-
 SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     return {
         restrict: 'A',
@@ -1817,7 +1716,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   <th>Members</th>
                   <th></th>
                 </tr>
-                <tr data-ng-repeat="mId in field">
+                <tr data-ng-repeat="mId in field track by $index">
                     <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>
                     <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="ungroupObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
                 </tr>
@@ -1825,7 +1724,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   <th>Ungrouped</th>
                   <th></th>
                 </tr>
-                <tr data-ng-repeat="oId in getIds() | filter:hasNoGroup">
+                <tr data-ng-repeat="oId in getIds() | filter:hasNoGroup track by $index">
                   <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(oId).name }}</span></div></td>
                   <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(oId)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>
                 </tr>
@@ -3223,8 +3122,12 @@ SIREPO.viewLogic('fieldPathsView', function(activeSection, appState, panelState,
 
     $scope.watchFields = [];
 
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+    };
+
     $scope.$on(`${$scope.modelName}.changed`, () => {
-        for (const p of $scope.model.paths) {
+        for (const p of $scope.modelData.paths) {
             if (p.type === 'axisPath') {
                 if (! p.name) {
                     p.name = `${p.axis.toUpperCase()}-Axis`;
