@@ -2671,15 +2671,12 @@ SIREPO.app.directive('simulationStatusPanel', function (appState, beamlineServic
                 });
             };
 
-            //TODO(BG): split initializing, add Running awaiting output
-            //init: time it takes to marshal the data to the agent, create the run directory, generate simulation input files, so everything before pkcli.run is called
-            //awaiting: after run is called up to first save
             $scope.initMessage = () => {
                 if (isCoherentModes() && $scope.particleCount) {
                     return 'Calculating 4D cross-spectral density';
                 }
 
-                return 'Initializing Simulation';
+                return 'Running: awaiting output';
             };
 
             $scope.isFluxWithApproximateMethod = function () {
