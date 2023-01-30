@@ -35,16 +35,6 @@
                 }
             ]
         },
-        "detailFields": {
-            "fieldPath": {
-                "axisPath": ["start", "stop"],
-                "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
-                "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
-                "filePath": ["fileName"],
-                "linePath": ["begin", "end"],
-                "manualPath": ["ptX", "ptY", "ptZ"]
-            }
-        },
         "fileTypeHM": "h-m",
         "fileTypePathPts": "path-pts",
         "fileTypeRadiaDmp": "radia-dmp",
@@ -711,12 +701,8 @@
         },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
-            "ctrX": ["Center x (mm)", "Float", 0.0],
-            "ctrY": ["Center y (mm)", "Float", 0.0],
-            "ctrZ": ["Center z (mm)", "Float", 0.0],
-            "lenX": ["X length (mm)", "Float", 1.0, "", 0],
-            "lenY": ["Y length (mm)", "Float", 1.0, "", 0],
-            "lenZ": ["Z length (mm)", "Float", 1.0, "", 0],
+            "center": ["Center [mm]", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
+            "size": ["Size [mm]", "FloatArray", [1, 1, 1], "", ["x", "y", "z"]],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "fieldMapPath"]
         },
@@ -1207,22 +1193,14 @@
             "title": "Field Map",
             "basic": [
                 "name",
-                "ctrX",
-                "ctrY",
-                "ctrZ",
-                "lenX",
-                "lenY",
-                "lenZ",
+                "center",
+                "size",
                 "numPoints"
             ],
             "advanced": [
                 "name",
-                "ctrX",
-                "ctrY",
-                "ctrZ",
-                "lenX",
-                "lenY",
-                "lenZ",
+                "center",
+                "size",
                 "numPoints"
             ]
         },
