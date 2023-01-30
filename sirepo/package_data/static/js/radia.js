@@ -95,23 +95,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.selectedObject = null;
 
-    self.addOrModifyPath = function(type) {
-        const p = appState.models[self.pathTypeModel(type)];
-        if (! appState.models.fieldPaths.paths) {
-            appState.models.fieldPaths.paths = [];
-        }
-        if (! findPath(p)) {
-            if (type === 'filePath') {
-                p.fileName = p.fileModel.name;
-                upload((p.fileModel));
-            }
-            appState.models.fieldPaths.paths.push(p);
-        }
-        appState.saveChanges('fieldPaths', function (d) {
-            self.showPathPicker(false);
-        });
-    };
-
     self.alphaDelegate = function() {
         const m = 'magnetDisplay';
         const f = 'alpha';
@@ -176,23 +159,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         );
     };
 
-    self.createPathModel = function(type) {
-        const t = type || self.pathTypeModel(appState.models.fieldPaths.selectedPath);
-        const model = {};
-        appState.models[t] = appState.setModelDefaults(model, t);
-
-        // set to fill bounds if any actors exist
-        //TODO: must use OBJECT bounds, not the bounds of a vector field!
-        if (t === 'fieldMapPath' && self.objBounds) {
-            appState.models[t].lenX = Math.abs(self.objBounds[1] - self.objBounds[0]);
-            appState.models[t].lenY = Math.abs(self.objBounds[3] - self.objBounds[2]);
-            appState.models[t].lenZ = Math.abs(self.objBounds[5] - self.objBounds[4]);
-            appState.models[t].ctrX = (self.objBounds[1] + self.objBounds[0]) / 2.0;
-            appState.models[t].ctrY = (self.objBounds[3] + self.objBounds[2]) / 2.0;
-            appState.models[t].ctrZ = (self.objBounds[5] + self.objBounds[4]) / 2.0;
-        }
-    };
-
     self.deleteObject = o => {
         const i = appState.models.geometryReport.objects.indexOf(o);
         if (i < 0) {
@@ -239,34 +205,14 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return appState.models.geometryReport.objects || [];
     };
 
-    self.getPathType = function() {
-        return (appState.models.fieldTypes || {}).path;
-    };
-
     self.getSelectedObject = function() {
         return self.selectedObject;
     };
-
-    self.newPath = function() {
-        self.showPathPicker(true, true);
-    };
-
 
     // In order to associate VTK objects in the viewer with Radia objects, we need a mapping between them.
     // When we create objects on the client side we don't yet know the Radia id so we cannot use it directly.
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
     self.generateId = () => SIREPO.UTILS.randomString(16);
-
-    self.pathEditorTitle = function() {
-        if (! appState.models.fieldPaths) {
-            return '';
-        }
-        return (self.isEditing ? 'Edit ' : 'New ') + appState.models.fieldPaths.selectedPath;
-    };
-
-    self.pathTypeModel = function(type) {
-        return type;
-    };
 
     self.reloadGeometry = (callback=() => {}) => {
         const r = 'geometryReport';
@@ -298,16 +244,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.showFieldDownload = function(doShow, path) {
         self.selectedPath = path;
         $('#sr-field-download').modal(doShow ? 'show' : 'hide');
-    };
-
-    self.showPathPicker = function(doShow, isNew) {
-        self.isEditing = doShow && ! isNew;
-        if (doShow) {
-            if (isNew) {
-                self.createPathModel();
-            }
-        }
-        $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
 
     self.scaledArray = function (arr=SIREPO.ZERO_ARR) {
@@ -372,15 +308,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             'Anisotropic materials require non-zero magnetization'
         );
     };
-
-    function findPath(path) {
-        for (const p of (appState.models.fieldPaths.paths || [])) {
-            if (p.type === path.type && p.id === path.id) {
-                return path;
-            }
-        }
-        return null;
-    }
 
     function removeFromGroup(o) {
         const gId = o.groupId;
@@ -1522,85 +1449,6 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
 
             updatePath();
             $scope.simState = persistentSimulation.initSimulationState($scope);
-        },
-    };
-});
-
-SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaService) {
-
-    return {
-        restrict: 'A',
-        scope: {
-            modelName: '@',
-            controller: '=',
-            title: '@',
-            id: '@',
-            smallElementClass: '@',
-        },
-        template: `
-            <div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">
-              <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                  <div class="modal-header bg-info">
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                    <span class="lead modal-title text-info">{{ title }}</span>
-                  </div>
-                  <div class="modal-body">
-                    <div class="container-fluid">
-                      <div class="row">
-                        <div data-field-editor="\'path\'" data-label-size="" data-field-size="3" style="text-align: right" data-model-name="modelName" data-model="model"></div>
-                      </div>
-                      <br />
-                      <div class="row">
-                        <div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-        `,
-        controller: function($scope, $element) {
-            $scope.modelsLoaded = false;
-            $scope.pathType = null;
-            $scope.pathTypes = appState.enumVals('PathType');
-            $scope.pathTypeModels = $scope.pathTypes.map(radiaService.pathTypeModel);
-            $scope.radiaService = radiaService;
-
-            $scope.getPathType = function() {
-               return ($scope.model || {}).path;
-            };
-
-            appState.whenModelsLoaded($scope, function () {
-                $scope.model = appState.models[$scope.modelName];
-                $scope.pathTypes.forEach(t => {
-                    $scope.$on(`${radiaService.pathTypeModel(t)}.changed`, () => {
-                        radiaService.addOrModifyPath(t);
-                    });
-                });
-
-                const el = $('#sr-fieldpaths-editor');
-                el.on('hidden.bs.modal', function() {
-                    appState.cancelChanges(radiaService.pathTypeModel($scope.getPathType()));
-                    $scope.$apply();
-                });
-
-                $scope.$on('cancelChanges', function(e, name) {
-                    if ($scope.pathTypeModels.indexOf(name) < 0) {
-                        return;
-                    }
-                    appState.removeModel(name);
-                    radiaService.showPathPicker(false);
-                });
-                $scope.$watch('model.selectedPath', function (m) {
-                    const o = $($element).find('.modal').css('opacity');
-                    if (o == 1 && ! radiaService.isEditing) {
-                        // displaying editor but not editing, must be new
-                        radiaService.createPathModel();
-                    }
-                });
-                $scope.modelsLoaded = true;
-            });
         },
     };
 });
