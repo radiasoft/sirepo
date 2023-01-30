@@ -101,7 +101,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             appState.models.fieldPaths.paths = [];
         }
         if (! findPath(p)) {
-            if (type === 'file') {
+            if (type === 'filePath') {
                 p.fileName = p.fileModel.name;
                 upload((p.fileModel));
             }
@@ -265,7 +265,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.pathTypeModel = function(type) {
-        return type + 'Path';
+        return type;
     };
 
     self.reloadGeometry = (callback=() => {}) => {
@@ -1383,7 +1383,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             };
 
             $scope.isFieldMap = function() {
-                return (radiaService.selectedPath || {}).type === 'fieldMap';
+                return (radiaService.selectedPath || {}).type === 'fieldMapPath';
             };
 
             appState.whenModelsLoaded($scope, function () {
@@ -1684,7 +1684,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 return vals.map(v => utilities.roundToPlaces(v, 4));
             };
 
-            $scope.isLine = p => p.type === 'line' || p.type === 'axis';
+            $scope.isLine = p => p.type === 'linePath' || p.type === 'axisPath';
 
             $scope.linePaths =  () => (($scope.model || {}).paths || []).filter($scope.isLine);
 
@@ -2095,9 +2095,12 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
                 <div class="panel panel-info">
                     <div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>
                     <div class="panel-body">
+                    <div data-field-editor="'paths'" data-label-size="" data-model-name="modelName" data-model="model"></div>
+                    <!--
                         <button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>
                         <div data-field-path-table="" data-paths="model.paths"></div>
                         <button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-show="hasPaths()" data-ng-click="confirmClear()">Clear</button>
+                        -->
                     </div>
                 </div>
             </div>

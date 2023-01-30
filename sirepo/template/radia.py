@@ -652,12 +652,12 @@ def _extruded_points_plot(name, points, width_axis, height_axis):
 
 
 _FIELD_PT_BUILDERS = {
-    "axis": _build_field_line_pts,
-    "circle": _build_field_circle_pts,
-    "fieldMap": _build_field_map_pts,
-    "file": _build_field_file_pts,
-    "line": _build_field_line_pts,
-    "manual": _build_field_manual_pts,
+    "axisPath": _build_field_line_pts,
+    "circlePath": _build_field_circle_pts,
+    "fieldMapPath": _build_field_map_pts,
+    "filePath": _build_field_file_pts,
+    "linePath": _build_field_line_pts,
+    "manualPath": _build_field_manual_pts,
 }
 
 
@@ -788,7 +788,7 @@ def generate_field_data(sim_id, g_id, name, field_type, field_paths):
 
 
 def _generate_field_integrals(sim_id, g_id, f_paths):
-    l_paths = [fp for fp in f_paths if fp.type in ("line", "axis")]
+    l_paths = [fp for fp in f_paths if fp.type in ("linePath", "axisPath")]
     if len(l_paths) == 0:
         # return something or server.py will raise an exception
         return PKDict(warning="No paths")

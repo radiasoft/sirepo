@@ -318,12 +318,12 @@
             ["stl", "STL"]
         ],
         "PathType": [
-            ["axis", "Axis"],
-            ["line", "Line"],
-            ["circle", "Circle"],
-            ["manual", "Manual Group"],
-            ["file", "File"],
-            ["fieldMap", "Field Map"]
+            ["axisPath", "Axis"],
+            ["linePath", "Line"],
+            ["circlePath", "Circle"],
+            ["manualPath", "Manual Group"],
+            ["filePath", "File"],
+            ["fieldMapPath", "Field Map"]
         ],
         "SolveMethod": [
             ["0", "0"],
@@ -383,7 +383,7 @@
             "axis": ["Axis", "BeamAxis", "z"],
             "start": ["Start", "Float", -10.0, "Start point"],
             "stop": ["End", "Float", 10.0, "End point"],
-            "type": ["_", "PathType", "axis"]
+            "type": ["_", "PathType", "axisPath"]
         },
         "cuboid": {
             "_super": ["_", "model", "geomObject"],
@@ -408,7 +408,7 @@
             "theta": ["\uD835\uDFB1", "Float", 0.0, "Euler 2", -3.14159, 3.14159],
             "phi": ["\uD835\uDFBF", "Float", 0.0, "Euler 3", 0.0, 6.2832],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
-            "type": ["_", "PathType", "circle"]
+            "type": ["_", "PathType", "circlePath"]
         },
         "cloneTransform": {
             "_super": ["_", "model", "transform"],
@@ -716,20 +716,21 @@
             "lenY": ["Y length (mm)", "Float", 1.0, "", 0],
             "lenZ": ["Z length (mm)", "Float", 1.0, "", 0],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
-            "type": ["_", "PathType", "fieldMap"]
+            "type": ["_", "PathType", "fieldMapPath"]
         },
         "fieldPath": {
             "id": ["_", "RandomId", ""],
             "name": ["Name", "String", ""]
         },
         "fieldPaths": {
-            "path": ["Path", "PathType", "line"]
+            "path": ["Path", "PathType", "linePath"],
+            "paths": ["", "ModelArrayTable", [], "", ["axisPath" ,"linePath", "circlePath", "fieldMapPath", "filePath"]]
         },
         "filePath": {
             "_super": ["_", "model", "fieldPath"],
             "fileModel": ["File", "PtsFile", ""],
             "fileName": ["File Name", "String", ""],
-            "type": ["_", "PathType", "file"]
+            "type": ["_", "PathType", "filePath"]
         },
         "geometryReport": {
             "doGenerate": ["_", "Boolean", "1"],
@@ -793,7 +794,7 @@
             "begin": ["Start", "FloatArray", [-10.0, 0, 0], "Start point", ["x", "y", "z"]],
             "end": ["End", "FloatArray", [10.0, 0, 0], "End point", ["x", "y", "z"]],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
-            "type": ["_", "PathType", "line"]
+            "type": ["_", "PathType", "linePath"]
         },
         "magnetDisplay": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
@@ -807,7 +808,7 @@
             "ptX": ["x [mm]", "Float", 0.0],
             "ptY": ["y [mm]", "Float", 0.0],
             "ptZ": ["z [mm]", "Float", 0.0],
-            "type": ["_", "PathType", "manual"]
+            "type": ["_", "PathType", "manualPath"]
         },
         "material": {
             "density": ["Density", "Float", 1.0],
@@ -1065,11 +1066,27 @@
                 "start",
                 "stop",
                 "numPoints"
+            ],
+            "advanced": [
+                "axis",
+                "start",
+                "stop",
+                "numPoints"
             ]
         },
         "circlePath": {
             "title": "Circle",
             "basic": [
+                "name",
+                "ctrX",
+                "ctrY",
+                "ctrZ",
+                "radius",
+                "theta",
+                "phi",
+                "numPoints"
+            ],
+            "advanced": [
                 "name",
                 "ctrX",
                 "ctrY",
@@ -1198,6 +1215,16 @@
                 "lenY",
                 "lenZ",
                 "numPoints"
+            ],
+            "advanced": [
+                "name",
+                "ctrX",
+                "ctrY",
+                "ctrZ",
+                "lenX",
+                "lenY",
+                "lenZ",
+                "numPoints"
             ]
         },
         "fieldPaths": {
@@ -1212,6 +1239,10 @@
         "filePath": {
             "title": "File",
             "basic": [
+                "name",
+                "fileModel"
+            ],
+            "advanced": [
                 "name",
                 "fileModel"
             ]
@@ -1302,6 +1333,12 @@
                 "begin",
                 "end",
                 "numPoints"
+            ],
+            "advanced": [
+                "name",
+                "begin",
+                "end",
+                "numPoints"
             ]
         },
         "magnetDisplay": {
@@ -1323,6 +1360,12 @@
         "manualPath": {
             "title": "Manual",
             "basic": [
+                "name",
+                "ptX",
+                "ptY",
+                "ptZ"
+            ],
+            "advanced": [
                 "name",
                 "ptX",
                 "ptY",
