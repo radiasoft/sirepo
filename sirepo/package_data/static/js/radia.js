@@ -177,7 +177,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.createPathModel = function(type) {
-        const t = type || self.pathTypeModel(appState.models.fieldPaths.path);
+        const t = type || self.pathTypeModel(appState.models.fieldPaths.selectedPath);
         const model = {};
         appState.models[t] = appState.setModelDefaults(model, t);
 
@@ -261,7 +261,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         if (! appState.models.fieldPaths) {
             return '';
         }
-        return (self.isEditing ? 'Edit ' : 'New ') + appState.models.fieldPaths.path;
+        return (self.isEditing ? 'Edit ' : 'New ') + appState.models.fieldPaths.selectedPath;
     };
 
     self.pathTypeModel = function(type) {
@@ -1457,7 +1457,6 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             };
 
             function getPath(id) {
-                srdbg(appState.models.fieldPaths.paths);
                 for (const p of appState.models.fieldPaths.paths) {
                     if (p.id === id) {
                         return p;
@@ -1594,7 +1593,7 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
                     appState.removeModel(name);
                     radiaService.showPathPicker(false);
                 });
-                $scope.$watch('model.path', function (m) {
+                $scope.$watch('model.selectedPath', function (m) {
                     const o = $($element).find('.modal').css('opacity');
                     if (o == 1 && ! radiaService.isEditing) {
                         // displaying editor but not editing, must be new
@@ -1635,7 +1634,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                             </tr>
                           </thead>
                           <tbody>
-                            <tr data-ng-repeat="path in linePaths()">
+                            <tr data-ng-repeat="path in linePaths() track by $index">
                               <td>{{ path.name }}</td>
                               <td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>
                               <td>
@@ -1775,7 +1774,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, geometry, panelState, 
 
            $scope.editPath = path => {
                appState.models[radiaService.pathTypeModel(path.type)] = path;
-               appState.models.fieldPaths.path = path.type;
+               appState.models.fieldPaths.selectedPath = path.type;
                radiaService.showPathPicker(true, false);
            };
 
@@ -2094,42 +2093,9 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
         },
         template: `
             <div class="col-md-6">
-                <div class="panel panel-info">
-                    <div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>
-                    <div class="panel-body">
-                      <div data-field-editor="'paths'" data-label-size="" data-model-name="modelName" data-model="model"></div>
-                    </div>
-                </div>
+              <div data-basic-editor-panel="" data-view-name="fieldPaths"></div>
             </div>
         `,
-        controller: function($scope) {
-            $scope.modelsLoaded = false;
-            $scope.pathTypes = appState.enumVals('PathType');
-            $scope.radiaService = radiaService;
-
-            $scope.getPathType = () => ($scope.model || {}).path;
-
-            $scope.clearPaths = () => {
-                $scope.model.paths = [];
-                appState.saveChanges($scope.modelName);
-            };
-
-            $scope.confirmClear = () => {
-                $('#sr-clear-paths-confirmation').modal('show');
-            };
-
-            $scope.hasPaths = () => {
-                if (! $scope.modelsLoaded) {
-                    return false;
-                }
-                return $scope.model.paths && $scope.model.paths.length;
-            };
-
-            appState.whenModelsLoaded($scope, () => {
-                $scope.model = appState.models[$scope.modelName];
-                $scope.modelsLoaded = true;
-            });
-        },
     };
 });
 
@@ -3251,6 +3217,24 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
             plotting.setupSelector($scope, $element);
         },
     };
+});
+
+SIREPO.viewLogic('fieldPathsView', function(activeSection, appState, panelState, radiaService, $scope) {
+
+    $scope.watchFields = [];
+
+    $scope.$on(`${$scope.modelName}.changed`, () => {
+        for (const p of $scope.model.paths) {
+            if (p.type === 'axisPath') {
+                if (! p.name) {
+                    p.name = `${p.axis.toUpperCase()}-Axis`;
+                }
+                p.begin = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[p.axis].map(x => p.start * x);
+                p.end = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[p.axis].map(x => p.stop * x);
+                appState.saveQuietly($scope.modelName);
+            }
+        }
+    });
 });
 
 SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $element, $scope) {

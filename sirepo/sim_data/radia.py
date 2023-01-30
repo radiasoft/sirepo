@@ -229,8 +229,13 @@ class SimData(sirepo.sim_data.SimDataBase):
         if dm.get("solver"):
             dm.solverAnimation = dm.solver.copy()
             del dm["solver"]
+        if "fieldPaths" not in dm:
+            dm.fieldPaths = cls.update_model_defaults(PKDict(), "fieldPaths")
         if not dm.fieldPaths.get("paths"):
             dm.fieldPaths.paths = []
+        if dm.fieldPaths.get("path"):
+            dm.fieldPaths.selectedPath = dm.fieldPaths.path
+            del dm.fieldPaths["path"]
         if dm.simulation.get("isExample"):
             cls._fixup_examples(dm)
         if dm.simulation.magnetType == "undulator":

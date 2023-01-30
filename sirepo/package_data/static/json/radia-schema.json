@@ -725,8 +725,8 @@
             "name": ["Name", "String", ""]
         },
         "fieldPaths": {
-            "path": ["Path", "PathType", "linePath"],
-            "paths": ["", "ModelArrayTable", [], "", ["axisPath" ,"linePath", "circlePath", "fieldMapPath", "filePath"]]
+            "paths": ["", "ModelArrayTable", [], "", ["axisPath" ,"linePath", "circlePath", "fieldMapPath", "filePath"]],
+            "selectedPath": ["Path", "PathType", "linePath"]
         },
         "filePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -1231,9 +1231,7 @@
             "basic": [
                 "paths"
             ],
-            "advanced": [
-                "paths"
-            ]
+            "advanced": []
         },
         "filePath": {
             "title": "File",
