@@ -4725,13 +4725,11 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
 
             $scope.openSimulation = function() {
                 if ($scope.model && $scope.model[$scope.field]) {
-                    //TODO(e-carlin): this depends on the visualization route
-                    // being present in both the caller and callee apps.
-                    // Need meta data for a page in another app
-                    requestSender.newLocalWindow(
-                        $scope.route || 'visualization',
-                        {':simulationId': $scope.model[$scope.field]},
-                        $scope.code);
+                    requestSender.openSimulation(
+                        $scope.code,
+                        $scope.route,
+                        $scope.model[$scope.field]
+                    );
                 }
             };
             appState.whenModelsLoaded($scope, function() {
@@ -4890,15 +4888,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
             }
             debounceInterval = $interval(later, milliseconds, 1);
         };
-    };
-
-    // create a non-cryptographic base62 string
-    this.randomString = function(length=32) {
-        const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        return new Array(length)
-            .fill('')
-            .map(x => BASE62[Math.floor(BASE62.length * Math.random())])
-            .join('');
     };
 
     this.indexArray = function(size) {

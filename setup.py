@@ -12,7 +12,7 @@ pykern.pksetup.setup(
     description="accelerator code gui",
     install_requires=[
         "Flask==2.0.3",
-        "SQLAlchemy>=1.4",
+        "SQLAlchemy>=1.4,<2",
         "aenum",
         "asyncssh",
         "cryptography>=2.8",
