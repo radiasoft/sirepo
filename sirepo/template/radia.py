@@ -318,10 +318,6 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 
 
 def stateless_compute_build_shape_points(data):
-    import codecs
-    import pandas
-
-    pts = []
     o = data.args.object
     if not o.get("pointsFile"):
         return PKDict(
@@ -329,14 +325,13 @@ def stateless_compute_build_shape_points(data):
                 o, _get_stemmed_info(o)
             )
         )
-    p = _SIM_DATA.lib_file_abspath(
+    pts = sirepo.csv.read_as_number_array(
+        _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
                 "extrudedPoints", "pointsFile", o.pointsFile
             )
         )
-    with open(p, "rb", encoding="utf-8-sig") as f:
-        for r in csv.reader(f):
-            pts.append([float(x) for x in r])
+    )
     # Radia does not like it if the path is closed
     if all(numpy.isclose(pts[0], pts[-1])):
         del pts[-1]
@@ -1241,15 +1236,12 @@ def _read_h5_path(filename, h5path):
 
 
 def _read_h_m_file(file_name, qcall=None):
-    h_m_file = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
-        qcall=qcall,
+    return sirepo.csv.read_as_number_array(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
+            qcall=qcall,
+        )
     )
-    lines = [r for r in sirepo.csv.open_csv(h_m_file)]
-    f_lines = []
-    for l in lines:
-        f_lines.append([float(c.strip()) for c in l])
-    return f_lines
 
 
 def _read_id_map():
