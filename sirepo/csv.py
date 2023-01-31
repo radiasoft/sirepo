@@ -1,7 +1,7 @@
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 import csv
 
-_ENCODINGS = ("utf-8", "utf-8-sig", "cp1252", )
+_ENCODINGS = ("cp1252", )
 
 
 def open_csv(path, encoding="utf-8"):
@@ -18,5 +18,5 @@ def read_as_number_array(path):
                 res.append([float(c.strip()) for c in r])
             return res
         except (TypeError, UnicodeDecodeError, ValueError):
-            pkdlog("Cannot read {} with encoding {}", path.basename, e)
-    raise RuntimeError("Unreadable file: {}", path.basename)
+            pkdlog("file={} cannot be read with encoding {}", path.basename, e)
+    raise RuntimeError("invalid file={}".format(path.basename))

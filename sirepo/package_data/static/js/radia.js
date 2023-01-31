@@ -150,6 +150,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             },
             {
                 onError: res => {
+                    self.deleteObject(o);
                     if (res.error.includes('does not exist')) {
                         throw new Error('Points file ' + o.pointsFile + ' does not exist');
                     }
@@ -3377,7 +3378,10 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             'extrudedObject.extrusionAxis',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
-        ], updateObjectEditor
+        ], updateObjectEditor,
+        [
+            'extrudedPoints.pointsFile',
+        ], validatePointsFile
     ];
 
     $scope.whenSelected = () => {
@@ -3423,6 +3427,10 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         $scope.fieldDelegate = d;
     }
 
+    function validatePointsFile() {
+        loadPoints();
+    }
+
     function hasPoints() {
         return ($scope.modelData.referencePoints || []).length;
     }
@@ -3433,7 +3441,12 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             $scope.modelData.referencePoints = [];
             return;
         }
-        radiaService.buildShapePoints($scope.modelData, setPoints);
+        try {
+            radiaService.buildShapePoints($scope.modelData, setPoints);
+        }
+        catch(e) {
+            srdbg('BAD PTS');
+        }
     }
 
     function loadSTLSize()  {
@@ -3470,6 +3483,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function setPoints(data) {
+        srdbg('SET P');
         $scope.modelData.referencePoints = data.points;
         radiaService.updateExtruded($scope.modelData, updateShapes);
     }
