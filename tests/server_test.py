@@ -49,8 +49,8 @@ def test_elegant_data_file(fc):
     )
     pkunit.pkeq(200, r.status_code)
     pkunit.pkre("no-cache", r.header_get("Cache-Control"))
-    rows = csv.reader(six.StringIO(pkcompat.from_bytes(r.data)))
-    pkunit.pkeq(50001, len(list(rows)), "50,000 particles plus header row")
+    # 50,000 particles plus header row
+    pkunit.pkeq(50001, len(list(csv.reader(six.StringIO(pkcompat.from_bytes(r.data))))))
     r = fc.sr_get(
         "downloadDataFile",
         PKDict(
@@ -68,11 +68,8 @@ def test_elegant_data_file(fc):
     d = pkunit.work_dir()
     path = d.join(m.group(1))
     path.write_binary(r.data)
-    assert (
-        sdds.sddsdata.InitializeInput(0, str(path)) == 1
-    ), "{}: sdds failed to open".format(path)
-    # Verify we can read something
-    assert 0 <= len(sdds.sddsdata.GetColumnNames(0))
+    pkunit.pkeq(1, sdds.sddsdata.InitializeInput(0, str(path)))
+    pkunit.pkne(0, len(sdds.sddsdata.GetColumnNames(0)))
     sdds.sddsdata.Terminate(0)
 
 

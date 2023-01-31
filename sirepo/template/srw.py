@@ -542,7 +542,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
         i = d.models.simulation.simulationId
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
-            python=pkcompat.from_bytes(req.file_stream.read()),
+            python=req.form_file.as_str(),
             userFilename=req.filename,
         )
         # POSIT: import.py uses ''', but we just don't allow quotes in names
