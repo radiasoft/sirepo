@@ -86,7 +86,12 @@ def call_api(qcall, name, kwargs=None, data=None):
     Returns:
         Response: result
     """
-    return _call_api(qcall, _api_to_route[name], kwargs=kwargs, data=data)
+    return _call_api(
+        qcall,
+        _api_to_route[name],
+        kwargs=kwargs,
+        data=data,
+    )
 
 
 def init_for_flask(app):
@@ -183,6 +188,41 @@ def register_api_module(module):
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
+def start_tornado(ip, port, debug=False):
+    """Start tornado server, does not return"""
+    import tornado.httpserver
+    import tornado.ioloop
+    import tornado.web
+
+    class _Handler(tornado.web.RequestHandler):
+        def _route(self):
+            e, r, k = _path_to_route(self.request.path[1:])
+            if e:
+                pkdlog("uri={} {}; route={} kwargs={} ", self.request.uri, e, r, k)
+                r = _not_found_route
+            sreply = _call_api(
+                None,
+                r,
+                kwargs=k,
+                internal_req=self,
+                reply_op=lambda r: r.tornado_response(),
+            )
+
+        async def get(self):
+            self._route()
+
+        async def post(self):
+            self._route()
+
+    sirepo.modules.import_and_init("sirepo.server").init_tornado()
+    s = tornado.httpserver.HTTPServer(
+        tornado.web.Application([("/.*", _Handler)], debug=True),
+        xheaders=True,
+        max_buffer_size=sirepo.job.cfg().max_message_bytes,
+    ).listen(port=port, address=ip)
+    tornado.ioloop.IOLoop.current().start()
+
+
 def uri_for_api(api_name, params=None):
     """Generate uri for api method
 
@@ -237,7 +277,7 @@ class _URIParams(PKDict):
     pass
 
 
-def _call_api(parent, route, kwargs, data=None):
+def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None):
     qcall = route.cls()
     c = False
     try:
@@ -247,7 +287,7 @@ def _call_api(parent, route, kwargs, data=None):
         qcall.attr_set("uri_route", route)
         qcall.sim_type_set_from_spec(route.func)
         if not parent:
-            sirepo.auth.init_quest(qcall=qcall, top_level_call_api=True)
+            sirepo.auth.init_quest(qcall=qcall, internal_req=internal_req)
         if data:
             qcall.http_data_set(data)
         try:
@@ -276,7 +316,7 @@ def _call_api(parent, route, kwargs, data=None):
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
             r.header_set("Access-Control-Allow-Origin", "*")
-        return r
+        return reply_op(r) if reply_op else r
     except:
         c = False
         raise
@@ -302,11 +342,19 @@ def _flask_dispatch(path):
     Returns:
         response
     """
+    import flask
+
     error, route, kwargs = _path_to_route(path)
     if error:
         pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
         route = _not_found_route
-    return _call_api(None, route, kwargs=kwargs).flask_response(_app.response_class)
+    return _call_api(
+        None,
+        route,
+        kwargs=kwargs,
+        internal_req=flask.request,
+        reply_op=lambda r: r.flask_response(_app.response_class),
+    )
 
 
 def _flask_dispatch_empty():
