@@ -49,7 +49,6 @@ def test_elegant_data_file(fc):
     )
     pkunit.pkeq(200, r.status_code)
     pkunit.pkre("no-cache", r.header_get("Cache-Control"))
-    pkdp(r.data)
     # 50,000 particles plus header row
     pkunit.pkeq(50001, len(list(csv.reader(six.StringIO(pkcompat.from_bytes(r.data))))))
     r = fc.sr_get(
