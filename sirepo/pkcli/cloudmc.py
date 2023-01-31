@@ -12,6 +12,7 @@ import array
 import copy
 import json
 import os
+import py.path
 import pymoab.core
 import pymoab.types
 import re
@@ -20,6 +21,8 @@ import sirepo.simulation_db
 import sirepo.template.cloudmc
 import sirepo.util
 import uuid
+
+import sirepo.template.cloudmc as template
 
 
 _DATA_DIR = "data"
@@ -75,6 +78,12 @@ def extract_dagmc(dagmc_filename):
     for vol in mat.values():
         _vtk_to_bin(vol.volId)
     return mat
+
+
+def run(cfg_dir):
+    template_common.exec_parameters()
+    data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    template.extract_report_data(pkio.py_path(cfg_dir), data)
 
 
 def run_background(cfg_dir):

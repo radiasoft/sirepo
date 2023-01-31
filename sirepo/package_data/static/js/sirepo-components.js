@@ -3799,7 +3799,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             <span class="valueLabel">{{ model[field] }}{{ model.units }}</span>
         `,
         controller: function($scope, $element) {
-
             let slider;
             let delegate = null;
 
@@ -3841,6 +3840,10 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                     form.$setPristine();
                 }
 
+                $scope.$on(`${$scope.modelName}.changed`, () => {
+                    delegate.storedVal = $scope.model[$scope.field];
+                });
+
                 $scope.$on('cancelChanges', (e, d) => {
                     if (d !== $scope.modelName) {
                         return;
@@ -3849,15 +3852,11 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 });
             });
 
-            $scope.$on(`${$scope.modelName}.changed`, () => {
-                delegate.storedVal = $scope.model[$scope.field];
-            });
-
             $scope.$on('sliderParent.ready', function (e, m) {
-                // ???
                 if (m) {
                     $scope.model = m;
                 }
+                update();
             });
         },
     };
