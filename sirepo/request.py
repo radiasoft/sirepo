@@ -38,6 +38,7 @@ def init_quest(qcall, internal_req=None):
         import flask
 
         sreq = _SRequest(
+            body_as_bytes=lambda: internal_req.get_data(cache=False),
             http_authorization=internal_req.authorization,
             http_headers=internal_req.headers,
             http_method=internal_req.method,
@@ -45,13 +46,13 @@ def init_quest(qcall, internal_req=None):
             http_server_uri=flask.url_for("_flask_dispatch_empty", _external=True),
             internal_req=internal_req,
             remote_addr=internal_req.remote_addr,
-            _body_as_bytes=lambda: internal_req.get_data(cache=False),
             _form_file_class=_FormFileFlask,
             _form_get=internal_req.form.get,
         )
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request
         sreq = _SRequest(
+            body_as_bytes=lambda: internal_req.request.body,
             http_authorization=_parse_authorization(r.headers.get("Authorization")),
             http_headers=r.headers,
             http_method=r.method,
@@ -59,7 +60,6 @@ def init_quest(qcall, internal_req=None):
             http_server_uri=f"{r.protocol}://{r.host}/",
             internal_req=internal_req,
             remote_addr=r.remote_ip,
-            _body_as_bytes=lambda: internal_req.request.body,
             _form_file_class=_FormFileTornado,
             _form_get=internal_req.get_argument,
         )
@@ -126,9 +126,6 @@ class _FormFileTornado(_FormFileBase):
 
 class _SRequest(sirepo.quest.Attr):
     """Holds context for incoming requests"""
-
-    def body_as_bytes(self):
-        return self._body_as_bytes()
 
     def content_type_encoding(self):
         return self.__content_type().get("charset")

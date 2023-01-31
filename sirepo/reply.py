@@ -101,6 +101,14 @@ class _SReply(sirepo.quest.Attr):
         self.__attrs.cookie = PKDict(kwargs)
         return self
 
+    def destroy(self, **kwargs):
+        """Must be called"""
+        try:
+            self.__attrs.pknested_get("content.handle").close()
+            self.__attrs.content.pkdel("handle")
+        except Exception:
+            pass
+
     def flask_response(self, cls):
         from werkzeug import utils
         from flask import request
@@ -132,6 +140,7 @@ class _SReply(sirepo.quest.Attr):
                 download_name=a.download_name,
                 last_modified=c.mtime,
             )
+            c.pkdel("handle")
             res.headers["Content-Encoding"] = c.encoding
             res.content_length = c.length
             return res
@@ -161,9 +170,10 @@ class _SReply(sirepo.quest.Attr):
     def from_kwargs(self, **kwargs):
         """Saves reply attributes
 
-        While replies are global (qcall.sreply), the attributes
-
+        While replies are global (qcall.sreply), the attributes need
+        to be reset every time a new reply is generated.
         """
+        self.destroy()
         self.__attrs = PKDict(kwargs).pksetdefault(headers=PKDict)
         return self
 
@@ -187,14 +197,21 @@ class _SReply(sirepo.quest.Attr):
             content_type, e = self._guess_content_type(path.basename)
         self._download_name(filename or path.basename)
         self.__attrs.content_type = content_type
-        self.__attrs.content = PKDict(
-            encoding=e,
-            handle=open(path, "rb"),
-            length=path.size(),
-            mtime=int(path.mtime()),
-            path=path,
-        )
-        return self
+        h = None
+        try:
+            h = open(path, "rb")
+            self.__attrs.content = PKDict(
+                encoding=e,
+                handle=h,
+                length=path.size(),
+                mtime=int(path.mtime()),
+                path=path,
+            )
+            return self
+        except Exception:
+            if h:
+                h.close()
+                self.__attrs.pkdel("content")
 
     def gen_file_as_attachment(self, content_or_path, filename=None, content_type=None):
         """Generate a file attachment response
@@ -434,6 +451,8 @@ class _SReply(sirepo.quest.Attr):
             a = self.__attrs
             c = a.content
             resp.write(c.handle.read())
+            c.handle.close()
+            c.pkdel("handle")
             if _DISPOSITION not in a.headers:
                 self._disposition("inline")
             resp.set_header(
@@ -470,7 +489,10 @@ class _SReply(sirepo.quest.Attr):
         return self
 
     def _download_name(self, filename):
-        f = re.sub(r"[^\w\.]+", "-", filename).strip("-")
+        def _secure_filename():
+            return re.sub(r"[^\w\.]+", "-", filename).strip("-")
+
+        f = _secure_filename()
         if f.startswith("."):
             # the safe filename has no basename, prefix with "download"
             f = "download" + f

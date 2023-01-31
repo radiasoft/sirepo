@@ -86,7 +86,12 @@ def call_api(qcall, name, kwargs=None, data=None):
     Returns:
         Response: result
     """
-    return _call_api(qcall, _api_to_route[name], kwargs=kwargs, data=data)
+    return _call_api(
+        qcall,
+        _api_to_route[name],
+        kwargs=kwargs,
+        data=data,
+    )
 
 
 def init_for_flask(app):
@@ -195,7 +200,13 @@ def start_tornado(ip, port, debug=False):
             if e:
                 pkdlog("uri={} {}; route={} kwargs={} ", self.request.uri, e, r, k)
                 r = _not_found_route
-            _call_api(None, r, kwargs=k, internal_req=self).tornado_response()
+            sreply = _call_api(
+                None,
+                r,
+                kwargs=k,
+                internal_req=self,
+                reply_op=lambda r: r.tornado_response(),
+            )
 
         async def get(self):
             self._route()
@@ -266,7 +277,7 @@ class _URIParams(PKDict):
     pass
 
 
-def _call_api(parent, route, kwargs, data=None, internal_req=None):
+def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None):
     qcall = route.cls()
     c = False
     try:
@@ -305,7 +316,7 @@ def _call_api(parent, route, kwargs, data=None, internal_req=None):
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
             r.header_set("Access-Control-Allow-Origin", "*")
-        return r
+        return reply_op(r) if reply_op else r
     except:
         c = False
         raise
@@ -342,7 +353,8 @@ def _flask_dispatch(path):
         route,
         kwargs=kwargs,
         internal_req=flask.request,
-    ).flask_response(_app.response_class)
+        reply_op=lambda r: r.flask_response(_app.response_class),
+    )
 
 
 def _flask_dispatch_empty():

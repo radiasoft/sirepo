@@ -83,9 +83,9 @@ _cfg = None
 def init_quest(qcall, internal_req=None):
     """Under development
 
-    Only use as `init_quest(qcall)`.
-
-    internal_req used by uri_router.
+    Args:
+        qcall (quest.API): context for APIs and CLIs
+        internal_req (object): context of web framework, pkcli, unit test, etc.
     """
     o = _Auth(qcall=qcall)
     qcall.attr_set("auth", o)
