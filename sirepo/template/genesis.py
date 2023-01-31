@@ -129,7 +129,7 @@ def import_file(req, **kwargs):
     return _parse_namelist(res, text)
 
 
-def post_execution_processing(run_dir=None, **kwargs):
+def post_execution_processing(run_dir, **kwargs):
     if _genesis_success_exit(run_dir):
         return
     return _parse_genesis_error(run_dir)

@@ -470,9 +470,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
     )
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     if not is_parallel:

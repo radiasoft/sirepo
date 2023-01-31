@@ -365,7 +365,7 @@ def import_file(req, **kwargs):
     return data
 
 
-def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
     return _parse_madx_log(run_dir)
