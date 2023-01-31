@@ -449,6 +449,13 @@
                 "templateUrl": "/static/html/srw-beamline.html",
                 "reloadOnSearch": true
             }
+        },
+        "ml": {
+            "route": "/ml/:simulationId",
+            "config": {
+                "controller": "MLController as ml",
+                "templateUrl": "/static/html/srw-ml.html"
+            }
         }
     },
     "model": {
@@ -796,6 +803,14 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
+        "machineLearningAnimation": {
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""]
+        },
         "mask": {
             "title": ["Element Name", "String", "Mask"],
             "position": ["Position along Optical Path [m]", "Float"],
@@ -1099,7 +1114,10 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "machineLearningAnimation": {
+            "typeOfSimulation": "Data Generation"
+        }
     },
     "view": {
         "_INTENSITY_REPORT": {
@@ -1702,6 +1720,11 @@
                 ]
             ]
         },
+        "machineLearningAnimation": {
+            "title": "Machine Learning Training Data",
+            "basic": [],
+            "advanced": []
+        },
         "mask": {
             "title": "Mask",
             "basic": [],
@@ -1759,17 +1782,16 @@
             "advanced": ["notes"]
         },
         "exportRsOpt": {
-            "title": "Generate Machine Learning Data Script",
+            "title": "Machine Learning Input",
             "basic": [
-            ],
-            "advanced": [
                 "elements",
                 "scanType",
                 "numSamples",
                 "totalSamples",
                 "randomSeed",
                 "characteristic"
-            ]
+            ],
+            "advanced": []
         },
         "multipole": {
             "title": "Dipole",

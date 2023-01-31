@@ -149,6 +149,8 @@ def _do_compute(msg, template):
             msg.isParallel,
             template,
             msg.runDir,
+            msg.computeModel,
+            msg.simulationId,
         )
 
 
@@ -302,7 +304,9 @@ def _maybe_parse_user_alert(exception, error=None):
     return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
-def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
+def _on_do_compute_exit(
+    success_exit, is_parallel, template, run_dir, compute_model, sim_id
+):
     # locals() must be called before anything else so we only get the function
     # arguments
     kwargs = locals()
