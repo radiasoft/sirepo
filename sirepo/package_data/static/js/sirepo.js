@@ -814,7 +814,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     self.setFieldDefaults = function(model, field, fieldInfo, overWrite=false) {
         let defaultVal = fieldInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE];
         if (fieldInfo[SIREPO.INFO_INDEX_TYPE] === 'RandomId') {
-            defaultVal = utilities.randomString();
+            defaultVal = SIREPO.UTILS.randomString();
         }
         if (! model[field] || overWrite) {
             if (defaultVal !== undefined) {
@@ -1996,13 +1996,18 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             isOptional: !! m[2],
         };
     }
+
     for (let n in SIREPO.APP_SCHEMA.localRoutes) {
-        let u = SIREPO.APP_SCHEMA.localRoutes[n].route.split('/');
+        localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
+    }
+
+    function routeMapLocal(name, route) {
+        const u = route.split('/');
         u.shift();
-        localMap[n] = {
-            name: n,
+        return {
+            name: name,
             baseUri: u.shift(),
-            params: u.map(_localIterator)
+            params: u.map(_localIterator),
         };
     }
 
@@ -2131,8 +2136,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
 
-    self.formatUrlLocal = function(routeName, params, app) {
-        var u = '#' + formatUrl(localMap, routeName, params);
+    self.formatUrlLocal = function(routeName, params, app, routeMap=localMap) {
+        var u = '#' + formatUrl(routeMap, routeName, params);
         return app ? '/' + app + u : u;
     };
 

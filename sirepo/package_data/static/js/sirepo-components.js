@@ -574,11 +574,13 @@ SIREPO.app.directive('randomSeed', function() {
             viewName: '=',
         },
         template: `
-            <div class="col-sm-3">
-              <input data-string-to-number="integer" data-ng-model="model[field]" data-min="0" data-max="max" class="form-control" style="text-align: right" data-lpignore="true"/>
+            <div class="row">
+              <div class="col-sm-3">
+                <input data-string-to-number="integer" data-ng-model="model[field]" data-min="0" data-max="max" class="form-control" style="text-align: right" data-lpignore="true"/>
+              </div>
+              <button class="btn btn-default" data-ng-click="setSeedRandom()" title="generate random seed"><span class="glyphicon glyphicon-random"></span></button>
+              <button class="btn btn-default" data-ng-click="setSeedTime()" title="use current time"><span class="glyphicon glyphicon-time"></span></button>
             </div>
-            <button class="btn btn-default" data-ng-click="setSeedRandom()" title="generate random seed"><span class="glyphicon glyphicon-random"></span></button>
-            <button class="btn btn-default" data-ng-click="setSeedTime()" title="use current time"><span class="glyphicon glyphicon-time"></span></button>
         `,
         controller: function($scope) {
 
@@ -2138,6 +2140,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         template: `
             <div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">
+              <div class="model-panel-heading-buttons"></div>
               <a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
               ${SIREPO.appPanelHeadingButtons || ''}
               <div data-ng-if="isReport" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">
@@ -3176,8 +3179,8 @@ SIREPO.app.directive('downloadStatus', function() {
         restrict: 'A',
         scope: {
             simState: '=',
-            label: '=',
-            title: '=',
+            label: '@',
+            title: '@',
         },
         template: `
             <div class="modal fade" id="sr-download-status" tabindex="-1" role="dialog">
@@ -4931,15 +4934,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
             }
             debounceInterval = $interval(later, milliseconds, 1);
         };
-    };
-
-    // create a non-cryptographic base62 string
-    this.randomString = function(length=32) {
-        const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        return new Array(length)
-            .fill('')
-            .map(x => BASE62[Math.floor(BASE62.length * Math.random())])
-            .join('');
     };
 
     this.indexArray = function(size) {
