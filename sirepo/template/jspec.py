@@ -224,6 +224,8 @@ def sim_frame_particleAnimation(frame_args):
     if time > settings.time:
         time = settings.time
 
+# TODO(rorour): move extract sdds column usage to class
+    # TODO(rorour): TEST THIS with unchanged version
     x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
     if x_col.err:
         return x_col.err
@@ -241,6 +243,8 @@ def sim_frame_particleAnimation(frame_args):
             title="Ions at time {:.2f} [s]".format(time),
             x_label=_field_label(xfield, x_col.column_def),
             y_label=_field_label(yfield, y_col.column_def),
+            xfield=xfield,
+            yfield=yfield,
         )
     )
 
