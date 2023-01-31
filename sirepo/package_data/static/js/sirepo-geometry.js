@@ -133,15 +133,6 @@ class GeometryUtils {
     }
 
     /**
-     * Normalize a vector
-     * @param {[number]} vector
-     * @returns {[number]}
-     */
-    static normalize(vector) {
-        return vector.map(c => c / Math.hypot(vector[0], vector[1], vector[2]));
-    }
-
-    /**
      * Sort (with optional reversal) the point array by the values in the given dimension.
      * Array is cloned first so the original is unchanged
      * @param {[Point]} points - the points to sort
