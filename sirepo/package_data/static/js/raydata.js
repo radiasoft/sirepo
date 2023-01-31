@@ -366,7 +366,7 @@ SIREPO.app.directive('scansTable', function() {
                 </div>
               </div>
             </div>
-            <div data-view-log-iframe-wrapper data-scan-id="runLogScanId" data-unique-modal-id="runLogModalId"></div>
+            <div data-view-log-iframe-wrapper data-scan-id="runLogScanId" data-modal-id="runLogModalId"></div>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
@@ -587,17 +587,17 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
         restrict: 'A',
         scope: {
             scanId: '<',
-            uniqueModalId: '<',
+            modalId: '<',
         },
         template: `
-            <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-unique-modal-id="uniqueModalId"></div>
+            <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
         `,
         controller: function(appState, errorService, panelState, requestSender, $scope) {
             $scope.logIsLoading = false;
             $scope.log = null;
             $scope.logPath = null;
 
-            $(document).on('show.bs.modal','#' + $scope.uniqueModalId, function() {
+            $(document).on('show.bs.modal','#' + $scope.modalId, function() {
                 $scope.logIsLoading = true;
                 requestSender.sendStatelessCompute(
                     appState,

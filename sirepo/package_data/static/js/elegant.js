@@ -1452,12 +1452,13 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
         scope: {},
         template: `
             <a href data-ng-click="viewLog()">View Log</a>
-            <div data-view-log-iframe data-download-log="downloadLog" data-log-html="log" data-log-is-loading="logIsLoading"></div>
+            <div data-view-log-iframe data-download-log="downloadLog" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
             $scope.logIsLoading = false;
             $scope.log = null;
             $scope.logPath = null;
+            $scope.modalId = 'sr-view-log-iframe';
 
             $scope.downloadLog = function() {
                 var m = appState.models.simulationStatus.animation.computeModel;
@@ -1474,7 +1475,7 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
 
             $scope.viewLog = function () {
                 $scope.logIsLoading = true;
-                $('#sr-view-log-iframe').modal('show');
+                $('#' + $scope.modalId).modal('show');
                 requestSender.sendAnalysisJob(
                     appState,
                     (data) => {

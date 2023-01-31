@@ -1878,7 +1878,7 @@ SIREPO.app.directive('viewLogIframe', function() {
             logIsLoading: '<',
             logHtml: '<',
             logPath: '<',
-            uniqueModalId: '<',
+            modalId: '<',
             downloadLog: '<'
         },
         template: `
@@ -1909,7 +1909,6 @@ SIREPO.app.directive('viewLogIframe', function() {
             </div>
         `,
         controller: function($scope) {
-            $scope.modalId = $scope.uniqueModalId ? $scope.uniqueModalId : 'sr-view-log-iframe';
         },
     };
 });
