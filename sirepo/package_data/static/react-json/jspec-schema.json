@@ -3,8 +3,6 @@
         "TwissFile": {
             "base": "File",
             "config": {
-                "pattern": ".+\\.tfs",
-                "isRequired": true,
                 "inspectModal": {
                     "title": "Twiss Parameters",
                     "items": [
@@ -34,7 +32,9 @@
             "base": "ComputeEnum",
             "config": {
                 "computeMethod": "get_elegant_sim_list",
-                "resultName": "simList"
+                "resultName": "simList",
+                "keyName": "simulationId",
+                "displayName": "name"
             }
         },
         "ElectronBeamShape": {
@@ -813,21 +813,21 @@
             "lattice": {
                 "displayName": "Ring Lattice File",
                 "type": "TwissFile",
-                "defaultValue": null,
+                "defaultValue": "",
                 "description": "This file should be in the MAD-X output format (*.tfs).",
                 "shown": "$(ring.latticeSource) == 'madx'"
             },
             "elegantTwiss": {
                 "displayName": "Elegant twiss_output",
                 "type": "TwissFile",
-                "defaultValue": null,
+                "defaultValue": "",
                 "description": "This file should be the SDDS output from the twiss_output command.",
                 "shown": "$(ring.latticeSource) == 'elegant'"
             },
             "elegantSirepo": {
                 "displayName": "Elegant Simulation",
                 "type": "ElegantSimList",
-                "defaultValue": null,
+                "defaultValue": "",
                 "shown": "$(ring.latticeSource) == 'elegant-sirepo'"
             }
         },
@@ -1524,7 +1524,6 @@
                           "config": {
                             "reportGroupName": "animation",
                             "reportName": "particleAnimation",
-                            "shown": "$(simulationSettings.model) == 'particle'",
                             "frameIdFields": [
                               "particleAnimation.x",
                               "particleAnimation.y",
