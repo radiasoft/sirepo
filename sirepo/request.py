@@ -6,6 +6,7 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+import base64
 import email.utils
 import pykern.pkcompat
 import sirepo.const
@@ -18,38 +19,113 @@ _POST_ATTR = "sirepo_http_request_post"
 
 _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
+#: We always use the same name for a file upload
+_FORM_FILE_NAME = "file"
 
-def init_quest(qcall):
+
+def init_quest(qcall, internal_req=None):
     if qcall.bucket_unchecked_get("in_srunit"):
         sreq = _SRequest(
             http_authorization=None,
             http_headers=PKDict(),
             http_method="GET",
             http_request_uri="/",
-            http_server_uri="http://localhost",
-            internal_req=None,
+            http_server_uri="http://localhost/",
+            internal_req=internal_req,
             remote_addr="0.0.0.0",
         )
-    else:
+    elif "werkzeug" in str(type(internal_req)):
         import flask
 
         sreq = _SRequest(
-            http_authorization=flask.request.authorization,
-            http_headers=flask.request.headers,
-            http_method=flask.request.method,
-            http_request_uri=flask.request.url,
+            body_as_bytes=lambda: internal_req.get_data(cache=False),
+            http_authorization=internal_req.authorization,
+            http_headers=internal_req.headers,
+            http_method=internal_req.method,
+            http_request_uri=internal_req.url,
             http_server_uri=flask.url_for("_flask_dispatch_empty", _external=True),
-            internal_req=flask.request,
-            remote_addr=flask.request.remote_addr,
+            internal_req=internal_req,
+            remote_addr=internal_req.remote_addr,
+            _form_file_class=_FormFileFlask,
+            _form_get=internal_req.form.get,
         )
+    elif "tornado" in str(type(internal_req)):
+        r = internal_req.request
+        sreq = _SRequest(
+            body_as_bytes=lambda: internal_req.request.body,
+            http_authorization=_parse_authorization(r.headers.get("Authorization")),
+            http_headers=r.headers,
+            http_method=r.method,
+            http_request_uri=r.path,
+            http_server_uri=f"{r.protocol}://{r.host}/",
+            internal_req=internal_req,
+            remote_addr=r.remote_ip,
+            _form_file_class=_FormFileTornado,
+            _form_get=internal_req.get_argument,
+        )
+    else:
+        raise AssertionError(f"unknown internal_req={type(internal_req)}")
     qcall.attr_set("sreq", sreq)
+
+
+def _parse_authorization(value):
+    if not value:
+        return None
+    try:
+        t, i = value.split(None, 1)
+        t = t.lower()
+    except Exception:
+        raise sirepo.util.Forbidden("unparseable authorization header={}", value)
+    if t != "basic":
+        raise sirepo.util.Forbidden("unhandled authorization type={}", t)
+    try:
+        u, p = base64.b64decode(i).split(b":", 1)
+    except Exception:
+        raise sirepo.util.Forbidden("unparseable authorization info={} type={}", i, t)
+    return PKDict(
+        type=t,
+        username=pykern.pkcompat.from_bytes(u),
+        password=pykern.pkcompat.from_bytes(p),
+    )
+
+
+class _FormFileBase(PKDict):
+    def __init__(self, sreq):
+        super().__init__()
+        f = self._get(sreq.internal_req)
+        if not f:
+            raise sirepo.util.Error("must supply a file", "no file in request={}", sreq)
+        self.filename = f.filename
+        self._internal = f
+
+    def as_str(self):
+        return pykern.pkcompat.from_bytes(self.as_bytes())
+
+
+class _FormFileFlask(_FormFileBase):
+    def as_bytes(self):
+        return self._internal.stream.read()
+
+    def _get(self, internal_req):
+        return internal_req.files.get(_FORM_FILE_NAME)
+
+
+class _FormFileTornado(_FormFileBase):
+    def as_bytes(self):
+        # TODO(robnagler) need to garbage collect
+        return self._internal.body
+
+    def _get(self, internal_req):
+        res = internal_req.request.files.get(_FORM_FILE_NAME)
+        if not res:
+            return None
+        if len(res) > 1:
+            raise sirepo.util.BadRequest("too many files={} in form", len(res))
+        return res[0]
 
 
 class _SRequest(sirepo.quest.Attr):
     """Holds context for incoming requests"""
-
-    def body_as_bytes(self):
-        return self.internal_req.get_data(cache=False)
 
     def content_type_encoding(self):
         return self.__content_type().get("charset")
@@ -59,6 +135,12 @@ class _SRequest(sirepo.quest.Attr):
         if c is None:
             return False
         return self.__content_type()._key.lower() == value.lower()
+
+    def form_get(self, name, default):
+        return self._form_get(name, default)
+
+    def form_file_get(self):
+        return self._form_file_class(self)
 
     def header_uget(self, key):
         return self.http_headers.get(key)

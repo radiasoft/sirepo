@@ -142,9 +142,7 @@ def get_data_file(run_dir, model, frame, options):
     return _ion_files(run_dir)[frame]
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if not success_exit or not is_parallel:
         return None
     return _get_time_step_warning(run_dir)

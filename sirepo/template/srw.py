@@ -132,6 +132,9 @@ _OUTPUT_FOR_MODEL = PKDict(
 _OUTPUT_FOR_MODEL[f"{_SIM_DATA.EXPORT_RSOPT}"] = PKDict(
     filename=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
 )
+_OUTPUT_FOR_MODEL.machineLearningAnimation = PKDict(
+    filename=_SIM_DATA.ML_OUTPUT,
+)
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation.filename = "res_int_pr_se{watchpoint_id}.dat"
@@ -155,7 +158,7 @@ _RSOPT_PARAMS = {
     ]
     for i in sublist
 }
-_RSOPT_PARAMS_NO_ROT = [p for p in _RSOPT_PARAMS if p != "rotation"]
+_RSOPT_PARAMS_NO_ROTATION = [p for p in _RSOPT_PARAMS if p != "rotation"]
 
 _PROGRESS_LOG_DIR = "__srwl_logs__"
 
@@ -243,6 +246,8 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if report == "beamlineAnimation":
         return _beamline_animation_percent_complete(run_dir, res)
+    if _SIM_DATA.is_for_ml(report):
+        return _machine_learning_percent_complete(run_dir, res)
     status = PKDict(
         progress=0,
         particle_number=0,
@@ -537,7 +542,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
         i = d.models.simulation.simulationId
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
-            python=pkcompat.from_bytes(req.file_stream.read()),
+            python=req.form_file.as_str(),
             userFilename=req.filename,
         )
         # POSIT: import.py uses ''', but we just don't allow quotes in names
@@ -630,9 +635,16 @@ def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
 
 
 def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
+    compute_model,
+    run_dir,
+    sim_id,
+    success_exit,
+    **kwargs,
 ):
     if success_exit:
+        if _SIM_DATA.is_for_ml(compute_model):
+            f = _SIM_DATA.ML_OUTPUT
+            _SIM_DATA.put_sim_file(sim_id, run_dir.join(f), f)
         return None
     return _parse_srw_log(run_dir)
 
@@ -1074,12 +1086,19 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if data.report == "samplePreviewReport":
-        p = ""
-    elif data.report == _SIM_DATA.EXPORT_RSOPT:
-        p = ""
-        _export_rsopt_config(data)
-    else:
+    p = ""
+    if _SIM_DATA.is_for_rsopt(data.report):
+        _export_rsopt_config(data, run_dir=run_dir)
+        if _SIM_DATA.is_for_ml(data.report):
+            pkio.unchecked_remove(_SIM_DATA.ML_OUTPUT)
+            p = f"""import subprocess
+subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
+"""
+    if data.report not in (
+        "samplePreviewReport",
+        _SIM_DATA.EXPORT_RSOPT,
+        _SIM_DATA.ML_REPORT,
+    ):
         p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -1477,8 +1496,12 @@ def _enum_text(name, model, field):
     return ""
 
 
-def _export_rsopt_config(data):
-    return _write_rsopt_zip(data, _rsopt_jinja_context(data))
+def _export_rsopt_config(data, run_dir):
+    ctx = _rsopt_jinja_context(data)
+    if _SIM_DATA.is_for_ml(data.report):
+        _write_rsopt_files(data, run_dir, ctx)
+    else:
+        _write_rsopt_zip(data, ctx)
 
 
 def _extend_plot(
@@ -1853,7 +1876,7 @@ def _generate_beamline_optics(report, data, qcall=None):
 
 def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
     # do this before validation or arrays get turned into strings
     if is_for_rsopt:
@@ -1870,6 +1893,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         v.rs_type = "u"
     if is_for_rsopt:
         v.update(rsopt_ctx)
+        v.runInSirepo = _SIM_DATA.is_for_ml(report)
     # rsopt uses this as a lookup param so want it in one place
     v.ws_fni_desc = "file name for saving propagated single-e intensity distribution vs horizontal and vertical position"
     if report == "mirrorReport":
@@ -1890,7 +1914,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
 
 def _generate_srw_main(data, plot_reports, beamline_info):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     source_type = data.models.simulation.sourceType
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
     vp_var = "vp" if is_for_rsopt else "varParam"
@@ -2041,6 +2065,19 @@ def _load_user_model_list(model_name, qcall=None):
     return _load_user_model_list(model_name, qcall=qcall)
 
 
+def _machine_learning_percent_complete(run_dir, res):
+    res.outputInfo = [
+        PKDict(
+            filename=_SIM_DATA.ML_OUTPUT,
+        ),
+    ]
+    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    count = len(pkio.walk_tree(run_dir, "values.npy"))
+    res.frameCount = count
+    res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
+    return res
+
+
 def _parse_srw_log(run_dir):
     res = ""
     p = run_dir.join(template_common.RUN_LOG)
@@ -2186,12 +2223,24 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     return ar2d, x_range, y_range
 
 
+def _export_rsopt_files():
+    files = PKDict()
+    for t in (
+        "py",
+        "sh",
+        "yml",
+    ):
+        files[f"{t}FileName"] = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
+    files.postProcFileName = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
+    files.readmeFileName = "README.txt"
+    return files
+
+
 def _rsopt_jinja_context(data):
     import multiprocessing
 
     model = data.models[_SIM_DATA.EXPORT_RSOPT]
-    e = _process_rsopt_elements(model.elements)
-    return PKDict(
+    res = PKDict(
         fileBase=_SIM_DATA.EXPORT_RSOPT,
         forRSOpt=True,
         libFiles=_SIM_DATA.lib_file_basenames(data),
@@ -2200,15 +2249,19 @@ def _rsopt_jinja_context(data):
         numSamples=int(model.numSamples),
         outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
         randomSeed=model.randomSeed if model.randomSeed is not None else "",
-        readmeFileName="README.txt",
+        resultsFileName=_SIM_DATA.ML_OUTPUT,
         rsOptCharacteristic=model.characteristic,
-        rsOptElements=e,
+        rsOptElements=_process_rsopt_elements(model.elements),
         rsOptParams=_RSOPT_PARAMS,
-        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROT,
+        rsOptParamsNoRotation=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName="scan_results",
+        runInSirepo=data.report == _SIM_DATA.ML_REPORT,
         scanType=model.scanType,
         totalSamples=model.totalSamples,
+        zipFileName=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
     )
+    res.update(_export_rsopt_files())
+    return res
 
 
 def _rsopt_main():
@@ -2272,7 +2325,7 @@ def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
 
 def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
     (
         v.beamlineOptics,
@@ -2541,44 +2594,34 @@ def _wavefront_pickle_filename(el_id):
     return "initial.pkl"
 
 
-def _write_rsopt_zip(data, ctx):
-    def _files():
-        files = []
-        for t in (
-            "py",
-            "sh",
-            "yml",
-        ):
-            f = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
-            ctx[f"{t}FileName"] = f
-            files.append(f)
-        f = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
-        files.append(f)
-        ctx["postProcFileName"] = f
-        return files
+def _write_rsopt_files(data, run_dir, ctx):
+    for f in _export_rsopt_files().values():
+        pkio.write_text(
+            run_dir.join(f),
+            python_source_for_model(data, data.report, None, plot_reports=False)
+            if f == f"{_SIM_DATA.EXPORT_RSOPT}.py"
+            else template_common.render_jinja(SIM_TYPE, ctx, f),
+        )
 
+
+def _write_rsopt_zip(data, ctx):
     def _write(zip_file, path):
         zip_file.writestr(
             path,
-            python_source_for_model(data, model=ctx.fileBase, plot_reports=False)
+            python_source_for_model(data, data.report, None, plot_reports=False)
             if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
             else template_common.render_jinja(SIM_TYPE, ctx, path),
         )
 
     filename = f"{_SIM_DATA.EXPORT_RSOPT}.zip"
     with zipfile.ZipFile(
-        filename,
+        f"{_SIM_DATA.EXPORT_RSOPT}.zip",
         mode="w",
         compression=zipfile.ZIP_DEFLATED,
         allowZip64=True,
     ) as z:
-        # the shell script depends on the other filenames being defined
-        for f in _files():
+        for f in _export_rsopt_files().values():
             _write(z, f)
-        z.writestr(
-            ctx.readmeFileName,
-            template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName),
-        )
         for f in ctx.libFiles:
             z.write(f, f)
     return PKDict(

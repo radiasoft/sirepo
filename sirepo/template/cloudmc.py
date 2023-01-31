@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo import util
 from sirepo.template import template_common
+import numpy
 import re
 import sirepo.sim_data
 
@@ -57,6 +58,12 @@ def background_percent_complete(report, run_dir, is_running):
     return _percent_complete(run_dir, is_running)
 
 
+def extract_report_data(run_dir, sim_in):
+    # dummy result
+    if sim_in.report == "tallyReport":
+        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
+
+
 def get_data_file(run_dir, model, frame, options):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if model == "dagmcAnimation":
@@ -70,9 +77,7 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("no data file for model={model} and options={options}")
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     return _parse_run_log(run_dir)
@@ -147,7 +152,7 @@ def stateless_compute_validate_material_name(data):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, run_dir=run_dir),
     )
 
 
@@ -262,12 +267,16 @@ def _generate_materials(data):
     return res
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    res, v = template_common.generate_parameters_file(data)
-    if report == "dagmcAnimation":
+    for f in [b.basename for b in _SIM_DATA.sim_file_basenames(data)]:
+        pkio.unchecked_remove(f)
+    if report in ("dagmcAnimation", "tallyReport"):
         return ""
+    res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
+    v.simId = data.models.simulation.simulationId
+    v.statepointFilename = _statepoint_filename(data)
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
