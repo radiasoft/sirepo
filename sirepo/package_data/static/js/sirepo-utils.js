@@ -55,6 +55,20 @@ class SirepoUtils {
         return this.applyInChunks(Math.max, array, -Number.MAX_VALUE);
     }
 
+    // regular cloning etc. does not include methods on class instances
+    static copyInstance(o, excludedProperties=[]) {
+        const c = new o.constructor();
+        // NOTE: structuredClone is recommended, but not defined according to the current jslinter
+        const s = JSON.parse(JSON.stringify(o));  //structuredClone(o);
+        for (const p in s) {
+            if (excludedProperties.includes(p)) {
+                continue;
+            }
+            c[p] = s[p];
+        }
+        return c;
+    }
+
     static linearlySpacedArray(start, stop, nsteps) {
         if (nsteps < 1) {
             throw new Error("linearlySpacedArray: steps " + nsteps + " < 1");
@@ -77,6 +91,14 @@ class SirepoUtils {
         return seq.map(function (v) {
             return (v - sMin) / sRange;
         });
+    }
+
+    static randomString(length=32) {
+        const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        return new Array(length)
+            .fill('')
+            .map(x => BASE62[Math.floor(BASE62.length * Math.random())])
+            .join('');
     }
 
     static roundToPlaces(val, p) {

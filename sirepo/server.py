@@ -382,6 +382,41 @@ class API(sirepo.quest.API):
             content_type="application/json",
         )
 
+    @sirepo.quest.Spec(
+        "require_user",
+        simulation_id="SimId",
+        model="Model optional",
+        title="DownloadNamePostfix optional",
+    )
+    def api_exportJupyterNotebook2(self, simulation_type):
+        def _filename(req):
+            res = d.models.simulation.name
+            if req.title:
+                res += "-" + sirepo.srschema.parse_name(req.title)
+            return res + ".ipynb"
+
+        def _data(req):
+            f = getattr(req.template, "export_jupyter_notebook", None)
+            if not f:
+                raise sirepo.util.NotFound(f"API not supported for tempate={req.type}")
+            return f(
+                simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self),
+                qcall=self,
+            )
+
+        req = self.parse_post(
+            type=simulation_type,
+            id=True,
+            template=True,
+            compute_model=PKDict(optional=True, name="model"),
+            title=PKDict(optional=True, name="title"),
+        )
+        return self.reply_attachment(
+            _data(req),
+            filename=_filename(req),
+            content_type="application/json",
+        )
+
     @sirepo.quest.Spec("require_user", folder="FolderName", name="SimName")
     def api_newSimulation(self):
         req = self.parse_post(template=True, folder=True, name=True)
@@ -418,6 +453,31 @@ class API(sirepo.quest.API):
             req.template.python_source_for_model(d, model=m, qcall=self),
             "{}.{}".format(
                 d.models.simulation.name + ("-" + title if title else ""),
+                "madx" if m == "madx" else suffix,
+            ),
+        )
+
+    @sirepo.quest.Spec(
+        "require_user",
+        simulation_id="SimId",
+        model="ComputeModelName optional",
+        title="DownloadNamePostfix optional",
+    )
+    def api_pythonSource2(self, simulation_type):
+        req = self.parse_post(
+            type=simulation_type,
+            id=True,
+            template=True,
+            compute_model=PKDict(optional=True, name="model"),
+            title=PKDict(optional=True, name="title"),
+        )
+        m = "compute_model" in req and req.sim_data.parse_model(req.compute_model)
+        d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
+        suffix = simulation_db.get_schema(req.type).constants.simulationSourceExtension
+        return self.reply_attachment(
+            req.template.python_source_for_model(d, model=m, qcall=self),
+            "{}.{}".format(
+                d.models.simulation.name + ("-" + req.title if "title" in req else ""),
                 "madx" if m == "madx" else suffix,
             ),
         )

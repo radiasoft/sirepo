@@ -209,6 +209,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             for t in model.get("transforms", []):
                 if "model" in t:
                     t.type = t.model
+                for c in t.get("transforms", []):
+                    for ct in ("rotate", "translate"):
+                        if c.get("model") == f"{ct}Clone":
+                            c.type = ct
 
         dm = data.models
         cls._init_models(dm, None, dynamic=lambda m: cls.__dynamic_defaults(data, m))

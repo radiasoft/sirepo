@@ -77,9 +77,7 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("no data file for model={model} and options={options}")
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     return _parse_run_log(run_dir)

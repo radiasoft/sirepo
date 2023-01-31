@@ -1,0 +1,19 @@
+<div class="container-fluid" data-ng-if="ml.appState.isLoaded()">
+    <div class="row">
+      <div class="col-md-7">
+          <div data-basic-editor-panel="" data-view-name="exportRsOpt">
+          </div>
+      </div>
+      <div class="col-md-5">
+          <div data-basic-editor-panel="" data-view-name="machineLearningAnimation">
+              <div data-sim-status-panel="ml.simState"></div>
+              <div style="padding: 5px; vertical-align: middle;" data-ng-show="ml.simState.isStateCompleted()">
+                <a style="position: relative;" href="{{ ml.resultsFileURL() }}" target="_blank">{{ ml.resultsFile }}</a>
+                <div class="col-sm-6 pull-right">
+                  <button class="btn btn-default" data-ng-click="ml.createActivaitSimulation()">Open in Activait</button>
+                </div>
+              </div>
+          </div>
+      </div>
+    </div>
+</div>
