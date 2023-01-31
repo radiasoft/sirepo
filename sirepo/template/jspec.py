@@ -223,24 +223,25 @@ def sim_frame_particleAnimation(frame_args):
     )
     if time > settings.time:
         time = settings.time
+
     x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
     if x_col.err:
         return x_col.err
-    x = x_col["values"]
     y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
     if y_col.err:
         return y_col.err
-    y = y_col["values"]
+
     model = data.models.particleAnimation
     model.update(frame_args)
-    return template_common.heatmap(
-        [x, y],
-        model,
-        {
-            "x_label": _field_label(xfield, x_col.column_def),
-            "y_label": _field_label(yfield, y_col.column_def),
-            "title": "Ions at time {:.2f} [s]".format(time),
-        },
+
+    return sdds_util.SDDSUtil(filename).heatmap(
+        PKDict(
+            values=[x_col["values"], y_col["values"]],
+            model=model,
+            title="Ions at time {:.2f} [s]".format(time),
+            x_label=_field_label(xfield, x_col.column_def),
+            y_label=_field_label(yfield, y_col.column_def),
+        )
     )
 
 

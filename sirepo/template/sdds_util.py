@@ -48,7 +48,15 @@ class SDDSUtil:
 
     # where plot_attrs is a PKDict of values, x, x_label, title, ...
     def heatmap(self, plot_attrs):
-        pass
+        return template_common.heatmap(
+            values=plot_attrs.values,
+            model=plot_attrs.model,
+            plot_fields={
+                "x_label": plot_attrs.x_label,
+                "y_label": plot_attrs.y_label,
+                "title": plot_attrs.title,
+            },
+        )
 
     def lineplot(self, plot_attrs):
         x = None
