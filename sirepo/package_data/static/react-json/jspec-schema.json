@@ -963,213 +963,236 @@
                 "icon": "",
                 "items": [
                   {
-                    "layout": "panel",
+                    "layout": "masonry",
                     "config": {
-                      "name": "ionBeam",
-                      "title": "Ion Beam",
-                      "basic": [
-                        {
-                          "layout": "fieldList",
-                          "config": {
-                            "fields": [
-                              "ionBeam.particle",
-                              "ionBeam.charge_number",
-                              "ionBeam.mass",
-                              "ionBeam.kinetic_energy",
-                              "ionBeam.momentum_spread",
-                              "ionBeam.particle_number",
-                              "ionBeam.beam_type",
-                              "ionBeam.rms_bunch_length"
-                            ]
-                          }
+                        "breakpoints": {
+                            "xs": 1,
+                            "sm": 2,
+                            "lg": 3
                         },
-                        {
-                          "layout": "fieldTable",
-                          "config": {
-                            "columns": ["Horizontal", "Vertical"],
-                            "rows": [
-                              {
-                                "label": "RMS Normalized Emittance [m*rad]",
-                                "fields": [
-                                  "ionBeam.norm_emit_x",
-                                  "ionBeam.norm_emit_y"
-                                ]
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "coolingAndIBS",
-                      "title": "Cooling and Intrabeam Scattering",
-                      "basic": [
-                        {
-                          "layout": "tabs",
-                          "config": {
-                            "tabs": [
-                              {
-                                "name": "Electron Cooling",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "electronCoolingRate.sample_number",
-                                        "electronCoolingRate.force_formula"
-                                      ]
-                                    }
-                                  }
-                                ]
-                              },
-                              {
-                                "name": "Intrabeam Scattering",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "intrabeamScatteringRate.ibs_model",
-                                        "intrabeamScatteringRate.nu",
-                                        "intrabeamScatteringRate.nv",
-                                        "intrabeamScatteringRate.longitudinalMethod",
-                                        "intrabeamScatteringRate.nz",
-                                        "intrabeamScatteringRate.log_c",
-                                        "intrabeamScatteringRate.coupling"
-                                      ]
-                                    }
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "title": "Rate Calculation Report",
-                      "basic": [
-                        {
-                          "layout": "autoRunReport",
-                          "config": {
-                            "report": "rateCalculationReport",
-                            "dependencies": [
-                              "ionBeam.*",
-                              "intrabeamScatteringRate.*",
-                              "electronCoolingRate.*",
-                              "ring.*",
-                              "simulationSettings.*",
-                              "electronBeam.*",
-                              "cooler.*"
-                            ],
-                            "reportLayout": {
-                              "layout": "table",
-                              "config": { "dataAttributeName": "rate" }
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "ring",
-                      "title": "Ring",
-                      "basic": [
-                        {
-                          "layout": "fieldList",
-                          "config": {
-                            "fields": [
-                              "ring.latticeSource",
-                              "ring.lattice",
-                              "ring.elegantTwiss",
-                              "ring.elegantSirepo"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "electronBeam",
-                      "title": "Cooling Electron Beam",
-                      "basic": [
-                        {
-                          "layout": "fieldList",
-                          "config": {
-                            "fields": [
-                              "electronBeam.gamma",
-                              "electronBeam.tmp_tr",
-                              "electronBeam.tmp_l",
-                              "electronBeam.beam_type",
-                              "electronBeam.shape",
-                              "electronBeam.radius",
-                              "electronBeam.rh",
-                              "electronBeam.rv",
-                              "electronBeam.current",
-                              "electronBeam.sigma_x",
-                              "electronBeam.sigma_y",
-                              "electronBeam.sigma_z",
-                              "electronBeam.length",
-                              "electronBeam.e_number"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "cooler",
-                      "title": "Cooler",
-                      "basic": [
-                        {
-                          "layout": "fieldList",
-                          "config": {
-                            "fields": [
-                              "cooler.length",
-                              "cooler.section_number",
-                              "cooler.magnetic_field"
-                            ]
-                          }
+                        "gutters": {
+                            "horizontal": ".5em",
+                            "vertical": ".5em"
                         },
-                        {
-                          "layout": "fieldTable",
-                          "config": {
-                            "columns": ["Horizontal", "Vertical"],
-                            "rows": [
-                              {
-                                "label": "Beta [m]",
-                                "description": "Beta function",
-                                "fields": ["cooler.bet_x", "cooler.bet_y"]
+                        "items": [
+                            {
+                                "layout": "panel",
+                                "config": {
+                                  "name": "ionBeam",
+                                  "title": "Ion Beam",
+                                  "basic": [
+                                    {
+                                      "layout": "fieldList",
+                                      "config": {
+                                        "fields": [
+                                          "ionBeam.particle",
+                                          "ionBeam.charge_number",
+                                          "ionBeam.mass",
+                                          "ionBeam.kinetic_energy",
+                                          "ionBeam.momentum_spread",
+                                          "ionBeam.particle_number",
+                                          "ionBeam.beam_type",
+                                          "ionBeam.rms_bunch_length"
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "layout": "fieldTable",
+                                      "config": {
+                                        "columns": ["Horizontal", "Vertical"],
+                                        "rows": [
+                                          {
+                                            "label": "RMS Normalized Emittance [m*rad]",
+                                            "fields": [
+                                              "ionBeam.norm_emit_x",
+                                              "ionBeam.norm_emit_y"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
                               },
                               {
-                                "label": "Dispersion [m]",
-                                "fields": ["cooler.disp_x", "cooler.disp_y"]
+                                "layout": "panel",
+                                "config": {
+                                  "name": "coolingAndIBS",
+                                  "title": "Cooling and Intrabeam Scattering",
+                                  "basic": [
+                                    {
+                                      "layout": "tabs",
+                                      "config": {
+                                        "tabs": [
+                                          {
+                                            "name": "Electron Cooling",
+                                            "items": [
+                                              {
+                                                "layout": "fieldList",
+                                                "config": {
+                                                  "fields": [
+                                                    "electronCoolingRate.sample_number",
+                                                    "electronCoolingRate.force_formula"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "name": "Intrabeam Scattering",
+                                            "items": [
+                                              {
+                                                "layout": "fieldList",
+                                                "config": {
+                                                  "fields": [
+                                                    "intrabeamScatteringRate.ibs_model",
+                                                    "intrabeamScatteringRate.nu",
+                                                    "intrabeamScatteringRate.nv",
+                                                    "intrabeamScatteringRate.longitudinalMethod",
+                                                    "intrabeamScatteringRate.nz",
+                                                    "intrabeamScatteringRate.log_c",
+                                                    "intrabeamScatteringRate.coupling"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
                               },
                               {
-                                "label": "Alpha",
-                                "fields": ["cooler.alpha_x", "cooler.alpha_y"]
+                                "layout": "panel",
+                                "config": {
+                                  "title": "Rate Calculation Report",
+                                  "basic": [
+                                    {
+                                      "layout": "autoRunReport",
+                                      "config": {
+                                        "report": "rateCalculationReport",
+                                        "dependencies": [
+                                          "ionBeam.*",
+                                          "intrabeamScatteringRate.*",
+                                          "electronCoolingRate.*",
+                                          "ring.*",
+                                          "simulationSettings.*",
+                                          "electronBeam.*",
+                                          "cooler.*"
+                                        ],
+                                        "reportLayout": {
+                                          "layout": "table",
+                                          "config": { "dataAttributeName": "rate" }
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
                               },
                               {
-                                "label": "Dispersion Derivative",
-                                "description": "Derivative of dispersion",
-                                "fields": ["cooler.disp_dx", "cooler.disp_dy"]
+                                "layout": "panel",
+                                "config": {
+                                  "name": "ring",
+                                  "title": "Ring",
+                                  "basic": [
+                                    {
+                                      "layout": "fieldList",
+                                      "config": {
+                                        "fields": [
+                                          "ring.latticeSource",
+                                          "ring.lattice",
+                                          "ring.elegantTwiss",
+                                          "ring.elegantSirepo"
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "layout": "panel",
+                                "config": {
+                                  "name": "electronBeam",
+                                  "title": "Cooling Electron Beam",
+                                  "basic": [
+                                    {
+                                      "layout": "fieldList",
+                                      "config": {
+                                        "fields": [
+                                          "electronBeam.gamma",
+                                          "electronBeam.tmp_tr",
+                                          "electronBeam.tmp_l",
+                                          "electronBeam.beam_type",
+                                          "electronBeam.shape",
+                                          "electronBeam.radius",
+                                          "electronBeam.rh",
+                                          "electronBeam.rv",
+                                          "electronBeam.current",
+                                          "electronBeam.sigma_x",
+                                          "electronBeam.sigma_y",
+                                          "electronBeam.sigma_z",
+                                          "electronBeam.length",
+                                          "electronBeam.e_number"
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "layout": "panel",
+                                "config": {
+                                  "name": "cooler",
+                                  "title": "Cooler",
+                                  "basic": [
+                                    {
+                                        "layout": "vStack",
+                                        "config": {
+                                            "items": [
+                                                {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "cooler.length",
+                                                        "cooler.section_number",
+                                                        "cooler.magnetic_field"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "layout": "fieldTable",
+                                                    "config": {
+                                                      "columns": ["Horizontal", "Vertical"],
+                                                      "rows": [
+                                                        {
+                                                          "label": "Beta [m]",
+                                                          "description": "Beta function",
+                                                          "fields": ["cooler.bet_x", "cooler.bet_y"]
+                                                        },
+                                                        {
+                                                          "label": "Dispersion [m]",
+                                                          "fields": ["cooler.disp_x", "cooler.disp_y"]
+                                                        },
+                                                        {
+                                                          "label": "Alpha",
+                                                          "fields": ["cooler.alpha_x", "cooler.alpha_y"]
+                                                        },
+                                                        {
+                                                          "label": "Dispersion Derivative",
+                                                          "description": "Derivative of dispersion",
+                                                          "fields": ["cooler.disp_dx", "cooler.disp_dy"]
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                            ]
+                                        }
+                                    }
+                                  ]
+                                }
                               }
-                            ]
-                          }
-                        }
-                      ]
+                        ]
                     }
                   }
                 ]
@@ -1179,441 +1202,458 @@
                 "title": "Visualization",
                 "icon": "",
                 "items": [
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "simulationSettings",
-                      "title": "Simulation Settings",
-                      "basic": [
-                        {
-                          "layout": "fieldList",
-                          "config": {
-                            "fields": [
-                              "simulationSettings.time",
-                              "simulationSettings.step_number",
-                              "simulationSettings.time_step",
-                              "simulationSettings.model",
-                              "simulationSettings.save_particle_interval",
-                              "electronCoolingRate.sample_number",
-                              "simulationSettings.ibs",
-                              "simulationSettings.e_cool"
-                            ]
-                          }
-                        },
-                        {
-                          "layout": "fieldTable",
-                          "config": {
-                            "shown": "$(simulationSettings.model) == 'particle' && $(simulationSettings.e_cool) == '0'",
-                            "columns": ["Horizontal", "Vertical"],
-                            "rows": [
-                              {
-                                "label": "Beta Reference Point",
-                                "fields": [
-                                  "simulationSettings.ref_bet_x",
-                                  "simulationSettings.ref_bet_y"
-                                ]
-                              },
-                              {
-                                "label": "Alpha Reference Point",
-                                "fields": [
-                                  "simulationSettings.ref_alf_x",
-                                  "simulationSettings.ref_alf_y"
-                                ]
-                              },
-                              {
-                                "label": "Dispersion Reference Point",
-                                "fields": [
-                                  "simulationSettings.ref_disp_x",
-                                  "simulationSettings.ref_disp_y"
-                                ]
-                              },
-                              {
-                                "label": "Dispersion Derivative Reference Point",
-                                "fields": [
-                                  "simulationSettings.ref_disp_dx",
-                                  "simulationSettings.ref_disp_dy"
-                                ]
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "simulationStatus",
-                      "title": "Simulation Status",
-                      "basic": [
-                        {
-                          "layout": "startSimulation",
-                          "config": { "reportGroupName": "animation" }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "beamEvolutionAnimation",
-                      "title": "RMS Ion Beam Evolution",
-                      "basic": [
-                        {
-                          "layout": "manualRunReport",
-                          "config": {
-                            "reportGroupName": "animation",
-                            "reportName": "beamEvolutionAnimation",
-                            "frameIdFields": [
-                              "beamEvolutionAnimation.y1",
-                              "beamEvolutionAnimation.y2",
-                              "beamEvolutionAnimation.y3",
-                              "beamEvolutionAnimation.plotRangeType",
-                              "beamEvolutionAnimation.horizontalSize",
-                              "beamEvolutionAnimation.horizontalOffset",
-                              "beamEvolutionAnimation.verticalSize",
-                              "beamEvolutionAnimation.verticalOffset"
-                            ],
-                            "reportLayout": { "layout": "graph2d", "config": {} }
-                          }
-                        }
-                      ],
-                      "advanced": [
-                        {
-                          "layout": "tabs",
-                          "config": {
-                            "tabs": [
-                              {
-                                "name": "Main",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
+                    {
+                        "layout": "masonry",
+                        "config": {
+                            "breakpoints": {
+                                "xs": 1,
+                                "sm": 2,
+                                "lg": 3
+                            },
+                            "gutters": {
+                                "horizontal": ".5em",
+                                "vertical": ".5em"
+                            },
+                            "items": [
+                                {
+                                    "layout": "panel",
                                     "config": {
-                                      "fields": [
-                                        "beamEvolutionAnimation.y1",
-                                        "beamEvolutionAnimation.y2",
-                                        "beamEvolutionAnimation.y3",
-                                        "beamEvolutionAnimation.notes"
-                                      ]
-                                    }
-                                  }
-                                ]
-                              },
-                              {
-                                "name": "Plot Range",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "beamEvolutionAnimation.plotRangeType"
+                                      "name": "simulationSettings",
+                                      "title": "Simulation Settings",
+                                      "basic": [
+                                        {
+                                          "layout": "fieldList",
+                                          "config": {
+                                            "fields": [
+                                              "simulationSettings.time",
+                                              "simulationSettings.step_number",
+                                              "simulationSettings.time_step",
+                                              "simulationSettings.model",
+                                              "simulationSettings.save_particle_interval",
+                                              "electronCoolingRate.sample_number",
+                                              "simulationSettings.ibs",
+                                              "simulationSettings.e_cool"
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "layout": "fieldTable",
+                                          "config": {
+                                            "shown": "$(simulationSettings.model) == 'particle' && $(simulationSettings.e_cool) == '0'",
+                                            "columns": ["Horizontal", "Vertical"],
+                                            "rows": [
+                                              {
+                                                "label": "Beta Reference Point",
+                                                "fields": [
+                                                  "simulationSettings.ref_bet_x",
+                                                  "simulationSettings.ref_bet_y"
+                                                ]
+                                              },
+                                              {
+                                                "label": "Alpha Reference Point",
+                                                "fields": [
+                                                  "simulationSettings.ref_alf_x",
+                                                  "simulationSettings.ref_alf_y"
+                                                ]
+                                              },
+                                              {
+                                                "label": "Dispersion Reference Point",
+                                                "fields": [
+                                                  "simulationSettings.ref_disp_x",
+                                                  "simulationSettings.ref_disp_y"
+                                                ]
+                                              },
+                                              {
+                                                "label": "Dispersion Derivative Reference Point",
+                                                "fields": [
+                                                  "simulationSettings.ref_disp_dx",
+                                                  "simulationSettings.ref_disp_dy"
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        }
                                       ]
                                     }
                                   },
                                   {
-                                    "layout": "fieldTable",
+                                    "layout": "panel",
                                     "config": {
-                                      "columns": ["Horizontal", "Vertical"],
-                                      "rows": [
+                                      "name": "simulationStatus",
+                                      "title": "Simulation Status",
+                                      "basic": [
                                         {
-                                          "label": "Size",
-                                          "fields": [
-                                            "beamEvolutionAnimation.horizontalSize",
-                                            "beamEvolutionAnimation.verticalSize"
-                                          ]
-                                        },
-                                        {
-                                          "label": "Offset",
-                                          "fields": [
-                                            "beamEvolutionAnimation.horizontalOffset",
-                                            "beamEvolutionAnimation.verticalOffset"
-                                          ]
+                                          "layout": "startSimulation",
+                                          "config": { "reportGroupName": "animation" }
                                         }
-                                      ]
-                                    }
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "coolingRatesAnimation",
-                      "title": "IBS & Cooling Rates",
-                      "basic": [
-                        {
-                          "layout": "manualRunReport",
-                          "config": {
-                            "reportGroupName": "animation",
-                            "reportName": "coolingRatesAnimation",
-                            "frameIdFields": [
-                              "coolingRatesAnimation.y1",
-                              "coolingRatesAnimation.y2",
-                              "coolingRatesAnimation.y3",
-                              "coolingRatesAnimation.plotRangeType",
-                              "coolingRatesAnimation.horizontalSize",
-                              "coolingRatesAnimation.horizontalOffset",
-                              "coolingRatesAnimation.verticalSize",
-                              "coolingRatesAnimation.verticalOffset"
-                            ],
-                            "reportLayout": { "layout": "graph2d", "config": {} }
-                          }
-                        }
-                      ],
-                      "advanced": [
-                        {
-                          "layout": "tabs",
-                          "config": {
-                            "tabs": [
-                              {
-                                "name": "Main",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "coolingRatesAnimation.y1",
-                                        "coolingRatesAnimation.y2",
-                                        "coolingRatesAnimation.y3",
-                                        "coolingRatesAnimation.notes"
-                                      ]
-                                    }
-                                  }
-                                ]
-                              },
-                              {
-                                "name": "Plot Range",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "coolingRatesAnimation.plotRangeType"
                                       ]
                                     }
                                   },
                                   {
-                                    "layout": "fieldTable",
+                                    "layout": "panel",
                                     "config": {
-                                      "columns": ["Horizontal", "Vertical"],
-                                      "rows": [
+                                      "name": "beamEvolutionAnimation",
+                                      "title": "RMS Ion Beam Evolution",
+                                      "basic": [
                                         {
-                                          "label": "Size",
-                                          "fields": [
-                                            "coolingRatesAnimation.horizontalSize",
-                                            "coolingRatesAnimation.verticalSize"
-                                          ]
-                                        },
-                                        {
-                                          "label": "Offset",
-                                          "fields": [
-                                            "coolingRatesAnimation.horizontalOffset",
-                                            "coolingRatesAnimation.verticalOffset"
-                                          ]
+                                          "layout": "manualRunReport",
+                                          "config": {
+                                            "reportGroupName": "animation",
+                                            "reportName": "beamEvolutionAnimation",
+                                            "frameIdFields": [
+                                              "beamEvolutionAnimation.y1",
+                                              "beamEvolutionAnimation.y2",
+                                              "beamEvolutionAnimation.y3",
+                                              "beamEvolutionAnimation.plotRangeType",
+                                              "beamEvolutionAnimation.horizontalSize",
+                                              "beamEvolutionAnimation.horizontalOffset",
+                                              "beamEvolutionAnimation.verticalSize",
+                                              "beamEvolutionAnimation.verticalOffset"
+                                            ],
+                                            "reportLayout": { "layout": "graph2d", "config": {} }
+                                          }
                                         }
-                                      ]
-                                    }
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "forceTableAnimation",
-                      "title": "Friction Force",
-                      "basic": [
-                        {
-                          "layout": "manualRunReport",
-                          "config": {
-                            "reportGroupName": "animation",
-                            "reportName": "forceTableAnimation",
-                            "frameIdFields": [
-                              "forceTableAnimation.x",
-                              "forceTableAnimation.y1",
-                              "forceTableAnimation.forceScale",
-                              "forceTableAnimation.plotRangeType",
-                              "forceTableAnimation.horizontalSize",
-                              "forceTableAnimation.horizontalOffset",
-                              "forceTableAnimation.verticalSize",
-                              "forceTableAnimation.verticalOffset"
-                            ],
-                            "reportLayout": { "layout": "graph2d", "config": {} }
-                          }
-                        }
-                      ],
-                      "advanced": [
-                        {
-                          "layout": "tabs",
-                          "config": {
-                            "tabs": [
-                              {
-                                "name": "Main",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "forceTableAnimation.plot",
-                                        "forceTableAnimation.forceScale",
-                                        "forceTableAnimation.notes"
-                                      ]
-                                    }
-                                  }
-                                ]
-                              },
-                              {
-                                "name": "Plot Range",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "forceTableAnimation.plotRangeType"
+                                      ],
+                                      "advanced": [
+                                        {
+                                          "layout": "tabs",
+                                          "config": {
+                                            "tabs": [
+                                              {
+                                                "name": "Main",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "beamEvolutionAnimation.y1",
+                                                        "beamEvolutionAnimation.y2",
+                                                        "beamEvolutionAnimation.y3",
+                                                        "beamEvolutionAnimation.notes"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "name": "Plot Range",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "beamEvolutionAnimation.plotRangeType"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "layout": "fieldTable",
+                                                    "config": {
+                                                      "columns": ["Horizontal", "Vertical"],
+                                                      "rows": [
+                                                        {
+                                                          "label": "Size",
+                                                          "fields": [
+                                                            "beamEvolutionAnimation.horizontalSize",
+                                                            "beamEvolutionAnimation.verticalSize"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "label": "Offset",
+                                                          "fields": [
+                                                            "beamEvolutionAnimation.horizontalOffset",
+                                                            "beamEvolutionAnimation.verticalOffset"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        }
                                       ]
                                     }
                                   },
                                   {
-                                    "layout": "fieldTable",
+                                    "layout": "panel",
                                     "config": {
-                                      "columns": ["Horizontal", "Vertical"],
-                                      "rows": [
+                                      "name": "coolingRatesAnimation",
+                                      "title": "IBS & Cooling Rates",
+                                      "basic": [
                                         {
-                                          "label": "Size",
-                                          "fields": [
-                                            "forceTableAnimation.horizontalSize",
-                                            "forceTableAnimation.verticalSize"
-                                          ]
-                                        },
+                                          "layout": "manualRunReport",
+                                          "config": {
+                                            "reportGroupName": "animation",
+                                            "reportName": "coolingRatesAnimation",
+                                            "frameIdFields": [
+                                              "coolingRatesAnimation.y1",
+                                              "coolingRatesAnimation.y2",
+                                              "coolingRatesAnimation.y3",
+                                              "coolingRatesAnimation.plotRangeType",
+                                              "coolingRatesAnimation.horizontalSize",
+                                              "coolingRatesAnimation.horizontalOffset",
+                                              "coolingRatesAnimation.verticalSize",
+                                              "coolingRatesAnimation.verticalOffset"
+                                            ],
+                                            "reportLayout": { "layout": "graph2d", "config": {} }
+                                          }
+                                        }
+                                      ],
+                                      "advanced": [
                                         {
-                                          "label": "Offset",
-                                          "fields": [
-                                            "forceTableAnimation.horizontalOffset",
-                                            "forceTableAnimation.verticalOffset"
-                                          ]
+                                          "layout": "tabs",
+                                          "config": {
+                                            "tabs": [
+                                              {
+                                                "name": "Main",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "coolingRatesAnimation.y1",
+                                                        "coolingRatesAnimation.y2",
+                                                        "coolingRatesAnimation.y3",
+                                                        "coolingRatesAnimation.notes"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "name": "Plot Range",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "coolingRatesAnimation.plotRangeType"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "layout": "fieldTable",
+                                                    "config": {
+                                                      "columns": ["Horizontal", "Vertical"],
+                                                      "rows": [
+                                                        {
+                                                          "label": "Size",
+                                                          "fields": [
+                                                            "coolingRatesAnimation.horizontalSize",
+                                                            "coolingRatesAnimation.verticalSize"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "label": "Offset",
+                                                          "fields": [
+                                                            "coolingRatesAnimation.horizontalOffset",
+                                                            "coolingRatesAnimation.verticalOffset"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
                                         }
                                       ]
-                                    }
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "particleAnimation",
-                      "title": "Ion Particle Animation",
-                      "basic": [
-                        {
-                          "layout": "manualRunReport",
-                          "config": {
-                            "reportGroupName": "animation",
-                            "reportName": "particleAnimation",
-                            "shown": "$(simulationSettings.model) == 'particle'",
-                            "frameIdFields": [
-                              "particleAnimation.x",
-                              "particleAnimation.y",
-                              "particleAnimation.histogramBins",
-                              "particleAnimation.plotRangeType",
-                              "particleAnimation.horizontalSize",
-                              "particleAnimation.horizontalOffset",
-                              "particleAnimation.verticalSize",
-                              "particleAnimation.verticalOffset"
-                            ],
-                            "reportLayout": { "layout": "heatplot", "config": {} }
-                          }
-                        }
-                      ],
-                      "advanced": [
-                        {
-                          "layout": "tabs",
-                          "config": {
-                            "tabs": [
-                              {
-                                "name": "Main",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "particleAnimation.x",
-                                        "particleAnimation.y",
-                                        "particleAnimation.histogramBins",
-                                        "particleAnimation.framesPerSecond"
-                                      ]
-                                    }
-                                  }
-                                ]
-                              },
-                              {
-                                "name": "Plot Range",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": ["particleAnimation.plotRangeType"]
                                     }
                                   },
                                   {
-                                    "layout": "fieldTable",
+                                    "layout": "panel",
                                     "config": {
-                                      "columns": ["Horizontal", "Vertical"],
-                                      "rows": [
+                                      "name": "forceTableAnimation",
+                                      "title": "Friction Force",
+                                      "basic": [
                                         {
-                                          "label": "Size",
-                                          "fields": [
-                                            "particleAnimation.horizontalSize",
-                                            "particleAnimation.verticalSize"
-                                          ]
-                                        },
+                                          "layout": "manualRunReport",
+                                          "config": {
+                                            "reportGroupName": "animation",
+                                            "reportName": "forceTableAnimation",
+                                            "frameIdFields": [
+                                              "forceTableAnimation.x",
+                                              "forceTableAnimation.y1",
+                                              "forceTableAnimation.forceScale",
+                                              "forceTableAnimation.plotRangeType",
+                                              "forceTableAnimation.horizontalSize",
+                                              "forceTableAnimation.horizontalOffset",
+                                              "forceTableAnimation.verticalSize",
+                                              "forceTableAnimation.verticalOffset"
+                                            ],
+                                            "reportLayout": { "layout": "graph2d", "config": {} }
+                                          }
+                                        }
+                                      ],
+                                      "advanced": [
                                         {
-                                          "label": "Offset",
-                                          "fields": [
-                                            "particleAnimation.horizontalOffset",
-                                            "particleAnimation.verticalOffset"
-                                          ]
+                                          "layout": "tabs",
+                                          "config": {
+                                            "tabs": [
+                                              {
+                                                "name": "Main",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "forceTableAnimation.plot",
+                                                        "forceTableAnimation.forceScale",
+                                                        "forceTableAnimation.notes"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "name": "Plot Range",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "forceTableAnimation.plotRangeType"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "layout": "fieldTable",
+                                                    "config": {
+                                                      "columns": ["Horizontal", "Vertical"],
+                                                      "rows": [
+                                                        {
+                                                          "label": "Size",
+                                                          "fields": [
+                                                            "forceTableAnimation.horizontalSize",
+                                                            "forceTableAnimation.verticalSize"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "label": "Offset",
+                                                          "fields": [
+                                                            "forceTableAnimation.horizontalOffset",
+                                                            "forceTableAnimation.verticalOffset"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "layout": "panel",
+                                    "config": {
+                                      "name": "particleAnimation",
+                                      "title": "Ion Particle Animation",
+                                      "basic": [
+                                        {
+                                          "layout": "manualRunReport",
+                                          "config": {
+                                            "reportGroupName": "animation",
+                                            "reportName": "particleAnimation",
+                                            "shown": "$(simulationSettings.model) == 'particle'",
+                                            "frameIdFields": [
+                                              "particleAnimation.x",
+                                              "particleAnimation.y",
+                                              "particleAnimation.histogramBins",
+                                              "particleAnimation.plotRangeType",
+                                              "particleAnimation.horizontalSize",
+                                              "particleAnimation.horizontalOffset",
+                                              "particleAnimation.verticalSize",
+                                              "particleAnimation.verticalOffset"
+                                            ],
+                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                          }
+                                        }
+                                      ],
+                                      "advanced": [
+                                        {
+                                          "layout": "tabs",
+                                          "config": {
+                                            "tabs": [
+                                              {
+                                                "name": "Main",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "particleAnimation.x",
+                                                        "particleAnimation.y",
+                                                        "particleAnimation.histogramBins",
+                                                        "particleAnimation.framesPerSecond"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "name": "Plot Range",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": ["particleAnimation.plotRangeType"]
+                                                    }
+                                                  },
+                                                  {
+                                                    "layout": "fieldTable",
+                                                    "config": {
+                                                      "columns": ["Horizontal", "Vertical"],
+                                                      "rows": [
+                                                        {
+                                                          "label": "Size",
+                                                          "fields": [
+                                                            "particleAnimation.horizontalSize",
+                                                            "particleAnimation.verticalSize"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "label": "Offset",
+                                                          "fields": [
+                                                            "particleAnimation.horizontalOffset",
+                                                            "particleAnimation.verticalOffset"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "name": "Color",
+                                                "items": [
+                                                  {
+                                                    "layout": "fieldList",
+                                                    "config": {
+                                                      "fields": [
+                                                        "particleAnimation.colorRangeType",
+                                                        "particleAnimation.colorMin",
+                                                        "particleAnimation.colorMax"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
                                         }
                                       ]
                                     }
                                   }
-                                ]
-                              },
-                              {
-                                "name": "Color",
-                                "items": [
-                                  {
-                                    "layout": "fieldList",
-                                    "config": {
-                                      "fields": [
-                                        "particleAnimation.colorRangeType",
-                                        "particleAnimation.colorMin",
-                                        "particleAnimation.colorMax"
-                                      ]
-                                    }
-                                  }
-                                ]
-                              }
                             ]
-                          }
                         }
-                      ]
                     }
-                  }
+                  
                 ]
               }
             ]

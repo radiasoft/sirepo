@@ -647,48 +647,70 @@
                                             }
                                         },
                                         {
-                                            "layout": "text",
+                                            "layout": "hStack",
                                             "config": {
-                                                "type": "header",
-                                                "align": "center",
-                                                "text": "R"
-                                            }
-                                        },
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "simulationGrid.rScale",
-                                                    "simulationGrid.rLength",
-                                                    "simulationGrid.rMin",
-                                                    "simulationGrid.rMax",
-                                                    "simulationGrid.rCellsPerSpotSize",
-                                                    "simulationGrid.rCellResolution",
-                                                    "simulationGrid.rCount",
-                                                    "simulationGrid.rParticlesPerCell"
-                                                ]
-                                            }
-                                        },
-                                        {
-                                            "layout": "text",
-                                            "config": {
-                                                "type": "header",
-                                                "align": "center",
-                                                "text": "Z"
-                                            }
-                                        },
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "simulationGrid.zScale",
-                                                    "simulationGrid.zLength",
-                                                    "simulationGrid.zMin",
-                                                    "simulationGrid.zMax",
-                                                    "simulationGrid.zCellsPerWavelength",
-                                                    "simulationGrid.zCellResolution",
-                                                    "simulationGrid.zCount",
-                                                    "simulationGrid.zParticlesPerCell"
+                                                "items": [
+                                                    {
+                                                        "layout": "vStack",
+                                                        "config": {
+                                                            "items": [
+                                                                {
+                                                                    "layout": "text",
+                                                                    "config": {
+                                                                        "type": "header",
+                                                                        "align": "center",
+                                                                        "text": "R"
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "fieldList",
+                                                                    "config": {
+                                                                        "fields": [
+                                                                            "simulationGrid.rScale",
+                                                                            "simulationGrid.rLength",
+                                                                            "simulationGrid.rMin",
+                                                                            "simulationGrid.rMax",
+                                                                            "simulationGrid.rCellsPerSpotSize",
+                                                                            "simulationGrid.rCellResolution",
+                                                                            "simulationGrid.rCount",
+                                                                            "simulationGrid.rParticlesPerCell"
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "layout": "vStack",
+                                                        "config": {
+                                                            "items": [
+                                                                {
+                                                                    "layout": "text",
+                                                                    "config": {
+                                                                        "type": "header",
+                                                                        "align": "center",
+                                                                        "text": "Z"
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "fieldList",
+                                                                    "config": {
+                                                                        "fields": [
+                                                                            "simulationGrid.zScale",
+                                                                            "simulationGrid.zLength",
+                                                                            "simulationGrid.zMin",
+                                                                            "simulationGrid.zMax",
+                                                                            "simulationGrid.zCellsPerWavelength",
+                                                                            "simulationGrid.zCellResolution",
+                                                                            "simulationGrid.zCount",
+                                                                            "simulationGrid.zParticlesPerCell"
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            ]                                                                
+                                                        }
+                                                    }
+                                                    
                                                 ]
                                             }
                                         }

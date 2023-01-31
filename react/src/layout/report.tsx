@@ -162,8 +162,13 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         let [animationReader, updateAnimationReader] = useState<AnimationReader>(undefined);
 
         useEffect(() => {
+            let s = animationReader && animationReader.frameCount > 0 && shown;
+            panelController.setShown(s);
+        }, [shown, animationReader?.frameCount])
+
+        /*useEffect(() => {
             panelController.setShown(false);
-        }, [0])
+        }, [0])*/
 
         useEffect(() => {
             reportEventManager.addListener(reportEventsVersionRef.current, reportGroupName, {
@@ -175,7 +180,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                     simulationInfoPromise.then(({simulationId}) => {
                         let { computeJobHash, computeJobSerial } = simulationData;
                         const s = this._reportStatus(reportName, simulationData);
-                        if (s.frameCount !== animationReader?.frameCount) {
+                        if (!animationReader || s.frameCount !== animationReader?.frameCount) {
                             if (s.frameCount > 0) {
                                 let newAnimationReader = new AnimationReader(routeHelper, {
                                     reportName,
@@ -206,7 +211,9 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                     })
                 }
             })
-            return () => reportEventManager.clearListenersForKey(reportEventsVersionRef.current);
+            return () => {
+                reportEventManager.clearListenersForKey(reportEventsVersionRef.current)
+            };
         })
 
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
@@ -232,11 +239,6 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
         animationReader.seekEnd();
         animationReader.getNextFrame().then(reportDataCallback);
     }, [animationReader?.frameCount])
-
-    useEffect(() => {
-        let s = animationReader && animationReader.frameCount > 0 && shown && !!currentFrame && reportLayout.canShow(currentFrame?.data);
-        panelController.setShown(s);
-    }, [shown, !!currentFrame, animationReader?.frameCount])
 
     let animationControlButtons = (
         <div className="d-flex flex-row justify-content-center w-100 gap-1">
