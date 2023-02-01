@@ -11,7 +11,7 @@ type ColorBarProps = {
 }
 
 export function ColorBar({ range, height, colorMap }: ColorBarProps) {
-    const colorbarScale = createColorScale({ min: 0, max: 1} , colorMap);
+    const colorbarScale = createColorScale({ min: 1, max: height} , colorMap);
     const width = 30;
     return (
         <>
@@ -22,7 +22,7 @@ export function ColorBar({ range, height, colorMap }: ColorBarProps) {
                         width={width}
                         height="1"
                         y={y}
-                        fill={colorbarScale(1 - y / height) as string}
+                        fill={colorbarScale(height - y) as string}
                     >
                     </rect>
                 ))

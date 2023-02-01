@@ -64,8 +64,11 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
 
 export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix, dataId}: HeatPlotConfig) {
     const ref = useRef(null);
+    //TODO(pjm): use colormap from reportName model
+    let colorMap = 'viridis';
+    const showColorBar = colorMap !== 'contrast';
     //TODO(pjm): use props.aspectRatio if present
-    const gc = useGraphContentBounds(ref, 1, 90);
+    const gc = useGraphContentBounds(ref, 1, showColorBar ? 90 : 0);
     if (! xRange) {
         return null;
     }
@@ -106,9 +109,7 @@ export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix
                             yRange, zoom.transformMatrix.translateY, zoom.transformMatrix.scaleY, gc.height)),
                     range: [gc.height, 0],
                 });
-                //TODO(pjm): use colormap from reportName model
-                const cm = 'viridis';
-                const colorScale = createColorScale(zRange, cm);
+                const colorScale = createColorScale(zRange, colorMap);
                 return (
                     <>
                         <div style={{position: "relative"}}>
@@ -141,13 +142,15 @@ export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix
                                     width={gc.contentWidth}
                                     height={gc.contentHeight}
                                 >
-                                    <g transform={`translate(${gc.x + gc.width + 15}, ${gc.y})`}>
-                                        <ColorBar
-                                            range={zRange}
-                                            height={gc.height}
-                                            colorMap={cm}
-                                        />
-                                    </g>
+                                    { showColorBar &&
+                                        <g transform={`translate(${gc.x + gc.width + 15}, ${gc.y})`}>
+                                            <ColorBar
+                                                range={zRange}
+                                                height={gc.height}
+                                                colorMap={colorMap}
+                                            />
+                                        </g>
+                                    }
                                     <g transform={`translate(${gc.x}, ${gc.y})`}>
                                         {/* TODO(pjm): margin top should be larger if title is present */}
                                         <text
