@@ -1873,6 +1873,49 @@ SIREPO.app.directive('validatedString', function(panelState, validationService) 
     };
 });
 
+SIREPO.app.directive('viewLogIframe', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            logIsLoading: '<',
+            logHtml: '<',
+            logPath: '<',
+            modalId: '<',
+            downloadLog: '<'
+        },
+        template: `
+            <div class="modal fade" id="{{ modalId }}" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <span class="lead modal-title text-info">Log</span>
+                    <div class="sr-panel-options pull-right">
+                      <a data-ng-if="downloadLog" data-ng-href="{{ downloadLog() }}" target="_blank">
+                        <span class="sr-panel-heading glyphicon glyphicon-cloud-download"></span>
+                      </a>
+                      <button type="button" class="close" data-dismiss="modal" style="margin-left: 10px">
+                        <span>&times;</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="modal-body" style="padding: 0">
+                    <div data-ng-if="logIsLoading">Loading...</div>
+                    <div data-ng-if="! logIsLoading">
+                        <div data-ng-if="logPath">{{ logPath }}</div>
+                        <iframe id="sr-text-iframe"
+                          style="border: 0; width: 100%; height: 80vh" src="" srcdoc="{{ logHtml }}"></iframe>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+        },
+    };
+});
+
+
 SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
 
     return {
@@ -3756,7 +3799,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             <span class="valueLabel">{{ model[field] }}{{ model.units }}</span>
         `,
         controller: function($scope, $element) {
-
             let slider;
             let delegate = null;
 
@@ -3798,6 +3840,10 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                     form.$setPristine();
                 }
 
+                $scope.$on(`${$scope.modelName}.changed`, () => {
+                    delegate.storedVal = $scope.model[$scope.field];
+                });
+
                 $scope.$on('cancelChanges', (e, d) => {
                     if (d !== $scope.modelName) {
                         return;
@@ -3806,15 +3852,11 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 });
             });
 
-            $scope.$on(`${$scope.modelName}.changed`, () => {
-                delegate.storedVal = $scope.model[$scope.field];
-            });
-
             $scope.$on('sliderParent.ready', function (e, m) {
-                // ???
                 if (m) {
                     $scope.model = m;
                 }
+                update();
             });
         },
     };

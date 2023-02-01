@@ -321,9 +321,9 @@
         },
         "ring": {
             "latticeSource": ["Lattice Source", "LatticeSource", "madx", ""],
-            "lattice": ["Ring Lattice File", "TwissFile", null, "This file should be in the MAD-X output format (*.tfs)."],
-            "elegantTwiss": ["Elegant twiss_output", "TwissFile", null, "This file should be the SDDS output from the twiss_output command."],
-            "elegantSirepo": ["Elegant Simulation", "ElegantSimList", null]
+            "lattice": ["Ring Lattice File", "TwissFile", "", "This file should be in the MAD-X output format (*.tfs)."],
+            "elegantTwiss": ["Elegant twiss_output", "TwissFile", "", "This file should be the SDDS output from the twiss_output command."],
+            "elegantSirepo": ["Elegant Simulation", "ElegantSimList", ""]
         },
         "simulationSettings": {
             "time": ["Total Simulation Time [s]", "Float", 60, "", 1e-99],

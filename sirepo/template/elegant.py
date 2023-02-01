@@ -709,12 +709,7 @@ def import_file(req, test_data=None, **kwargs):
     if "id" in req:
         d = simulation_db.read_simulation_json(SIM_TYPE, sid=req.id, qcall=req.qcall)
     p = pkio.py_path(req.filename)
-    res = parse_input_text(
-        p,
-        pkcompat.from_bytes(req.file_stream.read()),
-        d,
-        qcall=req.qcall,
-    )
+    res = parse_input_text(p, req.form_file.as_str(), d, qcall=req.qcall)
     res.models.simulation.name = p.purebasename
     if d and not test_data:
         simulation_db.delete_simulation(

@@ -20,11 +20,7 @@ export function FieldInput<T>(props: FieldProps<T>) {
     let { value, updateField, inputComponent, dependency } = props;
 
     const onChange = (nextValue: T) => {
-        console.log("field input onChange");
-        console.log("field.value.value", value.value);
-        console.log("nextValue", nextValue);
         if (value.value !== nextValue) { // TODO fix field.value.value naming
-            console.log("field value mismatch, updating");
             updateField(nextValue);
         }
     }
@@ -32,10 +28,9 @@ export function FieldInput<T>(props: FieldProps<T>) {
     return (
          <InputComponent
             dependency={dependency}
-            valid={value.valid}
-            touched={value.touched}
             value={value.value}
             onChange={onChange}
+            isInvalid={! value.valid && value.touched}
             />
     )
 }

@@ -1815,6 +1815,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
 
+    self.setData = (name, data) => setPanelValue(name, 'data', data);
+
     self.showEnum = function(model, field, value, isShown) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
         var optionIndex = -1;

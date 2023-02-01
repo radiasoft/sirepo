@@ -156,8 +156,8 @@ SIREPO.app.directive('columnPicker', function() {
                   </div>
                   <div class="modal-body">
                     <div class="container-fluid">
-                      <label for="scans-columns" style="margin-right: 10px;">Field:</label>
-                      <select name="scans-columns" id="scans-columns" data-ng-model="selected" ng-change="selectColumn()">
+                      <label style="margin-right: 10px;">Field:</label>
+                      <select data-ng-model="selected" ng-change="selectColumn()">
                         <option ng-repeat="column in availableColumns">{{column}}</option>
                       </select>
                     </div>
@@ -309,6 +309,7 @@ SIREPO.app.directive('scansTable', function() {
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
+                      <th style="width: 50px; height: 40px;"></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
                         <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
                         {{ column }}
@@ -318,6 +319,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
+                      <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">View Log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -364,8 +366,9 @@ SIREPO.app.directive('scansTable', function() {
                 </div>
               </div>
             </div>
+            <div data-view-log-iframe-wrapper data-scan-id="runLogScanId" data-modal-id="runLogModalId"></div>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
@@ -375,6 +378,8 @@ SIREPO.app.directive('scansTable', function() {
             $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
             $scope.reverseSortScans = false;
+            $scope.runLogModalId = 'sr-view-log-iframe-' + $scope.analysisStatus;
+            $scope.runLogScanId = null;
             $scope.scans = [];
             $scope.selectedScan = null;
 
@@ -407,7 +412,6 @@ SIREPO.app.directive('scansTable', function() {
                     appState,
                     (json) => {
                         $scope.images = json.images;
-                        // TODO(e-carlin): view json.run_log
                     },
                     {
                         method: 'analysis_output',
@@ -527,6 +531,14 @@ SIREPO.app.directive('scansTable', function() {
                 return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
             };
 
+            $scope.showRunLogModal = (scan, event) => {
+                event.stopPropagation();
+                $scope.runLogScanId = scan.uid;
+                $timeout(function(){
+                    $('#' + $scope.runLogModalId).modal('show');
+                });
+            };
+
             $scope.sortCol = (column) => {
                 if (column === 'selected') {
                     return;
@@ -565,6 +577,51 @@ SIREPO.app.directive('scansTable', function() {
                     $interval.cancel(scanRequestInterval);
                     scanRequestInterval = null;
                 }
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('viewLogIframeWrapper', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            scanId: '<',
+            modalId: '<',
+        },
+        template: `
+            <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
+        `,
+        controller: function(appState, errorService, panelState, requestSender, $scope) {
+            $scope.logIsLoading = false;
+            $scope.log = null;
+            $scope.logPath = null;
+
+            $(document).on('show.bs.modal','#' + $scope.modalId, function() {
+                $scope.logIsLoading = true;
+                requestSender.sendStatelessCompute(
+                    appState,
+                    (json) => {
+                        $scope.logIsLoading = false;
+                        $scope.log = json.run_log;
+                        $scope.logPath = json.log_path;
+                    },
+                    {
+                        method: 'analysis_run_log',
+                        args: {
+                            uid: $scope.scanId,
+                        }
+                    },
+                    {
+                        modelName: $scope.modelName,
+                        onError: (data) => {
+                            $scope.logIsLoading = false;
+                            errorService.alertText(data.error);
+                            panelState.setLoading($scope.modelName, false);
+                        },
+                        panelState: panelState,
+                    }
+                );
             });
         },
     };
