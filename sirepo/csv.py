@@ -11,9 +11,9 @@ def open_csv(path, encoding="utf-8"):
 
 
 def read_as_number_array(path):
-    res = []
     for e in _ENCODINGS:
         try:
+            res = []
             for r in open_csv(path, encoding=e):
                 res.append([float(c.strip()) for c in r])
             return res
