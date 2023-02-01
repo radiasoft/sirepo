@@ -14,7 +14,7 @@ import { SchemaLayout } from "../utility/schema";
 import { TextLayout } from "./text";
 import { ColumnBreakLayout } from "./columnbreak";
 import { HorizontalStackLayout, VerticalStackLayout } from "./arrange/stack";
-import { MasonryLayout } from "./arrange/masonry";
+import { WaterfallLayout } from "./arrange/waterfall";
 
 
 // TODO rename to LayoutsWrapper
@@ -36,7 +36,7 @@ class LayoutWrapper {
         columnBreak: ColumnBreakLayout,
         hStack: HorizontalStackLayout,
         vStack: VerticalStackLayout,
-        masonry: MasonryLayout
+        waterfall: WaterfallLayout
     }
 
     constructor () {

@@ -995,563 +995,579 @@
             "title": "Source",
             "icon": "",
             "items": [
-              {
-                "layout": "panel",
+            {
+                "layout": "waterfall",
                 "config": {
-                  "title": "Undulator",
-                  "basic": [
-                    {
-                      "layout": "tabs",
-                      "config": {
-                        "tabs": [
-                          {
-                            "name": "Main",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "undulator.aw0",
-                                    "undulator.awd",
-                                    "undulator.iwityp",
-                                    "undulator.fbess0"
-                                  ]
+                    "breakpoints": {
+                        "xs": 1,
+                        "sm": 2,
+                        "lg": 3
+                    },
+                    "gutters": {
+                        "horizontal": ".5em",
+                        "vertical": ".5em"
+                    },
+                    "items": [
+                        {
+                            "layout": "panel",
+                            "config": {
+                              "title": "Undulator",
+                              "basic": [
+                                {
+                                  "layout": "tabs",
+                                  "config": {
+                                    "tabs": [
+                                      {
+                                        "name": "Main",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "undulator.aw0",
+                                                "undulator.awd",
+                                                "undulator.iwityp",
+                                                "undulator.fbess0"
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "layout": "fieldTable",
+                                            "config": {
+                                              "columns": ["Horizontal", "Vertical"],
+                                              "rows": [
+                                                {
+                                                  "label": "Undulator focus parameter",
+                                                  "description": "XKX, XKY: Normalized natural focusing of the undulator in $x$. Common values are XKX = 0.0, XKY = 1.0 for a planar undulator or XKX, XKY = 0.5 for a helical undulator, but might vary if focusing by curved pole faces is simulated. The values should fulfill the constraint XKX + XKY = 1.0. ",
+                                                  "fields": [
+                                                    "undulator.xkx",
+                                                    "undulator.xky"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Dimensions",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "undulator.xlamd",
+                                                "undulator.nwig",
+                                                "undulator.nsec"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Tapering",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "undulator.wcoefz1",
+                                                "undulator.wcoefz2",
+                                                "undulator.wcoefz3"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Errors and Misalignment",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "undulator.iertyp",
+                                                "undulator.delaw",
+                                                "undulator.iseed"
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "layout": "fieldTable",
+                                            "config": {
+                                              "columns": ["Horizontal", "Vertical"],
+                                              "rows": [
+                                                {
+                                                  "label": "Misalignment [m]",
+                                                  "description": "AWX, AWY: Maximum offset in x for undulator module misalignment. The error for each individual module follows a uniform distribution",
+                                                  "fields": [
+                                                    "undulator.awx",
+                                                    "undulator.awy"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
                                 }
-                              },
-                              {
-                                "layout": "fieldTable",
-                                "config": {
-                                  "columns": ["Horizontal", "Vertical"],
-                                  "rows": [
-                                    {
-                                      "label": "Undulator focus parameter",
-                                      "description": "XKX, XKY: Normalized natural focusing of the undulator in $x$. Common values are XKX = 0.0, XKY = 1.0 for a planar undulator or XKX, XKY = 0.5 for a helical undulator, but might vary if focusing by curved pole faces is simulated. The values should fulfill the constraint XKX + XKY = 1.0. ",
-                                      "fields": [
-                                        "undulator.xkx",
-                                        "undulator.xky"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
+                              ]
+                            }
                           },
                           {
-                            "name": "Dimensions",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "undulator.xlamd",
-                                    "undulator.nwig",
-                                    "undulator.nsec"
-                                  ]
+                            "layout": "panel",
+                            "config": {
+                              "title": "Electron Beam",
+                              "basic": [
+                                {
+                                  "layout": "tabs",
+                                  "config": {
+                                    "tabs": [
+                                      {
+                                        "name": "Main",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "electronBeam.npart",
+                                                "io.beamfile",
+                                                "electronBeam.gamma0",
+                                                "electronBeam.delgam",
+                                                "electronBeam.curpeak",
+                                                "simulationControl.eloss"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Dimensions",
+                                        "items": [
+                                          {
+                                            "layout": "fieldTable",
+                                            "config": {
+                                              "columns": ["Horizontal", "Vertical"],
+                                              "rows": [
+                                                {
+                                                  "label": "RMS size [m]",
+                                                  "description": "RXBEAM, RYBEAM: The RMS value of the transverse, spatial distribution.",
+                                                  "fields": [
+                                                    "electronBeam.rxbeam",
+                                                    "electronBeam.rybeam"
+                                                  ]
+                                                },
+                                                {
+                                                  "label": "Alpha",
+                                                  "description": "ALPHAX, ALPHAY: Rotation of the transverse phase space distribution in x according to the standard definition ALPHAX = - < xx' >  GAMMA0 / EMITX.",
+                                                  "fields": [
+                                                    "electronBeam.alphax",
+                                                    "electronBeam.alphay"
+                                                  ]
+                                                },
+                                                {
+                                                  "label": "RMS emittance [m]",
+                                                  "description": "EMITX, EMITY: The normalized RMS emittance.",
+                                                  "fields": [
+                                                    "electronBeam.emitx",
+                                                    "electronBeam.emity"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "layout": "fieldList",
+                                            "config": { "fields": ["electronBeam.cuttail"] }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Position",
+                                        "items": [
+                                          {
+                                            "layout": "fieldTable",
+                                            "config": {
+                                              "columns": ["Horizontal", "Vertical"],
+                                              "rows": [
+                                                {
+                                                  "label": "Position [m]",
+                                                  "description": "XBEAM, YBEAM: Transverse position in $x$ of the electron beam at the undulator entrance with respect to the undulator axis.",
+                                                  "fields": [
+                                                    "electronBeam.xbeam",
+                                                    "electronBeam.ybeam"
+                                                  ]
+                                                },
+                                                {
+                                                  "label": "Average momentum",
+                                                  "description": "PXBEAM, PYBEAM: Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as $\\text{PXBEAM} = \\beta_x\\gamma$ where $\\beta_x = cv_x$ is the average transverse velocity and $\\gamma$ the Lorenz factor of the electron energy.",
+                                                  "fields": [
+                                                    "electronBeam.pxbeam",
+                                                    "electronBeam.pybeam"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Correlations",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "electronBeam.bunch",
+                                                "electronBeam.bunchphase",
+                                                "electronBeam.emod",
+                                                "electronBeam.emodphase"
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "layout": "fieldTable",
+                                            "config": {
+                                              "columns": ["Horizontal", "Vertical"],
+                                              "rows": [
+                                                {
+                                                  "label": "Correlation strength [1/m]",
+                                                  "description": "CONDITX, CONDITY: is the correlation strength between the amplitude of the electron's betatron oscillation and its energy. If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can be increased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information.",
+                                                  "fields": [
+                                                    "electronBeam.conditx",
+                                                    "electronBeam.condity"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
                                 }
-                              }
-                            ]
+                              ]
+                            }
                           },
                           {
-                            "name": "Tapering",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "undulator.wcoefz1",
-                                    "undulator.wcoefz2",
-                                    "undulator.wcoefz3"
-                                  ]
+                            "layout": "panel",
+                            "config": {
+                              "title": "Radiation",
+                              "basic": [
+                                {
+                                  "layout": "tabs",
+                                  "config": {
+                                    "tabs": [
+                                      {
+                                        "name": "Main",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "radiation.xlamds",
+                                                "io.radfile",
+                                                "radiation.prad0",
+                                                "radiation.zrayl",
+                                                "radiation.zwaist"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Harmonics",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "radiation.nharm",
+                                                "radiation.iallharm",
+                                                "radiation.iharmsc",
+                                                "radiation.pradh0"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
                                 }
-                              }
-                            ]
+                              ]
+                            }
                           },
                           {
-                            "name": "Errors and Misalignment",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "undulator.iertyp",
-                                    "undulator.delaw",
-                                    "undulator.iseed"
-                                  ]
+                            "layout": "panel",
+                            "config": {
+                              "title": "Particle Loading",
+                              "basic": [
+                                {
+                                  "layout": "tabs",
+                                  "config": {
+                                    "tabs": [
+                                      {
+                                        "name": "Main",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "particleLoading.nbins",
+                                                "io.distfile",
+                                                "particleLoading.itgaus",
+                                                "particleLoading.igamgaus",
+                                                "particleLoading.inverfc",
+                                                "particleLoading.ipseed"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Hammersley Sequence",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "particleLoading.ildpsi",
+                                                "particleLoading.iall",
+                                                "particleLoading.ildgam"
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "layout": "fieldTable",
+                                            "config": {
+                                              "columns": ["Horizontal", "Vertical"],
+                                              "rows": [
+                                                {
+                                                  "label": "Base for position",
+                                                  "description": "ILDX, ILDY: Hammersley base for loading the distribution in x. See ILDPSI for more information.",
+                                                  "fields": [
+                                                    "particleLoading.ildx",
+                                                    "particleLoading.ildy"
+                                                  ]
+                                                },
+                                                {
+                                                  "label": "Base for momentum",
+                                                  "description": "ILDPX, ILDPY: Hammersley base for loading the distribution in px. See ILDPSI for more information.",
+                                                  "fields": [
+                                                    "particleLoading.ildpx",
+                                                    "particleLoading.ildpy"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
                                 }
-                              },
-                              {
-                                "layout": "fieldTable",
-                                "config": {
-                                  "columns": ["Horizontal", "Vertical"],
-                                  "rows": [
-                                    {
-                                      "label": "Misalignment [m]",
-                                      "description": "AWX, AWY: Maximum offset in x for undulator module misalignment. The error for each individual module follows a uniform distribution",
-                                      "fields": [
-                                        "undulator.awx",
-                                        "undulator.awy"
-                                      ]
-                                    }
-                                  ]
+                              ]
+                            }
+                          },
+                          {
+                            "layout": "panel",
+                            "config": {
+                              "title": "Mesh",
+                              "basic": [
+                                {
+                                  "layout": "tabs",
+                                  "config": {
+                                    "tabs": [
+                                      {
+                                        "name": "Main",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "mesh.ncar",
+                                                "mesh.lbc",
+                                                "mesh.rmax0",
+                                                "mesh.dgrid"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Space Charge",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "mesh.nscz",
+                                                "mesh.nscr",
+                                                "mesh.nptr",
+                                                "mesh.rmax0sc",
+                                                "mesh.iscrkup"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
                                 }
-                              }
-                            ]
+                              ]
+                            }
+                          },
+                          {
+                            "layout": "panel",
+                            "config": {
+                              "title": "Focusing",
+                              "basic": [
+                                {
+                                  "layout": "tabs",
+                                  "config": {
+                                    "tabs": [
+                                      {
+                                        "name": "Quadrupoles",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": { "fields": ["io.maginfile"] }
+                                          },
+                                          {
+                                            "layout": "fieldTable",
+                                            "config": {
+                                              "columns": ["Focus", "Defocus"],
+                                              "rows": [
+                                                {
+                                                  "label": "Quadrupole field strength [T/m]",
+                                                  "description": "QUADF, QUADD: The field strength of F quadrupoles, focusing in the x-plane.",
+                                                  "fields": [
+                                                    "focusing.quadf",
+                                                    "focusing.quadd"
+                                                  ]
+                                                },
+                                                {
+                                                  "label": "Quadrupole length",
+                                                  "description": "FL, DL: Length of the F-quadrupoles in measures of the undulator period. The integration step size DELZ must resolve the quadrupole length.",
+                                                  "fields": ["focusing.fl", "focusing.dl"]
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": ["focusing.drl", "focusing.f1st"]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Misalignment",
+                                        "items": [
+                                          {
+                                            "layout": "fieldTable",
+                                            "config": {
+                                              "columns": ["Horizontal", "Vertical"],
+                                              "rows": [
+                                                {
+                                                  "label": "Quadrupole misalignment [m]",
+                                                  "description": "QFDX, QFDY: Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-QFDX, QFDX] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file.",
+                                                  "fields": [
+                                                    "focusing.qfdx",
+                                                    "focusing.qfdy"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Solenoid",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": ["focusing.solen", "focusing.sl"]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "layout": "panel",
+                            "config": {
+                              "title": "I/O",
+                              "basic": [
+                                {
+                                  "layout": "tabs",
+                                  "config": {
+                                    "tabs": [
+                                      {
+                                        "name": "Main",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "io.iotail",
+                                                "io.ndcut",
+                                                "io.ffspec"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Field",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "io.fieldfile",
+                                                "io.alignradf",
+                                                "io.offsetradf"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "name": "Particles",
+                                        "items": [
+                                          {
+                                            "layout": "fieldList",
+                                            "config": {
+                                              "fields": [
+                                                "io.partfile",
+                                                "io.convharm",
+                                                "io.multconv",
+                                                "io.ibfield",
+                                                "io.imagl",
+                                                "io.idril"
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
                           }
-                        ]
-                      }
-                    }
-                  ]
+                    ]
                 }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Electron Beam",
-                  "basic": [
-                    {
-                      "layout": "tabs",
-                      "config": {
-                        "tabs": [
-                          {
-                            "name": "Main",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "electronBeam.npart",
-                                    "io.beamfile",
-                                    "electronBeam.gamma0",
-                                    "electronBeam.delgam",
-                                    "electronBeam.curpeak",
-                                    "simulationControl.eloss"
-                                  ]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Dimensions",
-                            "items": [
-                              {
-                                "layout": "fieldTable",
-                                "config": {
-                                  "columns": ["Horizontal", "Vertical"],
-                                  "rows": [
-                                    {
-                                      "label": "RMS size [m]",
-                                      "description": "RXBEAM, RYBEAM: The RMS value of the transverse, spatial distribution.",
-                                      "fields": [
-                                        "electronBeam.rxbeam",
-                                        "electronBeam.rybeam"
-                                      ]
-                                    },
-                                    {
-                                      "label": "Alpha",
-                                      "description": "ALPHAX, ALPHAY: Rotation of the transverse phase space distribution in x according to the standard definition ALPHAX = - < xx' >  GAMMA0 / EMITX.",
-                                      "fields": [
-                                        "electronBeam.alphax",
-                                        "electronBeam.alphay"
-                                      ]
-                                    },
-                                    {
-                                      "label": "RMS emittance [m]",
-                                      "description": "EMITX, EMITY: The normalized RMS emittance.",
-                                      "fields": [
-                                        "electronBeam.emitx",
-                                        "electronBeam.emity"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              },
-                              {
-                                "layout": "fieldList",
-                                "config": { "fields": ["electronBeam.cuttail"] }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Position",
-                            "items": [
-                              {
-                                "layout": "fieldTable",
-                                "config": {
-                                  "columns": ["Horizontal", "Vertical"],
-                                  "rows": [
-                                    {
-                                      "label": "Position [m]",
-                                      "description": "XBEAM, YBEAM: Transverse position in $x$ of the electron beam at the undulator entrance with respect to the undulator axis.",
-                                      "fields": [
-                                        "electronBeam.xbeam",
-                                        "electronBeam.ybeam"
-                                      ]
-                                    },
-                                    {
-                                      "label": "Average momentum",
-                                      "description": "PXBEAM, PYBEAM: Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as $\\text{PXBEAM} = \\beta_x\\gamma$ where $\\beta_x = cv_x$ is the average transverse velocity and $\\gamma$ the Lorenz factor of the electron energy.",
-                                      "fields": [
-                                        "electronBeam.pxbeam",
-                                        "electronBeam.pybeam"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Correlations",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "electronBeam.bunch",
-                                    "electronBeam.bunchphase",
-                                    "electronBeam.emod",
-                                    "electronBeam.emodphase"
-                                  ]
-                                }
-                              },
-                              {
-                                "layout": "fieldTable",
-                                "config": {
-                                  "columns": ["Horizontal", "Vertical"],
-                                  "rows": [
-                                    {
-                                      "label": "Correlation strength [1/m]",
-                                      "description": "CONDITX, CONDITY: is the correlation strength between the amplitude of the electron's betatron oscillation and its energy. If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can be increased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information.",
-                                      "fields": [
-                                        "electronBeam.conditx",
-                                        "electronBeam.condity"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Radiation",
-                  "basic": [
-                    {
-                      "layout": "tabs",
-                      "config": {
-                        "tabs": [
-                          {
-                            "name": "Main",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "radiation.xlamds",
-                                    "io.radfile",
-                                    "radiation.prad0",
-                                    "radiation.zrayl",
-                                    "radiation.zwaist"
-                                  ]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Harmonics",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "radiation.nharm",
-                                    "radiation.iallharm",
-                                    "radiation.iharmsc",
-                                    "radiation.pradh0"
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Particle Loading",
-                  "basic": [
-                    {
-                      "layout": "tabs",
-                      "config": {
-                        "tabs": [
-                          {
-                            "name": "Main",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "particleLoading.nbins",
-                                    "io.distfile",
-                                    "particleLoading.itgaus",
-                                    "particleLoading.igamgaus",
-                                    "particleLoading.inverfc",
-                                    "particleLoading.ipseed"
-                                  ]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Hammersley Sequence",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "particleLoading.ildpsi",
-                                    "particleLoading.iall",
-                                    "particleLoading.ildgam"
-                                  ]
-                                }
-                              },
-                              {
-                                "layout": "fieldTable",
-                                "config": {
-                                  "columns": ["Horizontal", "Vertical"],
-                                  "rows": [
-                                    {
-                                      "label": "Base for position",
-                                      "description": "ILDX, ILDY: Hammersley base for loading the distribution in x. See ILDPSI for more information.",
-                                      "fields": [
-                                        "particleLoading.ildx",
-                                        "particleLoading.ildy"
-                                      ]
-                                    },
-                                    {
-                                      "label": "Base for momentum",
-                                      "description": "ILDPX, ILDPY: Hammersley base for loading the distribution in px. See ILDPSI for more information.",
-                                      "fields": [
-                                        "particleLoading.ildpx",
-                                        "particleLoading.ildpy"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Mesh",
-                  "basic": [
-                    {
-                      "layout": "tabs",
-                      "config": {
-                        "tabs": [
-                          {
-                            "name": "Main",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "mesh.ncar",
-                                    "mesh.lbc",
-                                    "mesh.rmax0",
-                                    "mesh.dgrid"
-                                  ]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Space Charge",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "mesh.nscz",
-                                    "mesh.nscr",
-                                    "mesh.nptr",
-                                    "mesh.rmax0sc",
-                                    "mesh.iscrkup"
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Focusing",
-                  "basic": [
-                    {
-                      "layout": "tabs",
-                      "config": {
-                        "tabs": [
-                          {
-                            "name": "Quadrupoles",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": { "fields": ["io.maginfile"] }
-                              },
-                              {
-                                "layout": "fieldTable",
-                                "config": {
-                                  "columns": ["Focus", "Defocus"],
-                                  "rows": [
-                                    {
-                                      "label": "Quadrupole field strength [T/m]",
-                                      "description": "QUADF, QUADD: The field strength of F quadrupoles, focusing in the x-plane.",
-                                      "fields": [
-                                        "focusing.quadf",
-                                        "focusing.quadd"
-                                      ]
-                                    },
-                                    {
-                                      "label": "Quadrupole length",
-                                      "description": "FL, DL: Length of the F-quadrupoles in measures of the undulator period. The integration step size DELZ must resolve the quadrupole length.",
-                                      "fields": ["focusing.fl", "focusing.dl"]
-                                    }
-                                  ]
-                                }
-                              },
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": ["focusing.drl", "focusing.f1st"]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Misalignment",
-                            "items": [
-                              {
-                                "layout": "fieldTable",
-                                "config": {
-                                  "columns": ["Horizontal", "Vertical"],
-                                  "rows": [
-                                    {
-                                      "label": "Quadrupole misalignment [m]",
-                                      "description": "QFDX, QFDY: Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-QFDX, QFDX] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file.",
-                                      "fields": [
-                                        "focusing.qfdx",
-                                        "focusing.qfdy"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Solenoid",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": ["focusing.solen", "focusing.sl"]
-                                }
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "I/O",
-                  "basic": [
-                    {
-                      "layout": "tabs",
-                      "config": {
-                        "tabs": [
-                          {
-                            "name": "Main",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "io.iotail",
-                                    "io.ndcut",
-                                    "io.ffspec"
-                                  ]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Field",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "io.fieldfile",
-                                    "io.alignradf",
-                                    "io.offsetradf"
-                                  ]
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "name": "Particles",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "io.partfile",
-                                    "io.convharm",
-                                    "io.multconv",
-                                    "io.ibfield",
-                                    "io.imagl",
-                                    "io.idril"
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              }
+            }
             ]
           },
           {
@@ -1559,122 +1575,139 @@
             "title": "Visualization",
             "icon": "",
             "items": [
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Simulation Control",
-                  "basic": [
-                    {
-                      "layout": "tabs",
-                      "config": {
-                        "tabs": [
-                          {
-                            "name": "Main",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": [
-                                    "simulationControl.delz",
-                                    "simulationControl.zstop",
-                                    "simulationControl.iorb",
-                                    "simulationControl.isravg",
-                                    "simulationControl.isrsig"
-                                  ]
-                                }
+                {
+                    "layout": "waterfall",
+                    "config": {
+                        "breakpoints": {
+                            "xs": 1,
+                            "sm": 2,
+                            "lg": 3
+                        },
+                        "gutters": {
+                            "horizontal": ".5em",
+                            "vertical": ".5em"
+                        },
+                        "items": [
+                            {
+                              "layout": "panel",
+                              "config": {
+                                "title": "Simulation Control",
+                                "basic": [
+                                  {
+                                    "layout": "tabs",
+                                    "config": {
+                                      "tabs": [
+                                        {
+                                          "name": "Main",
+                                          "items": [
+                                            {
+                                              "layout": "fieldList",
+                                              "config": {
+                                                "fields": [
+                                                  "simulationControl.delz",
+                                                  "simulationControl.zstop",
+                                                  "simulationControl.iorb",
+                                                  "simulationControl.isravg",
+                                                  "simulationControl.isrsig"
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "name": "Output Frequency",
+                                          "items": [
+                                            {
+                                              "layout": "fieldList",
+                                              "config": {
+                                                "fields": ["io.ippart", "io.ipradi"]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  }
+                                ]
                               }
-                            ]
-                          },
-                          {
-                            "name": "Output Frequency",
-                            "items": [
-                              {
-                                "layout": "fieldList",
-                                "config": {
-                                  "fields": ["io.ippart", "io.ipradi"]
-                                }
+                            },
+                            {
+                              "layout": "panel",
+                              "config": {
+                                "name": "simulationStatus",
+                                "title": "Simulation Status",
+                                "basic": [
+                                  {
+                                    "layout": "startSimulation",
+                                    "config": { "reportGroupName": "animation" }
+                                  }
+                                ]
                               }
-                            ]
-                          }
-                        ]
-                      }
+                            },
+                            {
+                              "layout": "panel",
+                              "config": {
+                                "title": "Parameter Report",
+                                "basic": [
+                                  {
+                                    "layout": "manualRunReport",
+                                    "config": {
+                                      "reportGroupName": "animation",
+                                      "reportName": "parameterAnimation",
+                                      "frameIdFields": [
+                                        "parameterAnimation.y1",
+                                        "parameterAnimation.y2",
+                                        "parameterAnimation.y3"
+                                      ],
+                                      "reportLayout": { "layout": "graph2d", "config": {} }
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "layout": "panel",
+                              "config": {
+                                "title": "Particle Distribution",
+                                "basic": [
+                                  {
+                                    "layout": "manualRunReport",
+                                    "config": {
+                                      "reportGroupName": "animation",
+                                      "reportName": "particleAnimation",
+                                      "frameIdFields": [
+                                        "particleAnimation.x",
+                                        "particleAnimation.y",
+                                        "particleAnimation.histogramBins"
+                                      ],
+                                      "reportLayout": { "layout": "heatplot", "config": {} }
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "layout": "panel",
+                              "config": {
+                                "title": "Field Distribution",
+                                "basic": [
+                                  {
+                                    "layout": "manualRunReport",
+                                    "config": {
+                                      "reportGroupName": "animation",
+                                      "reportName": "fieldDistributionAnimation",
+                                      "frameIdFields": [],
+                                      "reportLayout": { "layout": "heatplot", "config": {} }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
                     }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "name": "simulationStatus",
-                  "title": "Simulation Status",
-                  "basic": [
-                    {
-                      "layout": "startSimulation",
-                      "config": { "reportGroupName": "animation" }
-                    }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Parameter Report",
-                  "basic": [
-                    {
-                      "layout": "manualRunReport",
-                      "config": {
-                        "reportGroupName": "animation",
-                        "reportName": "parameterAnimation",
-                        "frameIdFields": [
-                          "parameterAnimation.y1",
-                          "parameterAnimation.y2",
-                          "parameterAnimation.y3"
-                        ],
-                        "reportLayout": { "layout": "graph2d", "config": {} }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Particle Distribution",
-                  "basic": [
-                    {
-                      "layout": "manualRunReport",
-                      "config": {
-                        "reportGroupName": "animation",
-                        "reportName": "particleAnimation",
-                        "frameIdFields": [
-                          "particleAnimation.x",
-                          "particleAnimation.y",
-                          "particleAnimation.histogramBins"
-                        ],
-                        "reportLayout": { "layout": "heatplot", "config": {} }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "layout": "panel",
-                "config": {
-                  "title": "Field Distribution",
-                  "basic": [
-                    {
-                      "layout": "manualRunReport",
-                      "config": {
-                        "reportGroupName": "animation",
-                        "reportName": "fieldDistributionAnimation",
-                        "frameIdFields": [],
-                        "reportLayout": { "layout": "heatplot", "config": {} }
-                      }
-                    }
-                  ]
-                }
-              }
             ]
+            
           }
         ]
       }

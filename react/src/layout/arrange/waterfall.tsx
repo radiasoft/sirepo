@@ -7,11 +7,11 @@ import { Dimension, useRefSize } from "../../utility/component";
 import React from "react";
 import { Breakpoint, resolveBreakpoint, useWindowSize } from "../../hook/breakpoint";
 import { VerticalStack } from "../../component/reusable/stack";
-import "./masonry.scss";
+import "./waterfall.scss";
 import { debounce } from "../../utility/debounce";
 
 
-export type MasonryConfig = {
+export type WaterfallConfig = {
     items: SchemaLayout[],
     breakpoints?: {[breakpointName: string]: number},
     gutters?: {
@@ -20,30 +20,30 @@ export type MasonryConfig = {
     }
 }
 
-export type MasonryRef = {
+export type WaterfallRef = {
     element: JSX.Element,
     dimension: Dimension,
     ref: React.RefObject<HTMLElement>
 }
 
-type MasonryBin = {
+type WaterfallBin = {
     calculatedSize: number,
-    items: MasonryRef[];
+    items: WaterfallRef[];
 }
 
-class MasonryController {
-    private refs: MasonryRef[];
+class WaterfallController {
+    private refs: WaterfallRef[];
     private breakpoint: Breakpoint;
     private windowSize: number;
-    private masonryBins: MasonryBin[];
+    private waterfallBins: WaterfallBin[];
     private hasAllSizes: boolean = false;
 
-    constructor(private config: MasonryConfig) {}
+    constructor(private config: WaterfallConfig) {}
 
     assignViewsToBinsSerial = () => {
         this.refs.forEach((r, idx) => {
-            let bi = idx % this.masonryBins.length;
-            this.masonryBins[bi].items.push(r);
+            let bi = idx % this.waterfallBins.length;
+            this.waterfallBins[bi].items.push(r);
         })
     }
 
@@ -53,7 +53,7 @@ class MasonryController {
     }, 250)
 
     assignViewsToBins = () => {
-        this.masonryBins.forEach(bin => bin.items = []);
+        this.waterfallBins.forEach(bin => bin.items = []);
 
         if(!this.hasAllSizes) {
             this.assignViewsToBinsSerial();
@@ -61,7 +61,7 @@ class MasonryController {
         }
 
         let findSmallestBinSmallerThan = (s: number) => {
-            return this.masonryBins.filter(b => b.calculatedSize < s).reduce((prev, cur) => {
+            return this.waterfallBins.filter(b => b.calculatedSize < s).reduce((prev, cur) => {
                 if(!prev) {
                     return cur;
                 }
@@ -75,17 +75,18 @@ class MasonryController {
         for(let ri = 0; ri < this.refs.length; ri++) {
             let ref = this.refs[ri];
             let s = ref.dimension.height;
-            let bin = this.masonryBins[ri % this.masonryBins.length];
-            let betterBin = findSmallestBinSmallerThan(bin.calculatedSize - s);
-            bin = betterBin || bin;
+            let bin = this.waterfallBins[ri % this.waterfallBins.length];
+            //let betterBin = findSmallestBinSmallerThan(bin.calculatedSize - s); // TODO: this resizing works but it appears buggy to the user, need better algorithm
+            //bin = betterBin || bin;
             bin.items.push(ref);
             bin.calculatedSize += s;
         }
     }
 
     numBinsForBreakpoint(breakpoint: Breakpoint) {
-        let bins = 3; // TODO: place default somewhere
+        let bins = 1; // TODO: place default somewhere
         if(!this.config.breakpoints) {
+            //return bins;
             return bins;
         }
 
@@ -103,16 +104,16 @@ class MasonryController {
     }
 
     createBins = (n: number) => {
-        this.masonryBins = [];
+        this.waterfallBins = [];
         for(let i = 0; i < n; i++) {
-            this.masonryBins.push({
+            this.waterfallBins.push({
                 calculatedSize: 0,
                 items: []
             });
         }
     }
 
-    updateRefs = (refs: MasonryRef[], windowSize: number) => {
+    updateRefs = (refs: WaterfallRef[], windowSize: number) => {
         let breakpoint = resolveBreakpoint(windowSize);
         let hasAllSizes = !refs.map(ref => !!ref.dimension).includes(false);
         this.refs = refs;
@@ -139,14 +140,14 @@ class MasonryController {
         this.breakpoint = breakpoint;
         this.windowSize = windowSize;
 
-        return this.masonryBins;
+        return this.waterfallBins;
     }
 }
 
-export class MasonryLayout extends Layout<MasonryConfig, {}> {
+export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
     children: Layout[];
 
-    constructor(config: MasonryConfig) {
+    constructor(config: WaterfallConfig) {
         super(config);
         this.children = (config.items || []).map(schemaLayout => {
             return LAYOUTS.getLayoutForSchema(schemaLayout);
@@ -188,7 +189,7 @@ export class MasonryLayout extends Layout<MasonryConfig, {}> {
     component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
 
         let windowSize = useWindowSize();
-        let c: MasonryRef[] = this.children.map((c, idx) => {
+        let c: WaterfallRef[] = this.children.map((c, idx) => {
             let componentRef = useRef<HTMLDivElement>()
             let [dim,] = useRefSize(componentRef);
             let LayoutComponent = c.component;
@@ -203,7 +204,7 @@ export class MasonryLayout extends Layout<MasonryConfig, {}> {
             }
         });
 
-        let [controller, ] = useState<MasonryController>(() => new MasonryController(this.config));
+        let [controller, ] = useState<WaterfallController>(() => new WaterfallController(this.config));
         let bins = controller.updateRefs(c, windowSize);
 
         let eles = bins.map((bin, idx) => {
@@ -220,7 +221,7 @@ export class MasonryLayout extends Layout<MasonryConfig, {}> {
         }
 
         return (
-            <div style={gridStyle} className="sr-masonry-container">
+            <div style={gridStyle} className="sr-waterfall-container">
                 {eles}
             </div>
         )

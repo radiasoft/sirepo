@@ -555,194 +555,212 @@
                         "icon": "",
                         "items": [
                             {
-                                "layout": "panel",
+                                "layout": "waterfall",
                                 "config": {
-                                    "title": "Laser Pulse",
-                                    "basic": [
+                                    "breakpoints": {
+                                        "xs": 1,
+                                        "sm": 2,
+                                        "lg": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "items": [
                                         {
-                                            "layout": "fieldList",
+                                            "layout": "panel",
                                             "config": {
-                                                "fields": [
-                                                    "laserPulse.wavelength",
-                                                    "laserPulse.amplitude",
-                                                    "laserPulse.pulseDimensions",
-                                                    "laserPulse.length",
-                                                    "laserPulse.spotSize",
-                                                    "laserPulse.waist",
-                                                    "laserPulse.duration"
-                                                ]
-                                            }
-                                        }
-                                    ],
-                                    "advanced": [
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "laserPulse.wavelength",
-                                                    "laserPulse.amplitude",
-                                                    "laserPulse.polarizationAngle",
-                                                    "laserPulse.pulseDimensions",
-                                                    "laserPulse.length",
-                                                    "laserPulse.spotSize",
-                                                    "laserPulse.waist",
-                                                    "laserPulse.duration"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "layout": "panel",
-                                "config": {
-                                    "title": "Electron Plasma",
-                                    "basic": [
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "electronPlasma.density",
-                                                    "electronPlasma.length"
-                                                ]
-                                            }
-                                        }
-                                    ],
-                                    "advanced": [
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "electronPlasma.density",
-                                                    "electronPlasma.length",
-                                                    "electronPlasma.entranceRampLength",
-                                                    "electronPlasma.exitRampLength"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "layout": "panel",
-                                "config": {
-                                    "title": "Simulation Grid",
-                                    "basic": [
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "simulationGrid.gridDimensions"
-                                                ]
-                                            }
-                                        }
-                                    ],
-                                    "advanced": [
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "simulationGrid.gridDimensions"
+                                                "title": "Laser Pulse",
+                                                "basic": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "laserPulse.wavelength",
+                                                                "laserPulse.amplitude",
+                                                                "laserPulse.pulseDimensions",
+                                                                "laserPulse.length",
+                                                                "laserPulse.spotSize",
+                                                                "laserPulse.waist",
+                                                                "laserPulse.duration"
+                                                            ]
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "laserPulse.wavelength",
+                                                                "laserPulse.amplitude",
+                                                                "laserPulse.polarizationAngle",
+                                                                "laserPulse.pulseDimensions",
+                                                                "laserPulse.length",
+                                                                "laserPulse.spotSize",
+                                                                "laserPulse.waist",
+                                                                "laserPulse.duration"
+                                                            ]
+                                                        }
+                                                    }
                                                 ]
                                             }
                                         },
                                         {
-                                            "layout": "hStack",
+                                            "layout": "panel",
                                             "config": {
-                                                "items": [
+                                                "title": "Electron Plasma",
+                                                "basic": [
                                                     {
-                                                        "layout": "vStack",
+                                                        "layout": "fieldList",
                                                         "config": {
-                                                            "items": [
-                                                                {
-                                                                    "layout": "text",
-                                                                    "config": {
-                                                                        "type": "header",
-                                                                        "align": "center",
-                                                                        "text": "R"
-                                                                    }
-                                                                },
-                                                                {
-                                                                    "layout": "fieldList",
-                                                                    "config": {
-                                                                        "fields": [
-                                                                            "simulationGrid.rScale",
-                                                                            "simulationGrid.rLength",
-                                                                            "simulationGrid.rMin",
-                                                                            "simulationGrid.rMax",
-                                                                            "simulationGrid.rCellsPerSpotSize",
-                                                                            "simulationGrid.rCellResolution",
-                                                                            "simulationGrid.rCount",
-                                                                            "simulationGrid.rParticlesPerCell"
-                                                                        ]
-                                                                    }
-                                                                }
+                                                            "fields": [
+                                                                "electronPlasma.density",
+                                                                "electronPlasma.length"
+                                                            ]
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "electronPlasma.density",
+                                                                "electronPlasma.length",
+                                                                "electronPlasma.entranceRampLength",
+                                                                "electronPlasma.exitRampLength"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Simulation Grid",
+                                                "basic": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "simulationGrid.gridDimensions"
+                                                            ]
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "simulationGrid.gridDimensions"
                                                             ]
                                                         }
                                                     },
                                                     {
-                                                        "layout": "vStack",
+                                                        "layout": "hStack",
                                                         "config": {
                                                             "items": [
                                                                 {
-                                                                    "layout": "text",
+                                                                    "layout": "vStack",
                                                                     "config": {
-                                                                        "type": "header",
-                                                                        "align": "center",
-                                                                        "text": "Z"
+                                                                        "items": [
+                                                                            {
+                                                                                "layout": "text",
+                                                                                "config": {
+                                                                                    "type": "header",
+                                                                                    "align": "center",
+                                                                                    "text": "R"
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "layout": "fieldList",
+                                                                                "config": {
+                                                                                    "fields": [
+                                                                                        "simulationGrid.rScale",
+                                                                                        "simulationGrid.rLength",
+                                                                                        "simulationGrid.rMin",
+                                                                                        "simulationGrid.rMax",
+                                                                                        "simulationGrid.rCellsPerSpotSize",
+                                                                                        "simulationGrid.rCellResolution",
+                                                                                        "simulationGrid.rCount",
+                                                                                        "simulationGrid.rParticlesPerCell"
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        ]
                                                                     }
                                                                 },
                                                                 {
-                                                                    "layout": "fieldList",
+                                                                    "layout": "vStack",
                                                                     "config": {
-                                                                        "fields": [
-                                                                            "simulationGrid.zScale",
-                                                                            "simulationGrid.zLength",
-                                                                            "simulationGrid.zMin",
-                                                                            "simulationGrid.zMax",
-                                                                            "simulationGrid.zCellsPerWavelength",
-                                                                            "simulationGrid.zCellResolution",
-                                                                            "simulationGrid.zCount",
-                                                                            "simulationGrid.zParticlesPerCell"
-                                                                        ]
+                                                                        "items": [
+                                                                            {
+                                                                                "layout": "text",
+                                                                                "config": {
+                                                                                    "type": "header",
+                                                                                    "align": "center",
+                                                                                    "text": "Z"
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "layout": "fieldList",
+                                                                                "config": {
+                                                                                    "fields": [
+                                                                                        "simulationGrid.zScale",
+                                                                                        "simulationGrid.zLength",
+                                                                                        "simulationGrid.zMin",
+                                                                                        "simulationGrid.zMax",
+                                                                                        "simulationGrid.zCellsPerWavelength",
+                                                                                        "simulationGrid.zCellResolution",
+                                                                                        "simulationGrid.zCount",
+                                                                                        "simulationGrid.zParticlesPerCell"
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        ]                                                                
                                                                     }
                                                                 }
-                                                            ]                                                                
+                                                                
+                                                            ]
                                                         }
                                                     }
-                                                    
                                                 ]
                                             }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "layout": "panel",
-                                "config": {
-                                    "title": "Laser Preview Report",
-                                    "basic": [
+                                        },
                                         {
-                                            "layout": "autoRunReport",
+                                            "layout": "panel",
                                             "config": {
-                                                "report": "laserPreviewReport",
-                                                "dependencies": [
-                                                    "laserPreviewReport.*",
-                                                    "electronBeam.*",
-                                                    "electronPlasma.*",
-                                                    "laserPulse.*",
-                                                    "simulationGrid.*"
-                                                ],
-                                                "reportLayout": {
-                                                    "layout": "heatplot",
-                                                    "config": { }
-                                                }
+                                                "title": "Laser Preview Report",
+                                                "basic": [
+                                                    {
+                                                        "layout": "autoRunReport",
+                                                        "config": {
+                                                            "report": "laserPreviewReport",
+                                                            "dependencies": [
+                                                                "laserPreviewReport.*",
+                                                                "electronBeam.*",
+                                                                "electronPlasma.*",
+                                                                "laserPulse.*",
+                                                                "simulationGrid.*"
+                                                            ],
+                                                            "reportLayout": {
+                                                                "layout": "heatplot",
+                                                                "config": { }
+                                                            }
+                                                        }
+                                                    }
+                                                ]
                                             }
                                         }
                                     ]
                                 }
                             }
+
                         ]
+                        
                     },
                     {
                         "name": "dynamics",
@@ -750,22 +768,113 @@
                         "icon": "",
                         "items": [
                             {
-                                "layout": "panel",
+                                "layout": "waterfall",
                                 "config": {
-                                    "name": "simulationStatus",
-                                    "title": "Simulation Status",
-                                    "basic": [
+                                    "breakpoints": {
+                                        "xs": 1,
+                                        "sm": 2,
+                                        "lg": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "items": [
                                         {
-                                            "layout": "startSimulation",
+                                            "layout": "panel",
                                             "config": {
-                                                "reportGroupName": "animation",
-                                                "items": [
+                                                "name": "simulationStatus",
+                                                "title": "Simulation Status",
+                                                "basic": [
                                                     {
-                                                        "layout": "fieldList",
+                                                        "layout": "startSimulation",
                                                         "config": {
-                                                            "fields": [
-                                                                "animation.jobRunMode"
+                                                            "reportGroupName": "animation",
+                                                            "items": [
+                                                                {
+                                                                    "layout": "fieldList",
+                                                                    "config": {
+                                                                        "fields": [
+                                                                            "animation.jobRunMode"
+                                                                        ]
+                                                                    }
+                                                                }
                                                             ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Field Animation",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "fieldAnimation",
+                                                            "frameIdFields": [
+                                                                "fieldAnimation.field",
+                                                                "fieldAnimation.coordinate",
+                                                                "fieldAnimation.mode"
+                                                            ],
+                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Plasma Animation",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "particleAnimation",
+                                                            "frameIdFields": [
+                                                                "particleAnimation.x",
+                                                                "particleAnimation.y",
+                                                                "particleAnimation.histogramBins",
+                                                                "particleAnimation.xMin",
+                                                                "particleAnimation.xMax",
+                                                                "particleAnimation.yMin",
+                                                                "particleAnimation.yMax",
+                                                                "particleAnimation.zMin",
+                                                                "particleAnimation.zMax",
+                                                                "particleAnimation.uxMin",
+                                                                "particleAnimation.uxMax",
+                                                                "particleAnimation.uyMin",
+                                                                "particleAnimation.uyMax",
+                                                                "particleAnimation.uzMin",
+                                                                "particleAnimation.uzMax"
+                                                            ],
+                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Electron Beam Animation",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "beamAnimation",
+                                                            "frameIdFields": [
+                                                                "beamAnimation.x",
+                                                                "beamAnimation.y",
+                                                                "beamAnimation.histogramBins"
+                                                            ],
+                                                            "reportLayout": { "layout": "heatplot", "config": {} }
                                                         }
                                                     }
                                                 ]
@@ -773,83 +882,10 @@
                                         }
                                     ]
                                 }
-                            },
-                            {
-                                "layout": "panel",
-                                "config": {
-                                    "title": "Field Animation",
-                                    "basic": [
-                                        {
-                                            "layout": "manualRunReport",
-                                            "config": {
-                                                "reportGroupName": "animation",
-                                                "reportName": "fieldAnimation",
-                                                "frameIdFields": [
-                                                    "fieldAnimation.field",
-                                                    "fieldAnimation.coordinate",
-                                                    "fieldAnimation.mode"
-                                                ],
-                                                "reportLayout": { "layout": "heatplot", "config": {} }
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "layout": "panel",
-                                "config": {
-                                    "title": "Plasma Animation",
-                                    "basic": [
-                                        {
-                                            "layout": "manualRunReport",
-                                            "config": {
-                                                "reportGroupName": "animation",
-                                                "reportName": "particleAnimation",
-                                                "frameIdFields": [
-                                                    "particleAnimation.x",
-                                                    "particleAnimation.y",
-                                                    "particleAnimation.histogramBins",
-                                                    "particleAnimation.xMin",
-                                                    "particleAnimation.xMax",
-                                                    "particleAnimation.yMin",
-                                                    "particleAnimation.yMax",
-                                                    "particleAnimation.zMin",
-                                                    "particleAnimation.zMax",
-                                                    "particleAnimation.uxMin",
-                                                    "particleAnimation.uxMax",
-                                                    "particleAnimation.uyMin",
-                                                    "particleAnimation.uyMax",
-                                                    "particleAnimation.uzMin",
-                                                    "particleAnimation.uzMax"
-                                                ],
-                                                "reportLayout": { "layout": "heatplot", "config": {} }
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "layout": "panel",
-                                "config": {
-                                    "title": "Electron Beam Animation",
-                                    "basic": [
-                                        {
-                                            "layout": "manualRunReport",
-                                            "config": {
-                                                "reportGroupName": "animation",
-                                                "reportName": "beamAnimation",
-                                                "frameIdFields": [
-                                                    "beamAnimation.x",
-                                                    "beamAnimation.y",
-                                                    "beamAnimation.histogramBins"
-                                                ],
-                                                "reportLayout": { "layout": "heatplot", "config": {} }
-                                            }
-                                        }
-                                    ]
-                                }
                             }
+                                        
                         ]
+                        
                     }
                 ]
             }

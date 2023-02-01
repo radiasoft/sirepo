@@ -963,7 +963,7 @@
                 "icon": "",
                 "items": [
                   {
-                    "layout": "masonry",
+                    "layout": "waterfall",
                     "config": {
                         "breakpoints": {
                             "xs": 1,
@@ -1203,7 +1203,7 @@
                 "icon": "",
                 "items": [
                     {
-                        "layout": "masonry",
+                        "layout": "waterfall",
                         "config": {
                             "breakpoints": {
                                 "xs": 1,
