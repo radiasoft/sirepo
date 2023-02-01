@@ -129,8 +129,10 @@ class _Cookie(sirepo.quest.Attr):
         return v
 
     def _encrypt(self, text):
-        return base64.urlsafe_b64encode(
-            self._crypto().encrypt(pkcompat.to_bytes(text)),
+        return pkcompat.from_bytes(
+            base64.urlsafe_b64encode(
+                self._crypto().encrypt(pkcompat.to_bytes(text)),
+            ),
         )
 
     def _from_cookie_header(self, qcall):

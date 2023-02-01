@@ -173,9 +173,7 @@ def get_data_file(run_dir, model, frame, options):
     return _SHADOW_OUTPUT_FILE
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or is_parallel:
         return None
     return _parse_shadow_log(run_dir)

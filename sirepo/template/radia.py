@@ -300,9 +300,7 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
     )
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or not is_parallel:
         return None
     return template_common.parse_mpi_log(run_dir)
