@@ -4,8 +4,14 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["male", "Male"],
-                    ["female", "Female"]
+                    [
+                        "male",
+                        "Male"
+                    ],
+                    [
+                        "female",
+                        "Female"
+                    ]
                 ]
             }
         },
@@ -13,9 +19,18 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["aggressive", "Aggressive"],
-                    ["friendly", "Friendly"],
-                    ["submissive", "Submissive"]
+                    [
+                        "aggressive",
+                        "Aggressive"
+                    ],
+                    [
+                        "friendly",
+                        "Friendly"
+                    ],
+                    [
+                        "submissive",
+                        "Submissive"
+                    ]
                 ]
             }
         }
@@ -66,7 +81,12 @@
                     "items": [
                         {
                             "layout": "fieldList",
-                            "config": { "name": "simulation", "fields": ["simulation.name"] }
+                            "config": {
+                                "name": "simulation",
+                                "fields": [
+                                    "simulation.name"
+                                ]
+                            }
                         }
                     ]
                 }
@@ -110,7 +130,10 @@
                                                                         {
                                                                             "layout": "fieldTable",
                                                                             "config": {
-                                                                                "columns": ["Height", "Weight"],
+                                                                                "columns": [
+                                                                                    "Height",
+                                                                                    "Weight"
+                                                                                ],
                                                                                 "rows": [
                                                                                     {
                                                                                         "label": "Size/Shape",
@@ -125,7 +148,9 @@
                                                                         {
                                                                             "layout": "fieldList",
                                                                             "config": {
-                                                                                "fields": ["dog.breed"]
+                                                                                "fields": [
+                                                                                    "dog.breed"
+                                                                                ]
                                                                             }
                                                                         }
                                                                     ]
@@ -188,7 +213,6 @@
                                 }
                             }
                         ]
-                        
                     }
                 ]
             }
