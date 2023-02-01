@@ -349,9 +349,14 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
 
 
-def validate_file(file_path, path):
+def validate_file(file_type, path):
     if path.ext not in (".csv", ".dat", ".stl", ".txt"):
         return f"invalid file type: {path.ext}"
+    if file_type == "extrudedPoints-pointsFile":
+        try:
+            _ = sirepo.csv.read_as_number_array(path)
+        except RuntimeError as e:
+            return e
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
