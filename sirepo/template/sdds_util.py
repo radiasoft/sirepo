@@ -46,14 +46,36 @@ class SDDSUtil:
     def __init__(self, filename):
         self.filename = filename
 
-    # where plot_attrs is a PKDict of values, x, x_label, title, ...
     def heatmap(self, plot_attrs):
+        sdds_label_and_units = {}
+        x_col = extract_sdds_column(self.filename, plot_attrs.x, 0)
+        if x_col.err:
+            return x_col.err
+        x_values = x_col["values"]
+        sdds_label_and_units["x"] = (x_col.column_def[0], x_col.column_def[1])
+        y_col = extract_sdds_column(self.filename, plot_attrs.y, 0)
+        if y_col.err:
+            return y_col.err
+        y_values = y_col["values"]
+        sdds_label_and_units["y"] = (y_col.column_def[0], y_col.column_def[1])
+        model = plot_attrs.frame_args.sim_in.models[plot_attrs.frame_args.frameReport]
+        model.update(plot_attrs.frame_args)
+
+        plot_fields = PKDict()
+        for f in ("x", "y"):
+            plot_attrs.format_plot(
+                plot_fields,
+                getattr(plot_attrs, f),
+                sdds_label_and_units[f][0],
+                sdds_label_and_units[f][1],
+            )
+
         return template_common.heatmap(
-            values=[plot_attrs.x, plot_attrs.y],
-            model=plot_attrs.model,
+            values=[x_values, y_values],
+            model=model,
             plot_fields={
-                "x_label": plot_attrs.x_label,
-                "y_label": plot_attrs.y_label,
+                "x_label": plot_fields["x_label"],
+                "y_label": plot_fields["y_label"],
                 "title": plot_attrs.title,
             },
         )
