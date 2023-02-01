@@ -30,6 +30,6 @@ export class BooleanInputLayout extends InputLayout<InputConfigBase, boolean, Bo
             props.onChange(v);
         }
 
-        return <Form.Check {...otherProps} onChange={onChange} checked={value} isInvalid={!valid && touched} style={{fontSize: '25px'}}></Form.Check>
+        return <Form.Check {...otherProps} onChange={onChange} checked={value} isInvalid={!valid && touched} style={{fontSize: '20px', margin: 0}}></Form.Check>
     };
 }

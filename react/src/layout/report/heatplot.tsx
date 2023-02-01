@@ -1,9 +1,6 @@
-// import { React }
-/* eslint eqeqeq: 0 */
-/* eslint no-unused-vars: 0 */
+import React from "react";
 import { Heatplot, HeatPlotConfig } from "../../component/reusable/heatplot";
 import { LayoutProps } from "../layout";
-import React from "react";
 import { ReportVisual, ReportVisualProps } from "../report";
 
 export type HeatplotConfigApi = {
@@ -44,7 +41,13 @@ function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotCo
         yRange: {
             min: yMin,
             max: yMax
-        }
+        },
+        zRange: {
+            min: Math.min(...zMatrix.map(row => Math.min(...row))),
+            max: Math.max(...zMatrix.map(row => Math.max(...row))),
+        },
+        //TODO(pjm): need a unique id on the data received
+        dataId: Math.random(),
     }
 }
 
