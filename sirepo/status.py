@@ -114,7 +114,7 @@ def init_apis(*args, **kwargs):
 
 
 _cfg = pkconfig.init(
-    max_calls=(15, int, "1 second calls"),
+    max_calls=(30, int, "1 second calls"),
     # only used for srunit
     sim_name=("Undulator Radiation", str, "which sim"),
     sim_report=("initialIntensityReport", str, "which report"),
