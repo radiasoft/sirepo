@@ -48,13 +48,8 @@ class SDDSUtil:
 
     # where plot_attrs is a PKDict of values, x, x_label, title, ...
     def heatmap(self, plot_attrs):
-
-
-
-
-
         return template_common.heatmap(
-            values=plot_attrs.values,
+            values=[plot_attrs.x, plot_attrs.y],
             model=plot_attrs.model,
             plot_fields={
                 "x_label": plot_attrs.x_label,

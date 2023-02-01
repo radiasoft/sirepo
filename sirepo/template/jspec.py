@@ -224,27 +224,26 @@ def sim_frame_particleAnimation(frame_args):
     if time > settings.time:
         time = settings.time
 
-# TODO(rorour): move extract sdds column usage to class
-    # TODO(rorour): TEST THIS with unchanged version
+    # TODO(rorour): move extract_sdds_column call to SDDSUtil?
     x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
     if x_col.err:
         return x_col.err
+    x = x_col["values"]
     y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
     if y_col.err:
         return y_col.err
-
+    y = y_col["values"]
     model = data.models.particleAnimation
     model.update(frame_args)
 
     return sdds_util.SDDSUtil(filename).heatmap(
-        PKDict(
-            values=[x_col["values"], y_col["values"]],
-            model=model,
-            title="Ions at time {:.2f} [s]".format(time),
+        plot_attrs=PKDict(
             x_label=_field_label(xfield, x_col.column_def),
             y_label=_field_label(yfield, y_col.column_def),
-            xfield=xfield,
-            yfield=yfield,
+            title="Ions at time {:.2f} [s]".format(time),
+            x=x,
+            y=y,
+            model=model,
         )
     )
 
