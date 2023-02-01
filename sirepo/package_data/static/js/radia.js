@@ -3376,7 +3376,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             'extrudedObject.extrusionAxis',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
-        ], updateObjectEditor,
+        ], updateObjectEditor
     ];
 
     $scope.whenSelected = () => {
