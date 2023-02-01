@@ -3422,10 +3422,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         $scope.fieldDelegate = d;
     }
 
-    function validatePointsFile() {
-        loadPoints();
-    }
-
     function hasPoints() {
         return ($scope.modelData.referencePoints || []).length;
     }
