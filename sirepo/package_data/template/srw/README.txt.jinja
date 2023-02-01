@@ -18,7 +18,7 @@ The script creates a new directory based on the current time and runs rsopt with
 
 Please note:
     - rsopt generates the data and runs SRW in one step
-    - If the machine running SRW has N cores, rsopt will attempt execute in parallel on N - 1 cores
+    - If the machine running SRW has N cores, rsopt will attempt to execute in parallel on N - 1 cores
     - SRW will run {{ totalSamples }} times; use caution
 
 The final consolidated input and output data for use in ML is in the hdf5 file "results.h5" under the "datasets" folder.
