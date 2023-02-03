@@ -228,5 +228,5 @@ class _AuthDb(sirepo.quest.Attr):
             s.rollback()
         s.close()
 
-    def _execute_sql(self, text, **kwargs):
-        return self.execute(sqlalchemy.text(text + ";"), **kwargs)
+    def _execute_sql(self, text):
+        return self.execute(sqlalchemy.text(text + ";"))
