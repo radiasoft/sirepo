@@ -73,34 +73,39 @@ class SDDSUtil:
         return template_common.heatmap(
             values=[x_values, y_values],
             model=model,
-            plot_fields={
-                "x_label": plot_fields["x_label"],
-                "y_label": plot_fields["y_label"],
-                "title": plot_attrs.title,
-            },
+            plot_fields=PKDict(
+                x_label=plot_fields["x_label"],
+                y_label=plot_fields["y_label"],
+                title=plot_attrs.title,
+            ),
         )
 
     def lineplot(self, plot_attrs):
         x = None
         plots = []
         for f in plot_attrs.x + plot_attrs.y:
-            name = plot_attrs.frame_args[f].replace(" ", "_")
-            if name == "none":
+            if f not in plot_attrs.frame_args or plot_attrs.frame_args[f] == "none":
                 continue
-            col = extract_sdds_column(
-                str(plot_attrs.frame_args.run_dir.join(self.filename)), name, 0
-            )
+            col_name = plot_attrs.format_col_name(plot_attrs.frame_args[f])
+            col = extract_sdds_column(self.filename, col_name, 0)
             if col.err:
                 return col.err
-            field = PKDict(
+            plot = PKDict(
                 points=col["values"],
                 label=plot_attrs.frame_args[f],
+                col_name=col_name,
             )
-            plot_attrs.format_plot(field, None, col.column_def[1])
             if f == "x":
-                x = field
+                plot.x = True
+            plot_attrs.format_plot(plot, col.column_def[1])
+            if f == "x":
+                x = plot
             else:
-                plots.append(field)
+                plots.append(plot)
+
+        if "v_trans_hook" in plot_attrs:
+            plot_attrs.v_trans_hook(x, plots)
+
         # independent reads of file may produce more columns, trim to match x length
         for p in plots:
             if len(x.points) < len(p.points):
@@ -109,13 +114,15 @@ class SDDSUtil:
         return template_common.parameter_plot(
             x=x.points,
             plots=plots,
-            model={},
-            plot_fields={
-                "title": "",
-                "dynamicYLabel": True,
-                "y_label": "",
-                "x_label": x.label,
-            },
+            model=plot_attrs.frame_args,
+            plot_fields=PKDict(
+                title=plot_attrs.title if "title" in plot_attrs else "",
+                dynamicYLabel=plot_attrs.dynamicYLabel
+                if "dynamicYLabel" in plot_attrs
+                else False,
+                y_label="",
+                x_label=x.label,
+            ),
         )
 
 

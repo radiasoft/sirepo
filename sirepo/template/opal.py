@@ -643,15 +643,21 @@ def sim_frame_plotAnimation(frame_args):
 def sim_frame_plot2Animation(frame_args):
     from sirepo.template import sdds_util
 
-    def _format_plot(plot, sdds_label, sdds_units):
+    def _format_col_name(name):
+        return name.replace(" ", "_")
+
+    def _format_plot(plot, sdds_units):
         _field_units(sdds_units, plot)
 
-    return sdds_util.SDDSUtil(_OPAL_SDDS_FILE).lineplot(
+    return sdds_util.SDDSUtil(str(frame_args.run_dir.join(_OPAL_SDDS_FILE))).lineplot(
         PKDict(
             x=("x",),
             y=("y1", "y2", "y3"),
+            format_col_name=_format_col_name,
             format_plot=_format_plot,
             frame_args=frame_args,
+            title="",
+            dynamicYLabel=True,
         )
     )
 

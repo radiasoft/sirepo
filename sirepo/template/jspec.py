@@ -211,7 +211,7 @@ def sim_frame_forceTableAnimation(frame_args):
 def sim_frame_particleAnimation(frame_args):
     def _format_plot(plot_fields, field, sdds_label, sdds_units):
         plot_fields["x_label" if field == xfield else "y_label"] = _field_label(
-            field, [None, sdds_units]
+            field, sdds_units
         )
 
     page_index = frame_args.frameIndex
@@ -371,8 +371,7 @@ def _field_direction(field):
     assert False, "invalid direction field: {}".format(field)
 
 
-def _field_label(field, field_def):
-    units = field_def[1]
+def _field_label(field, units):
     field = _FIELD_LABEL.get(field, field)
     if units == "NULL":
         return field
@@ -466,57 +465,49 @@ def _safe_sdds_value(v):
 
 
 def _sdds_report(frame_args, filename, x_field):
-    xfield = _map_field_name(x_field)
-    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
-    if x_col.err:
-        return x_col.err
-    x = x_col["values"]
-    if "fieldRange" in frame_args.sim_in.models.particleAnimation:
-        frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
-    plots = []
-    for f in ("y1", "y2", "y3"):
-        if f not in frame_args or frame_args[f] == "none":
-            continue
-        yfield = _map_field_name(frame_args[f])
-        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-        if y_col.err:
-            return y_col.err
-        y = y_col["values"]
+    def _force_scale_and_label_prefix(plot):
         label_prefix = ""
         # TODO(pjm): the forceScale feature makes the code unmanageable
-        # it might be simpler if this was done on the client
+        #  it might be simpler if this was done on the client
         if (
             "forceScale" in frame_args
-            and yfield in ("f_x", "f_long")
+            and plot.col_name in ("f_x", "f_long")
             and frame_args.forceScale == "negative"
         ):
-            y = [-v for v in y]
+            plot.points = [-v for v in plot.points]
             label_prefix = "-"
             if "fieldRange" in frame_args:
-                r = frame_args.fieldRange[frame_args[f]]
-                frame_args.fieldRange[frame_args[f]] = [-r[1], -r[0]]
-        plots.append(
-            PKDict(
-                field=frame_args[f],
-                points=y,
-                label="{}{}{}".format(
-                    label_prefix,
-                    _field_label(yfield, y_col.column_def),
-                    _field_description(yfield, frame_args.sim_in),
-                ),
+                r = frame_args.fieldRange[plot.label]
+                frame_args.fieldRange[plot.label] = [-r[1], -r[0]]
+        return label_prefix
+
+    def _format_plot(plot, sdds_units):
+        if "x" in plot and plot.x:
+            plot.label = _field_label(plot.col_name, sdds_units)
+        else:
+            plot.label = "{}{}{}".format(
+                _force_scale_and_label_prefix(plot),
+                _field_label(plot.col_name, sdds_units),
+                _field_description(plot.col_name, frame_args.sim_in),
             )
-        )
-    if xfield == "V_trans":
-        x = _resort_vtrans(x, plots)
+
+    def _v_trans_hook(plot, plots):
+        if plot.col_name == "V_trans":
+            plot.points = _resort_vtrans(plot.points, plots)
+
+    if "fieldRange" in frame_args.sim_in.models.particleAnimation:
+        frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
     frame_args.x = x_field
-    return template_common.parameter_plot(
-        x,
-        plots,
-        frame_args,
+
+    return sdds_util.SDDSUtil(filename).lineplot(
         PKDict(
-            y_label="",
-            x_label=_field_label(xfield, x_col.column_def),
-        ),
+            x=("x",),
+            y=("y1", "y2", "y3"),
+            format_col_name=_map_field_name,
+            frame_args=frame_args,
+            v_trans_hook=_v_trans_hook,
+            format_plot=_format_plot,
+        )
     )
 
 
