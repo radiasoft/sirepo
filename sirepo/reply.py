@@ -487,11 +487,14 @@ class _SReply(sirepo.quest.Attr):
         _cookie(r)
         return r
 
-    def _copy(self, res):
+    def _copy(self, source):
         """Destructive copy unless `self` is `res`"""
-        if res == self:
+        if source == self:
             return self
-        return self.from_kwargs(**res.__attrs)
+        res = self.from_kwargs(**source.__attrs)
+        # Destructive so "handle" not used by caller
+        source.__attrs = None
+        return res
 
     def _disposition(self, disposition):
         self.header_set(
