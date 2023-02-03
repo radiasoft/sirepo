@@ -161,8 +161,12 @@ class _SReply(sirepo.quest.Attr):
         return _cache_control(r)
 
     def from_api(self, res):
+        """Process the reply of a call to another API
+
+        Destructively copies `res` to `self` if res is an`_SReply`
+        """
         if isinstance(res, _SReply):
-            return res
+            return self._copy(res)
         if isinstance(res, dict):
             return self.gen_json(res)
         raise AssertionError(f"invalid return type={type(res)} from qcall={self.qcall}")
@@ -212,6 +216,7 @@ class _SReply(sirepo.quest.Attr):
             if h:
                 h.close()
                 self.__attrs.pkdel("content")
+            raise
 
     def gen_file_as_attachment(self, content_or_path, filename=None, content_type=None):
         """Generate a file attachment response
@@ -482,6 +487,12 @@ class _SReply(sirepo.quest.Attr):
         _cookie(r)
         return r
 
+    def _copy(self, res):
+        """Destructive copy unless `self` is `res`"""
+        if res == self:
+            return self
+        return self.from_kwargs(**res.__attrs)
+
     def _disposition(self, disposition):
         self.header_set(
             _DISPOSITION, f'{disposition}; filename="{self.__attrs.download_name}"'
@@ -564,7 +575,7 @@ class _SReply(sirepo.quest.Attr):
         r = args.sreply
         if not isinstance(r, _SReply):
             raise AssertionError(f"invalid class={type(r)} response={r}")
-        return r
+        return self._copy(r)
 
     def _gen_exception_reply_ServerError(self, args):
         return self._gen_http_exception(500)

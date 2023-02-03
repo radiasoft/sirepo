@@ -200,7 +200,7 @@ def start_tornado(ip, port, debug=False):
             if e:
                 pkdlog("uri={} {}; route={} kwargs={} ", self.request.uri, e, r, k)
                 r = _not_found_route
-            sreply = _call_api(
+            _call_api(
                 None,
                 r,
                 kwargs=k,
@@ -280,6 +280,7 @@ class _URIParams(PKDict):
 def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None):
     qcall = route.cls()
     c = False
+    r = None
     try:
         if parent:
             qcall.parent_set(parent)
@@ -313,10 +314,17 @@ def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None
                     "api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc()
                 )
             r = qcall.sreply.gen_exception(e)
+        if parent:
+            # At this point qcall.sreply is invalid if from_api was called so just return.
+            # Do not modify cookies or any global state.
+            res = r
+            r = None
+            res.quest_no_destroy = True
+            return res
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
             r.header_set("Access-Control-Allow-Origin", "*")
-        return reply_op(r) if reply_op else r
+        return reply_op(r)
     except:
         c = False
         raise
