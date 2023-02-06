@@ -1948,6 +1948,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.is3dPreview = false;
             $scope.isClientOnly = true;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
+            $scope.snapToGrid = false;
+            $scope.snapGridSize = '1';
             $scope.width = $scope.height = 0;
 
             let didDrag = false;
@@ -2024,13 +2026,20 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 didDrag = true;
                 [dragX, dragY] = [d3.event.x, d3.event.y];
                 draggedShape = shape;
+                const g = parseFloat($scope.snapGridSize);
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     const dom = axes[dim].scale.domain();
-                    const pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
-                    shape.center[dim] = dragStart.center[dim] +
-                        SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
-                    shape[dim] = dragStart[dim] +
-                        SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
+                    const pixelSize = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
+                    const d = SIREPO.SCREEN_INFO[dim].direction * pixelSize * d3.event[dim];
+                    shape.center[dim] = dragStart.center[dim] + d;
+                    shape[dim] = dragStart[dim] + d;
+                    if (! $scope.snapToGrid) {
+                        return;
+                    }
+                    const p = (dragStart[dim] + d) * invObjScale;
+                    const c = (dragStart.center[dim] + d) * invObjScale;
+                    shape[dim] = 0;  //g * Math.round(p / g) * objectScale;
+                    shape.center[dim] = 0;  //g * Math.round(c / g) * objectScale;
                 });
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
