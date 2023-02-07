@@ -31,7 +31,9 @@ import sirepo.util
 SR_EXCEPTION_STATE = "srException"
 
 #: mapping of extension (json, js, html) to MIME type
-MIME_TYPE = None
+_MIME_TYPE = None
+
+_MIME_TYPE_UTF8 = None
 
 #: default Max-Age header
 CACHE_MAX_AGE = 43200
@@ -46,23 +48,27 @@ _RESPONSE_OK = PKDict({STATE: "ok"})
 #: routes that will require a reload
 _RELOAD_JS_ROUTES = None
 
+_DISPOSITION = "Content-Disposition"
+
 
 def init_module(**imports):
-    global MIME_TYPE, _RELOAD_JS_ROUTES
+    global _MIME_TYPE, _MIME_TYPE_UTF8, _RELOAD_JS_ROUTES
 
-    if MIME_TYPE:
+    if _MIME_TYPE:
         return
 
     # import simulation_db
     sirepo.util.setattr_imports(imports)
-    MIME_TYPE = PKDict(
+    _MIME_TYPE = PKDict(
         html="text/html",
         ipynb="application/x-ipynb+json",
         js="application/javascript",
         json="application/json",
-        py="text/x-python",
         madx="text/plain",
+        py="text/x-python",
+        txt="text/plain",
     )
+    _MIME_TYPE_UTF8 = frozenset(_MIME_TYPE.values())
     s = simulation_db.get_schema(sim_type=None)
     _RELOAD_JS_ROUTES = frozenset(
         (k for k, v in s.localRoutes.items() if v.get("requireReload")),
@@ -74,6 +80,11 @@ def init_quest(qcall):
 
 
 class _SReply(sirepo.quest.Attr):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Needed in tornado_response
+        self.internal_req = self.qcall.sreq.internal_req
+
     def content_as_str(
         self,
     ):
@@ -89,6 +100,14 @@ class _SReply(sirepo.quest.Attr):
         assert "value" in kwargs
         self.__attrs.cookie = PKDict(kwargs)
         return self
+
+    def destroy(self, **kwargs):
+        """Must be called"""
+        try:
+            self.__attrs.pknested_get("content.handle").close()
+            self.__attrs.content.pkdel("handle")
+        except Exception:
+            pass
 
     def flask_response(self, cls):
         from werkzeug import utils
@@ -118,9 +137,10 @@ class _SReply(sirepo.quest.Attr):
                 c.handle,
                 environ=request.environ,
                 mimetype=self.__attrs.content_type,
-                download_name=c.path.basename,
+                download_name=a.download_name,
                 last_modified=c.mtime,
             )
+            c.pkdel("handle")
             res.headers["Content-Encoding"] = c.encoding
             res.content_length = c.length
             return res
@@ -150,9 +170,10 @@ class _SReply(sirepo.quest.Attr):
     def from_kwargs(self, **kwargs):
         """Saves reply attributes
 
-        While replies are global (qcall.sreply), the attributes
-
+        While replies are global (qcall.sreply), the attributes need
+        to be reset every time a new reply is generated.
         """
+        self.destroy()
         self.__attrs = PKDict(kwargs).pksetdefault(headers=PKDict)
         return self
 
@@ -168,21 +189,29 @@ class _SReply(sirepo.quest.Attr):
             return self._gen_exception_reply(exc)
         return self._gen_exception_error(exc)
 
-    def gen_file(self, path, content_type):
+    def gen_file(self, path, content_type, filename):
         # Always (re-)initialize __attrs
         self.from_kwargs()
         e = None
         if content_type is None:
             content_type, e = self._guess_content_type(path.basename)
+        self._download_name(filename or path.basename)
         self.__attrs.content_type = content_type
-        self.__attrs.content = PKDict(
-            encoding=e,
-            handle=open(path, "rb"),
-            length=path.size(),
-            mtime=int(path.mtime()),
-            path=path,
-        )
-        return self
+        h = None
+        try:
+            h = open(path, "rb")
+            self.__attrs.content = PKDict(
+                encoding=e,
+                handle=h,
+                length=path.size(),
+                mtime=int(path.mtime()),
+                path=path,
+            )
+            return self
+        except Exception:
+            if h:
+                h.close()
+                self.__attrs.pkdel("content")
 
     def gen_file_as_attachment(self, content_or_path, filename=None, content_type=None):
         """Generate a file attachment response
@@ -196,43 +225,41 @@ class _SReply(sirepo.quest.Attr):
             _SReply: reply object
         """
 
-        def f():
+        def _reply(filename):
             if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
-                return self.gen_file(path=content_or_path, content_type=None)
+                return self.gen_file(
+                    path=content_or_path,
+                    content_type=content_type,
+                    filename=filename,
+                )
             if content_type == "application/json":
-                return self.from_kwargs(content=pkjson.dump_pretty(content_or_path))
-            return self.from_kwargs(content=content_or_path)
+                self.from_kwargs(
+                    content=pkjson.dump_pretty(content_or_path, pretty=False),
+                    content_type=content_type,
+                )
+            else:
+                self.from_kwargs(
+                    content=content_or_path,
+                    content_type=content_type or self._guess_content_type(filename)[0],
+                )
+            self._download_name(filename)
+            return self
 
-        if filename is None:
-            # dies if content_or_path is not a path
-            filename = content_or_path.basename
-        filename = re.sub(r"[^\w\.]+", "-", filename).strip("-")
-        if re.search(r"^\.\w+$", filename):
-            # the safe filename has no basename, prefix with "download"
-            filename = "download" + filename
-        return (
-            f()
-            ._as_attachment(
-                content_type or self._guess_content_type(filename)[0],
-                filename,
-            )
-            .headers_for_no_cache()
-        )
+        return _reply(filename)._disposition("attachment").headers_for_no_cache()
 
-    def gen_json(self, value, pretty=False, response_kwargs=None):
+    def gen_json(self, value, response_kwargs=None):
         """Generate JSON response
 
         Args:
             value (dict): what to format
-            pretty (bool): pretty print [False]
         Returns:
             _SReply: reply object
         """
         if not response_kwargs:
             response_kwargs = PKDict()
         return self.from_kwargs(
-            content=simulation_db.generate_json(value, pretty=pretty),
-            content_type=MIME_TYPE.json,
+            content=simulation_db.generate_json(value, pretty=False),
+            content_type=_MIME_TYPE.json,
             **response_kwargs,
         )
 
@@ -336,7 +363,7 @@ class _SReply(sirepo.quest.Attr):
         """
         r = self.from_kwargs(
             content=sirepo.html.render(path),
-            content_type=MIME_TYPE.html,
+            content_type=_MIME_TYPE.html,
             **(attrs or PKDict()),
         )
         return (
@@ -358,7 +385,7 @@ class _SReply(sirepo.quest.Attr):
         p = sirepo.resource.static(ext, f"{base}.{ext}")
         r = self.from_kwargs(
             content=pkjinja.render_file(p, j2_ctx, strict_undefined=True),
-            content_type=MIME_TYPE[ext],
+            content_type=_MIME_TYPE[ext],
         )
         if cache_ok:
             return r.headers_for_cache(path=p)
@@ -367,12 +394,109 @@ class _SReply(sirepo.quest.Attr):
     def status_as_int(self):
         return self.__attrs.get("status", 200)
 
-    def _as_attachment(self, content_type, filename):
-        self.header_set("Content-Disposition", f'attachment; filename="{filename}"')
-        self.__attrs.pkupdate(
-            content_type=content_type,
+    def tornado_response(self):
+        def _bytes(resp, content):
+            c = pkcompat.to_bytes(content)
+            resp.write(c)
+            resp.set_header("Content-Length", str(len(c)))
+
+        def _cache_control(resp):
+            if "cache" not in self.__attrs:
+                return resp
+            c = self.__attrs.cache
+            if c.cache:
+                resp.set_header(
+                    "Cache-Control",
+                    "private, max-age={resp.cache_control.max_age}",
+                )
+                if c.mtime is not None:
+                    resp.set_header(
+                        "Last-Modified",
+                        email.utils.formatdate(c.mtime, usegmt=True),
+                    )
+            else:
+                resp.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                resp.set_header("Pragma", "no-cache")
+
+        def _content_type(resp):
+            c = a.content_type
+            if c in _MIME_TYPE_UTF8:
+                c += '; charset="utf8"'
+            r.set_header("Content-Type", c)
+
+        def _cookie(resp):
+            # TODO(robnagler) http.cookies 3.8 introduced samesite and blows up otherwise.
+            # we know how our cookies are formed so
+            a = self.__attrs
+            if not ("cookie" in a and 200 <= a.status < 400):
+                return
+            c = a.cookie
+            r = [f'{c.pkdel("key")}={c.pkdel("value")}', "Path=/"]
+            for k in sorted(c.keys()):
+                if k == "httponly":
+                    if c[k]:
+                        r.append("HttpOnly")
+                elif k == "max_age":
+                    r.append(f"Max-Age={c[k]}")
+                elif k == "samesite":
+                    r.append(f"SameSite={c[k]}")
+                elif k == "secure":
+                    if c[k]:
+                        r.append("Secure")
+                else:
+                    raise AssertionError(f"unhandled cookie attr={k}")
+            resp.set_header("Set-Cookie", "; ".join(r))
+
+        def _file(resp):
+            a = self.__attrs
+            c = a.content
+            resp.write(c.handle.read())
+            c.handle.close()
+            c.pkdel("handle")
+            if _DISPOSITION not in a.headers:
+                self._disposition("inline")
+            resp.set_header(
+                "Last-Modified",
+                email.utils.formatdate(c.mtime, usegmt=True),
+            )
+            if c.encoding:
+                resp.set_header("Content-Encoding", c.encoding)
+            resp.set_header("Content-Length", str(c.length))
+
+        a = self.__attrs
+        c = a.get("content")
+        if c is None:
+            c = b""
+            a.content_type = _MIME_TYPE.txt
+        r = self.internal_req
+        a.pksetdefault(status=200)
+        if isinstance(c, PKDict):
+            _file(r)
+        else:
+            _bytes(r, c)
+        r.set_status(a.status)
+        for k, v in a.headers.items():
+            r.set_header(k, v)
+        _content_type(r)
+        _cache_control(r)
+        _cookie(r)
+        return r
+
+    def _disposition(self, disposition):
+        self.header_set(
+            _DISPOSITION, f'{disposition}; filename="{self.__attrs.download_name}"'
         )
         return self
+
+    def _download_name(self, filename):
+        def _secure_filename():
+            return re.sub(r"[^\w\.]+", "-", filename).strip("-")
+
+        f = _secure_filename()
+        if f.startswith("."):
+            # the safe filename has no basename, prefix with "download"
+            f = "download" + f
+        self.__attrs.download_name = f
 
     def _gen_exception_error(self, exc):
         pkdlog("unsupported exception={} msg={}", type(exc), exc)
@@ -383,7 +507,7 @@ class _SReply(sirepo.quest.Attr):
 <body><h1>Internal Server Error</h1></body>
 </html>
 """,
-                content_type=MIME_TYPE.html,
+                content_type=_MIME_TYPE.html,
                 status=500,
             )
         return self.gen_redirect_for_local_route(None, route="error")
@@ -453,7 +577,7 @@ class _SReply(sirepo.quest.Attr):
 <body><h1>Not Found</h1></body>
 </html>
 """,
-            content_type=MIME_TYPE.html,
+            content_type=_MIME_TYPE.html,
             status=404,
         )
 

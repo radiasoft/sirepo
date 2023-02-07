@@ -477,7 +477,7 @@ def get_data_file(run_dir, model, frame, options):
 def import_file(req, unit_test_mode=False, **kwargs):
     from sirepo.template import opal_parser
 
-    text = pkcompat.from_bytes(req.file_stream.read())
+    text = req.form_file.as_str()
     if re.search(r"\.in$", req.filename, re.IGNORECASE):
         data, input_files = opal_parser.parse_file(text, filename=req.filename)
         missing_files = []
@@ -503,9 +503,7 @@ def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     if is_parallel:
