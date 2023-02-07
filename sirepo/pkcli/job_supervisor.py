@@ -21,7 +21,6 @@ import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
 import sirepo.modules
-import sirepo.react_proxy
 import sirepo.sim_db_file
 import sirepo.srdb
 import sirepo.srtime
@@ -47,8 +46,7 @@ def default_command():
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
     pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     app = tornado.web.Application(
-        sirepo.react_proxy.routes()
-        + [
+        [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
             (sirepo.job.SERVER_RUN_MULTI_URI, _ServerReqRunMulti),
