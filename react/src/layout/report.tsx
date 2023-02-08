@@ -19,6 +19,7 @@ import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
 import { SchemaLayout } from "../utility/schema";
+import { CRouteHelper } from "../utility/route";
 
 
 export type ReportVisualProps<L> = { data: L };
@@ -51,6 +52,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
 
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let modelsWrapper = useContext(CModelsWrapper);
         let formController = useContext(CFormController);
 
@@ -68,7 +70,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
             let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
             simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-                pollRunReport({
+                pollRunReport(routeHelper, {
                     appName,
                     models,
                     simulationId,
@@ -106,7 +108,6 @@ export type ManualRunReportConfig = {
     reportGroupName: string,
     frameIdFields: string[],
     shown: string,
-    frameCountFieldName: string
 }
 
 export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
@@ -122,13 +123,32 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         return this.reportLayout.getFormDependencies();
     }
 
+   //TODO(pjm): private method naming convention?
+    _reportStatus(reportName, simulationData) {
+        if (simulationData.reports) {
+            for (const r of simulationData.reports) {
+                if (r.modelName === reportName) {
+                    return {
+                        frameCount: r.frameCount || r.lastUpdateTime || 0,
+                        hasAnimationControls: ! r.lastUpdateTime,
+                    };
+                }
+            }
+        }
+        return {
+            frameCount: 0,
+            hasAnimationControls: false,
+        };
+    }
+
     component = (props: LayoutProps<{}>) => {
-        let { reportName, reportGroupName, frameIdFields, shown: shownConfig, frameCountFieldName } = this.config;
+        let { reportName, reportGroupName, frameIdFields, shown: shownConfig } = this.config;
 
         let reportEventManager = useContext(CReportEventManager);
         let modelsWrapper = useContext(CModelsWrapper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let panelController = useContext(CPanelController);
 
         let reportEventsVersionRef = useRef(uuidv4())
@@ -142,8 +162,13 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         let [animationReader, updateAnimationReader] = useState<AnimationReader>(undefined);
 
         useEffect(() => {
+            let s = animationReader && animationReader.frameCount > 0 && shown;
+            panelController.setShown(s);
+        }, [shown, animationReader?.frameCount])
+
+        /*useEffect(() => {
             panelController.setShown(false);
-        }, [0])
+        }, [0])*/
 
         useEffect(() => {
             reportEventManager.addListener(reportEventsVersionRef.current, reportGroupName, {
@@ -154,18 +179,19 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                 onReportData: (simulationData: ResponseHasState) => {
                     simulationInfoPromise.then(({simulationId}) => {
                         let { computeJobHash, computeJobSerial } = simulationData;
-                        let frameCount = frameCountFieldName ? simulationData[frameCountFieldName] : (simulationData.state === 'completed' ? 1 : 0);
-                        if(frameCount !== animationReader?.frameCount) {
-                            if(frameCount > 0) {
-                                let newAnimationReader = new AnimationReader({
+                        const s = this._reportStatus(reportName, simulationData);
+                        if (!animationReader || s.frameCount !== animationReader?.frameCount) {
+                            if (s.frameCount > 0) {
+                                let newAnimationReader = new AnimationReader(routeHelper, {
                                     reportName,
                                     simulationId,
                                     appName,
                                     computeJobSerial,
                                     computeJobHash,
                                     frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
-                                    frameCount
-                                })
+                                    frameCount: s.frameCount,
+                                    hasAnimationControls: s.hasAnimationControls,
+                                });
 
                                 /*// if the reader is at the old end or was not previously defined
                                 if(!animationReader || animationReader.nextFrameIndex >= animationReader.frameCount - 1) {
@@ -185,7 +211,9 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                     })
                 }
             })
-            return () => reportEventManager.clearListenersForKey(reportEventsVersionRef.current);
+            return () => {
+                reportEventManager.clearListenersForKey(reportEventsVersionRef.current)
+            };
         })
 
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
@@ -212,39 +240,34 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
         animationReader.getNextFrame().then(reportDataCallback);
     }, [animationReader?.frameCount])
 
-    useEffect(() => {
-        let s = animationReader && animationReader.frameCount > 0 && shown && !!currentFrame && reportLayout.canShow(currentFrame?.data);
-        panelController.setShown(s);
-    }, [shown, !!currentFrame, animationReader?.frameCount])
-
     let animationControlButtons = (
-        <div className="d-flex flex-row justify-content-center w-100">
-            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
+        <div className="d-flex flex-row justify-content-center w-100 gap-1">
+            <Button variant="light" disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekBeginning();
                 animationReader.getNextFrame().then(reportDataCallback);
             }}>
                 <FontAwesomeIcon icon={Icon.faBackward}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasPreviousFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.getPreviousFrame().then(reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faBackwardStep}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.beginPresentation('forward', presentationIntervalMs, reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faPlay}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.getNextFrame().then(reportDataCallback)
             }}>
                 <FontAwesomeIcon icon={Icon.faForwardStep}></FontAwesomeIcon>
             </Button>
-            <Button disabled={!animationReader.hasNextFrame()} onClick={() => {
+            <Button variant="light" disabled={!animationReader.hasNextFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekEnd();
                 animationReader.getNextFrame().then(reportDataCallback);
@@ -264,7 +287,7 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
                 canShowReport && shown && currentFrame && (
                     <>
                         <LayoutComponent data={reportLayoutConfig}/>
-                        {animationReader.getFrameCount() > 1 && animationControlButtons}
+                        {animationReader.getFrameCount() > 1 && animationReader.hasAnimationControls && animationControlButtons}
                     </>
                 )
             }
@@ -295,6 +318,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
 
         let reportEventManager = useContext(CReportEventManager);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let modelsWrapper = useContext(CModelsWrapper);
         let schema = useContext(CSchema);
@@ -374,7 +398,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
             simulationPollingVersionRef.current = uuidv4();
 
             simulationInfoPromise.then(({simulationId}) => {
-                cancelReport({
+                cancelReport(routeHelper, {
                     appName,
                     models: getModelValues(modelNames, modelsWrapper, store.getState()),
                     simulationId,

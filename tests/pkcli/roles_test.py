@@ -37,7 +37,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
     pkunit.data_dir().join("db").copy(srdb.root())
     _proprietary_file = "flash.tar.gz"
     fc = auth_fc
-    fc.sr_email_register("a@b.c", sim_type="flash")
+    fc.sr_email_login("a@b.c", sim_type="flash")
     r = fc.sr_post(
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
     )
@@ -58,7 +58,7 @@ def test_flash_list_role_by_email(auth_fc):
     e = "a@b.c"
     r = ["premium"]
     pkunit.data_dir().join("db").copy(srdb.root())
-    auth_fc.sr_email_register(e, sim_type="flash")
+    auth_fc.sr_email_login(e, sim_type="flash")
     roles.add(e, *r)
     pkunit.pkeq(r, roles.list(e))
     pkunit.pkeq(r, roles.list(auth_fc.sr_auth_state().uid))

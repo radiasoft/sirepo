@@ -21,7 +21,6 @@ import numpy as np
 import py.path
 import re
 import sirepo.sim_data
-import werkzeug
 import zipfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -466,14 +465,12 @@ def stateful_compute_tosca_info(data):
 
 def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(
-        pkcompat.from_bytes(req.file_stream.read()),
+        req.form_file.as_str(),
         unit_test_mode=unit_test_mode,
     )
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     if not is_parallel:

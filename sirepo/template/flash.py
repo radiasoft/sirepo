@@ -141,9 +141,7 @@ def get_data_file(run_dir, model, frame, options):
     )
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     e = None

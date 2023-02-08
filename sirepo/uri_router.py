@@ -13,21 +13,16 @@ import importlib
 import inspect
 import os
 import pkgutil
+import pykern.pkcompat
 import re
 import sirepo.api_auth
 import sirepo.auth
-import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
-import sirepo.http_reply
-import sirepo.http_request
 import sirepo.quest
-import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
-
-#: route for sirepo.srunit
-srunit_uri = None
+import urllib.parse
 
 #: prefix for api functions
 _FUNC_PREFIX = "api_"
@@ -85,8 +80,6 @@ def call_api(qcall, name, kwargs=None, data=None):
 
     Call another API with permission checks.
 
-    Note: also calls `save_to_cookie`.
-
     Args:
         qcall (quest.API): request object
         route_or_name (object): api function or name (without `api_` prefix)
@@ -95,18 +88,28 @@ def call_api(qcall, name, kwargs=None, data=None):
     Returns:
         Response: result
     """
-    return _call_api(qcall, _api_to_route[name], kwargs=kwargs, data=data)
+    return _call_api(
+        qcall,
+        _api_to_route[name],
+        kwargs=kwargs,
+        data=data,
+    )
 
 
 def init_for_flask(app):
-    """and adds a single flask route (`_dispatch`) to dispatch based on the map."""
-    global _init_for_flask
+    """and adds a single flask route (`_flask_dispatch`) to dispatch based on the map."""
+    global _init_for_flask, _app
 
     if _init_for_flask:
         return
     _init_for_flask = True
-    app.add_url_rule("/<path:path>", "_dispatch", _dispatch, methods=("GET", "POST"))
-    app.add_url_rule("/", "_dispatch_empty", _dispatch_empty, methods=("GET", "POST"))
+    app.add_url_rule(
+        "/<path:path>", "_flask_dispatch", _flask_dispatch, methods=("GET", "POST")
+    )
+    app.add_url_rule(
+        "/", "_flask_dispatch_empty", _flask_dispatch_empty, methods=("GET", "POST")
+    )
+    _app = app
 
 
 def init_module(want_apis, **imports):
@@ -187,6 +190,46 @@ def register_api_module(module):
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
+def start_tornado(ip, port, debug=False):
+    """Start tornado server, does not return"""
+    from tornado import httpserver, ioloop, web, log
+
+    class _Handler(web.RequestHandler):
+        def _route(self):
+            p = pykern.pkcompat.from_bytes(
+                urllib.parse.unquote_to_bytes(self.request.path),
+            )
+            e, r, k = _path_to_route(p[1:])
+            if e:
+                pkdlog("uri={} {}; route={} kwargs={} ", p, e, r, k)
+                r = _not_found_route
+            sreply = _call_api(
+                None,
+                r,
+                kwargs=k,
+                internal_req=self,
+                reply_op=lambda r: r.tornado_response(),
+            )
+
+        async def get(self):
+            self._route()
+
+        async def post(self):
+            self._route()
+
+    sirepo.modules.import_and_init("sirepo.server").init_tornado()
+    s = httpserver.HTTPServer(
+        web.Application(
+            [("/.*", _Handler)],
+            debug=pkconfig.channel_in("dev"),
+        ),
+        xheaders=True,
+        max_buffer_size=sirepo.job.cfg().max_message_bytes,
+    ).listen(port=port, address=ip)
+    log.enable_pretty_logging()
+    ioloop.IOLoop.current().start()
+
+
 def uri_for_api(api_name, params=None):
     """Generate uri for api method
 
@@ -241,16 +284,7 @@ class _URIParams(PKDict):
     pass
 
 
-def _call_api(parent, route, kwargs, data=None):
-    import werkzeug.exceptions
-
-    def _response(res):
-        if isinstance(res, dict):
-            return sirepo.http_reply.gen_json(res)
-        if res is None or isinstance(res, (str, tuple)):
-            raise AssertionError("invalid return from qcall={}", qcall)
-        return sirepo.http_reply.gen_response(res)
-
+def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None):
     qcall = route.cls()
     c = False
     try:
@@ -260,7 +294,7 @@ def _call_api(parent, route, kwargs, data=None):
         qcall.attr_set("uri_route", route)
         qcall.sim_type_set_from_spec(route.func)
         if not parent:
-            sirepo.auth.init_quest(qcall=qcall, top_level_call_api=True)
+            sirepo.auth.init_quest(qcall=qcall, internal_req=internal_req)
         if data:
             qcall.http_data_set(data)
         try:
@@ -272,22 +306,24 @@ def _call_api(parent, route, kwargs, data=None):
             elif kwargs is None:
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)
-            r = _response(getattr(qcall, qcall.uri_route.func_name)(**kwargs))
+            r = qcall.sreply.from_api(
+                getattr(qcall, qcall.uri_route.func_name)(**kwargs),
+            )
             c = True
         except Exception as e:
-            if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
-                if isinstance(e, sirepo.util.OKReply):
+            if isinstance(e, sirepo.util.ReplyExc):
+                if isinstance(e, sirepo.util.OKReplyExc):
                     c = True
                 pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
             else:
                 pkdlog(
                     "api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc()
                 )
-            r = sirepo.http_reply.gen_exception(qcall, e)
+            r = qcall.sreply.gen_exception(e)
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.channel_in("dev"):
-            r.headers.add("Access-Control-Allow-Origin", "*")
-        return r
+            r.header_set("Access-Control-Allow-Origin", "*")
+        return reply_op(r) if reply_op else r
     except:
         c = False
         raise
@@ -304,7 +340,7 @@ def _check_route(qcall, route):
     sirepo.api_auth.check_api_call(qcall, route.func)
 
 
-def _dispatch(path):
+def _flask_dispatch(path):
     """Called by Flask and routes the base_uri with parameters
 
     Args:
@@ -313,21 +349,28 @@ def _dispatch(path):
     Returns:
         response
     """
+    import flask
+
     error, route, kwargs = _path_to_route(path)
     if error:
         pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
         route = _not_found_route
+    return _call_api(
+        None,
+        route,
+        kwargs=kwargs,
+        internal_req=flask.request,
+        reply_op=lambda r: r.flask_response(_app.response_class),
+    )
 
-    return _call_api(None, route, kwargs=kwargs)
 
-
-def _dispatch_empty():
+def _flask_dispatch_empty():
     """Hook for '/' route"""
-    return _dispatch(None)
+    return _flask_dispatch(None)
 
 
 def _init_uris(simulation_db, sim_types):
-    global _route_default, _not_found_route, srunit_uri, _api_to_route, _uri_to_route
+    global _route_default, _not_found_route, _api_to_route, _uri_to_route
 
     assert not _route_default, "_init_uris called twice"
     _uri_to_route = PKDict()
@@ -351,8 +394,6 @@ def _init_uris(simulation_db, sim_types):
             _route_default = r
         elif r.base_uri == _ROUTE_URI_NOT_FOUND:
             _not_found_route = r
-        elif "srunit" in v:
-            srunit_uri = v
     assert _route_default, f"missing constant route: default /{_ROUTE_URI_DEFAULT}"
     assert (
         _not_found_route

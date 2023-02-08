@@ -6,15 +6,12 @@ export type StringInputConfig = {
     align: AlignmentClass
 } & InputConfigBase
 
-export class StringInputLayout extends InputLayout<StringInputConfig, string> { 
+export class StringInputLayout extends InputLayout<StringInputConfig, string> {
     component: FunctionComponent<InputComponentProps<string>> = (props) => {
         let onChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> = (event) => {
             props.onChange(event.target.value);
         }
-
-        let { valid, touched, ...otherProps } = props;
-        
-        return <Form.Control className={this.config.align} type="text" {...otherProps} onChange={onChange} isInvalid={!valid && touched}></Form.Control>
+        return <Form.Control size="sm" className={this.config.align} type="text" {...props} onChange={onChange}></Form.Control>
     }
 
     validate = (value: string) => {
@@ -22,5 +19,5 @@ export class StringInputLayout extends InputLayout<StringInputConfig, string> {
     }
 
     toModelValue: (value: string) => string = (v) => v;
-    fromModelValue: (value: string) => string = (v) => v;   
+    fromModelValue: (value: string) => string = (v) => v;
 }

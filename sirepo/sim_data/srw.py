@@ -16,7 +16,6 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     ANALYSIS_ONLY_FIELDS = frozenset(
         (
             "aspectRatio",
@@ -42,6 +41,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     )
 
     EXPORT_RSOPT = "exportRsOpt"
+    ML_REPORT = "machineLearningAnimation"
+    ML_OUTPUT = "results.h5"
 
     SRW_RUN_ALL_MODEL = "simulation"
 
@@ -112,6 +113,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             "gaussianBeam",
             "initialIntensityReport",
             "intensityReport",
+            "machineLearningAnimation",
             "mirrorReport",
             "multipole",
             "exportRsOpt",
@@ -317,8 +319,20 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
+    def is_for_ml(cls, report):
+        return report == cls.ML_REPORT
+
+    @classmethod
+    def is_for_rsopt(cls, report):
+        return report == cls.EXPORT_RSOPT or cls.is_for_ml(report)
+
+    @classmethod
     def is_run_mpi(cls, data):
-        return cls.is_parallel(data) and data.report != "beamlineAnimation"
+        return (
+            cls.is_parallel(data)
+            and data.report != "beamlineAnimation"
+            and not cls.is_for_ml(data.report)
+        )
 
     @classmethod
     def _organize_example(cls, data):
@@ -373,7 +387,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             or cls.is_watchpoint(report)
             or report in ("multiElectronAnimation", cls.SRW_RUN_ALL_MODEL)
             or report == "beamline3DReport"
-            or report == "exportRsOpt"
+            or cls.is_for_rsopt(report)
         )
 
     @classmethod
@@ -544,7 +558,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             if dm[r].coherentModesFile:
                 res.append(dm[r].coherentModesFile)
         if cls.srw_uses_tabulated_zipfile(data):
-            if "tabulatedUndulator" in dm and dm.tabulatedUndulator.magneticFile:
+            if "tabulatedUndulator" in dm and dm.tabulatedUndulator.get("magneticFile"):
                 res.append(dm.tabulatedUndulator.magneticFile)
         if cls.srw_is_arbitrary_source(dm.simulation):
             res.append(dm.arbitraryMagField.magneticFile)

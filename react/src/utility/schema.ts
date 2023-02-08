@@ -21,15 +21,24 @@ export type SchemaModelJson = {
     [fieldName: string]: ScheamFieldJson<any>
 }
 
+export type SchemaModelsJson = {[modelName: string]: SchemaModelJson};
+
 export type SchemaTypeJson = {
     base: string,
     config: {[key: string]: any}
 }
 
+export type SchemaRoutesJson = {
+    [key: string]: string
+}
+
 export type SchemaJson = {
+    constants: {[key: string]: any},
     type: {[typeName: string]: SchemaTypeJson},
-    model: {[modelName: string]: SchemaModelJson},
-    view: SchemaLayoutJson[]
+    model: SchemaModelsJson,
+    view: SchemaLayoutJson[],
+    route: SchemaRoutesJson,
+    reactRoute: SchemaRoutesJson
 }
 
 export type SchemaLayout = SchemaLayoutJson;
@@ -48,9 +57,35 @@ export type SchemaModel = {
     [fieldName: string]: SchemaField<any>
 }
 
+export type SchemaModels = {[modelName: string]: SchemaModel}
+
+export type SchemaRoutes = {
+    [key: string]: string
+}
+
 export type Schema = {
-    models: {[modelName: string]: SchemaModel},
-    views: SchemaLayout[]
+    constants: {[key: string]: any},
+    models: SchemaModels,
+    views: SchemaLayout[],
+    route: SchemaRoutes,
+    reactRoute: SchemaRoutes
+}
+
+export const getAppCombinedSchema = (appName: string): Promise<Schema> => {
+    return new Promise<Schema>((resolve, reject) => {
+        Promise.all([
+            fetch(`/static/react-json/common-schema.json`),
+            fetch(`/static/react-json/${appName}-schema.json`)
+        ]).then(([commonResp, appResp]) => {
+            Promise.all([
+                commonResp.json(), 
+                appResp.json()
+            ]).then(([commonJson, appJson]) => {
+                let schemaJson = mergeSchemaJson(commonJson, appJson)
+                resolve(compileSchemaFromJson(schemaJson));
+            })
+        })
+    })
 }
 
 export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): SchemaJson {
@@ -65,6 +100,10 @@ export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): Sc
     }
 
     return {
+        constants: {
+            ...(original.constants || {}),
+            ...(overrides.constants || {})
+        },
         view: [
             ...(original.view || []),
             ...(overrides.view || [])
@@ -73,11 +112,19 @@ export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): Sc
         type: {
             ...(original.type || {}),
             ...(overrides.type || {})
+        },
+        route: {
+            ...(original.route || {}),
+            ...(overrides.route || {})
+        },
+        reactRoute: {
+            ...(original.reactRoute || {}),
+            ...(overrides.reactRoute || {})
         }
     }
 }
 
-export function compileSchemaFromJson(schemaObj: SchemaJson) {
+export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
     let types: {[typeName: string]: InputLayout} = {};
 
     if(schemaObj.type) {
@@ -122,7 +169,10 @@ export function compileSchemaFromJson(schemaObj: SchemaJson) {
     }
 
     return {
+        constants: schemaObj.constants,
         views: schemaObj.view,
-        models
+        models,
+        route: schemaObj.route,
+        reactRoute: schemaObj.reactRoute
     }
 }

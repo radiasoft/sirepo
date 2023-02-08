@@ -378,6 +378,14 @@
         "precision": 0.01,
         "verticalPosition": 0
     },
+    "machineLearningAnimation": {
+        "jobRunMode": "parallel",
+        "sbatchCores": 128,
+        "sbatchHours": 0.4,
+        "sbatchProject": "",
+        "sbatchQueue": "debug",
+        "tasksPerNode": 32
+    },
     "mirrorReport": {
         "intensityPlotsWidth": "0",
         "notes": "",

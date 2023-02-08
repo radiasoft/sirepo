@@ -20,6 +20,11 @@
         }
     },
     "enum": {
+        "Axis": [
+            ["x", "x"],
+            ["y", "y"],
+            ["z", "z"]
+        ],
         "BinSpace": [
             ["linear", "Linear"],
             ["log", "Logarithmic"]
@@ -430,6 +435,14 @@
             "scores": ["Scores", "SimpleListEditor", [], "", "tallyScore"],
             "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"]
         },
+        "tallyReport": {
+            "axis": ["Axis", "Axis", "y"],
+            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "horizontalAxis": ["_", "Axis", "z"],
+            "horizontalTrim": ["Trim", "FloatArray", []],
+            "planePos": ["_", "Range", 0.0, ""],
+            "verticalAxis": ["_", "Axis", "x"]
+        },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
         },
@@ -720,6 +733,13 @@
                 ["Nuclides", [
                     "nuclides"
                 ]]
+            ]
+        },
+        "tallyReport": {
+            "advanced": [],
+            "basic": [
+                "axis",
+                "planePos"
             ]
         },
         "tallyScore": {

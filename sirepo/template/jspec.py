@@ -91,50 +91,24 @@ def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
 
 
 def background_percent_complete(report, run_dir, is_running):
-    if is_running:
-        count, settings, has_rates = _background_task_info(run_dir)
-        if settings.model == "particle" and settings.save_particle_interval > 0:
-            percent_complete = (
-                count * 100 / (1 + int(settings.time / settings.save_particle_interval))
-            )
-            # the most recent file may not yet be fully written
-            if count > 0:
-                count -= 1
-            return PKDict(
-                percentComplete=percent_complete,
-                frameCount=count,
-                hasParticles=True,
-                hasRates=has_rates,
-            )
-        else:
-            # estimate the percent complete from the simulation time in sdds file
-            if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
-                return _beam_evolution_status(run_dir, settings, has_rates)
-            return PKDict(
-                percentComplete=0,
-                frameCount=0,
-            )
-    if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
-        count, settings, has_rates = _background_task_info(run_dir)
-        has_force_table = run_dir.join(_FORCE_TABLE_FILENAME).exists()
-        if count:
-            return PKDict(
-                percentComplete=100,
-                frameCount=count,
-                hasParticles=True,
-                hasRates=has_rates,
-                hasForceTable=has_force_table,
-            )
-        return PKDict(
-            percentComplete=100,
-            frameCount=1,
-            hasRates=has_rates,
-            hasForceTable=has_force_table,
-        )
-    return PKDict(
-        percentComplete=0,
-        frameCount=0,
-    )
+    res = _v2_report_status(run_dir, is_running)
+
+    # convert v2 format to original format for old client
+    t = None
+    for r in res.reports:
+        if r.modelName == "particleAnimation":
+            res.hasParticles = True
+            res.frameCount = r.frameCount
+        elif r.modelName == "beamEvolutionAnimation":
+            t = r.lastUpdateTime
+        elif r.modelName == "coolingRatesAnimation":
+            res.hasRates = True
+        elif r.modelName == "forceTableAnimation":
+            res.hasForceTable = True
+    if "frameCount" not in res and t:
+        res.frameCount = t
+
+    return res
 
 
 def get_rates(run_dir):
@@ -168,9 +142,7 @@ def get_data_file(run_dir, model, frame, options):
     return _ion_files(run_dir)[frame]
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if not success_exit or not is_parallel:
         return None
     return _get_time_step_warning(run_dir)
@@ -318,34 +290,6 @@ def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
-    )
-
-
-def _background_task_info(run_dir):
-    files = _ion_files(run_dir)
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    settings = data.models.simulationSettings
-    has_rates = settings.ibs == "1" or settings.e_cool == "1"
-    return len(files), settings, has_rates
-
-
-def _beam_evolution_status(run_dir, settings, has_rates):
-    try:
-        filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-        col = sdds_util.extract_sdds_column(filename, "t", 0)
-        t_max = max(col["values"])
-        if t_max and settings.time > 0:
-            return PKDict(
-                # use current time as frameCount for uniqueness until simulation is completed
-                frameCount=int(float(os.path.getmtime(filename))),
-                percentComplete=100.0 * t_max / settings.time,
-                hasRates=has_rates,
-            )
-    except Exception:
-        pass
-    return PKDict(
-        frameCount=0,
-        percentComplete=0,
     )
 
 
@@ -583,3 +527,74 @@ def _set_mass_and_charge(ion_beam):
         ion_beam.mass, ion_beam.charge_number = _SPECIES_MASS_AND_CHARGE[
             ion_beam.particle
         ]
+
+
+def _v2_add_report_mtime(reports, model_name, path):
+    if path.exists():
+        reports.append(
+            PKDict(
+                modelName=model_name,
+                lastUpdateTime=int(float(os.path.getmtime(str(path)))),
+            )
+        )
+
+
+def _v2_percent_complete(settings, evolution_file):
+    if not evolution_file.exists():
+        return 0
+    try:
+        col = sdds_util.extract_sdds_column(str(evolution_file), "t", 0)
+        if "values" in col:
+            t_max = max(col["values"])
+            if t_max and settings.time > 0:
+                return 100.0 * t_max / settings.time
+    except Exception:
+        # TODO(pjm): sdds read may have failed, use a better exception subclass
+        pass
+    return 0
+
+
+def _v2_report_status(run_dir, is_running):
+    # forceTableAnimation
+    #   _FORCE_TABLE_FILENAME exists
+    #   lastUpdateTime: _FORCE_TABLE_FILENAME.lastModified
+    # beamEvolutionAnimation:
+    #   _BEAM_EVOLUTION_OUTPUT_FILENAME exists
+    #   lastUpdateTime: _BEAM_EVOLUTION_OUTPUT_FILENAME.lastModified
+    # coolingRatesAnimation
+    #   _BEAM_EVOLUTION_OUTPUT_FILENAME exists
+    #     and  settings.ibs == "1" or settings.e_cool == "1"
+    #   lastUpdateTime: _BEAM_EVOLUTION_OUTPUT_FILENAME.lastModified
+    # particleAnimation
+    #   settings.model == "particle" and settings.save_particle_interval > 0:
+    #   frameCount: len(_ion_files()) - is_running ? 1 : 0
+    settings = simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME)
+    ).models.simulationSettings
+    res = PKDict(
+        percentComplete=_v2_percent_complete(
+            settings, run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
+        ),
+        reports=[],
+    )
+    if res.percentComplete:
+        _v2_add_report_mtime(
+            res.reports, "forceTableAnimation", run_dir.join(_FORCE_TABLE_FILENAME)
+        )
+        _v2_add_report_mtime(
+            res.reports,
+            "beamEvolutionAnimation",
+            run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME),
+        )
+        if settings.ibs == "1" or settings.e_cool == "1":
+            _v2_add_report_mtime(
+                res.reports,
+                "coolingRatesAnimation",
+                run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME),
+            )
+        count = len(_ion_files(run_dir))
+        if count > 0 and is_running:
+            count -= 1
+        if count:
+            res.reports.append(PKDict(modelName="particleAnimation", frameCount=count))
+    return res

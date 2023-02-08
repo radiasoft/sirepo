@@ -173,9 +173,7 @@ def get_data_file(run_dir, model, frame, options):
     return _SHADOW_OUTPUT_FILE
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or is_parallel:
         return None
     return _parse_shadow_log(run_dir)
@@ -423,7 +421,6 @@ def _generate_crl(item, source_distance, count, res, calc_beam_stats):
 
 
 def _generate_crl_lens(item, is_first, is_last, count, source, calc_beam_stats):
-
     half_lens = item.lensThickness / 2.0
     source_width = item.pilingThickness / 2.0 - half_lens
     diameter = item.rmirr * 2.0

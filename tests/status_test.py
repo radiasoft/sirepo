@@ -4,35 +4,36 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pytest
 
+pytestmark = pytest.mark.sirepo_args(
+    fc_module=PKDict(
+        cfg=PKDict(
+            SIREPO_STATUS_SIM_NAME="Scooby Doo",
+            SIREPO_STATUS_SIM_REPORT="heightWeightReport",
+            SIREPO_STATUS_SIM_TYPE="myapp",
+        ),
+    ),
+)
 
-def test_basic(auth_fc, monkeypatch):
+
+def test_basic(auth_fc):
     from pykern import pkconfig, pkcompat
     from pykern.pkunit import pkeq
     from sirepo import srunit
     import base64
-    import sirepo.auth.basic
 
+    # POSIT: sirepo.auth.basic.require_user returns logged_in_user in srunit
     u = auth_fc.sr_login_as_guest()
-    sirepo.auth.basic.cfg.uid = u
-    import sirepo.status
-
-    auth_fc.cookie_jar.clear()
-    # monkeypatch so status doesn't take so long
-    sirepo.status._SIM_TYPE = "myapp"
-    sirepo.status._SIM_NAME = "Scooby Doo"
-    sirepo.status._SIM_REPORT = "heightWeightReport"
-    pkeq(401, auth_fc.sr_get("serverStatus").status_code)
     r = auth_fc.sr_get_json(
         "serverStatus",
         headers=PKDict(
             Authorization="Basic "
             + pkcompat.from_bytes(
-                base64.b64encode(pkcompat.to_bytes(u + ":" + "pass")),
+                base64.b64encode(
+                    pkcompat.to_bytes(f"{u}:pass"),
+                ),
             ),
         ),
     )

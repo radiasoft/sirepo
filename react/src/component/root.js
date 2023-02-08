@@ -13,14 +13,15 @@ function AppNameWrapper(props) {
 }
 
 export function RootRouter(props) {
+    let child = (
+        <AppNameWrapper>
+            {props.children}
+        </AppNameWrapper>
+    )
+
     return (
         <Routes>
-            <Route path="react/:appName/*" element={
-                 <AppNameWrapper>
-                    {props.children}
-                </AppNameWrapper>
-            }>
-            </Route>
+            <Route path=":appName/*" element={child}/>
         </Routes>
     )
 }

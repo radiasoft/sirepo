@@ -15,6 +15,7 @@ import hashlib
 import importlib
 import inspect
 import numconv
+import posixpath
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
@@ -23,7 +24,7 @@ import random
 import six
 import sys
 import threading
-import werkzeug.utils
+import unicodedata
 import zipfile
 
 
@@ -46,11 +47,13 @@ TOKEN_SIZE = 16
 
 # See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
 # for reasoning on why define both
-_INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)", re.IGNORECASE)
+_INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)")
 _VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
 
+_INVALID_PATH_CHARS = re.compile(r"[^A-Za-z0-9_.-]")
 
-class Reply(Exception):
+
+class ReplyExc(Exception):
     """Raised to end the request.
 
     Args:
@@ -58,9 +61,13 @@ class Reply(Exception):
         log_fmt (str): server side log data
     """
 
-    def __init__(self, sr_args, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__()
-        self.sr_args = sr_args
+        if "sr_args" in kwargs:
+            self.sr_args = kwargs["sr_args"]
+            del kwargs["sr_args"]
+        else:
+            self.sr_args = PKDict()
         if args or kwargs:
             kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
             pkdlog(*args, **kwargs)
@@ -78,11 +85,19 @@ class Reply(Exception):
         return self.__repr__()
 
 
-class OKReply(Reply):
-    """When a Reply exception is a successful response"""
+class BadRequest(ReplyExc):
+    """Raised for bad request"""
+
+    pass
 
 
-class Error(Reply):
+class OKReplyExc(ReplyExc):
+    """When a ReplyExc exception is a successful response"""
+
+    pass
+
+
+class Error(ReplyExc):
     """Raised to send an error response
 
     Args:
@@ -94,10 +109,22 @@ class Error(Reply):
             values = PKDict(error=values)
         else:
             assert values.get("error"), 'values={} must contain "error"'.format(values)
-        super().__init__(values, *args, **kwargs)
+        super().__init__(*args, sr_args=values, **kwargs)
 
 
-class Redirect(OKReply):
+class Forbidden(ReplyExc):
+    """Raised for forbidden"""
+
+    pass
+
+
+class NotFound(ReplyExc):
+    """Raised for not found"""
+
+    pass
+
+
+class Redirect(OKReplyExc):
     """Raised to redirect
 
     Args:
@@ -106,22 +133,16 @@ class Redirect(OKReply):
     """
 
     def __init__(self, uri, *args, **kwargs):
-        super().__init__(PKDict(uri=uri), *args, **kwargs)
+        super().__init__(*args, sr_args=PKDict(uri=uri), **kwargs)
 
 
-class Response(OKReply):
-    """Raise with a Response object
+class ServerError(ReplyExc):
+    """Raised for server error"""
 
-    Args:
-        response (str): what the reply should be
-        log_fmt (str): server side log data
-    """
-
-    def __init__(self, response, *args, **kwargs):
-        super().__init__(PKDict(response=response), *args, **kwargs)
+    pass
 
 
-class SPathNotFound(Reply):
+class SPathNotFound(NotFound):
     """Raised by simulation_db
 
     Args:
@@ -132,13 +153,25 @@ class SPathNotFound(Reply):
 
     def __init__(self, sim_type, uid, sid, *args, **kwargs):
         super().__init__(
-            PKDict(sim_type=sim_type, uid=uid, sid=sid),
             *args,
+            sr_args=PKDict(sim_type=sim_type, uid=uid, sid=sid),
             **kwargs,
         )
 
 
-class SRException(Reply):
+class SReplyExc(OKReplyExc):
+    """Raise with an SReply object
+
+    Args:
+        sreply (object): what the reply should be
+        log_fmt (str): server side log data
+    """
+
+    def __init__(self, sreply, *args, **kwargs):
+        super().__init__(*args, sr_args=PKDict(sreply=sreply), **kwargs)
+
+
+class SRException(ReplyExc):
     """Raised to communicate a local redirect and log info
 
     `params` may have ``sim_type`` and ``reload_js``, which
@@ -152,13 +185,19 @@ class SRException(Reply):
 
     def __init__(self, route_name, params, *args, **kwargs):
         super().__init__(
-            PKDict(routeName=route_name, params=params),
             *args,
+            sr_args=PKDict(routeName=route_name, params=params),
             **kwargs,
         )
 
 
-class UserAlert(Reply):
+class Unauthorized(ReplyExc):
+    """Raised to generate 401 response"""
+
+    pass
+
+
+class UserAlert(ReplyExc):
     """Raised to display a user error and log info
 
     Args:
@@ -167,10 +206,10 @@ class UserAlert(Reply):
     """
 
     def __init__(self, display_text, *args, **kwargs):
-        super().__init__(PKDict(error=display_text), *args, **kwargs)
+        super().__init__(*args, sr_args=PKDict(error=display_text), **kwargs)
 
 
-class UserDirNotFound(Reply):
+class UserDirNotFound(NotFound):
     """Raised by simulation_db
 
     Args:
@@ -180,21 +219,16 @@ class UserDirNotFound(Reply):
 
     def __init__(self, user_dir, uid, *args, **kwargs):
         super().__init__(
-            PKDict(user_dir=user_dir, uid=uid),
             *args,
+            sr_args=PKDict(user_dir=user_dir, uid=uid),
             **kwargs,
         )
 
 
-class WWWAuthenticate(Reply):
-    """Raised to generate 401 response
+class WWWAuthenticate(ReplyExc):
+    """Raised to generate 401 response with WWWAuthenticate response"""
 
-    Args:
-        log_fmt (str): server side log data
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(PKDict(), *args, **kwargs)
+    pass
 
 
 def assert_sim_type(sim_type):
@@ -325,22 +359,6 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     return res
 
 
-def raise_bad_request(*args, **kwargs):
-    _raise("BadRequest", *args, **kwargs)
-
-
-def raise_forbidden(*args, **kwargs):
-    _raise("Forbidden", *args, **kwargs)
-
-
-def raise_not_found(*args, **kwargs):
-    _raise("NotFound", *args, **kwargs)
-
-
-def raise_unauthorized(*args, **kwargs):
-    _raise("Unauthorized", *args, **kwargs)
-
-
 def random_base62(length=32):
     """Returns a safe string of sufficient length to be a nonce
 
@@ -376,12 +394,6 @@ def read_zip(path_or_bytes):
             yield pykern.pkio.py_path(i.filename).basename, z.read(i)
 
 
-def safe_path(*paths):
-    p = werkzeug.utils.safe_join(*paths)
-    assert p is not None, f"could not join in a safe manner paths={paths}"
-    return p
-
-
 def sanitize_string(string):
     """Remove special characters from string
 
@@ -400,9 +412,32 @@ def sanitize_string(string):
 
 
 def secure_filename(path):
-    import werkzeug.utils
+    """Converts a user supplied path to a secure file
 
-    return werkzeug.utils.secure_filename(path)
+    Args:
+        path (str): contains anything
+    Returns:
+        str: does not contain special file system chars or path chars
+    """
+    p = (
+        unicodedata.normalize(
+            "NFKD",
+            path,
+        )
+        .encode(
+            "ascii",
+            "ignore",
+        )
+        .decode(
+            "ascii",
+        )
+        .replace(
+            "/",
+            " ",
+        )
+    )
+    p = _INVALID_PATH_CHARS.sub("", "_".join(p.split())).strip("._")
+    return "file" if p == "" else p
 
 
 def setattr_imports(imports):
@@ -423,20 +458,37 @@ def url_safe_hash(value):
     return hashlib.md5(pkcompat.to_bytes(value)).hexdigest()
 
 
+def validate_path(uri):
+    """Ensures path component of uri is safe
+
+    Very strict. Doesn't allow any dot files and few specials.
+
+    Args:
+        uri (str): uncheck path
+    Returns:
+        str: validated path
+    """
+    if uri == "" or uri is None:
+        raise AssertionError(f"empty uri")
+    res = []
+    for p in uri.split("/"):
+        if _INVALID_PATH_CHARS.search(p):
+            raise AssertionError(f"illegal char(s) in component={p} uri={uri}")
+        if p == "":
+            # covers absolute path case
+            raise AssertionError(f"empty component in uri={uri}")
+        if p.startswith("."):
+            raise AssertionError(f"dot prefix in component={p} uri={uri}")
+        res.append(p)
+    return "/".join(res)
+
+
 def write_zip(path):
     return zipfile.ZipFile(
         path,
         mode="w",
         compression=zipfile.ZIP_DEFLATED,
     )
-
-
-def _raise(exc, fmt, *args, **kwargs):
-    import werkzeug.exceptions
-
-    kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
-    pkdlog(fmt, *args, **kwargs)
-    raise getattr(werkzeug.exceptions, exc)()
 
 
 cfg = pkconfig.init(

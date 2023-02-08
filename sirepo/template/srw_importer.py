@@ -411,7 +411,6 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
             or (name == "SRWLOptD" and next_name == "SRWLOptD")
             or (name == "SRWLOptD" and (i + 1) == num_elements)
         ):
-
             counter += 1
 
             elem_type = ""

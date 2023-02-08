@@ -101,8 +101,15 @@ def background_percent_complete(report, run_dir, is_running):
 def _parse_activait_log_file(run_dir):
     for l in pkio.read_text(run_dir.join(_LOG_FILE)).split("\n"):
         if re.search("AssertionError: Model training failed due to:", l):
-            return l
+            return _range_error(l)
     return ""
+
+
+def _range_error(error):
+    e = re.search(re.compile("Received a label value of (.*?) (is .*?[\]\)])"), error)
+    if e:
+        return f"Output scaling result {e.groups()[1]}"
+    return error
 
 
 def get_analysis_report(run_dir, data):
@@ -166,6 +173,23 @@ def get_fft_report(run_dir, data):
     summaryData = PKDict(freqs=[], minFreq=w[0], maxFreq=w[-1])
 
     return w, plots, f"FFT", summaryData
+
+
+def new_simulation(data, new_sim_data, qcall, **kwargs):
+    if "sourceSimType" not in new_sim_data:
+        return
+    t_basename = f"{new_sim_data.sourceSimType}-{new_sim_data.sourceSimId}-{new_sim_data.sourceSimFile}"
+    data.models.dataFile.dataOrigin = "file"
+    data.models.dataFile.file = t_basename
+    t = simulation_db.simulation_lib_dir(_SIM_DATA.sim_type(), qcall=qcall).join(
+        _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", t_basename)
+    )
+    if t.exists():
+        return
+    s = simulation_db.simulation_dir(
+        new_sim_data.sourceSimType, sid=new_sim_data.sourceSimId, qcall=qcall
+    ).join(new_sim_data.sourceSimFile)
+    t.mksymlinkto(s, absolute=False)
 
 
 def prepare_sequential_output_file(run_dir, data):
@@ -692,7 +716,6 @@ def _compute_csv_info(filename):
 
 
 def _compute_clusters(report, plot_data):
-
     from sirepo.analysis import ml
 
     method_params = PKDict(
@@ -828,6 +851,12 @@ def _write_csv_for_download(columns_dict, csv_name):
     pandas.DataFrame(columns_dict).to_csv(csv_name, index=False)
 
 
+def _discrete_out(column_info):
+    if not column_info.get("dtypeKind"):
+        return False
+    return column_info.dtypeKind[column_info.inputOutput.index("output")] == "u"
+
+
 def _extract_fft_report(run_dir, sim_in):
     x, plots, title, summary_data = get_fft_report(run_dir, sim_in)
     _write_report(
@@ -909,8 +938,8 @@ def _fit_animation(frame_args):
         [x, y],
         frame_args,
         PKDict(
-            x_label="",
-            y_label="",
+            x_label="Prediction",
+            y_label="Ground Truth",
             title=header[idx],
             hideColorBar=True,
         ),
@@ -933,6 +962,11 @@ def _generate_parameters_file(data):
         "[" + ",".join(["'" + v + "'" for v in dm.columnInfo.inputOutput]) + "]"
     )
     v.image_data = pkio.has_file_extension(v.dataFile, "h5")
+    v.inputsScaler = dm.dataFile.inputsScaler
+    v.outputsScaler = dm.dataFile.outputsScaler
+    v.feature_min = dm.dataFile.featureRangeMin
+    v.feature_max = dm.dataFile.featureRangeMax
+    v.discreteOutputs = _discrete_out(dm.columnInfo)
     if v.image_data:
         v.inPath = None
         v.outPath = None

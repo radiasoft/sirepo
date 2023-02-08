@@ -24,6 +24,7 @@ import pyisemail
 import re
 import signal
 import sirepo.const
+import sirepo.feature_config
 import sirepo.modules
 import sirepo.pkcli.setup_dev
 import sirepo.sim_api.jupyterhublogin
@@ -34,13 +35,14 @@ import socket
 import socket
 import subprocess
 import time
-import werkzeug.serving
 
 
 __cfg = None
 
 
 def flask():
+    from werkzeug import serving
+
     with pkio.save_chdir(_run_dir()) as r:
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
@@ -52,19 +54,20 @@ def flask():
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = "development"
 
-        werkzeug.serving.click = None
+        serving.click = None
         app.run(
             exclude_patterns=[str(r.join("*"))],
             extra_files=sirepo.util.files_to_watch_for_reload("json"),
             host=_cfg().ip,
             port=_cfg().port,
+            reloader_type="stat",
             threaded=True,
             use_reloader=_cfg().use_reloader,
         )
 
 
 def http():
-    """Starts the Flask server and job_supervisor.
+    """Starts the server and job_supervisor.
 
     Used for development only.
     """
@@ -142,7 +145,7 @@ def http():
                 )
                 e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
             time.sleep(0.3)
-            _start(("service", "flask"), extra_environ=e)
+            _start(("service", "server"), extra_environ=e)
             p, _ = os.wait()
     except ChildProcessError:
         pass
@@ -218,6 +221,31 @@ def nginx_proxy():
         pksubprocess.check_call_with_signals(cmd)
 
 
+def server():
+    if _cfg().tornado:
+        tornado()
+    else:
+        flask()
+
+
+def tornado():
+    with pkio.save_chdir(_run_dir()) as r:
+        sirepo.pkcli.setup_dev.default_command()
+        # above will throw better assertion, but just in case
+        assert pkconfig.channel_in("dev")
+        if _cfg().use_reloader:
+            import tornado.autoreload
+
+            for f in sirepo.util.files_to_watch_for_reload("json", "py"):
+                tornado.autoreload.watch(f)
+        pkdlog("ip={} port={}", _cfg().ip, _cfg().port)
+        sirepo.modules.import_and_init("sirepo.uri_router").start_tornado(
+            ip=_cfg().ip,
+            port=_cfg().port,
+            debug=True,
+        )
+
+
 def uwsgi():
     """Starts UWSGI server"""
     run_dir = _run_dir()
@@ -271,7 +299,8 @@ def _cfg():
             # so limit to 128, which is probably more than enough with
             # this application.
             threads=(10, _cfg_int(1, 128), "how many uwsgi threads in each process"),
-            use_reloader=(pkconfig.channel_in("dev"), bool, "use the Flask reloader"),
+            tornado=(False, bool, "use tornado for server"),
+            use_reloader=(pkconfig.channel_in("dev"), bool, "use the server reloader"),
         )
     return __cfg
 
