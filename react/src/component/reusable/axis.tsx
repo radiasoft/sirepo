@@ -19,7 +19,7 @@ const axisInfoByOrientation = {
         tickSpace: 70,
         dx: -3,
         anchor: "end",
-        labelOffset: 63,
+        labelOffset: 38,
     },
     right: {
         type: Axis.AxisRight,
@@ -37,12 +37,19 @@ export function DynamicAxis({ orientation, graphSize, ...props }: DynamicAxisPro
     if (t !== ticks) {
         setTicks(t);
     }
+
+    const f = format(",.3e");
+    function shortFormat(value) {
+        return f(value).replace(/\.0+e/, 'e')
+                       .replace(/0+e/, 'e')
+                       .replace(/^e\+/, '');
+    }
     return (
         <>
             <AxisType
                 stroke={"#888"}
                 tickStroke={"#888"}
-                tickFormat={format(",.2e")}
+                tickFormat={shortFormat}
                 labelClassName={"sr-axis-label"}
                 tickLabelProps={() => ({
                     fontSize: 13,

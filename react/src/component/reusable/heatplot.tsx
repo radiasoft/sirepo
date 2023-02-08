@@ -1,3 +1,4 @@
+0
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { Canvas } from "./canvas";
 import { ColorBar } from './colorbar';
@@ -68,7 +69,7 @@ export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix
     let colorMap = 'viridis';
     const showColorBar = colorMap !== 'contrast';
     //TODO(pjm): use props.aspectRatio if present
-    const gc = useGraphContentBounds(ref, 1, showColorBar ? 90 : 0);
+    const gc = useGraphContentBounds(ref, 1, showColorBar ? 80 : 0);
     if (! xRange) {
         return null;
     }
@@ -109,6 +110,9 @@ export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix
                             yRange, zoom.transformMatrix.translateY, zoom.transformMatrix.scaleY, gc.height)),
                     range: [gc.height, 0],
                 });
+                if (zRange.min === zRange.max && zRange.min === 0) {
+                    zRange.max = 1000;
+                }
                 const colorScale = createColorScale(zRange, colorMap);
                 return (
                     <>
@@ -155,7 +159,7 @@ export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix
                                         {/* TODO(pjm): margin top should be larger if title is present */}
                                         <text
                                             x={gc.width / 2}
-                                            y={-gc.y / 2 + 5}
+                                            y={-gc.y / 2}
                                             style={{
                                                 fontSize: '18px',
                                                 fontWeight: 'bold',

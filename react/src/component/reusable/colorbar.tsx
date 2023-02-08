@@ -13,6 +13,9 @@ type ColorBarProps = {
 export function ColorBar({ range, height, colorMap }: ColorBarProps) {
     const colorbarScale = createColorScale({ min: 1, max: height} , colorMap);
     const width = 30;
+    if (range.min === range.max) {
+        return <></>;
+    }
     return (
         <>
             {
@@ -35,7 +38,7 @@ export function ColorBar({ range, height, colorMap }: ColorBarProps) {
                             domain: [range.min, range.max],
                             range: [height, 0],
                         })
-                    }
+                          }
                     graphSize={height}
                 />
             </g>

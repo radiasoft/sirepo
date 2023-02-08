@@ -21,7 +21,7 @@ export function constrainZoom(transformMatrix, size, dimension) {
 }
 
 const xAxisSize = 30;
-const yAxisSize = 60;
+const yAxisSize = 35;
 const margin = 25;
 
 function graphContentHeightOffset() {
