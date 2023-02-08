@@ -2,43 +2,43 @@
     "model": {
         "simulation": {
             "documentationUrl": {
-                "displayName": "Documentation URL", 
-                "type": "OptionalString", 
+                "displayName": "Documentation URL",
+                "type": "OptionalString",
                 "defaultValue": ""
             },
             "folder": {
-                "displayName": "Folder", 
-                "type": "String", 
+                "displayName": "Folder",
+                "type": "String",
                 "defaultValue": ""
             },
             "isExample": {
-                "displayName": "Is Example", 
-                "type": "Boolean", 
+                "displayName": "Is Example",
+                "type": "Boolean",
                 "defaultValue": "1"
             },
             "lastModified": {
-                "displayName": "Time Last Modified", 
-                "type": "Integer", 
+                "displayName": "Time Last Modified",
+                "type": "Integer",
                 "defaultValue": 0
             },
             "name": {
-                "displayName": "Name", 
-                "type": "String", 
+                "displayName": "Name",
+                "type": "String",
                 "defaultValue": ""
             },
             "notes": {
-                "displayName": "Notes", 
-                "type": "OptionalString", 
+                "displayName": "Notes",
+                "type": "OptionalString",
                 "defaultValue": ""
             },
             "simulationId": {
-                "displayName": "Simulation ID", 
-                "type": "String", 
+                "displayName": "Simulation ID",
+                "type": "String",
                 "defaultValue": ""
             },
             "simulationSerial": {
-                "displayName": "Simulation Serial", 
-                "type": "String", 
+                "displayName": "Simulation Serial",
+                "type": "String",
                 "defaultValue": ""
             }
         }
@@ -116,13 +116,34 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["2", "1 x 2"],
-                    ["1.777777", "9 x 16"],
-                    ["1.333333", "3 x 4"],
-                    ["1", "1 x 1"],
-                    ["0.75", "4 x 3"],
-                    ["0.5625", "16 x 9"],
-                    ["0.5", "2 x 1"]
+                    [
+                        "2",
+                        "1 x 2"
+                    ],
+                    [
+                        "1.777777",
+                        "9 x 16"
+                    ],
+                    [
+                        "1.333333",
+                        "3 x 4"
+                    ],
+                    [
+                        "1",
+                        "1 x 1"
+                    ],
+                    [
+                        "0.75",
+                        "4 x 3"
+                    ],
+                    [
+                        "0.5625",
+                        "16 x 9"
+                    ],
+                    [
+                        "0.5",
+                        "2 x 1"
+                    ]
                 ]
             }
         },
@@ -130,13 +151,34 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["grayscale", "grayscale"],
-                    ["viridis", "viridis"],
-                    ["afmhot", "afmhot"],
-                    ["coolwarm", "coolwarm"],
-                    ["jet", "jet"],
-                    ["blues", "blues"],
-                    ["contrast", "high contrast"]
+                    [
+                        "grayscale",
+                        "grayscale"
+                    ],
+                    [
+                        "viridis",
+                        "viridis"
+                    ],
+                    [
+                        "afmhot",
+                        "afmhot"
+                    ],
+                    [
+                        "coolwarm",
+                        "coolwarm"
+                    ],
+                    [
+                        "jet",
+                        "jet"
+                    ],
+                    [
+                        "blues",
+                        "blues"
+                    ],
+                    [
+                        "contrast",
+                        "high contrast"
+                    ]
                 ]
             }
         },
@@ -144,9 +186,18 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["sequential", "Serial"],
-                    ["parallel", "5 cores (SMP)"],
-                    ["sbatch", "cori.nersc.gov"]
+                    [
+                        "sequential",
+                        "Serial"
+                    ],
+                    [
+                        "parallel",
+                        "5 cores (SMP)"
+                    ],
+                    [
+                        "sbatch",
+                        "cori.nersc.gov"
+                    ]
                 ]
             }
         },
@@ -154,12 +205,30 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["1", "1"],
-                    ["2", "2"],
-                    ["5", "5"],
-                    ["10", "10"],
-                    ["15", "15"],
-                    ["20", "20"]
+                    [
+                        "1",
+                        "1"
+                    ],
+                    [
+                        "2",
+                        "2"
+                    ],
+                    [
+                        "5",
+                        "5"
+                    ],
+                    [
+                        "10",
+                        "10"
+                    ],
+                    [
+                        "15",
+                        "15"
+                    ],
+                    [
+                        "20",
+                        "20"
+                    ]
                 ]
             }
         },
@@ -167,10 +236,22 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["debug", "debug"],
-                    ["premium", "premium"],
-                    ["realtime", "realtime"],
-                    ["regular", "regular"]
+                    [
+                        "debug",
+                        "debug"
+                    ],
+                    [
+                        "premium",
+                        "premium"
+                    ],
+                    [
+                        "realtime",
+                        "realtime"
+                    ],
+                    [
+                        "regular",
+                        "regular"
+                    ]
                 ]
             }
         },
@@ -178,9 +259,18 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["none", "None"],
-                    ["fit", "Fit Data"],
-                    ["fixed", "Fixed"]
+                    [
+                        "none",
+                        "None"
+                    ],
+                    [
+                        "fit",
+                        "Fit Data"
+                    ],
+                    [
+                        "fixed",
+                        "Fixed"
+                    ]
                 ]
             }
         }

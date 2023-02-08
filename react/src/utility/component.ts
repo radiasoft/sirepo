@@ -37,7 +37,7 @@ export type Dimension = {
     width: number
 }
 
-function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispatch<React.SetStateAction<Dimension>>] {
+export function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispatch<React.SetStateAction<Dimension>>] {
     const [dim, setDim] = useState({
         width: 1000,
         height: 1000,
@@ -46,12 +46,15 @@ function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispatch<Rea
         if (! ref || ! ref.current || ! ref.current.offsetWidth) {
             return () => {};
         }
+        // cannot read from ref inside debounce, debounce is called with a delay...
+        // need to cache future answers and check for staleness in callback
         const handleResize = debounce(() => {
             const w = ref.current.offsetWidth;
+            const h = ref.current.offsetHeight;
             if (dim.width !== w) {
                 setDim({
                     width: w,
-                    height: ref.current.offsetHeight,
+                    height: h,
                 });
             }
         }, 250);
