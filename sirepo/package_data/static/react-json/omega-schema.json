@@ -109,169 +109,181 @@
     },
     "view": [
         {
-          "layout": "navbarModalButton",
-          "config": {
-            "name": "simulationRenameNavButton",
-            "title": "$(simulation.name)",
-            "icon": "faPencil",
-            "modal": {
-              "title": "Simulation",
-              "items": [
-                {
-                  "layout": "fieldList",
-                  "config": { "name": "simulation", "fields": ["simulation.name"] }
+            "layout": "navbarModalButton",
+            "config": {
+                "name": "simulationRenameNavButton",
+                "title": "$(simulation.name)",
+                "icon": "faPencil",
+                "modal": {
+                    "title": "Simulation",
+                    "items": [
+                        {
+                            "layout": "fieldList",
+                            "config": { "name": "simulation", "fields": ["simulation.name"] }
+                        }
+                    ]
                 }
-              ]
             }
-          }
         },
         {
-          "layout": "navTabs",
-          "config": {
-            "name": "navtabs",
-            "tabs": [
-              {
-                "name": "source",
-                "title": "Source",
-                "icon": "",
-                "items": [
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "simWorkflow",
-                      "title": "Simulation Workflow",
-                      "basic": [
-                        {
-                          "layout": "fieldList",
-                          "config": {
-                            "fields": [
-                              "simWorkflow.simType_1",
-                              "simWorkflow.simId_1",
-                              "simWorkflow.simType_2",
-                              "simWorkflow.simId_2",
-                              "simWorkflow.simType_3",
-                              "simWorkflow.simId_3",
-                              "simWorkflow.simType_4",
-                              "simWorkflow.simId_4"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "simulationStatus",
-                      "title": "Simulation Status",
-                      "basic": [
-                        {
-                          "layout": "startSimulation",
-                          "config": { "reportGroupName": "animation" }
-                        }
-                      ]
-                    }
-                  },
+            "layout": "navTabs",
+            "config": {
+                "name": "navtabs",
+                "tabs": [
+                    {
+                        "name": "source",
+                        "title": "Source",
+                        "icon": "",
+                        "items": [
                             {
-                                "layout": "columnBreak",
-                                "config": {}
-                            },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "sim1Animation",
-                      "title": "Simulation 1 Phase Space",
-                      "basic": [
-                        {
-                          "layout": "manualRunReport",
-                          "config": {
-                            "reportGroupName": "animation",
-                            "reportName": "sim1Animation",
-                            "frameIdFields": [
-                              "sim1Animation.histogramBins"
-                            ],
-                            "frameIdFields": [
-                              "sim1Animation.histogramBins"
-                            ],
-                            "reportLayout": { "layout": "heatplot", "config": {} }
-                          }
-                        }
-                      ]
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "name": "simWorkflow",
+                                                "title": "Simulation Workflow",
+                                                "basic": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "simWorkflow.simType_1",
+                                                                "simWorkflow.simId_1",
+                                                                "simWorkflow.simType_2",
+                                                                "simWorkflow.simId_2",
+                                                                "simWorkflow.simType_3",
+                                                                "simWorkflow.simId_3",
+                                                                "simWorkflow.simType_4",
+                                                                "simWorkflow.simId_4"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "name": "simulationStatus",
+                                                "title": "Simulation Status",
+                                                "basic": [
+                                                    {
+                                                        "layout": "startSimulation",
+                                                        "config": { "reportGroupName": "animation" }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "name": "sim1Animation",
+                                                "title": "Simulation 1 Phase Space",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim1Animation",
+                                                            "frameIdFields": [
+                                                                "sim1Animation.histogramBins"
+                                                            ],
+                                                            "frameIdFields": [
+                                                                "sim1Animation.histogramBins"
+                                                            ],
+                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "name": "sim2Animation",
+                                                "title": "Simulation 2 Phase Space",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim2Animation",
+                                                            "frameIdFields": [
+                                                                "sim2Animation.histogramBins"
+                                                            ],
+                                                            "frameIdFields": [
+                                                                "sim2Animation.histogramBins"
+                                                            ],
+                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "name": "sim3Animation",
+                                                "title": "Simulation 3 Phase Space",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim3Animation",
+                                                            "frameIdFields": [
+                                                                "sim3Animation.histogramBins"
+                                                            ],
+                                                            "frameIdFields": [
+                                                                "sim3Animation.histogramBins"
+                                                            ],
+                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "name": "sim4Animation",
+                                                "title": "Simulation 4 Phase Space",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim4Animation",
+                                                            "frameIdFields": [
+                                                                "sim4Animation.histogramBins"
+                                                            ],
+                                                            "frameIdFields": [
+                                                                "sim4Animation.histogramBins"
+                                                            ],
+                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
                     }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "sim2Animation",
-                      "title": "Simulation 2 Phase Space",
-                      "basic": [
-                        {
-                          "layout": "manualRunReport",
-                          "config": {
-                            "reportGroupName": "animation",
-                            "reportName": "sim2Animation",
-                            "frameIdFields": [
-                              "sim2Animation.histogramBins"
-                            ],
-                            "frameIdFields": [
-                              "sim2Animation.histogramBins"
-                            ],
-                            "reportLayout": { "layout": "heatplot", "config": {} }
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "sim3Animation",
-                      "title": "Simulation 3 Phase Space",
-                      "basic": [
-                        {
-                          "layout": "manualRunReport",
-                          "config": {
-                            "reportGroupName": "animation",
-                            "reportName": "sim3Animation",
-                            "frameIdFields": [
-                              "sim3Animation.histogramBins"
-                            ],
-                            "frameIdFields": [
-                              "sim3Animation.histogramBins"
-                            ],
-                            "reportLayout": { "layout": "heatplot", "config": {} }
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "layout": "panel",
-                    "config": {
-                      "name": "sim4Animation",
-                      "title": "Simulation 4 Phase Space",
-                      "basic": [
-                        {
-                          "layout": "manualRunReport",
-                          "config": {
-                            "reportGroupName": "animation",
-                            "reportName": "sim4Animation",
-                            "frameIdFields": [
-                              "sim4Animation.histogramBins"
-                            ],
-                            "frameIdFields": [
-                              "sim4Animation.histogramBins"
-                            ],
-                            "reportLayout": { "layout": "heatplot", "config": {} }
-                          }
-                        }
-                      ]
-                    }
-                  }
                 ]
-              }
-            ]
-          }
+            }
         }
     ]
 }
