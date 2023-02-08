@@ -195,9 +195,9 @@ def _20220901_migrate_ml_to_activait(qcall):
             _migrate_sim_type("ml", "activait", qcall)
 
 
-def _20221120_rename_session_to_spa_session(qcall):
-    if "session_t" in qcall.auth_db.metadata().tables:
-        qcall.auth_db.rename_table("session_t", "spa_session_t")
+def _20230203_drop_spa_session(qcall):
+    qcall.auth_db.drop_table("session_t")
+    qcall.auth_db.drop_table("spa_session_t")
 
 
 @contextlib.contextmanager

@@ -1,0 +1,65 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE db_upgrade_t (
+	name VARCHAR(100) NOT NULL,
+	created DATETIME NOT NULL,
+	PRIMARY KEY (name)
+);
+INSERT INTO db_upgrade_t VALUES('_20210211_add_flash_proprietary_lib_files','');
+INSERT INTO db_upgrade_t VALUES('_20210211_upgrade_runner_to_job_db','');
+INSERT INTO db_upgrade_t VALUES('_20210218_add_flash_proprietary_lib_files_force','');
+INSERT INTO db_upgrade_t VALUES('_20210301_migrate_role_jupyterhub','');
+INSERT INTO db_upgrade_t VALUES('_20220609_add_expiration_column_to_user_role_t','');
+INSERT INTO db_upgrade_t VALUES('_20220901_migrate_ml_to_activait','');
+INSERT INTO db_upgrade_t VALUES('_20230203_drop_spa_session','');
+CREATE TABLE auth_email_user_t (
+	unverified_email VARCHAR(255) NOT NULL,
+	uid VARCHAR(8),
+	user_name VARCHAR(255),
+	token VARCHAR(16),
+	expires DATETIME,
+	PRIMARY KEY (unverified_email),
+	UNIQUE (uid),
+	UNIQUE (user_name),
+	UNIQUE (token)
+);
+CREATE TABLE auth_github_user_t (
+	oauth_id VARCHAR(100) NOT NULL,
+	user_name VARCHAR(100) NOT NULL,
+	uid VARCHAR(8),
+	PRIMARY KEY (oauth_id),
+	UNIQUE (user_name),
+	UNIQUE (uid)
+);
+CREATE TABLE jupyterhub_user_t (
+	uid VARCHAR(8) NOT NULL,
+	user_name VARCHAR(100) NOT NULL,
+	PRIMARY KEY (uid),
+	UNIQUE (user_name)
+);
+CREATE TABLE user_registration_t (
+	uid VARCHAR(8) NOT NULL,
+	created DATETIME NOT NULL,
+	display_name VARCHAR(100),
+	PRIMARY KEY (uid)
+);
+CREATE TABLE user_role_t (
+	uid VARCHAR(8) NOT NULL,
+	role VARCHAR(100) NOT NULL, expiration DATETIME,
+	PRIMARY KEY (uid, role)
+);
+CREATE TABLE user_role_invite_t (
+	uid VARCHAR(8) NOT NULL,
+	role VARCHAR(100) NOT NULL,
+	status VARCHAR(100) NOT NULL,
+	token VARCHAR(100) NOT NULL,
+	moderator_uid VARCHAR(8),
+	last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
+	PRIMARY KEY (uid, role),
+	UNIQUE (token)
+);
+CREATE TABLE zz_sentinel (
+	anything VARCHAR(8) NOT NULL,
+	PRIMARY KEY (anything)
+);
+COMMIT;
