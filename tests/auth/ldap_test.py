@@ -7,9 +7,13 @@
 import pytest
 
 
-def test_happy_path(monkeypatch):
+def test_happy_path():
     from sirepo import srunit
     from pykern.pkcollections import PKDict
+    from pykern import pkinspect
+    import sys
+
+    sys.modules["ldap"] = pkinspect.this_module()
 
     with srunit.quest_start(cfg={"SIREPO_AUTH_METHODS": "ldap"}) as qcall:
         from pykern import pkunit
@@ -19,9 +23,16 @@ def test_happy_path(monkeypatch):
             "authLdapLogin",
             data=PKDict(
                 simulationType="myapp",
-                email="vagrant@radiasoft.net",
+                email="vagrant@xxxxradiasoft.net",
                 password="vagrant",
             ),
         )
         pkunit.pkeq(200, r.status_as_int())
         pkunit.pkre("location.*/complete-registration", r.content_as_str())
+
+
+def initialize(*args, **kwargs):
+    """Simulate ldap.initialize"""
+    from pykern.pkcollections import PKDict
+
+    return PKDict(simple_bind_s=lambda x, y: None)
