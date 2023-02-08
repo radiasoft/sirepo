@@ -106,9 +106,9 @@
                                 "layout": "waterfall",
                                 "config": {
                                     "breakpoints": {
-                                        "xs": 1,
-                                        "sm": 2,
-                                        "lg": 3
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
                                     },
                                     "gutters": {
                                         "horizontal": ".5em",

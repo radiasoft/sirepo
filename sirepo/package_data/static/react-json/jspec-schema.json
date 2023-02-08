@@ -1277,9 +1277,9 @@
                                 "layout": "waterfall",
                                 "config": {
                                     "breakpoints": {
-                                        "xs": 1,
-                                        "sm": 2,
-                                        "lg": 3
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
                                     },
                                     "gutters": {
                                         "horizontal": ".5em",
@@ -1322,6 +1322,26 @@
                                                                         "ionBeam.norm_emit_y"
                                                                     ]
                                                                 }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "name": "ring",
+                                                "title": "Ring",
+                                                "basic": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "ring.latticeSource",
+                                                                "ring.lattice",
+                                                                "ring.elegantTwiss",
+                                                                "ring.elegantSirepo"
                                                             ]
                                                         }
                                                     }
@@ -1380,55 +1400,6 @@
                                         {
                                             "layout": "panel",
                                             "config": {
-                                                "title": "Rate Calculation Report",
-                                                "basic": [
-                                                    {
-                                                        "layout": "autoRunReport",
-                                                        "config": {
-                                                            "report": "rateCalculationReport",
-                                                            "dependencies": [
-                                                                "ionBeam.*",
-                                                                "intrabeamScatteringRate.*",
-                                                                "electronCoolingRate.*",
-                                                                "ring.*",
-                                                                "simulationSettings.*",
-                                                                "electronBeam.*",
-                                                                "cooler.*"
-                                                            ],
-                                                            "reportLayout": {
-                                                                "layout": "table",
-                                                                "config": {
-                                                                    "dataAttributeName": "rate"
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        {
-                                            "layout": "panel",
-                                            "config": {
-                                                "name": "ring",
-                                                "title": "Ring",
-                                                "basic": [
-                                                    {
-                                                        "layout": "fieldList",
-                                                        "config": {
-                                                            "fields": [
-                                                                "ring.latticeSource",
-                                                                "ring.lattice",
-                                                                "ring.elegantTwiss",
-                                                                "ring.elegantSirepo"
-                                                            ]
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        {
-                                            "layout": "panel",
-                                            "config": {
                                                 "name": "electronBeam",
                                                 "title": "Cooling Electron Beam",
                                                 "basic": [
@@ -1451,6 +1422,35 @@
                                                                 "electronBeam.length",
                                                                 "electronBeam.e_number"
                                                             ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Rate Calculation Report",
+                                                "basic": [
+                                                    {
+                                                        "layout": "autoRunReport",
+                                                        "config": {
+                                                            "report": "rateCalculationReport",
+                                                            "dependencies": [
+                                                                "ionBeam.*",
+                                                                "intrabeamScatteringRate.*",
+                                                                "electronCoolingRate.*",
+                                                                "ring.*",
+                                                                "simulationSettings.*",
+                                                                "electronBeam.*",
+                                                                "cooler.*"
+                                                            ],
+                                                            "reportLayout": {
+                                                                "layout": "table",
+                                                                "config": {
+                                                                    "dataAttributeName": "rate"
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 ]
@@ -1537,9 +1537,9 @@
                                 "layout": "waterfall",
                                 "config": {
                                     "breakpoints": {
-                                        "xs": 1,
-                                        "sm": 2,
-                                        "lg": 3
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
                                     },
                                     "gutters": {
                                         "horizontal": ".5em",
@@ -1960,115 +1960,6 @@
                                                                                             "forceTableAnimation.verticalOffset"
                                                                                         ]
                                                                                     }
-                                                                                ]
-                                                                            }
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        {
-                                            "layout": "panel",
-                                            "config": {
-                                                "name": "particleAnimation",
-                                                "title": "Ion Particle Animation",
-                                                "basic": [
-                                                    {
-                                                        "layout": "manualRunReport",
-                                                        "config": {
-                                                            "reportGroupName": "animation",
-                                                            "reportName": "particleAnimation",
-                                                            "shown": "$(simulationSettings.model) == 'particle'",
-                                                            "frameIdFields": [
-                                                                "particleAnimation.x",
-                                                                "particleAnimation.y",
-                                                                "particleAnimation.histogramBins",
-                                                                "particleAnimation.plotRangeType",
-                                                                "particleAnimation.horizontalSize",
-                                                                "particleAnimation.horizontalOffset",
-                                                                "particleAnimation.verticalSize",
-                                                                "particleAnimation.verticalOffset"
-                                                            ],
-                                                            "reportLayout": {
-                                                                "layout": "heatplot",
-                                                                "config": {}
-                                                            }
-                                                        }
-                                                    }
-                                                ],
-                                                "advanced": [
-                                                    {
-                                                        "layout": "tabs",
-                                                        "config": {
-                                                            "tabs": [
-                                                                {
-                                                                    "name": "Main",
-                                                                    "items": [
-                                                                        {
-                                                                            "layout": "fieldList",
-                                                                            "config": {
-                                                                                "fields": [
-                                                                                    "particleAnimation.x",
-                                                                                    "particleAnimation.y",
-                                                                                    "particleAnimation.histogramBins",
-                                                                                    "particleAnimation.framesPerSecond"
-                                                                                ]
-                                                                            }
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "name": "Plot Range",
-                                                                    "items": [
-                                                                        {
-                                                                            "layout": "fieldList",
-                                                                            "config": {
-                                                                                "fields": [
-                                                                                    "particleAnimation.plotRangeType"
-                                                                                ]
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "layout": "fieldTable",
-                                                                            "config": {
-                                                                                "columns": [
-                                                                                    "Horizontal",
-                                                                                    "Vertical"
-                                                                                ],
-                                                                                "rows": [
-                                                                                    {
-                                                                                        "label": "Size",
-                                                                                        "fields": [
-                                                                                            "particleAnimation.horizontalSize",
-                                                                                            "particleAnimation.verticalSize"
-                                                                                        ]
-                                                                                    },
-                                                                                    {
-                                                                                        "label": "Offset",
-                                                                                        "fields": [
-                                                                                            "particleAnimation.horizontalOffset",
-                                                                                            "particleAnimation.verticalOffset"
-                                                                                        ]
-                                                                                    }
-                                                                                ]
-                                                                            }
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "name": "Color",
-                                                                    "items": [
-                                                                        {
-                                                                            "layout": "fieldList",
-                                                                            "config": {
-                                                                                "fields": [
-                                                                                    "particleAnimation.colorRangeType",
-                                                                                    "particleAnimation.colorMin",
-                                                                                    "particleAnimation.colorMax"
                                                                                 ]
                                                                             }
                                                                         }
