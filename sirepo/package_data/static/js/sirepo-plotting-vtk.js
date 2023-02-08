@@ -2023,29 +2023,27 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return;
                 }
                 didDrag = true;
-                [dragX, dragY] = [d3.event.x, d3.event.y];
-                const dd = {};
+                const delta = {};
                 draggedShape = shape;
-                const g = parseFloat($scope.snapGridSize);
+                const g = parseFloat($scope.snapGridSize) * objectScale;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    dd[dim] = d3.event[dim];
+                    srdbg(dim, shape.center[dim], g * Math.round(shape.center[dim] / g));
+                    const gridPixels = $scope.snapToGrid ? Math.abs(
+                        axes[dim].scale(2 * g) - axes[dim].scale(g)
+                    ) : 1;
+                    const gridUnits = gridPixels * Math.round(d3.event[dim] / gridPixels);
+                    delta[dim] = Math.round(gridUnits);
                     const dom = axes[dim].scale.domain();
-                    const pixelSize = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
-                    const d = SIREPO.SCREEN_INFO[dim].direction * pixelSize * d3.event[dim];
-                    shape.center[dim] = dragStart.center[dim] + d;
-                    shape[dim] = dragStart[dim] + d;
+                    const numPixels = gridUnits * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
+                    shape[dim] = dragStart[dim] + numPixels;
+                    shape.center[dim] = dragStart.center[dim] + numPixels;
                     if (! $scope.snapToGrid) {
                         return;
                     }
-                    const sd = Math.abs(axes[dim].scale(2 * g * objectScale) - axes[dim].scale(g * objectScale));
-                    const ddd = Math.round(sd * Math.round(d3.event[dim] / sd));
-                    dd[dim] = ddd;
-                    const p = (dragStart[dim] + d) * invObjScale;
-                    const c = (dragStart.center[dim] + d) * invObjScale;
-                    shape[dim] = g * Math.round(p / g) * objectScale;
-                    shape.center[dim] = g * Math.round(c / g) * objectScale;
+                    shape[dim] = g * Math.round(shape[dim] / g);
+                    shape.center[dim] = g * Math.round(shape.center[dim] / g);
                 });
-                [dragX, dragY] = [dd.x, dd.y];
+                [dragX, dragY] = [delta.x, delta.y];
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
                 shape.runLinks().forEach(linkedShape => {
