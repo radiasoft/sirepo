@@ -67,7 +67,7 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
     return _parse_silas_log(run_dir)

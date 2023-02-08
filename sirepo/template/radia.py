@@ -292,6 +292,7 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
     pkinspect.module_functions("_build_")[f"_build_{t}_objects"](
         data.models.geometryReport.objects,
         m,
+        qcall=qcall,
         matrix=_get_coord_matrix(dirs, data.models.simulation.coordinateSystem),
         height_dir=dirs.height_dir,
         length_dir=dirs.length_dir,
@@ -299,9 +300,7 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
     )
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or not is_parallel:
         return None
     return template_common.parse_mpi_log(run_dir)
@@ -416,8 +415,8 @@ def _build_dipole_objects(geom_objs, model, **kwargs):
 def _build_field_axis(length, axis):
     beam_dir = radia_util.AXIS_VECTORS[axis]
     f = PKDict(
-        begin=(-length / 2) * beam_dir,
-        end=(length / 2) * beam_dir,
+        begin=((-length / 2) * beam_dir).tolist(),
+        end=((length / 2) * beam_dir).tolist(),
         name=f"{axis.upper()}-Axis",
         numPoints=round(length / 2) + 1,
         start=-length / 2,
@@ -466,24 +465,28 @@ def _build_field_manual_pts(f_path):
 def _build_field_map_pts(f_path):
     res = []
     n = int(f_path.numPoints)
-    dx, dy, dz = f_path.lenX / (n - 1), f_path.lenY / (n - 1), f_path.lenZ / (n - 1)
+    dx, dy, dz = (
+        f_path.size[0] / (n - 1),
+        f_path.size[1] / (n - 1),
+        f_path.size[2] / (n - 1),
+    )
     for i in range(n):
-        x = f_path.ctrX - 0.5 * f_path.lenX + i * dx
+        x = f_path.center[0] - 0.5 * f_path.size[0] + i * dx
         for j in range(n):
-            y = f_path.ctrY - 0.5 * f_path.lenY + j * dy
+            y = f_path.center[1] - 0.5 * f_path.size[1] + j * dy
             for k in range(n):
-                z = f_path.ctrZ - 0.5 * f_path.lenZ + k * dz
+                z = f_path.center[2] - 0.5 * f_path.size[2] + k * dz
                 res.extend([x, y, z])
     return res
 
 
 def _build_field_circle_pts(f_path):
-    ctr = [float(f_path.ctrX), float(f_path.ctrY), float(f_path.ctrZ)]
+    ctr = f_path.center
     r = float(f_path.radius)
     # theta is a rotation about the x-axis
-    th = float(f_path.theta)
+    th = float(f_path.eulers[0])
     # phi is a rotation about the z-axis
-    phi = float(f_path.phi)
+    phi = float(f_path.eulers[1])
     n = int(f_path.numPoints)
     dpsi = 2.0 * math.pi / n
     # psi is the angle in the circle's plane
@@ -651,12 +654,12 @@ def _extruded_points_plot(name, points, width_axis, height_axis):
 
 
 _FIELD_PT_BUILDERS = {
-    "axis": _build_field_line_pts,
-    "circle": _build_field_circle_pts,
-    "fieldMap": _build_field_map_pts,
-    "file": _build_field_file_pts,
-    "line": _build_field_line_pts,
-    "manual": _build_field_manual_pts,
+    "axisPath": _build_field_line_pts,
+    "circlePath": _build_field_circle_pts,
+    "fieldMapPath": _build_field_map_pts,
+    "filePath": _build_field_file_pts,
+    "linePath": _build_field_line_pts,
+    "manualPath": _build_field_manual_pts,
 }
 
 
@@ -787,7 +790,7 @@ def generate_field_data(sim_id, g_id, name, field_type, field_paths):
 
 
 def _generate_field_integrals(sim_id, g_id, f_paths):
-    l_paths = [fp for fp in f_paths if fp.type in ("line", "axis")]
+    l_paths = [fp for fp in f_paths if fp.type in ("linePath", "axisPath")]
     if len(l_paths) == 0:
         # return something or server.py will raise an exception
         return PKDict(warning="No paths")
@@ -1793,10 +1796,10 @@ def _update_group(g, members, do_replace=False):
 
 
 def _update_kickmap(km, und, beam_axis):
-    km.direction = radia_util.AXIS_VECTORS[beam_axis]
+    km.direction = radia_util.AXIS_VECTORS[beam_axis].tolist()
     km.transverseDirection = radia_util.AXIS_VECTORS[
         SCHEMA.constants.heightAxisMap[beam_axis]
-    ]
+    ].tolist()
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength

@@ -32,6 +32,8 @@ type RunStatusParams = {
 export class ReportEventManager {
     constructor(private routeHelper: RouteHelper) {}
 
+    private lastData: ResponseHasState = undefined;
+
     reportEventListeners: {[reportName: string]: {[key: string]: ReportEventSubscriber}} = {}
 
     addListener = (key: string, reportName: string, listener: ReportEventSubscriber): void => {
@@ -39,6 +41,16 @@ export class ReportEventManager {
         //reportListeners.push(callback);
         reportListeners[key] = listener;
         this.reportEventListeners[reportName] = reportListeners;
+        if(this.lastData) {
+            this.callListenerWithData(listener, this.lastData);
+        }
+    }
+
+    private callListenerWithData = (listener: ReportEventSubscriber, simulationData: ResponseHasState) => {
+        listener.onReportData && listener.onReportData(simulationData);
+        if(simulationData.state === 'completed') {
+            listener.onComplete && listener.onComplete()
+        }
     }
 
     clearListenersForKey = (key: string) => {
@@ -50,10 +62,8 @@ export class ReportEventManager {
     }
 
     handleSimulationData: (report: string, simulationData: ResponseHasState) => void = (report: string, simulationData: ResponseHasState) => {
-        this.getListenersForReport(report).forEach(l => l.onReportData && l.onReportData(simulationData));
-        if(simulationData.state === 'completed') {
-            this.getListenersForReport(report).forEach(l => l.onComplete && l.onComplete());
-        }
+        this.lastData = simulationData;
+        this.getListenersForReport(report).forEach(l => this.callListenerWithData(l, simulationData));
     }
 
     getRunStatusOnce: (params: RunStatusParams) => Promise<ResponseHasState> = ({

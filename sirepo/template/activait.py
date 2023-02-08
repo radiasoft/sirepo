@@ -175,6 +175,23 @@ def get_fft_report(run_dir, data):
     return w, plots, f"FFT", summaryData
 
 
+def new_simulation(data, new_sim_data, qcall, **kwargs):
+    if "sourceSimType" not in new_sim_data:
+        return
+    t_basename = f"{new_sim_data.sourceSimType}-{new_sim_data.sourceSimId}-{new_sim_data.sourceSimFile}"
+    data.models.dataFile.dataOrigin = "file"
+    data.models.dataFile.file = t_basename
+    t = simulation_db.simulation_lib_dir(_SIM_DATA.sim_type(), qcall=qcall).join(
+        _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", t_basename)
+    )
+    if t.exists():
+        return
+    s = simulation_db.simulation_dir(
+        new_sim_data.sourceSimType, sid=new_sim_data.sourceSimId, qcall=qcall
+    ).join(new_sim_data.sourceSimFile)
+    t.mksymlinkto(s, absolute=False)
+
+
 def prepare_sequential_output_file(run_dir, data):
     report = data["report"]
     if "fileColumnReport" in report or "partitionColumnReport":
