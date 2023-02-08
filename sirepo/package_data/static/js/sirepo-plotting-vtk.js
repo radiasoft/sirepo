@@ -2023,14 +2023,17 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return;
                 }
                 didDrag = true;
-                const delta = {};
                 draggedShape = shape;
+                const delta = {};
                 const g = parseFloat($scope.snapGridSize) * objectScale;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    srdbg(dim, shape.center[dim], g * Math.round(shape.center[dim] / g));
-                    const gridPixels = $scope.snapToGrid ? Math.abs(
-                        axes[dim].scale(2 * g) - axes[dim].scale(g)
-                    ) : 1;
+                    srdbg(dim, shape.center[dim]);
+                    const m = g * Math.round(shape.center[dim] / g);
+                    const gp = Math.abs(axes[dim].scale(m) - axes[dim].scale(shape.center[dim]));
+                    const gpp = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
+                    const gppp = gp ? Math.min(gp, gpp) : gpp;
+                    const gridPixels = $scope.snapToGrid ? gpp : 1;
+                    srdbg(dim, 'm', m, 'gp', gp, 'gridpix', gpp, 'use', gppp);
                     const gridUnits = gridPixels * Math.round(d3.event[dim] / gridPixels);
                     delta[dim] = Math.round(gridUnits);
                     const dom = axes[dim].scale.domain();
