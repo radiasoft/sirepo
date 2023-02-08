@@ -86,6 +86,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "type",
             ):
                 cls._fixup_box_to_cuboid(dm[m], f)
+        for m in (
+            "axisPath",
+            "circlePath",
+            "fieldMapPath",
+            "filePath",
+            "linePath",
+            "manualPath",
+        ):
+            if dm.get(m):
+                dm[m].type = m
         for o in dm.geometryReport.objects:
             for f in (
                 "model",
@@ -191,6 +201,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_field_paths(paths):
             for p in paths:
+                if not p.type.endswith("Path"):
+                    p.type = f"{p.type}Path"
                 for f in (
                     "begin",
                     "end",
@@ -224,8 +236,13 @@ class SimData(sirepo.sim_data.SimDataBase):
         if dm.get("solver"):
             dm.solverAnimation = dm.solver.copy()
             del dm["solver"]
+        if "fieldPaths" not in dm:
+            dm.fieldPaths = cls.update_model_defaults(PKDict(), "fieldPaths")
         if not dm.fieldPaths.get("paths"):
             dm.fieldPaths.paths = []
+        if dm.fieldPaths.get("path"):
+            dm.fieldPaths.selectedPath = dm.fieldPaths.path
+            del dm.fieldPaths["path"]
         if dm.simulation.get("isExample"):
             cls._fixup_examples(dm)
         if dm.simulation.magnetType == "undulator":

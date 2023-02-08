@@ -162,7 +162,7 @@ def _init():
         ),
         # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
         react_sim_types=(
-            ("jspec", "genesis", "warppba", "omega")
+            ("jspec", "genesis", "warppba", "omega", "myapp")
             if pkconfig.channel_in("dev")
             else (),
             set,
