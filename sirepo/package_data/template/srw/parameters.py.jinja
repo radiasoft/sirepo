@@ -88,19 +88,19 @@ varParam = [
 {% if simulation_sourceType in ['u', 't'] %}
 #---Undulator
 #---idealized params
-{% if simulation_sourceType == 't' %}#{% endif %}    ['und_bx', 'f', {{undulator_horizontalAmplitude}}, 'undulator horizontal peak magnetic field [T]'],
-{% if simulation_sourceType == 't' %}#{% endif %}    ['und_by', 'f', {{undulator_verticalAmplitude}}, 'undulator vertical peak magnetic field [T]'],
-{% if simulation_sourceType == 't' %}#{% endif %}    ['und_phx', 'f', {{undulator_horizontalInitialPhase}}, 'initial phase of the horizontal magnetic field [rad]'],
-{% if simulation_sourceType == 't' %}#{% endif %}    ['und_phy', 'f', {{undulator_verticalInitialPhase}}, 'initial phase of the vertical magnetic field [rad]'],
-{% if simulation_sourceType == 't' %}#{% endif %}    ['und_sx', 'i', {{undulator_horizontalSymmetry}}, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
-{% if simulation_sourceType == 't' %}#{% endif %}    ['und_sy', 'i', {{undulator_verticalSymmetry}}, 'undulator vertical magnetic field symmetry vs longitudinal position'],
-{% if simulation_sourceType == 't' %}#{% endif %}    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
-{% if simulation_sourceType == 't' %}#{% endif %}    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
+{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_bx', 'f', {{undulator_horizontalAmplitude}}, 'undulator horizontal peak magnetic field [T]'],
+{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_by', 'f', {{undulator_verticalAmplitude}}, 'undulator vertical peak magnetic field [T]'],
+{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_phx', 'f', {{undulator_horizontalInitialPhase}}, 'initial phase of the horizontal magnetic field [rad]'],
+{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_phy', 'f', {{undulator_verticalInitialPhase}}, 'initial phase of the vertical magnetic field [rad]'],
+{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_sx', 'i', {{undulator_horizontalSymmetry}}, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
+{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_sy', 'i', {{undulator_verticalSymmetry}}, 'undulator vertical magnetic field symmetry vs longitudinal position'],
+{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
+{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
 #---tabulated params
-{% if simulation_sourceType == 'u' %}#{% endif %}    ['und_g', 'f', {{tabulatedUndulator_gap}}, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
-{% if simulation_sourceType == 'u' %}#{% endif %}    ['und_ph', 'f', {{tabulatedUndulator_phase}}, 'shift of magnet arrays [mm] for which the field should be set up'],
-{% if simulation_sourceType == 'u' %}#{% endif %}    ['und_mdir', 's', '{{magneticMeasurementsDir}}', 'name of magnetic measurements sub-folder'],
-{% if simulation_sourceType == 'u' %}#{% endif %}    ['und_mfs', 's', '{{magneticMeasurementsIndexFile}}', 'name of magnetic measurements for different gaps summary file'],
+{% if simulation_sourceType != 't' %}#{% endif %}    ['und_g', 'f', {{tabulatedUndulator_gap}}, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
+{% if simulation_sourceType != 't' %}#{% endif %}    ['und_ph', 'f', {{tabulatedUndulator_phase}}, 'shift of magnet arrays [mm] for which the field should be set up'],
+{% if simulation_sourceType != 't' %}#{% endif %}    ['und_mdir', 's', '{{magneticMeasurementsDir}}', 'name of magnetic measurements sub-folder'],
+{% if simulation_sourceType != 't' %}#{% endif %}    ['und_mfs', 's', '{{magneticMeasurementsIndexFile}}', 'name of magnetic measurements for different gaps summary file'],
 #---both  params
     ['und_zc', 'f', {{undulator_longitudinalPosition}}, 'undulator center longitudinal position [m]'],
     ['und_per', 'f', {{undulator_period}}, 'undulator period [m]'],
