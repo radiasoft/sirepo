@@ -449,15 +449,6 @@ def _map_field_name(f):
     return _FIELD_MAP.get(f, f)
 
 
-def _resort_vtrans(x, plots):
-    # special case - the force_table.txt vTrans is not sequential
-    x = np.array(x)
-    sort_idx = np.argsort(x)
-    for p in plots:
-        p.points = np.array(p.points)[sort_idx].tolist()
-    return x[sort_idx].tolist()
-
-
 def _safe_sdds_value(v):
     if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return 0
@@ -482,7 +473,7 @@ def _sdds_report(frame_args, filename, x_field):
         return label_prefix
 
     def _format_plot(plot, sdds_units):
-        if "x" in plot and plot.x:
+        if x_field == plot.col_name:
             plot.label = _field_label(plot.col_name, sdds_units)
         else:
             plot.label = "{}{}{}".format(
@@ -491,21 +482,16 @@ def _sdds_report(frame_args, filename, x_field):
                 _field_description(plot.col_name, frame_args.sim_in),
             )
 
-    def _v_trans_hook(plot, plots):
-        if plot.col_name == "V_trans":
-            plot.points = _resort_vtrans(plot.points, plots)
-
     if "fieldRange" in frame_args.sim_in.models.particleAnimation:
         frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
     frame_args.x = x_field
 
     return sdds_util.SDDSUtil(filename).lineplot(
         PKDict(
-            x=("x",),
-            y=("y1", "y2", "y3"),
+            x_field="x",
+            y_fields=("y1", "y2", "y3"),
             format_col_name=_map_field_name,
-            frame_args=frame_args,
-            v_trans_hook=_v_trans_hook,
+            model=template_common.model_from_frame_args(frame_args),
             format_plot=_format_plot,
         )
     )

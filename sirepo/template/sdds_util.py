@@ -83,28 +83,23 @@ class SDDSUtil:
     def lineplot(self, plot_attrs):
         x = None
         plots = []
-        for f in plot_attrs.x + plot_attrs.y:
-            if f not in plot_attrs.frame_args or plot_attrs.frame_args[f] == "none":
+        for f in (plot_attrs.x_field,) + plot_attrs.y_fields:
+            if f not in plot_attrs.model or plot_attrs.model[f] == "none":
                 continue
-            col_name = plot_attrs.format_col_name(plot_attrs.frame_args[f])
+            col_name = plot_attrs.format_col_name(plot_attrs.model[f]) if "format_col_name" in plot_attrs else plot_attrs.model[f]
             col = extract_sdds_column(self.filename, col_name, 0)
             if col.err:
                 return col.err
             plot = PKDict(
                 points=col["values"],
-                label=plot_attrs.frame_args[f],
+                label=plot_attrs.model[f],
                 col_name=col_name,
             )
-            if f == "x":
-                plot.x = True
             plot_attrs.format_plot(plot, col.column_def[1])
-            if f == "x":
+            if f == plot_attrs.x_field:
                 x = plot
             else:
                 plots.append(plot)
-
-        if "v_trans_hook" in plot_attrs:
-            plot_attrs.v_trans_hook(x, plots)
 
         # independent reads of file may produce more columns, trim to match x length
         for p in plots:
@@ -114,7 +109,7 @@ class SDDSUtil:
         return template_common.parameter_plot(
             x=x.points,
             plots=plots,
-            model=plot_attrs.frame_args,
+            model=plot_attrs.model,
             plot_fields=PKDict(
                 title=plot_attrs.title if "title" in plot_attrs else "",
                 dynamicYLabel=plot_attrs.dynamicYLabel

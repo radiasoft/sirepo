@@ -651,11 +651,11 @@ def sim_frame_plot2Animation(frame_args):
 
     return sdds_util.SDDSUtil(str(frame_args.run_dir.join(_OPAL_SDDS_FILE))).lineplot(
         PKDict(
-            x=("x",),
-            y=("y1", "y2", "y3"),
+            x_field="x",
+            y_fields=("y1", "y2", "y3"),
             format_col_name=_format_col_name,
             format_plot=_format_plot,
-            frame_args=frame_args,
+            model=template_common.model_from_frame_args(frame_args),
             title="",
             dynamicYLabel=True,
         )
