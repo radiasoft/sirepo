@@ -1137,7 +1137,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             }
 
             const loadImageFile = () => {
-                requestSender.sendStatefulCompute(
+                requestSender.sendAnalysisJob(
                     appState,
                     response => {
                         numPages = response.numPages;
@@ -1147,6 +1147,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     },
                     {
                         method: 'sample_images',
+                        modelName: 'animation',
                         args: {
                             method: $scope.method,
                             imageFilename: 'sample',

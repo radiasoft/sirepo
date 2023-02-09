@@ -334,7 +334,7 @@ def stateful_compute_column_info(data):
     raise AssertionError("Unsupported file type: {}".format(f))
 
 
-def stateful_compute_sample_images(data):
+def analysis_job_sample_images(data, run_dir, **kwargs):
     import matplotlib.pyplot as plt
     from base64 import b64encode
 
@@ -381,9 +381,12 @@ def stateful_compute_sample_images(data):
         x = f[io.input.path]
         y = f[io.output.path]
         if data.args.method == "segmentViewer":
-            x = f[io.output.path]
+            x = _read_file(run_dir, "/test.npy")
             pkdp("data: {}", data)
-            # y = _read_file(data, "/predict.npy")
+            y = _read_file(run_dir, "/predict.npy")
+            pkdp("\n\n\n y={}", y)
+            x = x.reshape(len(x)//64//64, 64, 64)
+            y = y.reshape(len(y)//64//64, 64, 64)
         # TODO (gurhar1133): if data.args.segmentPredictions
         # set x and y differently x will be output of normal
         # y will point to predict.npy
