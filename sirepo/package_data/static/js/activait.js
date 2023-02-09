@@ -1075,7 +1075,9 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
 SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            method: '@',
+        },
         template: `
         <div>
           <img class="img-responsive srw-processed-image" />
@@ -1146,6 +1148,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     {
                         method: 'sample_images',
                         args: {
+                            method: $scope.method,
                             imageFilename: 'sample',
                             dataFile: appState.applicationState().dataFile,
                             columnInfo: appState.applicationState().columnInfo,

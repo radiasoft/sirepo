@@ -380,6 +380,10 @@ def stateful_compute_sample_images(data):
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
         x = f[io.input.path]
         y = f[io.output.path]
+        if data.args.method == "segmentViewer":
+            x = f[io.output.path]
+            pkdp("data: {}", data)
+            # y = _read_file(data, "/predict.npy")
         # TODO (gurhar1133): if data.args.segmentPredictions
         # set x and y differently x will be output of normal
         # y will point to predict.npy
