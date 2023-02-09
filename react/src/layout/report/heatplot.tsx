@@ -69,10 +69,10 @@ export class HeatplotFromApi extends ReportVisual<undefined, {}, HeatplotConfigA
     }
 
     component = (props: LayoutProps<{}> & ReportVisualProps<HeatPlotConfig>) => {
-        let { data } = props;
+        let { data, model } = props;
 
         return (
-            <>{data && <Heatplot {...data} {...props}/>}</>
+            <>{data && <Heatplot {...data} {...model}/>}</>
         )
     }
 }

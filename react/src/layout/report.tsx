@@ -1,4 +1,4 @@
-import { useContext, useState, useRef, useEffect } from "react";
+import { useContext, useState, useRef, useEffect, ReactElement } from "react";
 import { Dependency } from "../data/dependency";
 import { LayoutProps, Layout } from "./layout";
 import { cancelReport, pollRunReport, ResponseHasState } from "../utility/compute";
@@ -18,11 +18,11 @@ import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
-import { SchemaLayout } from "../utility/schema";
+import { SchemaLayout, SchemaModel } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
 
 
-export type ReportVisualProps<L> = { data: L };
+export type ReportVisualProps<L> = { data: L, model: SchemaModel };
 export abstract class ReportVisual<C = unknown, P = unknown, A = unknown, L = unknown> extends Layout<C, P & ReportVisualProps<L>> {
     abstract getConfigFromApiResponse(apiReponse: A): L;
     abstract canShow(apiResponse: A): boolean;
@@ -167,10 +167,6 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
             panelController.setShown(s);
         }, [shown, animationReader?.frameCount])
 
-        /*useEffect(() => {
-            panelController.setShown(false);
-        }, [0])*/
-
         useEffect(() => {
             reportEventManager.addListener(reportEventsVersionRef.current, reportGroupName, {
                 onStart: () => {
@@ -210,14 +206,32 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {this.reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={this.reportLayout} animationReader={animationReader} model={model}></ReportAnimationController>}
+                {this.reportLayout && 
+                animationReader && 
+                <ReportAnimationController animationReader={animationReader}>
+                    {
+                        (data) => {
+                            let LayoutComponent = this.reportLayout.component;
+                            let canShowReport = this.reportLayout.canShow(data);
+                            let reportLayoutConfig = this.reportLayout.getConfigFromApiResponse(data);
+                            return (
+                                <>
+                                {
+                                    canShowReport && <LayoutComponent data={reportLayoutConfig} model={model}/>
+                                }
+                                </>
+                            )
+                        }
+                    }
+                </ReportAnimationController>
+                }
             </>
         )
     }
 }
 
-export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayout: ReportVisual, shown: boolean, model: any}) {
-    let { animationReader, reportLayout, shown, model } = props;
+export function ReportAnimationController(props: { animationReader: AnimationReader, children: (data: unknown) => ReactElement }) {
+    let { animationReader } = props;
     let [currentFrame, updateCurrentFrame] = useState<SimulationFrame>(undefined);
     let reportDataCallback = (simulationData) => updateCurrentFrame(simulationData);
     let presentationIntervalMs = 1000;
@@ -264,21 +278,14 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
         </div>
     )
 
-    let LayoutComponent = reportLayout.component;
-    let canShowReport = reportLayout.canShow(currentFrame?.data);
-    if (currentFrame && currentFrame.data) {
-        //TODO(pjm): needs help
-        const d: {[k: string]: any} = currentFrame.data;
-        d.model = model;
-    }
-    let reportLayoutConfig = reportLayout.getConfigFromApiResponse(currentFrame?.data);
+    
 
     return (
         <>
             {
-                canShowReport && shown && currentFrame && (
+                currentFrame && (
                     <>
-                        <LayoutComponent data={reportLayoutConfig}/>
+                        {props.children(currentFrame?.data)}
                         {animationReader.getFrameCount() > 1 && animationReader.hasAnimationControls && animationControlButtons}
                     </>
                 )

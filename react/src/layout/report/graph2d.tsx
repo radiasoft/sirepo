@@ -82,13 +82,13 @@ export class Graph2dFromApi extends ReportVisual<undefined, {}, Graph2dConfigApi
     }
 
     component = (props: LayoutProps<{}> & ReportVisualProps<Graph2dConfig>) => {
-        let { data } = props;
+        let { data, model } = props;
         if(!data) {
             throw new Error("graph2d received falsy data prop");
         }
 
         return (
-            <Graph2d {...data}/>
+            <Graph2d {...data} {...model}/>
         )
     }
 }

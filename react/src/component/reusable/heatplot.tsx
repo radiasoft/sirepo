@@ -17,15 +17,14 @@ export type HeatPlotConfig = {
     xRange: Range1d,
     yRange: Range1d,
     zRange: Range1d,
-    //TODO(pjm): probably should be a uuid
-    dataId: number,
     //TODO(pjm): help with type
     model?: any,
 }
 
-function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix, colorScale, dataId }) {
+function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix, colorScale }) {
     const ctx = useCanvasContext();
     const [cache, setCache] = useState(null);
+    const r = useRef<
 
     if (! cache || cache.dataId !== dataId) {
         const cacheCanvas = document.createElement('canvas');
