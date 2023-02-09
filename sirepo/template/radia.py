@@ -325,7 +325,7 @@ def stateless_compute_build_shape_points(data):
                 o, _get_stemmed_info(o)
             )
         )
-    pts = sirepo.csv.read_as_number_array(
+    pts = sirepo.csv.read_as_number_list(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
                 "extrudedPoints", "pointsFile", o.pointsFile
@@ -354,7 +354,7 @@ def validate_file(file_type, path):
         return f"invalid file type: {path.ext}"
     if file_type == "extrudedPoints-pointsFile":
         try:
-            _ = sirepo.csv.read_as_number_array(path)
+            _ = sirepo.csv.read_as_number_list(path)
         except RuntimeError as e:
             return e
     if path.ext == ".stl":
@@ -1245,7 +1245,7 @@ def _read_h5_path(filename, h5path):
 
 
 def _read_h_m_file(file_name, qcall=None):
-    return sirepo.csv.read_as_number_array(
+    return sirepo.csv.read_as_number_list(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
             qcall=qcall,
