@@ -160,6 +160,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         let frameIdAccessor = new ModelsAccessor(modelsWrapper, frameIdDependencies);
 
         let [animationReader, updateAnimationReader] = useState<AnimationReader>(undefined);
+        let [model, updateModel] = useState(undefined);
 
         useEffect(() => {
             let s = animationReader && animationReader.frameCount > 0 && shown;
@@ -177,7 +178,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                     panelController.setShown(false);
                 },
                 onReportData: (simulationData: ResponseHasState) => {
-                    simulationInfoPromise.then(({simulationId}) => {
+                    simulationInfoPromise.then(({models, simulationId}) => {
                         let { computeJobHash, computeJobSerial } = simulationData;
                         const s = this._reportStatus(reportName, simulationData);
                         if (!animationReader || s.frameCount !== animationReader?.frameCount) {
@@ -192,17 +193,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                                     frameCount: s.frameCount,
                                     hasAnimationControls: s.hasAnimationControls,
                                 });
-
-                                /*// if the reader is at the old end or was not previously defined
-                                if(!animationReader || animationReader.nextFrameIndex >= animationReader.frameCount - 1) {
-                                    // seek end
-                                    console.log("seeking end");
-                                    newAnimationReader.seekEnd();
-                                } else {
-                                    console.log(`seeking same; next=${animationReader.nextFrameIndex} oldcount=${animationReader.frameCount} newcount=${newAnimationReader.frameCount}`);
-                                    newAnimationReader.seekFrame(animationReader.nextFrameIndex);
-                                }*/
-
+                                updateModel(models[reportName])
                                 updateAnimationReader(newAnimationReader);
                             } else {
                                 updateAnimationReader(undefined);
@@ -219,19 +210,15 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {this.reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={this.reportLayout} animationReader={animationReader}></ReportAnimationController>}
+                {this.reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={this.reportLayout} animationReader={animationReader} model={model}></ReportAnimationController>}
             </>
         )
     }
 }
 
-export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayout: ReportVisual, shown: boolean}) {
-    let { animationReader, reportLayout, shown } = props;
-
-    let panelController = useContext(CPanelController);
-
+export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayout: ReportVisual, shown: boolean, model: any}) {
+    let { animationReader, reportLayout, shown, model } = props;
     let [currentFrame, updateCurrentFrame] = useState<SimulationFrame>(undefined);
-
     let reportDataCallback = (simulationData) => updateCurrentFrame(simulationData);
     let presentationIntervalMs = 1000;
 
@@ -279,6 +266,11 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
 
     let LayoutComponent = reportLayout.component;
     let canShowReport = reportLayout.canShow(currentFrame?.data);
+    if (currentFrame && currentFrame.data) {
+        //TODO(pjm): needs help
+        const d: {[k: string]: any} = currentFrame.data;
+        d.model = model;
+    }
     let reportLayoutConfig = reportLayout.getConfigFromApiResponse(currentFrame?.data);
 
     return (

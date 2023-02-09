@@ -48,9 +48,9 @@ export function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispa
         }
         // cannot read from ref inside debounce, debounce is called with a delay...
         // need to cache future answers and check for staleness in callback
+        const w = ref.current.offsetWidth;
+        const h = ref.current.offsetHeight;
         const handleResize = debounce(() => {
-            const w = ref.current.offsetWidth;
-            const h = ref.current.offsetHeight;
             if (dim.width !== w) {
                 setDim({
                     width: w,

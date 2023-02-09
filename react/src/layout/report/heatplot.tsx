@@ -9,7 +9,9 @@ export type HeatplotConfigApi = {
     x_range: [number, number],
     y_label: string,
     y_range: [number, number],
-    z_matrix: number[][]
+    z_matrix: number[][],
+    //TODO(pjm): help with type
+    model: any,
 }
 
 function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotConfig {
@@ -17,6 +19,7 @@ function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotCo
 
     let {
         title,
+        model,
         x_label: xLabel,
         x_range: xRange,
         y_range: yRange,
@@ -46,8 +49,9 @@ function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotCo
             min: Math.min(...zMatrix.map(row => Math.min(...row))),
             max: Math.max(...zMatrix.map(row => Math.max(...row))),
         },
-        //TODO(pjm): need a unique id on the data received
+        //TODO(pjm): need a unique id on the data received, probably should be a uuid
         dataId: Math.random(),
+        model: model,
     }
 }
 

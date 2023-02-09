@@ -1,4 +1,3 @@
-0
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { Canvas } from "./canvas";
 import { ColorBar } from './colorbar';
@@ -18,7 +17,10 @@ export type HeatPlotConfig = {
     xRange: Range1d,
     yRange: Range1d,
     zRange: Range1d,
+    //TODO(pjm): probably should be a uuid
     dataId: number,
+    //TODO(pjm): help with type
+    model?: any,
 }
 
 function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix, colorScale, dataId }) {
@@ -63,10 +65,9 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
     return null;
 }
 
-export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix, dataId}: HeatPlotConfig) {
+export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix, dataId, model}: HeatPlotConfig) {
     const ref = useRef(null);
-    //TODO(pjm): use colormap from reportName model
-    let colorMap = 'viridis';
+    let colorMap = (model ? model.colorMap : null) || 'viridis';
     const showColorBar = colorMap !== 'contrast';
     //TODO(pjm): use props.aspectRatio if present
     const gc = useGraphContentBounds(ref, 1, showColorBar ? 80 : 0);
