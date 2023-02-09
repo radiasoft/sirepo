@@ -86,7 +86,11 @@ class SDDSUtil:
         for f in (plot_attrs.x_field,) + plot_attrs.y_fields:
             if f not in plot_attrs.model or plot_attrs.model[f] == "none":
                 continue
-            col_name = plot_attrs.format_col_name(plot_attrs.model[f]) if "format_col_name" in plot_attrs else plot_attrs.model[f]
+            col_name = (
+                plot_attrs.format_col_name(plot_attrs.model[f])
+                if "format_col_name" in plot_attrs
+                else plot_attrs.model[f]
+            )
             col = extract_sdds_column(self.filename, col_name, 0)
             if col.err:
                 return col.err
