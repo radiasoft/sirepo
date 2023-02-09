@@ -380,12 +380,14 @@ def stateful_compute_sample_images(data):
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
         x = f[io.input.path]
         y = f[io.output.path]
+        # TODO (gurhar1133): if data.args.segmentPredictions
+        # set x and y differently x will be output of normal
+        # y will point to predict.npy
         u = []
         k = 0
         g = _image_grid(len(x))
         if _image_to_image(info):
             g = [3]*5
-        # TODO (gurhar1133): need to remove ticks
         for i in g:
             plt.figure(figsize=[10, 10])
             if _image_to_image(info):
