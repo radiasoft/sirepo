@@ -1,8 +1,16 @@
-def test_import():
-    from pykern import pkunit
-    from pykern.pkunit import pkeq
+import sirepo.csv
 
-    actual = []
-    for d in pkunit.case_dirs():
+
+def test_import():
+    from pykern import pkunit, pkio
+    from sirepo import csv
+
+    for d in pkunit.case_dirs(group_prefix="conformance"):
+        for f in pkio.sorted_glob("*.csv"):
+            _ = sirepo.csv.read_as_number_array(f)
         pass
 
+    for d in pkunit.case_dirs(group_prefix="deviance"):
+        for f in pkio.sorted_glob("*.csv"):
+            with pkunit.pkexcept("invalid file"):
+                _ = sirepo.csv.read_as_number_array(f)
