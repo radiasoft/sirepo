@@ -1952,8 +1952,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.width = $scope.height = 0;
 
             let didDrag = false;
-            let dragShape, dragStart, zoom;
-            let [dragX, dragY] = [0, 0];
+            let dragShape, dragInitialShape, zoom;
+            const dragDelta = {x: 0, y: 0};
             let draggedShape = null;
             const axisScale = {
                 x: 1.0,
@@ -1980,12 +1980,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function resetDrag() {
                 didDrag = false;
                 hideShapeLocation();
-                [dragX, dragY] = [0, 0];
+                dragDelta.x = 0;
+                dragDelta.y = 0;
                 draggedShape = null;
                 selectedObject = null;
             }
 
-            function d3DragEndShape(shape) {
+            function d3DragShapeEnd(shape) {
 
                 function reset() {
                     resetDrag();
@@ -1993,7 +1994,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
 
                 const dragThreshold = 1e-3;
-                if (! didDrag || Math.abs(dragX) < dragThreshold && Math.abs(dragY) < dragThreshold) {
+                if (! didDrag || Math.abs(dragDelta.x) < dragThreshold && Math.abs(dragDelta.y) < dragThreshold) {
                     reset();
                     return;
                 }
@@ -2020,30 +2021,24 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             //TODO(mvk): live update of virtual shapes
             function d3DragShape(shape) {
 
+                function roundUnits(val, unit) {
+                    return unit * Math.round(val / unit);
+                }
+
                 function scaledPixels(dim, pixels) {
                     const dom = axes[dim].scale.domain();
                     return pixels * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
                 }
 
                 function snap(dim, shape) {
-                    srdbg(dim, 'ctr', shape.center[dim], 'moving', Math.sign(d3.event[dim]));
                     const g = parseFloat($scope.snapGridSize) * objectScale;
-                    const nearestGrid = g * Math.round(shape.center[dim] / g);
-                    const pixelsToGrid = axes[dim].scale(nearestGrid) - axes[dim].scale(shape.center[dim]);
-                    if (pixelsToGrid) {
-                        const numPixels = scaledPixels(dim, pixelsToGrid);
-                        //srdbg(dim, 'pixelsToGrid', pixelsToGrid, 'numPixels', numPixels);
-                        shape[dim] = dragStart[dim] + numPixels;
-                        shape.center[dim] = dragStart.center[dim] + numPixels;
-                        srdbg(dim, 'new ctr', shape.center[dim]);
-                        return Math.round(pixelsToGrid);
-                    }
+                    const offset = axes[dim].scale(roundUnits(dragInitialShape.center[dim], g)) - axes[dim].scale(dragInitialShape.center[dim]);
                     const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
-                    const gridUnits = gridSpacing * Math.round(d3.event[dim] / gridSpacing);
-                    const numPixels = scaledPixels(dim, gridUnits);
-                    shape[dim] = g * Math.round((dragStart[dim] + numPixels) / g);
-                    shape.center[dim] = g * Math.round((dragStart.center[dim] + numPixels) / g);
-                    return Math.round(gridUnits);
+                    const gridUnits = roundUnits(d3.event[dim], gridSpacing);
+                    const numPixels = scaledPixels(dim, gridUnits + offset);
+                    shape[dim] = roundUnits(dragInitialShape[dim] + numPixels, g);
+                    shape.center[dim] = roundUnits(dragInitialShape.center[dim] + numPixels, g);
+                    return Math.round(gridUnits + offset);
                 }
 
                 if (! shape.draggable) {
@@ -2051,18 +2046,16 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
                 didDrag = true;
                 draggedShape = shape;
-                const delta = {};
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     if ($scope.snapToGrid) {
-                        delta[dim] = snap(dim, shape);
+                        dragDelta[dim] = snap(dim, shape);
                         return;
                     }
-                    delta[dim] = d3.event[dim];
-                    const numPixels = scaledPixels(dim, delta[dim]);
-                    shape[dim] = dragStart[dim] + numPixels;
-                    shape.center[dim] = dragStart.center[dim] + numPixels;
+                    dragDelta[dim] = d3.event[dim];
+                    const numPixels = scaledPixels(dim, dragDelta[dim]);
+                    shape[dim] = dragInitialShape[dim] + numPixels;
+                    shape.center[dim] = dragInitialShape.center[dim] + numPixels;
                 });
-                [dragX, dragY] = [delta.x, delta.y];
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
                 shape.runLinks().forEach(linkedShape => {
@@ -2074,9 +2067,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return `${(includeHash ? '#' : '')}shape-${shape.id}`;
             }
 
-            function d3DragStartShape(shape) {
+            function d3DragShapeStart(shape) {
                 d3.event.sourceEvent.stopPropagation();
-                dragStart = appState.clone(shape);
+                dragInitialShape = appState.clone(shape);
                 showShapeLocation(shape);
             }
 
@@ -2289,7 +2282,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function shapePoints(shape) {
                 //TODO(mvk): apply transforms to dx, dy
-                const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragX, dragY] : [0, 0];
+                const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragDelta.x, dragDelta.y] : [0, 0];
                 let pts = '';
                 for (const p of shape.points) {
                     pts += `${dx + axes.x.scale(p.x)},${dy + axes.y.scale(p.y)} `;
@@ -2475,8 +2468,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 dragShape = d3.behavior.drag()
                     .origin(function(d) { return d; })
                     .on('drag', d3DragShape)
-                    .on('dragstart', d3DragStartShape)
-                    .on('dragend', d3DragEndShape);
+                    .on('dragstart', d3DragShapeStart)
+                    .on('dragend', d3DragShapeEnd);
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
                 });
