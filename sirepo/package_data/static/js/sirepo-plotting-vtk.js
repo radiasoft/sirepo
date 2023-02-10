@@ -2032,12 +2032,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
                 function snap(dim, shape) {
                     const g = parseFloat($scope.snapGridSize) * objectScale;
-                    const offset = axes[dim].scale(roundUnits(dragInitialShape.center[dim], g)) - axes[dim].scale(dragInitialShape.center[dim]);
+                    const ctr = dragInitialShape.center[dim];
+                    const offset = axes[dim].scale(roundUnits(ctr, g)) - axes[dim].scale(ctr);
                     const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
                     const gridUnits = roundUnits(d3.event[dim], gridSpacing);
                     const numPixels = scaledPixels(dim, gridUnits + offset);
                     shape[dim] = roundUnits(dragInitialShape[dim] + numPixels, g);
-                    shape.center[dim] = roundUnits(dragInitialShape.center[dim] + numPixels, g);
+                    shape.center[dim] = roundUnits(ctr + numPixels, g);
                     return Math.round(gridUnits + offset);
                 }
 
@@ -2190,7 +2191,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         width: $scope.width,
                         height: $scope.height,
                     }, select);
-                    axis.grid.ticks(axis.tickCount);
+                    axis.grid.ticks(
+                        $scope.snapToGrid ?
+                            Math.round(Math.abs(d[1] - d[0]) / ($scope.snapGridSize * objectScale)) :
+                            axis.tickCount
+                    );
                     select('.' + dim + '.axis.grid').call(axis.grid);
                 });
 
@@ -2498,14 +2503,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.setElevation = function(elev) {
                 $scope.elevation = elev;
-                appState.models.threeDBuilder.elevation = elev;
-                appState.saveQuietly('threeDBuilder');
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
                 });
                 replot();
             };
 
+            $scope.$watchGroup(['snapToGrid', 'snapGridSize'], refresh);
             $scope.$on('shapes.loaded', () => {
                 drawShapes();
             });
