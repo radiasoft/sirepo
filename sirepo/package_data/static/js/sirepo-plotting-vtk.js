@@ -2093,6 +2093,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
+            function formatObjectLength(val) {
+                return utilities.roundToPlaces(invObjScale * val, 4);
+            }
+
             function hideShapeLocation() {
                 select('.focus-text').text('');
             }
@@ -2258,10 +2262,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 shape[dim] = roundUnits(dragInitialShape[dim] + numPixels, g);
                 shape.center[dim] = roundUnits(ctr + numPixels, g);
                 return Math.round(gridUnits + offset);
-            }
-
-            function formatObjectLength(val) {
-                return utilities.roundToPlaces(invObjScale * val, 4);
             }
 
             // called when dragging a new object, not an existing object
