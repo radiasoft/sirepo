@@ -381,15 +381,10 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
         x = f[io.input.path]
         y = f[io.output.path]
         if data.args.method == "segmentViewer":
-            x = _read_file(run_dir, "/test.npy")
-            pkdp("data: {}", data)
-            y = _read_file(run_dir, "/predict.npy")
-            pkdp("\n\n\n y={}", y)
-            x = x.reshape(len(x)//64//64, 64, 64)
+            x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+            x  = x.reshape(len(x)//64//64, 64, 64)
+            y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
             y = y.reshape(len(y)//64//64, 64, 64)
-        # TODO (gurhar1133): if data.args.segmentPredictions
-        # set x and y differently x will be output of normal
-        # y will point to predict.npy
         u = []
         k = 0
         g = _image_grid(len(x))
