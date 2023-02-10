@@ -12,6 +12,7 @@ import pykern.pkcompat
 import sirepo.const
 import sirepo.quest
 import sirepo.util
+import urllib.parse
 import user_agents
 
 
@@ -51,13 +52,14 @@ def init_quest(qcall, internal_req=None):
         )
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request
+        u = f"{r.protocol}://{r.host}"
         sreq = _SRequest(
             body_as_bytes=lambda: internal_req.request.body,
             http_authorization=_parse_authorization(r.headers.get("Authorization")),
             http_headers=r.headers,
             http_method=r.method,
-            http_request_uri=r.path,
-            http_server_uri=f"{r.protocol}://{r.host}/",
+            http_request_uri=u + r.path,
+            http_server_uri=u + "/",
             internal_req=internal_req,
             remote_addr=r.remote_ip,
             _form_file_class=_FormFileTornado,

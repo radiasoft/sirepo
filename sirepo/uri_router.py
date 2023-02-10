@@ -13,6 +13,7 @@ import importlib
 import inspect
 import os
 import pkgutil
+import pykern.pkcompat
 import re
 import sirepo.api_auth
 import sirepo.auth
@@ -21,6 +22,7 @@ import sirepo.feature_config
 import sirepo.quest
 import sirepo.uri
 import sirepo.util
+import urllib.parse
 
 #: prefix for api functions
 _FUNC_PREFIX = "api_"
@@ -190,15 +192,16 @@ def register_api_module(module):
 
 def start_tornado(ip, port, debug=False):
     """Start tornado server, does not return"""
-    import tornado.httpserver
-    import tornado.ioloop
-    import tornado.web
+    from tornado import httpserver, ioloop, web, log
 
-    class _Handler(tornado.web.RequestHandler):
+    class _Handler(web.RequestHandler):
         def _route(self):
-            e, r, k = _path_to_route(self.request.path[1:])
+            p = pykern.pkcompat.from_bytes(
+                urllib.parse.unquote_to_bytes(self.request.path),
+            )
+            e, r, k = _path_to_route(p[1:])
             if e:
-                pkdlog("uri={} {}; route={} kwargs={} ", self.request.uri, e, r, k)
+                pkdlog("uri={} {}; route={} kwargs={} ", p, e, r, k)
                 r = _not_found_route
             _call_api(
                 None,
@@ -215,12 +218,16 @@ def start_tornado(ip, port, debug=False):
             self._route()
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
-    s = tornado.httpserver.HTTPServer(
-        tornado.web.Application([("/.*", _Handler)], debug=True),
+    s = httpserver.HTTPServer(
+        web.Application(
+            [("/.*", _Handler)],
+            debug=pkconfig.channel_in("dev"),
+        ),
         xheaders=True,
         max_buffer_size=sirepo.job.cfg().max_message_bytes,
     ).listen(port=port, address=ip)
-    tornado.ioloop.IOLoop.current().start()
+    log.enable_pretty_logging()
+    ioloop.IOLoop.current().start()
 
 
 def uri_for_api(api_name, params=None):
