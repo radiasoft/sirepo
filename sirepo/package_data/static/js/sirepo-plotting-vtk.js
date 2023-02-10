@@ -2019,32 +2019,48 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             //TODO(mvk): live update of virtual shapes
             function d3DragShape(shape) {
+
+                function scaledPixels(dim, pixels) {
+                    const dom = axes[dim].scale.domain();
+                    return pixels * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
+                }
+
+                function snap(dim, shape) {
+                    srdbg(dim, 'ctr', shape.center[dim], 'moving', Math.sign(d3.event[dim]));
+                    const g = parseFloat($scope.snapGridSize) * objectScale;
+                    const nearestGrid = g * Math.round(shape.center[dim] / g);
+                    const pixelsToGrid = axes[dim].scale(nearestGrid) - axes[dim].scale(shape.center[dim]);
+                    if (pixelsToGrid) {
+                        const numPixels = scaledPixels(dim, pixelsToGrid);
+                        //srdbg(dim, 'pixelsToGrid', pixelsToGrid, 'numPixels', numPixels);
+                        shape[dim] = dragStart[dim] + numPixels;
+                        shape.center[dim] = dragStart.center[dim] + numPixels;
+                        srdbg(dim, 'new ctr', shape.center[dim]);
+                        return Math.round(pixelsToGrid);
+                    }
+                    const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
+                    const gridUnits = gridSpacing * Math.round(d3.event[dim] / gridSpacing);
+                    const numPixels = scaledPixels(dim, gridUnits);
+                    shape[dim] = g * Math.round((dragStart[dim] + numPixels) / g);
+                    shape.center[dim] = g * Math.round((dragStart.center[dim] + numPixels) / g);
+                    return Math.round(gridUnits);
+                }
+
                 if (! shape.draggable) {
                     return;
                 }
                 didDrag = true;
                 draggedShape = shape;
                 const delta = {};
-                const g = parseFloat($scope.snapGridSize) * objectScale;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    srdbg(dim, shape.center[dim]);
-                    const m = g * Math.round(shape.center[dim] / g);
-                    const gp = Math.abs(axes[dim].scale(m) - axes[dim].scale(shape.center[dim]));
-                    const gpp = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
-                    const gppp = gp ? Math.min(gp, gpp) : gpp;
-                    const gridPixels = $scope.snapToGrid ? gpp : 1;
-                    srdbg(dim, 'm', m, 'gp', gp, 'gridpix', gpp, 'use', gppp);
-                    const gridUnits = gridPixels * Math.round(d3.event[dim] / gridPixels);
-                    delta[dim] = Math.round(gridUnits);
-                    const dom = axes[dim].scale.domain();
-                    const numPixels = gridUnits * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
-                    shape[dim] = dragStart[dim] + numPixels;
-                    shape.center[dim] = dragStart.center[dim] + numPixels;
-                    if (! $scope.snapToGrid) {
+                    if ($scope.snapToGrid) {
+                        delta[dim] = snap(dim, shape);
                         return;
                     }
-                    shape[dim] = g * Math.round(shape[dim] / g);
-                    shape.center[dim] = g * Math.round(shape.center[dim] / g);
+                    delta[dim] = d3.event[dim];
+                    const numPixels = scaledPixels(dim, delta[dim]);
+                    shape[dim] = dragStart[dim] + numPixels;
+                    shape.center[dim] = dragStart.center[dim] + numPixels;
                 });
                 [dragX, dragY] = [delta.x, delta.y];
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
