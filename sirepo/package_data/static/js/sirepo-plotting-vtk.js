@@ -2020,28 +2020,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             //TODO(mvk): live update of virtual shapes
             function d3DragShape(shape) {
-
-                function roundUnits(val, unit) {
-                    return unit * Math.round(val / unit);
-                }
-
-                function scaledPixels(dim, pixels) {
-                    const dom = axes[dim].scale.domain();
-                    return pixels * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
-                }
-
-                function snap(dim, shape) {
-                    const g = parseFloat($scope.snapGridSize) * objectScale;
-                    const ctr = dragInitialShape.center[dim];
-                    const offset = axes[dim].scale(roundUnits(ctr, g)) - axes[dim].scale(ctr);
-                    const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
-                    const gridUnits = roundUnits(d3.event[dim], gridSpacing);
-                    const numPixels = scaledPixels(dim, gridUnits + offset);
-                    shape[dim] = roundUnits(dragInitialShape[dim] + numPixels, g);
-                    shape.center[dim] = roundUnits(ctr + numPixels, g);
-                    return Math.round(gridUnits + offset);
-                }
-
                 if (! shape.draggable) {
                     return;
                 }
@@ -2049,7 +2027,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 draggedShape = shape;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     if ($scope.snapToGrid) {
-                        dragDelta[dim] = snap(dim, shape);
+                        dragDelta[dim] = snap(shape, dim);
                         return;
                     }
                     dragDelta[dim] = d3.event[dim];
@@ -2232,6 +2210,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 zoom = axes.x.createZoom().y(axes.y.scale);
             }
 
+            function scaledPixels(dim, pixels) {
+                const dom = axes[dim].scale.domain();
+                return pixels * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
+            }
+
             function select(selector) {
                 var e = d3.select($scope.element);
                 return selector ? e.select(selector) : e;
@@ -2259,6 +2242,22 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     formatObjectLength(shape.center.y) + ', ' +
                     formatObjectLength(shape.center.z)
                 );
+            }
+
+            function snap(shape, dim) {
+                function roundUnits(val, unit) {
+                    return unit * Math.round(val / unit);
+                }
+
+                const g = parseFloat($scope.snapGridSize) * objectScale;
+                const ctr = dragInitialShape.center[dim];
+                const offset = axes[dim].scale(roundUnits(ctr, g)) - axes[dim].scale(ctr);
+                const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
+                const gridUnits = roundUnits(d3.event[dim], gridSpacing);
+                const numPixels = scaledPixels(dim, gridUnits + offset);
+                shape[dim] = roundUnits(dragInitialShape[dim] + numPixels, g);
+                shape.center[dim] = roundUnits(ctr + numPixels, g);
+                return Math.round(gridUnits + offset);
             }
 
             function formatObjectLength(val) {
@@ -2293,10 +2292,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     pts += `${dx + axes.x.scale(p.x)},${dy + axes.y.scale(p.y)} `;
                 }
                 return pts;
-            }
-
-            function shapeCenter(shape, dim) {
-                return axes[dim].scale(shape.center[getElevation().labAxis(dim)]);
             }
 
             function linePoints(shape) {
@@ -2341,8 +2336,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     .attr('id', d =>  shapeSelectionId(d, false))
                     .attr('href', d => d.href ? `#${d.href}` : '')
                     .attr('points', d => $.isEmptyObject(d.points || {}) ? null : shapePoints(d))
-                    //.attr('x', d => shapeOrigin(d, 'x') - (d.outlineOffset || 0))
-                    //.attr('y', d => shapeOrigin(d, 'y') - (d.outlineOffset || 0))
+                    .attr('x', d => shapeOrigin(d, 'x') - (d.outlineOffset || 0))
+                    .attr('y', d => shapeOrigin(d, 'y') - (d.outlineOffset || 0))
                     .attr('x1', d => {
                         const pts = linePoints(d);
                         return pts ? (pts[0] ? pts[0].coords()[0] : 0) : 0;
