@@ -8,11 +8,13 @@
         <div data-toggle="tooltip" title="YZ Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'side'}" style="margin: 2px;" data-ng-click="setElevation('side')">YZ</div>
         <div data-toggle="tooltip" title="ZX Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'top'}" style="margin: 2px;" data-ng-click="setElevation('top')">ZX</div>
         <div class="sr-pull-right-sm" style="vertical-align: middle;">
-          <label><input type="checkbox" data-ng-model="snapToGrid"> Snap to grid</label>
+          <label><input type="checkbox" data-ng-model="snapToGrid"> Snap center to grid</label>
           <select data-ng-model="snapGridSize" data-ng-disabled="! snapToGrid">
-              <option value="0.5" selected>0.5mm</option>
+              <option value="0.1">0.1mm</option>
+              <option value="0.5">0.5mm</option>
               <option value="1" selected>1mm</option>
               <option value="5" >5mm</option>
+              <option value="10" >10mm</option>
           </select>
           <label><input type="checkbox" data-ng-model="autoFit"> Auto-fit</label>
           <div data-toggle="tooltip" title="Fit to objects" class="btn btn-default" style="margin: 2px;" data-ng-click="fitToShapes()">Fit</div>
