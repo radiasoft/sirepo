@@ -18,13 +18,14 @@ import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
-import { SchemaLayout, SchemaModel } from "../utility/schema";
+import { SchemaLayout } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
+import { ModelState } from "../store/models";
 
 
-export type ReportVisualProps<L> = { data: L, model: SchemaModel };
+export type ReportVisualProps<L> = { data: L, model: ModelState };
 export abstract class ReportVisual<C = unknown, P = unknown, A = unknown, L = unknown> extends Layout<C, P & ReportVisualProps<L>> {
-    abstract getConfigFromApiResponse(apiReponse: A): L;
+    abstract getConfigFromApiResponse(apiReponse: A): L; // TODO: this definition sucks, get rid of model somehow
     abstract canShow(apiResponse: A): boolean;
 }
 
@@ -64,12 +65,14 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         let [simulationData, updateSimulationData] = useState(undefined);
 
         let simulationPollingVersionRef = useRef(uuidv4())
+        let [model, updateModel] = useState(undefined);
 
         useEffect(() => {
             updateSimulationData(undefined);
             let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
             simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
+                updateModel(models[report]);
                 pollRunReport(routeHelper, {
                     appName,
                     models,
@@ -95,7 +98,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {canShow && <LayoutComponent key={simulationPollingVersionRef.current} data={reportVisualConfig}/>}
+                {canShow && <LayoutComponent key={simulationPollingVersionRef.current} data={reportVisualConfig} model={model} />}
                 {!canShow && <ProgressBar animated now={100}/>}
             </>
         )
@@ -189,7 +192,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                                     frameCount: s.frameCount,
                                     hasAnimationControls: s.hasAnimationControls,
                                 });
-                                updateModel(models[reportName])
+                                updateModel(models[reportName]) // TODO: needs safe access
                                 updateAnimationReader(newAnimationReader);
                             } else {
                                 updateAnimationReader(undefined);

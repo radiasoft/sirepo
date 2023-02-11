@@ -87,8 +87,10 @@ export class Graph2dFromApi extends ReportVisual<undefined, {}, Graph2dConfigApi
             throw new Error("graph2d received falsy data prop");
         }
 
+        // TODO: extras from model
+
         return (
-            <Graph2d {...data} {...model}/>
+            <Graph2d {...data}/>
         )
     }
 }

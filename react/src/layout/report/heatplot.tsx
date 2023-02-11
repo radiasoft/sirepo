@@ -1,5 +1,5 @@
 import React from "react";
-import { Heatplot, HeatPlotConfig } from "../../component/reusable/heatplot";
+import { Heatplot, HeatPlotConfig, HeatPlotConfigExtras } from "../../component/reusable/heatplot";
 import { LayoutProps } from "../layout";
 import { ReportVisual, ReportVisualProps } from "../report";
 
@@ -9,9 +9,7 @@ export type HeatplotConfigApi = {
     x_range: [number, number],
     y_label: string,
     y_range: [number, number],
-    z_matrix: number[][],
-    //TODO(pjm): help with type
-    model: any,
+    z_matrix: number[][]
 }
 
 function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotConfig {
@@ -19,7 +17,6 @@ function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotCo
 
     let {
         title,
-        model,
         x_label: xLabel,
         x_range: xRange,
         y_range: yRange,
@@ -48,10 +45,7 @@ function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotCo
         zRange: {
             min: Math.min(...zMatrix.map(row => Math.min(...row))),
             max: Math.max(...zMatrix.map(row => Math.max(...row))),
-        },
-        //TODO(pjm): need a unique id on the data received, probably should be a uuid
-        dataId: Math.random(),
-        model: model,
+        }
     }
 }
 
@@ -71,8 +65,12 @@ export class HeatplotFromApi extends ReportVisual<undefined, {}, HeatplotConfigA
     component = (props: LayoutProps<{}> & ReportVisualProps<HeatPlotConfig>) => {
         let { data, model } = props;
 
+        let extras: HeatPlotConfigExtras = {
+            colorMap: model?.colorMap as string
+        }
+
         return (
-            <>{data && <Heatplot {...data} {...model}/>}</>
+            <>{data && <Heatplot {...data} {...extras}/>}</>
         )
     }
 }

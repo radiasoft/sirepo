@@ -1,5 +1,5 @@
-import React, { useRef, useLayoutEffect, useState } from 'react';
-import { Canvas } from "./canvas";
+import React, { useRef, useLayoutEffect, useState, useContext } from 'react';
+import { Canvas, CCanvas } from "./canvas";
 import { ColorBar } from './colorbar';
 import { DynamicAxis } from "./axis";
 import { Range1d } from '../../types';
@@ -7,7 +7,6 @@ import { Scale } from '@visx/visx';
 import { Zoom } from '@visx/zoom';
 import { constrainZoom, createColorScale, useGraphContentBounds } from "../../utility/component";
 import { rgb } from 'd3-color';
-import { useCanvasContext } from "./canvascontext";
 
 export type HeatPlotConfig = {
     title: string,
@@ -16,17 +15,18 @@ export type HeatPlotConfig = {
     yLabel: string,
     xRange: Range1d,
     yRange: Range1d,
-    zRange: Range1d,
-    //TODO(pjm): help with type
-    model?: any,
+    zRange: Range1d
+}
+
+export type HeatPlotConfigExtras = {
+    colorMap: string
 }
 
 function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix, colorScale }) {
-    const ctx = useCanvasContext();
-    const [cache, setCache] = useState(null);
-    const r = useRef<
+    const ctx = useContext(CCanvas).getCanvasContext();
+    const [cache, setCache] = useState<{canvas: HTMLCanvasElement, zMatrix: number[][]}>(null);
 
-    if (! cache || cache.dataId !== dataId) {
+    if (! cache || cache.zMatrix !== zMatrix) {
         const cacheCanvas = document.createElement('canvas');
         cacheCanvas.width = zMatrix[0].length;
         cacheCanvas.height = zMatrix.length;
@@ -46,13 +46,13 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
         cacheCanvas.getContext('2d').putImageData(img, 0, 0);
         setCache({
             canvas: cacheCanvas,
-            dataId: dataId,
+            zMatrix
         });
     }
     // need to draw image before rendering
     useLayoutEffect(() => {
         ctx.imageSmoothingEnabled = false;
-        ctx.msImageSmoothingEnabled = false;
+        //ctx.msImageSmoothingEnabled = false; // TODO: evaluate, this claims to be missing on type
         ctx.drawImage(
             cache.canvas,
             -(xScaleDomain[0] - xRange.min) / (xScaleDomain[1] - xScaleDomain[0]) * width,
@@ -64,9 +64,9 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
     return null;
 }
 
-export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix, dataId, model}: HeatPlotConfig) {
+export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix, colorMap }: HeatPlotConfig & HeatPlotConfigExtras) {
     const ref = useRef(null);
-    let colorMap = (model ? model.colorMap : null) || 'viridis';
+    colorMap = colorMap || 'viridis';
     const showColorBar = colorMap !== 'contrast';
     //TODO(pjm): use props.aspectRatio if present
     const gc = useGraphContentBounds(ref, 1, showColorBar ? 80 : 0);
@@ -135,7 +135,6 @@ export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix
                                     height={gc.height}
                                     zMatrix={zMatrix}
                                     colorScale={colorScale}
-                                    dataId={dataId}
                                 />
                             </Canvas>
                             <div>
