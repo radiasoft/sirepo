@@ -25,7 +25,7 @@ import { ModelState } from "../store/models";
 
 export type ReportVisualProps<L> = { data: L, model: ModelState };
 export abstract class ReportVisual<C = unknown, P = unknown, A = unknown, L = unknown> extends Layout<C, P & ReportVisualProps<L>> {
-    abstract getConfigFromApiResponse(apiReponse: A): L; // TODO: this definition sucks, get rid of model somehow
+    abstract getConfigFromApiResponse(apiReponse: A): L;
     abstract canShow(apiResponse: A): boolean;
 }
 
