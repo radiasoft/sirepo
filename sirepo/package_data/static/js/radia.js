@@ -1567,14 +1567,26 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             model: '=',
         },
         template: `
-            <div style="height: 200px; overflow-y: scroll; overflow-x: hidden;">
-            <table style="table-layout: fixed;" class="table radia-table-hover">
+            <div class="row">
+              <div class="col-sm-12">
+                <div class="text-center bg-info sr-toolbar-holder">
+                  <div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">
+                    <div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.name }}</span></div>
+                    <button data-ng-click="apply(item)" data-ng-repeat="item in ::section.contents track by $index">
+                      <img src="/static/svg/{{ item.type }}.svg">
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
+            <table style="table-layout: fixed;" class="table table-striped table-condensed radia-table-dialog">
                 <tr style="background-color: lightgray;" data-ng-show="field.length > 0">
                   <th>Members</th>
                   <th></th>
                 </tr>
                 <tr data-ng-repeat="mId in field track by $index">
-                    <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>
+                    <td style="padding-left: 1em"><span style="font-size: large; color: {{getObject(mId).color}};">■</span> <span>{{ getObject(mId).name }}</span></td>
                     <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="ungroupObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
                 </tr>
                 <tr style="background-color: lightgray;">
@@ -1582,13 +1594,50 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   <th></th>
                 </tr>
                 <tr data-ng-repeat="oId in getIds() | filter:hasNoGroup track by $index">
-                  <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(oId).name }}</span></div></td>
+                  <td style="padding-left: 1em"><span style="font-size: large; color: {{getObject(oId).color}};">■</span> <span>{{ getObject(oId).name }}</span></td>
                   <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(oId)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>
                 </tr>
             </table>
-             </div>
+            </div>
         `,
         controller: function($scope) {
+
+            $scope.sectionItems = [
+                {
+                    name: 'Center',
+                    contents: [
+                        {
+                            title: 'X',
+                            type: 'alignHorizCenter',
+                        },
+                        {
+                            title: 'Y',
+                            type: 'alignVertCenter',
+                        }
+                    ],
+                },
+                {
+                    name: 'Align',
+                    contents: [
+                        {
+                            title: 'Left',
+                            type: 'alignLeft',
+                        },
+                        {
+                            title: 'Right',
+                            type: 'alignRight',
+                        },
+                        {
+                            title: 'Bottom',
+                            type: 'alignBottom',
+                        },
+                        {
+                            title: 'Top',
+                            type: 'alignTop',
+                        }
+                    ],
+                },
+            ];
 
             $scope.objects = appState.models.geometryReport.objects;
             if (! $scope.field) {
@@ -1599,6 +1648,10 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 let o = $scope.getObject(oId);
                 o.groupId = $scope.model.id;
                 $scope.field.push(o.id);
+            };
+
+            $scope.apply = item => {
+                srdbg(item);
             };
 
             $scope.getIds = () => $scope.objects.map(o => o.id);
