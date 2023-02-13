@@ -1572,7 +1572,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 <div class="text-center bg-info sr-toolbar-holder">
                   <div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">
                     <div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.name }}</span></div>
-                    <button data-ng-click="apply(item)" data-ng-repeat="item in ::section.contents track by $index">
+                    <button data-ng-disabled="field.length < 2" data-ng-click="apply(item)" data-ng-repeat="item in ::section.contents track by $index">
                       <img src="/static/svg/{{ item.type }}.svg">
                     </button>
                   </div>
@@ -1586,7 +1586,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   <th></th>
                 </tr>
                 <tr data-ng-repeat="mId in field track by $index">
-                    <td style="padding-left: 1em"><span style="font-size: large; color: {{getObject(mId).color}};">■</span> <span>{{ getObject(mId).name }}</span></td>
+                    <td style="padding-left: 1em"><span style="font-size: large; color: {{ getObject(mId).color }};">■</span> <span>{{ getObject(mId).name }}</span></td>
                     <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="ungroupObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
                 </tr>
                 <tr style="background-color: lightgray;">
@@ -1594,7 +1594,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   <th></th>
                 </tr>
                 <tr data-ng-repeat="oId in getIds() | filter:hasNoGroup track by $index">
-                  <td style="padding-left: 1em"><span style="font-size: large; color: {{getObject(oId).color}};">■</span> <span>{{ getObject(oId).name }}</span></td>
+                  <td style="padding-left: 1em"><span style="font-size: large; color: {{ getObject(oId).color }};">■</span> <span>{{ getObject(oId).name }}</span></td>
                   <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(oId)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>
                 </tr>
             </table>
