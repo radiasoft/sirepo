@@ -356,6 +356,14 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
                 return PKDict(path=info.header[idx])
         raise AssertionError(f"No matching dimension found output size: {output_size}")
 
+    def _segment():
+        # TODO (gurhar1133): unhardcode 64
+        x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+        x = x.reshape(len(x)//64//64, 64, 64)
+        y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+        y = y.reshape(len(y)//64//64, 64, 64)
+        return x, y
+
     # go through columnInfo, find first multidimensional col
     # take first dimension size and look for other columns with that single dimension
     io = PKDict()
@@ -381,10 +389,7 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
         x = f[io.input.path]
         y = f[io.output.path]
         if data.args.method == "segmentViewer":
-            x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-            x  = x.reshape(len(x)//64//64, 64, 64)
-            y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-            y = y.reshape(len(y)//64//64, 64, 64)
+            x, y = _segment()
         u = []
         k = 0
         g = _image_grid(len(x))
@@ -394,6 +399,9 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
             plt.figure(figsize=[10, 10])
             if _image_to_image(info):
                 f, axarr = plt.subplots(3, 2)
+                if data.args.method == "segmentViewer":
+                    axarr[0, 0].set_title('actual')
+                    axarr[0, 1].set_title('prediction')
                 plt.setp(axarr, xticks=[], yticks=[])
             for j in range(i):
                 v = x[k + j]
