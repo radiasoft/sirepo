@@ -441,7 +441,10 @@
             "horizontalAxis": ["_", "Axis", "z"],
             "horizontalTrim": ["Trim", "FloatArray", []],
             "planePos": ["_", "Range", 0.0, ""],
-            "verticalAxis": ["_", "Axis", "x"]
+            "verticalAxis": ["_", "Axis", "x"],
+            "xDisplayRange": ["X Range", "FloatArray", [-0.5, 0.5], "", ["min", "max"]],
+            "yDisplayRange": ["Y Range", "FloatArray", [-0.5, 0.5], "", ["min", "max"]],
+            "zDisplayRange": ["Z Range", "FloatArray", [-0.5, 0.5], "", ["min", "max"]]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -739,7 +742,10 @@
             "advanced": [],
             "basic": [
                 "axis",
-                "planePos"
+                "planePos",
+                "xDisplayRange",
+                "yDisplayRange",
+                "yDisplayRange"
             ]
         },
         "tallyScore": {
