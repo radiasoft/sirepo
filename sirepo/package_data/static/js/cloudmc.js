@@ -264,10 +264,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
         },
         template: `
             <ul data-ng-if="! isClientOnly" class="nav nav-tabs">
-                <li role="presentation" class="active" data-ng-class="{active: displayType === '2D'}">
+                <li role="presentation" data-ng-class="{active: displayType === '2D'}">
                     <a href data-ng-click="setDisplay('2D')">2D</a>
                 </li>
-                <li role="presentation" class="active" data-ng-class="{active: displayType === '3D'}">
+                <li role="presentation" data-ng-class="{active: displayType === '3D'}">
                     <a href data-ng-click="setDisplay('3D')">3D</a>
                 </li>
             </ul>
