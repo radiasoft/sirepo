@@ -438,6 +438,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const [z, x, y] = tallyReportAxes();
                 const [n, l, m] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
+                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+                    const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim);
+                    const range = appState.models.tallyReport[`${dim}DisplayRange`];
+                    srdbg(range, 'vs', ranges[i]);
+                    //ranges[i][0] = range[0];
+                    //ranges[i][1] = range[1];
+                }
                 const p = Math.min(
                     mesh.dimension[n] - 1,
                     Math.max(
@@ -993,7 +1000,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
 
-            appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice);
+            appState.watchModelFields(
+                $scope,
+                [
+                    'tallyReport.planePos',
+                    'tallyReport.xDisplayRange',
+                    'tallyReport.yDisplayRange',
+                    'tallyReport.zDisplayRange',
+                ],
+                updateSlice
+            );
 
         },
         link: function link(scope, element) {
