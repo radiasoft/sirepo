@@ -89,7 +89,7 @@ class API(pykern.quest.API):
 
     def destroy(self, commit=False):
         for k, v in reversed(list(self.items())):
-            if hasattr(v, "destroy"):
+            if hasattr(v, "destroy") and not getattr(v, "quest_no_destroy", False):
                 try:
                     v.destroy(commit=commit)
                 except Exception:

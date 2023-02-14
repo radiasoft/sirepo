@@ -1,14 +1,12 @@
-// import { React }
-/* eslint eqeqeq: 0 */
-/* eslint no-unused-vars: 0 */
-import React, { useRef, useLayoutEffect } from 'react';
-import { useCanvasContext } from "./canvascontext";
-import { Canvas } from "./canvas";
+import React, { useRef, useLayoutEffect, useState, useContext } from 'react';
+import { Canvas, CCanvas } from "./canvas";
+import { ColorBar } from './colorbar';
 import { DynamicAxis } from "./axis";
-import { constrainZoom, useGraphContentBounds } from "../../utility/component";
-import { Zoom } from '@visx/zoom';
-import { Scale } from '@visx/visx';
 import { Range1d } from '../../types';
+import { Scale } from '@visx/visx';
+import { Zoom } from '@visx/zoom';
+import { constrainZoom, createColorScale, useGraphContentBounds } from "../../utility/component";
+import { rgb } from 'd3-color';
 
 export type HeatPlotConfig = {
     title: string,
@@ -16,52 +14,47 @@ export type HeatPlotConfig = {
     xLabel: string,
     yLabel: string,
     xRange: Range1d,
-    yRange: Range1d
+    yRange: Range1d,
+    zRange: Range1d
 }
 
-function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix }) {
-    const ctx = useCanvasContext();
-    const cacheCanvas = document.createElement('canvas');
-    cacheCanvas.width = zMatrix[0].length;
-    cacheCanvas.height = zMatrix.length;
-    const img = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
+export type HeatPlotConfigExtras = {
+    colorMap: string
+}
 
-    let zmin = Math.min(...zMatrix.map(row => Math.min(...row)));
-    let zmax = Math.max(...zMatrix.map(row => Math.max(...row)));
+function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix, colorScale }) {
+    const ctx = useContext(CCanvas).getCanvasContext();
+    const [cache, setCache] = useState<{canvas: HTMLCanvasElement, zMatrix: number[][]}>(null);
 
-    //console.log(`zmin: ${zmin}, zmax: ${zmax}`);
+    if (! cache || cache.zMatrix !== zMatrix) {
+        const cacheCanvas = document.createElement('canvas');
+        cacheCanvas.width = zMatrix[0].length;
+        cacheCanvas.height = zMatrix.length;
+        const img = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
 
-    let scaleZScalar = (v) => (v - zmin) / (zmax - zmin);
-
-    for (let yi = cacheCanvas.height - 1, p = -1; yi >= 0; --yi) {
-        for (let xi = 0; xi < cacheCanvas.width; ++xi) {
-            const v = zMatrix[yi][xi];
-            //TODO(pjm): plot scale (linear, log, log10, etc.)
-            // if (scaleFunction) {
-            //     v = scaleFunction(v);
-            // }
-            //TODO(pjm): use colormap
-            //const c = d3.rgb(colorScale(v));
-            /*img.data[++p] = v > 0 ? 255 : 0;
-            img.data[++p] = v > 0 ? 255 : 0;
-            img.data[++p] = v > 0 ? 255 : 0;
-            img.data[++p] = 255;*/
-
-            let c =  Math.ceil(scaleZScalar(v) * 255);
-
-            img.data[++p] = c;
-            img.data[++p] = c;
-            img.data[++p] = c;
-            img.data[++p] = 255;
+        for (let yi = cacheCanvas.height - 1, p = -1; yi >= 0; --yi) {
+            for (let xi = 0; xi < cacheCanvas.width; ++xi) {
+                const v = zMatrix[yi][xi];
+                //TODO(pjm): plot scale (linear, log, log10, etc.)
+                let c = rgb(colorScale(v));
+                img.data[++p] = c.r;
+                img.data[++p] = c.g;
+                img.data[++p] = c.b;
+                img.data[++p] = 255;
+            }
         }
+        cacheCanvas.getContext('2d').putImageData(img, 0, 0);
+        setCache({
+            canvas: cacheCanvas,
+            zMatrix
+        });
     }
-    cacheCanvas.getContext('2d').putImageData(img, 0, 0);
     // need to draw image before rendering
     useLayoutEffect(() => {
         ctx.imageSmoothingEnabled = false;
-        ctx.msImageSmoothingEnabled = false;
+        //ctx.msImageSmoothingEnabled = false; // TODO: evaluate, this claims to be missing on type
         ctx.drawImage(
-            cacheCanvas,
+            cache.canvas,
             -(xScaleDomain[0] - xRange.min) / (xScaleDomain[1] - xScaleDomain[0]) * width,
             -(yRange.max - yScaleDomain[1]) / (yScaleDomain[1] - yScaleDomain[0]) * height,
             (xRange.max - xRange.min) / (xScaleDomain[1] - xScaleDomain[0]) * width,
@@ -71,10 +64,12 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
     return null;
 }
 
-export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}: HeatPlotConfig) {
+export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix, colorMap }: HeatPlotConfig & HeatPlotConfigExtras) {
     const ref = useRef(null);
+    colorMap = colorMap || 'viridis';
+    const showColorBar = colorMap !== 'contrast';
     //TODO(pjm): use props.aspectRatio if present
-    const gc = useGraphContentBounds(ref, 1);
+    const gc = useGraphContentBounds(ref, 1, showColorBar ? 80 : 0);
     if (! xRange) {
         return null;
     }
@@ -115,7 +110,10 @@ export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}: HeatP
                             yRange, zoom.transformMatrix.translateY, zoom.transformMatrix.scaleY, gc.height)),
                     range: [gc.height, 0],
                 });
-                const cursor = zoom.transformMatrix.scaleX > 1 ? 'move' : 'zoom-in';
+                if (zRange.min === zRange.max && zRange.min === 0) {
+                    zRange.max = 1000;
+                }
+                const colorScale = createColorScale(zRange, colorMap);
                 return (
                     <>
                         <div style={{position: "relative"}}>
@@ -136,6 +134,7 @@ export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}: HeatP
                                     width={gc.width}
                                     height={gc.height}
                                     zMatrix={zMatrix}
+                                    colorScale={colorScale}
                                 />
                             </Canvas>
                             <div>
@@ -144,13 +143,22 @@ export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}: HeatP
                                         position: "relative",
                                     }}
                                     width={gc.contentWidth}
-                                    height={gc.contentWidth}
+                                    height={gc.contentHeight}
                                 >
+                                    { showColorBar &&
+                                        <g transform={`translate(${gc.x + gc.width + 15}, ${gc.y})`}>
+                                            <ColorBar
+                                                range={zRange}
+                                                height={gc.height}
+                                                colorMap={colorMap}
+                                            />
+                                        </g>
+                                    }
                                     <g transform={`translate(${gc.x}, ${gc.y})`}>
                                         {/* TODO(pjm): margin top should be larger if title is present */}
                                         <text
                                             x={gc.width / 2}
-                                            y={-gc.y / 2 + 5}
+                                            y={-gc.y / 2}
                                             style={{
                                                 fontSize: '18px',
                                                 fontWeight: 'bold',
@@ -179,7 +187,9 @@ export function Heatplot({title, xRange, yRange, xLabel, yLabel, zMatrix}: HeatP
                                                 style={{
                                                     touchAction: 'none',
                                                     fill: 'none',
-                                                    cursor: cursor,
+                                                    cursor: zoom.transformMatrix.scaleX > 1
+                                                        ? 'move'
+                                                        : 'zoom-in',
                                                     pointerEvents: 'all',
                                                 }}
                                             ></rect>

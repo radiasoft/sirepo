@@ -694,6 +694,18 @@
         "fieldIntegralReport": {
             "lastCalculated": ["_", "Integer", -1]
         },
+        "fieldLineoutAnimation": {
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "fieldType": ["Field", "FieldType", "B"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""]
+        },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
             "center": ["Center [mm]", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
@@ -895,18 +907,6 @@
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "stl"],
             "file": ["STL File", "InputFile", ""]
-        },
-        "fieldLineoutAnimation": {
-            "fieldPaths": ["Path", "FieldPaths", []],
-            "fieldType": ["Field", "FieldType", "B"],
-            "inProgressText": ["_", "String", "Calculating"],
-            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
-            "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchCores": ["Cores", "Integer", 1],
-            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "spatialTransform": {
             "_super": ["_", "model", "transform"]
