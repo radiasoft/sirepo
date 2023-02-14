@@ -47,7 +47,10 @@ class API(sirepo.quest.API):
                 simulation_name=_cfg.sim_name,
             ),
         )
-        c = res.content_as_str()
+        try:
+            c = res.content_as_str()
+        finally:
+            res.destroy()
         m = re.search(r'\/source\/(\w+)"', c)
         if not m:
             raise RuntimeError("failed to find sid in resp={}".format(c))
@@ -65,10 +68,13 @@ class API(sirepo.quest.API):
         d.simulationId = i
         d.report = _cfg.sim_report
         r = None
+        resp = None
         try:
             resp = self.call_api("runSimulation", data=d)
             for _ in range(_cfg.max_calls):
                 r = simulation_db.json_load(resp.content_as_str())
+                resp.destroy()
+                resp = None
                 pkdlog("resp={}", r)
                 if r.state == "error":
                     raise RuntimeError("simulation error: resp={}".format(r))
@@ -87,6 +93,8 @@ class API(sirepo.quest.API):
                 ),
             )
         finally:
+            if resp:
+                resp.destroy()
             try:
                 self.call_api("runCancel", data=d)
             except Exception:
