@@ -449,11 +449,22 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     ranges[i][1] = range[1];
                     ranges[i][2] = inds[i][1] - inds[i][0] + 1;
                 }
+
+                // for now set the aspect ratio to something resonable even if it distorts the shape
+                const arRange = [0.50, 2.0];
+                let ar = Math.max(
+                    arRange[0],
+                    Math.min(
+                        arRange[1],
+                        Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0])
+                    )
+                );
+
                 const p = fieldIndex($scope.tallyReport.planePos, ranges[n], n);
                 const zm = reorderFieldData(z, mesh.dimension)[p];
 
                 const r =  {
-                    aspectRatio: Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0]),
+                    aspectRatio: ar,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
