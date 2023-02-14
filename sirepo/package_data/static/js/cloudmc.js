@@ -671,7 +671,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(appState.models.tallyReport.axis);
                 r.min = mesh.lower_left[i];
                 r.max = mesh.upper_right[i];
-                r.step = Math.floor(Math.abs(r.max - r.min) / mesh.dimension[i]);
+                r.step = mesh.dimension[i] === 1 ?
+                    r.max :
+                    Math.floor(Math.abs(r.max - r.min) / (mesh.dimension[i] - 1));
                 return r;
             }
 
@@ -819,6 +821,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function updateSlice() {
+                srdbg('UPD SL');
                 buildTallyReport();
                 appState.saveQuietly('tallyReport');
             }
