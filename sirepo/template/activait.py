@@ -581,6 +581,7 @@ from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
 input_args = Input(shape=input_shape)
 {_build_layers(net)}
+x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """

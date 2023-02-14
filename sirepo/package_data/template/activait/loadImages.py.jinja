@@ -2,6 +2,8 @@ from pykern.pkcollections import PKDict
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from pykern.pkdebug import pkdp
+from functools import reduce
+import operator
 import h5py
 import keras
 import math
@@ -162,8 +164,8 @@ with h5py.File("{{ dataFile }}", "r") as f:
     o = f["{{outPath}}"][0].shape
     if len(input_shape) < 3:
         input_shape += (1,)
-output_shape = {{outputShape}} if {{outputShape}} != 0 else o
-
+output_shape = {{outputShape}} if {{outputShape}} != 0 else reduce(operator.mul, o, 1)
+print("output_shape", output_shape)
 split = image_train_val_test_split(
     "{{ dataFile }}",
     "{{ inPath }}",
