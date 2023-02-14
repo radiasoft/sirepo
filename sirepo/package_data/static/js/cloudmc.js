@@ -454,9 +454,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     )
                 );
 
-                const p = fieldIndex($scope.tallyReport.planePos, ranges[n], n);
-                const zm = reorderFieldData(z, mesh.dimension)[p];
-
                 const r =  {
                     aspectRatio: ar,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
@@ -464,7 +461,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
                     y_range: ranges[m],
-                    z_matrix: zm,
+                    z_matrix: reorderFieldData(z, mesh.dimension)[fieldIndex($scope.tallyReport.planePos, ranges[n], n)],
                     z_range: ranges[n],
                 };
                 panelState.setData('tallyReport', r);
