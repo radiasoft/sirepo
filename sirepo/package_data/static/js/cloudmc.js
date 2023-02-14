@@ -669,11 +669,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     return r;
                 }
                 const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(appState.models.tallyReport.axis);
-                r.min = mesh.lower_left[i];
-                r.max = mesh.upper_right[i];
-                r.step = mesh.dimension[i] === 1 ?
-                    r.max :
-                    Math.floor(Math.abs(r.max - r.min) / (mesh.dimension[i] - 1));
+                const s = Math.abs((mesh.upper_right[i] - mesh.lower_left[i])) / mesh.dimension[i];
+                r.min = mesh.lower_left[i] + 0.5 * s;
+                r.max = mesh.upper_right[i] - 0.5 * s;
+                r.step = mesh.dimension[i] === 1 ? r.max : s;
                 return r;
             }
 
