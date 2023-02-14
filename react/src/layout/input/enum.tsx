@@ -1,11 +1,13 @@
 import React, { ChangeEventHandler, useContext, useEffect, useState } from "react";
-import { FunctionComponent } from "react";
-import { Form } from "react-bootstrap";
-import { CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
-import { pollStatefulCompute } from "../../utility/compute";
+import { AppWrapper, CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
+import { CFormController } from "../../data/formController";
 import { CRouteHelper } from "../../utility/route";
-import { LayoutProps } from "../layout";
+import { Dependency } from "../../data/dependency";
+import { Form } from "react-bootstrap";
+import { FunctionComponent } from "react";
 import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
+import { LayoutProps } from "../layout";
+import { pollStatefulCompute } from "../../utility/compute";
 
 export type EnumAllowedValues = { value: string, displayName: string }[]
 
@@ -99,5 +101,43 @@ export class ComputeResultEnumInputLayout extends EnumInputBaseLayout<ComputeRes
         }, [])
         this.config.allowedValues = optionList || [];
         return this.formElement(props)
+    }
+}
+
+export class SimulationListEnumInputLayout extends EnumInputBaseLayout<EnumConfig> {
+
+    constructor(config) {
+        super({
+            ...config,
+            allowedValues: [],
+        });
+    }
+
+    component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
+        const routeHelper = useContext(CRouteHelper);
+        const [optionList, updateOptionList] = useState(undefined);
+        const formController = useContext(CFormController);
+        //TODO(pjm): these 2 lines are specific to the omega app but could be generalized
+        const suffix = props.dependency.fieldName.match(/_\d+/);
+        const simType = formController.getFormStateAccessor().getFieldValue(new Dependency(
+            `simWorkflow.simType${suffix}`)).value as string;
+        useEffect(() => {
+            if (! simType) {
+                return;
+            }
+            new AppWrapper(simType, routeHelper).getSimulationList().then(list => {
+                updateOptionList([
+                    {
+                        value: "",
+                        displayName: "",
+                    },
+                ].concat((list || []).map(v => ({
+                    value: v.simulationId,
+                    displayName: v.name,
+                }))));
+            });
+        }, [simType])
+        this.config.allowedValues = optionList || [];
+        return this.formElement(props);
     }
 }

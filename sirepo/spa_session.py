@@ -32,7 +32,7 @@ def init_module():
 def init_quest(qcall):
     def _begin():
         try:
-            qcall.call_api("beginSession")
+            qcall.call_api("beginSession").destroy()
         except Exception as e:
             pkdlog("error={} trying api_beginSession stack={}", e, pkdexc())
 
