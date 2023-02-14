@@ -441,24 +441,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const [z, x, y] = tallyReportAxes();
                 const [n, l, m] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
+                const inds = displayRangeIndices();
                 const ar = Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0]);
                 for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
                     const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim);
                     const range = [appState.models.tallyReport[`${dim}DisplayMin`], appState.models.tallyReport[`${dim}DisplayMax`]];
-                    srdbg(dim, range, 'vs', ranges[i]);
                     ranges[i][0] = range[0];
                     ranges[i][1] = range[1];
+                    ranges[i][2] = inds[i][1] - inds[i][0] + 1;
                 }
-                const p = Math.min(
-                    mesh.dimension[n] - 1,
-                    Math.max(
-                        0,
-                        Math.floor(
-                            mesh.dimension[n] * ($scope.tallyReport.planePos - ranges[n][0]) /
-                            (ranges[n][1] - ranges[n][0])
-                        )
-                    )
-                );
+                const p = fieldIndex($scope.tallyReport.planePos, ranges[n], n);
+                const zm = reorderFieldData(z, mesh.dimension)[p];
 
                 const r =  {
                     aspectRatio: ar,
@@ -467,7 +460,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
                     y_range: ranges[m],
-                    z_matrix: reorderFieldData(z, mesh.dimension)[p],
+                    z_matrix: zm,
                     z_range: ranges[n],
                 };
                 panelState.setData('tallyReport', r);
@@ -555,12 +548,22 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 setTallyColors();
             }
 
-            function displayRanges() {
+            function displayRangeIndices() {
+                const t = appState.models.tallyReport;
+                const r = getMeshRanges();
                 return [
-                    [appState.model.tallyReport.xDisplayMin, appState.model.tallyReport.xDisplayMax],
-                    [appState.model.tallyReport.yDisplayMin, appState.model.tallyReport.yDisplayMax],
-                    [appState.model.tallyReport.zDisplayMin, appState.model.tallyReport.zDisplayMax],
-                ]
+                    [t.xDisplayMin, t.xDisplayMax],
+                    [t.yDisplayMin, t.yDisplayMax],
+                    [t.zDisplayMin, t.zDisplayMax],
+                ].map((x, i) => [fieldIndex(x[0], r[i], i), fieldIndex(x[1], r[i], i)]);
+            }
+
+            function fieldIndex(pos, range, dimIndex) {
+                const d = mesh.dimension[dimIndex];
+                return Math.min(
+                    d - 1,
+                    Math.max(0, Math.floor(d * (pos - range[0]) / (range[1] - range[0])))
+                );
             }
 
             function getFieldData() {
@@ -692,19 +695,24 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const [n, l, m] = tallyReportAxisIndices();
                 const fd = getFieldData();
                 const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
+                const inds = displayRangeIndices();
+                let N = 1;
+                for (const idx of inds) {
+                    N *= (idx[1] - idx[0] + 1);
+                }
                 const ff = SIREPO.UTILS.reshape(
-                    new Array(fd.length),
-                    [dims[n], dims[m], dims[l]]
+                    new Array(N),
+                    [(inds[n][1] - inds[n][0] + 1), (inds[m][1] - inds[m][0] + 1), (inds[l][1] - inds[l][0] + 1)]
                 );
-                displayRanges();
-                for (let k = 0; k < dims[n]; ++k) {
-                    for (let j = 0; j < dims[m]; ++j) {
-                        for (let i = 0; i < dims[l]; ++i) {
+
+                for (let k = 0; k <= (inds[n][1] - inds[n][0]); ++k) {
+                    for (let j = 0; j <= (inds[m][1] - inds[m][0]); ++j) {
+                        for (let i = 0; i <= (inds[l][1] - inds[l][0]); ++i) {
                             const v = [0, 0, 0];
-                            v[l] = i;
-                            v[m] = j;
-                            v[n] = k;
-                            ff[k][j][i] = (d[v[2]][v[1]][v[0]]);
+                            v[l] = inds[l][0] + i;
+                            v[m] = inds[m][0] + j;
+                            v[n] = inds[n][0] + k;
+                            ff[k][j][i] = d[v[2]][v[1]][v[0]];
                         }
                     }
                 }
@@ -833,7 +841,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function updateSlice() {
-                srdbg('UPD SL');
                 buildTallyReport();
                 appState.saveQuietly('tallyReport');
             }
@@ -880,17 +887,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             $scope.onlyClientFieldsChanged = false;
-
-            $scope.displayRangeInfo = dim => {
-                srdbg('dim', mesh);
-                if (! mesh) {
-                    return  null;
-                }
-                const info = SIREPO.APP_SCHEMA.model.tallyReport[`${dim}DisplayRange`];
-                const range = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
-                info[5] = [range[0], range[1]];
-                info[6] = [range[0], range[1]];
-            };
 
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
