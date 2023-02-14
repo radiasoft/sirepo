@@ -12,12 +12,6 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
-        <div data-ng-switch-when="FloatArray" class="col-sm-7">
-          <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
-        </div>
-        <div data-ng-switch-when="IntArray" class="col-sm-7">
-          <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
-        </div>
         <div data-ng-switch-when="Point3D" class="col-sm-7">
           <div data-point3d="" data-model="model" data-field="field"></div>
         </div>
