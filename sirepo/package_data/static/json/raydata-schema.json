@@ -1,7 +1,7 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "analysisExecuted"
+            "localRoute": "runAnalysis"
         }
     },
     "dynamicFiles": {
@@ -39,6 +39,13 @@
                 "controller": "ReplayController as replay",
                 "templateUrl": "/static/html/raydata-replay.html"
           }
+        },
+        "runAnalysis": {
+            "route": "/run-analysis/:simulationId",
+            "config": {
+                "controller": "RunAnalysisController as runAnalysis",
+                "templateUrl": "/static/html/raydata-run-analysis.html"
+          }
         }
     },
     "model": {
@@ -63,6 +70,11 @@
             "sourceCatalogName": ["Source Catalog", "CatalogName", ""],
             "destinationCatalogName": ["Destination Catalog", "CatalogName", ""],
             "numScans": ["Number of Scans", "Integer", null]
+        },
+        "runAnalysis": {
+            "searchStartTime":["Start", "DateTimePicker", null],
+            "searchStopTime":["Stop", "DateTimePicker", null],
+            "scans": ["", "RunAnalysisTable", ""]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
@@ -113,6 +125,16 @@
               "sourceCatalogName",
               "destinationCatalogName",
               "numScans"
+            ],
+            "advanced": []
+        },
+        "runAnalysis": {
+            "title": "Run Analysis",
+            "basic": [
+                "catalog.catalogName",
+                "searchStartTime",
+                "searchStopTime",
+                "scans"
             ],
             "advanced": []
         },

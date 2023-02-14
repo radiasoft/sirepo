@@ -14,6 +14,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="RecentlyExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="recentlyExecuted"></div>
         </div>
+        <div data-ng-switch-when="RunAnalysisTable" class="col-sm-12">
+          <div data-scans-table="" data-model-name="modelName" data-analysis-status="all"></div>
+        </div>
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="queued"></div>
         </div>
@@ -68,6 +71,11 @@ SIREPO.app.controller('ReplayController', function() {
     return self;
 });
 
+SIREPO.app.controller('RunAnalysisController', function() {
+    const self = this;
+    return self;
+});
+
 SIREPO.app.directive('appFooter', function() {
     return {
         restrict: 'A',
@@ -92,6 +100,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-ng-if="nav.isLoaded()" data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('run-analysis')}"><a href data-ng-click="nav.openSection('runAnalysis')"><span class="glyphicon glyphicon-picture"></span> Run Analysis</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-executed')}"><a href data-ng-click="nav.openSection('analysisExecuted')"><span class="glyphicon glyphicon-picture"></span> Executed</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-queue')}"><a href data-ng-click="nav.openSection('analysisQueue')"><span class="glyphicon glyphicon-picture"></span> Queued</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('replay')}"><a href data-ng-click="nav.openSection('replay')"><span class="glyphicon glyphicon-picture"></span> Replay</a></li>
@@ -309,6 +318,7 @@ SIREPO.app.directive('scansTable', function() {
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
+                      <th data-ng-if="analysisStatus === 'all'" style="width: 50px; height: 40px;"></th>
                       <th style="width: 50px; height: 40px;"></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
                         <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
@@ -319,6 +329,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
+                      <td data-ng-if="analysisStatus === 'all'"><button class="btn btn-info btn-xs" data-ng-click="runAnalysis(s, $event)">Run Analysis</button></td>
                       <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">View Log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
@@ -427,7 +438,7 @@ SIREPO.app.directive('scansTable', function() {
             function sendScanRequest () {
                 const m = appState.models[$scope.modelName];
                 if ('searchStartTime' in m && (!m.searchStartTime || !m.searchStopTime)) {
-                        return;
+                    return;
                 }
                 function doRequest() {
                     $scope.awaitingScans = true;
@@ -500,6 +511,22 @@ SIREPO.app.directive('scansTable', function() {
                     return;
                 }
                 hoveredIndex = index;
+            };
+
+            $scope.runAnalysis = (scan, event) => {
+                event.stopPropagation();
+                requestSender.sendStatelessCompute(
+                    appState,
+                    (json) => {},
+                    {
+                        method: 'run_analysis',
+                        args: {
+                            catalogName: appState.models.catalog.catalogName,
+                            uid: scan.uid,
+                        }
+                    },
+                    errorOptions
+                );
             };
 
             $scope.saveColumnChanges = () => {
