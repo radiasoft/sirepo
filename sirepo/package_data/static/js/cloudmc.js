@@ -296,9 +296,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                    <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>
                </div>
                <div class="row">
-                   <div class="col-md-4 display-range-x" style="padding: 8px;" data-field-editor="'xDisplayRange'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="4"></div>
-                   <div class="col-md-4 display-range-y" style="padding: 8px;" data-field-editor="'yDisplayRange'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="4"></div>
-                   <div class="col-md-4 display-range-z" style="padding: 8px;" data-field-editor="'zDisplayRange'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="4"></div>
+                   <div class="col-md-6" data-field-editor="'xDisplayMin'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div class="col-md-6" data-field-editor="'xDisplayMax'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div class="col-md-6" data-field-editor="'yDisplayMin'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div class="col-md-6" data-field-editor="'yDisplayMax'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div class="col-md-6" data-field-editor="'zDisplayMin'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div class="col-md-6" data-field-editor="'zDisplayMax'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
                </div>
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
@@ -438,12 +441,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const [z, x, y] = tallyReportAxes();
                 const [n, l, m] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
+                const ar = Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0]);
                 for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
                     const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim);
-                    const range = appState.models.tallyReport[`${dim}DisplayRange`];
-                    srdbg(range, 'vs', ranges[i]);
-                    //ranges[i][0] = range[0];
-                    //ranges[i][1] = range[1];
+                    const range = [appState.models.tallyReport[`${dim}DisplayMin`], appState.models.tallyReport[`${dim}DisplayMax`]];
+                    srdbg(dim, range, 'vs', ranges[i]);
+                    ranges[i][0] = range[0];
+                    ranges[i][1] = range[1];
                 }
                 const p = Math.min(
                     mesh.dimension[n] - 1,
@@ -457,7 +461,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 );
 
                 const r =  {
-                    aspectRatio: Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0]),
+                    aspectRatio: ar,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
@@ -549,6 +553,14 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 vtkScene.addActor(tallyBundle.actor);
                 picker.addPickList(tallyBundle.actor);
                 setTallyColors();
+            }
+
+            function displayRanges() {
+                return [
+                    [appState.model.tallyReport.xDisplayMin, appState.model.tallyReport.xDisplayMax],
+                    [appState.model.tallyReport.yDisplayMin, appState.model.tallyReport.yDisplayMax],
+                    [appState.model.tallyReport.zDisplayMin, appState.model.tallyReport.zDisplayMax],
+                ]
             }
 
             function getFieldData() {
@@ -684,6 +696,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     new Array(fd.length),
                     [dims[n], dims[m], dims[l]]
                 );
+                displayRanges();
                 for (let k = 0; k < dims[n]; ++k) {
                     for (let j = 0; j < dims[m]; ++j) {
                         for (let i = 0; i < dims[l]; ++i) {
@@ -809,12 +822,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 }
                 for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
                     const r = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
-                    $(`div.display-range-${dim} input`).attr('min', r[0]).attr('max', r[1]);
-                    r.forEach((x, i) => {
-                        if (appState.models.tallyReport[`${dim}DisplayRange`][i] < x) {
-                            appState.models.tallyReport[`${dim}DisplayRange`][i] = x;
-                        }
-                    })
+                    if (appState.models.tallyReport[`${dim}DisplayMin`] < r[0]) {
+                        appState.models.tallyReport[`${dim}DisplayMin`] = r[0];
+                    }
+                    if (appState.models.tallyReport[`${dim}DisplayMax`] > r[1]) {
+                        appState.models.tallyReport[`${dim}DisplayMax`] = r[1];
+                    }
                     appState.saveQuietly('tallyReport');
                 }
             }
@@ -1006,9 +1019,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 $scope,
                 [
                     'tallyReport.planePos',
-                    'tallyReport.xDisplayRange',
-                    'tallyReport.yDisplayRange',
-                    'tallyReport.zDisplayRange',
+                    'tallyReport.xDisplayMin',
+                    'tallyReport.xDisplayMax',
+                    'tallyReport.yDisplayMin',
+                    'tallyReport.yDisplayMax',
+                    'tallyReport.zDisplayMin',
+                    'tallyReport.zDisplayMax',
                 ],
                 updateSlice
             );
