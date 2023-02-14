@@ -33,6 +33,15 @@ def test_elegant_server_upgraded(fc):
         fc.sr_post("saveSimulationData", d)
 
 
+def test_home_page_file(fc):
+    from pykern.pkunit import pkeq, pkre
+    from pykern.pkdebug import pkdp
+
+    r = fc.sr_get("/en/css/landing.css")
+    pkeq(200, r.status_code)
+    pkre("^.landing {", r.data)
+
+
 def test_srw_serial_stomp(fc):
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkfail, pkok

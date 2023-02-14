@@ -116,7 +116,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.axisIndex = axis => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(axis);
 
-    self.buildShapePoints = (o, callback) => {
+    self.buildShapePoints = (o, callback, errorCallback) => {
         // once the points file has been read, no need to fetch it again
         if (o.type === 'extrudedPoints' && (o.points || []).length) {
             callback(o);
@@ -133,10 +133,9 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             },
             {
                 onError: res => {
-                    if (res.error.includes('does not exist')) {
-                        throw new Error('Points file ' + o.pointsFile + ' does not exist');
+                    if (errorCallback) {
+                        errorCallback(res);
                     }
-                    throw new Error(res.error);
                 }
             }
         );
@@ -3176,7 +3175,14 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             $scope.modelData.referencePoints = [];
             return;
         }
-        radiaService.buildShapePoints($scope.modelData, setPoints);
+        radiaService.buildShapePoints($scope.modelData, setPoints, res => {
+            radiaService.deleteObject($scope.modelData);
+            // The filename in the error is encumbered with model and field which is nonsense to the
+            // average user, so replace it with the original file name
+            throw new Error(res.error.replace(
+                new RegExp(/file \".*\"/, 'i'), `file "${$scope.modelData.pointsFile}"`
+            ));
+        });
     }
 
     function loadSTLSize()  {
