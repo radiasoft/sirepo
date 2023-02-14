@@ -290,12 +290,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                    <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>
                </div>
                <div class="row">
-                   <div class="col-md-6" data-field-editor="'xDisplayMin'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
-                   <div class="col-md-6" data-field-editor="'xDisplayMax'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
-                   <div class="col-md-6" data-field-editor="'yDisplayMin'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
-                   <div class="col-md-6" data-field-editor="'yDisplayMax'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
-                   <div class="col-md-6" data-field-editor="'zDisplayMin'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
-                   <div class="col-md-6" data-field-editor="'zDisplayMax'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
+                   <div data-ng-repeat="f in displayRangeVars" class="col-md-6" data-field-editor="f" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2" data-field-size="4"></div>
                </div>
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
@@ -303,6 +298,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.displayType = '3D';
+            $scope.displayRangeVars = [
+                'xDisplayMin', 'xDisplayMax',
+                'yDisplayMin', 'yDisplayMax',
+                'zDisplayMin', 'zDisplayMax',
+            ];
             $scope.isClientOnly = isGeometryOnly;
             $scope.tallyReport = appState.models.tallyReport;
 
