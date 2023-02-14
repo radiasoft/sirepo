@@ -442,7 +442,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const [n, l, m] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
                 const inds = displayRangeIndices();
-                const ar = Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0]);
                 for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
                     const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim);
                     const range = [appState.models.tallyReport[`${dim}DisplayMin`], appState.models.tallyReport[`${dim}DisplayMax`]];
@@ -454,7 +453,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const zm = reorderFieldData(z, mesh.dimension)[p];
 
                 const r =  {
-                    aspectRatio: ar,
+                    aspectRatio: Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0]),
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
