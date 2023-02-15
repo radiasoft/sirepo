@@ -1661,11 +1661,47 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 $scope.field.push(o.id);
             };
 
+            $scope.alignLeft = (obj, ref) => {
+                //obj.center[0] = ref.center[0];
+            };
+
+            $scope.alignRight = (obj, ref) => {
+                //obj.center[0] = ref.center[0];
+            };
+
+            $scope.alignTop = (obj, ref) => {
+                //obj.center[0] = ref.center[0];
+            };
+
+            $scope.alignBottom = (obj, ref) => {
+                //obj.center[0] = ref.center[0];
+            };
+
+            $scope.alignFront = (obj, ref) => {
+                //obj.center[0] = ref.center[0];
+            };
+
+            $scope.alignBack = (obj, ref) => {
+                //obj.center[0] = ref.center[0];
+            };
+
             $scope.apply = item => {
                 for (let i = 1; i < $scope.field.length; ++i) {
-                    $scope.getObject($scope.field[i]).center[0] = $scope.getObject($scope.field[0]).center[0];
+                    $scope[item.type]($scope.getObject($scope.field[i]), $scope.getObject($scope.field[0]));
                 }
-                radiaService.saveGeometry();
+                //radiaService.saveGeometry();
+            };
+
+            $scope.centerX = (obj, ref) => {
+                obj.center[0] = ref.center[0];
+            };
+
+            $scope.centerY = (obj, ref) => {
+                obj.center[1] = ref.center[1];
+            };
+
+            $scope.centerZ = (obj, ref) => {
+                obj.center[2] = ref.center[2];
             };
 
             $scope.getIds = () => $scope.objects.map(o => o.id);
