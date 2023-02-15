@@ -10,6 +10,54 @@
         }
     },
     "constants": {
+        "alignmentItems": [
+            {
+                "name": "Center",
+                "contents": [
+                    {
+                        "title": "X",
+                        "type": "centerX"
+                    },
+                    {
+                        "title": "Y",
+                        "type": "centerY"
+                    },
+                    {
+                        "title": "Z",
+                        "type": "centerZ"
+                    }
+                ]
+            },
+            {
+                "name": "Align",
+                "contents": [
+                    {
+                        "title": "Left",
+                        "type": "alignLeft"
+                    },
+                    {
+                        "title": "Right",
+                        "type": "alignRight"
+                    },
+                    {
+                        "title": "Bottom",
+                        "type": "alignBottom"
+                    },
+                    {
+                        "title": "Top",
+                        "type": "alignTop"
+                    },
+                    {
+                        "title": "Front",
+                        "type": "alignFront"
+                    },
+                    {
+                        "title": "Back",
+                        "type": "alignBack"
+                    }
+                ]
+            }
+        ],
         "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
         "dataDownloads": {
             "_default": [

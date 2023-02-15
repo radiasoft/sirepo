@@ -372,6 +372,25 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.views = [];
 
 
+    self.centerX = (o, ref, axesInds) => {
+        o.center[axesInds[0]] = ref.center[axesInds[0]];
+    }
+
+    self.align = (group, alignType, axesInds) => {
+        const m = group.members;
+        for (let i = 1; i < m.length; ++i) {
+            self[alignType](
+                self.getObject(m[i]),
+                self.getObject(m[0]),
+                axesInds
+            );
+            self.saveObject(m[i]);
+        }
+        radiaService.saveGeometry(false, false, () => {
+            //self.saveObject(group.id);
+        });
+    };
+
     self.copyObject = o => {
         const copy = appState.clone(o);
         copy.name = newObjectName(copy);
@@ -416,14 +435,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.editObject = o => {
         self.selectObject(o);
         panelState.showModalEditor(o.type);
-    };
-
-    self.showDesigner = () => {
-        return appState.models.simulation.magnetType === 'freehand';
-    };
-
-    self.showParams = () => {
-        return appState.models.simulation.magnetType !== 'freehand';
     };
 
     self.getDipoleType = () => {
@@ -476,6 +487,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.getView = () => `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
 
     self.isDropEnabled = () => self.dropEnabled;
+
+    self.isGroup = o => o.members !== undefined;
 
     self.loadObjectViews = loadObjectViews;
 
@@ -530,6 +543,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.selectObjectWithId = id => self.selectObject(self.getObject(id));
 
     self.shapeBounds = elevation => shapesBounds(self.getShapes(elevation));
+
+    self.showDesigner = () => {
+        return appState.models.simulation.magnetType === 'freehand';
+    };
+
+    self.showParams = () => {
+        return appState.models.simulation.magnetType !== 'freehand';
+    };
 
     self.viewShadow = o => self.viewsForObject(appState.setModelDefaults({}, 'cuboid'));
 
@@ -1600,60 +1621,12 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             </div>
         `,
         controller: function($scope) {
-
-            $scope.sectionItems = [
-                {
-                    name: 'Center',
-                    contents: [
-                        {
-                            title: 'X',
-                            type: 'centerX',
-                        },
-                        {
-                            title: 'Y',
-                            type: 'centerY',
-                        },
-                        {
-                            title: 'Z',
-                            type: 'centerZ',
-                        }
-                    ],
-                },
-                {
-                    name: 'Align',
-                    contents: [
-                        {
-                            title: 'Left',
-                            type: 'alignLeft',
-                        },
-                        {
-                            title: 'Right',
-                            type: 'alignRight',
-                        },
-                        {
-                            title: 'Bottom',
-                            type: 'alignBottom',
-                        },
-                        {
-                            title: 'Top',
-                            type: 'alignTop',
-                        },
-                        {
-                            title: 'Front',
-                            type: 'alignFront',
-                        },
-                        {
-                            title: 'Back',
-                            type: 'alignBack',
-                        }
-                    ],
-                },
-            ];
-
             $scope.objects = appState.models.geometryReport.objects;
             if (! $scope.field) {
                 $scope.field = [];
             }
+
+            $scope.sectionItems = SIREPO.APP_SCHEMA.constants.alignmentItems;
 
             $scope.addObject = oId => {
                 let o = $scope.getObject(oId);
@@ -1689,7 +1662,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 for (let i = 1; i < $scope.field.length; ++i) {
                     $scope[item.type]($scope.getObject($scope.field[i]), $scope.getObject($scope.field[0]));
                 }
-                //radiaService.saveGeometry();
+                appState.saveQuietly('geomGroup');
             };
 
             $scope.centerX = (obj, ref) => {
