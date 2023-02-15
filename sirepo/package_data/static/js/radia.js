@@ -412,7 +412,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             );
             self.saveObject(m[i]);
         }
-        radiaService.saveGeometry();
+        radiaService.saveGeometry(true);
     };
 
     self.copyObject = o => {
