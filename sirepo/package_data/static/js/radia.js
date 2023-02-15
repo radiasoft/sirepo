@@ -386,9 +386,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             );
             self.saveObject(m[i]);
         }
-        radiaService.saveGeometry(false, false, () => {
-            //self.saveObject(group.id);
-        });
+        radiaService.saveGeometry();
     };
 
     self.copyObject = o => {
@@ -1587,18 +1585,6 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             model: '=',
         },
         template: `
-            <div class="row">
-              <div class="col-sm-12">
-                <div class="text-center bg-info sr-toolbar-holder">
-                  <div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">
-                    <div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.name }}</span></div>
-                    <button style="padding: 4px;" data-ng-disabled="field.length < 2" data-ng-click="apply(item)" data-ng-repeat="item in ::section.contents track by $index">
-                      <img src="/static/svg/{{ item.type }}.svg"> 
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
             <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
             <table style="table-layout: fixed;" class="table table-striped table-condensed radia-table-dialog">
                 <tr style="background-color: lightgray;" data-ng-show="field.length > 0">
