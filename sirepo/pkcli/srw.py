@@ -12,6 +12,7 @@ from sirepo.template import template_common
 import sirepo.job
 import sirepo.template
 import sirepo.sim_data
+import os
 
 
 def create_predefined(out_dir=None):
@@ -116,6 +117,8 @@ def run(cfg_dir):
             PKDict({srw.PARSED_DATA_ATTR: r.parsed_data})
         )
     else:
+        if os.environ.get("SIREPO_AUTH_BLUESKY_RUNNER"):
+            return
         template_common.write_sequential_result(
             srw.extract_report_data(sim_in),
         )

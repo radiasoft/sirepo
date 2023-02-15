@@ -63,6 +63,65 @@ class API(sirepo.quest.API):
         """Deprecated use `api_authBlueskyLogin`"""
         return self.api_authBlueskyLogin()
 
+    @sirepo.quest.Spec("require_user")
+    def api_runSimulationBluesky(self):
+        import os
+        import pykern.pkio
+        import sirepo.auth
+        import subprocess
+
+        d = self.parse_post(
+            fixup_old_data=True,
+            id=True,
+            model=True,
+            check_sim_exists=True,
+        ).req_data
+        run_dir = simulation_db.simulation_run_dir(d, qcall=self)
+        pykern.pkio.unchecked_remove(run_dir)
+        pykern.pkio.mkdir_parent(run_dir)
+
+        # # TODO(pjm): need to hack in uid because prepare_simulation() below
+        # #            doesn't use qcall
+        # TODO(pjm): it may be better to call a subprocess with
+        #            SIREPO_SIMULATION_DB_LOGGED_IN_USER set
+        uid = sirepo.auth._Auth(qcall=self).logged_in_user()
+        try:
+            # prepare_simulation() doesn't use qcall
+            if not simulation_db._cfg:
+                simulation_db._cfg = PKDict()
+            simulation_db._cfg.logged_in_user = uid
+            simulation_db.prepare_simulation(d, run_dir)
+        finally:
+            simulation_db._cfg = None
+
+        # # TODO(pjm): copied from pykern.pksubprocess
+        stdout = open(str(run_dir.join("bluesky.log")), "w")
+        stderr = subprocess.STDOUT
+        subprocess.Popen(
+            ["sirepo", d.simulationType, "run", str(run_dir)],
+            stdin=open(os.devnull),
+            stdout=stdout,
+            stderr=stderr,
+            cwd=str(run_dir),
+            env=PKDict(os.environ).pkupdate(
+                # special env to let runner optimize for bluesky, ex. not process output
+                SIREPO_AUTH_BLUESKY_RUNNER="1",
+            ),
+        ).wait()
+        stdout.close()
+        # #####
+
+        return self.reply_file(
+            run_dir.join(
+                sirepo.template.import_module(d.simulationType).get_data_file(
+                    run_dir,
+                    d.report,
+                    d.fileIndex,
+                    options=PKDict(suffix=""),
+                )
+            ),
+        )
+
 
 def auth_hash(http_post, verify=False):
     now = int(time.time())

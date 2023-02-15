@@ -4,13 +4,13 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import simulation_db
 from sirepo.template import template_common
 import numpy
+import os
 import py.path
 import re
 import sirepo.template.shadow as template
@@ -56,6 +56,8 @@ def run(cfg_dir):
         res = _run_beam_statistics(cfg_dir, data)
     else:
         res = _run_shadow(cfg_dir, data)
+    if os.environ.get("SIREPO_AUTH_BLUESKY_RUNNER"):
+        return
     template_common.write_sequential_result(res)
 
 

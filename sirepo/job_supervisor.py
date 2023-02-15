@@ -613,7 +613,7 @@ class _ComputeJob(_Supervisor):
             # a jobRunMode (ex api_downloadDataFile). In that
             # case use the existing jobRunMode because the
             # request doesn't care about the jobRunMode
-            r = prev_db.jobRunMode
+            r = prev_db.jobRunMode if prev_db else job.SEQUENTIAL
 
         db.pkupdate(
             jobRunMode=r,
@@ -694,7 +694,9 @@ class _ComputeJob(_Supervisor):
         return await self._send_op_analysis(req, "analysis_job")
 
     async def _receive_api_downloadDataFile(self, req):
-        self._raise_if_purged_or_missing(req)
+        # TODO(pjm): datafile may be available even if job_supervisor logs are not present
+        #            for example, bluesky creates datafiles outside the supervisor
+        # self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
             job.OP_IO,
             req,

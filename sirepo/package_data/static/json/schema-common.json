@@ -149,6 +149,7 @@
         "runCancel": "/run-cancel",
         "runMulti": "/run-multi",
         "runSimulation": "/run-simulation",
+        "runSimulationBluesky": "/run-simulation-bluesky",
         "runStatus": "/run-status",
         "saveModerationReason": "/save-moderation-reason",
         "saveSimulationData": "/save-simulation",
