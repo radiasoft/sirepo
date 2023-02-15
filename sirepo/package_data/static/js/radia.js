@@ -1571,8 +1571,8 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 <div class="text-center bg-info sr-toolbar-holder">
                   <div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">
                     <div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.name }}</span></div>
-                    <button data-ng-disabled="field.length < 2" data-ng-click="apply(item)" data-ng-repeat="item in ::section.contents track by $index">
-                      <img src="/static/svg/{{ item.type }}.svg">
+                    <button style="padding: 4px;" data-ng-disabled="field.length < 2" data-ng-click="apply(item)" data-ng-repeat="item in ::section.contents track by $index">
+                      <img src="/static/svg/{{ item.type }}.svg"> 
                     </button>
                   </div>
                 </div>
@@ -1607,11 +1607,15 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                     contents: [
                         {
                             title: 'X',
-                            type: 'alignHorizCenter',
+                            type: 'centerX',
                         },
                         {
                             title: 'Y',
-                            type: 'alignVertCenter',
+                            type: 'centerY',
+                        },
+                        {
+                            title: 'Z',
+                            type: 'centerZ',
                         }
                     ],
                 },
@@ -1633,6 +1637,14 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                         {
                             title: 'Top',
                             type: 'alignTop',
+                        },
+                        {
+                            title: 'Front',
+                            type: 'alignFront',
+                        },
+                        {
+                            title: 'Back',
+                            type: 'alignBack',
                         }
                     ],
                 },
@@ -1650,7 +1662,10 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             };
 
             $scope.apply = item => {
-                srdbg(item);
+                for (let i = 1; i < $scope.field.length; ++i) {
+                    $scope.getObject($scope.field[i]).center[0] = $scope.getObject($scope.field[0]).center[0];
+                }
+                radiaService.saveGeometry();
             };
 
             $scope.getIds = () => $scope.objects.map(o => o.id);
