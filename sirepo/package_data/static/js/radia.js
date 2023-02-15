@@ -26,7 +26,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="Group" class="col-sm-12">
             <div data-group-editor="" data-field="model[field]" data-model="model"></div>
         </div>
-        <div data-ng-switch-when="HMFile" data-ng-class="fieldClass">
+        <div data-ng-switch-when="HBFile" data-ng-class="fieldClass">
             <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="false" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>
         </div>
         <div data-ng-switch-when="IntArray" class="col-sm-7">
