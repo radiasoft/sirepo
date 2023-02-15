@@ -10,52 +10,30 @@
         }
     },
     "constants": {
-        "alignmentItems": [
+        "alignmentTools": [
             {
-                "name": "Center",
-                "contents": [
-                    {
-                        "title": "X",
-                        "type": "centerX"
-                    },
-                    {
-                        "title": "Y",
-                        "type": "centerY"
-                    },
-                    {
-                        "title": "Z",
-                        "type": "centerZ"
-                    }
-                ]
+                "title": "Center Horizontal",
+                "type": "centerX"
             },
             {
-                "name": "Align",
-                "contents": [
-                    {
-                        "title": "Left",
-                        "type": "alignLeft"
-                    },
-                    {
-                        "title": "Right",
-                        "type": "alignRight"
-                    },
-                    {
-                        "title": "Bottom",
-                        "type": "alignBottom"
-                    },
-                    {
-                        "title": "Top",
-                        "type": "alignTop"
-                    },
-                    {
-                        "title": "Front",
-                        "type": "alignFront"
-                    },
-                    {
-                        "title": "Back",
-                        "type": "alignBack"
-                    }
-                ]
+                "title": "Center Vertical",
+                "type": "centerY"
+            },
+            {
+                "title": "Align Left",
+                "type": "alignLeft"
+            },
+            {
+                "title": "Align Right",
+                "type": "alignRight"
+            },
+            {
+                "title": "Align Top",
+                "type": "alignTop"
+            },
+            {
+                "title": "Align Bottom",
+                "type": "alignBottom"
             }
         ],
         "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],

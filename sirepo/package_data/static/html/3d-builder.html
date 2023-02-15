@@ -56,12 +56,7 @@
                     <td style="padding-left: 1em; cursor: pointer; white-space: nowrap">
                         <span style="font-size: large; color: {{obj.color || '#cccccc'}};">■</span> <span>{{ obj.name }}</span>
                         <span class="sr-button-bar-parent" data-ng-if="isGroup(obj)">
-                          <button title="Center Horizontal" data-ng-click="align(obj, 'centerX')"><img src="/static/svg/centerX.svg" width="24px" height="24px"></button>
-                          <button title="Center Vertical" data-ng-click="align(obj, 'centerY')"><img src="/static/svg/centerY.svg" width="24px" height="24px"></button>
-                          <button title="Align Left" data-ng-click="align(obj, 'alignLeft')"><img src="/static/svg/alignLeft.svg" width="24px" height="24px"></button>
-                          <button title="Align Right" data-ng-click="align(obj, 'alignRight')"><img src="/static/svg/alignRight.svg" width="24px" height="24px"></button>
-                          <button title="Align Top" data-ng-click="align(obj, 'alignTop')"><img src="/static/svg/alignTop.svg" width="24px" height="24px"></button>
-                          <button title="Align Bottom" data-ng-click="align(obj, 'alignBottom')"><img src="/static/svg/alignBottom.svg" width="24px" height="24px"></button>
+                          <button data-ng-repeat="t in alignmentTools" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
                         </span>
                     </td>
                     <td style="text-align: right">

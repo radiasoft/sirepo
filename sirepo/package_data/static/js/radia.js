@@ -1636,55 +1636,10 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 $scope.field = [];
             }
 
-            $scope.sectionItems = SIREPO.APP_SCHEMA.constants.alignmentItems;
-
             $scope.addObject = oId => {
                 let o = $scope.getObject(oId);
                 o.groupId = $scope.model.id;
                 $scope.field.push(o.id);
-            };
-
-            $scope.alignLeft = (obj, ref) => {
-                //obj.center[0] = ref.center[0];
-            };
-
-            $scope.alignRight = (obj, ref) => {
-                //obj.center[0] = ref.center[0];
-            };
-
-            $scope.alignTop = (obj, ref) => {
-                //obj.center[0] = ref.center[0];
-            };
-
-            $scope.alignBottom = (obj, ref) => {
-                //obj.center[0] = ref.center[0];
-            };
-
-            $scope.alignFront = (obj, ref) => {
-                //obj.center[0] = ref.center[0];
-            };
-
-            $scope.alignBack = (obj, ref) => {
-                //obj.center[0] = ref.center[0];
-            };
-
-            $scope.apply = item => {
-                for (let i = 1; i < $scope.field.length; ++i) {
-                    $scope[item.type]($scope.getObject($scope.field[i]), $scope.getObject($scope.field[0]));
-                }
-                appState.saveQuietly('geomGroup');
-            };
-
-            $scope.centerX = (obj, ref) => {
-                obj.center[0] = ref.center[0];
-            };
-
-            $scope.centerY = (obj, ref) => {
-                obj.center[1] = ref.center[1];
-            };
-
-            $scope.centerZ = (obj, ref) => {
-                obj.center[2] = ref.center[2];
             };
 
             $scope.getIds = () => $scope.objects.map(o => o.id);

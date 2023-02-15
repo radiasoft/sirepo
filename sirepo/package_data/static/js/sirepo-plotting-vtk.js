@@ -1957,6 +1957,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             const objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
             const invObjScale = 1.0 / objectScale;
 
+            $scope.alignmentTools = SIREPO.APP_SCHEMA.constants.alignmentTools;
             $scope.autoFit = true;
             $scope.elevation = 'front';
             $scope.isClientOnly = true;
