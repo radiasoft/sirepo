@@ -962,7 +962,6 @@ def _fit_animation(frame_args):
 
 def _image_to_image(info):
     idx = info.inputOutput.index("output")
-    pkdp("\n\n\ncheck dim={}\n\n\n", info.shape[idx][1:])
     return len(info.shape[idx][1:]) > 1
 
 
