@@ -209,32 +209,28 @@ def sim_frame_forceTableAnimation(frame_args):
 
 
 def sim_frame_particleAnimation(frame_args):
-    def _format_plot(plot_fields, field, sdds_label, sdds_units):
-        plot_fields["x_label" if field == xfield else "y_label"] = _field_label(
-            field, sdds_units
+    def _format_plot(field, sdds_units):
+        field.label = _field_label(field.label, sdds_units)
+
+    def _title(frame_args):
+        settings = frame_args.sim_in.models.simulationSettings
+        time = (
+            settings.time
+            / settings.step_number
+            * settings.save_particle_interval
+            * frame_args.frameIndex
         )
+        if time > settings.time:
+            time = settings.time
+        return "Ions at time {:.2f} [s]".format(time)
 
-    page_index = frame_args.frameIndex
-    xfield = _map_field_name(frame_args.x)
-    yfield = _map_field_name(frame_args.y)
-    filename = _ion_files(frame_args.run_dir)[page_index]
-    data = frame_args.sim_in
-    settings = data.models.simulationSettings
-    time = (
-        settings.time
-        / settings.step_number
-        * settings.save_particle_interval
-        * page_index
-    )
-    if time > settings.time:
-        time = settings.time
-
-    return sdds_util.SDDSUtil(filename).heatmap(
+    return sdds_util.SDDSUtil(
+        _ion_files(frame_args.run_dir)[frame_args.frameIndex]
+    ).heatmap(
         plot_attrs=PKDict(
-            title="Ions at time {:.2f} [s]".format(time),
-            x=xfield,
-            y=yfield,
-            frame_args=frame_args,
+            format_col_name=_map_field_name,
+            title=_title(frame_args),
+            model=template_common.model_from_frame_args(frame_args),
             format_plot=_format_plot,
         )
     )
@@ -488,8 +484,6 @@ def _sdds_report(frame_args, filename, x_field):
 
     return sdds_util.SDDSUtil(filename).lineplot(
         PKDict(
-            x_field="x",
-            y_fields=("y1", "y2", "y3"),
             format_col_name=_map_field_name,
             model=template_common.model_from_frame_args(frame_args),
             format_plot=_format_plot,

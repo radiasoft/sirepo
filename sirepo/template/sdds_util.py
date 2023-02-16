@@ -47,51 +47,89 @@ class SDDSUtil:
         self.filename = filename
 
     def heatmap(self, plot_attrs):
-        sdds_label_and_units = {}
-        x_col = extract_sdds_column(self.filename, plot_attrs.x, 0)
-        if x_col.err:
-            return x_col.err
-        x_values = x_col["values"]
-        sdds_label_and_units["x"] = (x_col.column_def[0], x_col.column_def[1])
-        y_col = extract_sdds_column(self.filename, plot_attrs.y, 0)
-        if y_col.err:
-            return y_col.err
-        y_values = y_col["values"]
-        sdds_label_and_units["y"] = (y_col.column_def[0], y_col.column_def[1])
-        model = plot_attrs.frame_args.sim_in.models[plot_attrs.frame_args.frameReport]
-        model.update(plot_attrs.frame_args)
+        """Returns heatmap from SDDS file
 
-        plot_fields = PKDict()
-        for f in ("x", "y"):
-            plot_attrs.format_plot(
-                plot_fields,
-                getattr(plot_attrs, f),
-                sdds_label_and_units[f][0],
-                sdds_label_and_units[f][1],
+        Args:
+            plot_attrs (PKDict):
+                format_col_name (func): Optional, maps field name to column name in SDDS file
+                format_plot (func): Formats plot for field (add labels, units, etc)
+                model (PKDict): Contains info about entire plot
+                page_index (int): Optional, page index for dataset
+                title (str): Optional, plot title
+                x_field (str): Optional, name of x field, defaults to "x"
+                y_field (str): Optional, name of y field, defaults to "y"
+        """
+        x_field = plot_attrs.x_field if "x_field" in plot_attrs else "x"
+        y_field = plot_attrs.y_field if "y_field" in plot_attrs else "y"
+        plots = PKDict()
+
+        for f in (x_field, y_field):
+            col_name = (
+                plot_attrs.format_col_name(plot_attrs.model[f])
+                if "format_col_name" in plot_attrs
+                else plot_attrs.model[f]
             )
+            col = extract_sdds_column(
+                self.filename,
+                col_name,
+                plot_attrs.page_index if "page_index" in plot_attrs else 0,
+            )
+            if col.err:
+                return col.err
+            plot = PKDict(
+                points=col["values"],
+                label=col_name,
+            )
+            plot_attrs.format_plot(plot, col.column_def[1])
+            plots[f] = plot
 
         return template_common.heatmap(
-            values=[x_values, y_values],
-            model=model,
+            values=[plots[x_field].points, plots[y_field].points],
+            model=plot_attrs.model,
             plot_fields=PKDict(
-                x_label=plot_fields["x_label"],
-                y_label=plot_fields["y_label"],
+                x_label=plots[x_field].label,
+                y_label=plots[y_field].label,
                 title=plot_attrs.title,
             ),
         )
 
     def lineplot(self, plot_attrs):
+        """Returns lineplot from SDDS file
+
+        Args:
+            plot_attrs (PKDict):
+                dynamicYLabel (bool): Optional
+                format_col_name (func): Optional, maps field name to column name in SDDS file
+                format_plot (func): Formats plot for field (add labels, units, etc)
+                model (PKDict): Contains info about entire plot
+                page_index (int): Optional, page index for dataset
+                title (str): Optional, plot title
+                x_field (str): Optional, name of x field, defaults to "x"
+                y_fields (tuple): Optional, names of y fields, defaults to ("y1", "y2", "y3")
+        """
         x = None
         plots = []
-        for f in (plot_attrs.x_field,) + plot_attrs.y_fields:
-            if f not in plot_attrs.model or plot_attrs.model[f] == "none":
+        x_field = plot_attrs.x_field if "x_field" in plot_attrs else "x"
+        y_fields = (
+            plot_attrs.y_fields if "y_fields" in plot_attrs else ("y1", "y2", "y3")
+        )
+        for f in (x_field,) + y_fields:
+            if (
+                f not in plot_attrs.model
+                or re.search(r"^none$", plot_attrs.model[f], re.IGNORECASE)
+                or plot_attrs.model[f] == " "
+            ):
                 continue
             col_name = (
                 plot_attrs.format_col_name(plot_attrs.model[f])
                 if "format_col_name" in plot_attrs
                 else plot_attrs.model[f]
             )
-            col = extract_sdds_column(self.filename, col_name, 0)
+            col = extract_sdds_column(
+                self.filename,
+                col_name,
+                plot_attrs.page_index if "page_index" in plot_attrs else 0,
+            )
             if col.err:
                 return col.err
             plot = PKDict(
@@ -100,7 +138,7 @@ class SDDSUtil:
                 col_name=col_name,
             )
             plot_attrs.format_plot(plot, col.column_def[1])
-            if f == plot_attrs.x_field:
+            if f == x_field:
                 x = plot
             else:
                 plots.append(plot)

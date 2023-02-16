@@ -23,8 +23,6 @@ def test_sdds_lineplot():
         for f in files:
             actual = SDDSUtil(str(pkunit.data_dir().join(f))).lineplot(
                 PKDict(
-                    x_field="x",
-                    y_fields=("y1", "y2", "y3"),
                     model=PKDict(
                         x="s",
                         y1="LinearDensity",
