@@ -354,7 +354,7 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
         for idx in range(len(info.header)):
             if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
                 return PKDict(path=info.header[idx])
-        raise AssertionError(f"No matching dimension found output size: {output_size}")
+        raise AssertionError(f"No matching dimension found output size: {io.output.size}")
 
     def _segment():
         # TODO (gurhar1133): unhardcode 64
@@ -999,7 +999,7 @@ def _generate_parameters_file(data):
             elif dm.columnInfo.inputOutput[idx] == "output":
                 assert not v.outPath, "Only one output allow for h5 data"
                 v.outPath = dm.columnInfo.header[idx]
-                v.outputShape = dm.columnInfo.outputShape[idx]
+                v.outputShape = 1 if v.imageToImage else dm.columnInfo.outputShape[idx]
                 v.outScaling = dm.columnInfo.dtypeKind[idx] == "f"
         assert v.inPath, "Missing input data path"
         assert v.outPath, "Missing output data path"

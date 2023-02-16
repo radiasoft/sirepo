@@ -60,8 +60,8 @@ def _predictions_final(predictions, testy):
         print("pre agmax predictions=", predictions)
         f = []
         for prediction in predictions:
-            mask = numpy.argmax(prediction, axis=-1)
-            mask = numpy.expand_dims(mask, axis=-1)
+            print("shape of individual prediction", prediction.shape)
+            mask = numpy.expand_dims(prediction, axis=-1)
             f.append(mask)
         {# p = numpy.array([numpy.expand_dims(numpy.argmax(x, axis=-1), axis=-1) for x in predictions]) #}
         {# print("f=", f) #}
@@ -98,7 +98,7 @@ p = _predictions_final(o.p, o.testy)
 #}
 print(p.shape)
 print(o.testy.shape)
-print(set(p))
+{# print(set(p)) #}
 {% else %}
 p = model.predict(x=testx)
 {% endif %}

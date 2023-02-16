@@ -37,7 +37,7 @@ with h5py.File("pets.h5", 'w') as f:
     imgs = f.create_dataset(
         'images',
         (sample_count, 64, 64, 3),
-        dtype=numpy.uint8,
+        dtype=numpy.float64,
     )
     masks = f.create_dataset(
         'masks',
