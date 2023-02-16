@@ -375,32 +375,32 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.alignLeft = (o, ref, axesInds) => {
         const i = axesInds[0];
         o.center[i] = ref.center[i] + 0.5 * (o.size[i] - ref.size[i]);
-    }
+    };
 
     self.alignRight = (o, ref, axesInds) => {
         const i = axesInds[0];
         o.center[i] = ref.center[i] - 0.5 * (o.size[i] - ref.size[i]);
-    }
+    };
 
     self.alignTop = (o, ref, axesInds) => {
         const i = axesInds[1];
         o.center[i] = ref.center[i] - 0.5 * (o.size[i] - ref.size[i]);
-    }
+    };
 
     self.alignBottom = (o, ref, axesInds) => {
         const i = axesInds[1];
         o.center[i] = ref.center[i] + 0.5 * (o.size[i] - ref.size[i]);
-    }
+    };
 
     self.centerX = (o, ref, axesInds) => {
         const i = axesInds[0];
         o.center[i] = ref.center[i];
-    }
+    };
 
     self.centerY = (o, ref, axesInds) => {
         const i = axesInds[1];
         o.center[i] = ref.center[i];
-    }
+    };
 
     self.align = (group, alignType, axesInds) => {
         const m = group.members;

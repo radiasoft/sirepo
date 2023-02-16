@@ -2405,7 +2405,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.align = (o, alignType) => {
                 $scope.source.align(o, alignType, getElevation().labAxisIndices());
-            }
+            };
 
             $scope.copyObject = function(o) {
                 $scope.source.copyObject(o);
