@@ -961,9 +961,10 @@ def _fit_animation(frame_args):
 
 
 def _image_to_image(info):
+    if not info.get("shape"):
+        return False
     idx = info.inputOutput.index("output")
     return len(info.shape[idx][1:]) > 1
-
 
 
 def _generate_parameters_file(data):
