@@ -1137,7 +1137,8 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             }
 
             const loadImageFile = () => {
-                requestSender.sendAnalysisJob(
+                const f = $scope.method == 'imagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
+                f(
                     appState,
                     response => {
                         numPages = response.numPages;
@@ -2023,7 +2024,6 @@ SIREPO.app.directive('trimButton', function(appState, activaitService) {
 SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $scope) {
     appState.models.mlModel.mlModule = 'neuralnet';
     panelState.showField('mlModel', 'modelFile', appState.models.mlModel.mlModule == 'modelFile');
-    srdbg(appState.models);
     function displayFileInput() {
         if (appState.models.mlModel.mlModule == 'modelFile') {
             panelState.showField('mlModel', 'modelFile', true);

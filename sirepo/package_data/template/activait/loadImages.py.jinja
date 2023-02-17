@@ -84,8 +84,6 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
             if self.outScaler:
                 y = self.outScaler.transform(numpy.array(y).reshape(-1, self.y_channels))
                 y = y.reshape(len(indices), *self.original_shape_y[1:])
-                {# print(f"\n\n\ny.shape={y.shape}")
-                print(f"\n\n\nself.single_y_shape={self.single_y_shape}") #}
             if self.return_value:
                 if self.return_value == "x":
                     return x
@@ -165,7 +163,6 @@ with h5py.File("{{ dataFile }}", "r") as f:
     if len(input_shape) < 3:
         input_shape += (1,)
 output_shape = {{outputShape}}
-print("output_shape", output_shape)
 split = image_train_val_test_split(
     "{{ dataFile }}",
     "{{ inPath }}",
