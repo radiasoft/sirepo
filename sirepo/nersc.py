@@ -17,6 +17,7 @@ _NERSC_HPSS_QUOTA = [
     ),
 ]
 
+
 def assert_project(project):
     if not project:
         return ""
