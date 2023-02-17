@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+from pykern.pkcollections import PKDict
 import os
 
 # TODO(e-carlin): Tests that need to be implemented
@@ -20,6 +21,17 @@ import os
 
 
 _REPORT = "heightWeightReport"
+
+def test_nersc_project(fc):
+    from sirepo import nersc
+    from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
+
+    _INVALID_PROJECT_ = "NO_SUCH_PROJECT"
+
+    with pkexcept(f"sbatchProject={_INVALID_PROJECT_} is invalid"):
+        nersc.assert_project(_INVALID_PROJECT_)
+
+    nersc.assert_project(nersc.VALID_PROJECT)
 
 
 def test_runCancel(fc):
