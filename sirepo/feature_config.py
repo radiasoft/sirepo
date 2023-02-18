@@ -124,8 +124,7 @@ def _init():
         api_modules=((), set, "optional api modules, e.g. status"),
         cloudmc=dict(
             data_storage_url=(
-                # TODO(pjm): need a proper radiasoft data repo
-                "https://github.com/moellep/ml/raw/master/cloudmc-models/",
+                "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
                 str,
                 "url base to reach cloudmc example h5m files",
             ),
