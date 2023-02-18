@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 import pytest
 import os
+from pykern.pkcollections import PKDict
 
 # TODO(e-carlin): Tests that need to be implemented
 #   - agent never starts
@@ -21,16 +22,29 @@ import os
 
 _REPORT = "heightWeightReport"
 
+_VALID_PROJECT = "VALID_PROJECT"
+
+_NERSC_HPSS_QUOTA = [
+    PKDict(
+        fs=f"{_VALID_PROJECT}",
+        inode_perc="0.0%",
+        space_perc="0.0%",
+    ),
+]
+
 def test_nersc_project(fc):
     from sirepo import nersc
     from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
 
-    _INVALID_PROJECT_ = "NO_SUCH_PROJECT"
+    _INVALID_PROJECT = "NO_SUCH_PROJECT"
 
-    with pkexcept(f"sbatchProject={_INVALID_PROJECT_} is invalid"):
-        nersc.assert_project(_INVALID_PROJECT_)
+    with pkexcept(nersc.invalid_project_msg(_INVALID_PROJECT)):
+        nersc.assert_project(_INVALID_PROJECT, _NERSC_HPSS_QUOTA)
 
-    nersc.assert_project(nersc.VALID_PROJECT)
+    pkeq(
+        nersc.sbatch_account(_VALID_PROJECT),
+        nersc.assert_project(_VALID_PROJECT, _NERSC_HPSS_QUOTA)
+    )
 
 
 def test_runCancel(fc):
