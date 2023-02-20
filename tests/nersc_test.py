@@ -19,4 +19,3 @@ def test_nersc_project(fc):
         nersc.sbatch_account(nersc.VALID_TEST_ACCOUNT),
         nersc.assert_project(nersc.VALID_TEST_ACCOUNT),
     )
-
