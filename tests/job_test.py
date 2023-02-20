@@ -7,7 +7,6 @@
 from __future__ import absolute_import, division, print_function
 import pytest
 import os
-from pykern.pkcollections import PKDict
 
 # TODO(e-carlin): Tests that need to be implemented
 #   - agent never starts
