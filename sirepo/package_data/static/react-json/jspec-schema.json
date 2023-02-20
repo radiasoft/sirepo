@@ -1090,6 +1090,11 @@
                 "type": "Float",
                 "defaultValue": 0
             },
+            "colorMap": {
+                "displayName": "Color Map",
+                "type": "ColorMap",
+                "defaultValue": "viridis"
+            },
             "colorRangeType": {
                 "displayName": "Range",
                 "type": "ColorRangeType",
@@ -1868,6 +1873,22 @@
                                                                             "config": {
                                                                                 "fields": [
                                                                                     "particleAnimation.plotRangeType"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "name": "Color",
+                                                                    "items": [
+                                                                        {
+                                                                            "layout": "fieldList",
+                                                                            "config": {
+                                                                                "fields": [
+                                                                                    "particleAnimation.colorMap",
+                                                                                    "particleAnimation.colorRangeType",
+                                                                                    "particleAnimation.colorMin",
+                                                                                    "particleAnimation.colorMax"
                                                                                 ]
                                                                             }
                                                                         }
