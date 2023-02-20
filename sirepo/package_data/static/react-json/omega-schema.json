@@ -184,7 +184,23 @@
                                                     }
                                                 ]
                                             }
-                                        },
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "items": [
                                         {
                                             "layout": "panel",
                                             "config": {
