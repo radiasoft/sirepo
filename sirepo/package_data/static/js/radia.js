@@ -372,6 +372,49 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.views = [];
 
 
+    self.alignLeft = (o, ref, axesInds) => {
+        const i = axesInds[0];
+        o.center[i] = ref.center[i] + 0.5 * (o.size[i] - ref.size[i]);
+    };
+
+    self.alignRight = (o, ref, axesInds) => {
+        const i = axesInds[0];
+        o.center[i] = ref.center[i] - 0.5 * (o.size[i] - ref.size[i]);
+    };
+
+    self.alignTop = (o, ref, axesInds) => {
+        const i = axesInds[1];
+        o.center[i] = ref.center[i] - 0.5 * (o.size[i] - ref.size[i]);
+    };
+
+    self.alignBottom = (o, ref, axesInds) => {
+        const i = axesInds[1];
+        o.center[i] = ref.center[i] + 0.5 * (o.size[i] - ref.size[i]);
+    };
+
+    self.centerX = (o, ref, axesInds) => {
+        const i = axesInds[0];
+        o.center[i] = ref.center[i];
+    };
+
+    self.centerY = (o, ref, axesInds) => {
+        const i = axesInds[1];
+        o.center[i] = ref.center[i];
+    };
+
+    self.align = (group, alignType, axesInds) => {
+        const m = group.members;
+        for (let i = 1; i < m.length; ++i) {
+            self[alignType](
+                self.getObject(m[i]),
+                self.getObject(m[0]),
+                axesInds
+            );
+            self.saveObject(m[i]);
+        }
+        radiaService.saveGeometry(true);
+    };
+
     self.copyObject = o => {
         const copy = appState.clone(o);
         copy.name = newObjectName(copy);
@@ -416,14 +459,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.editObject = o => {
         self.selectObject(o);
         panelState.showModalEditor(o.type);
-    };
-
-    self.showDesigner = () => {
-        return appState.models.simulation.magnetType === 'freehand';
-    };
-
-    self.showParams = () => {
-        return appState.models.simulation.magnetType !== 'freehand';
     };
 
     self.getDipoleType = () => {
@@ -476,6 +511,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.getView = () => `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
 
     self.isDropEnabled = () => self.dropEnabled;
+
+    self.isGroup = o => o.members !== undefined;
 
     self.loadObjectViews = loadObjectViews;
 
@@ -530,6 +567,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.selectObjectWithId = id => self.selectObject(self.getObject(id));
 
     self.shapeBounds = elevation => shapesBounds(self.getShapes(elevation));
+
+    self.showDesigner = () => {
+        return appState.models.simulation.magnetType === 'freehand';
+    };
+
+    self.showParams = () => {
+        return appState.models.simulation.magnetType !== 'freehand';
+    };
 
     self.viewShadow = o => self.viewsForObject(appState.setModelDefaults({}, 'cuboid'));
 
@@ -1566,14 +1611,14 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             model: '=',
         },
         template: `
-            <div style="height: 200px; overflow-y: scroll; overflow-x: hidden;">
-            <table style="table-layout: fixed;" class="table radia-table-hover">
+            <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
+            <table style="table-layout: fixed;" class="table table-striped table-condensed radia-table-dialog">
                 <tr style="background-color: lightgray;" data-ng-show="field.length > 0">
                   <th>Members</th>
                   <th></th>
                 </tr>
                 <tr data-ng-repeat="mId in field track by $index">
-                    <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>
+                    <td style="padding-left: 1em"><span style="font-size: large; color: {{ getObject(mId).color }};">■</span> <span>{{ getObject(mId).name }}</span></td>
                     <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="ungroupObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
                 </tr>
                 <tr style="background-color: lightgray;">
@@ -1581,14 +1626,13 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   <th></th>
                 </tr>
                 <tr data-ng-repeat="oId in getIds() | filter:hasNoGroup track by $index">
-                  <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(oId).name }}</span></div></td>
+                  <td style="padding-left: 1em"><span style="font-size: large; color: {{ getObject(oId).color }};">■</span> <span>{{ getObject(oId).name }}</span></td>
                   <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(oId)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>
                 </tr>
             </table>
-             </div>
+            </div>
         `,
         controller: function($scope) {
-
             $scope.objects = appState.models.geometryReport.objects;
             if (! $scope.field) {
                 $scope.field = [];
