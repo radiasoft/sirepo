@@ -445,11 +445,11 @@ def _build_model_py(v):
         else:
             return layer.dropoutRate
 
-    def _test_foo(layer):
+    def _activation(layer):
         return f'"{layer.get("activation", "relu")}"'
 
     args_map = PKDict(
-        Activation=lambda layer: _test_foo(layer),
+        Activation=lambda layer: _activation(layer),
         Add=lambda layer: _branch(layer, "Add"),
         AlphaDropout=lambda layer: _dropout_args(layer),
         AveragePooling2D=lambda layer: _pooling_args(layer),
