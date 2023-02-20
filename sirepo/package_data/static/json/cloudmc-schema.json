@@ -275,7 +275,8 @@
             "_type": ["", "TallyFilter"]
         },
         "geometryInput": {
-            "dagmcFile": ["DAGMC file", "InputFile", ""]
+            "dagmcFile": ["DAGMC file", "InputFile", ""],
+            "exampleURL": ["", "String", ""]
         },
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
