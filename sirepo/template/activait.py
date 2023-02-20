@@ -491,7 +491,6 @@ x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
-# TODO (gurhar1133): need to handle different last layer for image to image
 
 def _build_ui_nn(model):
     return _set_children(_set_outbound(_set_inbound(model, _make_layers(model))))
