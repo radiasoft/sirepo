@@ -129,10 +129,20 @@ def _extract_volumes(filename):
             visited[i] = True
         if skip_volume:
             continue
-        res[name] = PKDict(
-            volId=v.volumes[0],
+        if not res.get(name):
+            res[name] = PKDict(
+                volId=v.volumes[0],
+                volumes=v.volumes,
+            )
+        else:
+            res[name].volumes += v.volumes
+            res[name].volId = v.volumes[0]
+
+    for n in res:
+        os.system(
+            f'mbconvert -v {",".join(res[n].volumes)} {filename} {res[n].volId}.vtk'
         )
-        os.system(f'mbconvert -v {",".join(v.volumes)} {filename} {v.volumes[0]}.vtk')
+        del res[n]["volumes"]
     return res
 
 
