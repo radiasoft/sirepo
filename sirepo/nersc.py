@@ -6,6 +6,7 @@
 """
 import re
 import subprocess
+import sirepo.util
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 
@@ -15,7 +16,7 @@ _ACCOUNT_NOT_FOUND = "no such fileset"
 VALID_TEST_ACCOUNT = "VALID_TEST_ACCOUNT"
 
 
-def assert_project(project):
+def sbatch_project_option(project):
     if not project:
         return ""
     res = (

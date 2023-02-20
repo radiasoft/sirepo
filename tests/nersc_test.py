@@ -13,9 +13,9 @@ def test_nersc_project(fc):
     _NO_SUCH_PROJECT = "NOT_" + nersc.VALID_TEST_ACCOUNT
 
     with pkexcept(nersc.invalid_project_msg(_NO_SUCH_PROJECT)):
-        nersc.assert_project(_NO_SUCH_PROJECT)
+        nersc.sbatch_project_option(_NO_SUCH_PROJECT)
 
     pkeq(
         nersc.sbatch_account(nersc.VALID_TEST_ACCOUNT),
-        nersc.assert_project(nersc.VALID_TEST_ACCOUNT),
+        nersc.sbatch_project_option(nersc.VALID_TEST_ACCOUNT),
     )

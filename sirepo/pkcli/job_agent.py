@@ -766,7 +766,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --constraint={_processor()}
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node={self.msg.tasksPerNode}
-{sirepo.nersc.assert_project(self.msg.sbatchProject)}"""
+{sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
             s = "--cpu-bind=cores shifter --entrypoint"
         m = "--mpi=pmi2" if pkconfig.channel_in("dev") else ""
         f = self.run_dir.join(self.jid + ".sbatch")
