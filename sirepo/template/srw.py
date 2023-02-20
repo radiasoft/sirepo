@@ -1118,6 +1118,11 @@ subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
     return None
 
 
+def _add_name(names, name):
+    if name not in ("Sample", "Watchpoint"):
+        names.append(name)
+
+
 def _beamline_animation_percent_complete(run_dir, res):
     res.outputInfo = [
         PKDict(
@@ -1786,8 +1791,7 @@ def _generate_beamline_optics(report, data, qcall=None):
                     item, data, qcall=qcall
                 )
             items.append(item)
-            # TODO (gurhar1133): names in set_optics()
-            res.names.append(name)
+            _add_name(res.names, name)
             if item.type == "watch":
                 res.watches[name] = item.id
         if int(res.last_id) == int(item.id):
@@ -1949,7 +1953,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         prev_wavefront = None
         names = []
         for n in beamline_info.names:
-            names.append(n)
+            _add_name(names, n)
             if n in beamline_info.watches:
                 is_last_watch = n == beamline_info.names[-1]
                 content.append("names = ['" + "','".join(names) + "']")
@@ -1965,7 +1969,6 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
     ):
         content.append(
-            # TODO (gurhar1133): names in main
             "names = [{}]".format(
                 ",".join(["'{}'".format(name) for name in beamline_info.names]),
             )
