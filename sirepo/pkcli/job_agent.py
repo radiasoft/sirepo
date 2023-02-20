@@ -7,7 +7,6 @@
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
-from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdformat
 from sirepo import job
