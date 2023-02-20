@@ -444,7 +444,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     ranges[i][2] = inds[i][1] - inds[i][0] + 1;
                 }
 
-                // for now set the aspect ratio to something resonable even if it distorts the shape
+                // for now set the aspect ratio to something reasonable even if it distorts the shape
                 const arRange = [0.50, 2.0];
                 let ar = Math.max(
                     arRange[0],
