@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Run Python processes in background
+"""Methods related to running on NERSC
 
-:copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import re
