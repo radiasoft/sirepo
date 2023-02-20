@@ -8,7 +8,15 @@
         <div data-toggle="tooltip" title="YZ Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'side'}" style="margin: 2px;" data-ng-click="setElevation('side')">YZ</div>
         <div data-toggle="tooltip" title="ZX Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'top'}" style="margin: 2px;" data-ng-click="setElevation('top')">ZX</div>
         <div class="sr-pull-right-sm" style="vertical-align: middle;">
-          <label><input type="checkbox" data-ng-model="autoFit" data-ng-change="vtkScene.refreshMarker()"> Auto-fit</label>
+          <label><input type="checkbox" data-ng-model="snapToGrid"> Snap center to grid</label>
+          <select data-ng-model="snapGridSize" data-ng-disabled="! snapToGrid">
+              <option value="0.1">0.1mm</option>
+              <option value="0.5">0.5mm</option>
+              <option value="1" selected>1mm</option>
+              <option value="5" >5mm</option>
+              <option value="10" >10mm</option>
+          </select>
+          <label><input type="checkbox" data-ng-model="autoFit"> Auto-fit</label>
           <div data-toggle="tooltip" title="Fit to objects" class="btn btn-default" style="margin: 2px;" data-ng-click="fitToShapes()">Fit</div>
         </div>
         <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
@@ -41,24 +49,24 @@
       <div class="panel panel-info">
         <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
         <div class="panel-body">
-            <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th></th>
-                </tr>
-              </thead>
+            <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
+              <thead></thead>
               <tbody data-ng-repeat="obj in getObjects() track by obj.id">
                 <tr>
-                    <td style="padding-left: 1em; cursor: pointer; white-space: nowrap"><span>{{ obj.name }}</span></td>
+                    <td style="padding-left: 1em; cursor: pointer; white-space: nowrap">
+                        <span style="font-size: large; color: {{obj.color || '#cccccc'}};">■</span> <span>{{ obj.name }}</span>
+                        <span class="sr-button-bar-parent" data-ng-if="isGroup(obj)">
+                          <button data-ng-repeat="t in alignmentTools" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                        </span>
+                    </td>
                     <td style="text-align: right">
-                    <div class="sr-button-bar-parent">
+                      <div class="sr-button-bar-parent">
                         <div class="sr-button-bar" data-ng-class="sr-button-bar-active">
-                             <button class="btn btn-info btn-xs" data-ng-click="copyObject(obj)" title="copy">Copy</button>
+                             <button data-ng-if="! isGroup(obj)" class="btn btn-info btn-xs" data-ng-click="copyObject(obj)" title="copy">Copy</button>
                              <button data-ng-click="editObject(obj)" class="btn btn-info btn-xs" title="edit">Edit</button>
                              <button data-ng-click="deleteObject(obj)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                         </div>
-                    </div>
+                      </div>
                     </td>
                 </tr>
               </tbody>

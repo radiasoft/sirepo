@@ -1,9 +1,6 @@
-// import { React }
-/* eslint eqeqeq: 0 */
-/* eslint no-unused-vars: 0 */
-import { Heatplot, HeatPlotConfig } from "../../component/reusable/heatplot";
-import { LayoutProps } from "../layout";
 import React from "react";
+import { Heatplot, HeatPlotConfig, HeatPlotConfigExtras } from "../../component/reusable/heatplot";
+import { LayoutProps } from "../layout";
 import { ReportVisual, ReportVisualProps } from "../report";
 
 export type HeatplotConfigApi = {
@@ -44,6 +41,10 @@ function apiResponseToHeatplotConfig(apiResponse: HeatplotConfigApi): HeatPlotCo
         yRange: {
             min: yMin,
             max: yMax
+        },
+        zRange: {
+            min: Math.min(...zMatrix.map(row => Math.min(...row))),
+            max: Math.max(...zMatrix.map(row => Math.max(...row))),
         }
     }
 }
@@ -62,10 +63,14 @@ export class HeatplotFromApi extends ReportVisual<undefined, {}, HeatplotConfigA
     }
 
     component = (props: LayoutProps<{}> & ReportVisualProps<HeatPlotConfig>) => {
-        let { data } = props;
+        let { data, model } = props;
+
+        let extras: HeatPlotConfigExtras = {
+            colorMap: model?.colorMap as string
+        }
 
         return (
-            <>{data && <Heatplot {...data} {...props}/>}</>
+            <>{data && <Heatplot {...data} {...extras}/>}</>
         )
     }
 }

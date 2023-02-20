@@ -11,7 +11,8 @@ export function LabelTooltip(props) {
     );
     return (
         <OverlayTrigger
-            placement="bottom"
+            //TODO(pjm): bottom placement causes page to flicker when body scrollbar is modified
+            placement="top"
             delay={{ show: 250, hide: 400 }}
             overlay={renderTooltip}
         >

@@ -79,21 +79,24 @@ varParam = [
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
 
 #---Undulator
-    ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
-    ['und_by', 'f', 0.88770981, 'undulator vertical peak magnetic field [T]'],
-    ['und_phx', 'f', 0.0, 'initial phase of the horizontal magnetic field [rad]'],
-    ['und_phy', 'f', 0.0, 'initial phase of the vertical magnetic field [rad]'],
-    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
-    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
-    ['und_per', 'f', 0.02, 'undulator period [m]'],
-    ['und_len', 'f', 3.0, 'undulator length [m]'],
-    ['und_zc', 'f', 1.305, 'undulator center longitudinal position [m]'],
-    ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
-    ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
+#---idealized params
+#    ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
+#    ['und_by', 'f', 0.88770981, 'undulator vertical peak magnetic field [T]'],
+#    ['und_phx', 'f', 0.0, 'initial phase of the horizontal magnetic field [rad]'],
+#    ['und_phy', 'f', 0.0, 'initial phase of the vertical magnetic field [rad]'],
+#    ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
+#    ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
+#    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
+#    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
+#---tabulated params
     ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
     ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
     ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
     ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+#---both  params
+    ['und_zc', 'f', 1.305, 'undulator center longitudinal position [m]'],
+    ['und_per', 'f', 0.02, 'undulator period [m]'],
+    ['und_len', 'f', 3.0, 'undulator length [m]'],
 
 
 

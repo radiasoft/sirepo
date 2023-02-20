@@ -275,7 +275,8 @@
             "_type": ["", "TallyFilter"]
         },
         "geometryInput": {
-            "dagmcFile": ["DAGMC file", "InputFile", ""]
+            "dagmcFile": ["DAGMC file", "InputFile", ""],
+            "exampleURL": ["", "String", ""]
         },
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
@@ -441,7 +442,13 @@
             "horizontalAxis": ["_", "Axis", "z"],
             "horizontalTrim": ["Trim", "FloatArray", []],
             "planePos": ["_", "Range", 0.0, ""],
-            "verticalAxis": ["_", "Axis", "x"]
+            "verticalAxis": ["_", "Axis", "x"],
+            "xDisplayMin": ["Min X", "Float", -1e100],
+            "xDisplayMax": ["Max X", "Float", 1e100],
+            "yDisplayMin": ["Min Y", "Float", -1e100],
+            "yDisplayMax": ["Max Y", "Float", 1e100],
+            "zDisplayMin": ["Min Z", "Float", -1e100],
+            "zDisplayMax": ["Max Z", "Float", 1e100]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -737,10 +744,7 @@
         },
         "tallyReport": {
             "advanced": [],
-            "basic": [
-                "axis",
-                "planePos"
-            ]
+            "basic": []
         },
         "tallyScore": {
             "advanced": [

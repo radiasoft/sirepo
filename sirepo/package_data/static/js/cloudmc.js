@@ -125,12 +125,36 @@ SIREPO.app.factory('cloudmcService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
 
+    function downloadRemoteGeometryFile() {
+        requestSender.sendStatefulCompute(
+            appState,
+            data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                appState.models.geometryInput.exampleURL = "";
+                appState.saveQuietly('geometryInput');
+                processGeometry();
+            },
+            {
+                method: 'download_remote_lib_file',
+                args: {
+                    exampleURL: appState.models.geometryInput.exampleURL,
+                },
+            }
+        );
+    }
+
     function processGeometry() {
         panelState.showField('geometryInput', 'dagmcFile', false);
+        if (appState.models.geometryInput.exampleURL) {
+            downloadRemoteGeometryFile();
+            return;
+        }
         self.simState.runSimulation();
     }
 
@@ -264,10 +288,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
         },
         template: `
             <ul data-ng-if="! isClientOnly" class="nav nav-tabs">
-                <li role="presentation" class="active" data-ng-class="{active: displayType === '2D'}">
+                <li role="presentation" data-ng-class="{active: displayType === '2D'}">
                     <a href data-ng-click="setDisplay('2D')">2D</a>
                 </li>
-                <li role="presentation" class="active" data-ng-class="{active: displayType === '3D'}">
+                <li role="presentation" data-ng-class="{active: displayType === '3D'}">
                     <a href data-ng-click="setDisplay('3D')">3D</a>
                 </li>
             </ul>
@@ -289,12 +313,20 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                <div class="row">
                    <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>
                </div>
+               <div class="row">
+                   <div data-ng-repeat="f in displayRangeVars" class="col-md-6" data-field-editor="f" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2" data-field-size="4"></div>
+               </div>
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
         `,
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.displayType = '3D';
+            $scope.displayRangeVars = [
+                'xDisplayMin', 'xDisplayMax',
+                'yDisplayMin', 'yDisplayMax',
+                'zDisplayMin', 'zDisplayMax',
+            ];
             $scope.isClientOnly = isGeometryOnly;
             $scope.tallyReport = appState.models.tallyReport;
 
@@ -427,25 +459,33 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const [z, x, y] = tallyReportAxes();
                 const [n, l, m] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
-                const p = Math.min(
-                    mesh.dimension[n] - 1,
-                    Math.max(
-                        0,
-                        Math.floor(
-                            mesh.dimension[n] * ($scope.tallyReport.planePos - ranges[n][0]) /
-                            (ranges[n][1] - ranges[n][0])
-                        )
+                const inds = displayRangeIndices();
+                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+                    const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim);
+                    const range = [appState.models.tallyReport[`${dim}DisplayMin`], appState.models.tallyReport[`${dim}DisplayMax`]];
+                    ranges[i][0] = range[0];
+                    ranges[i][1] = range[1];
+                    ranges[i][2] = inds[i][1] - inds[i][0] + 1;
+                }
+
+                // for now set the aspect ratio to something reasonable even if it distorts the shape
+                const arRange = [0.50, 2.0];
+                let ar = Math.max(
+                    arRange[0],
+                    Math.min(
+                        arRange[1],
+                        Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0])
                     )
                 );
 
                 const r =  {
-                    aspectRatio: Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0]),
+                    aspectRatio: ar,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
                     y_range: ranges[m],
-                    z_matrix: reorderFieldData(z, mesh.dimension)[p],
+                    z_matrix: reorderFieldData(z, mesh.dimension)[fieldIndex($scope.tallyReport.planePos, ranges[n], n)],
                     z_range: ranges[n],
                 };
                 panelState.setData('tallyReport', r);
@@ -531,6 +571,24 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 vtkScene.addActor(tallyBundle.actor);
                 picker.addPickList(tallyBundle.actor);
                 setTallyColors();
+            }
+
+            function displayRangeIndices() {
+                const t = appState.models.tallyReport;
+                const r = getMeshRanges();
+                return [
+                    [t.xDisplayMin, t.xDisplayMax],
+                    [t.yDisplayMin, t.yDisplayMax],
+                    [t.zDisplayMin, t.zDisplayMax],
+                ].map((x, i) => [fieldIndex(x[0], r[i], i), fieldIndex(x[1], r[i], i)]);
+            }
+
+            function fieldIndex(pos, range, dimIndex) {
+                const d = mesh.dimension[dimIndex];
+                return Math.min(
+                    d - 1,
+                    Math.max(0, Math.floor(d * (pos - range[0]) / (range[1] - range[0])))
+                );
             }
 
             function getFieldData() {
@@ -628,6 +686,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
                 updateSliceAxis();
+                updateDisplayRange();
                 $scope.$broadcast('sliderParent.ready', appState.models.tallyReport);
             }
 
@@ -650,9 +709,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     return r;
                 }
                 const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(appState.models.tallyReport.axis);
-                r.min = mesh.lower_left[i];
-                r.max = mesh.upper_right[i];
-                r.step = Math.floor(Math.abs(r.max - r.min) / mesh.dimension[i]);
+                const s = Math.abs((mesh.upper_right[i] - mesh.lower_left[i])) / mesh.dimension[i];
+                r.min = mesh.lower_left[i] + 0.5 * s;
+                r.max = mesh.upper_right[i] - 0.5 * s;
+                r.step = mesh.dimension[i] === 1 ? r.max : s;
                 return r;
             }
 
@@ -660,18 +720,24 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const [n, l, m] = tallyReportAxisIndices();
                 const fd = getFieldData();
                 const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
+                const inds = displayRangeIndices();
+                let N = 1;
+                for (const idx of inds) {
+                    N *= (idx[1] - idx[0] + 1);
+                }
                 const ff = SIREPO.UTILS.reshape(
-                    new Array(fd.length),
-                    [dims[n], dims[m], dims[l]]
+                    new Array(N),
+                    [(inds[n][1] - inds[n][0] + 1), (inds[m][1] - inds[m][0] + 1), (inds[l][1] - inds[l][0] + 1)]
                 );
-                for (let k = 0; k < dims[n]; ++k) {
-                    for (let j = 0; j < dims[m]; ++j) {
-                        for (let i = 0; i < dims[l]; ++i) {
+
+                for (let k = 0; k <= (inds[n][1] - inds[n][0]); ++k) {
+                    for (let j = 0; j <= (inds[m][1] - inds[m][0]); ++j) {
+                        for (let i = 0; i <= (inds[l][1] - inds[l][0]); ++i) {
                             const v = [0, 0, 0];
-                            v[l] = i;
-                            v[m] = j;
-                            v[n] = k;
-                            ff[k][j][i] = (d[v[2]][v[1]][v[0]]);
+                            v[l] = inds[l][0] + i;
+                            v[m] = inds[m][0] + j;
+                            v[n] = inds[n][0] + k;
+                            ff[k][j][i] = d[v[2]][v[1]][v[0]];
                         }
                     }
                 }
@@ -781,6 +847,22 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             function tallyReportAxisIndices() {
                 return SIREPO.GEOMETRY.GeometryUtils.axisIndices($scope.tallyReport.axis);
+            }
+
+            function updateDisplayRange() {
+                if (! mesh) {
+                    return  null;
+                }
+                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+                    const r = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
+                    if (appState.models.tallyReport[`${dim}DisplayMin`] < r[0]) {
+                        appState.models.tallyReport[`${dim}DisplayMin`] = r[0];
+                    }
+                    if (appState.models.tallyReport[`${dim}DisplayMax`] > r[1]) {
+                        appState.models.tallyReport[`${dim}DisplayMax`] = r[1];
+                    }
+                    appState.saveQuietly('tallyReport');
+                }
             }
 
             function updateSlice() {
@@ -954,7 +1036,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
 
-            appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice);
+            appState.watchModelFields(
+                $scope,
+                [
+                    'tallyReport.planePos',
+                    'tallyReport.xDisplayMin',
+                    'tallyReport.xDisplayMax',
+                    'tallyReport.yDisplayMin',
+                    'tallyReport.yDisplayMax',
+                    'tallyReport.zDisplayMin',
+                    'tallyReport.zDisplayMax',
+                ],
+                updateSlice
+            );
 
         },
         link: function link(scope, element) {
@@ -1163,7 +1257,7 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
                     data-ng-repeat="c in appState.models.material.components track by $index">
                   <td data-ng-repeat="fieldInfo in componentInfo(ci) track by fieldTrack(ci, $index)">
                     <div data-ng-if="fieldInfo.field">
-                      <div data-label-with-tooltip="" data-label="{{ fieldInfo.label }}"
+                      <div style="font-size: 13px" data-label-with-tooltip="" data-label="{{ fieldInfo.label }}"
                         data-tooltip="{{ fieldInfo.tooltip }}"></div>
                       <div class="row" data-field-editor="fieldInfo.field"
                         data-field-size="12" data-model-name="'materialComponent'"

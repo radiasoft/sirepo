@@ -10,6 +10,32 @@
         }
     },
     "constants": {
+        "alignmentTools": [
+            {
+                "title": "Center Horizontal",
+                "type": "centerX"
+            },
+            {
+                "title": "Center Vertical",
+                "type": "centerY"
+            },
+            {
+                "title": "Align Left",
+                "type": "alignLeft"
+            },
+            {
+                "title": "Align Right",
+                "type": "alignRight"
+            },
+            {
+                "title": "Align Top",
+                "type": "alignTop"
+            },
+            {
+                "title": "Align Bottom",
+                "type": "alignBottom"
+            }
+        ],
         "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
         "dataDownloads": {
             "_default": [
@@ -668,7 +694,7 @@
         },
         "extrudedPoints": {
             "_super": ["_", "model", "extrudedPoly"],
-            "pointsFile": ["File", "InputFile", "", "", false],
+            "pointsFile": ["File", "InputFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns", false],
             "referencePoints": ["Points", "Points", []],
             "type": ["_", "ObjectType", "extrudedPoints"]
         },
@@ -693,6 +719,18 @@
         },
         "fieldIntegralReport": {
             "lastCalculated": ["_", "Integer", -1]
+        },
+        "fieldLineoutAnimation": {
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "fieldType": ["Field", "FieldType", "B"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
@@ -724,7 +762,7 @@
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
-            "members": ["_", "Group", []],
+            "members": ["", "Group", []],
             "model": ["_", "String", "geomGroup"],
             "type": ["_", "String", "geomGroup"]
         },
@@ -738,7 +776,7 @@
             "modifications": ["", "ModelArrayTable", [], "", ["objectBevel", "objectFillet"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
-            "materialFile": ["Tabulated H-B from File", "HMFile", "", "H, B (T)"],
+            "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Shape Type", "ObjectType", "cuboid"],
             "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]]
@@ -895,18 +933,6 @@
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "stl"],
             "file": ["STL File", "InputFile", ""]
-        },
-        "fieldLineoutAnimation": {
-            "fieldPaths": ["Path", "FieldPaths", []],
-            "fieldType": ["Field", "FieldType", "B"],
-            "inProgressText": ["_", "String", "Calculating"],
-            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
-            "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchCores": ["Cores", "Integer", 1],
-            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "spatialTransform": {
             "_super": ["_", "model", "transform"]

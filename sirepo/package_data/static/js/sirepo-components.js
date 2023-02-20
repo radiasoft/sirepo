@@ -3922,13 +3922,13 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                     }
                     delegate.update();
                 });
-            });
 
-            $scope.$on('sliderParent.ready', function (e, m) {
-                if (m) {
-                    $scope.model = m;
-                }
-                update();
+                $scope.$on('sliderParent.ready', function (e, m) {
+                    if (m) {
+                        $scope.model = m;
+                    }
+                    update();
+                });
             });
         },
     };

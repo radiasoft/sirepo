@@ -700,10 +700,10 @@
             "y1": "s1",
             "y1File": "run_setup.sigma.sdds",
             "y1FileId": "2-25",
-            "y2": "s1",
+            "y2": "s3",
             "y2File": "run_setup.sigma.sdds",
             "y2FileId": "2-25",
-            "y3": "s2",
+            "y3": "s5",
             "y3File": "run_setup.sigma.sdds",
             "y3FileId": "2-25"
         },
