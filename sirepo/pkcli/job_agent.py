@@ -753,7 +753,6 @@ class _SbatchRun(_SbatchCmd):
 
     def _sbatch_script(self):
         import sirepo.nersc
-        from pykern.pkcollections import json_load_any
 
         def _processor():
             if self.msg.sbatchQueue == "debug" and pkconfig.channel_in("dev"):
@@ -764,12 +763,11 @@ class _SbatchRun(_SbatchCmd):
         s = o = ""
         # POSIT: job_api has validated values
         if i:
-            q = json_load_any(subprocess.check_output(["hpssquota", "-J"], text=True))
             o = f"""#SBATCH --image={i}
 #SBATCH --constraint={_processor()}
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node={self.msg.tasksPerNode}
-{sirepo.nersc.assert_project(self.msg.sbatchProject, q)}"""
+{sirepo.nersc.assert_project(self.msg.sbatchProject)}"""
             s = "--cpu-bind=cores shifter --entrypoint"
         m = "--mpi=pmi2" if pkconfig.channel_in("dev") else ""
         f = self.run_dir.join(self.jid + ".sbatch")

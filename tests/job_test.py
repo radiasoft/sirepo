@@ -22,28 +22,19 @@ from pykern.pkcollections import PKDict
 
 _REPORT = "heightWeightReport"
 
-_VALID_PROJECT = "VALID_PROJECT"
-
-_NERSC_HPSS_QUOTA = [
-    PKDict(
-        fs=f"{_VALID_PROJECT}",
-        inode_perc="0.0%",
-        space_perc="0.0%",
-    ),
-]
 
 def test_nersc_project(fc):
     from sirepo import nersc
     from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
 
-    _INVALID_PROJECT = "NO_SUCH_PROJECT"
+    _NO_SUCH_PROJECT = "NO_SUCH_PROJECT"
 
-    with pkexcept(nersc.invalid_project_msg(_INVALID_PROJECT)):
-        nersc.assert_project(_INVALID_PROJECT, _NERSC_HPSS_QUOTA)
+    with pkexcept(nersc.invalid_project_msg(_NO_SUCH_PROJECT)):
+        nersc.assert_project(_NO_SUCH_PROJECT)
 
     pkeq(
-        nersc.sbatch_account(_VALID_PROJECT),
-        nersc.assert_project(_VALID_PROJECT, _NERSC_HPSS_QUOTA)
+        nersc.sbatch_account(nersc.VALID_TEST_ACCOUNT),
+        nersc.assert_project(nersc.VALID_TEST_ACCOUNT),
     )
 
 
