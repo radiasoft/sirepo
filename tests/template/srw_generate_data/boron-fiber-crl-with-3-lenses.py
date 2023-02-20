@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['CRL', 'CRL_Watchpoint', 'Watchpoint', 'Fiber', 'Fiber_Watchpoint2', 'Watchpoint2']
+        names = ['CRL', 'CRL_Watchpoint', 'Fiber', 'Fiber_Watchpoint']
     for el_name in names:
         if el_name == 'CRL':
             # CRL: crl 36.0m
@@ -59,14 +59,14 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _yc=v.op_Fiber_yc,
             ))
             pp.append(v.op_Fiber_pp)
-        elif el_name == 'Fiber_Watchpoint2':
-            # Fiber_Watchpoint2: drift 70.1915m
+        elif el_name == 'Fiber_Watchpoint':
+            # Fiber_Watchpoint: drift 70.1915m
             el.append(srwlib.SRWLOptD(
-                _L=v.op_Fiber_Watchpoint2_L,
+                _L=v.op_Fiber_Watchpoint_L,
             ))
-            pp.append(v.op_Fiber_Watchpoint2_pp)
-        elif el_name == 'Watchpoint2':
-            # Watchpoint2: watch 70.85m
+            pp.append(v.op_Fiber_Watchpoint_pp)
+        elif el_name == 'Watchpoint':
+            # Watchpoint: watch 70.85m
             pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
@@ -283,15 +283,15 @@ varParam = [
     ['op_Fiber_xc', 'f', 0.0, 'horizontalCenterPosition'],
     ['op_Fiber_yc', 'f', 0.0, 'verticalCenterPosition'],
 
-    # Fiber_Watchpoint2: drift
-    ['op_Fiber_Watchpoint2_L', 'f', 0.6584999999999894, 'length'],
+    # Fiber_Watchpoint: drift
+    ['op_Fiber_Watchpoint_L', 'f', 0.6584999999999894, 'length'],
 
 #---Propagation parameters
-    ['op_CRL_pp', 'f',               [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL'],
-    ['op_CRL_Watchpoint_pp', 'f',    [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL_Watchpoint'],
-    ['op_Fiber_pp', 'f',             [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber'],
-    ['op_Fiber_Watchpoint2_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber_Watchpoint2'],
-    ['op_fin_pp', 'f',               [0, 0, 1.0, 0, 0, 0.7, 2.0, 0.2, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+    ['op_CRL_pp', 'f',              [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL'],
+    ['op_CRL_Watchpoint_pp', 'f',   [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL_Watchpoint'],
+    ['op_Fiber_pp', 'f',            [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber'],
+    ['op_Fiber_Watchpoint_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber_Watchpoint'],
+    ['op_fin_pp', 'f',              [0, 0, 1.0, 0, 0, 0.7, 2.0, 0.2, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
 
     #[ 0]: Auto-Resize (1) or not (0) Before propagation
     #[ 1]: Auto-Resize (1) or not (0) After propagation
@@ -320,7 +320,7 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['CRL','CRL_Watchpoint','Watchpoint','Fiber','Fiber_Watchpoint2','Watchpoint2']
+    names = ['CRL','CRL_Watchpoint','Fiber','Fiber_Watchpoint']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
