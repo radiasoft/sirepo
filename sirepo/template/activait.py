@@ -28,6 +28,10 @@ _CHUNK_SIZE = 1024 * 1024
 
 _LOG_FILE = "run.log"
 
+_SEGMENT_ROWS = 3
+
+_SEGMENT_PAGES = 5
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
@@ -1093,12 +1097,50 @@ def _image_preview(data, run_dir=None):
         raise AssertionError(f"No matching dimension found output size: {io.output.size}")
 
     def _segment():
-        # TODO (gurhar1133): unhardcode 64
+        # TODO (gurhar1133): unhardcode 64?
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         x = x.reshape(len(x)//64//64, 64, 64)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
         y = y.reshape(len(y)//64//64, 64, 64)
         return x, y
+
+    def _x_y(data, io, file):
+        if data.args.method == "segmentViewer":
+            return _segment()
+        return file[io.input.path], file[io.output.path]
+
+    def _grid(x, info):
+        if _image_to_image(info):
+            return [_SEGMENT_ROWS]*_SEGMENT_PAGES
+        return _image_grid(len(x))
+
+    def _set_image_to_image_plt(plt, data):
+        _, a = plt.subplots(3, 2)
+        if data.args.method == "segmentViewer":
+            a[0, 0].set_title('actual')
+            a[0, 1].set_title('prediction')
+        plt.setp(a, xticks=[], yticks=[])
+        return a
+
+    def _gen_image(params):
+        if _image_to_image(info):
+            mask = params.output
+            params.axes[params.row, 0].imshow(params.input)
+            params.axes[params.row, 1].imshow(mask)
+            return
+        params.plt.subplot(5, 5, params.row + 1)
+        params.plt.xticks([])
+        params.plt.yticks([])
+        params.plt.imshow(v)
+        if len(params.file[params.io.output.path].shape) == 1:
+            if "label_path" in params.io.output:
+                params.plt.xlabel(
+                    pkcompat.from_bytes(params.file[params.io.output.label_path][params.output])
+                )
+            else:
+                params.plt.xlabel(params.output)
+        else:
+            params.plt.xlabel("\n".join([str(l) for l in params.output]))
 
     # go through columnInfo, find first multidimensional col
     # take first dimension size and look for other columns with that single dimension
@@ -1122,46 +1164,29 @@ def _image_preview(data, run_dir=None):
             break
 
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
-        x = f[io.input.path]
-        y = f[io.output.path]
-        if data.args.method == "segmentViewer":
-            x, y = _segment()
+        x, y = _x_y(data, io, f)
         u = []
         k = 0
-        g = _image_grid(len(x))
-        if _image_to_image(info):
-            g = [3]*5
+        g = _grid(x, info)
         for i in g:
             plt.figure(figsize=[10, 10])
-            if _image_to_image(info):
-                f, axarr = plt.subplots(3, 2)
-                if data.args.method == "segmentViewer":
-                    axarr[0, 0].set_title('actual')
-                    axarr[0, 1].set_title('prediction')
-                plt.setp(axarr, xticks=[], yticks=[])
+            axarr = _set_image_to_image_plt(plt, data) if _image_to_image(info) else None
             for j in range(i):
                 v = x[k + j]
                 if io.input.kind == "f":
                     v = v.astype(float)
-                if _image_to_image(info):
-                    mask = y[k + j]
-                    axarr[j,0].imshow(v)
-                    axarr[j,1].imshow(mask)
-                else:
-                    plt.subplot(5, 5, j + 1)
-                    plt.xticks([])
-                    plt.yticks([])
-                    plt.imshow(v)
-                if not _image_to_image(info):
-                    if len(f[io.output.path].shape) == 1:
-                        if "label_path" in io.output:
-                            plt.xlabel(
-                                pkcompat.from_bytes(f[io.output.label_path][y[k + j]])
-                            )
-                        else:
-                            plt.xlabel(y[k + j])
-                    else:
-                        plt.xlabel("\n".join([str(l) for l in y[k + j]]))
+                _gen_image(
+                    PKDict(
+                        info=info,
+                        axes=axarr,
+                        output=y[k +j],
+                        input=v,
+                        plt=plt,
+                        file=f,
+                        io=io,
+                        row=j,
+                    )
+                )
             p = (
                 _SIM_DATA.lib_file_write_path(data.args.imageFilename)
                 + f"_{int(k/25)}.png"
