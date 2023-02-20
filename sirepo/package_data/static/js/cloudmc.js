@@ -125,12 +125,36 @@ SIREPO.app.factory('cloudmcService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
 
+    function downloadRemoteGeometryFile() {
+        requestSender.sendStatefulCompute(
+            appState,
+            data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                appState.models.geometryInput.exampleURL = "";
+                appState.saveQuietly('geometryInput');
+                processGeometry();
+            },
+            {
+                method: 'download_remote_lib_file',
+                args: {
+                    exampleURL: appState.models.geometryInput.exampleURL,
+                },
+            }
+        );
+    }
+
     function processGeometry() {
         panelState.showField('geometryInput', 'dagmcFile', false);
+        if (appState.models.geometryInput.exampleURL) {
+            downloadRemoteGeometryFile();
+            return;
+        }
         self.simState.runSimulation();
     }
 
@@ -1233,7 +1257,7 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
                     data-ng-repeat="c in appState.models.material.components track by $index">
                   <td data-ng-repeat="fieldInfo in componentInfo(ci) track by fieldTrack(ci, $index)">
                     <div data-ng-if="fieldInfo.field">
-                      <div data-label-with-tooltip="" data-label="{{ fieldInfo.label }}"
+                      <div style="font-size: 13px" data-label-with-tooltip="" data-label="{{ fieldInfo.label }}"
                         data-tooltip="{{ fieldInfo.tooltip }}"></div>
                       <div class="row" data-field-editor="fieldInfo.field"
                         data-field-size="12" data-model-name="'materialComponent'"

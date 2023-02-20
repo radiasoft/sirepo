@@ -7,16 +7,16 @@ import openmc_data_downloader
 def create_geometry():
     univ = openmc.DAGMCUniverse(
         filename='{{ dagmcFilename }}',
+        auto_geom_ids=True,
     )
     {% if reflectivePlanes_useReflectivePlanes == '1' %}
     # creates an edge of universe boundary surface
-    vac_surf = openmc.Sphere(r=10000, surface_id=9999, boundary_type="vacuum")
+    vac_surf = openmc.Sphere(r=10000, boundary_type="vacuum")
     plane1 = openmc.Plane(
         a={{ reflectivePlanes_plane1a }},
         b={{ reflectivePlanes_plane1b }},
         c=0.0,
         d=0.0,
-        surface_id=9991,
         boundary_type="reflective",
     )
     plane2 = openmc.Plane(
@@ -24,17 +24,20 @@ def create_geometry():
         b={{ reflectivePlanes_plane2b }},
         c=0.0,
         d=0.0,
-        surface_id=9990,
         boundary_type="reflective",
     )
     univ = openmc.Cell(
-        cell_id=9999,
         region=-vac_surf & -plane1 & +plane2,
         fill=univ,
     )
-    openmc.Geometry(root=[univ]).export_to_xml()
+    openmc.Geometry([univ]).export_to_xml()
+    {% elif hasGraveyard %}
+    openmc.Geometry(univ).export_to_xml()
     {% else %}
-    openmc.Geometry(root=univ).export_to_xml()
+    graveyard = openmc.Sphere(r=10000, boundary_type="vacuum")
+    root = openmc.Universe()
+    root.add_cells([openmc.Cell(region=-graveyard, fill=univ)])
+    openmc.Geometry(root).export_to_xml()
     {% endif %}
 
 
@@ -80,4 +83,3 @@ create_materials()
 create_settings()
 create_tallies()
 openmc.run()
-

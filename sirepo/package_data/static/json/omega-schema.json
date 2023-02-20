@@ -1,0 +1,58 @@
+{
+    "dynamicFiles": {
+        "sirepoLibs": {}
+    },
+    "enum": {
+        "CoupledSimType": [
+            ["elegant", "elegant"],
+            ["opal", "OPAL"],
+            ["genesis", "GENESIS 1.3"]
+        ]
+    },
+    "frameIdFields": {
+        "sim1Animation": [
+            "histogramBins"
+        ],
+        "sim2Animation": [
+            "histogramBins"
+        ],
+        "sim3Animation": [
+            "histogramBins"
+        ],
+        "sim4Animation": [
+            "histogramBins"
+        ]
+    },
+    "model": {
+        "coupledSim": {
+            "simulationType": ["Simulation Type", "CoupledSimType"],
+            "simulationId": ["Simulation ID", "String"]
+        },
+        "simWorkflow": {
+            "coupledSims": ["Simulations", "SimArray", []],
+            "simType_1": ["SimulationType", "CoupledSimType"],
+            "simId_1": ["Simulation ID", "String"],
+            "simType_2": ["SimulationType", "CoupledSimType"],
+            "simId_2": ["Simulation ID", "String"],
+            "simType_3": ["SimulationType", "CoupledSimType"],
+            "simId_3": ["Simulation ID", "String"],
+            "simType_4": ["SimulationType", "CoupledSimType"],
+            "simId_4": ["Simulation ID", "String"]
+        },
+        "simulationStatus": {},
+        "sim1Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim2Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim3Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim4Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        }
+    },
+    "view": {
+    }
+}

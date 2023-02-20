@@ -318,7 +318,6 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 
 
 def stateless_compute_build_shape_points(data):
-    pts = []
     o = data.args.object
     if not o.get("pointsFile"):
         return PKDict(
@@ -326,16 +325,13 @@ def stateless_compute_build_shape_points(data):
                 o, _get_stemmed_info(o)
             )
         )
-    with open(
+    pts = sirepo.csv.read_as_number_list(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
                 "extrudedPoints", "pointsFile", o.pointsFile
             )
-        ),
-        "rt",
-    ) as f:
-        for r in csv.reader(f):
-            pts.append([float(x) for x in r])
+        )
+    )
     # Radia does not like it if the path is closed
     if all(numpy.isclose(pts[0], pts[-1])):
         del pts[-1]
@@ -353,9 +349,14 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
 
 
-def validate_file(file_path, path):
+def validate_file(file_type, path):
     if path.ext not in (".csv", ".dat", ".stl", ".txt"):
         return f"invalid file type: {path.ext}"
+    if file_type == "extrudedPoints-pointsFile":
+        try:
+            _ = sirepo.csv.read_as_number_list(path)
+        except RuntimeError as e:
+            return e
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
@@ -1244,15 +1245,12 @@ def _read_h5_path(filename, h5path):
 
 
 def _read_h_m_file(file_name, qcall=None):
-    h_m_file = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
-        qcall=qcall,
+    return sirepo.csv.read_as_number_list(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
+            qcall=qcall,
+        )
     )
-    lines = [r for r in sirepo.csv.open_csv(h_m_file)]
-    f_lines = []
-    for l in lines:
-        f_lines.append([float(c.strip()) for c in l])
-    return f_lines
 
 
 def _read_id_map():
