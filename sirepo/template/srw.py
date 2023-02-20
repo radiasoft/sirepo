@@ -1786,6 +1786,7 @@ def _generate_beamline_optics(report, data, qcall=None):
                     item, data, qcall=qcall
                 )
             items.append(item)
+            # TODO (gurhar1133): names in set_optics()
             res.names.append(name)
             if item.type == "watch":
                 res.watches[name] = item.id
@@ -1964,6 +1965,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
     ):
         content.append(
+            # TODO (gurhar1133): names in main
             "names = [{}]".format(
                 ",".join(["'{}'".format(name) for name in beamline_info.names]),
             )
