@@ -120,7 +120,7 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def import_file(req, **kwargs):
-    text = pkcompat.from_bytes(req.file_stream.read())
+    text = req.form_file.as_str()
     if not bool(re.search(r"\.in$", req.filename, re.IGNORECASE)):
         raise AssertionError("invalid file extension, expecting .in")
     res = sirepo.simulation_db.default_data(SIM_TYPE)
@@ -129,7 +129,7 @@ def import_file(req, **kwargs):
     return _parse_namelist(res, text)
 
 
-def post_execution_processing(run_dir=None, **kwargs):
+def post_execution_processing(run_dir, **kwargs):
     if _genesis_success_exit(run_dir):
         return
     return _parse_genesis_error(run_dir)

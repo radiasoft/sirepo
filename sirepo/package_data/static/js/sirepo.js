@@ -814,7 +814,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     self.setFieldDefaults = function(model, field, fieldInfo, overWrite=false) {
         let defaultVal = fieldInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE];
         if (fieldInfo[SIREPO.INFO_INDEX_TYPE] === 'RandomId') {
-            defaultVal = utilities.randomString();
+            defaultVal = SIREPO.UTILS.randomString();
         }
         if (! model[field] || overWrite) {
             if (defaultVal !== undefined) {
@@ -1084,15 +1084,6 @@ SIREPO.app.factory('timeService', function() {
         );
     };
 
-    return self;
-});
-
-SIREPO.app.factory('userAgent', function() {
-    var self = {
-        HEADER: 'X-Sirepo-UserAgentId'
-    };
-
-    self.id = null;
     return self;
 });
 
@@ -1824,6 +1815,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
 
+    self.setData = (name, data) => setPanelValue(name, 'data', data);
+
     self.showEnum = function(model, field, value, isShown) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
         var optionIndex = -1;
@@ -1960,7 +1953,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, userAgent, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2005,13 +1998,18 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
             isOptional: !! m[2],
         };
     }
+
     for (let n in SIREPO.APP_SCHEMA.localRoutes) {
-        let u = SIREPO.APP_SCHEMA.localRoutes[n].route.split('/');
+        localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
+    }
+
+    function routeMapLocal(name, route) {
+        const u = route.split('/');
         u.shift();
-        localMap[n] = {
-            name: n,
+        return {
+            name: name,
             baseUri: u.shift(),
-            params: u.map(_localIterator)
+            params: u.map(_localIterator),
         };
     }
 
@@ -2140,8 +2138,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
 
-    self.formatUrlLocal = function(routeName, params, app) {
-        var u = '#' + formatUrl(localMap, routeName, params);
+    self.formatUrlLocal = function(routeName, params, app, routeMap=localMap) {
+        var u = '#' + formatUrl(routeMap, routeName, params);
         return app ? '/' + app + u : u;
     };
 
@@ -2159,6 +2157,17 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
 
     self.newWindow = function(routeName, params) {
         $window.open(self.formatUrl(routeName, params), '_blank');
+    };
+
+    self.openSimulation = (app, localRoute, simId) => {
+        $window.open(
+            self.formatUrl('simulationRedirect', {
+                simulation_type: app,
+                local_route: localRoute,
+                simulation_id: simId,
+            }),
+            '_blank'
+        );
     };
 
     self.globalRedirect = function(routeNameOrUrl, params) {
@@ -2313,7 +2322,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         const http_config = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
-            headers: userAgent.id ? {[userAgent.HEADER]: userAgent.id} : {}
         };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
@@ -2407,10 +2415,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         };
         req.then(
             function(response) {
-                const i = response.headers(userAgent.HEADER);
-                if (i) {
-                    userAgent.id = i;
-                }
                 if (http_config.responseType === 'blob') {
                     $interval.cancel(interval);
                     blobResponse(response, successCallback, thisErrorCallback);

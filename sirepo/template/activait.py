@@ -22,9 +22,6 @@ import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
-import urllib
-
-_CHUNK_SIZE = 1024 * 1024
 
 _LOG_FILE = "run.log"
 
@@ -177,6 +174,23 @@ def get_fft_report(run_dir, data):
     summaryData = PKDict(freqs=[], minFreq=w[0], maxFreq=w[-1])
 
     return w, plots, f"FFT", summaryData
+
+
+def new_simulation(data, new_sim_data, qcall, **kwargs):
+    if "sourceSimType" not in new_sim_data:
+        return
+    t_basename = f"{new_sim_data.sourceSimType}-{new_sim_data.sourceSimId}-{new_sim_data.sourceSimFile}"
+    data.models.dataFile.dataOrigin = "file"
+    data.models.dataFile.file = t_basename
+    t = simulation_db.simulation_lib_dir(_SIM_DATA.sim_type(), qcall=qcall).join(
+        _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", t_basename)
+    )
+    if t.exists():
+        return
+    s = simulation_db.simulation_dir(
+        new_sim_data.sourceSimType, sid=new_sim_data.sourceSimId, qcall=qcall
+    ).join(new_sim_data.sourceSimFile)
+    t.mksymlinkto(s, absolute=False)
 
 
 def prepare_sequential_output_file(run_dir, data):
@@ -347,7 +361,13 @@ def stateful_compute_sample_images(data):
 
 
 def stateless_compute_get_remote_data(data):
-    return _get_remote_data(data.args.url, data.args.headers_only)
+    return template_common.remote_file_to_simulation_lib(
+        _SIM_DATA,
+        data.args.url,
+        data.args.headers_only,
+        "dataFile",
+        "file",
+    )
 
 
 def stateless_compute_remote_data_bytes_loaded(data):
@@ -1024,34 +1044,6 @@ def _get_fit_report(report, x_vals, y_vals):
         ),
     ]
     return param_vals, param_sigmas, plots
-
-
-def _get_remote_data(url, headers_only):
-    filename = os.path.basename(urllib.parse.urlparse(url).path)
-    try:
-        with urllib.request.urlopen(url) as r:
-            if headers_only:
-                return PKDict(headers=_header_str_to_dict(r.headers))
-            with open(
-                _SIM_DATA.lib_file_write_path(
-                    _SIM_DATA.lib_file_name_with_model_field(
-                        "dataFile",
-                        "file",
-                        filename,
-                    )
-                ),
-                "wb",
-            ) as f:
-                while True:
-                    c = r.read(_CHUNK_SIZE)
-                    if not c:
-                        break
-                    f.write(c)
-    except Exception as e:
-        return PKDict(error=e)
-    return PKDict(
-        filename=filename,
-    )
 
 
 # if this conversion is not done, the header gets returned as a newline-delimited string

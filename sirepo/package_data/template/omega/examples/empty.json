@@ -1,0 +1,26 @@
+{
+    "models": {
+        "coupledSim": {},
+        "sim1Animation": {
+            "histogramBins": 200
+        },
+        "sim2Animation": {
+            "histogramBins": 200
+        },
+        "sim3Animation": {
+            "histogramBins": 200
+        },
+        "sim4Animation": {
+            "histogramBins": 200
+        },
+        "simFolder": {},
+        "simWorkflow": {
+            "coupledSims": []
+        },
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Empty Omega Workflow"
+        }
+    },
+    "simulationType": "omega"
+}

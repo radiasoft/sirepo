@@ -1,4 +1,4 @@
-import { useContext, useState, useRef, useEffect } from "react";
+import { useContext, useState, useRef, useEffect, ReactElement } from "react";
 import { Dependency } from "../data/dependency";
 import { LayoutProps, Layout } from "./layout";
 import { cancelReport, pollRunReport, ResponseHasState } from "../utility/compute";
@@ -19,9 +19,11 @@ import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { ValueSelectors } from "../hook/string";
 import { SchemaLayout } from "../utility/schema";
+import { CRouteHelper } from "../utility/route";
+import { ModelState } from "../store/models";
 
 
-export type ReportVisualProps<L> = { data: L };
+export type ReportVisualProps<L> = { data: L, model: ModelState };
 export abstract class ReportVisual<C = unknown, P = unknown, A = unknown, L = unknown> extends Layout<C, P & ReportVisualProps<L>> {
     abstract getConfigFromApiResponse(apiReponse: A): L;
     abstract canShow(apiResponse: A): boolean;
@@ -51,6 +53,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
 
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let modelsWrapper = useContext(CModelsWrapper);
         let formController = useContext(CFormController);
 
@@ -62,13 +65,15 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         let [simulationData, updateSimulationData] = useState(undefined);
 
         let simulationPollingVersionRef = useRef(uuidv4())
+        let [model, updateModel] = useState(undefined);
 
         useEffect(() => {
             updateSimulationData(undefined);
             let pollingVersion = uuidv4();
             simulationPollingVersionRef.current = pollingVersion;
             simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-                pollRunReport({
+                updateModel(models[report]);
+                pollRunReport(routeHelper, {
                     appName,
                     models,
                     simulationId,
@@ -93,7 +98,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {canShow && <LayoutComponent key={simulationPollingVersionRef.current} data={reportVisualConfig}/>}
+                {canShow && <LayoutComponent key={simulationPollingVersionRef.current} data={reportVisualConfig} model={model} />}
                 {!canShow && <ProgressBar animated now={100}/>}
             </>
         )
@@ -146,6 +151,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         let modelsWrapper = useContext(CModelsWrapper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let panelController = useContext(CPanelController);
 
         let reportEventsVersionRef = useRef(uuidv4())
@@ -157,10 +163,12 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         let frameIdAccessor = new ModelsAccessor(modelsWrapper, frameIdDependencies);
 
         let [animationReader, updateAnimationReader] = useState<AnimationReader>(undefined);
+        let [model, updateModel] = useState(undefined);
 
         useEffect(() => {
-            panelController.setShown(false);
-        }, [0])
+            let s = animationReader && animationReader.frameCount > 0 && shown;
+            panelController.setShown(s);
+        }, [shown, animationReader?.frameCount])
 
         useEffect(() => {
             reportEventManager.addListener(reportEventsVersionRef.current, reportGroupName, {
@@ -169,12 +177,12 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                     panelController.setShown(false);
                 },
                 onReportData: (simulationData: ResponseHasState) => {
-                    simulationInfoPromise.then(({simulationId}) => {
+                    simulationInfoPromise.then(({models, simulationId}) => {
                         let { computeJobHash, computeJobSerial } = simulationData;
                         const s = this._reportStatus(reportName, simulationData);
-                        if (s.frameCount !== animationReader?.frameCount) {
+                        if (!animationReader || s.frameCount !== animationReader?.frameCount) {
                             if (s.frameCount > 0) {
-                                let newAnimationReader = new AnimationReader({
+                                let newAnimationReader = new AnimationReader(routeHelper, {
                                     reportName,
                                     simulationId,
                                     appName,
@@ -184,17 +192,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                                     frameCount: s.frameCount,
                                     hasAnimationControls: s.hasAnimationControls,
                                 });
-
-                                /*// if the reader is at the old end or was not previously defined
-                                if(!animationReader || animationReader.nextFrameIndex >= animationReader.frameCount - 1) {
-                                    // seek end
-                                    console.log("seeking end");
-                                    newAnimationReader.seekEnd();
-                                } else {
-                                    console.log(`seeking same; next=${animationReader.nextFrameIndex} oldcount=${animationReader.frameCount} newcount=${newAnimationReader.frameCount}`);
-                                    newAnimationReader.seekFrame(animationReader.nextFrameIndex);
-                                }*/
-
+                                updateModel(models[reportName]) // TODO: needs safe access
                                 updateAnimationReader(newAnimationReader);
                             } else {
                                 updateAnimationReader(undefined);
@@ -203,25 +201,41 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                     })
                 }
             })
-            return () => reportEventManager.clearListenersForKey(reportEventsVersionRef.current);
+            return () => {
+                reportEventManager.clearListenersForKey(reportEventsVersionRef.current)
+            };
         })
 
         // set the key as the key for the latest request sent to make a brand new report component for each new request data
         return (
             <>
-                {this.reportLayout && animationReader && <ReportAnimationController shown={shown} reportLayout={this.reportLayout} animationReader={animationReader}></ReportAnimationController>}
+                {this.reportLayout && 
+                animationReader && 
+                <ReportAnimationController animationReader={animationReader}>
+                    {
+                        (data) => {
+                            let LayoutComponent = this.reportLayout.component;
+                            let canShowReport = this.reportLayout.canShow(data);
+                            let reportLayoutConfig = this.reportLayout.getConfigFromApiResponse(data);
+                            return (
+                                <>
+                                {
+                                    canShowReport && <LayoutComponent data={reportLayoutConfig} model={model}/>
+                                }
+                                </>
+                            )
+                        }
+                    }
+                </ReportAnimationController>
+                }
             </>
         )
     }
 }
 
-export function ReportAnimationController(props: { animationReader: AnimationReader, reportLayout: ReportVisual, shown: boolean}) {
-    let { animationReader, reportLayout, shown } = props;
-
-    let panelController = useContext(CPanelController);
-
+export function ReportAnimationController(props: { animationReader: AnimationReader, children: (data: unknown) => ReactElement }) {
+    let { animationReader } = props;
     let [currentFrame, updateCurrentFrame] = useState<SimulationFrame>(undefined);
-
     let reportDataCallback = (simulationData) => updateCurrentFrame(simulationData);
     let presentationIntervalMs = 1000;
 
@@ -229,11 +243,6 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
         animationReader.seekEnd();
         animationReader.getNextFrame().then(reportDataCallback);
     }, [animationReader?.frameCount])
-
-    useEffect(() => {
-        let s = animationReader && animationReader.frameCount > 0 && shown && !!currentFrame && reportLayout.canShow(currentFrame?.data);
-        panelController.setShown(s);
-    }, [shown, !!currentFrame, animationReader?.frameCount])
 
     let animationControlButtons = (
         <div className="d-flex flex-row justify-content-center w-100 gap-1">
@@ -272,16 +281,14 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
         </div>
     )
 
-    let LayoutComponent = reportLayout.component;
-    let canShowReport = reportLayout.canShow(currentFrame?.data);
-    let reportLayoutConfig = reportLayout.getConfigFromApiResponse(currentFrame?.data);
+    
 
     return (
         <>
             {
-                canShowReport && shown && currentFrame && (
+                currentFrame && (
                     <>
-                        <LayoutComponent data={reportLayoutConfig}/>
+                        {props.children(currentFrame?.data)}
                         {animationReader.getFrameCount() > 1 && animationReader.hasAnimationControls && animationControlButtons}
                     </>
                 )
@@ -313,6 +320,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
 
         let reportEventManager = useContext(CReportEventManager);
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let modelsWrapper = useContext(CModelsWrapper);
         let schema = useContext(CSchema);
@@ -392,7 +400,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
             simulationPollingVersionRef.current = uuidv4();
 
             simulationInfoPromise.then(({simulationId}) => {
-                cancelReport({
+                cancelReport(routeHelper, {
                     appName,
                     models: getModelValues(modelNames, modelsWrapper, store.getState()),
                     simulationId,

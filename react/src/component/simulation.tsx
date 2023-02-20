@@ -16,11 +16,11 @@ import {
 } from "../store/models";
 import { FormStateInitializer } from "./reusable/form";
 import { useNavigate, useResolvedPath } from "react-router-dom";
-import { CRelativeRouterHelper, RouteHelper } from "../utility/route";
+import { CRelativeRouterHelper, CRouteHelper, RelativeRouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";
 import { CReportEventManager } from "../data/report";
 import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
-import { AppWrapper, CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { LAYOUTS } from "../layout/layouts";
 import { ModelsAccessor } from "../data/accessor";
 import { Dependency } from "../data/dependency";
@@ -29,6 +29,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
+import { downloadAs, getAttachmentFileName } from "../utility/download";
 
 export type SimulationInfoRaw = {
     models: ModelStates,
@@ -46,6 +47,7 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
     let appName = useContext(CAppName);
+    let routeHelper = useContext(CRouteHelper);
 
     let modelsWrapper = new ModelsWrapper({
         modelActions,
@@ -54,8 +56,11 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
 
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
-            // TODO: why 0
-            fetch(`/simulation/${appName}/${simulationId}/0/source`).then(async (resp) => {
+            fetch(routeHelper.globalRoute("simulationData", {
+                simulation_type: appName,
+                simulation_id: simulationId,
+                pretty: "0"
+            })).then(async (resp) => {
                 let simulationInfo = await resp.json();
                 let models = simulationInfo['models'] as ModelState[];
 
@@ -80,6 +85,7 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
 
 function SimulationCogMenu(props) {
     let appName = useContext(CAppName);
+    let routeHelper = useContext(CRouteHelper);
     let navigate = useNavigate();
     let simulationInfoPromise = useContext(CSimulationInfoPromise);
 
@@ -88,7 +94,7 @@ function SimulationCogMenu(props) {
     let [hasSimualtionInfo, simulationInfo] = useSetup(true, simulationInfoPromise);
 
     let deleteSimulationPromise = (simulationId: string) => {
-        return fetch(`/delete-simulation`, {
+        return fetch(routeHelper.globalRoute("deleteSimulation"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -103,30 +109,53 @@ function SimulationCogMenu(props) {
     let discardChanges = async () => {
         let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
         await deleteSimulationPromise(simulationId);
-        let newSimulationInfo: SimulationInfoRaw = await (await fetch(`/find-by-name-auth/${appName}/default/${name}`)).json();
-        console.log("simulationInfo", newSimulationInfo);
-        navigate(`/${appName}/${newSimulationInfo.models.simulation.simulationId}`);
+        let newSimulationInfo: SimulationInfoRaw = await (await fetch(routeHelper.globalRoute("findByName", {
+            simulation_type: appName,
+            application_mode: "default", // TODO
+            simulation_name: name as string
+        }))).json();
+        navigate(routeHelper.localRoute("source", {
+            simulationId: newSimulationInfo.models.simulation.simulationId as string
+        }));
     }
 
     let deleteSimulation = async () => {
         let { simulationId } = simulationInfo || await simulationInfoPromise;
         await deleteSimulationPromise(simulationId);
-        navigate(new AppWrapper(appName).getAppRootLink());
+        navigate(routeHelper.localRoute("root"));
     }
 
     let exportArchive = async () => {
         let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
-        window.open(`/export-archive/${appName}/${simulationId}/${name}.zip`, "_blank")
+        window.open(routeHelper.globalRoute("exportArchive", {
+            simulation_type: appName,
+            simulation_id: simulationId,
+            filename: `${name}.zip`
+        }), "_blank")
     }
 
     let pythonSource = async () => {
         let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
-        window.open(`/python-source/${appName}/${simulationId}//${name}`, "_blank")
+        
+        let r = await fetch(routeHelper.globalRoute("pythonSource2", { simulation_type: appName }), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(
+                {
+                    simulationId: simulationId,
+                    name: name
+                }
+            )
+        })
+        downloadAs(await r.blob(), getAttachmentFileName(r));
+
     }
 
     let openCopy = async (newName) => {
-        let { simulationId, models: { simulation: { name, folder }} } = simulationInfo || await simulationInfoPromise;
-        let { models: { simulation: { simulationId: newSimId }} } = await (await fetch('/copy-simulation', {
+        let { simulationId, models: { simulation: { folder }} } = simulationInfo || await simulationInfoPromise;
+        let { models: { simulation: { simulationId: newSimId }} } = await (await fetch(routeHelper.globalRoute("copySimulation"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -138,13 +167,15 @@ function SimulationCogMenu(props) {
                 simulationType: appName
             })
         })).json()
-        navigate(`/${appName}/${newSimId}`);
+        navigate(routeHelper.localRoute("source", {
+            simulationId: newSimId
+        }));
     }
 
     return (
         <>
-            <CopySimulationNamePickerModal 
-            show={showCopyModal} 
+            <CopySimulationNamePickerModal
+            show={showCopyModal}
             defaultName={simulationInfo ? `${simulationInfo.models.simulation.name} 2` : ""}
             onComplete={(name) => {
                 updateShowCopyModal(false);
@@ -162,11 +193,11 @@ function SimulationCogMenu(props) {
                         ) : (
                             <Dropdown.Item onClick={() => deleteSimulation()}><FontAwesomeIcon icon={Icon.faTrash}/> Delete</Dropdown.Item>
                         )
-                    ) 
+                    )
                 }
             </NavToggleDropdown>
         </>
-        
+
     )
 }
 
@@ -199,7 +230,9 @@ function CopySimulationNamePickerModal({show, defaultName, onComplete, onCancel}
 }
 
 function ReportEventManagerInitializer(props) {
-    return <CReportEventManager.Provider value={new ReportEventManager()}>
+    let routeHelper = useContext(CRouteHelper);
+
+    return <CReportEventManager.Provider value={new ReportEventManager(routeHelper)}>
         {props.children}
     </CReportEventManager.Provider>
 }
@@ -207,7 +240,7 @@ function ReportEventManagerInitializer(props) {
 export function SimulationOuter(props) {
 
     let pathPrefix = useResolvedPath('');
-    let currentRelativeRouter = new RouteHelper(pathPrefix);
+    let currentRelativeRouter = new RelativeRouteHelper(pathPrefix);
 
     let modelsWrapper = useContext(CModelsWrapper);
     let simNameDep = new Dependency("simulation.name");
@@ -219,12 +252,9 @@ export function SimulationOuter(props) {
 
     // TODO: navbar should route to home, when one is made
     return (
-        <Container fluid>
-            <CRelativeRouterHelper.Provider value={currentRelativeRouter}>
-                {props.children}
-            </CRelativeRouterHelper.Provider>
-        </Container>
-
+        <CRelativeRouterHelper.Provider value={currentRelativeRouter}>
+            {props.children}
+        </CRelativeRouterHelper.Provider>
     )
 
 }
@@ -246,7 +276,7 @@ export function SimulationRoot(props: {simulationId: string}) {
     });
 
     // TODO: use multiple rows
-    return ( 
+    return (
         <SimulationInfoInitializer simulationId={simulationId}>
             <SimulationOuter>
                 <ReportEventManagerInitializer>
@@ -258,6 +288,6 @@ export function SimulationRoot(props: {simulationId: string}) {
                     </FormStateInitializer>
                 </ReportEventManagerInitializer>
             </SimulationOuter>
-        </SimulationInfoInitializer>    
+        </SimulationInfoInitializer>
     )
 }

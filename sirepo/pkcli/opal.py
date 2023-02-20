@@ -18,17 +18,17 @@ import sirepo.template.opal as template
 
 
 def run(cfg_dir):
-    _run_opal()
+    run_opal()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if "bunchReport" in data.report or data.report == "twissReport":
         template.save_sequential_report_data(data, py.path.local(cfg_dir))
 
 
 def run_background(cfg_dir):
-    _run_opal(with_mpi=True, compute_positions=True)
+    run_opal(with_mpi=True, compute_positions=True)
 
 
-def _run_opal(with_mpi=False, compute_positions=False):
+def run_opal(with_mpi=False, compute_positions=False):
     if with_mpi and sirepo.mpi.cfg().cores < 2:
         with_mpi = False
     if with_mpi:

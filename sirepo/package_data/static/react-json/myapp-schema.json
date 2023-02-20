@@ -4,8 +4,14 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["male", "Male"],
-                    ["female", "Female"]
+                    [
+                        "male",
+                        "Male"
+                    ],
+                    [
+                        "female",
+                        "Female"
+                    ]
                 ]
             }
         },
@@ -13,9 +19,18 @@
             "base": "Enum",
             "config": {
                 "allowedValues": [
-                    ["aggressive", "Aggressive"],
-                    ["friendly", "Friendly"],
-                    ["submissive", "Submissive"]
+                    [
+                        "aggressive",
+                        "Aggressive"
+                    ],
+                    [
+                        "friendly",
+                        "Friendly"
+                    ],
+                    [
+                        "submissive",
+                        "Submissive"
+                    ]
                 ]
             }
         }
@@ -66,7 +81,12 @@
                     "items": [
                         {
                             "layout": "fieldList",
-                            "config": { "name": "simulation", "fields": ["simulation.name"] }
+                            "config": {
+                                "name": "simulation",
+                                "fields": [
+                                    "simulation.name"
+                                ]
+                            }
                         }
                     ]
                 }
@@ -83,89 +103,110 @@
                         "icon": "",
                         "items": [
                             {
-                                "layout": "panel",
+                                "layout": "waterfall",
                                 "config": {
-                                    "title": "Dog",
-                                    "basic": [
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "items": [
                                         {
-                                            "layout": "tabs",
+                                            "layout": "panel",
                                             "config": {
-                                                "tabs": [
+                                                "title": "Dog",
+                                                "basic": [
                                                     {
-                                                        "name": "Physical Characteristics",
-                                                        "items": [
-                                                            {
-                                                                "layout": "fieldTable",
-                                                                "config": {
-                                                                    "columns": ["Height", "Weight"],
-                                                                    "rows": [
+                                                        "layout": "tabs",
+                                                        "config": {
+                                                            "tabs": [
+                                                                {
+                                                                    "name": "Physical Characteristics",
+                                                                    "items": [
                                                                         {
-                                                                            "label": "Size/Shape",
-                                                                            "fields": [
-                                                                                "dog.height",
-                                                                                "dog.weight"
-                                                                            ]
+                                                                            "layout": "fieldTable",
+                                                                            "config": {
+                                                                                "columns": [
+                                                                                    "Height",
+                                                                                    "Weight"
+                                                                                ],
+                                                                                "rows": [
+                                                                                    {
+                                                                                        "label": "Size/Shape",
+                                                                                        "fields": [
+                                                                                            "dog.height",
+                                                                                            "dog.weight"
+                                                                                        ]
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "layout": "fieldList",
+                                                                            "config": {
+                                                                                "fields": [
+                                                                                    "dog.breed"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "name": "Personality",
+                                                                    "items": [
+                                                                        {
+                                                                            "layout": "fieldList",
+                                                                            "config": {
+                                                                                "fields": [
+                                                                                    "dog.disposition",
+                                                                                    "dog.favoriteTreat"
+                                                                                ]
+                                                                            }
                                                                         }
                                                                     ]
                                                                 }
-                                                            },
-                                                            {
-                                                                "layout": "fieldList",
-                                                                "config": {
-                                                                    "fields": ["dog.breed"]
-                                                                }
-                                                            }
-                                                        ]
-                                                    },
+                                                            ]
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
                                                     {
-                                                        "name": "Personality",
-                                                        "items": [
-                                                            {
-                                                                "layout": "fieldList",
-                                                                "config": {
-                                                                    "fields": [
-                                                                        "dog.disposition",
-                                                                        "dog.favoriteTreat"
-                                                                    ]
-                                                                }
-                                                            }
-                                                        ]
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "dog.breed",
+                                                                "dog.gender",
+                                                                "dog.weight",
+                                                                "dog.height"
+                                                            ]
+                                                        }
                                                     }
                                                 ]
                                             }
-                                        }
-                                    ],
-                                    "advanced": [
+                                        },
                                         {
-                                            "layout": "fieldList",
+                                            "layout": "panel",
                                             "config": {
-                                                "fields": [
-                                                    "dog.breed",
-                                                    "dog.gender",
-                                                    "dog.weight",
-                                                    "dog.height"
+                                                "title": "Physical Characteristics",
+                                                "basic": [
+                                                    {
+                                                        "layout": "autoRunReport",
+                                                        "config": {
+                                                            "report": "heightWeightReport",
+                                                            "dependencies": [
+                                                                "dog.*"
+                                                            ],
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
                                                 ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "layout": "panel",
-                                "config": {
-                                    "title": "Physical Characteristics",
-                                    "basic": [
-                                        {
-                                            "layout": "autoRunReport",
-                                            "config": {
-                                                "report": "heightWeightReport",
-                                                "dependencies": [
-                                                    "dog.*"
-                                                ],
-                                                "reportLayout": {
-                                                    "layout": "graph2d",
-                                                    "config": {}
-                                                }
                                             }
                                         }
                                     ]

@@ -7,3 +7,10 @@ export function downloadAs(blob: Blob, fileName: string) {
     aElement.click();
     URL.revokeObjectURL(href);
 }
+
+
+export function getAttachmentFileName(response: Response) {
+    let pattern = /filename=["]?([\w.\-_]+)["]?/g
+    let match = pattern.exec(response.headers.get('content-disposition'));
+    return match[1];
+}

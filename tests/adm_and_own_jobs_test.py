@@ -111,8 +111,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
 
     def _login_as_user(user):
         fc.sr_logout()
-        r = fc.sr_post("authEmailLogin", {"email": user, "simulationType": t})
-        fc.sr_email_confirm(fc, r)
+        fc.sr_email_login(user, sim_type=t)
 
     def _make_user_adm(uid):
         from sirepo.pkcli import roles
@@ -124,16 +123,11 @@ def test_srw_user_see_only_own_jobs(auth_fc):
         pkunit.pkeq(r[0], uid, "Expected same uid as user")
 
     def _register_both_users():
-        r = fc.sr_post("authEmailLogin", {"email": adm_user, "simulationType": t})
-        fc.sr_email_confirm(fc, r)
-        fc.sr_post(
-            "authCompleteRegistration",
-            {"displayName": "abc", "simulationType": t},
-        )
-        fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
-        _make_user_adm(fc.sr_auth_state().uid)
-        r = fc.sr_post("authEmailLogin", {"email": non_adm_user, "simulationType": t})
-        fc.sr_email_confirm(fc, r, "xyz")
+        fc.sr_email_login(adm_user, sim_type=t)
+        u = fc.sr_uid
+        fc.sr_logout()
+        _make_user_adm(u)
+        fc.sr_email_login(non_adm_user, sim_type=t)
 
     fc = auth_fc
     t = "srw"

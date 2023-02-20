@@ -10,6 +10,32 @@
         }
     },
     "constants": {
+        "alignmentTools": [
+            {
+                "title": "Center Horizontal",
+                "type": "centerX"
+            },
+            {
+                "title": "Center Vertical",
+                "type": "centerY"
+            },
+            {
+                "title": "Align Left",
+                "type": "alignLeft"
+            },
+            {
+                "title": "Align Right",
+                "type": "alignRight"
+            },
+            {
+                "title": "Align Top",
+                "type": "alignTop"
+            },
+            {
+                "title": "Align Bottom",
+                "type": "alignBottom"
+            }
+        ],
         "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
         "dataDownloads": {
             "_default": [
@@ -34,16 +60,6 @@
                     "suffix": "sdds"
                 }
             ]
-        },
-        "detailFields": {
-            "fieldPath": {
-                "axisPath": ["start", "stop"],
-                "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
-                "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
-                "filePath": ["fileName"],
-                "linePath": ["begin", "end"],
-                "manualPath": ["ptX", "ptY", "ptZ"]
-            }
         },
         "fileTypeHM": "h-m",
         "fileTypePathPts": "path-pts",
@@ -318,12 +334,12 @@
             ["stl", "STL"]
         ],
         "PathType": [
-            ["axis", "Axis"],
-            ["line", "Line"],
-            ["circle", "Circle"],
-            ["manual", "Manual Group"],
-            ["file", "File"],
-            ["fieldMap", "Field Map"]
+            ["axisPath", "Axis"],
+            ["linePath", "Line"],
+            ["circlePath", "Circle"],
+            ["manualPath", "Manual Group"],
+            ["filePath", "File"],
+            ["fieldMapPath", "Field Map"]
         ],
         "SolveMethod": [
             ["0", "0"],
@@ -383,7 +399,7 @@
             "axis": ["Axis", "BeamAxis", "z"],
             "start": ["Start", "Float", -10.0, "Start point"],
             "stop": ["End", "Float", 10.0, "End point"],
-            "type": ["_", "PathType", "axis"]
+            "type": ["_", "PathType", "axisPath"]
         },
         "cuboid": {
             "_super": ["_", "model", "geomObject"],
@@ -401,14 +417,11 @@
         },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
-            "ctrX": ["Center x (mm)", "Float", 0.0],
-            "ctrY": ["Center y (mm)", "Float", 0.0],
-            "ctrZ": ["Center z (mm)", "Float", 0.0],
+            "center": ["Center [mm]", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
+            "eulers": ["Euler Angles", "FloatArray", [0, 0], "", ["\uD835\uDFB1", "\uD835\uDFBF"]],
             "radius": ["Radius", "Float", 10.0],
-            "theta": ["\uD835\uDFB1", "Float", 0.0, "Euler 2", -3.14159, 3.14159],
-            "phi": ["\uD835\uDFBF", "Float", 0.0, "Euler 3", 0.0, 6.2832],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
-            "type": ["_", "PathType", "circle"]
+            "type": ["_", "PathType", "circlePath"]
         },
         "cloneTransform": {
             "_super": ["_", "model", "transform"],
@@ -681,7 +694,7 @@
         },
         "extrudedPoints": {
             "_super": ["_", "model", "extrudedPoly"],
-            "pointsFile": ["File", "InputFile", "", "", false],
+            "pointsFile": ["File", "InputFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns", false],
             "referencePoints": ["Points", "Points", []],
             "type": ["_", "ObjectType", "extrudedPoints"]
         },
@@ -707,29 +720,37 @@
         "fieldIntegralReport": {
             "lastCalculated": ["_", "Integer", -1]
         },
+        "fieldLineoutAnimation": {
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "fieldType": ["Field", "FieldType", "B"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""]
+        },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
-            "ctrX": ["Center x (mm)", "Float", 0.0],
-            "ctrY": ["Center y (mm)", "Float", 0.0],
-            "ctrZ": ["Center z (mm)", "Float", 0.0],
-            "lenX": ["X length (mm)", "Float", 1.0, "", 0],
-            "lenY": ["Y length (mm)", "Float", 1.0, "", 0],
-            "lenZ": ["Z length (mm)", "Float", 1.0, "", 0],
+            "center": ["Center [mm]", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
+            "size": ["Size [mm]", "FloatArray", [1, 1, 1], "", ["x", "y", "z"]],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
-            "type": ["_", "PathType", "fieldMap"]
+            "type": ["_", "PathType", "fieldMapPath"]
         },
         "fieldPath": {
             "id": ["_", "RandomId", ""],
             "name": ["Name", "String", ""]
         },
         "fieldPaths": {
-            "path": ["Path", "PathType", "line"]
+            "paths": ["", "ModelArrayTable", [], "", ["axisPath" ,"linePath", "circlePath", "fieldMapPath", "filePath"]]
         },
         "filePath": {
             "_super": ["_", "model", "fieldPath"],
             "fileModel": ["File", "PtsFile", ""],
             "fileName": ["File Name", "String", ""],
-            "type": ["_", "PathType", "file"]
+            "type": ["_", "PathType", "filePath"]
         },
         "geometryReport": {
             "doGenerate": ["_", "Boolean", "1"],
@@ -741,7 +762,7 @@
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
-            "members": ["_", "Group", []],
+            "members": ["", "Group", []],
             "model": ["_", "String", "geomGroup"],
             "type": ["_", "String", "geomGroup"]
         },
@@ -755,7 +776,7 @@
             "modifications": ["", "ModelArrayTable", [], "", ["objectBevel", "objectFillet"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
-            "materialFile": ["Tabulated H-B from File", "HMFile", "", "H, B (T)"],
+            "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Shape Type", "ObjectType", "cuboid"],
             "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]]
@@ -793,7 +814,7 @@
             "begin": ["Start", "FloatArray", [-10.0, 0, 0], "Start point", ["x", "y", "z"]],
             "end": ["End", "FloatArray", [10.0, 0, 0], "End point", ["x", "y", "z"]],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
-            "type": ["_", "PathType", "line"]
+            "type": ["_", "PathType", "linePath"]
         },
         "magnetDisplay": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
@@ -807,7 +828,7 @@
             "ptX": ["x [mm]", "Float", 0.0],
             "ptY": ["y [mm]", "Float", 0.0],
             "ptZ": ["z [mm]", "Float", 0.0],
-            "type": ["_", "PathType", "manual"]
+            "type": ["_", "PathType", "manualPath"]
         },
         "material": {
             "density": ["Density", "Float", 1.0],
@@ -912,18 +933,6 @@
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "stl"],
             "file": ["STL File", "InputFile", ""]
-        },
-        "fieldLineoutAnimation": {
-            "fieldPaths": ["Path", "FieldPaths", []],
-            "fieldType": ["Field", "FieldType", "B"],
-            "inProgressText": ["_", "String", "Calculating"],
-            "plotAxis": ["Plot Axis", "BeamAxis", "z"],
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
-            "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchCores": ["Cores", "Integer", 1],
-            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "spatialTransform": {
             "_super": ["_", "model", "transform"]
@@ -1065,6 +1074,12 @@
                 "start",
                 "stop",
                 "numPoints"
+            ],
+            "advanced": [
+                "axis",
+                "start",
+                "stop",
+                "numPoints"
             ]
         },
         "circlePath": {
@@ -1077,6 +1092,13 @@
                 "radius",
                 "theta",
                 "phi",
+                "numPoints"
+            ],
+            "advanced": [
+                "name",
+                "center",
+                "radius",
+                "eulers",
                 "numPoints"
             ]
         },
@@ -1191,27 +1213,31 @@
             "title": "Field Map",
             "basic": [
                 "name",
-                "ctrX",
-                "ctrY",
-                "ctrZ",
-                "lenX",
-                "lenY",
-                "lenZ",
+                "center",
+                "size",
+                "numPoints"
+            ],
+            "advanced": [
+                "name",
+                "center",
+                "size",
                 "numPoints"
             ]
         },
         "fieldPaths": {
             "title": "Field Paths",
             "basic": [
-                "path"
+                "paths"
             ],
-            "advanced": [
-                "path"
-            ]
+            "advanced": []
         },
         "filePath": {
             "title": "File",
             "basic": [
+                "name",
+                "fileModel"
+            ],
+            "advanced": [
                 "name",
                 "fileModel"
             ]
@@ -1302,6 +1328,12 @@
                 "begin",
                 "end",
                 "numPoints"
+            ],
+            "advanced": [
+                "name",
+                "begin",
+                "end",
+                "numPoints"
             ]
         },
         "magnetDisplay": {
@@ -1323,6 +1355,12 @@
         "manualPath": {
             "title": "Manual",
             "basic": [
+                "name",
+                "ptX",
+                "ptY",
+                "ptZ"
+            ],
+            "advanced": [
                 "name",
                 "ptX",
                 "ptY",
