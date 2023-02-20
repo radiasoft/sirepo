@@ -411,7 +411,7 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ac
     };
 
     self.imageToImage = () => {
-        var info = appState.models.columnInfo
+        var info = appState.models.columnInfo;
         var idx = info.inputOutput.indexOf('output');
         return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
     };

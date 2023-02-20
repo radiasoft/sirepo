@@ -492,6 +492,7 @@ model = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
 
+
 def _build_ui_nn(model):
     return _set_children(_set_outbound(_set_inbound(model, _make_layers(model))))
 
@@ -1093,13 +1094,15 @@ def _image_preview(data, run_dir=None):
         for idx in range(len(info.header)):
             if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
                 return PKDict(path=info.header[idx])
-        raise AssertionError(f"No matching dimension found output size: {io.output.size}")
+        raise AssertionError(
+            f"No matching dimension found output size: {io.output.size}"
+        )
 
     def _segment(out_width):
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-        x = x.reshape(len(x)//out_width//out_width, out_width, out_width)
+        x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-        y = y.reshape(len(y)//out_width//out_width, out_width, out_width)
+        y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
         return x, y
 
     def _x_y(data, io, file):
@@ -1109,14 +1112,14 @@ def _image_preview(data, run_dir=None):
 
     def _grid(x, info):
         if _image_to_image(info):
-            return [_SEGMENT_ROWS]*_SEGMENT_PAGES
+            return [_SEGMENT_ROWS] * _SEGMENT_PAGES
         return _image_grid(len(x))
 
     def _set_image_to_image_plt(plt, data):
         _, a = plt.subplots(3, 2)
         if data.args.method == "segmentViewer":
-            a[0, 0].set_title('actual')
-            a[0, 1].set_title('prediction')
+            a[0, 0].set_title("actual")
+            a[0, 1].set_title("prediction")
         plt.setp(a, xticks=[], yticks=[])
         return a
 
@@ -1133,7 +1136,9 @@ def _image_preview(data, run_dir=None):
         if len(params.file[params.io.output.path].shape) == 1:
             if "label_path" in params.io.output:
                 params.plt.xlabel(
-                    pkcompat.from_bytes(params.file[params.io.output.label_path][params.output])
+                    pkcompat.from_bytes(
+                        params.file[params.io.output.label_path][params.output]
+                    )
                 )
             else:
                 params.plt.xlabel(params.output)
@@ -1168,7 +1173,9 @@ def _image_preview(data, run_dir=None):
         g = _grid(x, info)
         for i in g:
             plt.figure(figsize=[10, 10])
-            axarr = _set_image_to_image_plt(plt, data) if _image_to_image(info) else None
+            axarr = (
+                _set_image_to_image_plt(plt, data) if _image_to_image(info) else None
+            )
             for j in range(i):
                 v = x[k + j]
                 if io.input.kind == "f":
@@ -1177,7 +1184,7 @@ def _image_preview(data, run_dir=None):
                     PKDict(
                         info=info,
                         axes=axarr,
-                        output=y[k +j],
+                        output=y[k + j],
                         input=v,
                         plt=plt,
                         file=f,
