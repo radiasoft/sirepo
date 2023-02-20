@@ -1096,17 +1096,16 @@ def _image_preview(data, run_dir=None):
                 return PKDict(path=info.header[idx])
         raise AssertionError(f"No matching dimension found output size: {io.output.size}")
 
-    def _segment():
-        # TODO (gurhar1133): unhardcode 64?
+    def _segment(out_width):
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-        x = x.reshape(len(x)//64//64, 64, 64)
+        x = x.reshape(len(x)//out_width//out_width, out_width, out_width)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-        y = y.reshape(len(y)//64//64, 64, 64)
+        y = y.reshape(len(y)//out_width//out_width, out_width, out_width)
         return x, y
 
     def _x_y(data, io, file):
         if data.args.method == "segmentViewer":
-            return _segment()
+            return _segment(numpy.array(file[io.output.path]).shape[-1])
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):
