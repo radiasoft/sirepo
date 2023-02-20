@@ -18,6 +18,7 @@ import re
 import shutil
 import signal
 import sirepo.modules
+import sirepo.nersc
 import sirepo.tornado
 import socket
 import subprocess
@@ -751,7 +752,6 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
-        import sirepo.nersc
 
         def _processor():
             if self.msg.sbatchQueue == "debug" and pkconfig.channel_in("dev"):
