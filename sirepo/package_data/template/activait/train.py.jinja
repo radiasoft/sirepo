@@ -65,5 +65,5 @@ p = _predictions_final(o.p, o.testy)
 p = model.predict(x=testx)
 {% endif %}
 model.save('{{ weightedFile }}')
-np.save('{{ testFile }}', o.testy)
+np.save('{{ testFile }}', {% if image_data %}o.testy{% else %}testy{% endif %})
 np.save('{{ predictFile }}', p)
