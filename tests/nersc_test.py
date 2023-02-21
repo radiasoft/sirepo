@@ -4,18 +4,32 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+import sirepo.util
+from pykern.pkcollections import PKDict
 
 
-def test_nersc_project(fc):
+def test_nersc_project(monkeypatch):
     from sirepo import nersc
     from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
 
-    _NO_SUCH_PROJECT = "NOT_" + nersc.VALID_TEST_ACCOUNT
+    _VALID_PROJECT = "VALID_TEST_PROJECT"
+    _NO_SUCH_PROJECT = "NOT_" + _VALID_PROJECT
 
-    with pkexcept(nersc.invalid_project_msg(_NO_SUCH_PROJECT)):
+    mock_output = PKDict()
+    mock_output[_VALID_PROJECT] = PKDict(
+        stdout=""
+    )
+    mock_output[_NO_SUCH_PROJECT] = PKDict(
+        stdout=nersc.ACCOUNT_NOT_FOUND
+    )
+
+    monkeypatch.setattr(nersc, "_hpssquota", lambda p: mock_output[p])
+
+    with pkexcept(sirepo.util.UserAlert):
         nersc.sbatch_project_option(_NO_SUCH_PROJECT)
 
     pkeq(
-        nersc.sbatch_account(nersc.VALID_TEST_ACCOUNT),
-        nersc.sbatch_project_option(nersc.VALID_TEST_ACCOUNT),
+        nersc.sbatch_account(_VALID_PROJECT),
+        nersc.sbatch_project_option(_VALID_PROJECT),
     )
+

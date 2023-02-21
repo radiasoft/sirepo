@@ -11,25 +11,15 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 
 
-_ACCOUNT_NOT_FOUND = "no such fileset"
-
-VALID_TEST_ACCOUNT = "VALID_TEST_ACCOUNT"
+ACCOUNT_NOT_FOUND = "no such fileset"
 
 
 def sbatch_project_option(project):
     if not project:
         return ""
-    res = (
-        _test_res(project)
-        if pkconfig.channel_in_internal_test()
-        else subprocess.run(
-            ("hpssquota", project),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-    )
-    assert not re.search(_ACCOUNT_NOT_FOUND, res.stdout), invalid_project_msg(project)
+    res = _hpssquota(project)
+    if re.search(ACCOUNT_NOT_FOUND, res.stdout):
+        raise sirepo.util.UserAlert(f"Account {project} not found on NERSC")
     return sbatch_account(project)
 
 
@@ -41,5 +31,11 @@ def invalid_project_msg(project):
     return f"sbatchProject={project} is invalid"
 
 
-def _test_res(project):
-    return PKDict(stdout="" if project == VALID_TEST_ACCOUNT else _ACCOUNT_NOT_FOUND)
+def _hpssquota(project):
+    return subprocess.run(
+        ("hpssquota", project),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
