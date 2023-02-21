@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['ApM1', 'M1', 'M1_Watchpoint', 'Watchpoint', 'ApKB', 'VFM', 'VFM_HFM', 'HFM', 'HFM_Sample', 'Sample']
+        names = ['ApM1', 'M1', 'M1_Watchpoint', 'ApKB', 'VFM', 'VFM_HFM', 'HFM', 'HFM_Sample']
     for el_name in names:
         if el_name == 'ApM1':
             # ApM1: aperture 270.0m
@@ -51,9 +51,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_M1_Watchpoint_L,
             ))
             pp.append(v.op_M1_Watchpoint_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 928.3m
-            pass
         elif el_name == 'ApKB':
             # ApKB: aperture 928.3m
             el.append(srwlib.SRWLOptA(
@@ -131,9 +128,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_HFM_Sample_L,
             ))
             pp.append(v.op_HFM_Sample_pp)
-        elif el_name == 'Sample':
-            # Sample: watch 930.0m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -396,7 +390,7 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['ApM1','M1','M1_Watchpoint','Watchpoint','ApKB','VFM','VFM_HFM','HFM','HFM_Sample','Sample']
+    names = ['ApM1','M1','M1_Watchpoint','ApKB','VFM','VFM_HFM','HFM','HFM_Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'

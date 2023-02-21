@@ -132,7 +132,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_DCM_C2_At_BPM1_pp)
         elif el_name == 'At_BPM1':
             # At_BPM1: watch 38.6904m
-            pass
         elif el_name == 'At_BPM1_Before_SSA':
             # At_BPM1_Before_SSA: drift 38.6904m
             el.append(srwlib.SRWLOptD(
@@ -141,7 +140,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_At_BPM1_Before_SSA_pp)
         elif el_name == 'Before_SSA':
             # Before_SSA: watch 50.6572m
-            pass
         elif el_name == 'SSA':
             # SSA: aperture 50.6572m
             el.append(srwlib.SRWLOptA(
@@ -226,7 +224,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_KBH_At_Sample_pp)
         elif el_name == 'At_Sample':
             # At_Sample: watch 63.3m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 

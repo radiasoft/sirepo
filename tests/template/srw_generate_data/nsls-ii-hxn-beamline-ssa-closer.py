@@ -131,7 +131,6 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'After_HFM':
             # After_HFM: watch 32.64m
-            pass
         elif el_name == 'After_HFM_CRL1':
             # After_HFM_CRL1: drift 32.64m
             el.append(srwlib.SRWLOptD(
@@ -178,7 +177,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_CRL2_Before_SSA_pp)
         elif el_name == 'Before_SSA':
             # Before_SSA: watch 61.75m
-            pass
         elif el_name == 'SSA':
             # SSA: aperture 61.75m
             el.append(srwlib.SRWLOptA(
@@ -198,7 +196,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_SSA_Before_FFO_pp)
         elif el_name == 'Before_FFO':
             # Before_FFO: watch 109.0m
-            pass
         elif el_name == 'AFFO':
             # AFFO: aperture 109.0m
             el.append(srwlib.SRWLOptA(
@@ -227,7 +224,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_FFO_At_Sample_pp)
         elif el_name == 'At_Sample':
             # At_Sample: watch 109.018147m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 

@@ -201,7 +201,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_SSA_ES1_pp)
         elif el_name == 'ES1':
             # ES1: watch 50.9m
-            pass
         elif el_name == 'ES1_CRL':
             # ES1_CRL: drift 50.9m
             el.append(srwlib.SRWLOptD(
@@ -232,7 +231,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_CRL_ES2_pp)
         elif el_name == 'ES2':
             # ES2: watch 59.0m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 

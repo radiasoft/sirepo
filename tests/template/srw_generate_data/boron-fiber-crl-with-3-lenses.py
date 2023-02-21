@@ -42,9 +42,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_CRL_Watchpoint_L,
             ))
             pp.append(v.op_CRL_Watchpoint_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 70.1915m
-            pass
         elif el_name == 'Fiber':
             # Fiber: fiber 70.1915m
             el.append(srwlib.srwl_opt_setup_cyl_fiber(
@@ -65,9 +62,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_Fiber_Watchpoint_L,
             ))
             pp.append(v.op_Fiber_Watchpoint_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 70.85m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
