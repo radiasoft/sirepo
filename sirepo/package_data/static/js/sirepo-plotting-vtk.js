@@ -1962,6 +1962,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.isClientOnly = true;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
             $scope.settings = appState.models.threeDBuilder;
+            $scope.snapGridSizes = appState.enumVals('SnapGridSize');
+            srdbg($scope.snapGridSizes);
             $scope.width = $scope.height = 0;
 
             let didDrag = false;

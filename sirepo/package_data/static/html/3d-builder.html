@@ -7,11 +7,7 @@
         <div class="sr-pull-right-sm" style="vertical-align: middle;">
           <label><input type="checkbox" data-ng-model="settings.snapToGrid"> Snap center to grid</label>
           <select data-ng-model="settings.snapGridSize" data-ng-disabled="! settings.snapToGrid">
-              <option value="0.1">0.1mm</option>
-              <option value="0.5">0.5mm</option>
-              <option value="1" selected>1mm</option>
-              <option value="5" >5mm</option>
-              <option value="10" >10mm</option>
+              <option data-ng-repeat="s in snapGridSizes" value="{{ s }}">{{ s }}mm</option>
           </select>
           <label><input type="checkbox" data-ng-model="settings.autoFit"> Auto-fit</label>
           <div data-toggle="tooltip" title="Fit to objects" class="btn btn-default" style="margin: 2px;" data-ng-click="fitToShapes()">Fit</div>
