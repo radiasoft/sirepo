@@ -262,7 +262,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             o.size[(i + j + 1) % 3] = 2.0 * o.radius;
         }
         appState.saveQuietly('cylinder');
-    }
+    };
 
     self.updateExtruded = (o, callback) => {
         o.layoutShape = 'polygon';
@@ -299,6 +299,17 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             appState.models[c] = model;
         }
         return s;
+    };
+
+    self.updateRaceTrack = o => {
+        let s = [0, 0, 0];
+        const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
+        s[i] = o.height;
+        for (const j of [0, 1]) {
+            s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
+        }
+        o.size = s;
+        appState.saveQuietly('racetrack');
     };
 
     self.upload = function(inputFile) {
@@ -869,17 +880,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     $scope.$on('modelChanged', function(e, modelName) {
 
-        function updateRaceTrack(o) {
-            let s = [0, 0, 0];
-            const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
-            s[i] = o.height;
-            for (const j of [0, 1]) {
-                s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
-            }
-            o.size = s;
-            appState.saveQuietly('racetrack');
-        }
-
         if (! watchedModels.includes(modelName)) {
             return;
         }
@@ -895,7 +895,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             }
             if (o.type === 'racetrack') {
-                updateRaceTrack(o);
+                radiaService.updateRaceTrack(o);
             }
             if (o.type === 'cylinder') {
                 radiaService.updateCylinder(o);
