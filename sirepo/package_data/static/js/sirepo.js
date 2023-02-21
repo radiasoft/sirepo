@@ -3573,6 +3573,9 @@ SIREPO.app.controller('LoginWithController', function (authState, errorService, 
     else if (m == 'email') {
         // handled by the emailLogin directive
     }
+    else if (m == 'ldap') {
+        // created ldapLogin directive
+    }
     else {
         self.msg = '';
         errorService.alertText('Incorrect or invalid login method: ' + (m || '<none>'));
