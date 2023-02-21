@@ -7,9 +7,6 @@
 import re
 import subprocess
 import sirepo.util
-from pykern import pkconfig
-from pykern.pkcollections import PKDict
-
 
 ACCOUNT_NOT_FOUND = "no such fileset"
 
