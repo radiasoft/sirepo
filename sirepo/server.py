@@ -149,13 +149,11 @@ class API(sirepo.quest.API):
                 simulation_db.generate_json(self.parse_json(), pretty=True),
             )
         except Exception as e:
-            pkdlog(
-                "ip={}: error parsing javascript exception={} input={}",
-                ip,
-                e,
-                self.sreq.internal_req.data
-                and self.sreq.internal_req.data.decode("unicode-escape"),
-            )
+            try:
+                b = self.sreq.body_as_bytes().decode("unicode-escape")
+            except Exception as e:
+                b = f"error={e}"
+            pkdlog("ip={}: error parsing javascript exception={} input={}", ip, e, b)
         return self.reply_ok()
 
     @sirepo.quest.Spec(
@@ -280,22 +278,16 @@ class API(sirepo.quest.API):
         f = None
 
         try:
-            f = self.sreq.internal_req.files.get("file")
-            if not f:
-                raise sirepo.util.Error(
-                    "must supply a file",
-                    "no file in request={}",
-                    self.sreq.internal_req.data,
-                )
+            f = self.sreq.form_file_get()
             req = self.parse_params(
                 filename=f.filename,
-                folder=self.sreq.internal_req.form.get("folder"),
-                id=self.sreq.internal_req.form.get("simulationId"),
+                folder=self.sreq.form_get("folder", None),
+                id=self.sreq.form_get("simulationId", None),
                 template=True,
                 type=simulation_type,
             )
-            req.file_stream = f.stream
-            req.import_file_arguments = self.sreq.internal_req.form.get("arguments", "")
+            req.form_file = f
+            req.import_file_arguments = self.sreq.form_get("arguments", "")
 
             def s(data):
                 data.models.simulation.folder = req.folder
@@ -303,12 +295,12 @@ class API(sirepo.quest.API):
                 return self._save_new_and_reply(req, data)
 
             if pkio.has_file_extension(req.filename, "json"):
-                data = importer.read_json(req.file_stream.read(), self, req.type)
+                data = importer.read_json(req.form_file.as_bytes(), self, req.type)
             # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
             # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, "zip"):
                 data = importer.read_zip(
-                    req.file_stream.read(), self, sim_type=req.type
+                    req.form_file.as_bytes(), self, sim_type=req.type
                 )
             else:
                 if not hasattr(req.template, "import_file"):
@@ -382,6 +374,41 @@ class API(sirepo.quest.API):
             content_type="application/json",
         )
 
+    @sirepo.quest.Spec(
+        "require_user",
+        simulation_id="SimId",
+        model="Model optional",
+        title="DownloadNamePostfix optional",
+    )
+    def api_exportJupyterNotebook2(self, simulation_type):
+        def _filename(req):
+            res = d.models.simulation.name
+            if req.title:
+                res += "-" + sirepo.srschema.parse_name(req.title)
+            return res + ".ipynb"
+
+        def _data(req):
+            f = getattr(req.template, "export_jupyter_notebook", None)
+            if not f:
+                raise sirepo.util.NotFound(f"API not supported for tempate={req.type}")
+            return f(
+                simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self),
+                qcall=self,
+            )
+
+        req = self.parse_post(
+            type=simulation_type,
+            id=True,
+            template=True,
+            compute_model=PKDict(optional=True, name="model"),
+            title=PKDict(optional=True, name="title"),
+        )
+        return self.reply_attachment(
+            _data(req),
+            filename=_filename(req),
+            content_type="application/json",
+        )
+
     @sirepo.quest.Spec("require_user", folder="FolderName", name="SimName")
     def api_newSimulation(self):
         req = self.parse_post(template=True, folder=True, name=True)
@@ -416,8 +443,33 @@ class API(sirepo.quest.API):
         ).constants.simulationSourceExtension
         return self.reply_attachment(
             req.template.python_source_for_model(d, model=m, qcall=self),
-            "{}.{}".format(
+            filename="{}.{}".format(
                 d.models.simulation.name + ("-" + title if title else ""),
+                "madx" if m == "madx" else suffix,
+            ),
+        )
+
+    @sirepo.quest.Spec(
+        "require_user",
+        simulation_id="SimId",
+        model="ComputeModelName optional",
+        title="DownloadNamePostfix optional",
+    )
+    def api_pythonSource2(self, simulation_type):
+        req = self.parse_post(
+            type=simulation_type,
+            id=True,
+            template=True,
+            compute_model=PKDict(optional=True, name="model"),
+            title=PKDict(optional=True, name="title"),
+        )
+        m = "compute_model" in req and req.sim_data.parse_model(req.compute_model)
+        d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
+        suffix = simulation_db.get_schema(req.type).constants.simulationSourceExtension
+        return self.reply_attachment(
+            req.template.python_source_for_model(d, model=m, qcall=self),
+            "{}.{}".format(
+                d.models.simulation.name + ("-" + req.title if "title" in req else ""),
                 "madx" if m == "madx" else suffix,
             ),
         )
@@ -441,7 +493,7 @@ class API(sirepo.quest.API):
         return self.reply(content=_ROBOTS_TXT, content_type="text/plain")
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo")
-    def api_root(self, path_info):
+    def api_root(self, path_info=None):
         from sirepo import template
 
         self._proxy_react(path_info)
@@ -538,7 +590,7 @@ class API(sirepo.quest.API):
         return self.reply_json(
             simulation_db.get_schema(
                 self.parse_params(
-                    type=self.sreq.internal_req.form["simulationType"],
+                    type=self.sreq.form_get("simulationType", "simulationType-missing"),
                 ).type,
             ),
         )
@@ -616,7 +668,7 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     def api_uploadFile(self, simulation_type, simulation_id, file_type):
-        f = self.sreq.internal_req.files["file"]
+        f = self.sreq.form_file_get()
         req = self.parse_params(
             file_type=file_type,
             filename=f.filename,
@@ -628,14 +680,14 @@ class API(sirepo.quest.API):
         in_use = None
         with simulation_db.tmp_dir(qcall=self) as d:
             t = d.join(req.filename)
-            f.save(str(t))
+            t.write_binary(f.as_bytes())
             if hasattr(req.template, "validate_file"):
                 # Note: validate_file may modify the file
                 e = req.template.validate_file(req.file_type, t)
             if (
                 not e
                 and req.sim_data.lib_file_exists(req.filename, qcall=self)
-                and not self.sreq.internal_req.form.get("confirm")
+                and not self.sreq.form_get("confirm", False)
             ):
                 in_use = _simulations_using_file(req, ignore_sim_id=req.id)
                 if in_use:
@@ -718,6 +770,15 @@ def init_apis(*args, **kwargs):
     pass
 
 
+def init_tornado(uwsgi=None, use_reloader=False, is_server=False):
+    """Initialize globals and create/upgrade db"""
+    _init_proxy_react()
+    from sirepo import auth_db
+
+    with sirepo.quest.start() as qcall:
+        qcall.auth_db.create_or_upgrade()
+
+
 def init_app(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     import flask
@@ -732,7 +793,6 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
         static_folder=None,
     )
     _app.sirepo_uwsgi = uwsgi
-    _app.sirepo_use_reloader = use_reloader
     _init_proxy_react()
     sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
     sirepo.flask.app_set(_app)

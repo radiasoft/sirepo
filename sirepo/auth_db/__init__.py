@@ -150,12 +150,7 @@ class _AuthDb(sirepo.quest.Attr):
                 f" type={column_type} to table={t}",
             )
             return
-        self._execute_sql(
-            "ALTER TABLE :t ADD :col :ct",
-            t=t,
-            col=column,
-            ct=column_type,
-        )
+        self._execute_sql(f"ALTER TABLE {t} ADD {column} {column_type}")
 
     def all_uids(self):
         return list(self.model("UserRegistration").search_all_for_column("uid"))
@@ -184,6 +179,9 @@ class _AuthDb(sirepo.quest.Attr):
     def destroy(self, commit=False, **kwargs):
         self._commit_or_rollback(commit=commit)
 
+    def drop_table(self, old):
+        self._execute_sql(f"DROP TABLE IF EXISTS {old}")
+
     def execute(self, statement):
         return self.session().execute(
             statement.execution_options(synchronize_session="fetch")
@@ -210,11 +208,7 @@ class _AuthDb(sirepo.quest.Attr):
         return self.session().query(*(_class(m) for m in models))
 
     def rename_table(self, old, new):
-        self._execute_sql(
-            f"ALTER TABLE :old RENAME TO :new",
-            old=old,
-            new=new,
-        )
+        self._execute_sql(f"ALTER TABLE {old} RENAME TO {new}")
 
     def session(self):
         if self._orm_session is None:
@@ -234,5 +228,5 @@ class _AuthDb(sirepo.quest.Attr):
             s.rollback()
         s.close()
 
-    def _execute_sql(self, text, **kwargs):
-        return self.execute(sqlalchemy.text(text + ";"), **kwargs)
+    def _execute_sql(self, text):
+        return self.execute(sqlalchemy.text(text + ";"))

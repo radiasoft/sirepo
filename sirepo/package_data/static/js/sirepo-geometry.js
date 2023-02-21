@@ -120,6 +120,15 @@ class GeometryUtils {
     }
 
     /**
+     * Get the indices of the given axis and the two axes in BASIS that comes after it axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {[number]}
+     */
+    static axisIndices(axis) {
+        return ([axis, ...GeometryUtils.nextAxes(axis)]).map(x => GeometryUtils.BASIS().indexOf(x));
+    }
+
+    /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
      * @param {string} dim - the dimension in which to sort (x|y|z)
@@ -129,6 +138,16 @@ class GeometryUtils {
     static extrema(points, dim, doReverse = false) {
         const arr = GeometryUtils.sortInDimension(points, dim, doReverse);
         return arr.filter(p =>  p[dim] === arr[0][dim]);
+    }
+
+    /**
+     * Get the two axes in BASIS that comes after the given axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {[string]}
+     */
+    static nextAxes(axis) {
+        const w = GeometryUtils.nextAxis(axis);
+        return [w, GeometryUtils.nextAxis(w)];
     }
 
     /**
@@ -153,6 +172,24 @@ class GeometryUtils {
 
     static nextAxisIndices(dim) {
         return GeometryUtils.nextAxes(dim).map(x => GeometryUtils.BASIS().indexOf(x));
+    }
+
+    /**
+     * Get the index of the axis in BASIS that comes after the given axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {number}
+     */
+    static nextAxisIndex(axis) {
+        return GeometryUtils.BASIS().indexOf(GeometryUtils.nextAxis(axis));
+    }
+
+    /**
+     * Get the indices of the two axes in BASIS that comes after the given axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {[number]}
+     */
+    static nextAxisIndices(axis) {
+        return GeometryUtils.nextAxes(axis).map(x => GeometryUtils.BASIS().indexOf(x));
     }
 
     /**

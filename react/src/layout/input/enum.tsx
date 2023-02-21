@@ -1,11 +1,13 @@
 import React, { ChangeEventHandler, useContext, useEffect, useState } from "react";
-import { FunctionComponent } from "react";
-import { Form } from "react-bootstrap";
-import { CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
-import { pollStatefulCompute } from "../../utility/compute";
+import { AppWrapper, CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
+import { CFormController } from "../../data/formController";
 import { CRouteHelper } from "../../utility/route";
-import { LayoutProps } from "../layout";
+import { Dependency } from "../../data/dependency";
+import { Form } from "react-bootstrap";
+import { FunctionComponent } from "react";
 import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
+import { LayoutProps } from "../layout";
+import { pollStatefulCompute } from "../../utility/compute";
 
 export type EnumAllowedValues = { value: string, displayName: string }[]
 
@@ -17,90 +19,125 @@ export type EnumConfig = {
     allowedValues: EnumAllowedValues
 } & InputConfigBase
 
-export class EnumInputLayout extends InputLayout<EnumConfig, string, string> {
-    constructor(config: EnumConfigRaw) {
-        let newConfig = {
-            ...config,
-            allowedValues: config.allowedValues.map((v) => { return { value: v[0], displayName: v[1] }})
-        }
-        super(newConfig);
-    }
+abstract class EnumInputBaseLayout<C extends EnumConfig = any> extends InputLayout<C, string, string> {
 
-    toModelValue: (value: string) => string = (v) => v;
-    fromModelValue: (value: string) => string = (v) => v;
+    toModelValue: (value: string) => string = v => v;
+    fromModelValue: (value: string) => string = v => v;
 
     validate: (value: string) => boolean = (value: string) => {
-        return (!this.config.isRequired) || (this.hasValue(value) && this.config.allowedValues.filter(av => av.value == value).length > 0);
+        return ( ! this.config.isRequired) || (
+            this.hasValue(value) && this.config.allowedValues.some(v => v.value === value)
+        );
     };
 
-    component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
-        const options = this.config.allowedValues.map(allowedValue => (
-            <option key={allowedValue.value} value={allowedValue.value}>{allowedValue.displayName}</option>
-        ));
-
-        let onChange: ChangeEventHandler<HTMLSelectElement> = (event) => {
+    formElement(props) {
+        const onChange: ChangeEventHandler<HTMLSelectElement> = event => {
             props.onChange(event.target.value);
         }
-
-        let { valid, touched, ...otherProps } = props;
-
-        return <Form.Select {...otherProps} size="sm" onChange={onChange} isInvalid={!valid && touched}>
-            {options}
+        const options = this.config.allowedValues.map(v => (
+            <option key={v.value} value={v.value}>
+                {v.displayName}
+            </option>
+        ));
+        return <Form.Select {...props} size="sm" onChange={onChange}>
+            { options }
         </Form.Select>
+    }
+
+    component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = props => {
+        return this.formElement(props)
+    }
+}
+
+export class EnumInputLayout extends EnumInputBaseLayout<EnumConfig> {
+    constructor(config: EnumConfigRaw) {
+        super({
+            ...config,
+            allowedValues: config.allowedValues.map(v => ({ value: v[0], displayName: v[1] })),
+        });
     }
 }
 
 export type ComputeResultEnumConfig = {
     computeMethod: string,
-    resultName: string
-} & InputConfigBase
+    resultName: string,
+    keyName: string,
+    displayName: string
+} & EnumConfig
 
-export class ComputeResultEnumInputLayout extends InputLayout<ComputeResultEnumConfig, string, string> {
+export class ComputeResultEnumInputLayout extends EnumInputBaseLayout<ComputeResultEnumConfig> {
+
     constructor(config) {
-        super(config);
+        super({
+            ...config,
+            allowedValues: [],
+        });
     }
 
-    fromModelValue: (value: string) => string = (v) => v;
-    toModelValue: (value: string) => string = (v) => v;
-
-    validate: (value: string) => boolean = (v) => {
-        // TODO: implement when working example of this input is available
-        return true;
-    };
-
-    component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
-        let appName = useContext(CAppName);
-        let simulationInfoPromise = useContext(CSimulationInfoPromise);
-        let routeHelper = useContext(CRouteHelper);
-
-        let [optionList, updateOptionList] = useState(undefined);
-
+    component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = props => {
+        const appName = useContext(CAppName);
+        const simulationInfoPromise = useContext(CSimulationInfoPromise);
+        const routeHelper = useContext(CRouteHelper);
+        const [optionList, updateOptionList] = useState(undefined);
         useEffect(() => {
-            let enumOptionsPromise = new Promise((resolve, reject) => {
+            let enumOptionsPromise = new Promise<any>((resolve, reject) => {
                 simulationInfoPromise.then(({simulationId, version}) => {
                     pollStatefulCompute(routeHelper, {
                         method: this.config.computeMethod,
                         appName,
                         simulationId,
-                        callback: (respObj) => {
-                            let result = respObj[this.config.resultName];
-                            resolve(result);
+                        callback: respObj => {
+                            resolve(respObj[this.config.resultName]);
                         }
                     })
                 })
             })
-
-            enumOptionsPromise.then(result => updateOptionList(result));
+            enumOptionsPromise.then(result => updateOptionList(
+                (result || []).map(v => ({
+                    value: v[this.config.keyName],
+                    displayName: v[this.config.displayName],
+                })),
+            ));
         }, [])
+        this.config.allowedValues = optionList || [];
+        return this.formElement(props)
+    }
+}
 
-        let {valid, touched, ...otherProps} = props;
+export class SimulationListEnumInputLayout extends EnumInputBaseLayout<EnumConfig> {
 
-        let onChange: ChangeEventHandler<HTMLSelectElement> = (event) => {
-            props.onChange(event.target.value);
-        }
+    constructor(config) {
+        super({
+            ...config,
+            allowedValues: [],
+        });
+    }
 
-        // TODO: this is more of a mock element since this does not have
-        // a working example right now
-        return <Form.Select {...otherProps} onChange={onChange} isInvalid={!valid && touched}></Form.Select>
+    component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
+        const routeHelper = useContext(CRouteHelper);
+        const [optionList, updateOptionList] = useState(undefined);
+        const formController = useContext(CFormController);
+        //TODO(pjm): these 2 lines are specific to the omega app but could be generalized
+        const suffix = props.dependency.fieldName.match(/_\d+/);
+        const simType = formController.getFormStateAccessor().getFieldValue(new Dependency(
+            `simWorkflow.simType${suffix}`)).value as string;
+        useEffect(() => {
+            if (! simType) {
+                return;
+            }
+            new AppWrapper(simType, routeHelper).getSimulationList().then(list => {
+                updateOptionList([
+                    {
+                        value: "",
+                        displayName: "",
+                    },
+                ].concat((list || []).map(v => ({
+                    value: v.simulationId,
+                    displayName: v.name,
+                }))));
+            });
+        }, [simType])
+        this.config.allowedValues = optionList || [];
+        return this.formElement(props);
     }
 }
