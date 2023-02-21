@@ -8,15 +8,15 @@ import re
 import subprocess
 import sirepo.util
 
-ACCOUNT_NOT_FOUND = "no such fileset"
+_PROJECT_NOT_FOUND = "no such fileset"
 
 
 def sbatch_project_option(project):
     if not project:
         return ""
     res = _hpssquota(project)
-    if re.search(ACCOUNT_NOT_FOUND, res.stdout):
-        raise sirepo.util.UserAlert(f"Account {project} not found on NERSC")
+    if re.search(_PROJECT_NOT_FOUND, res.stdout):
+        raise sirepo.util.UserAlert(f"Project {project} not found on NERSC")
     return f"#SBATCH --account={project}"
 
 
