@@ -320,6 +320,8 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _Dx=1e6,
                 _Dy=1e6,
             ))
+            {% elif item.name not in ('Sample', 'Watchpoint') %}
+            pass
             {% endif %}
 {% elif item.type == 'zonePlate' %}
             el.append(srwlib.SRWLOptZP(
