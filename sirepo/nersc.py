@@ -24,10 +24,6 @@ def sbatch_account(project):
     return f"#SBATCH --account={project}"
 
 
-def invalid_project_msg(project):
-    return f"sbatchProject={project} is invalid"
-
-
 def _hpssquota(project):
     return subprocess.run(
         ("hpssquota", project),
@@ -35,4 +31,3 @@ def _hpssquota(project):
         stderr=subprocess.STDOUT,
         text=True,
     )
-

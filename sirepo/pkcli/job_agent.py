@@ -752,7 +752,6 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
-
         def _processor():
             if self.msg.sbatchQueue == "debug" and pkconfig.channel_in("dev"):
                 return "knl"
