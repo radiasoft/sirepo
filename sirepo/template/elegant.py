@@ -1141,19 +1141,17 @@ def _build_filename_map_from_util(util, update_filenames=True):
     return util.iterate_models(OutputFileIterator(update_filenames)).result
 
 
-def _extract_report_data(filename, frame_args, page_count=0):
-    def _label(plot, sdds_units):
-        if plot.label in _FIELD_LABEL:
-            plot.label = _FIELD_LABEL[plot.label]
-            return
-        if sdds_units in _SIMPLE_UNITS:
-            plot.label = "{} [{}]".format(plot.label, sdds_units)
-            return
-        plot.label = plot.label
-        return
+def _extract_report_data(xFilename, frame_args, page_count=0):
+    def _label(field, units):
+        if field in _FIELD_LABEL:
+            return _FIELD_LABEL[field]
+        if units in _SIMPLE_UNITS:
+            return "{} [{}]".format(field, units)
+        return field
 
     def _title(xfield, yfield, page_index, page_count):
         title_key = xfield + "-" + yfield
+        title = ""
         if title_key in _PLOT_TITLE:
             title = _PLOT_TITLE[title_key]
         else:
@@ -1162,43 +1160,66 @@ def _extract_report_data(filename, frame_args, page_count=0):
             title += ", Plot {} of {}".format(page_index + 1, page_count)
         return title
 
-    plot_attrs = PKDict(
-        format_plot=_label,
-        page_index=frame_args.frameIndex,
-        model=template_common.model_from_frame_args(frame_args),
-        x_field=frame_args.x if "x" in frame_args else frame_args[_X_FIELD],
-    )
     _sdds_init()
-    if (
-        plot_attrs.x_field not in plot_attrs.model
-        or plot_attrs.model[plot_attrs.x_field] == "none"
-    ):
-        plot_attrs.model[plot_attrs.x_field] = plot_attrs.x_field
-
-    if not _is_histogram_file(
-        filename,
-        sdds_util.extract_sdds_column(
-            filename, plot_attrs.model[plot_attrs.x_field], plot_attrs.page_index
-        )["column_names"],
-    ):
-        if page_count > 1:
-            plot_attrs.pkupdate(
-                title="Plot {} of {}".format(plot_attrs.page_index + 1, page_count)
-            )
-
-        return sdds_util.SDDSUtil(filename).lineplot(plot_attrs=plot_attrs)
-
-    y_field = "y1" if "y1" in frame_args else "y"
-    return sdds_util.SDDSUtil(filename).heatmap(
-        plot_attrs=plot_attrs.pkupdate(
-            title=_title(
-                plot_attrs.x_field,
-                frame_args[y_field],
-                plot_attrs.page_index,
-                page_count,
-            ),
-            y_field=y_field,
+    page_index = frame_args.frameIndex
+    xfield = frame_args.x if "x" in frame_args else frame_args[_X_FIELD]
+    # x, column_names, x_def, err
+    x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
+    if x_col["err"]:
+        return x_col["err"]
+    x = x_col["values"]
+    if not _is_histogram_file(xFilename, x_col["column_names"]):
+        # parameter plot
+        plots = []
+        filename = PKDict(
+            y1=xFilename,
+            # TODO(pjm): y2Filename, y3Filename are not currently used. Would require rescaling x value across files.
+            y2=xFilename,
+            y3=xFilename,
         )
+        for f in ("y1", "y2", "y3"):
+            if (
+                re.search(r"^none$", frame_args[f], re.IGNORECASE)
+                or frame_args[f] == " "
+            ):
+                continue
+            yfield = frame_args[f]
+            y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
+            if y_col["err"]:
+                return y_col["err"]
+            y = y_col["values"]
+            plots.append(
+                PKDict(
+                    field=yfield,
+                    points=y,
+                    label=_label(yfield, y_col["column_def"][1]),
+                )
+            )
+        title = ""
+        if page_count > 1:
+            title = "Plot {} of {}".format(page_index + 1, page_count)
+        return template_common.parameter_plot(
+            x,
+            plots,
+            frame_args,
+            PKDict(
+                title=title,
+                y_label="",
+                x_label=_label(xfield, x_col["column_def"][1]),
+            ),
+        )
+    yfield = frame_args["y1"] if "y1" in frame_args else frame_args["y"]
+    y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
+    if y_col["err"]:
+        return y_col["err"]
+    return template_common.heatmap(
+        [x, y_col["values"]],
+        frame_args,
+        PKDict(
+            x_label=_label(xfield, x_col["column_def"][1]),
+            y_label=_label(yfield, y_col["column_def"][1]),
+            title=_title(xfield, yfield, page_index, page_count),
+        ),
     )
 
 
