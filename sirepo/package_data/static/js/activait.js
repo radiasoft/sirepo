@@ -415,7 +415,7 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ac
         var idx = info.inputOutput.indexOf('output');
         if (! info.shape) {
             return false;
-        };
+        }
         return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
     };
 
