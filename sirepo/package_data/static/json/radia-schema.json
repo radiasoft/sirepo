@@ -282,6 +282,11 @@
             ["", "None"],
             ["pln", "Planar"]
         ],
+        "Elevation": [
+            ["front", "front"],
+            ["side", "side"],
+            ["top", "top"]
+        ],
         "FieldScaling": [
             ["uniform", "Uniform"],
             ["linear", "Linear"],
@@ -430,6 +435,12 @@
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "ModelArrayTable", [], "", ["rotateClone", "translateClone"]],
             "type": ["_", "TransformTypes", "cloneTransform"]
+        },
+        "designerParams": {
+            "autoFit": ["", "Bool", true],
+            "elevation": ["_", "Elevation", "front"],
+            "snapToGrid": ["_", "Bool", false],
+            "snapGridSize": ["_", "Float", "1.0"]
         },
         "dipoleBasic": {
             "_super": ["_", "model", "radiaObject"],
