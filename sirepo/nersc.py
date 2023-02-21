@@ -17,10 +17,6 @@ def sbatch_project_option(project):
     res = _hpssquota(project)
     if re.search(ACCOUNT_NOT_FOUND, res.stdout):
         raise sirepo.util.UserAlert(f"Account {project} not found on NERSC")
-    return sbatch_account(project)
-
-
-def sbatch_account(project):
     return f"#SBATCH --account={project}"
 
 

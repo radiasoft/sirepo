@@ -18,13 +18,9 @@ def test_nersc_project(monkeypatch):
     mock_output = PKDict()
     mock_output[_VALID_PROJECT] = PKDict(stdout="")
     mock_output[_NO_SUCH_PROJECT] = PKDict(stdout=nersc.ACCOUNT_NOT_FOUND)
-
     monkeypatch.setattr(nersc, "_hpssquota", lambda p: mock_output[p])
 
     with pkexcept(sirepo.util.UserAlert):
         nersc.sbatch_project_option(_NO_SUCH_PROJECT)
 
-    pkeq(
-        nersc.sbatch_account(_VALID_PROJECT),
-        nersc.sbatch_project_option(_VALID_PROJECT),
-    )
+    pkre(_VALID_PROJECT, nersc.sbatch_project_option(_VALID_PROJECT))
