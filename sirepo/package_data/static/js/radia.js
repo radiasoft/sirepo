@@ -860,6 +860,29 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     loadObjectViews();
 
     $scope.$on('modelChanged', function(e, modelName) {
+
+        function updateCylinder(o) {
+            let s = [0, 0, 0];
+            const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
+            s[i] = o.height;
+            for (const j of [0, 1]) {
+                s[(i + j + 1) % 3] = 2.0 * o.radius;
+            }
+            o.size = s;
+            appState.saveQuietly('cylinder');
+        }
+
+        function updateRaceTrack(o) {
+            let s = [0, 0, 0];
+            const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
+            s[i] = o.height;
+            for (const j of [0, 1]) {
+                s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
+            }
+            o.size = s;
+            appState.saveQuietly('racetrack');
+        }
+
         if (! watchedModels.includes(modelName)) {
             return;
         }
@@ -875,15 +898,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             }
             if (o.type === 'racetrack') {
-                // calculate the size
-                let s = [0, 0, 0];
-                const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
-                s[i] = o.height;
-                for (const j of [0, 1]) {
-                    s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
-                }
-                o.size = s;
-                appState.saveQuietly('racetrack');
+                //updateRaceTrack(o);
+            }
+            if (o.type === 'cylinder') {
+                updateCylinder(o);
             }
             if (o.materialFile) {
                 o.hmFileName = o.materialFile.name;
