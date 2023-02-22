@@ -52,11 +52,14 @@ class GeometryUtils {
         if (points[0].dimension === 3) {
             b.z = [Number.MAX_VALUE, -Number.MAX_VALUE];
         }
+        srdbg('b b4', SIREPO.UTILS.copyInstance(b));
         const ex = GeometryUtils.extrema;
         for (const dim in b) {
+            srdbg(dim, ex(points, dim, true)[0][dim], '->', ex(points, dim, false)[0][dim]);
             b[dim] = [ex(points, dim, true)[0][dim], ex(points, dim, false)[0][dim]];
         }
-        srdbg('r?', useRadius, 'b', useRadius ? GeometryUtils.boundsRadius(b) : b);
+        //srdbg('r?', useRadius, 'b', useRadius ? GeometryUtils.boundsRadius(b) : b);
+        srdbg('b', b, 'brr', GeometryUtils.boundsRadius(b));
         return useRadius ? GeometryUtils.boundsRadius(b) : b;
     }
 
