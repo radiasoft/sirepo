@@ -311,6 +311,11 @@
             "histogramBins": ["Histogram Bins", "Integer", 30],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
+        "diceCoefficentReport": {
+            "columnNumber": ["Column Number", "Integer", 0],
+            "histogramBins": ["Histogram Bins", "Integer", 30],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
         "fitReport": {},
         "hiddenReport": {},
         "knnClassification": {
@@ -626,6 +631,10 @@
         },
         "fitAnimation": {
             "title": "Column",
+            "advanced": []
+        },
+        "diceCoefficentReport": {
+            "title": "dice report",
             "advanced": []
         },
         "flatten": {

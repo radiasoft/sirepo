@@ -26,15 +26,20 @@
         <div data-model-download-link="" data-model-name="mlModel"></div>
       </div>
     </div>
-    <div class="clearfix"></div>
-    <div class="col-md-6 col-xxl-4" data-ng-if="regression.imageToImage()">
-      <div data-basic-editor-panel="" data-view-name="segmentViewer">
-        <div data-image-preview-panel="" data-method="segmentViewer"></div>
-      </div>
-    </div>
-    <div data-ng-repeat="report in regression.reports track by report.columnNumber">
-      <div class="col-md-3 col-xxl-2">
-        <div data-report-panel="heatmap" data-model-name="fitAnimation" data-model-data="report.data" data-panel-title="{{ report.title }}"></div>
+      <div class="container" data-ng-repeat="report in regression.reports track by report.columnNumber">
+        <div class="row">
+          <div class="col-md-6 col-xxl-4">
+            <div data-basic-editor-panel="" data-view-name="segmentViewer" data-ng-if="regression.imageToImage()">
+              <div data-image-preview-panel="" data-method="segmentViewer"></div>
+            </div>
+          </div>
+          <div class="col-md-6 col-xxl-4">
+            <div data-report-panel="parameter" data-ng-if="regression.imageToImage()" data-model-name="diceCoefficientReport" data-model-data="report.data" data-panel-title="Dice Coefficient"></div>
+          </div>
+          <div class="col-md-6 col-xxl-4">
+            <div data-report-panel="heatmap" data-model-name="fitAnimation" data-model-data="report.data" data-panel-title="{{ report.title }}"></div>
+          <div data-ng-if="$index % 4 == 3" class="clearfix"></div>
+          </div>
       </div>
       <div data-ng-if="$index % 4 == 3" class="clearfix"></div>
     </div>
