@@ -108,9 +108,9 @@ def _apply_clone(g_id, xform):
     total_xform = radia.TrfTrsl([0, 0, 0])
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
-        if cxf.model == "translateClone":
+        if cxf.type == "translate":
             total_xform = radia.TrfCmbL(total_xform, radia.TrfTrsl(cxf.distance))
-        if cxf.model == "rotateClone":
+        if cxf.type == "rotate":
             total_xform = radia.TrfCmbL(
                 total_xform,
                 radia.TrfRot(

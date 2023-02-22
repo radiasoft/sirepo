@@ -29,6 +29,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
+import { downloadAs, getAttachmentFileName } from "../utility/download";
 
 export type SimulationInfoRaw = {
     models: ModelStates,
@@ -135,11 +136,21 @@ function SimulationCogMenu(props) {
 
     let pythonSource = async () => {
         let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
-        window.open(routeHelper.globalRoute("pythonSource", {
-            simulation_type: appName,
-            simulation_id: simulationId,
-            name: name as string
-        }), "_blank")
+        
+        let r = await fetch(routeHelper.globalRoute("pythonSource2", { simulation_type: appName }), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(
+                {
+                    simulationId: simulationId,
+                    name: name
+                }
+            )
+        })
+        downloadAs(await r.blob(), getAttachmentFileName(r));
+
     }
 
     let openCopy = async (newName) => {

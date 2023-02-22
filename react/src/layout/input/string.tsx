@@ -11,10 +11,7 @@ export class StringInputLayout extends InputLayout<StringInputConfig, string> {
         let onChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> = (event) => {
             props.onChange(event.target.value);
         }
-
-        let { valid, touched, ...otherProps } = props;
-
-        return <Form.Control size="sm" className={this.config.align} type="text" {...otherProps} onChange={onChange} isInvalid={!valid && touched}></Form.Control>
+        return <Form.Control size="sm" className={this.config.align} type="text" {...props} onChange={onChange}></Form.Control>
     }
 
     validate = (value: string) => {

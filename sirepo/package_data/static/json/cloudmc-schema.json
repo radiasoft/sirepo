@@ -20,6 +20,11 @@
         }
     },
     "enum": {
+        "Axis": [
+            ["x", "x"],
+            ["y", "y"],
+            ["z", "z"]
+        ],
         "BinSpace": [
             ["linear", "Linear"],
             ["log", "Logarithmic"]
@@ -270,7 +275,8 @@
             "_type": ["", "TallyFilter"]
         },
         "geometryInput": {
-            "dagmcFile": ["DAGMC file", "InputFile", ""]
+            "dagmcFile": ["DAGMC file", "InputFile", ""],
+            "exampleURL": ["", "String", ""]
         },
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
@@ -429,6 +435,20 @@
             "filter5": ["Filter", "Filter", {"_type": "None"}],
             "scores": ["Scores", "SimpleListEditor", [], "", "tallyScore"],
             "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"]
+        },
+        "tallyReport": {
+            "axis": ["Axis", "Axis", "y"],
+            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "horizontalAxis": ["_", "Axis", "z"],
+            "horizontalTrim": ["Trim", "FloatArray", []],
+            "planePos": ["_", "Range", 0.0, ""],
+            "verticalAxis": ["_", "Axis", "x"],
+            "xDisplayMin": ["Min X", "Float", -1e100],
+            "xDisplayMax": ["Max X", "Float", 1e100],
+            "yDisplayMin": ["Min Y", "Float", -1e100],
+            "yDisplayMax": ["Max Y", "Float", 1e100],
+            "zDisplayMin": ["Min Z", "Float", -1e100],
+            "zDisplayMax": ["Max Z", "Float", 1e100]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -721,6 +741,10 @@
                     "nuclides"
                 ]]
             ]
+        },
+        "tallyReport": {
+            "advanced": [],
+            "basic": []
         },
         "tallyScore": {
             "advanced": [

@@ -21,6 +21,8 @@ def test_login():
 
         r = qcall.call_api("authState")
         pkre('LoggedIn": false.*Registration": false', r.content_as_str())
+        r.destroy()
+        r = None
         with pkunit.pkexcept("SRException.*routeName=login"):
             qcall.auth.logged_in_user()
         with pkexcept("SRException.*routeName=login"):

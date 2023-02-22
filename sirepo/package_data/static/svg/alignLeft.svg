@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="32.054" height="32" viewBox="0, 0, 32.054, 32">
+  <g id="Layer_1" transform="translate(-122.915, -197.231)">
+    <g id="Align_Left">
+      <path d="M123.915,199.231 L123.915,227.231" fill-opacity="0" stroke="#000000" stroke-width="0.75" stroke-dasharray="2.25,1.5" id="Axis"/>
+      <g id="Magnets">
+        <g id="Magnet">
+          <path d="M152.284,200.008 L152.284,209.925 L125.694,209.925 L125.694,200.008 L152.284,200.008 z" fill="#97B6D5"/>
+          <path d="M146.966,209.925 L146.966,216.537 L125.694,216.537 L125.694,209.925 L146.966,209.925 z" fill="#526374"/>
+          <path d="M152.284,216.537 L152.284,226.454 L125.694,226.454 L125.694,216.537 L152.284,216.537 z" fill="#97B6D5"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,7 +1,29 @@
+from pykern.pkdebug import pkdc, pkdp, pkdlog
 import csv
 
+_ENCODINGS = ("cp1252", "utf-8", "utf-8-sig")
 
-def open_csv(path):
-    with open(str(path)) as f:
+
+def open_csv(path, encoding="utf-8"):
+    with open(str(path), "rt", encoding=encoding) as f:
         for r in csv.reader(f):
             yield r
+
+
+def read_as_number_list(path):
+    try:
+        return read_as_list(path, data_type=float)
+    except ValueError as e:
+        raise RuntimeError(f'invalid file "{path.basename}" err={e}')
+
+
+def read_as_list(path, data_type=str):
+    for e in _ENCODINGS:
+        try:
+            res = []
+            for r in open_csv(path, encoding=e):
+                res.append([data_type(c) for c in r])
+            return res
+        except (TypeError, UnicodeDecodeError, ValueError):
+            pkdlog("file={} cannot be read with encoding {}", path.basename, e)
+    raise RuntimeError(f'invalid file "{path.basename}"')

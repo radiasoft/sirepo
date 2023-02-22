@@ -109,5 +109,16 @@ def parse_post(qcall, kwargs):
         and not simulation_db.sim_data_file(res.type, res.id, qcall=qcall).exists()
     ):
         raise sirepo.util.NotFound("type={} sid={} does not exist", res.type, res.id)
+    for k in list(kwargs.keys()):
+        if isinstance(kwargs[k], PKDict):
+            s = kwargs.pkdel(k)
+            n = s["name"] if "name" in s else k
+            v = r[n] if n in r else None
+            assert (
+                v is not None or "optional" in s and s["optional"] == True
+            ), "required param={} missing in post={}".format(k, r)
+            if v is not None:
+                res[n] = v
+
     assert not kwargs, "unexpected kwargs={}".format(kwargs)
     return res
