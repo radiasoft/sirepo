@@ -653,8 +653,13 @@ SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $inte
             'tooltip': '@',
         },
         template: `
-            <label><span data-text-with-math="label"></span>&nbsp;<span data-sr-tooltip="{{ tooltip }}"></span></label>
+            <label><span data-text-with-math="label" data-is-dynamic="isDynamic()"></span>&nbsp;<span data-sr-tooltip="{{ tooltip }}"></span></label>
         `,
+        controller: function($scope) {
+            $scope.isDynamic = () => {
+                return ! ! $scope.label.match(/{{\s*.+\s*}}/);
+            }
+        },
     };
 });
 

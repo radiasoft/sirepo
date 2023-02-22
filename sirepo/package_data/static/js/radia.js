@@ -3317,6 +3317,71 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     return self;
 });
 
+SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
+
+    const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
+    let editedModels = [];
+    const parent = $scope.$parent;
+
+    $scope.watchFields = [
+        [
+            'racetrack.axis',
+        ], updateObjectEditor
+    ];
+
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+        editedModels = radiaService.updateModelAndSuperClasses($scope.modelData.type, $scope.modelData);
+        updateObjectEditor();
+    };
+
+    $scope.$on('modelChanged', (e, modelName) => {
+        if (! editedModels.includes(modelName)) {
+            return;
+        }
+    });
+
+
+    function modelField(f) {
+        const m = appState.parseModelField(f);
+        return m ? m : [parent.modelName, f];
+    }
+
+    function updateShapes() {
+        radiaService.saveGeometry(true, false, () => {
+            ctl.loadObjectViews();
+            $rootScope.$broadcast('shapes.loaded');
+        });
+    }
+
+    function updateObjectEditor() {
+        const o = $scope.modelData;
+        if (! o) {
+            return;
+        }
+
+        const axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
+        [appState.models[$scope.modelName].planeAxis1, appState.models[$scope.modelName].planeAxis2]  = SIREPO.GEOMETRY.GeometryUtils.nextAxes($scope.modelData.axis);
+        srdbg(appState.models[$scope.modelName].axis, appState.models[$scope.modelName].planeAxis1, appState.models[$scope.modelName].planeAxis2);
+        const modelType = o.type;
+        parent.activePage.items.forEach((f) => {
+            const m = modelField(f);
+            const hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;
+            panelState.showField(
+                m[0],
+                m[1],
+                hasField || appState.isSubclass(modelType, m[0])
+            );
+        });
+        $scope.$applyAsync();
+    }
+
+
+    const self = {};
+    self.getBaseObject = () => $scope.modelData;
+    return self;
+});
+
 for(const m of ['Dipole', 'Undulator']) {
     for (const d of SIREPO.APP_SCHEMA.enum[`${m}Type`]) {
         SIREPO.viewLogic(`${d[0]}View`, function(appState, panelState, radiaService, validationService, $scope) {
