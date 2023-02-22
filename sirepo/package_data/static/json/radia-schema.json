@@ -10,6 +10,32 @@
         }
     },
     "constants": {
+        "alignmentTools": [
+            {
+                "title": "Center Horizontal",
+                "type": "centerX"
+            },
+            {
+                "title": "Center Vertical",
+                "type": "centerY"
+            },
+            {
+                "title": "Align Left",
+                "type": "alignLeft"
+            },
+            {
+                "title": "Align Right",
+                "type": "alignRight"
+            },
+            {
+                "title": "Align Top",
+                "type": "alignTop"
+            },
+            {
+                "title": "Align Bottom",
+                "type": "alignBottom"
+            }
+        ],
         "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
         "dataDownloads": {
             "_default": [
@@ -736,7 +762,7 @@
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
-            "members": ["_", "Group", []],
+            "members": ["", "Group", []],
             "model": ["_", "String", "geomGroup"],
             "type": ["_", "String", "geomGroup"]
         },

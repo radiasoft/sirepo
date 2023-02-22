@@ -38,15 +38,29 @@ class Elevation {
         this.labDimensions = {
             x: {
                 axis: this.coordPlane[0],
+                axisIndex: SIREPO.GEOMETRY.GeometryUtils.axisIndex(this.coordPlane[0]),
             },
             y: {
                 axis: this.coordPlane[1],
+                axisIndex: SIREPO.GEOMETRY.GeometryUtils.axisIndex(this.coordPlane[1]),
             }
         };
     }
 
     labAxis(dim) {
         return this.labDimensions[dim].axis;
+    }
+
+    labAxes() {
+        return [this.labAxis('x'), this.labAxis('y')];
+    }
+
+    labAxisIndex(dim) {
+        return this.labDimensions[dim].axisIndex;
+    }
+
+    labAxisIndices() {
+        return [this.labAxisIndex('x'), this.labAxisIndex('y')];
     }
 }
 
@@ -1943,6 +1957,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             const objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
             const invObjScale = 1.0 / objectScale;
 
+            $scope.alignmentTools = SIREPO.APP_SCHEMA.constants.alignmentTools;
             $scope.autoFit = true;
             $scope.elevation = 'front';
             $scope.isClientOnly = true;
@@ -2058,7 +2073,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 // need to split the shapes up by type or the data will get mismatched
                 let layouts = {};
                 LAYOUT_SHAPES.forEach(l=> {
-                    const norm = 'xyz'.replace(new RegExp('[' + elevation.coordPlane + ']', 'g'), '');
                     layouts[l] = shapes
                         .filter(s => s.layoutShape === l)
                         .sort((s1, s2) => s2.z - s1.z)
@@ -2389,6 +2403,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
+            $scope.align = (o, alignType) => {
+                $scope.source.align(o, alignType, getElevation().labAxisIndices());
+            };
+
             $scope.copyObject = function(o) {
                 $scope.source.copyObject(o);
             };
@@ -2476,9 +2494,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 replot();
             };
 
-            $scope.isDropEnabled = function() {
-                return $scope.source.isDropEnabled();
-            };
+            $scope.isDropEnabled = () => $scope.source.isDropEnabled();
+
+            $scope.isGroup = obj => $scope.source.isGroup(obj);
 
             $scope.plotHeight = function() {
                 var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
@@ -2505,9 +2523,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.$watchGroup(['snapToGrid', 'snapGridSize'], refresh);
-            $scope.$on('shapes.loaded', () => {
-                drawShapes();
-            });
+            $scope.$on('shapes.loaded', drawShapes);
 
         },
         link: function link(scope, element) {

@@ -3059,6 +3059,78 @@ SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
     };
 });
 
+SIREPO.app.directive('ldapLogin', function (requestSender, errorService) {
+    return {
+        restrict: 'A',
+        scope: {
+            email: '@',
+            password: '@',
+        },
+        template: `
+            <form class="form-horizontal" autocomplete="off" novalidate>
+              <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                  <p>Enter your LDAP login</p>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label">Email</label>
+                <div class="col-sm-10">
+                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="email"/>
+                </div>
+                <label class="col-sm-2 control-label">Password</label>
+                <div class="col-sm-10">
+                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="password"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                  <div data-disable-after-click="">
+                    <button data-ng-click="login()" class="btn btn-primary">Continue</button>
+                  </div>
+                  <div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                </div>
+              </div>
+            </form>
+        `,
+        controller: function ($scope) {
+            function handleResponse(data) {
+                if (data.state == 'ok') {
+                    showWarning(data.form_error);
+                }
+                else {
+                    showWarning('Server reported an error, please contact support@sirepo.com.');
+                }
+            }
+
+            function showWarning(msg) {
+                $scope.showWarning = true;
+                $scope.warningText = msg;
+                $scope.$broadcast('sr-clearDisableAfterClick');
+            }
+
+            $scope.login = function () {
+                if (!$scope.email || !$scope.password) {
+                    showWarning('Empty field(s)');
+                }
+                else {
+                    $scope.showWarning = false;
+                    requestSender.sendRequest(
+                        'authLdapLogin',
+                        handleResponse,
+                        {
+                            email: $scope.email,
+                            password: $scope.password,
+                            simulationType: SIREPO.APP_SCHEMA.simulationType
+                        }
+                    );
+                }
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('commonFooter', function() {
     return {
         restrict: 'A',
@@ -3850,13 +3922,13 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                     }
                     delegate.update();
                 });
-            });
 
-            $scope.$on('sliderParent.ready', function (e, m) {
-                if (m) {
-                    $scope.model = m;
-                }
-                update();
+                $scope.$on('sliderParent.ready', function (e, m) {
+                    if (m) {
+                        $scope.model = m;
+                    }
+                    update();
+                });
             });
         },
     };

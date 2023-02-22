@@ -12,6 +12,7 @@ from sirepo import util
 from sirepo.template import template_common
 import numpy
 import re
+import sirepo.feature_config
 import sirepo.sim_data
 
 
@@ -66,8 +67,10 @@ def extract_report_data(run_dir, sim_in):
 
 def get_data_file(run_dir, model, frame, options):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if model == "geometry3DReport":
+        return _SIM_DATA.dagmc_filename(sim_in)
     if model == "dagmcAnimation":
-        return PKDict(filename=run_dir.join(f"{frame}.zip"))
+        return f"{frame}.zip"
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
@@ -87,8 +90,17 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 
-def stateless_compute_read_tallies(data):
-    pass
+def stateful_compute_download_remote_lib_file(data):
+    return template_common.remote_file_to_simulation_lib(
+        _SIM_DATA,
+        "{}/{}".format(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+            data.args.exampleURL,
+        ),
+        False,
+        "geometryInput",
+        "dagmcFile",
+    )
 
 
 def sim_frame(frame_args):
@@ -280,6 +292,7 @@ def _generate_parameters_file(data, run_dir=None):
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
+    v.hasGraveyard = _has_graveyard(data)
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -449,6 +462,13 @@ def _grid_to_poly(path):
             if state != "points":
                 lines.append(line)
     return "".join(lines)
+
+
+def _has_graveyard(data):
+    for v in data.models.volumes.values():
+        if v.name and v.name.lower() == "graveyard":
+            return True
+    return False
 
 
 def _parse_run_log(run_dir):
