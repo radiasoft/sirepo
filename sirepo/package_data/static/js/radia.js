@@ -819,16 +819,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         shapes.forEach(s => {
             const sb = s.bounds ? s.bounds() : {x: [0, 0], y: [0, 0]};
             for (const dim in b) {
-                srdbg(s.id, dim, 'min sh', sb[dim][0], 'vs', appState.clone(b)[dim][0]);
-                srdbg(s.id, dim, 'max sh', sb[dim][1], 'vs', appState.clone(b)[dim][1]);
                 b[dim] = [
                     Math.min(b[dim][0], sb[dim][0]),
                     Math.max(b[dim][1], sb[dim][1])
                 ];
             }
-            srdbg(s.id, 'b', appState.clone(b));
         });
-        srdbg('sh b before', appState.clone(b));
         for (const dim in b) {
             if (b[dim].some(x => Math.abs(x) === Number.MAX_VALUE)) {
                 return b;
