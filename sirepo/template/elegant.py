@@ -803,6 +803,14 @@ def save_sequential_report_data(data, run_dir):
         a.x = "s"
         a.y = a.y1
     a.frameIndex = 0
+    # _extract_report_data() is expecting something that looks like frameArgs
+    a.sim_in = PKDict(
+        models=PKDict(
+            {
+                data.report: a,
+            }
+        )
+    )
     template_common.write_sequential_result(
         _extract_report_data(
             str(run_dir.join(_report_output_filename(a.frameReport))), a
@@ -1161,7 +1169,7 @@ def _extract_report_data(filename, frame_args, page_count=0):
         format_plot=_label,
         page_index=frame_args.frameIndex,
         model=template_common.model_from_frame_args(frame_args),
-        x_field=frame_args.x if "x" in frame_args else frame_args[_X_FIELD],
+        x_field="x" if "x" in frame_args else _X_FIELD,
     )
     _sdds_init()
     if (
