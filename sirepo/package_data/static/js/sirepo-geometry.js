@@ -56,6 +56,7 @@ class GeometryUtils {
         for (const dim in b) {
             b[dim] = [ex(points, dim, true)[0][dim], ex(points, dim, false)[0][dim]];
         }
+        srdbg('r?', useRadius, 'b', useRadius ? GeometryUtils.boundsRadius(b) : b);
         return useRadius ? GeometryUtils.boundsRadius(b) : b;
     }
 
@@ -70,6 +71,7 @@ class GeometryUtils {
             b[dim][0] = c - r;
             b[dim][1] = c + r;
         }
+        srdbg('br', b);
         return b;
     }
 
