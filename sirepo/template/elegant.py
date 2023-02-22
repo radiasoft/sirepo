@@ -1152,13 +1152,6 @@ def _extract_report_data(filename, frame_args, page_count=0):
         plot.label = plot.label
         return
 
-    def _old_label(field, units):
-        if field in _FIELD_LABEL:
-            return _FIELD_LABEL[field]
-        if units in _SIMPLE_UNITS:
-            return "{} [{}]".format(field, units)
-        return field
-
     def _title(xfield, yfield, page_index, page_count):
         title_key = xfield + "-" + yfield
         if title_key in _PLOT_TITLE:
@@ -1195,25 +1188,18 @@ def _extract_report_data(filename, frame_args, page_count=0):
 
         return sdds_util.SDDSUtil(filename).lineplot(plot_attrs=plot_attrs)
 
-    page_index = frame_args.frameIndex
-    xfield = frame_args.x if "x" in frame_args else frame_args[_X_FIELD]
-    # x, column_names, x_def, err
-    x_col = sdds_util.extract_sdds_column(filename, xfield, page_index)
-    if x_col["err"]:
-        return x_col["err"]
-    x = x_col["values"]
-    yfield = frame_args["y1"] if "y1" in frame_args else frame_args["y"]
-    y_col = sdds_util.extract_sdds_column(filename, yfield, page_index)
-    if y_col["err"]:
-        return y_col["err"]
-    return template_common.heatmap(
-        [x, y_col["values"]],
-        frame_args,
-        PKDict(
-            x_label=_old_label(xfield, x_col["column_def"][1]),
-            y_label=_old_label(yfield, y_col["column_def"][1]),
-            title=_title(xfield, yfield, page_index, page_count),
-        ),
+    y_field = "y1" if "y1" in frame_args else "y"
+    return sdds_util.SDDSUtil(filename).heatmap(
+        plot_attrs=plot_attrs.pkupdate(
+            model=frame_args,
+            title=_title(
+                plot_attrs.x_field,
+                frame_args[y_field],
+                plot_attrs.page_index,
+                page_count,
+            ),
+            y_field=y_field,
+        )
     )
 
 
