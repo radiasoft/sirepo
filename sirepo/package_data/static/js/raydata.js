@@ -15,7 +15,7 @@ SIREPO.app.config(() => {
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="recentlyExecuted"></div>
         </div>
         <div data-ng-switch-when="RunAnalysisTable" class="col-sm-12">
-          <div data-scans-table="" data-model-name="modelName" data-analysis-status="all"></div>
+          <div data-scans-table="" data-model-name="modelName" data-analysis-status="allStatuses"></div>
         </div>
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="queued"></div>
@@ -318,7 +318,7 @@ SIREPO.app.directive('scansTable', function() {
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
-                      <th data-ng-if="analysisStatus === 'all'" style="width: 50px; height: 40px;"></th>
+                      <th data-ng-if="analysisStatus === 'allStatuses'" style="width: 50px; height: 40px;"></th>
                       <th style="width: 50px; height: 40px;"></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
                         <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
@@ -329,7 +329,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
-                      <td data-ng-if="analysisStatus === 'all'"><button class="btn btn-info btn-xs" data-ng-click="runAnalysis(s, $event)">Run Analysis</button></td>
+                      <td data-ng-if="analysisStatus === 'allStatuses'"><button class="btn btn-info btn-xs" data-ng-click="runAnalysis(s, $event)">Run Analysis</button></td>
                       <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">View Log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
