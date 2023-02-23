@@ -112,22 +112,11 @@ def proprietary_sim_types():
 
 def _is_fedora_36():
     from pykern import pkio
-    import subprocess
 
     p = pkio.py_path("/etc/os-release")
     if not p.check():
         return False
-    for f, v in ("${ID,,}", "fedora"), ("$VERSION_ID", "36"):
-        # SECURITY: shell=True is ok because there is no input from the user
-        try:
-            o = subprocess.check_output(
-                (f'source "{p}"; echo "{f}"'), shell=True, text=True
-            ).strip()
-            if o != v:
-                return False
-        except subprocess.CalledProcessError:
-            return False
-    return True
+    return "fedora:36" in p.read()
 
 
 def _init():
