@@ -3382,7 +3382,12 @@ for(const m of ['Dipole', 'Undulator']) {
         SIREPO.viewLogic(`${d[0]}View`, function(appState, panelState, radiaService, validationService, $scope) {
 
             $scope.model = appState.models[$scope.modelName];
-            $scope.watchFields = [];
+            $scope.watchFields = [
+                [
+                    `${$scope.modelName}.coil.height`,
+                ],
+                updateEditor
+            ];
 
             let editedModels = [];
             let models = {};
@@ -3442,13 +3447,6 @@ for(const m of ['Dipole', 'Undulator']) {
                 appState.saveChanges([$scope.modelName, ...editedModels]);
 
                 if (o.type === 'racetrack') {
-                    $scope.watchFields = [
-                        [
-                            'appState.models.racetrack.height',
-                            `appState.models.${$scope.modelName}.coil.height`,
-                        ],
-                        updateEditor
-                    ];
                     panelState.enableField('racetrack', 'size', false);
                 }
             };
@@ -3466,12 +3464,13 @@ for(const m of ['Dipole', 'Undulator']) {
             }
 
             function updateEditor() {
-                srdbg('uupd');
                 const o = getObjFromGeomRpt();
                 if (! o) {
                     return;
                 }
-                radiaService.updateRacetrack(o);
+                if (o.type === 'racetrack') {
+                    radiaService.updateRacetrack(o);
+                }
             }
 
             //TODO(mvk): implement validation for parameterized magnets - this is a placeholder
@@ -3480,18 +3479,12 @@ for(const m of ['Dipole', 'Undulator']) {
                 SIREPO[e]($scope, appState, panelState, radiaService, validationService);
             }
 
-            const ms = `appState['models']['${$scope.modelName}']`;
-            const wg = [
-                    `${ms}['coil']['sides'][0]`,
-                    `${ms}['coil']['sides'][1]`,
-                    `${ms}['coil']['radii'][1]`,
-                ];
-            srdbg(wg);
+            const coil = `appState.models['${$scope.modelName}']['coil']`;
             $scope.$watchGroup(
                 [
-                    `${ms}['coil']['sides'][0]`,
-                    `${ms}['coil']['sides'][1]`,
-                    `${ms}['coil']['radii'][1]`,
+                    `${coil}['sides'][0]`,
+                    `${coil}['sides'][1]`,
+                    `${coil}['radii'][1]`,
                 ],
                 updateEditor
             );
