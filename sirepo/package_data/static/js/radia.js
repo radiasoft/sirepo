@@ -293,6 +293,17 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return s;
     };
 
+    self.updateRacetrack = o => {
+        let s = [0, 0, 0];
+        const i = geometry.basis.indexOf(o.axis);
+        s[i] = o.height;
+        for (const j of [0, 1]) {
+            s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
+        }
+        o.size = s;
+        srdbg('update r', o.size);
+    };
+
     self.upload = function(inputFile) {
         upload(inputFile);
     };
@@ -833,14 +844,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             }
             if (o.type === 'racetrack') {
-                // calculate the size
-                let s = [0, 0, 0];
-                const i = geometry.basis.indexOf(o.axis);
-                s[i] = o.height;
-                for (const j of [0, 1]) {
-                    s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
-                }
-                o.size = s;
+                radiaService.updateRacetrack(o);
                 appState.saveQuietly('racetrack');
             }
             if (o.materialFile) {
@@ -3325,7 +3329,7 @@ SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, r
 
     $scope.watchFields = [
         [
-            'racetrack.axis',
+            'racetrack.axis', 'racetrack.height', 'racetrack.sides',
         ], updateObjectEditor
     ];
 
@@ -3360,9 +3364,8 @@ SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, r
             return;
         }
 
-        const axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
+        srdbg('uupd');
         [appState.models[$scope.modelName].planeAxis1, appState.models[$scope.modelName].planeAxis2]  = SIREPO.GEOMETRY.GeometryUtils.nextAxes($scope.modelData.axis);
-        srdbg(appState.models[$scope.modelName].axis, appState.models[$scope.modelName].planeAxis1, appState.models[$scope.modelName].planeAxis2);
         const modelType = o.type;
         parent.activePage.items.forEach((f) => {
             const m = modelField(f);
@@ -3373,7 +3376,8 @@ SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, r
                 hasField || appState.isSubclass(modelType, m[0])
             );
         });
-        $scope.$applyAsync();
+        radiaService.updateRacetrack(o);
+        panelState.enableField('racetrack', 'size', false);
     }
 
 

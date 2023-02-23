@@ -656,9 +656,7 @@ SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $inte
             <label><span data-text-with-math="label" data-is-dynamic="isDynamic()"></span>&nbsp;<span data-sr-tooltip="{{ tooltip }}"></span></label>
         `,
         controller: function($scope) {
-            $scope.isDynamic = () => {
-                return ! ! $scope.label.match(/{{\s*.+\s*}}/);
-            }
+            $scope.isDynamic = () => ! ! $scope.label.match(/{{\s*.+\s*}}/);
         },
     };
 });
@@ -2683,7 +2681,7 @@ SIREPO.app.directive('numArray', function(appState, utilities) {
         template: `
             <div data-ng-repeat="v in model[fieldName] track by $index"
               style="display: inline-block;" >
-              <label data-text-with-math="valueLabels[$index]" style="margin-right: 1ex"></label>
+              <label data-text-with-math="info[4][$index]" data-is-dynamic="isDynamic(info[4][$index])" style="margin-right: 1ex"></label>
               <input class="form-control sr-number-list" data-string-to-number="{{ numType }}"
                 data-ng-model="model[fieldName][$index]" data-min="info[5][$index]" data-max="info[6][$index]"
                 style="text-align: right" required />
@@ -2691,7 +2689,7 @@ SIREPO.app.directive('numArray', function(appState, utilities) {
         `,
         controller: $scope => {
             $scope.appState = appState;
-            $scope.valueLabels = $scope.info[4].map(s => utilities.interpolateString(s, $scope));
+            $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
         },
     };
 });
