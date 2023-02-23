@@ -1140,6 +1140,7 @@
                     "dipoleC.coil.radii",
                     "dipoleC.coil.height",
                     "dipoleC.coil.sides",
+                    "dipoleC.coil.size",
                     "dipoleC.coil.currentDensity"
                 ]],
                 ["Magnet", [
@@ -1171,6 +1172,7 @@
                     "dipoleH.coil.radii",
                     "dipoleH.coil.height",
                     "dipoleH.coil.sides",
+                    "dipoleH.coil.size",
                     "dipoleH.coil.currentDensity"
                 ]],
                 ["Magnet", [

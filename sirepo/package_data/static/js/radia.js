@@ -3364,7 +3364,11 @@ SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, r
 
     // appState.watchModelFields does not work with arrays
     $scope.$watchGroup(
-        [0, 1].map(i => `appState['models']['racetrack']['sides'][${i}]`),
+        [
+            "appState['models']['racetrack']['sides'][0]",
+            "appState['models']['racetrack']['sides'][1]",
+            "appState['models']['racetrack']['radii'][1]",
+        ],
         updateObjectEditor
     );
 
@@ -3432,9 +3436,21 @@ for(const m of ['Dipole', 'Undulator']) {
                 }
                 // set the object in the model to the equivalent object in the report
                 // also set the base model and its superclasses
+                $scope.watchFields = [];
                 appState.models[$scope.modelName][activeObjModelName()] = o;
                 editedModels = radiaService.updateModelAndSuperClasses(o.type, o);
                 appState.saveChanges([$scope.modelName, ...editedModels]);
+
+                if (o.type === 'racetrack') {
+                    $scope.watchFields = [
+                        [
+                            'appState.models.racetrack.height',
+                            `appState.models.${$scope.modelName}.coil.height`,
+                        ],
+                        updateEditor
+                    ];
+                    panelState.enableField('racetrack', 'size', false);
+                }
             };
 
             function activeModelId() {
@@ -3449,11 +3465,37 @@ for(const m of ['Dipole', 'Undulator']) {
                 return radiaService.getObject(activeModelId());
             }
 
+            function updateEditor() {
+                srdbg('uupd');
+                const o = getObjFromGeomRpt();
+                if (! o) {
+                    return;
+                }
+                radiaService.updateRacetrack(o);
+            }
+
             //TODO(mvk): implement validation for parameterized magnets - this is a placeholder
             const e = `watch${m}Editor`;
             if (e in SIREPO) {
                 SIREPO[e]($scope, appState, panelState, radiaService, validationService);
             }
+
+            const ms = `appState['models']['${$scope.modelName}']`;
+            const wg = [
+                    `${ms}['coil']['sides'][0]`,
+                    `${ms}['coil']['sides'][1]`,
+                    `${ms}['coil']['radii'][1]`,
+                ];
+            srdbg(wg);
+            $scope.$watchGroup(
+                [
+                    `${ms}['coil']['sides'][0]`,
+                    `${ms}['coil']['sides'][1]`,
+                    `${ms}['coil']['radii'][1]`,
+                ],
+                updateEditor
+            );
+
         });
     }
 }
