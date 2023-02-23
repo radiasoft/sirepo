@@ -301,7 +301,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
         }
         o.size = s;
-        srdbg('update r', o.size);
     };
 
     self.upload = function(inputFile) {
@@ -3329,7 +3328,6 @@ SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, r
         [
             'racetrack.axis',
             'racetrack.height',
-            'racetrack.sides',
         ], updateObjectEditor
     ];
 
@@ -3364,6 +3362,11 @@ SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, r
         panelState.enableField('racetrack', 'size', false);
     }
 
+    // appState.watchModelFields does not work with arrays
+    $scope.$watchGroup(
+        [0, 1].map(i => `appState['models']['racetrack']['sides'][${i}]`),
+        updateObjectEditor
+    );
 
     const self = {};
     self.getBaseObject = () => $scope.modelData;
