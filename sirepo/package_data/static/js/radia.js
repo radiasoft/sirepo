@@ -3441,12 +3441,12 @@ for(const m of ['Dipole', 'Undulator']) {
                 }
                 // set the object in the model to the equivalent object in the report
                 // also set the base model and its superclasses
-                $scope.watchFields = [];
                 appState.models[$scope.modelName][activeObjModelName()] = o;
                 editedModels = radiaService.updateModelAndSuperClasses(o.type, o);
                 appState.saveChanges([$scope.modelName, ...editedModels]);
 
                 if (o.type === 'racetrack') {
+                    watchCoil();
                     panelState.enableField('racetrack', 'size', false);
                 }
             };
@@ -3473,22 +3473,23 @@ for(const m of ['Dipole', 'Undulator']) {
                 }
             }
 
+            function watchCoil() {
+                const coil = `appState.models['${$scope.modelName}']['coil']`;
+                $scope.$watchGroup(
+                    [
+                        `${coil}['sides'][0]`,
+                        `${coil}['sides'][1]`,
+                        `${coil}['radii'][1]`,
+                    ],
+                    updateEditor
+                );
+            }
+
             //TODO(mvk): implement validation for parameterized magnets - this is a placeholder
             const e = `watch${m}Editor`;
             if (e in SIREPO) {
                 SIREPO[e]($scope, appState, panelState, radiaService, validationService);
             }
-
-            const coil = `appState.models['${$scope.modelName}']['coil']`;
-            $scope.$watchGroup(
-                [
-                    `${coil}['sides'][0]`,
-                    `${coil}['sides'][1]`,
-                    `${coil}['radii'][1]`,
-                ],
-                updateEditor
-            );
-
         });
     }
 }
