@@ -1076,27 +1076,39 @@ def _data_url(filename):
     f.close()
     return u
 
+def _masks(out_width, run_dir):
+    x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+    x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
+    y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+    y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
+    return x, y
 
 def _dice_coefficient_plot(data, run_dir):
     import matplotlib.pyplot as plt
 
+    def _dice(run_dir):
+
+        def _dice_coefficient(mask1, mask2):
+            return round((2 * numpy.sum(mask1*mask2) ) / (numpy.sum(mask1) + numpy.sum(mask2)), 3)
+
+        d = []
+        x, y = _masks(64, run_dir)
+        for pair in zip(x, y):
+            d.append(_dice_coefficient(pair[0], pair[1]))
+        return d
+
     plt.figure(figsize=[10, 10])
-    plt.imshow([
-        [0]*3,
-        [1]*3,
-        [0]*3
-        ])
-    u = []
+    plt.hist(_dice(run_dir))
+    plt.xlabel("Dice Scores")
+    plt.ylabel("Counts")
     p = (
         _SIM_DATA.lib_file_write_path(data.args.imageFilename)
         + ".png"
     )
     plt.tight_layout()
     plt.savefig(p)
-    u.append(_data_url(p))
     return PKDict(
-        numPages=1,
-        uris=u,
+        uris=[_data_url(p)],
     )
 
 
@@ -1117,16 +1129,9 @@ def _image_preview(data, run_dir=None):
             f"No matching dimension found output size: {io.output.size}"
         )
 
-    def _segment(out_width):
-        x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-        x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
-        y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-        y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
-        return x, y
-
     def _x_y(data, io, file):
         if data.args.method == "segmentViewer":
-            return _segment(numpy.array(file[io.output.path]).shape[-1])
+            return _masks(numpy.array(file[io.output.path]).shape[-1], run_dir)
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):

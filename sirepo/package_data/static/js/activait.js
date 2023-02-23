@@ -1093,56 +1093,34 @@ SIREPO.app.directive('diceCoeffViewer', function(requestSender) {
         `,
         controller: function($scope, appState) {
             let loading = true;
-            let numPages = 0;
             let uris;
             $scope.dataFileMissing = false;
 
-            // $scope.canUpdateUri = increment => {
-            //     return idx + increment >= 0 && idx + increment < numPages;
-            // };
-
-            // $scope.first = () => {
-            //     setImageFromUriIndex(idx = 0);
-            // };
-
             $scope.isLoading = () => loading;
 
-            // $scope.last = () => {
-            //     setImageFromUriIndex(idx = uris.length - 1);
-            // };
-
-            // $scope.next = () => {
-            //     setImageFromUriIndex(idx += 1);
-            // };
-
-            // $scope.prev = () => {
-            //     setImageFromUriIndex(idx -= 1);
-            // };
-
-            function setImage() {
+            const setDicePlotImage = () => {
+                if (! uris) {
+                    $scope.dataFileMissing = true;
+                    $scope.fileName = 'dicePlot.png';
+                    return;
+                }
                 if ($('.dice-plot').length) {
                     $('.dice-plot')[0].src = uris[0];
                 }
-                if (! uris) {
-                    $scope.dataFileMissing = true;
-                    $scope.fileName = appState.models.dataFile.file;
-                }
-            }
+            };
 
             const loadImageFile = () => {
                 requestSender.sendAnalysisJob(
                     appState,
                     response => {
-                        numPages = response.numPages;
                         uris = response.uris;
-                        setImage(0);
+                        setDicePlotImage();
                         loading = false;
                     },
                     {
                         method: 'dice_coefficient',
                         modelName: 'animation',
                         args: {
-                            method: $scope.method,
                             imageFilename: 'dicePlot',
                             dataFile: appState.applicationState().dataFile,
                             columnInfo: appState.applicationState().columnInfo,
