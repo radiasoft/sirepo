@@ -34,7 +34,9 @@
             </div>
           </div>
           <div class="col-md-6 col-xxl-4">
-            <div data-report-panel="parameter" data-ng-if="regression.imageToImage()" data-model-name="diceCoefficientReport" data-model-data="report.data" data-panel-title="Dice Coefficient"></div>
+            <div data-basic-editor-panel="" data-view-name="diceCoefficient" data-ng-if="regression.imageToImage()">
+              <div data-dice-coeff-viewer=""></div>
+            </div>
           </div>
           <div class="col-md-6 col-xxl-4">
             <div data-report-panel="heatmap" data-model-name="fitAnimation" data-model-data="report.data" data-panel-title="{{ report.title }}"></div>

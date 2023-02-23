@@ -311,11 +311,6 @@
             "histogramBins": ["Histogram Bins", "Integer", 30],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
-        "diceCoefficentReport": {
-            "columnNumber": ["Column Number", "Integer", 0],
-            "histogramBins": ["Histogram Bins", "Integer", 30],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
-        },
         "fitReport": {},
         "hiddenReport": {},
         "knnClassification": {
@@ -633,10 +628,6 @@
             "title": "Column",
             "advanced": []
         },
-        "diceCoefficentReport": {
-            "title": "dice report",
-            "advanced": []
-        },
         "flatten": {
             "columns": []
         },
@@ -757,6 +748,11 @@
         },
         "segmentViewer": {
             "title": "Segments",
+            "basic": [],
+            "advanced": []
+        },
+        "diceCoefficient": {
+            "title": "Dice Coefficient",
             "basic": [],
             "advanced": []
         },

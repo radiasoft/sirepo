@@ -12,6 +12,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+from base64 import b64encode
 import csv
 import h5py
 import numpy
@@ -354,6 +355,10 @@ def stateful_compute_column_info(data):
 
 def analysis_job_sample_images(data, run_dir, **kwargs):
     return _image_preview(data, run_dir)
+
+
+def analysis_job_dice_coefficient(data, run_dir, **kwargs):
+    return _dice_coefficient_plot(data, run_dir)
 
 
 def stateful_compute_sample_images(data):
@@ -1065,16 +1070,38 @@ def _histogram_plot(values, vrange):
     y.insert(0, 0)
     return x, y
 
+def _data_url(filename):
+    f = open(filename, "rb")
+    u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
+    f.close()
+    return u
+
+
+def _dice_coefficient_plot(data, run_dir):
+    import matplotlib.pyplot as plt
+
+    plt.figure(figsize=[10, 10])
+    plt.imshow([
+        [0]*3,
+        [1]*3,
+        [0]*3
+        ])
+    u = []
+    p = (
+        _SIM_DATA.lib_file_write_path(data.args.imageFilename)
+        + ".png"
+    )
+    plt.tight_layout()
+    plt.savefig(p)
+    u.append(_data_url(p))
+    return PKDict(
+        numPages=1,
+        uris=u,
+    )
+
 
 def _image_preview(data, run_dir=None):
     import matplotlib.pyplot as plt
-    from base64 import b64encode
-
-    def _data_url(filename):
-        f = open(filename, "rb")
-        u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
-        f.close()
-        return u
 
     def _image_grid(num_images):
         num_pages = min(5, 1 + (num_images - 1) // 25)

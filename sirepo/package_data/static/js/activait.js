@@ -1078,6 +1078,83 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
     };
 });
 
+SIREPO.app.directive('diceCoeffViewer', function(requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+        <div>
+          <img class="img-responsive dice-plot" />
+          <div data-ng-if="isLoading()" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+          </div>
+          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
+        </div>
+        `,
+        controller: function($scope, appState) {
+            let loading = true;
+            let numPages = 0;
+            let uris;
+            $scope.dataFileMissing = false;
+
+            // $scope.canUpdateUri = increment => {
+            //     return idx + increment >= 0 && idx + increment < numPages;
+            // };
+
+            // $scope.first = () => {
+            //     setImageFromUriIndex(idx = 0);
+            // };
+
+            $scope.isLoading = () => loading;
+
+            // $scope.last = () => {
+            //     setImageFromUriIndex(idx = uris.length - 1);
+            // };
+
+            // $scope.next = () => {
+            //     setImageFromUriIndex(idx += 1);
+            // };
+
+            // $scope.prev = () => {
+            //     setImageFromUriIndex(idx -= 1);
+            // };
+
+            function setImage() {
+                if ($('.dice-plot').length) {
+                    $('.dice-plot')[0].src = uris[0];
+                }
+                if (! uris) {
+                    $scope.dataFileMissing = true;
+                    $scope.fileName = appState.models.dataFile.file;
+                }
+            }
+
+            const loadImageFile = () => {
+                requestSender.sendAnalysisJob(
+                    appState,
+                    response => {
+                        numPages = response.numPages;
+                        uris = response.uris;
+                        setImage(0);
+                        loading = false;
+                    },
+                    {
+                        method: 'dice_coefficient',
+                        modelName: 'animation',
+                        args: {
+                            method: $scope.method,
+                            imageFilename: 'dicePlot',
+                            dataFile: appState.applicationState().dataFile,
+                            columnInfo: appState.applicationState().columnInfo,
+                        }
+                    }
+                );
+            };
+
+            loadImageFile();
+        }
+    };
+});
 
 SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
     return {
