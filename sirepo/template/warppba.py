@@ -328,6 +328,10 @@ def _iteration_title(opmd, data_file):
 
 
 def _opmd_time_series(data_file):
+    # OpenPMDTimeSeries uses list_files or list_h5_files to collect
+    # all h5 files in the current directory. We only want the file for
+    # a specific iteration. So, monkeypatch the method to return just
+    # the file we are interested in.
     if sirepo.feature_config.cfg().is_fedora_36:
         from openpmd_viewer.openpmd_timeseries.data_reader import h5py_reader
 
