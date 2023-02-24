@@ -2624,6 +2624,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     }
                     $scope.particleCount = data.particleCount;
                     if ($scope.simState.isStopped() && ! $scope.simState.isStateCanceled()) {
+                        // TODO (gurhar1133): problem area
+                        srdbg("HIT $scope.simState.isStopped() && ! $scope.simState.isStateCanceled()");
+                        srdbg("$scope.particleCount", $scope.particleCount);
+                        srdbg("$scope.particleNumber", $scope.particleNumber);
+                        srdbg("data.percentComplete=", data.percentComplete);
                         $scope.particleNumber = $scope.particleCount;
                     }
                 }
