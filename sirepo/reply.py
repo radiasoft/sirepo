@@ -84,7 +84,7 @@ class _SReply(sirepo.quest.Attr):
         super().__init__(**kwargs)
         # Needed in tornado_response
         self.internal_req = self.qcall.sreq.internal_req
-        self._cookies_to_delete = []
+        self._cookies_to_delete = None
 
     def content_as_str(
         self,
@@ -101,6 +101,13 @@ class _SReply(sirepo.quest.Attr):
         assert "value" in kwargs
         self.__attrs.cookie = PKDict(kwargs)
         return self
+
+    def delete_third_party_cookies(self, names_and_paths):
+        if self._cookies_to_delete is not None:
+            raise AssertionError(
+                f"setting names_and_paths={names_and_paths} but found existing _cookies_to_delete={self._cookies_to_delete}"
+            )
+        self._cookies_to_delete = names_and_paths
 
     def destroy(self, **kwargs):
         """Must be called"""
@@ -132,12 +139,11 @@ class _SReply(sirepo.quest.Attr):
             return resp
 
         def _delete_cookies(resp):
-            for n, p in self._cookies_to_delete:
+            for n, p in self.pkdel(self._cookies_to_delete) or ():
                 resp.delete_cookie(
                     n,
                     path=p,
                 )
-            self._cookies_to_delete = []
 
         def _file():
             # Takes over some of the work for werkzeug.send_file
@@ -406,9 +412,6 @@ class _SReply(sirepo.quest.Attr):
             return r.headers_for_cache(path=p)
         return r.headers_for_no_cache()
 
-    def set_cookies_for_deletion(self, names_and_paths):
-        self._cookies_to_delete = names_and_paths
-
     def status_as_int(self):
         return self.__attrs.get("status", 200)
 
@@ -443,14 +446,6 @@ class _SReply(sirepo.quest.Attr):
             r.set_header("Content-Type", c)
 
         def _cookie(resp):
-            def _delete():
-                for n, p in self._cookies_to_delete:
-                    resp.clear_cookie(
-                        n,
-                        path=p,
-                    )
-                self._cookies_to_delete = []
-
             # TODO(robnagler) http.cookies 3.8 introduced samesite and blows up otherwise.
             # we know how our cookies are formed so
             a = self.__attrs
@@ -472,7 +467,14 @@ class _SReply(sirepo.quest.Attr):
                 else:
                     raise AssertionError(f"unhandled cookie attr={k}")
             resp.set_header("Set-Cookie", "; ".join(r))
-            _delete()
+            _cookie_aux_delete(resp)
+
+        def _cookie_aux_delete(resp):
+            for n, p in self.pkdel(self._cookies_to_delete) or ():
+                resp.clear_cookie(
+                    n,
+                    path=p,
+                )
 
         def _file(resp):
             a = self.__attrs

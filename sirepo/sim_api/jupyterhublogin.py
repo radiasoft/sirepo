@@ -212,7 +212,7 @@ def _event_end_api_call(qcall, kwargs):
         return
     # Delete the JupyterHub cookies because we are logging out of Sirepo.
     # Trailing slash is required in paths
-    kwargs.resp.set_cookies_for_deletion(
+    kwargs.resp.delete_third_party_cookies(
         (
             ("jupyterhub-hub-login", f"/{_cfg.uri_root}/hub/"),
             (f"jupyterhub-user-{u}", f"/{_cfg.uri_root}/user/{u}/"),
