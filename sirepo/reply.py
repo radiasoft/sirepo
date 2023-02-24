@@ -84,6 +84,7 @@ class _SReply(sirepo.quest.Attr):
         super().__init__(**kwargs)
         # Needed in tornado_response
         self.internal_req = self.qcall.sreq.internal_req
+        self._cookies_to_delete = []
 
     def content_as_str(
         self,
@@ -130,6 +131,14 @@ class _SReply(sirepo.quest.Attr):
                 resp.headers["Pragma"] = "no-cache"
             return resp
 
+        def _delete_cookies(resp):
+            for n, p in self._cookies_to_delete:
+                resp.delete_cookie(
+                    n,
+                    path=p,
+                )
+            self._cookies_to_delete = []
+
         def _file():
             # Takes over some of the work for werkzeug.send_file
             c = self.__attrs.content
@@ -158,6 +167,7 @@ class _SReply(sirepo.quest.Attr):
         r.headers.update(a.headers)
         if "cookie" in a and 200 <= r.status_code < 400:
             r.set_cookie(**a.cookie)
+            _delete_cookies(r)
         return _cache_control(r)
 
     def from_api(self, res):
@@ -396,6 +406,9 @@ class _SReply(sirepo.quest.Attr):
             return r.headers_for_cache(path=p)
         return r.headers_for_no_cache()
 
+    def set_cookies_for_deletion(self, names_and_paths):
+        self._cookies_to_delete = names_and_paths
+
     def status_as_int(self):
         return self.__attrs.get("status", 200)
 
@@ -430,6 +443,14 @@ class _SReply(sirepo.quest.Attr):
             r.set_header("Content-Type", c)
 
         def _cookie(resp):
+            def _delete():
+                for n, p in self._cookies_to_delete:
+                    resp.clear_cookie(
+                        n,
+                        path=p,
+                    )
+                self._cookies_to_delete = []
+
             # TODO(robnagler) http.cookies 3.8 introduced samesite and blows up otherwise.
             # we know how our cookies are formed so
             a = self.__attrs
@@ -451,6 +472,7 @@ class _SReply(sirepo.quest.Attr):
                 else:
                     raise AssertionError(f"unhandled cookie attr={k}")
             resp.set_header("Set-Cookie", "; ".join(r))
+            _delete()
 
         def _file(resp):
             a = self.__attrs
