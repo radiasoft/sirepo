@@ -19,6 +19,9 @@ def test_logout(auth_fc):
     fc = auth_fc
 
     from pykern.pkdebug import pkdp
+    from sirepo.pkcli import jupyterhublogin
 
-    fc.sr_email_login("a@b.c")
+    e = "a@b.c"
+    fc.sr_email_login(e)
+    jupyterhublogin.create_user(e, "foo")
     fc.sr_logout()
