@@ -8,8 +8,6 @@ import re
 import subprocess
 import sirepo.util
 
-_PROJECT_NOT_FOUND = "no such fileset"
-
 
 def sbatch_project_option(project):
     from pykern.pkjson import load_any
