@@ -12,17 +12,22 @@ _PROJECT_NOT_FOUND = "no such fileset"
 
 
 def sbatch_project_option(project):
+    from pykern.pkjson import load_any
     if not project:
         return ""
-    res = _hpssquota(project)
-    if re.search(_PROJECT_NOT_FOUND, res.stdout):
-        raise sirepo.util.UserAlert(f"Project {project} not found on NERSC")
+    try:
+        if not list(filter(lambda x: x.fs == project, load_any(_hpssquota(project)))):
+            raise sirepo.util.UserAlert(f"Project {project} not found on NERSC")
+    except Exception as e:
+        raise sirepo.util.UserAlert(f"Cannot determine quota for {project}; error={e}")
     return f"#SBATCH --account={project}"
 
 
-def _hpssquota(project):
+# Note: project is only used for unit tests
+def _hpssquota(project=None):
+    # -N excludes home and scratch file systems; -J outputs json
     return subprocess.run(
-        ("hpssquota", project),
+        ("hpssquota", "-N", "-J"),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
