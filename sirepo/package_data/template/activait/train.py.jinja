@@ -67,8 +67,12 @@ def _predictions_initial(testx, testy):
                 numpy.array(testy).reshape(-1, split.test_gen.y_channels)
             )
         )
+    p = model.predict(testx)
+    # TODO (gurhar1133): right here could be a good place to
+    # find best/worst loss/dice images
+    print(f"predictions.shape={p.shape} testy.shape={numpy.array(testy).shape}")
     return PKDict(
-        p=model.predict(testx),
+        p=p,
         testy=_test_y(testy),
     )
 
