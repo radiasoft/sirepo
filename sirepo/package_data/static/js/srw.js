@@ -2595,6 +2595,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 }
             }
 
+            function normalCompletion() {
+                var d = Math.abs($scope.particleCount - $scope.particleNumber);
+                var a = appState.models.multiElectronAnimation;
+                return d < a.numberOfMacroElectronsAvg * a.savingPeriodicity;
+            }
+
             $scope.logFileURL = () => {
                 if (! appState.isLoaded()) {
                     return '';
@@ -2623,12 +2629,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                             ? 'mode' : 'macro-electrons';
                     }
                     $scope.particleCount = data.particleCount;
-                    if ($scope.simState.isStopped() && ! $scope.simState.isStateCanceled()) {
-                        // TODO (gurhar1133): problem area
-                        srdbg("HIT $scope.simState.isStopped() && ! $scope.simState.isStateCanceled()");
-                        srdbg("$scope.particleCount", $scope.particleCount);
-                        srdbg("$scope.particleNumber", $scope.particleNumber);
-                        srdbg("data.percentComplete=", data.percentComplete);
+                    srdbg($scope.simState);
+                    if ($scope.simState.isStateCompleted() && normalCompletion()){
                         $scope.particleNumber = $scope.particleCount;
                     }
                 }
