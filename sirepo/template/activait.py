@@ -25,6 +25,10 @@ import sirepo.util
 
 _LOG_FILE = "run.log"
 
+_SEGMENT_ROWS = 3
+
+_SEGMENT_PAGES = 5
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
@@ -348,84 +352,12 @@ def stateful_compute_column_info(data):
     raise AssertionError("Unsupported file type: {}".format(f))
 
 
+def analysis_job_sample_images(data, run_dir, **kwargs):
+    return _image_preview(data, run_dir)
+
+
 def stateful_compute_sample_images(data):
-    import matplotlib.pyplot as plt
-    from base64 import b64encode
-
-    def _data_url(filename):
-        f = open(filename, "rb")
-        u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
-        f.close()
-        return u
-
-    def _image_grid(num_images):
-        num_pages = min(5, 1 + (num_images - 1) // 25)
-        return [min(25, num_images - 25 * i) for i in range(num_pages)]
-
-    # go through columnInfo, find first multidimensional col
-    # take first dimension size and look for other columns with that single dimension
-    io = PKDict()
-    info = data.args.columnInfo
-    for idx in range(len(info.header)):
-        if len(info.shape[idx]) >= 3:
-            io.input = PKDict(
-                path=info.header[idx],
-                kind=info.dtypeKind[idx],
-                count=info.shape[idx][0],
-            )
-            break
-    if "input" not in io:
-        raise AssertionError("No multidimensional data found in dataset")
-    for idx in range(len(info.header)):
-        if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
-            io.output = PKDict(path=info.header[idx])
-            break
-    if "output" not in io:
-        raise AssertionError(f"No matching dimension found output size: {output_size}")
-    # look for a string column for labels
-    for idx in range(len(info.header)):
-        if info.dtypeKind[idx] in {"U", "S"}:
-            io.output.label_path = info.header[idx]
-            break
-
-    with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
-        x = f[io.input.path]
-        y = f[io.output.path]
-        u = []
-        k = 0
-        g = _image_grid(len(x))
-        for i in g:
-            plt.figure(figsize=[10, 10])
-            for j in range(i):
-                v = x[k + j]
-                if io.input.kind == "f":
-                    v = v.astype(float)
-                plt.subplot(5, 5, j + 1)
-                plt.xticks([])
-                plt.yticks([])
-                plt.imshow(v)
-
-                if len(f[io.output.path].shape) == 1:
-                    if "label_path" in io.output:
-                        plt.xlabel(
-                            pkcompat.from_bytes(f[io.output.label_path][y[k + j]])
-                        )
-                    else:
-                        plt.xlabel(y[k + j])
-                else:
-                    plt.xlabel("\n".join([str(l) for l in y[k + j]]))
-            p = (
-                _SIM_DATA.lib_file_write_path(data.args.imageFilename)
-                + f"_{int(k/25)}.png"
-            )
-            plt.tight_layout()
-            plt.savefig(p)
-            u.append(_data_url(p))
-            k += i
-        return PKDict(
-            numPages=len(g),
-            uris=u,
-        )
+    return _image_preview(data)
 
 
 def stateless_compute_get_remote_data(data):
@@ -513,8 +445,11 @@ def _build_model_py(v):
         else:
             return layer.dropoutRate
 
+    def _activation(layer):
+        return f'"{layer.get("activation", "relu")}"'
+
     args_map = PKDict(
-        Activation=lambda layer: f'"{layer.activation}"',
+        Activation=lambda layer: _activation(layer),
         Add=lambda layer: _branch(layer, "Add"),
         AlphaDropout=lambda layer: _dropout_args(layer),
         AveragePooling2D=lambda layer: _pooling_args(layer),
@@ -936,6 +871,7 @@ def _fit_animation(frame_args):
         PKDict(predict=x, test=y),
         f"fitAnimation{idx}.csv",
     )
+
     # TODO(pjm): for a classification-like regression, set heatmap resolution to domain size
     return template_common.heatmap(
         [x, y],
@@ -943,16 +879,24 @@ def _fit_animation(frame_args):
         PKDict(
             x_label="Prediction",
             y_label="Ground Truth",
-            title=header[idx],
+            title=header[idx] if header else "Fit",
             hideColorBar=True,
         ),
     )
+
+
+def _image_to_image(info):
+    if not info.get("shape"):
+        return False
+    idx = info.inputOutput.index("output")
+    return len(info.shape[idx][1:]) > 1
 
 
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
+    v.imageToImage = _image_to_image(dm.columnInfo)
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
@@ -981,7 +925,7 @@ def _generate_parameters_file(data):
             elif dm.columnInfo.inputOutput[idx] == "output":
                 assert not v.outPath, "Only one output allow for h5 data"
                 v.outPath = dm.columnInfo.header[idx]
-                v.outputShape = dm.columnInfo.outputShape[idx]
+                v.outputShape = 1 if v.imageToImage else dm.columnInfo.outputShape[idx]
                 v.outScaling = dm.columnInfo.dtypeKind[idx] == "f"
         assert v.inPath, "Missing input data path"
         assert v.outPath, "Missing output data path"
@@ -1120,6 +1064,138 @@ def _histogram_plot(values, vrange):
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
+
+
+def _image_preview(data, run_dir=None):
+    import matplotlib.pyplot as plt
+    from base64 import b64encode
+
+    def _data_url(filename):
+        f = open(filename, "rb")
+        u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
+        f.close()
+        return u
+
+    def _image_grid(num_images):
+        num_pages = min(5, 1 + (num_images - 1) // 25)
+        return [min(25, num_images - 25 * i) for i in range(num_pages)]
+
+    def _output(info, io):
+        if "output" in info.inputOutput:
+            return PKDict(path=info.header[info.inputOutput.index("output")])
+        for idx in range(len(info.header)):
+            if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
+                return PKDict(path=info.header[idx])
+        raise AssertionError(
+            f"No matching dimension found output size: {io.output.size}"
+        )
+
+    def _segment(out_width):
+        x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+        x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
+        y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+        y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
+        return x, y
+
+    def _x_y(data, io, file):
+        if data.args.method == "segmentViewer":
+            return _segment(numpy.array(file[io.output.path]).shape[-1])
+        return file[io.input.path], file[io.output.path]
+
+    def _grid(x, info):
+        if _image_to_image(info):
+            return [_SEGMENT_ROWS] * _SEGMENT_PAGES
+        return _image_grid(len(x))
+
+    def _set_image_to_image_plt(plt, data):
+        _, a = plt.subplots(3, 2)
+        if data.args.method == "segmentViewer":
+            a[0, 0].set_title("actual")
+            a[0, 1].set_title("prediction")
+        plt.setp(a, xticks=[], yticks=[])
+        return a
+
+    def _gen_image(params):
+        if _image_to_image(info):
+            mask = params.output
+            params.axes[params.row, 0].imshow(params.input)
+            params.axes[params.row, 1].imshow(mask)
+            return
+        params.plt.subplot(5, 5, params.row + 1)
+        params.plt.xticks([])
+        params.plt.yticks([])
+        params.plt.imshow(v)
+        if len(params.file[params.io.output.path].shape) == 1:
+            if "label_path" in params.io.output:
+                params.plt.xlabel(
+                    pkcompat.from_bytes(
+                        params.file[params.io.output.label_path][params.output]
+                    )
+                )
+            else:
+                params.plt.xlabel(params.output)
+        else:
+            params.plt.xlabel("\n".join([str(l) for l in params.output]))
+
+    # go through columnInfo, find first multidimensional col
+    # take first dimension size and look for other columns with that single dimension
+    io = PKDict()
+    info = data.args.columnInfo
+    for idx in range(len(info.header)):
+        if len(info.shape[idx]) >= 3:
+            io.input = PKDict(
+                path=info.header[idx],
+                kind=info.dtypeKind[idx],
+                count=info.shape[idx][0],
+            )
+            break
+    if "input" not in io:
+        raise AssertionError("No multidimensional data found in dataset")
+    io.output = _output(info, io)
+    # look for a string column for labels
+    for idx in range(len(info.header)):
+        if info.dtypeKind[idx] in {"U", "S"}:
+            io.output.label_path = info.header[idx]
+            break
+
+    with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
+        x, y = _x_y(data, io, f)
+        u = []
+        k = 0
+        g = _grid(x, info)
+        for i in g:
+            plt.figure(figsize=[10, 10])
+            axarr = (
+                _set_image_to_image_plt(plt, data) if _image_to_image(info) else None
+            )
+            for j in range(i):
+                v = x[k + j]
+                if io.input.kind == "f":
+                    v = v.astype(float)
+                _gen_image(
+                    PKDict(
+                        info=info,
+                        axes=axarr,
+                        output=y[k + j],
+                        input=v,
+                        plt=plt,
+                        file=f,
+                        io=io,
+                        row=j,
+                    )
+                )
+            p = (
+                _SIM_DATA.lib_file_write_path(data.args.imageFilename)
+                + f"_{int(k/25)}.png"
+            )
+            plt.tight_layout()
+            plt.savefig(p)
+            u.append(_data_url(p))
+            k += i
+        return PKDict(
+            numPages=len(g),
+            uris=u,
+        )
 
 
 def _is_branching(node):

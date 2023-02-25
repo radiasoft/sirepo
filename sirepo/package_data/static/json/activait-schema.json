@@ -746,6 +746,11 @@
             "basic": [],
             "advanced": []
         },
+        "segmentViewer": {
+            "title": "Segments",
+            "basic": [],
+            "advanced": []
+        },
         "separableConv2D": {
             "columns": [
                 "dimensionality",
