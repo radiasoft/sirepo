@@ -4,6 +4,7 @@
         {
             "col_name": "LinearDensity",
             "color": "#1f77b4",
+            "field": "LinearDensity",
             "label": "LinearDensity",
             "points": [
                 0.0,
@@ -61,6 +62,7 @@
         {
             "col_name": "LinearDensityDeriv",
             "color": "#ff7f0e",
+            "field": "LinearDensityDeriv",
             "label": "LinearDensityDeriv",
             "points": [
                 0.0,
@@ -118,6 +120,7 @@
         {
             "col_name": "DeltaGamma",
             "color": "#2ca02c",
+            "field": "DeltaGamma",
             "label": "DeltaGamma",
             "points": [
                 0.0,

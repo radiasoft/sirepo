@@ -1165,24 +1165,18 @@ def _extract_report_data(filename, frame_args, page_count=0):
             title += ", Plot {} of {}".format(page_index + 1, page_count)
         return title
 
+    x_field = "x" if "x" in frame_args else _X_FIELD
     plot_attrs = PKDict(
         format_plot=_label,
         page_index=frame_args.frameIndex,
         model=template_common.model_from_frame_args(frame_args),
-        x_field="x" if "x" in frame_args else _X_FIELD,
+        x_field=x_field,
     )
     _sdds_init()
-    if (
-        plot_attrs.x_field not in plot_attrs.model
-        or plot_attrs.model[plot_attrs.x_field] == "none"
-    ):
-        plot_attrs.model[plot_attrs.x_field] = plot_attrs.x_field
 
     if not _is_histogram_file(
         filename,
-        sdds_util.extract_sdds_column(
-            filename, plot_attrs.model[plot_attrs.x_field], plot_attrs.page_index
-        )["column_names"],
+        sdds_util.extract_sdds_column(filename, frame_args[x_field], 0)["column_names"],
     ):
         if page_count > 1:
             plot_attrs.pkupdate(
@@ -1196,7 +1190,7 @@ def _extract_report_data(filename, frame_args, page_count=0):
         plot_attrs=plot_attrs.pkupdate(
             model=frame_args,
             title=_title(
-                plot_attrs.x_field,
+                frame_args[x_field],
                 frame_args[y_field],
                 plot_attrs.page_index,
                 page_count,

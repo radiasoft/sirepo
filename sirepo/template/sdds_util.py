@@ -133,6 +133,7 @@ class SDDSUtil:
             if col.err:
                 return col.err
             plot = PKDict(
+                field=plot_attrs.model[f],
                 points=col["values"],
                 label=plot_attrs.model[f],
                 col_name=col_name,
