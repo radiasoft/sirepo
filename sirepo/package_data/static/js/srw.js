@@ -2600,7 +2600,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 var d = Math.abs($scope.particleCount - $scope.particleNumber);
                 var a = appState.models.multiElectronAnimation;
                 return d < a.numberOfMacroElectronsAvg * a.savingPeriodicity;
-            }
+            };
 
             $scope.logFileURL = () => {
                 if (! appState.isLoaded()) {
