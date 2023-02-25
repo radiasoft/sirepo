@@ -14,7 +14,8 @@ try:
         split.train_gen,
         validation_data=split.val_gen,
         epochs={{ neuralNet_epochs }},
-        callbacks=[CSVLogger('fit.csv')])
+        callbacks=[CSVLogger('fit.csv')],
+    )
 except Exception as e:
     raise AssertionError(f"Model training failed due to:{e.message}")
 {% else %}
@@ -48,16 +49,37 @@ def _prediction_shape(prediction, testy):
 def _classification_case(prediction, testy):
     return {{ discreteOutputs }} and _prediction_shape(prediction, testy)
 
-def _predictions_final(p, testy):
-    return np.argmax(p, axis=1) if _classification_case(p, testy) else p
+def _predictions_final(predictions, testy):
+    if _classification_case(predictions, testy) and not {{ imageToImage }}:
+        return np.argmax(predictions, axis=1)
+    if {{ imageToImage }}:
+        f = []
+        for prediction in predictions:
+            f.append(numpy.expand_dims(prediction, axis=-1))
+        return numpy.array(f).flatten()
+    return predictions
 
 def _predictions_initial(testx, testy):
-    if split.test_gen.outScaler:
+    if split.test_gen.outScaler and not {{ imageToImage }}:
         return PKDict(
             p=split.test_gen.outScaler.inverse_transform(model.predict(testx)),
-            testy=split.test_gen.outScaler.inverse_transform(testy),
+            testy = split.test_gen.outScaler.inverse_transform(
+                numpy.array(testy).reshape(-1, split.test_gen.y_channels)
+            )
         )
-    return PKDict(p=model.predict(x=testx), testy=testy)
+    return PKDict(
+        p=model.predict(testx),
+        testy=_test_y(testy),
+    )
+
+def _test_y(testy):
+    if split.test_gen.outScaler:
+        testy = split.test_gen.outScaler.inverse_transform(
+            numpy.array(testy).reshape(-1, split.test_gen.y_channels)
+        )
+    if {{ imageToImage }}:
+        testy = numpy.array(testy).flatten()
+    return testy
 
 o = _predictions_initial(testx, testy)
 p = _predictions_final(o.p, o.testy)

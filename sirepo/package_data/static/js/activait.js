@@ -410,6 +410,15 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ac
         return false;
     };
 
+    self.imageToImage = () => {
+        var info = appState.models.columnInfo;
+        var idx = info.inputOutput.indexOf('output');
+        if (! info.shape) {
+            return false;
+        }
+        return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
+    };
+
     self.startSimulation = () => {
         self.simState.saveAndRunSimulation('simulation');
     };
@@ -1069,7 +1078,9 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
 SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            method: '@',
+        },
         template: `
         <div>
           <img class="img-responsive srw-processed-image" />
@@ -1129,7 +1140,8 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             }
 
             const loadImageFile = () => {
-                requestSender.sendStatefulCompute(
+                const f = $scope.method == 'imagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
+                f(
                     appState,
                     response => {
                         numPages = response.numPages;
@@ -1139,7 +1151,9 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     },
                     {
                         method: 'sample_images',
+                        modelName: 'animation',
                         args: {
+                            method: $scope.method,
                             imageFilename: 'sample',
                             dataFile: appState.applicationState().dataFile,
                             columnInfo: appState.applicationState().columnInfo,
