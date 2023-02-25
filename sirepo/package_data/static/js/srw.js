@@ -2540,7 +2540,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 </div>
               </div>
               <div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">
-                <div data-simulation-stopped-status="simState"></div>
+                <div data-ng-if="normalCompletion()" data-simulation-stopped-status="simState"></div>
+                <div class="col-sm-12" data-ng-if="! normalCompletion()">Simulation Cancelled</div>
                   <div class="col-sm-12" data-ng-show="showFrameCount()">
                     Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
                   </div>
@@ -2595,7 +2596,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 }
             }
 
-            function normalCompletion() {
+            $scope.normalCompletion = () => {
                 var d = Math.abs($scope.particleCount - $scope.particleNumber);
                 var a = appState.models.multiElectronAnimation;
                 return d < a.numberOfMacroElectronsAvg * a.savingPeriodicity;
@@ -2629,8 +2630,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                             ? 'mode' : 'macro-electrons';
                     }
                     $scope.particleCount = data.particleCount;
-                    srdbg($scope.simState);
-                    if ($scope.simState.isStateCompleted() && normalCompletion()){
+                    if ($scope.simState.isStateCompleted() && $scope.normalCompletion()){
                         $scope.particleNumber = $scope.particleCount;
                     }
                 }
