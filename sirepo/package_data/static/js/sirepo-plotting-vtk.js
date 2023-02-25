@@ -276,19 +276,29 @@ class CylinderViews extends ExtrudedPolyViews {
     }
 }
 
-class RacetrackView extends ExtrudedPolyViews {
+class RacetrackViews extends ExtrudedPolyViews {
     constructor(
         id,
         name,
         center=[0, 0, 0],
         size=[1, 1, 1],
         axis='z',
-        numSides=8,
+        numArcSides=8,
         outerRadius=1.0,
         scale=1.0
 
     ) {
-        const pts = [];
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
+        const pts = [
+            [center[i] - size[i] / 2, center[j] + size[j] / 2 - outerRadius],
+            [center[i] - size[i] / 2 + outerRadius, center[j] + size[j] / 2],
+            [center[i] + size[i] / 2 - outerRadius, center[j] + size[j] / 2],
+            [center[i] + size[i] / 2, center[j] + size[j] / 2 - outerRadius],
+            [center[i] + size[i] / 2, center[j] - size[j] / 2 + outerRadius],
+            [center[i] + size[i] / 2 - outerRadius, center[j] - size[j] / 2],
+            [center[i] - size[i] / 2 + outerRadius, center[j] - size[j] / 2],
+            [center[i] - size[i] / 2, center[j] - size[j] / 2 + outerRadius],
+        ];
         super(id, name, center, size, axis, pts, scale);
     }
 }
@@ -3136,6 +3146,7 @@ SIREPO.VTK = {
     LineBundle: LineBundle,
     ObjectViews: ObjectViews,
     PlaneBundle: PlaneBundle,
+    RacetrackViews: RacetrackViews,
     SphereBundle: SphereBundle,
     ViewPortBox: ViewPortBox,
     VTKUtils: VTKUtils,

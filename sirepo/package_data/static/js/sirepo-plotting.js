@@ -241,24 +241,6 @@ class PlotPolygon extends AbstractPlotShape2D {
         this.setPoints(p);
     }
 
-    addBevel(corner, amountHoriz, amountVert) {
-        srdbg('add b', corner);
-        if (! this.boundingRect().corners().includes(corner)) {
-            return;
-        }
-        //d.amountHoriz * numpy.array(d.widthDir) * [1, -1, -1, 1][edge_index],
-        //d.amountVert * numpy.array(d.heightDir) * [-1, -1, 1, 1][edge_index],
-
-        //const ch = new SIREPO.GEOMETRY.Point(corner.)
-        const cutLine = new SIREPO.GEOMETRY.LineSegment()
-    }
-
-    addFillet(corner, radius, numPoints) {
-        if (! this.boundingRect().corners().includes(corner)) {
-            return;
-        }
-    }
-
     bounds() {
         return SIREPO.GEOMETRY.GeometryUtils.bounds(this.points);
     }
