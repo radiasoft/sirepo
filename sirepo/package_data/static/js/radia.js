@@ -621,7 +621,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             view = new SIREPO.VTK.CylinderViews(o.id, o.name, center, size, o.extrusionAxis, o.numSides, scale);
         }
         else if (o.type === 'racetrack') {
-            view = new SIREPO.VTK.RacetrackViews(o.id, o.name, center, size, o.extrusionAxis, o.numSegments, o.radii[1], scale);
+            view = new SIREPO.VTK.RacetrackViews(o.id, o.name, center, size, o.axis, o.numSegments, o.radii[1], scale);
         }
         else {
             view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
@@ -2116,7 +2116,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 // scene -> multiple data -> multiple actors
                 let name = sceneData.name;
                 let data = sceneData.data;
-                srdbg(data);
 
                 $scope.vtkScene.removeActors();
                 let didModifyGeom = false;

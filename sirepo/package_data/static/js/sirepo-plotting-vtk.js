@@ -288,17 +288,25 @@ class RacetrackViews extends ExtrudedPolyViews {
         scale=1.0
 
     ) {
+        let pts = [];
         const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
-        const pts = [
-            [center[i] - size[i] / 2, center[j] + size[j] / 2 - outerRadius],
-            [center[i] - size[i] / 2 + outerRadius, center[j] + size[j] / 2],
-            [center[i] + size[i] / 2 - outerRadius, center[j] + size[j] / 2],
-            [center[i] + size[i] / 2, center[j] + size[j] / 2 - outerRadius],
-            [center[i] + size[i] / 2, center[j] - size[j] / 2 + outerRadius],
-            [center[i] + size[i] / 2 - outerRadius, center[j] - size[j] / 2],
-            [center[i] - size[i] / 2 + outerRadius, center[j] - size[j] / 2],
-            [center[i] - size[i] / 2, center[j] - size[j] / 2 + outerRadius],
-        ];
+        const tr = [Math.cos, Math.sin];
+        [[-1, 1], [1, 1], [1, -1], [-1, -1]].forEach((d, n) => {
+            const c = [
+                center[i] + d[0] * (size[i] / 2 - outerRadius),
+                center[j] + d[1] * (size[j] / 2 - outerRadius)
+            ];
+            for (let m = 0; m <= numArcSides; ++m) {
+                const t = m * Math.PI / (2 * numArcSides);
+                pts.push(
+                    [
+                        c[0] + d[0] * outerRadius * tr[0](t),
+                        c[1] + d[1] * outerRadius * tr[1](t),
+                    ]
+                )
+            }
+            tr.reverse();
+        });
         super(id, name, center, size, axis, pts, scale);
     }
 }
