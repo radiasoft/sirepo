@@ -15,7 +15,7 @@ def sbatch_project_option(project):
     if not project:
         return ""
     try:
-        if not list(filter(lambda x: x.fs == project, load_any(_hpssquota(project)))):
+        if not list(filter(lambda x: project in x.fs, load_any(_hpssquota(project)))):
             raise sirepo.util.UserAlert(f"Project {project} not found on NERSC")
     except Exception as e:
         raise sirepo.util.UserAlert(f"Cannot determine quota for {project}; error={e}")
