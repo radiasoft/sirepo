@@ -73,7 +73,7 @@ class GeometryUtils {
         return b;
     }
 
-    static convexHull(arrOfPointsOrCoords) {
+    static convexHull(pointsOrCoords) {
 
         function findHull(h, s, p1, p2) {
             if (s.length === 0) {
@@ -99,13 +99,13 @@ class GeometryUtils {
             );
         }
 
-        if (arrOfPointsOrCoords.length < 3) {
+        if (pointsOrCoords.length < 3) {
             return [];
         }
 
-        srdbg('hull from', arrOfPointsOrCoords);
-        const usePoints = arrOfPointsOrCoords[0] instanceof Point;
-        const c = usePoints ? arrOfPointsOrCoords : arrOfPointsOrCoords.map(p => new Point(...p));
+        srdbg('hull from', pointsOrCoords);
+        const usePoints = pointsOrCoords[0] instanceof Point;
+        const c = usePoints ? pointsOrCoords : pointsOrCoords.map(p => new Point(...p));
         const p1 = GeometryUtils.extrema(c, 'x', false)[0];
         const p2 = GeometryUtils.extrema(c, 'x', true)[0];
         let hull = [p1, p2];
@@ -1134,6 +1134,18 @@ class Line extends GeometricObject {
             return this.equalWithin(point.x, this.points[0].x);
         }
         return this.equalWithin(point.y, s * point.x + this.intercept());
+    }
+
+    /**
+     * Distance from this Line to the given Point
+     * @param {Point} point - a Point
+     * @returns {number}
+     */
+    distToPoint(point) {
+        return Math.abs(
+            (this.points[1].x - this.points[0].x) * (this.points[0].y - point.y) -
+            (this.points[1].y - this.points[0].y) * (this.points[0].x - point.x)
+        ) / Math.hypot(...this.toVector());
     }
 
     /**

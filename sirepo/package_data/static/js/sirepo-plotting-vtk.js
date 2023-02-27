@@ -175,9 +175,21 @@ class ExtrudedPolyViews extends ObjectViews {
                 this.points.push(new SIREPO.GEOMETRY.Point(...pp));
             }
         }
-        for (const dim of [axis, w, h]) {
-            const s = new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(dim));
-            s.z = this.center[this._AXES.indexOf(dim)];
+        //for (const dim of [axis, w, h]) {
+        //    const s = new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(dim));
+        //    s.z = this.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
+        //    this.addView(dim, s);
+        //}
+        const s = new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(axis));
+        s.z = this.center[k];
+        this.addView(axis, s);
+        for (const dim of [w, h]) {
+            const s = new SIREPO.PLOTTING.PlotPolygon(
+                id,
+                name,
+                SIREPO.GEOMETRY.GeometryUtils.convexHull(this.shapePoints(dim))
+            );
+            s.z = this.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
             this.addView(dim, s);
         }
     }
