@@ -2354,7 +2354,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
         v.beamlineOpticsParameters,
         beamline_info,
     ) = _generate_beamline_optics(report, data, qcall=qcall)
-    # assert 0, f"\n\n\n\nbeamline_info={beamline_info}"
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
     # 1: auto-undulator 2: auto-wiggler
     v.energyCalculationMethod = (
