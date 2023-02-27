@@ -34,7 +34,7 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
         let { reportName, reportGroupName, frameIdFields } = this.config;
         let modelsWrapper = useContext(CModelsWrapper);
         let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
-        //TODO(pjm): without this call, heatplots don't respond to window resize
+        // allow subplots to respond to window resize
         useWindowSize();
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
         if (! animationReader) {

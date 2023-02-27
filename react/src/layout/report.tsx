@@ -103,7 +103,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
     }
 }
 
-export function useAnimationReader(reportName, reportGroupName, frameIdFields) {
+export function useAnimationReader(reportName: string, reportGroupName: string, frameIdFields: string[]) {
     let panelController = useContext(CPanelController);
     let [animationReader, updateAnimationReader] = useState<AnimationReader>(undefined);
     useEffect(() => {
@@ -210,7 +210,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                 animationReader &&
                 <ReportAnimationController animationReader={animationReader} showAnimationController={showAnimationController} currentFrameIndex={props.currentFrameIndex}>
                     {
-                        (currentFrame: any) => {
+                        (currentFrame: SimulationFrame) => {
                             let LayoutComponent = this.reportLayout.component;
                             let canShowReport = this.reportLayout.canShow(currentFrame?.data);
                             let reportLayoutConfig = this.reportLayout.getConfigFromApiResponse(currentFrame?.data);
@@ -230,7 +230,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
     }
 }
 
-function AnimationControlButtons(props: { animationReader: AnimationReader, reportDataCallback: any }) {
+function AnimationControlButtons(props: { animationReader: AnimationReader, reportDataCallback: (data: SimulationFrame) => void }) {
     const { animationReader, reportDataCallback } = props;
     const presentationIntervalMs = 1000;
     return (
@@ -271,7 +271,7 @@ function AnimationControlButtons(props: { animationReader: AnimationReader, repo
     );
 }
 
-export function ReportAnimationController(props: { animationReader: AnimationReader, children: (data: unknown) => ReactElement, showAnimationController: boolean, currentFrameIndex: any }) {
+export function ReportAnimationController(props: { animationReader: AnimationReader, children: (data: SimulationFrame) => ReactElement, showAnimationController: boolean, currentFrameIndex: number }) {
     let { animationReader, showAnimationController, currentFrameIndex } = props;
 
     let [currentFrame, updateCurrentFrame] = useState<SimulationFrame>(undefined);
