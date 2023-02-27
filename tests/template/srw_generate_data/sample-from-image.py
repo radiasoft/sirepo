@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = []
+        names = ['Sample']
     for el_name in names:
         if el_name == 'Sample':
             # Sample: sample 20.0m
@@ -319,7 +319,7 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = []
+    names = ['Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
