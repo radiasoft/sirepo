@@ -888,13 +888,13 @@
             "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "currentDensity": ["Current Density [A/$mm^2$]", "Float", -2000.0],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
-            "height": ["Height ({{ appState.models.simulation.heightAxis }}) [mm]", "Float", 105.0, "", "Size along axis"],
+            "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "Float", 105.0, "Measured along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
             "radii": ["Radii [mm]", "FloatArray", [5.0, 40.0], "", ["Inner", "Outer"], [0, 0]],
-            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})"], [0, 0]],
-            "size": ["_", "FloatArray", [1.0, 1.0, 105.0], "", ["x", "y", "z"], [0, 0, 0]],
+            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", ["Length ({{ appState.models.racetrack.planeAxis1 }})", "Width ({{ appState.models.racetrack.planeAxis2 }})"], [0, 0]],
+            "size": ["Size", "FloatArray", [1.0, 1.0, 1.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["_", "ObjectType", "racetrack"]
         },
         "radiaObject": {
@@ -1158,6 +1158,7 @@
                     "dipoleC.coil.radii",
                     "dipoleC.coil.height",
                     "dipoleC.coil.sides",
+                    "dipoleC.coil.size",
                     "dipoleC.coil.currentDensity"
                 ]],
                 ["Magnet", [
@@ -1189,6 +1190,7 @@
                     "dipoleH.coil.radii",
                     "dipoleH.coil.height",
                     "dipoleH.coil.sides",
+                    "dipoleH.coil.size",
                     "dipoleH.coil.currentDensity"
                 ]],
                 ["Magnet", [
@@ -1464,6 +1466,7 @@
                 "sides",
                 "height",
                 "radii",
+                "size",
                 "numSegments",
                 "currentDensity",
                 "fieldCalc",
@@ -1477,6 +1480,7 @@
                 "sides",
                 "height",
                 "radii",
+                "size",
                 "numSegments",
                 "currentDensity",
                 "fieldCalc",
