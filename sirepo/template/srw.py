@@ -1119,7 +1119,7 @@ subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
 
 
 def _add_name(names, item):
-    if item.type not in ('watch', 'sample'):
+    if item.type not in ("watch", "sample"):
         names.append(item.name)
 
 
