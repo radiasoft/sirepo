@@ -282,6 +282,11 @@
             ["", "None"],
             ["pln", "Planar"]
         ],
+        "Elevation": [
+            ["front", "front"],
+            ["side", "side"],
+            ["top", "top"]
+        ],
         "FieldScaling": [
             ["uniform", "Uniform"],
             ["linear", "Linear"],
@@ -340,6 +345,13 @@
             ["manualPath", "Manual Group"],
             ["filePath", "File"],
             ["fieldMapPath", "Field Map"]
+        ],
+        "SnapGridSize": [
+            ["0.1", "0.1"],
+            ["0.5", "0.5"],
+            ["1", "1"],
+            ["5", "5"],
+            ["10", "10"]
         ],
         "SolveMethod": [
             ["0", "0"],
@@ -430,6 +442,12 @@
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "ModelArrayTable", [], "", ["rotateClone", "translateClone"]],
             "type": ["_", "TransformTypes", "cloneTransform"]
+        },
+        "threeDBuilder": {
+            "autoFit": ["", "Bool", true],
+            "elevation": ["_", "Elevation", "front"],
+            "snapToGrid": ["_", "Bool", false],
+            "snapGridSize": ["_", "SnapGridSize", "1"]
         },
         "dipoleBasic": {
             "_super": ["_", "model", "radiaObject"],
