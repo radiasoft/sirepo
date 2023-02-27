@@ -129,9 +129,6 @@ class _FormFileTornado(_FormFileBase):
 class _SRequest(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
-    def body_as_bytes(self):
-        return self.internal_req.get_data(cache=False)
-
     def content_type_eq(self, value):
         c = self.__content_type()._key
         if c is None:
