@@ -1952,7 +1952,6 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         content.append("v.ws_fne = '{}'".format(_wavefront_pickle_filename(0)))
         prev_wavefront = None
         names = []
-        # assert 0, f"\n\n\n\n data.models.beamline={data.models.beamline}"
         for n in beamline_info.names:
             _add_name(names, _get_beamline_item(n, data.models))
             if n in beamline_info.watches:
