@@ -159,6 +159,8 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_Mask_Sample_L,
             ))
             pp.append(v.op_Mask_Sample_pp)
+        elif el_name == 'Sample':
+            # Sample: sample 27.0m
             el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
                 file_path=v.op_Sample_file_path,
                 resolution=v.op_Sample_resolution,
