@@ -56,7 +56,7 @@
                     <td style="padding-left: 1em; cursor: pointer; white-space: nowrap">
                         <span style="font-size: large; color: {{obj.color || '#cccccc'}};">■</span> <span>{{ obj.name }}</span>
                         <span class="sr-button-bar-parent" data-ng-if="isGroup(obj)">
-                          <button data-ng-repeat="t in alignmentTools" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                          <button data-ng-repeat="t in alignmentTools" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
                         </span>
                     </td>
                     <td style="text-align: right">
@@ -77,4 +77,3 @@
 
   </div>
 </div>
-
