@@ -2721,7 +2721,9 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
                         'rotate(' + angle + ')';
 
-                    axes[dim].scale.domain(newDom).nice();
+                    if (axisCfg.doNice) {
+                        axes[dim].scale.domain(newDom).nice();
+                    }
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
 
                     // this places the axis tick labels on the appropriate side of the axis
