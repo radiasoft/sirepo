@@ -1118,9 +1118,9 @@ subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
     return None
 
 
-def _add_name(names, name):
-    if name not in ("Sample", "Watchpoint"):
-        names.append(name)
+def _add_name(names, item):
+    if item.type not in ('watch', 'sample'):
+        names.append(item.name)
 
 
 def _beamline_animation_percent_complete(run_dir, res):
@@ -1791,7 +1791,7 @@ def _generate_beamline_optics(report, data, qcall=None):
                     item, data, qcall=qcall
                 )
             items.append(item)
-            _add_name(res.names, name)
+            _add_name(res.names, item)
             if item.type == "watch":
                 res.watches[name] = item.id
         if int(res.last_id) == int(item.id):
@@ -1952,8 +1952,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         content.append("v.ws_fne = '{}'".format(_wavefront_pickle_filename(0)))
         prev_wavefront = None
         names = []
+        # assert 0, f"\n\n\n\n data.models.beamline={data.models.beamline}"
         for n in beamline_info.names:
-            _add_name(names, n)
+            _add_name(names, _get_beamline_item(n, data.models))
             if n in beamline_info.watches:
                 is_last_watch = n == beamline_info.names[-1]
                 content.append("names = ['" + "','".join(names) + "']")
@@ -2250,6 +2251,13 @@ def _export_rsopt_files():
     return files
 
 
+def _get_beamline_item(name, models):
+    for item in models.beamline:
+        if item.name == name:
+            return item
+    raise AssertionError(f"failed to find item with name={name}")
+
+
 def _rsopt_jinja_context(data):
     import multiprocessing
 
@@ -2346,6 +2354,7 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
         v.beamlineOpticsParameters,
         beamline_info,
     ) = _generate_beamline_optics(report, data, qcall=qcall)
+    # assert 0, f"\n\n\n\nbeamline_info={beamline_info}"
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
     # 1: auto-undulator 2: auto-wiggler
     v.energyCalculationMethod = (
