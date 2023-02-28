@@ -42,7 +42,8 @@ export function DynamicAxis({ orientation, graphSize, ...props }: DynamicAxisPro
     function shortFormat(value) {
         return f(value).replace(/\.0+e/, 'e')
                        .replace(/0+e/, 'e')
-                       .replace(/^e\+/, '');
+                       .replace(/^e\+/, '')
+                       .replace(/e\+0$/, '');
     }
     return (
         <>

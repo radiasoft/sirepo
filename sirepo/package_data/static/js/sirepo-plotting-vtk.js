@@ -1995,7 +1995,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             const ASPECT_RATIO = 1.0;
 
             const ELEVATIONS = {};
-            for (const axis of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+            for (const axis of SIREPO.GEOMETRY.GeometryUtils.BASIS().slice().reverse()) {
                 const e = new Elevation(axis);
                 ELEVATIONS[e.name] = e;
             }
@@ -2020,12 +2020,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             const invObjScale = 1.0 / objectScale;
 
             $scope.alignmentTools = SIREPO.APP_SCHEMA.constants.alignmentTools;
-            $scope.autoFit = true;
-            $scope.elevation = 'front';
+            $scope.elevations = ELEVATIONS;
             $scope.isClientOnly = true;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
-            $scope.snapToGrid = false;
-            $scope.snapGridSize = '1';
+            $scope.settings = appState.models.threeDBuilder;
+            $scope.snapGridSizes = appState.enumVals('SnapGridSize');
             $scope.width = $scope.height = 0;
 
             let didDrag = false;
@@ -2042,12 +2041,21 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
 
+            const snapSettingsFields = [
+                'threeDBuilder.snapToGrid',
+                'threeDBuilder.snapGridSize',
+            ];
+            const settingsFields = [
+                'threeDBuilder.autoFit',
+                'threeDBuilder.elevation',
+            ].concat(snapSettingsFields);
+
             function clearDragShadow() {
                 d3.selectAll('.vtk-object-layout-drag-shadow').remove();
             }
 
             function getElevation() {
-                return ELEVATIONS[$scope.elevation];
+                return ELEVATIONS[$scope.settings.elevation];
             }
 
             function getLabAxis(dim) {
@@ -2103,7 +2111,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 didDrag = true;
                 draggedShape = shape;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    if ($scope.snapToGrid) {
+                    if (appState.models.threeDBuilder.snapToGrid) {
                         dragDelta[dim] = snap(shape, dim);
                         return;
                     }
@@ -2250,8 +2258,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         height: $scope.height,
                     }, select);
                     axis.grid.ticks(
-                        $scope.snapToGrid ?
-                            Math.round(Math.abs(d[1] - d[0]) / ($scope.snapGridSize * objectScale)) :
+                        $scope.settings.snapToGrid ?
+                            Math.round(Math.abs(d[1] - d[0]) / ($scope.settings.snapGridSize * objectScale)) :
                             axis.tickCount
                     );
                     select('.' + dim + '.axis.grid').call(axis.grid);
@@ -2273,7 +2281,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     const bd = b[dim];
                     const nd = newDomain[dim];
                     axis.domain = $scope.cfg.fullZoom ? [-Infinity, Infinity] : nd;
-                    if (($scope.autoFit || doFit)  && bd[0] !== bd[1]) {
+                    if (($scope.settings.autoFit || doFit)  && bd[0] !== bd[1]) {
                         nd[0] = fitDomainPct * bd[0];
                         nd[1] = fitDomainPct * bd[1];
                         // center
@@ -2329,7 +2337,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return unit * Math.round(val / unit);
                 }
 
-                const g = parseFloat($scope.snapGridSize) * objectScale;
+                const g = parseFloat($scope.settings.snapGridSize) * objectScale;
                 const ctr = dragInitialShape.center[dim];
                 const offset = axes[dim].scale(roundUnits(ctr, g)) - axes[dim].scale(ctr);
                 const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
@@ -2576,14 +2584,18 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.setElevation = function(elev) {
-                $scope.elevation = elev;
+                $scope.settings.elevation = elev;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
                 });
                 replot();
             };
 
-            $scope.$watchGroup(['snapToGrid', 'snapGridSize'], refresh);
+            appState.watchModelFields($scope, settingsFields, () => {
+                appState.saveChanges('threeDBuilder');
+            });
+            appState.watchModelFields($scope, snapSettingsFields, refresh);
+
             $scope.$on('shapes.loaded', drawShapes);
 
         },
@@ -2782,7 +2794,9 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
                         'rotate(' + angle + ')';
 
-                    axes[dim].scale.domain(newDom).nice();
+                    if (axisCfg.doNice) {
+                        axes[dim].scale.domain(newDom).nice();
+                    }
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
 
                     // this places the axis tick labels on the appropriate side of the axis

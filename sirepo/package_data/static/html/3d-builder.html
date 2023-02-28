@@ -3,20 +3,13 @@
     <div class="col-md-7 workspace">
       <p class="lead text-center" style="margin-bottom: 0"><small><em>{{ instructions }}</em></small></p>
       <div>
-      <!-- TODO: repeat -->
-        <div data-toggle="tooltip" title="XY Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'front'}" style="margin: 2px;" data-ng-click="setElevation('front')">XY</div>
-        <div data-toggle="tooltip" title="YZ Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'side'}" style="margin: 2px;" data-ng-click="setElevation('side')">YZ</div>
-        <div data-toggle="tooltip" title="ZX Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'top'}" style="margin: 2px;" data-ng-click="setElevation('top')">ZX</div>
+        <div data-ng-repeat="e in elevations track by $index" data-toggle="tooltip" title="{{ e.coordPlane.toUpperCase() }} Plane" class="btn btn-default" data-ng-class="{'btn-primary': settings.elevation == e.name}" style="margin: 2px;" data-ng-click="setElevation(e.name)">{{ e.coordPlane.toUpperCase() }}</div>
         <div class="sr-pull-right-sm" style="vertical-align: middle;">
-          <label><input type="checkbox" data-ng-model="snapToGrid"> Snap center to grid</label>
-          <select data-ng-model="snapGridSize" data-ng-disabled="! snapToGrid">
-              <option value="0.1">0.1mm</option>
-              <option value="0.5">0.5mm</option>
-              <option value="1" selected>1mm</option>
-              <option value="5" >5mm</option>
-              <option value="10" >10mm</option>
+          <label><input type="checkbox" data-ng-model="settings.snapToGrid"> Snap center to grid</label>
+          <select data-ng-model="settings.snapGridSize" data-ng-disabled="! settings.snapToGrid">
+              <option data-ng-repeat="s in snapGridSizes" value="{{ s }}">{{ s }}mm</option>
           </select>
-          <label><input type="checkbox" data-ng-model="autoFit"> Auto-fit</label>
+          <label><input type="checkbox" data-ng-model="settings.autoFit"> Auto-fit</label>
           <div data-toggle="tooltip" title="Fit to objects" class="btn btn-default" style="margin: 2px;" data-ng-click="fitToShapes()">Fit</div>
         </div>
         <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
@@ -56,7 +49,7 @@
                     <td style="padding-left: 1em; cursor: pointer; white-space: nowrap">
                         <span style="font-size: large; color: {{obj.color || '#cccccc'}};">■</span> <span>{{ obj.name }}</span>
                         <span class="sr-button-bar-parent" data-ng-if="isGroup(obj)">
-                          <button data-ng-repeat="t in alignmentTools" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                          <button data-ng-repeat="t in alignmentTools" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
                         </span>
                     </td>
                     <td style="text-align: right">
@@ -77,4 +70,3 @@
 
   </div>
 </div>
-
