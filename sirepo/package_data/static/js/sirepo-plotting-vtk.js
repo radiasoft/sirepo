@@ -175,11 +175,6 @@ class ExtrudedPolyViews extends ObjectViews {
                 this.points.push(new SIREPO.GEOMETRY.Point(...pp));
             }
         }
-        //for (const dim of [axis, w, h]) {
-        //    const s = new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(dim));
-        //    s.z = this.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
-        //    this.addView(dim, s);
-        //}
         const s = new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(axis));
         s.z = this.center[k];
         this.addView(axis, s);
@@ -187,7 +182,8 @@ class ExtrudedPolyViews extends ObjectViews {
             const s = new SIREPO.PLOTTING.PlotPolygon(
                 id,
                 name,
-                SIREPO.GEOMETRY.GeometryUtils.convexHull(this.shapePoints(dim))
+                this.shapePoints(dim)
+                //SIREPO.GEOMETRY.GeometryUtils.convexHull(this.shapePoints(dim))
             );
             s.z = this.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
             this.addView(dim, s);
@@ -220,27 +216,20 @@ class ExtrudedPolyViews extends ObjectViews {
     }
 
     shapePoints(dim) {
-        const inds = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(this.axis);
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(this.axis);
         if (dim === this.axis) {
             return this.points.slice(0, this.points.length / 2).map(x => {
                 const c = x.coords();
-                return [c[inds[0]], c[inds[1]]];
+                return [c[i], c[j]];
             });
         }
-
-        //TODO(mvk): this is for now just a projection of the points so rotations about an
-        // axis other than the extrusion axis will not be accurate in the other planes. Figure
-        // out a generic polygon construction
-        const k = this._AXES.indexOf(this.axis);
-        let lp = this.points.map(x => x.coords()[k]);
-        let [ln, lx] = [Math.min(...lp), Math.max(...lp)];
-        const j = inds.indexOf(this._AXES.indexOf(dim));
-        let p = this.points.map(x => x.coords()[inds[1 - j]]);
-        let [mn, mx] = [Math.min(...p), Math.max(...p)];
-        return [
-            [[mx, ln], [mx, lx], [mn, lx], [mn, ln]],
-            [[lx, mx], [ln, mx], [ln, mn], [lx, mn]]
-        ][j];
+        const [ii, jj] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+        const pp = SIREPO.UTILS.unique(
+            this.points.map(p => [p.coords()[ii], p.coords()[jj]]),
+            (a, b) => a[0] === b[0] && a[1] === b[1]
+        );
+        srdbg(dim, 'pp', pp, 'h', SIREPO.GEOMETRY.GeometryUtils.convexHull(pp));
+        return SIREPO.GEOMETRY.GeometryUtils.convexHull(pp);
     }
 }
 

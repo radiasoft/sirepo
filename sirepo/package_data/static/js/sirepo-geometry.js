@@ -110,17 +110,23 @@ class GeometryUtils {
         if (pointsOrCoords.length < 3) {
             return [];
         }
-        srdbg('hull from', pointsOrCoords);
+        //srdbg('hull from', pointsOrCoords);
         const usePoints = pointsOrCoords[0] instanceof Point;
         const c = usePoints ? pointsOrCoords : pointsOrCoords.map(p => new Point(...p));
         if (pointsOrCoords.length === 3) {
             return usePoints ? pointsOrCoords : pointsOrCoords.map(p => [p.x, p.y]);
         }
+        //srdbg(c);
 
         // The two points with the smallest/largest x - by definition these must be on the hull
         // Also ensure the second point has a different y value
         const p1 = GeometryUtils.extrema(c, 'x', false)[0];
-        const p2 = GeometryUtils.extrema(c, 'x', true).filter(p => p.y < p1.y)[0];
+        let e = GeometryUtils.extrema(c, 'x', true);
+        //srdbg(p1, e);
+        if (e.length > 1) {
+            e = e.filter(p => p.y !== p1.y);
+        }
+        const p2 = e[0];
         let hull = [p1, p2];
         //srdbg('init hull', hull.slice());
         const ls = new LineSegment(p1, p2);
@@ -135,13 +141,13 @@ class GeometryUtils {
         //srdbg('final l', l, 'final r', r);
         const h = l.concat(r);
 
-        srdbg('final hull', h);
+        //srdbg('final hull', h);
         return usePoints ? h : h.map(p => [p.x, p.y]);
         //return usePoints ? hull : hull.map(p => [p.x, p.y]);
     }
 
     /**
-     * Get the indices of the given axis and the two axes in BASIS that comes after it axis, wrapping around
+     * Get the indices of the given axis and the two axes in BASIS that comes after it, wrapping around
      * @param {string} axis - start axis (x|y|z)
      * @returns {[number]}
      */
@@ -179,20 +185,6 @@ class GeometryUtils {
     static nextAxis(axis) {
         const b = GeometryUtils.BASIS();
         return b[(GeometryUtils.axisIndex(axis) + 1) % b.length];
-    }
-
-    static nextAxes(dim) {
-        const w = GeometryUtils.nextAxis(dim);
-        const h = GeometryUtils.nextAxis(w);
-        return [w, h];
-    }
-
-    static nextAxisIndex(dim) {
-        return GeometryUtils.BASIS().indexOf(dim);
-    }
-
-    static nextAxisIndices(dim) {
-        return GeometryUtils.nextAxes(dim).map(x => GeometryUtils.BASIS().indexOf(x));
     }
 
     /**

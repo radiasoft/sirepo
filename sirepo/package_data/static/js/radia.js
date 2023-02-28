@@ -3381,7 +3381,7 @@ SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, r
                 hasField || appState.isSubclass(modelType, m[0])
             );
         });
-        radiaService.updateRacetrack(o);
+        radiaService.updateRaceTrack(o);
         panelState.enableField('racetrack', 'size', false);
     }
 
