@@ -75,24 +75,23 @@ class GeometryUtils {
 
     static convexHull(pointsOrCoords) {
 
-        function findHull(h, s, p1, p2) {
+        function findHull(s, p1, p2) {
             if (s.length === 0) {
                 return;
             }
             const l = new LineSegment(p1, p2);
             const p0 = s.sort((a, b) => l.distToPoint(b) - l.distToPoint(a))[0];
-            srdbg('p1', hull.indexOf(p1), 'p2', hull.indexOf(p2));
+            srdbg('sorted', s.slice());
+            srdbg('p1', hull.indexOf(p1), 'p2', hull.indexOf(p2),  p1.x < p2.x);
             const i = p1.x < p2.x ? hull.indexOf(p1) + 1 : hull.indexOf(p2) + 1;
             srdbg('insert', p0, 'at', i, 'in', hull.slice());
             hull.splice(i, 0, p0);
             findHull(
-                hull,
                 s.filter(p => (new LineSegment(p1, p0)).comparePoint(p, 'x') < 0),
                 p1,
                 p0
             );
             findHull(
-                hull,
                 s.filter(p => (new LineSegment(p0, p2)).comparePoint(p, 'x') > 0),
                 p0,
                 p2
@@ -102,20 +101,26 @@ class GeometryUtils {
         if (pointsOrCoords.length < 3) {
             return [];
         }
-
         srdbg('hull from', pointsOrCoords);
         const usePoints = pointsOrCoords[0] instanceof Point;
         const c = usePoints ? pointsOrCoords : pointsOrCoords.map(p => new Point(...p));
+        if (pointsOrCoords.length === 3) {
+            return pointsOrCoords;
+        }
+
+        // The two points with the smallest/largest x - by definition these must be on the hull
         const p1 = GeometryUtils.extrema(c, 'x', false)[0];
         const p2 = GeometryUtils.extrema(c, 'x', true)[0];
         let hull = [p1, p2];
         srdbg('init hull', hull.slice());
-        c.splice(c.indexOf(p1), 1).splice(c.indexOf(p2), 1);
+        // remove these two points from further consideration
+        //c.splice(c.indexOf(p1), 1).splice(c.indexOf(p2), 1);
         const l = new LineSegment(p1, p2);
         srdbg('left', c.filter(p => l.comparePoint(p, 'x') < 0));
         srdbg('right', c.filter(p => l.comparePoint(p, 'x') > 0));
-        findHull(hull, c.filter(p => l.comparePoint(p, 'x') < 0), p1, p2);
-        findHull(hull, c.filter(p => l.comparePoint(p, 'x') > 0), p2, p1);
+        findHull(c.filter(p => l.comparePoint(p, 'x') < 0), p1, p2);
+        findHull(c.filter(p => l.comparePoint(p, 'x') > 0), p2, p1);
+        srdbg('final hull', hull.slice());
         return usePoints ? hull : hull.map(p => [p.x, p.y]);
     }
 
@@ -1141,11 +1146,12 @@ class Line extends GeometricObject {
      * @param {Point} point - a Point
      * @returns {number}
      */
-    distToPoint(point) {
-        return Math.abs(
+    distToPoint(point, signed=true) {
+        const d = (
             (this.points[1].x - this.points[0].x) * (this.points[0].y - point.y) -
             (this.points[1].y - this.points[0].y) * (this.points[0].x - point.x)
         ) / Math.hypot(...this.toVector());
+        return signed ? d : Math.abs(d);
     }
 
     /**
