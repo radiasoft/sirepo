@@ -1118,11 +1118,6 @@ subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
     return None
 
 
-def _add_name(names, item):
-    if item.type != "watch":
-        names.append(item.name)
-
-
 def _beamline_animation_percent_complete(run_dir, res):
     res.outputInfo = [
         PKDict(
@@ -1728,7 +1723,7 @@ def _flux_units(model):
 
 
 def _generate_beamline_optics(report, data, qcall=None):
-    res = PKDict(names=[], last_id=None, watches=PKDict())
+    res = PKDict(names=[], exclude=[], last_id=None, watches=PKDict())
     models = data.models
     if len(models.beamline) == 0 or not (
         _SIM_DATA.srw_is_beamline_report(report) or report == "beamlineAnimation"
@@ -1791,16 +1786,19 @@ def _generate_beamline_optics(report, data, qcall=None):
                     item, data, qcall=qcall
                 )
             items.append(item)
-            _add_name(res.names, item)
+            res.names.append(name)
             if item.type == "watch":
                 res.watches[name] = item.id
         if int(res.last_id) == int(item.id):
             break
         prev = item
+    for item in items:
+        if item.type == "watch":
+            res.exclude.append(item.name)
     args = PKDict(
         report=report,
         items=items,
-        names=res.names,
+        names=[n for n in res.names if n not in res.exclude],
         postPropagation=models.postPropagation,
         maxNameSize=max_name_size,
         nameMap=PKDict(
@@ -1953,7 +1951,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         prev_wavefront = None
         names = []
         for n in beamline_info.names:
-            _add_name(names, _get_beamline_item(n, data.models))
+            names.append(n)
             if n in beamline_info.watches:
                 is_last_watch = n == beamline_info.names[-1]
                 content.append("names = ['" + "','".join(names) + "']")
@@ -1970,7 +1968,13 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     ):
         content.append(
             "names = [{}]".format(
-                ",".join(["'{}'".format(name) for name in beamline_info.names]),
+                ",".join(
+                    [
+                        "'{}'".format(name)
+                        for name in beamline_info.names
+                        if name not in beamline_info.exclude
+                    ]
+                ),
             )
         )
         content.append(
@@ -2248,13 +2252,6 @@ def _export_rsopt_files():
     files.postProcFileName = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
     files.readmeFileName = "README.txt"
     return files
-
-
-def _get_beamline_item(name, models):
-    for item in models.beamline:
-        if item.name == name:
-            return item
-    raise AssertionError(f"failed to find item with name={name}")
 
 
 def _rsopt_jinja_context(data):
