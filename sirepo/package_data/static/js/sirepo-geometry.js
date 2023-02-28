@@ -77,25 +77,34 @@ class GeometryUtils {
 
         function findHull(s, p1, p2) {
             if (s.length === 0) {
-                return;
+                return [];
             }
-            const l = new LineSegment(p1, p2);
-            const p0 = s.sort((a, b) => l.distToPoint(b) - l.distToPoint(a))[0];
-            srdbg('sorted', s.slice());
-            srdbg('p1', hull.indexOf(p1), 'p2', hull.indexOf(p2),  p1.x < p2.x);
+            const l = [];
+            const r = [];
+            const ls = new LineSegment(p1, p2);
+            const p0 = s.sort(
+                (a, b) => ls.distToPoint(b, false, false) - ls.distToPoint(a, false, false)
+            )[0];
             const i = p1.x < p2.x ? hull.indexOf(p1) + 1 : hull.indexOf(p2) + 1;
-            srdbg('insert', p0, 'at', i, 'in', hull.slice());
             hull.splice(i, 0, p0);
-            findHull(
+            if (p1.x < p2.x) {
+                l.push(p0);
+            }
+            else {
+                r.push(p0);
+            }
+            l.concat(findHull(
                 s.filter(p => (new LineSegment(p1, p0)).comparePoint(p, 'x') < 0),
                 p1,
                 p0
-            );
-            findHull(
+            ));
+            r.concat(findHull(
                 s.filter(p => (new LineSegment(p0, p2)).comparePoint(p, 'x') > 0),
                 p0,
                 p2
-            );
+            ));
+            //srdbg('l', l, 'r', r);
+            return l.concat(r);
         }
 
         if (pointsOrCoords.length < 3) {
@@ -105,23 +114,30 @@ class GeometryUtils {
         const usePoints = pointsOrCoords[0] instanceof Point;
         const c = usePoints ? pointsOrCoords : pointsOrCoords.map(p => new Point(...p));
         if (pointsOrCoords.length === 3) {
-            return pointsOrCoords;
+            return usePoints ? pointsOrCoords : pointsOrCoords.map(p => [p.x, p.y]);
         }
 
         // The two points with the smallest/largest x - by definition these must be on the hull
+        // Also ensure the second point has a different y value
         const p1 = GeometryUtils.extrema(c, 'x', false)[0];
-        const p2 = GeometryUtils.extrema(c, 'x', true)[0];
+        const p2 = GeometryUtils.extrema(c, 'x', true).filter(p => p.y < p1.y)[0];
         let hull = [p1, p2];
-        srdbg('init hull', hull.slice());
-        // remove these two points from further consideration
-        //c.splice(c.indexOf(p1), 1).splice(c.indexOf(p2), 1);
-        const l = new LineSegment(p1, p2);
-        srdbg('left', c.filter(p => l.comparePoint(p, 'x') < 0));
-        srdbg('right', c.filter(p => l.comparePoint(p, 'x') > 0));
-        findHull(c.filter(p => l.comparePoint(p, 'x') < 0), p1, p2);
-        findHull(c.filter(p => l.comparePoint(p, 'x') > 0), p2, p1);
-        srdbg('final hull', hull.slice());
-        return usePoints ? hull : hull.map(p => [p.x, p.y]);
+        //srdbg('init hull', hull.slice());
+        const ls = new LineSegment(p1, p2);
+        //srdbg('left', c.filter(p => ls.comparePoint(p, 'x') < 0));
+        //srdbg('right', c.filter(p => ls.comparePoint(p, 'x') > 0));
+
+        //findHull(c.filter(p => ls.comparePoint(p, 'x') < 0), p1, p2);
+        //findHull(c.filter(p => ls.comparePoint(p, 'x') > 0), p2, p1);
+
+        const l = [p1].concat(findHull(c.filter(p => ls.comparePoint(p, 'x') < 0), p1, p2));
+        const r = [p2].concat(findHull(c.filter(p => ls.comparePoint(p, 'x') > 0), p2, p1));
+        //srdbg('final l', l, 'final r', r);
+        const h = l.concat(r);
+
+        srdbg('final hull', h);
+        return usePoints ? h : h.map(p => [p.x, p.y]);
+        //return usePoints ? hull : hull.map(p => [p.x, p.y]);
     }
 
     /**
@@ -1144,13 +1160,15 @@ class Line extends GeometricObject {
     /**
      * Distance from this Line to the given Point
      * @param {Point} point - a Point
+     * @param {boolean} signed - when true, the distance can be negative to indicate direction; otherwise always non-negative
+     * @param {boolean} norm - when true, normalize the distance; otherwise do not (useful for quicker comparisons)
      * @returns {number}
      */
-    distToPoint(point, signed=true) {
+    distToPoint(point, signed=false, norm=true) {
         const d = (
             (this.points[1].x - this.points[0].x) * (this.points[0].y - point.y) -
             (this.points[1].y - this.points[0].y) * (this.points[0].x - point.x)
-        ) / Math.hypot(...this.toVector());
+        ) / (norm ? Math.hypot(...this.toVector()) : 1);
         return signed ? d : Math.abs(d);
     }
 
