@@ -110,6 +110,15 @@ def proprietary_sim_types():
     )
 
 
+def _is_fedora_36():
+    from pykern import pkio
+
+    p = pkio.py_path("/etc/os-release")
+    if not p.check():
+        return False
+    return "fedora:36" in p.read()
+
+
 def _init():
     from pykern import pkconfig
     from pykern import pkio
@@ -222,6 +231,7 @@ def _init():
             s.add(v[1])
     _cfg.sim_types = frozenset(s)
     _check_packages(_cfg.package_path)
+    _cfg.is_fedora_36 = _is_fedora_36()
     return _cfg
 
 

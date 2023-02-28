@@ -40,7 +40,7 @@ def _vertices_from_stl(cond):
     verts = [line.rstrip('\r\n')[len('vertex '):].split(' ') for line in open(cond['f']) if line.startswith('vertex')]
     ctr = np.array([cond['cx'], cond['cy'], cond['cz']])
 
-    np_verts = cond['s'] * np.array(verts).astype(np.float)
+    np_verts = cond['s'] * np.array(verts).astype(np.double)
     np_verts_t = np_verts.T
     bounds = np.array([
         np.min(np_verts_t[0]),
