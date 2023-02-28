@@ -252,28 +252,33 @@ export class AnimationReader {
             throw new Error(`invalid direction for presentation: ${direction}`);
         }
 
-        let handlePresentationFrame = (simulationData) => {
-            if(activePresentationVersion === this.presentationVersionNum) {
-                callback(simulationData);
-            }
-        }
-
         let itFuncs = {
             hasNext: dir === 1 ? this.hasNextFrame : this.hasPreviousFrame,
             next: dir === 1 ? this.getNextFrame : this.getPreviousFrame
         }
 
-        let presentationInterval = setInterval(() => {
-            if(activePresentationVersion !== this.presentationVersionNum) {
-                clearInterval(presentationInterval);
+        const now = () => new Date().getTime();
+        const nextFrame = () => {
+            if (activePresentationVersion !== this.presentationVersionNum) {
                 return;
             }
-
-            if(itFuncs.hasNext()) {
-                itFuncs.next().then(simulationData => handlePresentationFrame(simulationData));
-            } else {
-                clearInterval(presentationInterval);
+            const frameRequestTime = now();
+            if (itFuncs.hasNext()) {
+                itFuncs.next().then(simulationData => {
+                    if (activePresentationVersion === this.presentationVersionNum) {
+                        callback(simulationData);
+                        // remove fetch and render time from interval
+                        let e = interval - (now() - frameRequestTime);
+                        if (e < 0) {
+                            nextFrame();
+                        }
+                        else {
+                            setTimeout(nextFrame, e);
+                        }
+                    }
+                });
             }
-        }, interval)
+        };
+        nextFrame();
     }
 }
