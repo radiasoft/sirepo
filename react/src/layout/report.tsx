@@ -9,7 +9,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useStopwatch } from "../hook/stopwatch";
 import { AnimationReader, CReportEventManager, SimulationFrame } from "../data/report";
-import { useShown } from "../hook/shown";
 import React from "react";
 import { CPanelController } from "../data/panel";
 import { LAYOUTS } from "./layouts";
@@ -17,7 +16,6 @@ import { CModelsWrapper, getModelValues } from "../data/wrapper";
 import { ModelsAccessor } from "../data/accessor";
 import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
-import { ValueSelectors } from "../hook/string";
 import { SchemaLayout } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
 import { ModelState } from "../store/models";
@@ -105,6 +103,77 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
     }
 }
 
+export function useAnimationReader(reportName: string, reportGroupName: string, frameIdFields: string[]) {
+    let panelController = useContext(CPanelController);
+    let [animationReader, updateAnimationReader] = useState<AnimationReader>(undefined);
+    useEffect(() => {
+        let s = animationReader && animationReader.frameCount > 0;
+        if (panelController) {
+            panelController.setShown(s);
+        }
+    }, [animationReader?.frameCount])
+    let reportEventManager = useContext(CReportEventManager);
+    let modelsWrapper = useContext(CModelsWrapper);
+    let simulationInfoPromise = useContext(CSimulationInfoPromise);
+    let appName = useContext(CAppName);
+    let routeHelper = useContext(CRouteHelper);
+    let reportEventsVersionRef = useRef(uuidv4())
+    let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
+    let frameIdAccessor = new ModelsAccessor(modelsWrapper, frameIdDependencies);
+
+    function reportStatus(reportName, simulationData) {
+        if (simulationData.reports) {
+            for (const r of simulationData.reports) {
+                if (r.modelName === reportName) {
+                    return {
+                        frameCount: r.frameCount || r.lastUpdateTime || 0,
+                        hasAnimationControls: ! r.lastUpdateTime,
+                    };
+                }
+            }
+        }
+        return {
+            frameCount: 0,
+            hasAnimationControls: false,
+        };
+    }
+
+    useEffect(() => {
+        reportEventManager.addListener(reportEventsVersionRef.current, reportGroupName, {
+            onStart: () => {
+                updateAnimationReader(undefined);
+            },
+            onReportData: (simulationData: ResponseHasState) => {
+                simulationInfoPromise.then(({models, simulationId}) => {
+                    let { computeJobHash, computeJobSerial } = simulationData;
+                    const s = reportStatus(reportName, simulationData);
+                    if (!animationReader || s.frameCount !== animationReader?.frameCount) {
+                        if (s.frameCount > 0) {
+                            let newAnimationReader = new AnimationReader(routeHelper, {
+                                reportName,
+                                simulationId,
+                                appName,
+                                computeJobSerial,
+                                computeJobHash,
+                                frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
+                                frameCount: s.frameCount,
+                                hasAnimationControls: s.hasAnimationControls,
+                            });
+                            updateAnimationReader(newAnimationReader);
+                        } else {
+                            updateAnimationReader(undefined);
+                        }
+                    }
+                })
+            }
+        })
+        return () => {
+            reportEventManager.clearListenersForKey(reportEventsVersionRef.current)
+        };
+    })
+    return animationReader;
+}
+
 export type ManualRunReportConfig = {
     reportLayout: SchemaLayout,
     reportName: string,
@@ -126,97 +195,25 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         return this.reportLayout.getFormDependencies();
     }
 
-   //TODO(pjm): private method naming convention?
-    _reportStatus(reportName, simulationData) {
-        if (simulationData.reports) {
-            for (const r of simulationData.reports) {
-                if (r.modelName === reportName) {
-                    return {
-                        frameCount: r.frameCount || r.lastUpdateTime || 0,
-                        hasAnimationControls: ! r.lastUpdateTime,
-                    };
-                }
-            }
-        }
-        return {
-            frameCount: 0,
-            hasAnimationControls: false,
-        };
-    }
-
     component = (props: LayoutProps<{}>) => {
-        let { reportName, reportGroupName, frameIdFields, shown: shownConfig } = this.config;
-
-        let reportEventManager = useContext(CReportEventManager);
+        let { reportName, reportGroupName, frameIdFields } = this.config;
+        let showAnimationController = 'showAnimationController' in this.config
+                                    ? !!this.config.showAnimationController
+                                    : true;
         let modelsWrapper = useContext(CModelsWrapper);
-        let simulationInfoPromise = useContext(CSimulationInfoPromise);
-        let appName = useContext(CAppName);
-        let routeHelper = useContext(CRouteHelper);
-        let panelController = useContext(CPanelController);
-
-        let reportEventsVersionRef = useRef(uuidv4())
-
-        let shown = useShown(shownConfig, true, modelsWrapper, ValueSelectors.Models);
-
-        let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
-
-        let frameIdAccessor = new ModelsAccessor(modelsWrapper, frameIdDependencies);
-
-        let [animationReader, updateAnimationReader] = useState<AnimationReader>(undefined);
-        let [model, updateModel] = useState(undefined);
-
-        useEffect(() => {
-            let s = animationReader && animationReader.frameCount > 0 && shown;
-            panelController.setShown(s);
-        }, [shown, animationReader?.frameCount])
-
-        useEffect(() => {
-            reportEventManager.addListener(reportEventsVersionRef.current, reportGroupName, {
-                onStart: () => {
-                    updateAnimationReader(undefined);
-                    panelController.setShown(false);
-                },
-                onReportData: (simulationData: ResponseHasState) => {
-                    simulationInfoPromise.then(({models, simulationId}) => {
-                        let { computeJobHash, computeJobSerial } = simulationData;
-                        const s = this._reportStatus(reportName, simulationData);
-                        if (!animationReader || s.frameCount !== animationReader?.frameCount) {
-                            if (s.frameCount > 0) {
-                                let newAnimationReader = new AnimationReader(routeHelper, {
-                                    reportName,
-                                    simulationId,
-                                    appName,
-                                    computeJobSerial,
-                                    computeJobHash,
-                                    frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
-                                    frameCount: s.frameCount,
-                                    hasAnimationControls: s.hasAnimationControls,
-                                });
-                                updateModel(models[reportName]) // TODO: needs safe access
-                                updateAnimationReader(newAnimationReader);
-                            } else {
-                                updateAnimationReader(undefined);
-                            }
-                        }
-                    })
-                }
-            })
-            return () => {
-                reportEventManager.clearListenersForKey(reportEventsVersionRef.current)
-            };
-        })
-
-        // set the key as the key for the latest request sent to make a brand new report component for each new request data
+        let store = useStore();
+        let model = getModelValues([reportName], modelsWrapper, store.getState())[reportName];
+        let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
         return (
             <>
-                {this.reportLayout && 
-                animationReader && 
-                <ReportAnimationController animationReader={animationReader}>
+                {this.reportLayout &&
+                animationReader &&
+                <ReportAnimationController animationReader={animationReader} showAnimationController={showAnimationController} currentFrameIndex={props.currentFrameIndex}>
                     {
-                        (data) => {
+                        (currentFrame: SimulationFrame) => {
                             let LayoutComponent = this.reportLayout.component;
-                            let canShowReport = this.reportLayout.canShow(data);
-                            let reportLayoutConfig = this.reportLayout.getConfigFromApiResponse(data);
+                            let canShowReport = this.reportLayout.canShow(currentFrame?.data);
+                            let reportLayoutConfig = this.reportLayout.getConfigFromApiResponse(currentFrame?.data);
                             return (
                                 <>
                                 {
@@ -233,19 +230,11 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
     }
 }
 
-export function ReportAnimationController(props: { animationReader: AnimationReader, children: (data: unknown) => ReactElement }) {
-    let { animationReader } = props;
-    let [currentFrame, updateCurrentFrame] = useState<SimulationFrame>(undefined);
-    let reportDataCallback = (simulationData) => updateCurrentFrame(simulationData);
-    let presentationIntervalMs = 1000;
-
-    useEffect(() => {
-        animationReader.seekEnd();
-        animationReader.getNextFrame().then(reportDataCallback);
-    }, [animationReader?.frameCount])
-
-    let animationControlButtons = (
-        <div className="d-flex flex-row justify-content-center w-100 gap-1">
+function AnimationControlButtons(props: { animationReader: AnimationReader, reportDataCallback: (data: SimulationFrame) => void }) {
+    const { animationReader, reportDataCallback } = props;
+    const presentationIntervalMs = 1000;
+    return (
+        <div className="d-flex flex-row justify-content-center w-100 gap-1 mt-3">
             <Button variant="light" disabled={!animationReader.hasPreviousFrame()} onClick={() => {
                 animationReader.cancelPresentations();
                 animationReader.seekBeginning();
@@ -279,20 +268,42 @@ export function ReportAnimationController(props: { animationReader: AnimationRea
                 <FontAwesomeIcon icon={Icon.faForward}></FontAwesomeIcon>
             </Button>
         </div>
-    )
+    );
+}
 
-    
+export function ReportAnimationController(props: { animationReader: AnimationReader, children: (data: SimulationFrame) => ReactElement, showAnimationController: boolean, currentFrameIndex: number }) {
+    let { animationReader, showAnimationController, currentFrameIndex } = props;
 
+    let [currentFrame, updateCurrentFrame] = useState<SimulationFrame>(undefined);
+    let reportDataCallback = (simulationData) => updateCurrentFrame(simulationData);
+    useEffect(() => {
+        animationReader.seekEnd();
+        animationReader.getNextFrame().then(reportDataCallback);
+    }, [animationReader?.frameCount])
+    useEffect(() => {
+        if (currentFrameIndex !== undefined) {
+            animationReader.cancelPresentations();
+            animationReader.getFrame(currentFrameIndex).then(reportDataCallback);
+        }
+    }, [currentFrameIndex]);
     return (
         <>
-            {
-                currentFrame && (
-                    <>
-                        {props.children(currentFrame?.data)}
-                        {animationReader.getFrameCount() > 1 && animationReader.hasAnimationControls && animationControlButtons}
-                    </>
-                )
-            }
+        {
+            currentFrame && (
+                <>
+                {props.children(currentFrame)}
+                {
+                    showAnimationController
+                    && animationReader.getFrameCount() > 1
+                    && animationReader.hasAnimationControls
+                    && <AnimationControlButtons
+                        animationReader={animationReader}
+                        reportDataCallback={reportDataCallback}
+                    />
+                }
+                </>
+            )
+        }
         </>
     )
 }
