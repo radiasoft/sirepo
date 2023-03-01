@@ -419,10 +419,6 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ac
         return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
     };
 
-    self.dice = () => {
-        return [1, 2, 3, 4, 5];
-    };
-
     self.startSimulation = () => {
         self.simState.saveAndRunSimulation('simulation');
     };
@@ -1490,8 +1486,6 @@ SIREPO.app.controller('PartitionController', function (appState, activaitService
             appState.saveQuietly(modelKey);
             self.reports.push(activaitService.reportInfo(modelKey, type.charAt(0).toUpperCase() + type.slice(1) + ' ' + (idx + 1), idx));
         });
-        srdbg(self.reports);
-        srdbg(appState.models);
     }
 
     $scope.showPartitionSelection = () => {

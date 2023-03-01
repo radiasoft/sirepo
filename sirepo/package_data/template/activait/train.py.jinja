@@ -68,9 +68,6 @@ def _predictions_initial(testx, testy):
             )
         )
     p = model.predict(testx)
-    # TODO (gurhar1133): right here could be a good place to
-    # find best/worst loss/dice images
-    print(f"predictions.shape={p.shape} testy.shape={numpy.array(testy).shape}")
     return PKDict(
         p=p,
         testy=_test_y(testy),
@@ -93,5 +90,3 @@ p = model.predict(x=testx)
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', {% if image_data %}o.testy{% else %}testy{% endif %})
 np.save('{{ predictFile }}', p)
-print(set(o.testy))
-print(min(p), max(p))
