@@ -1289,7 +1289,7 @@ def _loss_function(loss_fn):
 
 def _make_layers(model):
     neural_net = []
-    for l in model._layers:
+    for l in model.layers:
         neural_net.append(
             _set_fields_by_layer_type(
                 l, PKDict(obj=l, layer=_get_layer_type(l), name=l.name)
