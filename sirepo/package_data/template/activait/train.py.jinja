@@ -69,11 +69,15 @@ def _predictions_initial(testx, testy):
         )
     p = model.predict(testx)
     # TODO (gurhar1133): get indices of best and worst images
+    {% if imageToImage %}
     b = _best_worst_images(testy, p.reshape(*numpy.array(testy).shape))
+    {% endif %}
     return PKDict(
         p=p,
+        {% if imageToImage %}
         best=b.best,
         worst=b.worst,
+        {% endif %}
         testy=_test_y(testy),
     )
 
@@ -106,4 +110,7 @@ p = model.predict(x=testx)
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', {% if image_data %}o.testy{% else %}testy{% endif %})
 np.save('{{ predictFile }}', p)
-
+{% if imageToImage %}
+np.save('{{ bestFile }}', o.best)
+np.save('{{ worstFile }}', o.worst)
+{% endif %}

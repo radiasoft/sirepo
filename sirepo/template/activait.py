@@ -52,6 +52,8 @@ _CLASSIFIER_OUTPUT_FILE = PKDict(
 
 _OUTPUT_FILE = PKDict(
     classificationOutputColEncodingFile="classification-output-col-encoding.json",
+    bestFile="bestFile.npy",
+    worstFile="worstFile.npy",
     fitCSVFile="fit.csv",
     predictFile="predict.npy",
     scaledFile="scaled.npy",
@@ -905,6 +907,8 @@ def _generate_parameters_file(data):
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
+    v.bestFile = _OUTPUT_FILE.bestFile
+    v.worstFile = _OUTPUT_FILE.worstFile
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
@@ -1133,9 +1137,17 @@ def _image_preview(data, run_dir=None):
             f"No matching dimension found output size: {io.output.size}"
         )
 
-    def _x_y(data, io, file):
-        if data.args.method == "segmentViewer":
+    def _x_y(data, io, file, run_dir=None):
+        if data.args.method in ("segmentViewer"):
             return _masks(numpy.array(file[io.output.path]).shape[-1], run_dir)
+        if data.args.method == "bestLosses":
+            indices = _read_file(run_dir, _OUTPUT_FILE.bestFile).sort()
+            x = _read_file(run_dir, _OUTPUT_FILE.testFile)[indices]
+            y = _read_file(run_dir, _OUTPUT_FILE.predictFile)[indices]
+            return x.reshape(len(x) // 64 // 64, 64, 64), y.reshape(len(y) // 64 // 64, 64, 64)
+        if data.args.method == "worstLosses":
+            i = _read_file(run_dir, _OUTPUT_FILE.worstFile).sort()
+            return file[io.input.path][i], file[io.output.path][i]
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):
@@ -1195,7 +1207,10 @@ def _image_preview(data, run_dir=None):
             break
 
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
-        x, y = _x_y(data, io, f)
+        x, y = _x_y(data, io, f, run_dir=run_dir)
+        if data.args.method == "bestLosses":
+            pkdp("\n\n\n x={}", x)
+            pkdp("\n\n\n y={}", y)
         u = []
         k = 0
         g = _grid(x, info)
