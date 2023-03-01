@@ -75,36 +75,68 @@ class GeometryUtils {
 
     static convexHull(pointsOrCoords) {
 
+        function convertResult(points, usePoints) {
+            return usePoints ? points : points.map(p => [p.x, p.y]);
+        }
+
         function findHull(s, p1, p2) {
             if (s.length === 0) {
                 return [];
             }
-            const l = [];
-            const r = [];
+            srdbg('find in', s);
+            let l = [];
+            let r = [];
+            let h = [];
             const ls = new LineSegment(p1, p2);
             const p0 = s.sort(
                 (a, b) => ls.distToPoint(b, false, false) - ls.distToPoint(a, false, false)
             )[0];
-            const i = p1.x < p2.x ? hull.indexOf(p1) + 1 : hull.indexOf(p2) + 1;
-            hull.splice(i, 0, p0);
+            srdbg('max p', p0);
+            h.push(p0);
             if (p1.x < p2.x) {
                 l.push(p0);
-            }
+                //l = l.concat(findHull(
+                //    s.filter(p => (new LineSegment(p1, p0)).comparePoint(p, 'x') < 0),
+                //    p1,
+                //    p0
+                //));
+             }
             else {
                 r.push(p0);
+                //r = r.concat(findHull(
+                //    s.filter(p => (new LineSegment(p2, p0)).comparePoint(p, 'x') > 0),
+                //    p2,
+                //    p0
+                //));
             }
-            l.concat(findHull(
+            //srdbg('before check l', l.slice(), 'r', r.slice());
+            //s.splice(s.indexOf(p0), 1);
+            //srdbg('check l', new LineSegment(p1, p0));
+            h = h.concat(findHull(
                 s.filter(p => (new LineSegment(p1, p0)).comparePoint(p, 'x') < 0),
                 p1,
                 p0
             ));
-            r.concat(findHull(
-                s.filter(p => (new LineSegment(p0, p2)).comparePoint(p, 'x') > 0),
-                p0,
-                p2
+            h = h.concat(findHull(
+                s.filter(p => (new LineSegment(p2, p0)).comparePoint(p, 'x') > 0),
+                p2,
+                p0
             ));
-            //srdbg('l', l, 'r', r);
-            return l.concat(r);
+            //l = l.concat(findHull(
+            //    s.filter(p => (new LineSegment(p1, p0)).comparePoint(p, 'x') < 0),
+            //    p1,
+            //    p0
+            //));
+            //srdbg('check r', new LineSegment(p2, p0));
+            //r = r.concat(findHull(
+            //    s.filter(p => (new LineSegment(p2, p0)).comparePoint(p, 'x') > 0),
+            //    p2,
+            //    p0
+            //));
+            //srdbg('inttermed l', l, 'r', r, 'all', [...l, ...r]);
+            srdbg('inttermed h', h);
+            return h;
+            //return l.concat(r);
         }
 
         if (pointsOrCoords.length < 3) {
@@ -114,10 +146,9 @@ class GeometryUtils {
         const usePoints = pointsOrCoords[0] instanceof Point;
         const c = usePoints ? pointsOrCoords : pointsOrCoords.map(p => new Point(...p));
         if (pointsOrCoords.length === 3) {
-            return usePoints ? pointsOrCoords : pointsOrCoords.map(p => [p.x, p.y]);
+            return convertResult(pointsOrCoords, usePoints);
         }
         //srdbg(c);
-
         // The two points with the smallest/largest x - by definition these must be on the hull
         // Also ensure the second point has a different y value
         const p1 = GeometryUtils.extrema(c, 'x', false)[0];
@@ -127,23 +158,20 @@ class GeometryUtils {
             e = e.filter(p => p.y !== p1.y);
         }
         const p2 = e[0];
-        let hull = [p1, p2];
-        //srdbg('init hull', hull.slice());
+        //c.splice(c.indexOf(p1), 1).splice(c.indexOf(p2), 1);
+        srdbg('init hull', p1, p2);
         const ls = new LineSegment(p1, p2);
-        //srdbg('left', c.filter(p => ls.comparePoint(p, 'x') < 0));
-        //srdbg('right', c.filter(p => ls.comparePoint(p, 'x') > 0));
-
-        //findHull(c.filter(p => ls.comparePoint(p, 'x') < 0), p1, p2);
-        //findHull(c.filter(p => ls.comparePoint(p, 'x') > 0), p2, p1);
+        srdbg('left', c.filter(p => ls.comparePoint(p, 'x') < 0));
+        srdbg('right', c.filter(p => ls.comparePoint(p, 'x') > 0));
 
         const l = [p1].concat(findHull(c.filter(p => ls.comparePoint(p, 'x') < 0), p1, p2));
         const r = [p2].concat(findHull(c.filter(p => ls.comparePoint(p, 'x') > 0), p2, p1));
-        //srdbg('final l', l, 'final r', r);
+        srdbg('final l', l, 'final r', r);
         const h = l.concat(r);
 
+
         //srdbg('final hull', h);
-        return usePoints ? h : h.map(p => [p.x, p.y]);
-        //return usePoints ? hull : hull.map(p => [p.x, p.y]);
+        return convertResult(h, usePoints);
     }
 
     /**
@@ -893,6 +921,11 @@ class Transform extends GeometricObject {
  */
 class Point extends GeometricObject {
 
+    static angleSorter(points) {
+        const p = points.slice().sort((a, b) => a.x - b.x);
+        const p0 = GeometryUtils.extrema(p, 'y')[0];
+    }
+
     /**
      * @param {number} x - the x coordinate
      * @param {number} y - the y coordinate
@@ -920,6 +953,17 @@ class Point extends GeometricObject {
      */
     coords() {
         return [this.x, this.y, this.z].slice(0, this.dimension);
+    }
+
+    /**
+     * Determines whether the coordinate at the given index of this point and the given point are
+     * equal according to equalWithin
+     * @param {Point} point - another Point
+     * @param {number} index - index of the coordinate
+     * @returns {boolean}
+     */
+    coordEquals(point, index) {
+        return this.equalWithin(this.coords()[index], point.coords()[index]);
     }
 
     /**
@@ -1134,6 +1178,27 @@ class Line extends GeometricObject {
         this.points = [point1, point2];
     }
 
+    /**
+     * Compares a given Point to this line, in the following sense:
+     * - if the Point is on this Line, return 0
+     * - if the Line is vertical, return 1 if the x coordinate of the Point is greater than the Line's, else -1
+     * - if the Line is horizontal, return 1 if the y coordinate of the Point is greater than the Line's, else -1
+     * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
+     * @param {Point} point - the point to compare
+     * @returns {number} - -1|0|1
+     */
+    comparePoint(point) {
+        if (this.contains(point)) {
+            return 0;
+        }
+        if (this.slope() === Infinity) {
+            return point.x > this.points[0].x ? 1 : -1;
+        }
+        if (this.slope() === 0) {
+            return point.y > this.points[0].y ? 1 : -1;
+        }
+        return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
+    }
 
     /**
      * Determines whether the given Point is on this Line, that is it satisfies:
@@ -1220,23 +1285,6 @@ class Line extends GeometricObject {
     }
 
     /**
-     * Compares a given Point to this line, in the following sense:
-     * - if the Point is on this Line, return 0
-     * - if the Line is vertical, return 1 if the x coordinate of the Point is greater than the Line's, else -1
-     * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
-     * @returns {number} - -1|0|1
-     */
-    comparePoint(point) {
-        if (this.contains(point)) {
-            return 0;
-        }
-        if (this.slope() === Infinity) {
-            return point.x > this.points[0].x ? 1 : -1;
-        }
-        return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
-    }
-
-    /**
      * String value of this Line
      * @returns {string}
      */
@@ -1268,6 +1316,35 @@ class LineSegment extends Line {
     */
     constructor(point1, point2) {
         super(point1, point2);
+    }
+
+    /**
+     * Compares a given Point to this line segment, in the following sense:
+     * - if the Point is on this LineSegment, return 0
+     * - if the LineSegment is vertical or comparing x coordinate, return 1 if the x coordinate of the Point is greater than each of the LineSegment's points, else -1
+     * - if the LineSegment is horizontal or comparing y coordinate, return 1 if the y coordinate of the Point is greater than each of the LineSegment's points, else -1
+     * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
+     * @param {Point} point - the point to compare
+     *
+     * @returns {number} - -1|0|1
+     */
+    comparePoint(point, dim='y') {
+        if (this.contains(point)) {
+            return 0;
+        }
+        if (this.slope() === Infinity) {
+            return point.x > this.points[0].x ? 1 : -1;
+        }
+        if (this.slope() === 0) {
+            return point.y > this.points[0].y ? 1 : -1;
+        }
+        if (dim === 'x') {
+            return point.x >  (point.y - this.intercept()) / this.slope() ? 1 : -1;
+        }
+        if (dim === 'y') {
+            return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
+        }
+        throw new Error('Invalid comparison');
     }
 
     /**

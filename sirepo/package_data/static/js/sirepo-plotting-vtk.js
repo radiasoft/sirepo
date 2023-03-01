@@ -224,10 +224,10 @@ class ExtrudedPolyViews extends ObjectViews {
             });
         }
         const [ii, jj] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+        // points can stack on each other
         const pp = SIREPO.UTILS.unique(
-            this.points.map(p => [p.coords()[ii], p.coords()[jj]]),
-            (a, b) => a[0] === b[0] && a[1] === b[1]
-        );
+            this.points, (a, b) => a.coordEquals(b, ii) && a.coordEquals(b, jj)
+        ).map(p => [p.coords()[ii], p.coords()[jj]]);
         srdbg(dim, 'pp', pp, 'h', SIREPO.GEOMETRY.GeometryUtils.convexHull(pp));
         return SIREPO.GEOMETRY.GeometryUtils.convexHull(pp);
     }
