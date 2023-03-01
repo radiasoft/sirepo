@@ -2041,25 +2041,45 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
-            //TODO(mvk): live update of virtual shapes
             function d3DragShape(shape) {
+                
                 if (! shape.draggable) {
                     return;
                 }
                 didDrag = true;
                 draggedShape = shape;
+                let axis;
+                if (d3.event.sourceEvent.shiftKey) {
+                    if (Math.abs(dragDelta.x) > Math.abs(dragDelta.y)) {
+                        axis = 'x';
+                    }
+                    else {
+                        axis = 'y';
+                    }
+                }
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     if (appState.models.threeDBuilder.snapToGrid) {
                         dragDelta[dim] = snap(shape, dim);
                         return;
                     }
-                    dragDelta[dim] = d3.event[dim];
+                    if (axis) {
+                        if (dim === axis) {
+                            dragDelta[dim] = d3.event[dim];
+                        }
+                        else {
+                            dragDelta[dim] = 0;
+                        }
+                    }
+                    else {
+                        dragDelta[dim] = d3.event[dim];
+                    }
                     const numPixels = scaledPixels(dim, dragDelta[dim]);
                     shape[dim] = dragInitialShape[dim] + numPixels;
                     shape.center[dim] = dragInitialShape.center[dim] + numPixels;
                 });
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
+                //TODO(mvk): restore live update of virtual shapes
                 shape.runLinks().forEach(linkedShape => {
                     d3.select(shapeSelectionId(linkedShape)).call(updateShapeAttributes);
                 });
