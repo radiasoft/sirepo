@@ -1070,11 +1070,13 @@ def _histogram_plot(values, vrange):
     y.insert(0, 0)
     return x, y
 
+
 def _data_url(filename):
     f = open(filename, "rb")
     u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
     f.close()
     return u
+
 
 def _masks(out_width, run_dir):
     x = _read_file(run_dir, _OUTPUT_FILE.testFile)
@@ -1083,13 +1085,16 @@ def _masks(out_width, run_dir):
     y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
     return x, y
 
+
 def _dice_coefficient_plot(data, run_dir):
     import matplotlib.pyplot as plt
 
     def _dice(run_dir):
-
         def _dice_coefficient(mask1, mask2):
-            return round((2 * numpy.sum(mask1*mask2) ) / (numpy.sum(mask1) + numpy.sum(mask2)), 3)
+            return round(
+                (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
+                3,
+            )
 
         d = []
         x, y = _masks(64, run_dir)
@@ -1101,10 +1106,7 @@ def _dice_coefficient_plot(data, run_dir):
     plt.hist(_dice(run_dir))
     plt.xlabel("Dice Scores")
     plt.ylabel("Counts")
-    p = (
-        _SIM_DATA.lib_file_write_path(data.args.imageFilename)
-        + ".png"
-    )
+    p = _SIM_DATA.lib_file_write_path(data.args.imageFilename) + ".png"
     plt.tight_layout()
     plt.savefig(p)
     return PKDict(
