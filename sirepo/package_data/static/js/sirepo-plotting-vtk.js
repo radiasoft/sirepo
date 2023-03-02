@@ -2412,7 +2412,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     const sz = d.getSizeCoords().map(function (c) {
                         return utilities.roundToPlaces(c * invObjScale, 2);
                     });
-                    return `${d.id} ${d.name} center : ${ctr} size: ${sz}`;
+                    return `${d.name} center : ${ctr} size: ${sz}`;
                 });
             }
 
@@ -2479,6 +2479,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.isInGroup = o => $scope.source.isInGroup(o);
+
+            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
 
             $scope.init = () => {
                 for (const o in $scope.getObjects()) {
