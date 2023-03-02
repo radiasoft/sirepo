@@ -1952,6 +1952,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             const fitDomainPct = 1.01;
 
+            let expanded = {};
             let screenRect = null;
             let selectedObject = null;
             const objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
@@ -2316,6 +2317,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return pts;
             }
 
+            function itemIndex(item) {
+                return $scope.getObjects().indexOf(item);
+            }
+
             function linePoints(shape) {
                 if (! shape.line || getElevation().coordPlane !== shape.coordPlane) {
                     return null;
@@ -2415,26 +2420,26 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.source.align(o, alignType, getElevation().labAxisIndices());
             };
 
-            $scope.copyObject = function(o) {
+            $scope.copyObject = o =>  {
                 $scope.source.copyObject(o);
             };
 
-            $scope.deleteObject = function(o) {
+            $scope.deleteObject = o => {
                 $scope.source.deleteObject(o);
             };
 
-            $scope.destroy = function() {
+            $scope.destroy = () => {
                 if (zoom) {
                     zoom.on('zoom', null);
                 }
                 $('.plot-viewport').off();
             };
 
-            $scope.dragMove = function(obj, evt) {
+            $scope.dragMove = (o, evt) => {
                 const p = isMouseInBounds(evt);
                 if (p) {
                     d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
-                    updateDragShadow(obj, p);
+                    updateDragShadow(o, p);
                 }
                 else {
                     clearDragShadow();
@@ -2444,7 +2449,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             // called when dropping new objects, not existing
-            $scope.dropSuccess = function(obj, evt) {
+            $scope.dropSuccess = (o, evt) => {
                 clearDragShadow();
                 const p = isMouseInBounds(evt);
                 if (p) {
@@ -2453,15 +2458,17 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     const ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
-                    obj.center = ctr.map(x => x * invObjScale);
-                    $scope.$emit('layout.object.dropped', obj);
+                    o.center = ctr.map(x => x * invObjScale);
+                    $scope.$emit('layout.object.dropped', o);
                     drawShapes();
                 }
             };
 
-            $scope.editObject = function(o) {
+            $scope.editObject = o =>  {
                 $scope.source.editObject(o);
             };
+
+            $scope.isExpanded = o => expanded[o.id];
 
             $scope.fitToShapes = () => {
                 replot(true);
@@ -2471,7 +2478,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return (appState.models[$scope.modelName] || {}).objects;
             };
 
-            $scope.init = function() {
+            $scope.isInGroup = o => $scope.source.isInGroup(o);
+
+            $scope.init = () => {
+                for (const o in $scope.getObjects()) {
+                    expanded[o.id] = false;
+                }
+
                 $scope.shapes = $scope.source.getShapes(getElevation());
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
@@ -2504,30 +2517,36 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.isDropEnabled = () => $scope.source.isDropEnabled();
 
-            $scope.isGroup = obj => $scope.source.isGroup(obj);
+            $scope.isGroup = o => $scope.source.isGroup(o);
 
-            $scope.plotHeight = function() {
-                var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
-                return ph;
+            $scope.nestLevel = o => {
+                let n = 0;
+                if ($scope.isInGroup(o)) {
+
+                }
             };
 
-            $scope.plotOffset = function() {
-                return $scope.height;
-            };
+            $scope.plotHeight = () => $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
 
-            $scope.resize = function() {
+            $scope.plotOffset = () => $scope.height;
+
+            $scope.resize = () => {
                 if (select().empty()) {
                     return;
                 }
                 refresh();
             };
 
-            $scope.setElevation = function(elev) {
+            $scope.setElevation = elev => {
                 $scope.settings.elevation = elev;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
                 });
                 replot();
+            };
+
+            $scope.toggleExpand = o => {
+                expanded[o.id] = ! expanded[o.id];
             };
 
             appState.watchModelFields($scope, settingsFields, () => {

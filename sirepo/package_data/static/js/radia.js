@@ -520,6 +520,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.getView = () => `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
 
+    self.isInGroup = o => ! ! o.groupId;
+
     self.isDropEnabled = () => self.dropEnabled;
 
     self.isGroup = o => o.members !== undefined;
