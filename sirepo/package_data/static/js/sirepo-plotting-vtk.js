@@ -2050,10 +2050,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function d3DragShape(shape) {
 
-                function axisDelta(dim) {
-                    return canDrag(dim) ? d3.event[dim] : 0;
-                }
-
                 if (! shape.draggable) {
                     return;
                 }
@@ -2064,7 +2060,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         dragDelta[dim] = snap(shape, dim);
                         return;
                     }
-                    dragDelta[dim] = axisDelta(dim);
+                    dragDelta[dim] = canDrag(dim) ? d3.event[dim] : 0;
                     const numPixels = scaledPixels(dim, dragDelta[dim]);
                     shape[dim] = dragInitialShape[dim] + numPixels;
                     shape.center[dim] = dragInitialShape.center[dim] + numPixels;
