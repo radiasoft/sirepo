@@ -62,4 +62,18 @@ class LayoutWrapper {
     }
 }
 
+export function createLayouts<T>(obj: T, fieldName?: string): T & { layouts: Layout[] } {
+    fieldName = fieldName || "items";
+    let v = obj[fieldName];
+    if(Array.isArray(v)) {
+        v = v.map(x => LAYOUTS.getLayoutForSchema(x));
+    } else {
+        v = [LAYOUTS.getLayoutForSchema(v)];
+    }
+    return {
+        ...obj,
+        layouts: v
+    }
+}
+
 export const LAYOUTS = new LayoutWrapper();
