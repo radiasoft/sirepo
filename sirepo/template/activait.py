@@ -1104,8 +1104,10 @@ def _dice_coefficient_plot(data, run_dir):
 
     plt.figure(figsize=[10, 10])
     plt.hist(_dice(run_dir))
-    plt.xlabel("Dice Scores")
-    plt.ylabel("Counts")
+    plt.xlabel("Dice Scores", fontsize=20)
+    plt.ylabel("Counts", fontsize=20)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
     p = _SIM_DATA.lib_file_write_path(data.args.imageFilename) + ".png"
     plt.tight_layout()
     plt.savefig(p)
