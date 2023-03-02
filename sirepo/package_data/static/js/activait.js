@@ -1162,7 +1162,6 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             let numPages = 0;
             let uris;
             $scope.dataFileMissing = false;
-            srdbg($scope.imageClass);
             $scope.canUpdateUri = increment => {
                 return idx + increment >= 0 && idx + increment < numPages;
             };
