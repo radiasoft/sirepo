@@ -1141,13 +1141,23 @@ def _image_preview(data, run_dir=None):
         if data.args.method in ("segmentViewer"):
             return _masks(numpy.array(file[io.output.path]).shape[-1], run_dir)
         if data.args.method == "bestLosses":
-            indices = _read_file(run_dir, _OUTPUT_FILE.bestFile).sort()
-            x = _read_file(run_dir, _OUTPUT_FILE.testFile)[indices]
-            y = _read_file(run_dir, _OUTPUT_FILE.predictFile)[indices]
-            return x.reshape(len(x) // 64 // 64, 64, 64), y.reshape(len(y) // 64 // 64, 64, 64)
+            indices = _read_file(run_dir, _OUTPUT_FILE.bestFile)
+            indices = indices.flatten()
+            indices.sort()
+            pkdp("\n\n\n indices={}", indices)
+            x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+            y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+            # pkdp("\n\n\nlen(x)={}", len(x))
+            return x.reshape(len(x) // 64 // 64, 64, 64)[indices], y.reshape(len(y) // 64 // 64, 64, 64)[indices]
         if data.args.method == "worstLosses":
-            i = _read_file(run_dir, _OUTPUT_FILE.worstFile).sort()
-            return file[io.input.path][i], file[io.output.path][i]
+            indices = _read_file(run_dir, _OUTPUT_FILE.worstFile)
+            indices = indices.flatten()
+            indices.sort()
+            pkdp("\n\n\n indices={}", indices)
+            x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+            y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+            # pkdp("\n\n\nlen(x)={}", len(x))
+            return x.reshape(len(x) // 64 // 64, 64, 64)[indices], y.reshape(len(y) // 64 // 64, 64, 64)[indices]
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):
@@ -1157,7 +1167,7 @@ def _image_preview(data, run_dir=None):
 
     def _set_image_to_image_plt(plt, data):
         _, a = plt.subplots(3, 2)
-        if data.args.method == "segmentViewer":
+        if data.args.method in ("segmentViewer", "bestLosses", "worstLosses"):
             a[0, 0].set_title("actual")
             a[0, 1].set_title("prediction")
         plt.setp(a, xticks=[], yticks=[])
@@ -1209,11 +1219,11 @@ def _image_preview(data, run_dir=None):
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
         x, y = _x_y(data, io, f, run_dir=run_dir)
         if data.args.method == "bestLosses":
-            pkdp("\n\n\n x={}", x)
-            pkdp("\n\n\n y={}", y)
+            pkdp("\n\n\n x.shape={}", x.shape)
+            pkdp("\n\n\n y.shape={}", y.shape)
         u = []
         k = 0
-        g = _grid(x, info)
+        g = _grid(x, info) if data.args.method not in ("bestLosses", "worstLosses") else [3]
         for i in g:
             plt.figure(figsize=[10, 10])
             axarr = (
