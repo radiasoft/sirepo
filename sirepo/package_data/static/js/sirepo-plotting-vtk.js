@@ -2041,38 +2041,30 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
+            function canDrag(dim) {
+                const a = d3.event.sourceEvent.shiftKey ?
+                    (Math.abs(dragDelta.x) > Math.abs(dragDelta.y) ? 'x' : 'y') :
+                    null;
+                return ! a || a === dim;
+            }
+
             function d3DragShape(shape) {
-                
+
+                function axisDelta(dim) {
+                    return canDrag(dim) ? d3.event[dim] : 0;
+                }
+
                 if (! shape.draggable) {
                     return;
                 }
                 didDrag = true;
                 draggedShape = shape;
-                let axis;
-                if (d3.event.sourceEvent.shiftKey) {
-                    if (Math.abs(dragDelta.x) > Math.abs(dragDelta.y)) {
-                        axis = 'x';
-                    }
-                    else {
-                        axis = 'y';
-                    }
-                }
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     if (appState.models.threeDBuilder.snapToGrid) {
                         dragDelta[dim] = snap(shape, dim);
                         return;
                     }
-                    if (axis) {
-                        if (dim === axis) {
-                            dragDelta[dim] = d3.event[dim];
-                        }
-                        else {
-                            dragDelta[dim] = 0;
-                        }
-                    }
-                    else {
-                        dragDelta[dim] = d3.event[dim];
-                    }
+                    dragDelta[dim] = axisDelta(dim);
                     const numPixels = scaledPixels(dim, dragDelta[dim]);
                     shape[dim] = dragInitialShape[dim] + numPixels;
                     shape.center[dim] = dragInitialShape.center[dim] + numPixels;
@@ -2293,6 +2285,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function snap(shape, dim) {
                 function roundUnits(val, unit) {
                     return unit * Math.round(val / unit);
+                }
+
+                if (! canDrag(dim)) {
+                    return 0;
                 }
 
                 const g = parseFloat($scope.settings.snapGridSize) * objectScale;
