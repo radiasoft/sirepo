@@ -170,7 +170,7 @@ class AbstractPlotShape2D extends AbstractPlotShape {
         );
         this.center = new SIREPO.GEOMETRY.Point(...center);
     }
-    
+
     getCenterCoords() {
         return this.getCoords(this.center);
     }
@@ -246,13 +246,7 @@ class PlotPolygon extends AbstractPlotShape2D {
     getSizeCoords() {
         return this.getCoords(this.size);
     }
-
-    lineSegments() {
-        return this.points.map(
-            (p, i) => new SIREPO.GEOMETRY.LineSegment(p, this.points[(i + 1) % this.points.length])
-        );
-    }
-
+    
     setPoints(arr) {
         this.points = arr;
     }
