@@ -2379,7 +2379,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return null;
                 }
 
-                const scaledLine = geometry.lineFromArr(
+                var scaledLine = geometry.lineFromArr(
                     lp.map(function (p) {
                         var sp = [];
                         SIREPO.SCREEN_DIMS.forEach(function (dim) {
@@ -2388,7 +2388,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         return geometry.pointFromArr(sp);
                 }));
 
-                return screenRect.boundaryIntersectionsWithLine(scaledLine);
+                var pts = screenRect.boundaryIntersectionsWithLine(scaledLine);
+                return pts;
             }
 
             function shapeSize(shape, dim) {
