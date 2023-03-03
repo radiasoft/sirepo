@@ -269,7 +269,7 @@ class CylinderViews extends ExtrudedPolyViews {
                     center[i] + 0.5 * Math.cos(t) * size[i],
                     center[j] + 0.5 * Math.sin(t) * size[j],
                 ]
-            )
+            );
         }
         super(id, name, center, size, axis, pts, scale);
     }
@@ -302,7 +302,7 @@ class RacetrackViews extends ExtrudedPolyViews {
                         c[0] + d[0] * outerRadius * tr[0](t),
                         c[1] + d[1] * outerRadius * tr[1](t),
                     ]
-                )
+                );
             }
             tr.reverse();
         });
