@@ -170,18 +170,7 @@ class AbstractPlotShape2D extends AbstractPlotShape {
         );
         this.center = new SIREPO.GEOMETRY.Point(...center);
     }
-
-    boundingRect() {
-        return new SIREPO.GEOMETRY.Rect(
-            new SIREPO.GEOMETRY.Point(
-                this.center.x - 0.5 * this.size.x, this.center.y - 0.5 * this.size.y
-            ),
-            new SIREPO.GEOMETRY.Point(
-                this.center.x + 0.5 * this.size.x, this.center.y + 0.5 * this.size.y
-            )
-        )
-    }
-
+    
     getCenterCoords() {
         return this.getCoords(this.center);
     }
