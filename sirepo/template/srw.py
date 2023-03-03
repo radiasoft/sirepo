@@ -1991,7 +1991,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             ]
         )
     else:
-        if report == 'multiElectronAnimation':
+        if report == "multiElectronAnimation":
             if not run_all:
                 content.append("v.wm = True")
         else:
