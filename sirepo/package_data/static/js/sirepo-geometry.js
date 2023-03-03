@@ -1107,22 +1107,7 @@ class Line extends GeometricObject {
         }
         return this.equalWithin(point.y, s * point.x + this.intercept());
     }
-
-    /**
-     * Distance from this Line to the given Point
-     * @param {Point} point - a Point
-     * @param {boolean} signed - when true, the distance can be negative to indicate direction; otherwise always non-negative
-     * @param {boolean} norm - when true, normalize the distance; otherwise do not (useful for quicker comparisons)
-     * @returns {number}
-     */
-    distToPoint(point, signed=false, norm=true) {
-        const d = (
-            (this.points[1].x - this.points[0].x) * (this.points[0].y - point.y) -
-            (this.points[1].y - this.points[0].y) * (this.points[0].x - point.x)
-        ) / (norm ? Math.hypot(...this.toVector()) : 1);
-        return signed ? d : Math.abs(d);
-    }
-
+    
     /**
      * Determines whether this Line is equal to another, according to the following criteria:
      *  - if the slopes of each are Infinite, and they have the same x coordinate, they are equal
