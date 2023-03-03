@@ -1315,12 +1315,6 @@ class LineSegment extends Line {
     toString() {
         return this.points.map(p => p.toString());
     }
-
-    sense() {
-        return this.slope() === Infinity ?
-            Math.sign(this.points[1].y - this.points[0].y):
-            Math.sign(this.points[1].x - this.points[0].x);
-    }
 }
 
 
