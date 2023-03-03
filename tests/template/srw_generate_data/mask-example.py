@@ -363,6 +363,7 @@ def main():
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.si = True
     v.si_pl = 'xy'
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
