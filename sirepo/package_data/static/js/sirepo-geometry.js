@@ -73,126 +73,6 @@ class GeometryUtils {
         return b;
     }
 
-    static convexHull(pointsOrCoords) {
-
-        const hull = new Set();
-        function convertResult(points, usePoints) {
-            return usePoints ? points : points.map(p => [p.x, p.y]);
-        }
-
-        function findSide(p1, p2, p) {
-            return Math.sign( (p.y - p1.y) * (p2.x - p1.x) - (p2.y - p1.y) * (p.x - p1.x));
-        }
-
-        function quickHull(a, p1, p2, side) {
-            // finding the point with maximum distance
-            // from L and also on the specified side of L.
-            let p0;
-            const ls = new LineSegment(p1, p2);
-            let pp = a.slice().sort(
-                (a, b) => ls.distToPoint(b) - ls.distToPoint(a)
-            );
-
-            for (const p of pp.filter(p => ls.distToPoint(p) === ls.distToPoint(pp[0]))) {
-                const c = ls.comparePoint(p);
-                if (c !== findSide(p1, p2, p)) {
-                    srdbg('ls', ls);
-                    srdbg(p, side, 'comp', c, 'vs', findSide(p1, p2, p));
-                }
-                if (findSide(p1, p2, p) === side) {
-                    p0 = p;
-                    break;
-                }
-            }
-
-            // If no point is found, add the end points
-            // of L to the convex hull.
-            if (! p0) {
-                //if (! hull.includes(p1)) {
-                //    hull.push(p1);
-                //}
-                //if (! hull.includes(p2)) {
-                //    hull.push(p2);
-                //}
-                hull.add(p1);
-                hull.add(p2);
-                return;
-            }
-
-            quickHull(a, p0, p1, -findSide(p0, p1, p2));
-            quickHull(a, p0, p2, -findSide(p0, p2, p1));
-        }
-
-        function findHull(s, p1, p2) {
-            if (s.length === 0) {
-                return [];
-            }
-            //srdbg('find in', s);
-            let h = [];
-            const ls = new LineSegment(p1, p2);
-            const p0 = s.sort(
-                (a, b) => ls.distToPoint(b, false, false) - ls.distToPoint(a, false, false)
-            )[0];
-            //srdbg('max p', p0);
-            h.push(p0);
-            //srdbg('h after p0', h.slice());
-            //srdbg('check l', new LineSegment(p1, p0));
-            h = h.concat(findHull(
-                s.filter(p => (new LineSegment(p1, p0)).comparePoint(p, 'x') < 0),
-                p1,
-                p0
-            ));
-            //srdbg('l done', h.slice());
-            //srdbg('check r', new LineSegment(p0, p2));
-            h = h.concat(findHull(
-                s.filter(p => (new LineSegment(p0, p2)).comparePoint(p, 'x') > 0),
-                p0,
-                p2
-            ));
-            //srdbg('r done', h.slice());
-            //srdbg('intermed h', h);
-            return h;
-        }
-
-        if (pointsOrCoords.length < 3) {
-            return [];
-        }
-        const usePoints = pointsOrCoords[0] instanceof Point;
-        const c = usePoints ? pointsOrCoords : pointsOrCoords.map(p => new Point(...p));
-        if (pointsOrCoords.length === 3) {
-            return convertResult(pointsOrCoords, usePoints);
-        }
-        // The two points with the smallest/largest x - by definition these must be on the hull
-        // Also ensure the second point has a different y value
-        const p1 = GeometryUtils.extrema(c, 'x', false)[0];
-        let e = GeometryUtils.extrema(c, 'x', true);
-        //srdbg(p1, e);
-        if (e.length > 1) {
-            e = e.filter(p => p.y !== p1.y);
-        }
-        const p2 = e[0];
-        const cc = c.slice();
-        quickHull(cc, p1, p2, 1);
-        quickHull(cc, p1, p2, -1);
-        srdbg('H?', hull);
-        //c.splice(c.indexOf(p1), 1).splice(c.indexOf(p2), 1);
-        //srdbg('init hull', p1, p2);
-        const ls = new LineSegment(p1, p2);
-        //srdbg('left', c.filter(p => ls.comparePoint(p, 'x') < 0));
-        //srdbg('right', c.filter(p => ls.comparePoint(p, 'x') > 0));
-
-        const l = [p1].concat(findHull(c.filter(p => ls.comparePoint(p, 'x') < 0), p1, p2));
-        const r = [p2].concat(findHull(c.filter(p => ls.comparePoint(p, 'x') > 0), p2, p1));
-        //const l = findHull(c.filter(p => ls.comparePoint(p, 'x') < 0), p1, p2);
-        //const r = findHull(c.filter(p => ls.comparePoint(p, 'x') > 0), p2, p1);
-        //srdbg('final l', l, 'final r', r);
-        const h = l.concat(r);
-
-
-        srdbg('final hull', h);
-        return convertResult(h, usePoints);
-    }
-
     /**
      * Get the indices of the given axis and the two axes in BASIS that comes after it, wrapping around
      * @param {string} axis - start axis (x|y|z)
@@ -1352,12 +1232,12 @@ class LineSegment extends Line {
             return 0;
         }
         if (this.slope() === Infinity) {
-            return Math.sign(this.points[1].y - this.points[0].y) * (point.x > this.points[0].x ? 1 : -1);
-            //return point.x > this.points[0].x ? 1 : -1;
+            //return Math.sign(this.points[1].y - this.points[0].y) * (point.x > this.points[0].x ? 1 : -1);
+            return point.x > this.points[0].x ? 1 : -1;
         }
         if (this.slope() === 0) {
-            return Math.sign(this.points[1].x - this.points[0].x) * (point.y > this.points[0].y ? 1 : -1);
-            //return point.y > this.points[0].y ? 1 : -1;
+            //return Math.sign(this.points[1].x - this.points[0].x) * (point.y > this.points[0].y ? 1 : -1);
+            return point.y > this.points[0].y ? 1 : -1;
         }
         if (dim === 'x') {
             //const v = (point.y - this.points[0].y) * (this.points[1].x - this.points[0].x) - (this.points[1].y - this.points[0].y) * (point.x - this.points[0].x);
@@ -1442,6 +1322,9 @@ class LineSegment extends Line {
     }
 
     sense() {
+        return this.slope() === Infinity ?
+            Math.sign(this.points[1].y - this.points[0].y):
+            Math.sign(this.points[1].x - this.points[0].x);
     }
 }
 

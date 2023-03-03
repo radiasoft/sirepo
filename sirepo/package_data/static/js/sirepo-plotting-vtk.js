@@ -227,8 +227,7 @@ class ExtrudedPolyViews extends ObjectViews {
         const pp = SIREPO.UTILS.unique(
             this.points, (a, b) => a.coordEquals(b, ii) && a.coordEquals(b, jj)
         ).map(p => [p.coords()[ii], p.coords()[jj]]);
-        srdbg(dim, 'pp', pp, 'h', SIREPO.GEOMETRY.GeometryUtils.convexHull(pp));
-        return SIREPO.GEOMETRY.GeometryUtils.convexHull(pp);
+        return d3.geom.hull(pp);
     }
 }
 
