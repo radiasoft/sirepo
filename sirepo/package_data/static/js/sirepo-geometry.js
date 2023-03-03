@@ -1213,40 +1213,6 @@ class LineSegment extends Line {
     }
 
     /**
-     * Compares a given Point to this line segment, in the following sense:
-     * - if the Point is on this LineSegment, return 0
-     * - if the LineSegment is vertical or comparing x coordinate, return 1 if the x coordinate of the Point is greater than each of the LineSegment's points, else -1
-     * - if the LineSegment is horizontal or comparing y coordinate, return 1 if the y coordinate of the Point is greater than each of the LineSegment's points, else -1
-     * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
-     * @param {Point} point - the point to compare
-     *
-     * @returns {number} - -1|0|1
-     */
-    comparePoint(point, dim='y') {
-        if (this.contains(point)) {
-            return 0;
-        }
-        if (this.slope() === Infinity) {
-            //return Math.sign(this.points[1].y - this.points[0].y) * (point.x > this.points[0].x ? 1 : -1);
-            return point.x > this.points[0].x ? 1 : -1;
-        }
-        if (this.slope() === 0) {
-            //return Math.sign(this.points[1].x - this.points[0].x) * (point.y > this.points[0].y ? 1 : -1);
-            return point.y > this.points[0].y ? 1 : -1;
-        }
-        if (dim === 'x') {
-            //const v = (point.y - this.points[0].y) * (this.points[1].x - this.points[0].x) - (this.points[1].y - this.points[0].y) * (point.x - this.points[0].x);
-            //return Math.sign(v);
-            //return Math.sign(this.points[1].x - this.points[0].x) * (point.x > (point.y - this.intercept()) / this.slope() ? 1 : -1);
-            return point.x > (point.y - this.intercept()) / this.slope() ? 1 : -1;
-        }
-        if (dim === 'y') {
-            return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
-        }
-        throw new Error('Invalid comparison');
-    }
-
-    /**
      * Determines whether the given Point is in this LineSegment
      * @param {Point} point - a Point
      * @returns {boolean}
