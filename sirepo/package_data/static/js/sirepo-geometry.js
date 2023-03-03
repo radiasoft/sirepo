@@ -820,11 +820,6 @@ class Transform extends GeometricObject {
  */
 class Point extends GeometricObject {
 
-    static angleSorter(points) {
-        const p = points.slice().sort((a, b) => a.x - b.x);
-        const p0 = GeometryUtils.extrema(p, 'y')[0];
-    }
-
     /**
      * @param {number} x - the x coordinate
      * @param {number} y - the y coordinate
