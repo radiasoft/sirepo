@@ -257,11 +257,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.updateCylinder = o => {
-        const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
+        const k = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.extrusionAxis);
         for (const j of [0, 1]) {
-            o.size[(i + j + 1) % 3] = 2.0 * o.radius;
+            o.size[(k + j + 1) % 3] = 2.0 * o.radius;
         }
-        appState.saveQuietly('cylinder');
     };
 
     self.updateExtruded = (o, callback) => {
@@ -3326,6 +3325,10 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         for (const i in axes) {
             panelState.enableArrayField('geomObject', 'size', i, axes[i] === o.extrusionAxis);
+        }
+
+        if (modelType === 'cylinder') {
+            radiaService.updateCylinder(o);
         }
 
         if (modelType !== 'extrudedPoints') {
