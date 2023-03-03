@@ -1991,9 +1991,12 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             ]
         )
     else:
-        if report == "multiElectronAnimation":
-            # TODO (gurhar1133): source type and run_all need to be in condition??
-            content.append("v.wm = True")
+        if report == 'multiElectronAnimation':
+            # TODO (gurhar1133): need to work out these conditions
+            if run_all:
+                content.append('v.wm = True')
+            else:
+                content.append('v.wm = False')
         if (run_all and source_type != "g") or report == "intensityReport":
             content.append("v.ss = True")
             if plot_reports:
