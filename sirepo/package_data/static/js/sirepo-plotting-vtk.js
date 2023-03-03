@@ -183,7 +183,6 @@ class ExtrudedPolyViews extends ObjectViews {
                 id,
                 name,
                 this.shapePoints(dim)
-                //SIREPO.GEOMETRY.GeometryUtils.convexHull(this.shapePoints(dim))
             );
             s.z = this.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
             this.addView(dim, s);
