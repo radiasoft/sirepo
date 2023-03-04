@@ -329,7 +329,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
-                      <td data-ng-if="analysisStatus === 'allStatuses'"><button class="btn btn-info btn-xs" data-ng-click="runAnalysis(s, $event)">Run Analysis</button></td>
+                      <td data-ng-if="analysisStatus === 'allStatuses'"><button class="btn btn-info btn-xs" data-ng-click="runAnalysis(s, $event)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button></td>
                       <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">View Log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
@@ -381,10 +381,13 @@ SIREPO.app.directive('scansTable', function() {
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
+            // POSIT: Matches _AnalysisStatus.NONE in scan monitor
+            $scope.analysisStatusNone = "none";
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
             // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['status', 'start', 'stop', 'suid'];
+            $scope.disabledRunButtonScans = [];
             $scope.images = null;
             $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
@@ -499,6 +502,17 @@ SIREPO.app.directive('scansTable', function() {
                 $scope.saveColumnChanges();
             };
 
+            $scope.disableRunAnalysis = (scan) => {
+                //POSIT: _AnalysisStatus.NON_STOPPED in scan monitor
+                if (["pending", "running"].includes(scan.status)) {
+                    if ($scope.disabledRunButtonScans.includes(scan.uid)) {
+                        $scope.disabledRunButtonScans.splice($scope.disabledRunButtonScans.indexOf(scan.uid),1);
+                    }
+                    return true;
+                }
+                return $scope.disabledRunButtonScans.includes(scan.uid);
+            };
+
             $scope.getHeader = function() {
                 return cols.length > 0 ? ['select'].concat(cols) : [];
             };
@@ -515,6 +529,7 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.runAnalysis = (scan, event) => {
                 event.stopPropagation();
+                $scope.disabledRunButtonScans.push(scan.uid);
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {},
@@ -549,7 +564,7 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.setSelectedScan = (scan) => {
                 $scope.selectedScan = scan;
-                if ($scope.selectedScan !== null) {
+                if ($scope.selectedScan !== null && $scope.selectedScan.status !== $scope.analysisStatusNone) {
                     $scope.showAnalysisOutputModal();
                 }
             };
