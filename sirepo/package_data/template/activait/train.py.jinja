@@ -68,7 +68,6 @@ def _predictions_initial(testx, testy):
             )
         )
     p = model.predict(testx)
-    # TODO (gurhar1133): get indices of best and worst images
     {% if imageToImage %}
     b = _best_worst_images(testy, p.reshape(*numpy.array(testy).shape))
     {% endif %}
@@ -97,7 +96,6 @@ def _best_worst_images(y_true, predictions):
     for i in range(len(y_true)):
         losses.append((i, float(loss_fn(y_true[i], predictions[i]))))
     losses.sort(key = lambda x: x[1])
-    {# print(losses[:4], losses[-4:]) #}
     return PKDict(best=[x[0] for x in losses[:3]], worst=[x[0] for x in losses[-3:]])
 
 

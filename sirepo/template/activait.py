@@ -1145,7 +1145,10 @@ def _image_preview(data, run_dir=None):
         i.sort()
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-        return x.reshape(len(x) // 64 // 64, 64, 64)[i], y.reshape(len(y) // 64 // 64, 64, 64)[i]
+        return (
+            x.reshape(len(x) // 64 // 64, 64, 64)[i],
+            y.reshape(len(y) // 64 // 64, 64, 64)[i],
+        )
 
     def _x_y(data, io, file, run_dir=None):
         if data.args.method == "segmentViewer":
@@ -1214,7 +1217,11 @@ def _image_preview(data, run_dir=None):
         x, y = _x_y(data, io, f, run_dir=run_dir)
         u = []
         k = 0
-        g = _grid(x, info) if data.args.method not in ("bestLosses", "worstLosses") else [_SEGMENT_ROWS]
+        g = (
+            _grid(x, info)
+            if data.args.method not in ("bestLosses", "worstLosses")
+            else [_SEGMENT_ROWS]
+        )
         for i in g:
             plt.figure(figsize=[10, 10])
             axarr = (
