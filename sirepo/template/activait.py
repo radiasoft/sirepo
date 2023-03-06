@@ -12,6 +12,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+from base64 import b64encode
 import csv
 import h5py
 import numpy
@@ -354,6 +355,10 @@ def stateful_compute_column_info(data):
 
 def analysis_job_sample_images(data, run_dir, **kwargs):
     return _image_preview(data, run_dir)
+
+
+def analysis_job_dice_coefficient(data, run_dir, **kwargs):
+    return _dice_coefficient_plot(data, run_dir)
 
 
 def stateful_compute_sample_images(data):
@@ -1066,15 +1071,53 @@ def _histogram_plot(values, vrange):
     return x, y
 
 
+def _data_url(filename):
+    f = open(filename, "rb")
+    u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
+    f.close()
+    return u
+
+
+def _masks(out_width, run_dir):
+    x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+    x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
+    y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+    y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
+    return x, y
+
+
+def _dice_coefficient_plot(data, run_dir):
+    import matplotlib.pyplot as plt
+
+    def _dice(run_dir):
+        def _dice_coefficient(mask1, mask2):
+            return round(
+                (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
+                3,
+            )
+
+        d = []
+        x, y = _masks(64, run_dir)
+        for pair in zip(x, y):
+            d.append(_dice_coefficient(pair[0], pair[1]))
+        return d
+
+    plt.figure(figsize=[10, 10])
+    plt.hist(_dice(run_dir))
+    plt.xlabel("Dice Scores", fontsize=20)
+    plt.ylabel("Counts", fontsize=20)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    p = _SIM_DATA.lib_file_write_path(data.args.imageFilename) + ".png"
+    plt.tight_layout()
+    plt.savefig(p)
+    return PKDict(
+        uris=[_data_url(p)],
+    )
+
+
 def _image_preview(data, run_dir=None):
     import matplotlib.pyplot as plt
-    from base64 import b64encode
-
-    def _data_url(filename):
-        f = open(filename, "rb")
-        u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
-        f.close()
-        return u
 
     def _image_grid(num_images):
         num_pages = min(5, 1 + (num_images - 1) // 25)
@@ -1090,16 +1133,9 @@ def _image_preview(data, run_dir=None):
             f"No matching dimension found output size: {io.output.size}"
         )
 
-    def _segment(out_width):
-        x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-        x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
-        y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-        y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
-        return x, y
-
     def _x_y(data, io, file):
         if data.args.method == "segmentViewer":
-            return _segment(numpy.array(file[io.output.path]).shape[-1])
+            return _masks(numpy.array(file[io.output.path]).shape[-1], run_dir)
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):

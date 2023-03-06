@@ -67,8 +67,9 @@ def _predictions_initial(testx, testy):
                 numpy.array(testy).reshape(-1, split.test_gen.y_channels)
             )
         )
+    p = model.predict(testx)
     return PKDict(
-        p=model.predict(testx),
+        p=p,
         testy=_test_y(testy),
     )
 
