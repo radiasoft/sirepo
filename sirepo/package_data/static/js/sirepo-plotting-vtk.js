@@ -1920,7 +1920,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
 
 // elevations tab + vtk tab (or all in 1 tab?)
 // A lot of this is 2d and could be extracted
-SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, panelState, plotting, utilities, vtkPlotting) {
+SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, panelState, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1929,7 +1929,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             source: '=controller',
         },
         templateUrl: '/static/html/3d-builder.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope, $element) {
+        controller: function($scope) {
             const ASPECT_RATIO = 1.0;
 
             const ELEVATIONS = {};
@@ -2416,10 +2416,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
-            $scope.align = (o, alignType) => {
-                $scope.source.align(o, alignType, getElevation().labAxisIndices());
-            };
-
             $scope.copyObject = o =>  {
                 $scope.source.copyObject(o);
             };
@@ -2478,10 +2474,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return (appState.models[$scope.modelName] || {}).objects;
             };
 
-            $scope.isInGroup = o => $scope.source.isInGroup(o);
-
-            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
-
             $scope.init = () => {
                 for (const o in $scope.getObjects()) {
                     expanded[o.id] = false;
@@ -2519,15 +2511,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.isDropEnabled = () => $scope.source.isDropEnabled();
 
-            $scope.isGroup = o => $scope.source.isGroup(o);
-
-            $scope.nestLevel = o => {
-                let n = 0;
-                if ($scope.isInGroup(o)) {
-
-                }
-            };
-
             $scope.plotHeight = () => $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
 
             $scope.plotOffset = () => $scope.height;
@@ -2561,6 +2544,186 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('groupedObjects', function(appState, $sce) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            overlayButtons: '=',
+            source: '=',
+        },
+        template: `
+          <div class="panel panel-info">
+            <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
+            <div class="panel-body">
+              <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
+                <thead></thead>
+                  <tbody>
+                    <tr data-ng-repeat="obj in getObjects() track by obj.id">
+                      <td style="padding-left: {{ nestLevel(obj) }}em; cursor: pointer; white-space: nowrap">
+                        <span style="font-size: large; color: {{obj.color || '#cccccc'}};">■</span>
+                          <span data-ng-if="isGroup(obj)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': isExpanded(obj), 'glyphicon-chevron-up': ! isExpanded(obj)}"  data-ng-click="toggleExpand(obj)"></span>
+                            <span>{{ obj.name }}</span>
+                            <span class="sr-button-bar-parent" data-ng-if="isGroup(obj)">
+                              <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                            </span>
+                      </td>
+                        <td style="text-align: right">
+                          <div class="sr-button-bar-parent">
+                            <div class="sr-button-bar sr-button-bar-active">
+                               <button data-ng-if="! isGroup(obj)" class="btn btn-info btn-xs" data-ng-click="copyObject(obj)" title="copy">Copy</button>
+                               <button data-ng-click="editObject(obj)" class="btn btn-info btn-xs" title="edit">Edit</button>
+                               <button data-ng-click="deleteObject(obj)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                            </div>
+                          </div>
+                        </td>
+                    </tr>
+                  </tbody>
+                </table>
+            </div>
+          </div>
+        `,
+        controller: function($scope) {
+            srdbg('grps', $scope);
+            const expanded = {};
+
+            function init() {
+                for (const o in $scope.getObjects()) {
+                    expanded[o.id] = false;
+                }
+            }
+
+            $scope.align = (o, alignType) => {
+                $scope.$parent.align(o, alignType);
+            };
+
+            $scope.copyObject = o =>  {
+                $scope.source.copyObject(o);
+            };
+
+            $scope.deleteObject = o => {
+                $scope.source.deleteObject(o);
+            };
+
+            $scope.editObject = o =>  {
+                $scope.source.editObject(o);
+            };
+
+            $scope.isExpanded = o => expanded[o.id];
+
+            $scope.getObjects = () => {
+                return (appState.models[$scope.modelName] || {}).objects;
+            };
+
+            $scope.isInGroup = o => $scope.source.isInGroup(o);
+
+            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
+
+            $scope.isGroup = o => $scope.source.isGroup(o);
+
+            $scope.nestLevel = o => {
+                let n = 0;
+                if ($scope.isInGroup(o)) {
+                    n += (1 + $scope.nestLevel($scope.source.getObject(o.groupId)));
+                }
+                return n;
+            };
+
+            $scope.toggleExpand = o => {
+                expanded[o.id] = ! expanded[o.id];
+            };
+
+            init();
+        },
+    };
+});
+
+SIREPO.app.directive('groupedObject', function(appState, $sce) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            overlayButtons: '=',
+            source: '=',
+        },
+        template: `
+                    <tr data-ng-repeat="obj in getObjects() track by obj.id">
+                      <td style="padding-left: 1em; cursor: pointer; white-space: nowrap">
+                        <span style="font-size: large; color: {{obj.color || '#cccccc'}};">■</span>
+                          <span data-ng-if="isGroup(obj)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': isExpanded(obj), 'glyphicon-chevron-up': ! isExpanded(obj)}"  data-ng-click="toggleExpand(obj)"></span>
+                            <span>{{ obj.name }}</span>
+                            <span class="sr-button-bar-parent" data-ng-if="isGroup(obj)">
+                              <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                            </span>
+                      </td>
+                        <td style="text-align: right">
+                          <div class="sr-button-bar-parent">
+                            <div class="sr-button-bar sr-button-bar-active">
+                               <button data-ng-if="! isGroup(obj)" class="btn btn-info btn-xs" data-ng-click="copyObject(obj)" title="copy">Copy</button>
+                               <button data-ng-click="editObject(obj)" class="btn btn-info btn-xs" title="edit">Edit</button>
+                               <button data-ng-click="deleteObject(obj)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                            </div>
+                          </div>
+                        </td>
+                    </tr>
+        `,
+        controller: function($scope) {
+            srdbg('grps', $scope);
+            const expanded = {};
+
+            function init() {
+                for (const o in $scope.getObjects()) {
+                    expanded[o.id] = false;
+                }
+            }
+
+            $scope.align = (o, alignType) => {
+                $scope.$parent.align(o, alignType);
+            };
+
+            $scope.copyObject = o =>  {
+                $scope.source.copyObject(o);
+            };
+
+            $scope.deleteObject = o => {
+                $scope.source.deleteObject(o);
+            };
+
+            $scope.editObject = o =>  {
+                $scope.source.editObject(o);
+            };
+
+            $scope.isExpanded = o => expanded[o.id];
+
+            $scope.getObjects = () => {
+                return (appState.models[$scope.modelName] || {}).objects;
+            };
+
+            $scope.isInGroup = o => $scope.source.isInGroup(o);
+
+            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
+
+            $scope.isGroup = o => $scope.source.isGroup(o);
+
+            $scope.nestIndent = o => $sce.trustAsHtml((new Array($scope.nestLevel(o)).fill('&nbsp;')).join(''));
+
+            $scope.nestLevel = o => {
+                let n = 0;
+                if ($scope.isInGroup(o)) {
+                    n += (1 + $scope.nestLevel($scope.source.getGroup(o.id)));
+                }
+                return n;
+            };
+
+            $scope.toggleExpand = o => {
+                expanded[o.id] = ! expanded[o.id];
+            };
+
+            init();
         },
     };
 });

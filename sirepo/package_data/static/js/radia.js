@@ -190,6 +190,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         };
     };
 
+    self.getGroup = function(id) {
+        const o = self.getObject(id);
+        return o ? self.getObject(o.groupId) : null;
+    };
+
     self.getObject = function(id) {
         let objs = appState.models.geometryReport.objects || [];
         for (const o of objs) {
@@ -476,6 +481,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             return null;
         }
         return appState.models.simulation.dipoleType;
+    };
+
+    self.getGroup = id => {
+        return radiaService.getGroup(id);
     };
 
     self.getMagnetType = () => {
