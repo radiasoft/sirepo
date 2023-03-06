@@ -2042,8 +2042,15 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
-            //TODO(mvk): live update of virtual shapes
+            function canDrag(dim) {
+                const a = d3.event.sourceEvent.shiftKey ?
+                    (Math.abs(dragDelta.x) > Math.abs(dragDelta.y) ? 'x' : 'y') :
+                    null;
+                return ! a || a === dim;
+            }
+
             function d3DragShape(shape) {
+
                 if (! shape.draggable) {
                     return;
                 }
@@ -2054,13 +2061,14 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         dragDelta[dim] = snap(shape, dim);
                         return;
                     }
-                    dragDelta[dim] = d3.event[dim];
+                    dragDelta[dim] = canDrag(dim) ? d3.event[dim] : 0;
                     const numPixels = scaledPixels(dim, dragDelta[dim]);
                     shape[dim] = dragInitialShape[dim] + numPixels;
                     shape.center[dim] = dragInitialShape.center[dim] + numPixels;
                 });
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
+                //TODO(mvk): restore live update of virtual shapes
                 shape.runLinks().forEach(linkedShape => {
                     d3.select(shapeSelectionId(linkedShape)).call(updateShapeAttributes);
                 });
@@ -2274,6 +2282,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function snap(shape, dim) {
                 function roundUnits(val, unit) {
                     return unit * Math.round(val / unit);
+                }
+
+                if (! canDrag(dim)) {
+                    return 0;
                 }
 
                 const g = parseFloat($scope.settings.snapGridSize) * objectScale;

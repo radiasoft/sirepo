@@ -84,6 +84,7 @@ class _SReply(sirepo.quest.Attr):
         super().__init__(**kwargs)
         # Needed in tornado_response
         self.internal_req = self.qcall.sreq.internal_req
+        self._cookies_to_delete = None
 
     def content_as_str(
         self,
@@ -100,6 +101,13 @@ class _SReply(sirepo.quest.Attr):
         assert "value" in kwargs
         self.__attrs.cookie = PKDict(kwargs)
         return self
+
+    def delete_third_party_cookies(self, names_and_paths):
+        if self._cookies_to_delete is not None:
+            raise AssertionError(
+                f"setting names_and_paths={names_and_paths} but found existing _cookies_to_delete={self._cookies_to_delete}"
+            )
+        self._cookies_to_delete = names_and_paths
 
     def destroy(self, **kwargs):
         """Must be called"""
@@ -130,6 +138,13 @@ class _SReply(sirepo.quest.Attr):
                 resp.headers["Pragma"] = "no-cache"
             return resp
 
+        def _delete_cookies(resp):
+            for n, p in self.pkdel(self._cookies_to_delete) or ():
+                resp.delete_cookie(
+                    n,
+                    path=p,
+                )
+
         def _file():
             # Takes over some of the work for werkzeug.send_file
             c = self.__attrs.content
@@ -158,6 +173,7 @@ class _SReply(sirepo.quest.Attr):
         r.headers.update(a.headers)
         if "cookie" in a and 200 <= r.status_code < 400:
             r.set_cookie(**a.cookie)
+            _delete_cookies(r)
         return _cache_control(r)
 
     def from_api(self, res):
@@ -451,6 +467,14 @@ class _SReply(sirepo.quest.Attr):
                 else:
                     raise AssertionError(f"unhandled cookie attr={k}")
             resp.set_header("Set-Cookie", "; ".join(r))
+            _cookie_aux_delete(resp)
+
+        def _cookie_aux_delete(resp):
+            for n, p in self.pkdel(self._cookies_to_delete) or ():
+                resp.clear_cookie(
+                    n,
+                    path=p,
+                )
 
         def _file(resp):
             a = self.__attrs
