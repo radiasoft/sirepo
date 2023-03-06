@@ -22,11 +22,11 @@ export type HeatPlotConfigExtras = {
     colorMap: string
 }
 
-function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix, colorScale }) {
+function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, height, zMatrix, colorScale, colorMap }) {
     const ctx = useContext(CCanvas).getCanvasContext();
-    const [cache, setCache] = useState<{canvas: HTMLCanvasElement, zMatrix: number[][]}>(null);
+    const [cache, setCache] = useState<{canvas: HTMLCanvasElement, zMatrix: number[][], colorMap: string}>(null);
 
-    if (! cache || cache.zMatrix !== zMatrix) {
+    if (! cache || cache.zMatrix !== zMatrix || cache.colorMap !== colorMap) {
         const cacheCanvas = document.createElement('canvas');
         cacheCanvas.width = zMatrix[0].length;
         cacheCanvas.height = zMatrix.length;
@@ -46,7 +46,8 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
         cacheCanvas.getContext('2d').putImageData(img, 0, 0);
         setCache({
             canvas: cacheCanvas,
-            zMatrix
+            zMatrix,
+            colorMap,
         });
     }
     // need to draw image before rendering
@@ -135,6 +136,7 @@ export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix
                                     height={gc.height}
                                     zMatrix={zMatrix}
                                     colorScale={colorScale}
+                                    colorMap={colorMap}
                                 />
                             </Canvas>
                             <div>
