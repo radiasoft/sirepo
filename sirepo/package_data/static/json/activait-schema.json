@@ -751,6 +751,11 @@
             "basic": [],
             "advanced": []
         },
+        "diceCoefficient": {
+            "title": "Dice Coefficient",
+            "basic": [],
+            "advanced": []
+        },
         "separableConv2D": {
             "columns": [
                 "dimensionality",
