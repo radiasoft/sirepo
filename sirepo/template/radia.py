@@ -1152,8 +1152,8 @@ def _kick_map_plot(model):
     z = km[component]
     return PKDict(
         title=f'{srschema.get_enums(SCHEMA, "KickMapComponent")[component]} (T2m2)',
-        x_range=[km.x[0], km.x[-1], len(z)],
-        y_range=[km.y[0], km.y[-1], len(z[0])],
+        x_range=[_MILLIS_TO_METERS * km.x[0], _MILLIS_TO_METERS * km.x[-1], len(z)],
+        y_range=[_MILLIS_TO_METERS * km.y[0], _MILLIS_TO_METERS * km.y[-1], len(z[0])],
         x_label="x [m]",
         y_label="y [m]",
         z_matrix=z,
