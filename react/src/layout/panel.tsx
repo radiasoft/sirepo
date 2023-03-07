@@ -1,10 +1,9 @@
 import { useContext } from "react";
-import { interpolateStringDependencies, ValueSelectors } from "../utility/string";
+import { interpolate, ValueSelectors } from "../utility/string";
 import { LayoutProps, Layout } from "./layout";
 import { useStore } from "react-redux";
 import { EditorPanel } from "../component/reusable/panel";
 import "./panel.scss";
-import { Col } from "react-bootstrap";
 import React from "react";
 import { CFormController } from "../data/formController";
 import { CModelsWrapper } from "../data/wrapper";
@@ -40,7 +39,7 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
 
         let store = useStore();
 
-        let title = interpolateStringDependencies(this.config.title, modelsWrapper, ValueSelectors.Models);
+        let title = interpolate(this.config.title).withDependencies(modelsWrapper, ValueSelectors.Models).raw();
 
         let mapLayoutsToComponents = (views: Layout[]) => views.map((child, idx) => {
             let LayoutComponent = child.component;

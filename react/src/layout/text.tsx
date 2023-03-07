@@ -2,7 +2,7 @@ import React from "react";
 import { FunctionComponent, useContext } from "react";
 import { Dependency } from "../data/dependency";
 import { CModelsWrapper } from "../data/wrapper";
-import { interpolateStringDependencies, ValueSelectors } from "../utility/string";
+import { interpolate, ValueSelectors } from "../utility/string";
 import { Layout } from "./layout";
 
 export type TextAlign = "left" | "right" | "center"
@@ -22,7 +22,7 @@ export class TextLayout extends Layout<TextConfig, {}> {
     component: FunctionComponent<{ [key: string]: any; }> = (props) => {
         let modelsWrapper = useContext(CModelsWrapper);
         
-        let interpText = interpolateStringDependencies(this.config.text, modelsWrapper, ValueSelectors.Models);
+        let interpText = interpolate(this.config.text).withDependencies(modelsWrapper, ValueSelectors.Models).raw();
         let getTextElement = (type: TextType) => {
             switch(type) {
                 case "header":
