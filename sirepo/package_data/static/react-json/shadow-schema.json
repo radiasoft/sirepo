@@ -44,22 +44,13 @@
                 "defaultValue": 0
             }
         },
-        "beamline": [
-            { 
-                "models": [
-                    "aperture",
-                    "crl",
-                    "crystal",
-                    "emptyElement",
-                    "grating",
-                    "lens",
-                    "mirror",
-                    "obstacle",
-                    "watch",
-                    "zonePlate"
-                ]
+        "beamline": {
+            "elements": {
+                "displayName": "Beamline Elements",
+                "type": "BeamlineElementsArray",
+                "defaultValue": []
             }
-        ],
+        },
         "beamStatisticsReport": {
             "epsilon": {
                 "displayName": "Epsilon",
@@ -1936,7 +1927,7 @@
             },
             "trajFile": {
                 "displayName": "Trajectory File",
-                "type": "InputFile"
+                "type": "File"
             },
             "shift_x_flag": {
                 "displayName": "Shift Transversal Velocity",
@@ -2090,6 +2081,23 @@
                         "1",
                         "Angstroms"
                     ]
+                ]
+            }
+        },
+        "BeamlineElementsArray": {
+            "base": "Array",
+            "config": {
+                "models": [
+                    "aperture",
+                    "crl",
+                    "crystal",
+                    "emptyElement",
+                    "grating",
+                    "lens",
+                    "mirror",
+                    "obstacle",
+                    "watch",
+                    "zonePlate"
                 ]
             }
         },
@@ -3190,6 +3198,13 @@
                         "PRE_MLAYER"
                     ]
                 ]
+            }
+        },
+        "ReflectivityMaterial": {
+            "base": "String",
+            "config": {
+                "isRequired": true,
+                "valid": "!( ! /^[A-Za-z0-9().]+$/.test($(value)) || /^[a-z0-9]/.test($(value)) || /[0-9][a-z]/.test($(value)) )"
             }
         },
         "RulingType": {

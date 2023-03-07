@@ -143,10 +143,13 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
     if(schemaObj.model) {
         let missingTypeNames = [];
 
-        models = mapProperties(schemaObj.model, (_, modelObj) => {
-            return mapProperties(modelObj, (_, field) => {
+        models = mapProperties(schemaObj.model, (modelName, modelObj) => {
+            return mapProperties(modelObj, (fieldName, field) => {
                 let { displayName, type: typeName, defaultValue, description, shown, min, max } = field;
                 let type = types[typeName];
+                if(!typeName) {
+                    throw new Error(`type not defined for model=${modelName} field=${fieldName}`)
+                }
                 if(!type) {
                     missingTypeNames.push(typeName);
                 }

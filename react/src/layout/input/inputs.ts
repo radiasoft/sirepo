@@ -1,3 +1,4 @@
+import { ArrayInputLayout } from "./array";
 import { BooleanInputLayout } from "./boolean";
 import { ComputeResultEnumInputLayout, EnumInputLayout, SimulationListEnumInputLayout } from "./enum";
 import { FileInputLayout } from "./file";
@@ -14,6 +15,7 @@ export const TYPE_BASES: {[baseName: string]: InputLayoutType} = {
     'Enum': EnumInputLayout,
     'ComputeEnum': ComputeResultEnumInputLayout,
     'SimListEnum': SimulationListEnumInputLayout,
-    // for omega, replace with real implementation eventually
+    // moellep: for omega, replace with real implementation eventually
     'SimArray': StringInputLayout,
+    'Array': ArrayInputLayout
 }
