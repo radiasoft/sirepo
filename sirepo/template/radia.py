@@ -667,13 +667,13 @@ _FIELD_PT_BUILDERS = {
 def _electron_trajectory_plot(sim_id, **kwargs):
     d = PKDict(kwargs)
     t = _generate_electron_trajectory(sim_id, get_g_id(), **kwargs)
-    pts = (0.001 * t[radia_util.axes_index(d.beam_axis)]).tolist()
+    pts = (_MILLIS_TO_METERS * t[radia_util.axes_index(d.beam_axis)]).tolist()
     plots = []
     a = [d.width_axis, d.height_axis]
     for i in range(2):
         plots.append(
             PKDict(
-                points=(0.001 * t[radia_util.axes_index(a[i])]).tolist(),
+                points=(_MILLIS_TO_METERS * t[radia_util.axes_index(a[i])]).tolist(),
                 label=f"{a[i]}",
                 style="line",
             )
@@ -702,7 +702,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
             .vectors
         )
     )
-    pts = numpy.array(v.vertices).reshape(-1, 3)
+    pts = _MILLIS_TO_METERS * numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     f = numpy.array(v.directions).reshape(-1, 3)
     m = numpy.array(v.magnitudes)
@@ -722,7 +722,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
         PKDict(
             title=f"{f_type} on {f_path.name}",
             y_label=f_type,
-            x_label=f"{plot_axis} [mm]",
+            x_label=f"{plot_axis} [m]",
             summaryData=PKDict(),
         ),
     )
@@ -1154,8 +1154,8 @@ def _kick_map_plot(model):
         title=f'{srschema.get_enums(SCHEMA, "KickMapComponent")[component]} (T2m2)',
         x_range=[km.x[0], km.x[-1], len(z)],
         y_range=[km.y[0], km.y[-1], len(z[0])],
-        x_label="x [mm]",
-        y_label="y [mm]",
+        x_label="x [m]",
+        y_label="y [m]",
         z_matrix=z,
     )
 
