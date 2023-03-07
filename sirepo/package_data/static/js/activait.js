@@ -2116,6 +2116,7 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
 });
 
 SIREPO.viewLogic('partitionView', function(activaitService, appState, panelState, $scope) {
+
     function updatePartitionMethod() {
         panelState.showField(
             'partition',
