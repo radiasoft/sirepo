@@ -15,7 +15,7 @@ function getStringReplacementPatterns(str: string): RegExpMatchArray[] {
 }
 
 export class InterpolationBase {
-    matches: RegExpMatchArray[];
+    private matches: RegExpMatchArray[];
     constructor(private str: string) {
         this.matches = getStringReplacementPatterns(str);
     }
