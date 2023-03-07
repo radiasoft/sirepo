@@ -1277,8 +1277,10 @@ def _compute_PGM_value(model):
         else:
             model.orientation = "x"
         _compute_grating_orientation(model)
-    except Exception:
-        pkdlog("\n{}", traceback.format_exc())
+    except Exception as e:
+        # pkdp("\n\n e={}", type(e).__name__)
+        if type(e).__name__ not in ("ZeroDivisionError", "ValueError", "TypeError"):
+            pkdlog("\n{}", traceback.format_exc())
         if model.computeParametersFrom == "1":
             model.grazingAngle = None
         elif model.computeParametersFrom == "2":
