@@ -1,7 +1,7 @@
 import { Nav , Modal, Col, Row } from "react-bootstrap";
 import { Navigate, useRoutes, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarLeftContainerId, NavbarRightContainerId } from "../component/reusable/navbar";
-import { useInterpolatedString, ValueSelectors } from "../hook/string";
+import { interpolateStringDependencies, ValueSelectors } from "../utility/string";
 import { useContext, useState } from "react";
 import { LayoutProps, Layout } from "./layout";
 import { useStore } from "react-redux";
@@ -46,8 +46,8 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let modelsWrapper = useContext(CModelsWrapper);
 
-        let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
-        let modalTitle = useInterpolatedString(modelsWrapper, this.config.modal.title, ValueSelectors.Models);
+        let title = interpolateStringDependencies(this.config.title, modelsWrapper, ValueSelectors.Models);
+        let modalTitle = interpolateStringDependencies(this.config.modal.title, modelsWrapper, ValueSelectors.Models);
 
         let [modalShown, updateModalShown] = useState(false);
 
@@ -174,7 +174,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
                                 return (
                                     <Nav.Item key={tab.name}>
                                         <Nav.Link eventKey={`${tab.name}`} as={Link} href={`${tab.name}`} to={`${route}`}>
-                                            {useInterpolatedString(modelsWrapper, tab.title, ValueSelectors.Models)}
+                                            {interpolateStringDependencies(tab.title, modelsWrapper, ValueSelectors.Models)}
                                         </Nav.Link>
                                     </Nav.Item>
                                 )

@@ -7,7 +7,7 @@ import { Panel } from "../component/reusable/panel";
 import { ReportAnimationController, useAnimationReader } from "./report"
 import { SchemaLayout } from "../utility/schema";
 import { useContext } from "react";
-import { useInterpolatedString, ValueSelectors } from "../hook/string";
+import { interpolateStringDependencies, ValueSelectors } from "../utility/string";
 import { useWindowSize } from "../hook/breakpoint";
 
 export type MultiPanelConfig = {
@@ -33,7 +33,7 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
     component = (props: LayoutProps<{}>) => {
         let { reportName, reportGroupName, frameIdFields } = this.config;
         let modelsWrapper = useContext(CModelsWrapper);
-        let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
+        let title = interpolateStringDependencies(this.config.title, modelsWrapper, ValueSelectors.Models);
         // allow subplots to respond to window resize
         useWindowSize();
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);

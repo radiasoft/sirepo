@@ -4,7 +4,7 @@ import { Tab, Tabs } from "react-bootstrap";
 import { useShown } from "../hook/shown";
 import React from "react";
 import { CModelsWrapper } from "../data/wrapper";
-import { ValueSelectors } from "../hook/string";
+import { ValueSelectors } from "../utility/string";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
 

@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { useInterpolatedString, ValueSelectors } from "../hook/string";
+import { interpolateStringDependencies, ValueSelectors } from "../utility/string";
 import { LayoutProps, Layout } from "./layout";
 import { useStore } from "react-redux";
 import { EditorPanel } from "../component/reusable/panel";
@@ -40,7 +40,7 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
 
         let store = useStore();
 
-        let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
+        let title = interpolateStringDependencies(this.config.title, modelsWrapper, ValueSelectors.Models);
 
         let mapLayoutsToComponents = (views: Layout[]) => views.map((child, idx) => {
             let LayoutComponent = child.component;

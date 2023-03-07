@@ -13,7 +13,7 @@ import { useShown } from "../hook/shown";
 import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
 import { useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
-import { ValueSelectors } from "../hook/string";
+import { ValueSelectors } from "../utility/string";
 
 export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
     return class extends Child {

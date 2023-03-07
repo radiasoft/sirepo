@@ -5,7 +5,7 @@ import { FunctionComponent, useContext, useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
 import { CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
 import { CModelsWrapper } from "../../data/wrapper";
-import { useInterpolatedString, ValueSelectors } from "../../hook/string";
+import { interpolateStringDependencies, ValueSelectors } from "../../utility/string";
 import { downloadAs } from "../../utility/download";
 import { SchemaLayout } from "../../utility/schema";
 import { LayoutProps } from "../layout";
@@ -44,7 +44,7 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
                 let Component = layout.component;
                 return <Component key={idx}/>
             }),
-            title: useInterpolatedString(modelsWrapper, this.config.inspectModal.title, ValueSelectors.Models)
+            title: interpolateStringDependencies(this.config.inspectModal.title, modelsWrapper, ValueSelectors.Models)
         } : undefined;
 
         let [fileNameList, updateFileNameList] = useState(undefined);
