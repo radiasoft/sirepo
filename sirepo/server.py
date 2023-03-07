@@ -715,12 +715,9 @@ class API(sirepo.quest.API):
         import requests
 
         def _build():
-            if re.search(r"^react/\w+$", path):
+            p = path
+            if re.search(r"^\w+$", p):
                 p = "index.html"
-            elif path in sirepo.feature_config.cfg().react_sim_types:
-                raise sirepo.util.Redirect(f"/react/{path}")
-            else:
-                p = path
             # do not call api_staticFile due to recursion of proxy_react
             raise sirepo.util.SReplyExc(
                 self.reply_file(
