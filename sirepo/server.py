@@ -845,7 +845,7 @@ def _init_proxy_react():
     _PROXY_REACT_URI_SET = set(p)
     r = "^react/"
     for x in sirepo.feature_config.cfg().react_sim_types:
-        r += rf"|^{x}(?:/|$)"
+        r += rf"|^{x}(?:\/|$)"
     if cfg.react_server == _REACT_SERVER_BUILD:
         r += r"|^static/(css|js)/main\."
     _PROXY_REACT_URI_RE = re.compile(r)
