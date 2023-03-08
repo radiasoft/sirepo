@@ -409,8 +409,8 @@
         "axisPath": {
             "_super": ["_", "model", "linePath"],
             "axis": ["Axis", "BeamAxis", "z"],
-            "start": ["Start", "Float", -10.0, "Start point"],
-            "stop": ["End", "Float", 10.0, "End point"],
+            "start": ["Start [mm]", "Float", -10.0, "Start point"],
+            "stop": ["End [mm]", "Float", 10.0, "End point"],
             "type": ["_", "PathType", "axisPath"]
         },
         "cuboid": {
@@ -807,7 +807,7 @@
         },
         "kickMapReport": {
             "beamAxis": ["_", "BeamAxis", "z", ""],
-            "begin": ["Start", "FloatArray", [0, 0, 0], "Start point", ["x", "y", "z"]],
+            "begin": ["Start [mm]", "FloatArray", [0, 0, 0], "Start point", ["x", "y", "z"]],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "component": ["Component", "KickMapComponent", "h"],
             "direction": ["Direction", "FloatArray", [0, 0, 1], "Beam direction", ["x", "y", "z"]],
@@ -829,8 +829,8 @@
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
-            "begin": ["Start", "FloatArray", [-10.0, 0, 0], "Start point", ["x", "y", "z"]],
-            "end": ["End", "FloatArray", [10.0, 0, 0], "End point", ["x", "y", "z"]],
+            "begin": ["Start [mm]", "FloatArray", [-10.0, 0, 0], "Start point", ["x", "y", "z"]],
+            "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "End point", ["x", "y", "z"]],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "linePath"]
         },
