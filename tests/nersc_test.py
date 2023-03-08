@@ -4,11 +4,21 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+import subprocess
 import sirepo.util
 from pykern.pkcollections import PKDict
 
 
 def test_nersc_project(monkeypatch):
+
+    def _hpssquota(p):
+        return subprocess.run(
+            ("echo", mock_output[p]),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        ).stdout
+
     from sirepo import nersc
     from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
 
@@ -23,7 +33,7 @@ def test_nersc_project(monkeypatch):
     mock_output[_NO_SUCH_PROJECT] = "[]"
     mock_output[_ERROR] = "arbitrary hpssquota error"
 
-    monkeypatch.setattr(nersc, "_hpssquota", lambda p: mock_output[p])
+    monkeypatch.setattr(nersc, "_hpssquota", _hpssquota)
 
     with pkexcept(sirepo.util.UserAlert):
         nersc.sbatch_project_option(_ERROR)
