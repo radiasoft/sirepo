@@ -1,13 +1,13 @@
 from collections.abc import Iterable
 from pykern.pkcollections import PKDict
-from rslaser.cavity import laser_cavity
+from rslaser.pulse import pulse
+from rslaser.optics import crystal
 from scipy import ndimage
 import array
 import h5py
 import math
 import numpy
 import scipy.constants
-import srwlib
 
 
 def intensity_to_hdf5(count, pos, vals):
@@ -108,7 +108,18 @@ cavity_inputs = PKDict(
     )
 )
 
-lc = laser_cavity.LaserCavity(cavity_inputs)
+        chirp = 0,
+        sigx_waist = x_rms,
+        sigy_waist = y_rms,
+
+c = crystal.Crystal(n0=n0, n2=n2, length=L_cryst)
+p = pulse.LaserPulse(
+    photon_e_ev=wavefrontEnergy,
+    nslice=nslice,
+    tau_fwhm=0.1 / scipy.constants.c / math.sqrt(2.),
+)
+slice = p.slice
+slice[0].wfr = wfr0
 
 save_laser_pulse('{{ initialLaserFile }}', lc)
 
@@ -124,6 +135,7 @@ def intensity_callback(position, vals):
         intensity_to_hdf5(count, position, vals)
     prev_position = position
 
-lc.propagate(num_cycles={{ simulationSettings_n_reflections }}, callback=intensity_callback)
+
+c.propagate()
 
 save_laser_pulse('{{ finalLaserFile }}', lc)
