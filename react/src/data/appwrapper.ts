@@ -46,7 +46,7 @@ export const CSimulationList = React.createContext<SimulationListItem[]>(undefin
 export const CSimulationInfoPromise = React.createContext<Promise<SimulationInfo>>(undefined);
 export const CAppName = React.createContext<string>(undefined);
 export const CSchema = React.createContext<Schema>(undefined);
-export const CLoginStatus = React.createContext<MutableRefObject<LoginStatus>>(undefined);
+export const CLoginStatusRef = React.createContext<MutableRefObject<LoginStatus>>(undefined);
 export const CAppWrapper = React.createContext<AppWrapper>(undefined);
 
 export class AppWrapper {

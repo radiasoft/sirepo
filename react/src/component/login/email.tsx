@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { Button, Col, Container, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import { CAppName, CAppWrapper, CLoginStatus } from "../../data/appwrapper";
+import { CAppName, CAppWrapper, CLoginStatusRef } from "../../data/appwrapper";
 import { CRouteHelper } from "../../utility/route";
 import { LoginExtraInfoForm, updateLoginStatusRef } from "./login";
 
@@ -9,7 +9,7 @@ export const LoginEmailConfirm = (props) => {
     let { token, needCompleteRegistration } = props;
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
-    let loginStatusRef = useContext(CLoginStatus);
+    let loginStatusRef = useContext(CLoginStatusRef);
     let appWrapper = useContext(CAppWrapper);
     let navigate = useNavigate();
     let completeLogin = (extra?: {[key: string]: any}) => {

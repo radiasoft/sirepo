@@ -3,7 +3,7 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import React, { MutableRefObject, useContext, useEffect, useRef, useState } from "react"
 import { Button, Col, Container, Dropdown, Form, Image, Nav, Row } from "react-bootstrap"
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router"
-import { AppWrapper, AuthMethod, CAppName, CAppWrapper, CLoginStatus, CSchema, LoginStatus } from "../../data/appwrapper"
+import { AppWrapper, AuthMethod, CAppName, CAppWrapper, CLoginStatusRef, CSchema, LoginStatus } from "../../data/appwrapper"
 import { useSetup } from "../../hook/setup"
 import { NavbarRightContainerId, NavToggleDropdown } from "../reusable/navbar";
 import { Portal } from "../reusable/portal";
@@ -24,7 +24,7 @@ export const LoginRouter = (props) => {
     const [hasLoginStatus, _] = useSetup(true, updateLoginStatusRef(loginStatusRef, appWrapper));
 
     return hasLoginStatus && (
-        <CLoginStatus.Provider value={loginStatusRef}>
+        <CLoginStatusRef.Provider value={loginStatusRef}>
             <Portal targetId={NavbarRightContainerId} className="order-3">
                 <NavbarSlack/>
             </Portal>
@@ -37,12 +37,12 @@ export const LoginRouter = (props) => {
                 <Route path={routeHelper.localRoutePattern("loginConfirm")} element={<LoginConfirm/>}/>
                 <Route path="*" element={<CatchLoggedOut>{props.children}</CatchLoggedOut>}/>
             </Routes>
-        </CLoginStatus.Provider>
+        </CLoginStatusRef.Provider>
     )
 }
 
 export const NavbarSlack = (props) => {
-    let loginStatus = useContext(CLoginStatus).current;
+    let loginStatus = useContext(CLoginStatusRef).current;
 
     return (
         <>
@@ -56,7 +56,7 @@ export const NavbarSlack = (props) => {
 }
 
 export const NavbarAuthStatus = (props) => {
-    let loginStatus = useContext(CLoginStatus).current;
+    let loginStatus = useContext(CLoginStatusRef).current;
     let schema = useContext(CSchema);
     let appWrapper = useContext(CAppWrapper);
     let routeHelper = useContext(CRouteHelper);
@@ -105,7 +105,7 @@ export const NavbarAuthStatus = (props) => {
 
 export const CatchLoggedOut = (props) => {
     let routeHelper = useContext(CRouteHelper);
-    let loginStatus = useContext(CLoginStatus).current;
+    let loginStatus = useContext(CLoginStatusRef).current;
     return (
         <>
             {
@@ -177,7 +177,7 @@ export const LoginExtraInfoForm = (props: { onComplete: ({displayName}) => void 
 }
 
 export const LoginRoot = (props) => {
-    let loginStatus = useContext(CLoginStatus).current;
+    let loginStatus = useContext(CLoginStatusRef).current;
     let routeHelper = useContext(CRouteHelper);
 
     let getLoginComponent = (method: string): JSX.Element => {
