@@ -1061,7 +1061,7 @@ class _Op(PKDict):
         self.update(
             do_not_send=False,
             internal_error=None,
-            opId=job.unique_key(),
+            opId=sirepo.util.unique_key(),
             _reply_q=sirepo.tornado.Queue(),
         )
         if "run_dir_slot_q" in self._supervisor:

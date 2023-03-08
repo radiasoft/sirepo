@@ -81,7 +81,7 @@ class API(sirepo.quest.API):
         t = None
         with simulation_db.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
-            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.util.unique_key())
             t.mksymlinkto(d, absolute=True)
             try:
                 r = self._request_api(
@@ -113,7 +113,7 @@ class API(sirepo.quest.API):
 
         e = None
         try:
-            k = sirepo.job.unique_key()
+            k = sirepo.util.unique_key()
             r = self._request_api(
                 _request_content=PKDict(ping=k),
                 _request_uri=self._supervisor_uri(sirepo.job.SERVER_PING_URI),
@@ -310,7 +310,7 @@ class API(sirepo.quest.API):
             simulationId=lambda: s.parse_sid(d),
             simulationType=lambda: d.simulationType,
         ).pkupdate(
-            reqId=sirepo.job.unique_key(),
+            reqId=sirepo.util.unique_key(),
             uid=self.auth.logged_in_user(),
         ).pkupdate(
             computeJid=s.parse_jid(d, uid=b.uid),
@@ -335,7 +335,7 @@ class API(sirepo.quest.API):
         with simulation_db.tmp_dir(qcall=self) as d:
             t = None
             try:
-                t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+                t = sirepo.job.DATA_FILE_ROOT.join(sirepo.util.unique_key())
                 t.mksymlinkto(d, absolute=True)
                 content.dataFileKey = t.basename
                 yield d

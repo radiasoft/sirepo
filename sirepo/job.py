@@ -313,7 +313,3 @@ def split_jid(jid):
 def supervisor_file_uri(supervisor_uri, *args):
     # trailing slash necessary
     return "{}{}/".format(supervisor_uri, "/".join(args))
-
-
-def unique_key():
-    return sirepo.util.random_base62(32)
