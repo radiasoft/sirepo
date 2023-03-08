@@ -112,8 +112,10 @@
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
+                "rshellweg.js"
             ],
             "css": [
+                "rshellweg.css"
             ]
         }
     },
