@@ -56,7 +56,8 @@ export function FormStateInitializer(props) {
         formSelectors
     })
 
-    let modelNames = Object.keys(schema.models);
+    //let modelNames = Object.keys(schema.models);
+    let modelNames = models.getModelNames(store.getState());
 
     useEffect(() => {
         let state = store.getState();
@@ -66,7 +67,14 @@ export function FormStateInitializer(props) {
                 value: models.getModel(mn, state)
             }
         }).forEach(({ modelName, value }) => {
-            formState.updateModel(modelName, formStateFromModel(value, schema.models[modelName]))
+            if(!value) {
+                throw new Error(`could not get model=${modelName}`);
+            }
+            let modelSchema = schema.models[modelName];
+            if(!modelSchema) {
+                throw new Error(`could not get schema for model=${modelName}`);
+            }
+            formState.updateModel(modelName, formStateFromModel(value, modelSchema));
         });
 
         updateHasInit(true);

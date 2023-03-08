@@ -91,6 +91,10 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
         return this.modelSelectors.selectModel(modelName)(state);
     }
 
+    getModelNames = (state: any): string[] => {
+        return this.modelSelectors.selectModelNames()(state);
+    }
+
     updateModel = (modelName: string, value: ModelState) => {
         //console.log("dispatching update to ", modelName, " changing to value ", value);
         this.dispatch(this.modelActions.updateModel({

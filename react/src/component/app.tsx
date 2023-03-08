@@ -14,7 +14,7 @@ import { CRouteHelper, RouteHelper } from "../utility/route";
 import { getAppCombinedSchema } from "../utility/schema";
 
 export const AppContextWrapper = (props) => {
-    const formStateStore = configureStore({
+    const modelsStore = configureStore({
         reducer: {
             [modelsSlice.name]: modelsSlice.reducer,
             [formStatesSlice.name]: formStatesSlice.reducer,
@@ -27,7 +27,7 @@ export const AppContextWrapper = (props) => {
         const routeHelper = new RouteHelper(appName, schema);
         let appWrapper = new AppWrapper(appName, routeHelper);
         return (
-            <Provider store={formStateStore}>
+            <Provider store={modelsStore}>
                 <CAppWrapper.Provider value={appWrapper}>
                     <CSchema.Provider value={schema}>
                         <CRouteHelper.Provider value={routeHelper}>

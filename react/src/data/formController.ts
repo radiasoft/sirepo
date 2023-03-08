@@ -10,14 +10,26 @@ import { InputLayout } from "../layout/input/input";
 
 
 
-export let formStateFromModel = (model: ModelState, modelSchema: SchemaModel) => mapProperties(modelSchema, (fieldName, { type }) => {
-    return {
-        valid: type.validate(model[fieldName]),
-        value: type.fromModelValue(model[fieldName]),
-        touched: false,
-        active: true
+export let formStateFromModel = (model: ModelState, modelSchema: SchemaModel) => {
+    if(!modelSchema) {
+        throw new Error(`while converting model to form state, model schema was undefiend; model=${JSON.stringify(model)}`);
     }
-})
+    if(!model) {
+        throw new Error(`while converting model to form state, model was undefined; schema=${JSON.stringify(modelSchema)}`);
+    }
+    return mapProperties(modelSchema, (fieldName, { type }) => {
+        if(!(fieldName in model)) {
+            throw new Error(`model=${JSON.stringify(model)} was missing field=${fieldName}`)
+        }
+
+        return {
+            valid: type.validate(model[fieldName]),
+            value: type.fromModelValue(model[fieldName]),
+            touched: false,
+            active: true
+        }
+    })
+}
 
 export const CFormController = React.createContext<FormController>(undefined);
 

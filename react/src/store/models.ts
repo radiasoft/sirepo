@@ -31,10 +31,14 @@ export let modelActions: ModelActions = {
 }
 
 export type ModelSelectors = {
-    selectModel: (name: string) => ((state: any) => ModelState)
+    selectModel: (name: string) => ((state: any) => ModelState),
+    selectModelNames: () => ((state: any) => string[])
 }
 export let modelSelectors: ModelSelectors = {
     selectModel: (name: string) => {
         return (state: any) => state[modelsSlice.name][name];
+    },
+    selectModelNames: () => {
+        return (state: any) => Object.keys(state[modelsSlice.name]);
     }
 }
