@@ -16,6 +16,7 @@ import os
 import re
 import signal
 import sirepo.modules
+import sirepo.nersc
 import sirepo.tornado
 import sirepo.util
 import socket
@@ -749,17 +750,6 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
-        def _assert_project():
-            p = self.msg.sbatchProject
-            if not p:
-                return ""
-            o = subprocess.check_output(["hpssquota"], text=True)
-            assert re.search(r"^[-\w]+$", p), f"invalid NERSC project={p}"
-            assert re.search(
-                r"{}\s+\d+\.".format(p), o
-            ), f"sbatchProject={p} is invalid. hpssquota={o}"
-            return f"#SBATCH --account={p}"
-
         def _processor():
             if self.msg.sbatchQueue == "debug" and pkconfig.channel_in("dev"):
                 return "knl"
@@ -773,7 +763,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --constraint={_processor()}
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node={self.msg.tasksPerNode}
-{_assert_project()}"""
+{sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
             s = "--cpu-bind=cores shifter --entrypoint"
         m = "--mpi=pmi2" if pkconfig.channel_in("dev") else ""
         f = self.run_dir.join(self.jid + ".sbatch")

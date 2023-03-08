@@ -1074,6 +1074,61 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
     };
 });
 
+SIREPO.app.directive('diceCoeffViewer', function(requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+        <div>
+          <img class="img-responsive dice-plot" />
+          <div data-ng-if="isLoading()" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+          </div>
+          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
+        </div>
+        `,
+        controller: function($scope, appState) {
+            let loading = true;
+            let uris;
+            $scope.dataFileMissing = false;
+
+            $scope.isLoading = () => loading;
+
+            const setDicePlotImage = () => {
+                if (! uris) {
+                    $scope.dataFileMissing = true;
+                    $scope.fileName = 'dicePlot.png';
+                    return;
+                }
+                if ($('.dice-plot').length) {
+                    $('.dice-plot')[0].src = uris[0];
+                }
+            };
+
+            const loadImageFile = () => {
+                requestSender.sendAnalysisJob(
+                    appState,
+                    response => {
+                        uris = response.uris;
+                        setDicePlotImage();
+                        loading = false;
+                    },
+                    {
+                        method: 'dice_coefficient',
+                        modelName: 'animation',
+                        args: {
+                            imageFilename: 'dicePlot',
+                            dataFile: appState.applicationState().dataFile,
+                            columnInfo: appState.applicationState().columnInfo,
+                        }
+                    }
+                );
+            };
+
+            loadImageFile();
+        }
+    };
+});
 
 SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
     return {
