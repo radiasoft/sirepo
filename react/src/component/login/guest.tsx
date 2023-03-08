@@ -14,9 +14,6 @@ export function LoginWithGuest(props) {
 
     let [hasLoggedIn, _] = useSetup(true, appWrapper.doGuestLogin().then(() => updateLoginStatusRef(loginStatusRef, appWrapper)));
 
-    if(hasLoggedIn) {
-        console.log("redirecting to root because done with guest login");
-    }
     return (
         hasLoggedIn && <Navigate to={routeHelper.localRoute('root')}/>
     )

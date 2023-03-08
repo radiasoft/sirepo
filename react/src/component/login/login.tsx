@@ -106,11 +106,6 @@ export const NavbarAuthStatus = (props) => {
 export const CatchLoggedOut = (props) => {
     let routeHelper = useContext(CRouteHelper);
     let loginStatus = useContext(CLoginStatus).current;
-
-    console.log("isLoggedIn", loginStatus.isLoggedIn);
-    console.log("needsCompleteRegistration", loginStatus.needCompleteRegistration);
-    console.log("visibleMethod", loginStatus.visibleMethod);
-    console.log("login route", routeHelper.localRoute("login"));
     return (
         <>
             {
@@ -206,7 +201,6 @@ export const LoginRoot = (props) => {
     }
 
     if(loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) {
-        console.log("redirecting to root because logged in and doesnt need complete registration");
         return (
             <Navigate to={routeHelper.localRoute("root")}></Navigate>
         )
