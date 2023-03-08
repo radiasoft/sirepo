@@ -1,23 +1,30 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import React, { useContext, useEffect, useState } from "react"
+import React, { MutableRefObject, useContext, useEffect, useRef, useState } from "react"
 import { Button, Col, Container, Dropdown, Form, Image, Nav, Row } from "react-bootstrap"
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router"
-import { AuthMethod, CAppName, CAppWrapper, CLoginStatus, CSchema } from "../../data/appwrapper"
+import { AppWrapper, AuthMethod, CAppName, CAppWrapper, CLoginStatus, CSchema, LoginStatus } from "../../data/appwrapper"
 import { useSetup } from "../../hook/setup"
 import { NavbarRightContainerId, NavToggleDropdown } from "../reusable/navbar";
 import { Portal } from "../reusable/portal";
 import "./login.scss";
 import { LoginEmailConfirm, LoginWithEmail } from "./email";
 import { CRouteHelper } from "../../utility/route";
+import { LoginWithGuest } from "./guest";
+
+export async function updateLoginStatusRef(ref: MutableRefObject<LoginStatus>, appWrapper: AppWrapper) {
+    let status = await appWrapper.getLoginStatus();
+    ref.current = status;
+}
 
 export const LoginRouter = (props) => {
     let appWrapper = useContext(CAppWrapper);
     let routeHelper = useContext(CRouteHelper);
-    const [hasLoginStatus, loginStatus] = useSetup(true, appWrapper.getLoginStatus());
+    let loginStatusRef = useRef(undefined);
+    const [hasLoginStatus, _] = useSetup(true, updateLoginStatusRef(loginStatusRef, appWrapper));
 
     return hasLoginStatus && (
-        <CLoginStatus.Provider value={loginStatus}>
+        <CLoginStatus.Provider value={loginStatusRef}>
             <Portal targetId={NavbarRightContainerId} className="order-3">
                 <NavbarSlack/>
             </Portal>
@@ -35,7 +42,7 @@ export const LoginRouter = (props) => {
 }
 
 export const NavbarSlack = (props) => {
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatus).current;
 
     return (
         <>
@@ -49,12 +56,12 @@ export const NavbarSlack = (props) => {
 }
 
 export const NavbarAuthStatus = (props) => {
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatus).current;
     let schema = useContext(CSchema);
     let appWrapper = useContext(CAppWrapper);
     let routeHelper = useContext(CRouteHelper);
 
-    if(loginStatus.method === "guest") {
+    if(loginStatus.visibleMethod === "guest") {
         return (<></>)
     }
 
@@ -98,12 +105,16 @@ export const NavbarAuthStatus = (props) => {
 
 export const CatchLoggedOut = (props) => {
     let routeHelper = useContext(CRouteHelper);
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatus).current;
 
+    console.log("isLoggedIn", loginStatus.isLoggedIn);
+    console.log("needsCompleteRegistration", loginStatus.needCompleteRegistration);
+    console.log("visibleMethod", loginStatus.visibleMethod);
+    console.log("login route", routeHelper.localRoute("login"));
     return (
         <>
             {
-                (loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) || loginStatus.method === "guest" ?
+                (loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) ?
                 (
                     props.children
                 ) : (
@@ -171,7 +182,7 @@ export const LoginExtraInfoForm = (props: { onComplete: ({displayName}) => void 
 }
 
 export const LoginRoot = (props) => {
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatus).current;
     let routeHelper = useContext(CRouteHelper);
 
     let getLoginComponent = (method: string): JSX.Element => {
@@ -179,7 +190,7 @@ export const LoginRoot = (props) => {
             case "email":
                 return <LoginWithEmail/>
             case "guest":
-                return <Navigate to={routeHelper.localRoute("root")}/>
+                return <LoginWithGuest/>
             default:
                 throw new Error(`could not handle login method=${method}`)
         }
@@ -195,6 +206,7 @@ export const LoginRoot = (props) => {
     }
 
     if(loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) {
+        console.log("redirecting to root because logged in and doesnt need complete registration");
         return (
             <Navigate to={routeHelper.localRoute("root")}></Navigate>
         )
