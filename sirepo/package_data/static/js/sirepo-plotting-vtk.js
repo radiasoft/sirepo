@@ -2624,7 +2624,7 @@ SIREPO.app.directive('groupedObjects', function(appState, $sce) {
               <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
                 <thead></thead>
                   <tbody>
-                    <tr data-ng-attr-id="{{ obj.id }}" data-grouped-object="obj" data-source="source" data-overlay-buttons="overlayButtons" data-ng-repeat="obj in getObjects() track by obj.id"></tr>
+                    <tr data-ng-attr-id="{{ obj.id }}" data-grouped-object="obj" data-source="source" data-overlay-buttons="overlayButtons" data-ng-repeat="obj in getObjects() | filter: isNotInGroup track by obj.id"></tr>
                   </tbody>
                 </table>
             </div>
@@ -2713,24 +2713,6 @@ SIREPO.app.directive('groupedObject', function(appState, $sce) {
         `,
         controller: function($scope, $element) {
 
-
-            function refreshSiblings() {
-                if (! $scope.isGroup($scope.obj)) {
-                    return;
-                }
-                //const ds = d3.select(`tr#${$scope.obj.groupId}`)
-                srdbg(d3.select(`tr#${$scope.obj.id}`), $scope.obj.members);
-                const ds = d3.select(`tr#${$scope.obj.id}`)
-                    .data($scope.memberObjects($scope.obj));
-                ds.exit().remove();
-                ds.enter()
-                    .append(d => {
-                        srdbg('append', d);
-                        return document.createElement('tr');
-                    })
-
-            }
-
             $scope.expanded = false;
 
             $scope.align = (o, alignType) => {
@@ -2771,20 +2753,38 @@ SIREPO.app.directive('groupedObject', function(appState, $sce) {
                 $scope.expanded = ! $scope.expanded;
             };
 
-            appState.whenModelsLoaded($scope, () => {
-                //srdbg($scope.obj.groupId, $(`tr#${$scope.obj.groupId}`));
-                refreshSiblings();
-            });
-
             $scope.$on($scope.modelName + '.changed', function(e, name) {
 
             });
-
-
         },
         link: function link(scope, element) {
             // add/rm sibling trs
-            //srdbg(scope.obj.groupId, $(`tr#${scope.obj.groupId}`));
+            function refreshSiblings() {
+
+                function updateRow(s) {
+                    srdbg('update', s);
+                    s.class('grouped-child');
+                    //s.attr('data-grouped-object', 'obj')
+                    //    .attr('data-ng-attr-id', '{{ o.id }}')
+                    //    .attr('data-ng-repeat', 'o in getObjects() track by o.id')
+                    //    .attr('data-source', 'source');
+                }
+
+                if (! scope.isGroup(scope.obj)) {
+                    return;
+                }
+                const ds = d3.select(`div[data-grouped-objects] table tbody tr#${scope.obj.id}`).selectAll('.grouped-child')
+                    .data(scope.memberObjects(scope.obj));
+                srdbg(ds);
+                //ds.exit().remove();
+                ds.enter()
+                    .insert('tr')
+                    .call(updateRow);
+            }
+
+            appState.whenModelsLoaded(scope, () => {
+                refreshSiblings();
+            });
         },
     };
 });
