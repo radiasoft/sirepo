@@ -86,7 +86,6 @@ export class AppWrapper {
 
     // TODO @garsuga: this should be its own api call, http errors should be used to signal login missing
     getLoginStatus: () => Promise<LoginStatus> = async () => {
-        console.log("fetching auth status");
         return await fetch(this.routeHelper.globalRoute("authState2")).then(async (resp) => await resp.json() as LoginStatus);
     }
 
