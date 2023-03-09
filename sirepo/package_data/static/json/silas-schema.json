@@ -122,6 +122,9 @@
             "totalEnergy": ["Total Energy [J]", "Float", 0.001],
             "waistSize": ["RMS Waist Size [m]", "FloatArray", [0.001, 0.001], "", ["Horizontal", "Vertical"]]
         },
+        "laserPulseIntensityReport": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
         "laserPulse1Animation": {},
         "laserPulse2Animation": {},
         "laserPulse3Animation": {},
@@ -244,6 +247,12 @@
         "laserPulse4Animation": {
             "title": "Intensity Along Laser Pulse",
             "advanced": []
+        },
+        "laserPulseIntensityReport": {
+            "title": "Intensity",
+            "advanced": [
+                "colorMap"
+            ]
         },
         "plotAnimation": {
             "title": "Radial Temperature Profile",

@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -25,6 +24,11 @@ _CRYSTAL_CSV_FILE = "crystal.csv"
 _SUMMARY_CSV_FILE = "wavefront.csv"
 _INITIAL_LASER_FILE = "initial-laser.npy"
 _FINAL_LASER_FILE = "final-laser.npy"
+
+_REPORTS = (
+    "laserPulseIntensityReport",
+    "laserPulsePhaseReport",
+)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -100,6 +104,11 @@ def python_source_for_model(data, model, qcall, **kwargs):
     else:
         data.report = "animation"
     return _generate_parameters_file(data)
+
+
+def save_sequential_report_data(run_dir, sim_in):
+    if sim_in.report == "laserPulseIntensityReport":
+        _extract_laser_pulse_intensity_report(run_dir, sim_in)
 
 
 def sim_frame(frame_args):
@@ -285,11 +294,57 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
     )
 
 
+def _extract_laser_pulse_intensity_report(run_dir, sim_in):
+    template_common.write_sequential_result(
+        _initial_laser_pulse_intensity_plot(sim_in.models.laserPulse),
+        run_dir=run_dir,
+    )
+
+
 def _format_float(v):
     return float("{:.4f}".format(v))
 
 
+def _initial_laser_pulse_intensity_plot(model):
+    from rslaser.pulse import pulse
+    from rslaser.utils import srwl_uti_data
+
+    p = pulse.LaserPulse(
+        params=PKDict(
+            chirp=model.chirp,
+            dist_waist=model.distFromWaist,
+            mx=model.modeOrder[0],
+            my=model.modeOrder[1],
+            nslice=model.numSlices,
+            num_sig_long=model.numSigmas[0],
+            num_sig_trans=model.numSigmas[1],
+            nx_slice=model.numsSliceMeshPoints[0],
+            ny_slice=model.numsSliceMeshPoints[1],
+            pad_factor=model.padFactor,
+            photon_e_ev=model.photonEnergy,
+            poltype=int(model.polarization),
+            pulseE=model.totalEnergy,
+            sigx_waist=model.waistSize[0],
+            sigy_waist=model.waistSize[1],
+            tau_fwhm=model.tauFWHM,
+        ),
+    )
+    z = srwl_uti_data.calc_int_from_elec(p.slice_wfr(0))
+
+    return PKDict(
+        title="Intensity",
+        x_range=[-1, 1, len(z)],
+        y_range=[-1, 1, len(z[0])],
+        x_label="Horizontal Position [m]",
+        y_label="Vertical Position [m]",
+        z_matrix=z,
+    )
+
+
 def _generate_parameters_file(data):
+    if data.report == "laserPulseIntensityReport":
+        #res, v = template_common.generate_parameters_file(data)
+        return ""
     if data.report == "animation":
         beamline = data.models.beamline
         data.models.crystal = _get_crystal(data)
