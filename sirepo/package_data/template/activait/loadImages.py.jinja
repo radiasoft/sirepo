@@ -181,3 +181,6 @@ testy = []
 for y in split.test_gen.set_return_value("y"):
     testy += y.tolist()
 testx = split.test_gen.set_return_value("x")
+
+for x, y in split.train_gen:
+    print(f"x={x.shape}\n\ny={y.shape}")

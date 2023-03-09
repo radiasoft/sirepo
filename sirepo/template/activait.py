@@ -470,6 +470,7 @@ def _build_model_py(v):
         MaxPooling2D=lambda layer: _pooling_args(layer),
         SeparableConv2D=lambda layer: _conv_args(layer),
         Conv2DTranspose=lambda layer: _conv_args(layer),
+        Reshape=lambda layer: f"{layer.new_shape}",
         UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
         ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
     )
@@ -1079,6 +1080,7 @@ def _data_url(filename):
 
 
 def _masks(out_width, run_dir):
+    # TODO (gurhar1133): need to do out_width, out_height
     x = _read_file(run_dir, _OUTPUT_FILE.testFile)
     x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
     y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
