@@ -138,21 +138,21 @@
         "source": {
             "config": {
                 "controller": "HellwegSourceController as source",
-                "templateUrl": "/static/html/hellweg-source.html"
+                "templateUrl": "/static/html/rshellweg-source.html"
             }
         },
         "lattice": {
             "route": "/lattice/:simulationId",
             "config": {
                 "controller": "HellwegLatticeController as lattice",
-                "templateUrl": "/static/html/hellweg-lattice.html"
+                "templateUrl": "/static/html/rshellweg-lattice.html"
             }
         },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
                 "controller": "HellwegVisualizationController as visualization",
-                "templateUrl": "/static/html/hellweg-visualization.html"
+                "templateUrl": "/static/html/rshellweg-visualization.html"
             }
         }
     },
