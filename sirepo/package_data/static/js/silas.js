@@ -45,6 +45,10 @@ SIREPO.app.factory('silasService', function(appState) {
     return self;
 });
 
+SIREPO.app.controller('SourceController', function (appState, beamlineService, frameCache, persistentSimulation, silasService, $scope) {
+
+});
+
 SIREPO.app.controller('BeamlineController', function (appState, beamlineService, frameCache, persistentSimulation, silasService, $scope) {
     var self = this;
     self.simScope = $scope;
@@ -196,8 +200,9 @@ SIREPO.app.directive('appHeader', function(appState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'laser-cavity\')}"><a href data-ng-click="nav.openSection(\'laser-cavity\')"><span class="glyphicon glyphicon-option-horizontal"></span> Laser Cavity</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'crystal\')}"><a href data-ng-click="nav.openSection(\'crystal\')"><span class="glyphicon glyphicon-th"></span> Crystal</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Laser Pulse</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('crystal')}"><a href data-ng-click="nav.openSection('crystal')"><span class="glyphicon glyphicon-th"></span> Crystal</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>

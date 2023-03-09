@@ -1,7 +1,7 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "laser-cavity"
+            "localRoute": "source"
         }
     },
     "enum": {
@@ -34,8 +34,15 @@
         }
     },
     "localRoutes": {
-        "laser-cavity": {
-            "route": "/laser-cavity/:simulationId",
+        "source": {
+            "route": "/source/:simulationId",
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/silas-source.html"
+            }
+        },
+        "beamline": {
+            "route": "/beamline/:simulationId",
             "config": {
                 "controller": "BeamlineController as beamline",
                 "templateUrl": "/static/html/silas-beamline.html"
