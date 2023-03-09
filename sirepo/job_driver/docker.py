@@ -124,10 +124,6 @@ class DockerDriver(job_driver.DriverBase):
             await self._cmd(
                 ("stop", "--time={}".format(job_driver.KILL_TIMEOUT_SECS), self._cname),
             )
-        except sirepo.util.ASYNC_CANCELED_ERROR:
-            # CanceledErrors need to make it back out to be handled
-            # by callers (ex job_supervisor.api_runSimulation)
-            raise
         except Exception as e:
             if not c and "No such container" in str(e):
                 # Make kill response idempotent
