@@ -1079,12 +1079,15 @@ def _data_url(filename):
     return u
 
 
-def _masks(out_width, run_dir):
+def _masks(out_width, out_height, run_dir):
     # TODO (gurhar1133): need to do out_width, out_height
     x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-    x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
+    pkdp("\n\n\n\n shape of actual={}", numpy.array(x).shape)
+    pkdp("\n\n\n len(x)={}", len(x))
+    x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
     y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-    y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
+    pkdp("\n\n\n\n shape of predict={}", numpy.array(y).shape)
+    y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
     return x, y
 
 
@@ -1099,7 +1102,7 @@ def _dice_coefficient_plot(data, run_dir):
             )
 
         d = []
-        x, y = _masks(64, run_dir)
+        x, y = _masks(64, 64, run_dir)
         for pair in zip(x, y):
             d.append(_dice_coefficient(pair[0], pair[1]))
         return d
@@ -1137,7 +1140,9 @@ def _image_preview(data, run_dir=None):
 
     def _x_y(data, io, file):
         if data.args.method == "segmentViewer":
-            return _masks(numpy.array(file[io.output.path]).shape[-1], run_dir)
+            w = numpy.array(file[io.output.path]).shape[-1]
+            h = numpy.array(file[io.output.path]).shape[-2]
+            return _masks(w, h, run_dir)
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):
