@@ -294,7 +294,7 @@ def import_submodule(submodule, type_or_data):
     from sirepo import feature_config
     from sirepo import template
 
-    t = template.assert_sim_type(
+    sim_type = template.assert_sim_type(
         type_or_data.simulationType
         if isinstance(
             type_or_data,
@@ -302,17 +302,21 @@ def import_submodule(submodule, type_or_data):
         )
         else type_or_data,
     )
-    r = feature_config.cfg().package_path
-    for p in r:
+    for p in feature_config.cfg().package_path:
+        n = None
         try:
-            return importlib.import_module(f"{p}.{submodule}.{t}")
-        except ModuleNotFoundError:
+            n = f"{p}.{submodule}.{sim_type}"
+            return importlib.import_module(n)
+        except ModuleNotFoundError as e:
+            if n is not None and n != e.name:
+                # n (import is failing due to ModuleNotFoundError in "n"
+                raise
             s = pkdexc()
             pass
     # gives more debugging info (perhaps more confusion)
     pkdc(s)
     raise AssertionError(
-        f"cannot find submodule={submodule} for sim_type={t} in package_path={r}"
+        f"cannot find submodule={submodule} for sim_type={sim_type} in package_path={feature_config.cfg().package_path}"
     )
 
 
