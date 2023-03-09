@@ -8,30 +8,23 @@ from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-import asyncio
 import base64
-import concurrent.futures
 import hashlib
 import importlib
 import inspect
 import numconv
-import posixpath
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import re
 import random
 import six
-import sys
 import threading
 import unicodedata
 import zipfile
 
 
 cfg = None
-
-#: All types of errors async code may throw when canceled
-ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
 #: Http auth header name
 AUTH_HEADER = "Authorization"
