@@ -23,7 +23,7 @@ def sbatch_project_option(project):
 
 
 # Note: project is only used for unit tests
-def _hpssquota(project=None):
+def _hpssquota():
     # -N excludes home and scratch file systems; -J outputs json
     return subprocess.run(
         ("hpssquota", "-N", "-J"),
