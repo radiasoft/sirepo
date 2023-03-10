@@ -6,12 +6,13 @@
     },
     "enum": {
         "GaussianBeamPolarization": [
-            ["1", "Linear Horizontal"],
-            ["2", "Linear Vertical"],
-            ["3", "Linear 45 degrees"],
-            ["4", "Linear 135 degrees"],
-            ["5", "Circular Right"],
-            ["6", "Circular Left"]
+            ["0", "Linear Horizontal"],
+            ["1", "Linear Vertical"],
+            ["2", "Linear 45 degrees"],
+            ["3", "Linear 135 degrees"],
+            ["4", "Circular Right"],
+            ["5", "Circular Left"],
+            ["6", "Total"]
         ]
     },
     "dynamicFiles": {
