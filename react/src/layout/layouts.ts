@@ -14,6 +14,7 @@ import { LayoutType, Layout } from "./layout";
 import { SchemaLayout } from "../utility/schema";
 import { TextLayout } from "./text";
 import { HorizontalStackLayout, VerticalStackLayout } from "./arrange/stack";
+import { ColumnLayout } from "./arrange/column";
 import { WaterfallLayout } from "./arrange/waterfall";
 
 
@@ -24,7 +25,7 @@ class LayoutWrapper {
         fieldList: LayoutWithSpacing(FieldListLayout),
         fieldTable: LayoutWithSpacing(FieldGridLayout),
         panel: LayoutWithFormController(PanelLayout),
-        multiPanel: MultiPanelLayout,
+        multiPanel: LayoutWithDownloadButton(MultiPanelLayout),
         navbarModalButton: LayoutWithFormController(NavBarModalButton),
         autoRunReport: AutoRunReportLayout,
         manualRunReport: ManualRunReportLayout,
@@ -36,6 +37,7 @@ class LayoutWrapper {
         table: TableFromApi,
         startSimulation: SimulationStartLayout,
         text: TextLayout,
+        column: ColumnLayout,
         hStack: HorizontalStackLayout,
         vStack: VerticalStackLayout,
         waterfall: WaterfallLayout
