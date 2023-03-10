@@ -23,6 +23,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "crystalSettings",
                 "gaussianBeam",
                 "laserPulse",
+                "laserPulseIntensityReport",
+                "laserPulsePhaseReport",
                 "plotAnimation",
                 "plot2Animation",
                 "simulation",

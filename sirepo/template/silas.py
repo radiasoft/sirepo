@@ -11,6 +11,8 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from scipy import constants
 from sirepo import simulation_db
 from sirepo.template import template_common
+from rslaser.pulse import pulse
+from rslaser.utils import srwl_uti_data
 import csv
 import h5py
 import math
@@ -109,6 +111,8 @@ def python_source_for_model(data, model, qcall, **kwargs):
 def save_sequential_report_data(run_dir, sim_in):
     if sim_in.report == "laserPulseIntensityReport":
         _extract_laser_pulse_intensity_report(run_dir, sim_in)
+    if sim_in.report == "laserPulsePhaseReport":
+        _extract_laser_pulse_phase_report(run_dir, sim_in)
 
 
 def sim_frame(frame_args):
@@ -235,6 +239,29 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _build_pulse(model):
+    return pulse.LaserPulse(
+        params=PKDict(
+            chirp=model.chirp,
+            dist_waist=model.distFromWaist,
+            mx=model.modeOrder[0],
+            my=model.modeOrder[1],
+            nslice=model.numSlices,
+            num_sig_long=model.numSigmas[0],
+            num_sig_trans=model.numSigmas[1],
+            nx_slice=model.numsSliceMeshPoints[0],
+            ny_slice=model.numsSliceMeshPoints[1],
+            pad_factor=model.padFactor,
+            photon_e_ev=model.photonEnergy,
+            poltype=int(model.polarization),
+            pulseE=model.totalEnergy,
+            sigx_waist=model.waistSize[0],
+            sigy_waist=model.waistSize[1],
+            tau_fwhm=model.tauFWHM,
+        ),
+    )
+
+
 def _compute_rms_size(data):
     wavefrontEnergy = data.gaussianBeam.photonEnergy
     n0 = data.crystal.refractionIndex
@@ -301,40 +328,45 @@ def _extract_laser_pulse_intensity_report(run_dir, sim_in):
     )
 
 
+def _extract_laser_pulse_phase_report(run_dir, sim_in):
+    template_common.write_sequential_result(
+        _initial_laser_pulse_phase_plot(sim_in.models.laserPulse),
+        run_dir=run_dir,
+    )
+
+
 def _format_float(v):
     return float("{:.4f}".format(v))
 
 
 def _initial_laser_pulse_intensity_plot(model):
-    from rslaser.pulse import pulse
-    from rslaser.utils import srwl_uti_data
-
-    p = pulse.LaserPulse(
-        params=PKDict(
-            chirp=model.chirp,
-            dist_waist=model.distFromWaist,
-            mx=model.modeOrder[0],
-            my=model.modeOrder[1],
-            nslice=model.numSlices,
-            num_sig_long=model.numSigmas[0],
-            num_sig_trans=model.numSigmas[1],
-            nx_slice=model.numsSliceMeshPoints[0],
-            ny_slice=model.numsSliceMeshPoints[1],
-            pad_factor=model.padFactor,
-            photon_e_ev=model.photonEnergy,
-            poltype=int(model.polarization),
-            pulseE=model.totalEnergy,
-            sigx_waist=model.waistSize[0],
-            sigy_waist=model.waistSize[1],
-            tau_fwhm=model.tauFWHM,
-        ),
-    )
-    z = srwl_uti_data.calc_int_from_elec(p.slice_wfr(0))
+    p = _build_pulse(model)
+    ph = p.slice[0].n_photons_2d
+    z = srwl_uti_data.calc_int_from_elec(p.slice_wfr(0)).tolist()
 
     return PKDict(
         title="Intensity",
-        x_range=[-1, 1, len(z)],
-        y_range=[-1, 1, len(z[0])],
+        x_range=[ph.x[0], ph.x[-1], len(z)],
+        y_range=[ph.y[0], ph.y[-1], len(z[0])],
+        x_label="Horizontal Position [m]",
+        y_label="Vertical Position [m]",
+        z_matrix=z,
+    )
+
+
+def _initial_laser_pulse_phase_plot(model):
+    p = _build_pulse(model)
+    ph = p.slice[0].n_photons_2d
+    z = srwl_uti_data.calc_int_from_wfr(
+        p.slice_wfr(0),
+        _pol=int(model.polarization),
+        _int_type=4
+    )
+
+    return PKDict(
+        title="Phase",
+        x_range=[ph.x[0], ph.x[-1], len(z)],
+        y_range=[ph.y[0], ph.y[-1], len(z[0])],
         x_label="Horizontal Position [m]",
         y_label="Vertical Position [m]",
         z_matrix=z,
@@ -342,8 +374,7 @@ def _initial_laser_pulse_intensity_plot(model):
 
 
 def _generate_parameters_file(data):
-    if data.report == "laserPulseIntensityReport":
-        #res, v = template_common.generate_parameters_file(data)
+    if data.report in ("laserPulseIntensityReport", "laserPulsePhaseReport"):
         return ""
     if data.report == "animation":
         beamline = data.models.beamline

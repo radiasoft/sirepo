@@ -102,13 +102,8 @@
             "rmsSize": ["RMS Waist [µm]", "Float", 200]
         },
         "laserPulse": {
-            "amplitude": ["Amplitude", "Float", 1],
-            "beamSizeWaist": ["Beam Size at Waist [m]", "Float", 0.01, "Beam size of laser pulse at waist"],
-            "center": ["Center Z [m]", "Float", 0.01],
             "chirp": ["Chirp [eV]", "Float", 0, "Energy variation from first to last slice in laser pulse"],
             "distFromWaist": ["Waist Distance [m]", "Float", 0, "Distance from waist at which initial wavefront is calculated"],
-            "dw0": ["Waist Variation [m]", "FloatArray", [0.01, 0.01], "", ["Horizontal", "Vertical"]],
-            "dzw": ["Waist Z [m]", "FloatArray", [0.01, 0.01], "", ["Horizontal", "Vertical"]],
             "maxPulseEnergy": ["Maximum Energy [J]", "Float", 1, "For SRW gaussian wavefronts"],
             "modeOrder": ["Gauss-Hermite Mode Order", "IntArray", [0, 0], "", ["Horizontal", "Vertical"]],
             "numSigmas": ["Number of Gaussian Sigmas", "IntArray", [3, 6], "", ["Longitudinal", "Transverse"]],
@@ -117,12 +112,13 @@
             "padFactor": ["Pad Factor", "Float", 0],
             "photonEnergy": ["Photon energy [eV]", "Float", 1.5],
             "polarization": ["Polarization", "GaussianBeamPolarization", "1"],
-            "spotShift": ["Spot Shift [m]", "FloatArray", [0, 0], "", ["Horizontal", "Vertical"]],
             "tauFWHM": ["FWHM Length [s]", "Float", 2.35865e-11],
-            "totalEnergy": ["Total Energy [J]", "Float", 0.001],
-            "waistSize": ["RMS Waist Size [m]", "FloatArray", [0.001, 0.001], "", ["Horizontal", "Vertical"]]
+            "totalEnergy": ["Total Energy [J]", "Float", 0.001]
         },
         "laserPulseIntensityReport": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
+        "laserPulsePhaseReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "laserPulse1Animation": {},
@@ -211,7 +207,6 @@
                 ["Energy and Polarization", [
                     "photonEnergy",
                     "chirp",
-                    "amplitude",
                     "maxPulseEnergy",
                     "totalEnergy",
                     "polarization"
@@ -219,13 +214,7 @@
                 ["Geometry", [
                     "numSlices",
                     "distFromWaist",
-                    "beamSizeWaist",
-                    "dw0",
-                    "dzw",
                     "tauFWHM",
-                    "center",
-                    "spotShift",
-                    "waistSize",
                     "numsSliceMeshPoints",
                     "numSigmas",
                     "modeOrder"
@@ -250,6 +239,12 @@
         },
         "laserPulseIntensityReport": {
             "title": "Intensity",
+            "advanced": [
+                "colorMap"
+            ]
+        },
+        "laserPulsePhaseReport": {
+            "title": "Phase",
             "advanced": [
                 "colorMap"
             ]
