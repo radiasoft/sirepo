@@ -16,7 +16,7 @@ from rslaser.utils import srwl_uti_data
 import csv
 import h5py
 import math
-import numpy as np
+import numpy
 import re
 import sirepo.sim_data
 
@@ -123,7 +123,7 @@ def sim_frame(frame_args):
     )
     with h5py.File(filename, "r") as f:
         wfr = f["wfr"]
-        points = np.array(wfr)
+        points = numpy.array(wfr)
         return PKDict(
             title="S={}m (E={} eV)".format(
                 _format_float(wfr.attrs["pos"]),
@@ -140,13 +140,13 @@ def sim_frame(frame_args):
 
 
 def sim_frame_crystal3dAnimation(frame_args):
-    intensity = np.load("intensity.npy")
+    intensity = numpy.load("intensity.npy")
     return PKDict(
         title=" ",
-        indices=np.load("indices.npy").flatten().tolist(),
-        vertices=np.load("vertices.npy").flatten().tolist(),
+        indices=numpy.load("indices.npy").flatten().tolist(),
+        vertices=numpy.load("vertices.npy").flatten().tolist(),
         intensity=intensity.tolist(),
-        intensity_range=[np.min(intensity), np.max(intensity)],
+        intensity_range=[numpy.min(intensity), numpy.max(intensity)],
     )
 
 
@@ -195,7 +195,7 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
             idx += 1
     # TODO(pjm): use column headings from csv
     cols = ["count", "pos", "sx", "sy", "xavg", "yavg"]
-    v = np.genfromtxt(
+    v = numpy.genfromtxt(
         str(frame_args.run_dir.join(_SUMMARY_CSV_FILE)), delimiter=",", skip_header=1
     )
     if frame_args.element != "all":
@@ -204,7 +204,7 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
         v2 = []
         for row in counts[idx]:
             v2.append(v[(row - 1) * 2])
-        v = np.array(v2)
+        v = numpy.array(v2)
     # TODO(pjm): generalize, use template_common parameter_plot()?
     plots = []
     for col in ("sx", "sy"):
@@ -341,7 +341,8 @@ def _format_float(v):
 
 def _initial_laser_pulse_intensity_plot(model):
     p = _build_pulse(model)
-    ph = p.slice[0].n_photons_2d
+    s = p.slice[0]
+    ph = s.n_photons_2d
     z = srwl_uti_data.calc_int_from_elec(p.slice_wfr(0)).tolist()
 
     return PKDict(
@@ -356,13 +357,15 @@ def _initial_laser_pulse_intensity_plot(model):
 
 def _initial_laser_pulse_phase_plot(model):
     p = _build_pulse(model)
-    ph = p.slice[0].n_photons_2d
-    z = srwl_uti_data.calc_int_from_wfr(
+    s = p.slice[0]
+    ph = s.n_photons_2d
+    z, _ = srwl_uti_data.calc_int_from_wfr(
         p.slice_wfr(0),
         _pol=int(model.polarization),
-        _int_type=4
+        _int_type=4,
+        _pr=False,
     )
-
+    z = numpy.array(z).reshape(s.nx_slice, s.ny_slice).tolist()
     return PKDict(
         title="Phase",
         x_range=[ph.x[0], ph.x[-1], len(z)],
@@ -398,7 +401,7 @@ def _get_crystal(data):
 
 
 def _laser_pulse_report(value_index, filename, title, label):
-    values = np.load(filename)
+    values = numpy.load(filename)
     return template_common.parameter_plot(
         values[0].tolist(),
         [
