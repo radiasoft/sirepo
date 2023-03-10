@@ -309,7 +309,8 @@ def import_submodule(submodule, type_or_data):
             return importlib.import_module(n)
         except ModuleNotFoundError as e:
             if n is not None and n != e.name:
-                # n (import is failing due to ModuleNotFoundError in "n"
+                # import is failing due to ModuleNotFoundError in a sub-import
+                # not the module we are looking for
                 raise
             s = pkdexc()
             pass
