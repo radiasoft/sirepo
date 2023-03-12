@@ -378,7 +378,25 @@ def _initial_laser_pulse_phase_plot(model):
 
 def _generate_parameters_file(data):
     if data.report in ("laserPulseIntensityReport", "laserPulsePhaseReport"):
-        return ""
+        res, v = template_common.generate_parameters_file(data)
+        p = data.models.laserPulse
+        v.chirp = p.chirp,
+        v.distFromWaist = p.distFromWaist,
+        v.mx = p.modeOrder[0]
+        v.my = p.modeOrder[1]
+        v.numSlices = p.numSlices
+        v.num_sig_long = p.numSigmas[0]
+        v.num_sig_trans = p.numSigmas[1]
+        v.nx_slice = p.numsSliceMeshPoints[0]
+        v.ny_slice = p.numsSliceMeshPoints[0]
+        v.padFactor = p.padFactor
+        v.photonEnergy = p.photonEnergy
+        v.polarization = int(p.polarization)
+        v.totalEnergy = p.totalEnergy
+        v.sigx_waist = p.waistSize[0]
+        v.sigy_waist = p.waistSize[1]
+        v.tauFWHM = p.tauFWHM
+
     if data.report == "animation":
         beamline = data.models.beamline
         data.models.crystal = _get_crystal(data)

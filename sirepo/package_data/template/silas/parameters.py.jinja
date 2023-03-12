@@ -10,6 +10,28 @@ import numpy
 import scipy.constants
 
 
+def _build_pulse():
+    return pulse.LaserPulse(
+        params=PKDict(
+            chirp={{ chirp }},
+            dist_waist={{ distFromWaist }},
+            mx={{ mx }},
+            my={{ my }},
+            nslice{{ numSlices }},
+            num_sig_long={{ num_sig_long }},
+            num_sig_trans={{ num_sig_trans }},
+            nx_slice={{ nx_slice }},
+            ny_slice={{ ny_slice }},
+            pad_factor={{ padFactor }},
+            photon_e_ev={{ photonEnergy }},
+            poltype={{ polarization }},
+            pulseE={{ totalEnergy }},
+            sigx_waist={{ sigx_waist }},
+            sigy_waist={{ sigy_waist }},
+            tau_fwhm={{ tauFWHM }},
+        ),
+    )
+
 def intensity_to_hdf5(count, pos, vals):
     (wfr, ar2d, sx, sy, xavg, yavg) = vals
     with open('{{ summaryCSV }}', 'a' if pos else 'w') as f:
@@ -112,14 +134,11 @@ cavity_inputs = PKDict(
         sigx_waist = x_rms,
         sigy_waist = y_rms,
 
-c = crystal.Crystal(n0=n0, n2=n2, length=L_cryst)
-p = pulse.LaserPulse(
-    photon_e_ev=wavefrontEnergy,
-    nslice=nslice,
-    tau_fwhm=0.1 / scipy.constants.c / math.sqrt(2.),
-)
-slice = p.slice
-slice[0].wfr = wfr0
+p = _build_pulse()
+s = p.slice[0]
+ph = s.n_photons_2d
+z = srwl_uti_data.calc_int_from_elec(p.slice_wfr(0)).tolist()
+
 
 save_laser_pulse('{{ initialLaserFile }}', lc)
 
