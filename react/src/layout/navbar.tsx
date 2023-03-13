@@ -164,6 +164,8 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         let modelsWrapper = useContext(CModelsWrapper);
         let routerHelper = useContext(CRelativeRouterHelper);
 
+        let ContentComponent = this.TabsContent;
+
         return (
             <>
                 <Portal targetId={NavbarRightContainerId} className="order-1">
@@ -185,7 +187,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
                 {
                     this.tabs.map(tab => (
                         <div key={tab.name} style={tab.name !== selectedTabName ? { display: 'none' } : undefined}>
-                            <this.TabsContent key={tab.name} tab={tab}/>
+                            <ContentComponent key={tab.name} tab={tab}/>
                         </div>
                     ))
                 }
@@ -203,6 +205,8 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         let location = useResolvedPath('');
 
         let routeHelper = new RelativeRouteHelper(location);
+        
+        let SwitcherComponent = this.TabsSwitcher;
 
         let routedElement = useRoutes([
             {
@@ -211,7 +215,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
             },
             {
                 path: ':tabName/*',
-                element: <this.TabsSwitcher/>
+                element: <SwitcherComponent/>
             }
         ])
 
