@@ -33,6 +33,18 @@ SIREPO.app.factory('raydataService', function(appState, panelState, timeService)
     const self = {};
     let id = 0;
 
+    //POSIT: _AnalysisStatus.NON_STOPPED in scan monitor
+    self.ANALYSIS_STATUS_NON_STOPPED = ["pending", "running"];
+
+    // POSIT: Matches _AnalysisStatus.NONE in scan monitor
+    self.ANALYSIS_STATUS_NONE = "none";
+
+    // POSIT: Matches _AnalysisStatus.PENDING in scan monitor
+    self.ANALYSIS_STATUS_PENDING = "pending";
+
+    // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
+    self.DEFAULT_COLUMNS = ['status', 'start', 'stop', 'suid'];
+
     self.columnPickerModal = () => {
         return $('#' + panelState.modalId('columnPicker'));
     };
@@ -381,12 +393,8 @@ SIREPO.app.directive('scansTable', function() {
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
-            // POSIT: Matches _AnalysisStatus.NONE in scan monitor
-            $scope.analysisStatusNone = "none";
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
-            // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
-            $scope.defaultColumns = ['status', 'start', 'stop', 'suid'];
             $scope.disabledRunButtonScans = [];
             $scope.images = null;
             $scope.noScansReturned = false;
@@ -503,8 +511,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.disableRunAnalysis = (scan) => {
-                //POSIT: _AnalysisStatus.NON_STOPPED in scan monitor
-                if (["pending", "running"].includes(scan.status)) {
+                if (raydataService.ANALYSIS_STATUS_NON_STOPPED.includes(scan.status)) {
                     if ($scope.disabledRunButtonScans.includes(scan.uid)) {
                         $scope.disabledRunButtonScans.splice($scope.disabledRunButtonScans.indexOf(scan.uid),1);
                     }
@@ -557,20 +564,20 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.setColumnHeaders = function() {
                 $scope.columnHeaders = [
-                    ...$scope.defaultColumns,
+                    ...raydataService.DEFAULT_COLUMNS,
                     ...appState.models.metadataColumns.selected
                 ];
             };
 
             $scope.setSelectedScan = (scan) => {
                 $scope.selectedScan = scan;
-                if ($scope.selectedScan !== null && $scope.selectedScan.status !== $scope.analysisStatusNone) {
+                if ($scope.selectedScan !== null && ! [raydataService.ANALYSIS_STATUS_NONE, raydataService.ANALYSIS_STATUS_PENDING].includes($scope.selectedScan.status)) {
                     $scope.showAnalysisOutputModal();
                 }
             };
 
             $scope.showDeleteButton = (index) => {
-                return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
+                return index > raydataService.DEFAULT_COLUMNS.length - 1 && index === hoveredIndex;
             };
 
             $scope.showRunLogModal = (scan, event) => {
@@ -640,30 +647,32 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
             $scope.logPath = null;
 
             $(document).on('show.bs.modal','#' + $scope.modalId, function() {
-                $scope.logIsLoading = true;
-                requestSender.sendStatelessCompute(
-                    appState,
-                    (json) => {
-                        $scope.logIsLoading = false;
-                        $scope.log = json.run_log;
-                        $scope.logPath = json.log_path;
-                    },
-                    {
-                        method: 'analysis_run_log',
-                        args: {
-                            uid: $scope.scanId,
-                        }
-                    },
-                    {
-                        modelName: $scope.modelName,
-                        onError: (data) => {
+                if ($scope.scanId) {
+                    $scope.logIsLoading = true;
+                    requestSender.sendStatelessCompute(
+                        appState,
+                        (json) => {
                             $scope.logIsLoading = false;
-                            errorService.alertText(data.error);
-                            panelState.setLoading($scope.modelName, false);
+                            $scope.log = json.run_log;
+                            $scope.logPath = json.log_path;
                         },
-                        panelState: panelState,
-                    }
-                );
+                        {
+                            method: 'analysis_run_log',
+                            args: {
+                                uid: $scope.scanId,
+                            }
+                        },
+                        {
+                            modelName: $scope.modelName,
+                            onError: (data) => {
+                                $scope.logIsLoading = false;
+                                errorService.alertText(data.error);
+                                panelState.setLoading($scope.modelName, false);
+                            },
+                            panelState: panelState,
+                        }
+                    );
+                }
             });
         },
     };
