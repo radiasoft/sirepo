@@ -218,10 +218,12 @@ class PlotPolygon extends AbstractPlotShape2D {
             'polygon',
             ctr
         );
+
         this.size = {
             x: Math.abs(sx[sx.length - 1].x - sx[0].x),
             y: Math.abs(sy[sy.length - 1].y - sy[0].y),
         };
+
         this.center.x = ctr[0];
         this.center.y = ctr[1];
 
@@ -244,7 +246,7 @@ class PlotPolygon extends AbstractPlotShape2D {
     getSizeCoords() {
         return this.getCoords(this.size);
     }
-
+    
     setPoints(arr) {
         this.points = arr;
     }
