@@ -378,10 +378,12 @@ def _initial_laser_pulse_phase_plot(model):
 
 def _generate_parameters_file(data):
     if data.report in ("laserPulseIntensityReport", "laserPulsePhaseReport"):
+        pkdp("GEN PRM")
         res, v = template_common.generate_parameters_file(data)
+        v.report = data.report
         p = data.models.laserPulse
-        v.chirp = p.chirp,
-        v.distFromWaist = p.distFromWaist,
+        v.chirp = p.chirp
+        v.distFromWaist = p.distFromWaist
         v.mx = p.modeOrder[0]
         v.my = p.modeOrder[1]
         v.numSlices = p.numSlices
@@ -396,6 +398,7 @@ def _generate_parameters_file(data):
         v.sigx_waist = p.waistSize[0]
         v.sigy_waist = p.waistSize[1]
         v.tauFWHM = p.tauFWHM
+        return res + template_common.render_jinja(SIM_TYPE, v)
 
     if data.report == "animation":
         beamline = data.models.beamline
