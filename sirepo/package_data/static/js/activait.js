@@ -411,6 +411,9 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ac
     };
 
     self.imageToImage = () => {
+        if (! self.reports) {
+            return false;
+        }
         var info = appState.models.columnInfo;
         var idx = info.inputOutput.indexOf('output');
         if (! info.shape) {
@@ -1201,8 +1204,10 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     response => {
                         numPages = response.numPages;
                         uris = response.uris;
-                        $scope.multiPage = uris.length > 1;
-                        setImageFromUriIndex(0);
+                        if (uris) {
+                            $scope.multiPage = uris.length > 1;
+                            setImageFromUriIndex(0);
+                        }
                         loading = false;
                     },
                     {
