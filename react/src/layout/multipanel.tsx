@@ -1,18 +1,14 @@
 import React from "react";
-import { CModelsWrapper } from "../data/wrapper";
 import { Col, Row } from "react-bootstrap";
 import { LAYOUTS } from "./layouts";
 import { LayoutProps, Layout } from "./layout";
-import { Panel } from "../component/reusable/panel";
 import { ReportAnimationController, useAnimationReader } from "./report"
 import { SchemaLayout } from "../utility/schema";
-import { useContext } from "react";
-import { useInterpolatedString, ValueSelectors } from "../hook/string";
+import { SimulationFrame } from "../data/report";
 import { useWindowSize } from "../hook/breakpoint";
 
 export type MultiPanelConfig = {
     items: SchemaLayout[],
-    title: string,
     reportName: string,
     reportGroupName: string,
     frameIdFields: string[],
@@ -32,8 +28,6 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
 
     component = (props: LayoutProps<{}>) => {
         let { reportName, reportGroupName, frameIdFields } = this.config;
-        let modelsWrapper = useContext(CModelsWrapper);
-        let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
         // allow subplots to respond to window resize
         useWindowSize();
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
@@ -41,35 +35,31 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
             return <></>
         }
         let showAnimationController = animationReader.getFrameCount() > 1;
-        let mapLayoutsToComponents = (views: Layout[], currentFrameIndex) => views.map((child, idx) => {
+        let mapLayoutsToComponents = (views: Layout[], currentFrameIndex: number) => views.map((child, idx) => {
             let LayoutComponent = child.component;
             return (
-                <Col sm="4" key={idx}>
+                <Col sm="4" key={idx} className="p-0">
                     <LayoutComponent key={idx} currentFrameIndex={currentFrameIndex}></LayoutComponent>
                 </Col>
             );
         });
         return (
-            <Col sm={12} className="px-3 py-2">
-                <Panel title={title} panelBodyShown={true}>
-                    <Row>
-                        <ReportAnimationController
-                            animationReader={animationReader}
-                            showAnimationController={showAnimationController}
-                            currentFrameIndex={undefined}
-                        >
-                            {
-                                (currentFrame: any) => {
-                                    let mainChildren = mapLayoutsToComponents(this.items, currentFrame?.index);
-                                    return <>
-                                        {mainChildren}
-                                    </>
-                                }
-                            }
-                        </ReportAnimationController>
-                    </Row>
-                </Panel>
-            </Col>
+            <Row className="ps-3 pt-3">
+                <ReportAnimationController
+                    animationReader={animationReader}
+                    showAnimationController={showAnimationController}
+                    currentFrameIndex={undefined}
+                >
+                    {
+                        (currentFrame: SimulationFrame) => {
+                            let mainChildren = mapLayoutsToComponents(this.items, currentFrame.index);
+                            return <>
+                                {mainChildren}
+                            </>
+                        }
+                    }
+                </ReportAnimationController>
+            </Row>
         )
     }
 }
