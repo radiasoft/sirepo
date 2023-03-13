@@ -2124,7 +2124,11 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
 SIREPO.viewLogic('partitionView', function(activaitService, appState, panelState, $scope) {
 
     function updatePartitionMethod() {
-        panelState.showField('partition', 'method', activaitService.isAppMode('regression'));
+        panelState.showField(
+            'partition',
+            'method',
+            activaitService.isAppMode('regression') && !activaitService.isImageData()
+        );
         const partition = appState.models.partition;
         ['training', 'testing'].forEach(f => {
             panelState.showField(
