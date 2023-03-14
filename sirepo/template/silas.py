@@ -27,11 +27,6 @@ _SUMMARY_CSV_FILE = "wavefront.csv"
 _INITIAL_LASER_FILE = "initial-laser.npy"
 _FINAL_LASER_FILE = "final-laser.npy"
 
-_REPORTS = (
-    "laserPulseIntensityReport",
-    "laserPulsePhaseReport",
-)
-
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -249,8 +244,8 @@ def _build_pulse(model):
             nslice=model.numSlices,
             num_sig_long=model.numSigmas[0],
             num_sig_trans=model.numSigmas[1],
-            nx_slice=model.numsSliceMeshPoints[0],
-            ny_slice=model.numsSliceMeshPoints[1],
+            nx_slice=model.numSliceMeshPoints[0],
+            ny_slice=model.numSliceMeshPoints[1],
             pad_factor=model.padFactor,
             photon_e_ev=model.photonEnergy,
             poltype=int(model.polarization),
@@ -377,27 +372,13 @@ def _initial_laser_pulse_phase_plot(model):
 
 
 def _generate_parameters_file(data):
-    if data.report in ("laserPulseIntensityReport", "laserPulsePhaseReport"):
-        pkdp("GEN PRM")
+    if data.report in (
+        "laserPulseIntensityReport",
+        "laserPulsePhaseReport"
+    ):
         res, v = template_common.generate_parameters_file(data)
         v.report = data.report
-        p = data.models.laserPulse
-        v.chirp = p.chirp
-        v.distFromWaist = p.distFromWaist
-        v.mx = p.modeOrder[0]
-        v.my = p.modeOrder[1]
-        v.numSlices = p.numSlices
-        v.num_sig_long = p.numSigmas[0]
-        v.num_sig_trans = p.numSigmas[1]
-        v.nx_slice = p.numsSliceMeshPoints[0]
-        v.ny_slice = p.numsSliceMeshPoints[0]
-        v.padFactor = p.padFactor
-        v.photonEnergy = p.photonEnergy
-        v.polarization = int(p.polarization)
-        v.totalEnergy = p.totalEnergy
-        v.sigx_waist = p.waistSize[0]
-        v.sigy_waist = p.waistSize[1]
-        v.tauFWHM = p.tauFWHM
+        v.laserPulse = data.models.laserPulse
         return res + template_common.render_jinja(SIM_TYPE, v)
 
     if data.report == "animation":

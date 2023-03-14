@@ -108,7 +108,7 @@
             "maxPulseEnergy": ["Maximum Energy [J]", "Float", 1, "For SRW gaussian wavefronts"],
             "modeOrder": ["Gauss-Hermite Mode Order", "IntArray", [0, 0], "", ["Horizontal", "Vertical"]],
             "numSigmas": ["Number of Gaussian Sigmas", "IntArray", [3, 6], "", ["Longitudinal", "Transverse"]],
-            "numsSliceMeshPoints": ["Number of Mesh Points in Slice", "IntArray", [500, 500], "", ["Horizontal", "Vertical"]],
+            "numSliceMeshPoints": ["Number of Mesh Points in Slice", "IntArray", [500, 500], "", ["Horizontal", "Vertical"]],
             "numSlices": ["Number of Slices", "Integer", 3],
             "padFactor": ["Pad Factor", "Float", 0],
             "photonEnergy": ["Photon energy [eV]", "Float", 1.5],

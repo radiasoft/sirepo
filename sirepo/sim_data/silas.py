@@ -11,6 +11,12 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+    ANALYSIS_ONLY_FIELDS = frozenset(
+        (
+            "colorMap",
+        )
+    )
+
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
@@ -48,6 +54,11 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
+        if r in (
+            "laserPulseIntensityReport",
+            "laserPulsePhaseReport",
+        ):
+            return cls._non_analysis_fields(data, "laserPulse")
         res = []
         return res
 

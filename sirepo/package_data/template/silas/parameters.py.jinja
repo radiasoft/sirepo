@@ -2,27 +2,27 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from rslaser.pulse import pulse
 from rslaser.utils import srwl_uti_data
-
+import numpy
 
 def _build_pulse():
     return pulse.LaserPulse(
         params=PKDict(
-            chirp={{ chirp }},
-            dist_waist={{ distFromWaist }},
-            mx={{ mx }},
-            my={{ my }},
-            nslice={{ numSlices }},
-            num_sig_long={{ num_sig_long }},
-            num_sig_trans={{ num_sig_trans }},
-            nx_slice={{ nx_slice }},
-            ny_slice={{ ny_slice }},
-            pad_factor={{ padFactor }},
-            photon_e_ev={{ photonEnergy }},
-            poltype={{ polarization }},
-            pulseE={{ totalEnergy }},
-            sigx_waist={{ sigx_waist }},
-            sigy_waist={{ sigy_waist }},
-            tau_fwhm={{ tauFWHM }},
+            chirp={{ laserPulse.chirp }},
+            dist_waist={{ laserPulse.distFromWaist }},
+            mx={{ laserPulse.modeOrder[0] }},
+            my={{ laserPulse.modeOrder[1] }},
+            nslice={{ laserPulse.numSlices }},
+            num_sig_long={{ laserPulse.numSigmas[0] }},
+            num_sig_trans={{ laserPulse.numSigmas[1] }},
+            nx_slice={{ laserPulse.numSliceMeshPoints[0] }},
+            ny_slice={{ laserPulse.numSliceMeshPoints[1] }},
+            pad_factor={{ laserPulse.padFactor }},
+            photon_e_ev={{ laserPulse.photonEnergy }},
+            poltype={{ laserPulse.polarization | int }},
+            pulseE={{ laserPulse.totalEnergy }},
+            sigx_waist={{ laserPulse.waistSize[0] }},
+            sigy_waist={{ laserPulse.waistSize[1] }},
+            tau_fwhm={{ laserPulse.tauFWHM }},
         ),
     )
 
@@ -30,5 +30,14 @@ p = _build_pulse()
 s = p.slice[0]
 ph = s.n_photons_2d
 
-
+{% if report == "laserPulseIntensityReport" %}
 z = srwl_uti_data.calc_int_from_elec(p.slice_wfr(0)).tolist()
+{% elif report == "laserPulsePhaseReport" %}
+z, _ = srwl_uti_data.calc_int_from_wfr(
+    p.slice_wfr(0),
+    _pol={{ laserPulse.polarization | int }},
+    _int_type=4,
+    _pr=False,
+)
+z = numpy.array(z).reshape(s.nx_slice, s.ny_slice).tolist()
+{% endif %}
