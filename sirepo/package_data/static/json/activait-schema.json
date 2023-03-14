@@ -747,7 +747,17 @@
             "advanced": []
         },
         "segmentViewer": {
-            "title": "Segments",
+            "title": "Segments Sample",
+            "basic": [],
+            "advanced": []
+        },
+        "bestLosses": {
+            "title": "Best Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "worstLosses": {
+            "title": "Worst Loss Images",
             "basic": [],
             "advanced": []
         },

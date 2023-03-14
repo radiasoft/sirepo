@@ -52,6 +52,8 @@ _CLASSIFIER_OUTPUT_FILE = PKDict(
 
 _OUTPUT_FILE = PKDict(
     classificationOutputColEncodingFile="classification-output-col-encoding.json",
+    bestFile="bestFile.npy",
+    worstFile="worstFile.npy",
     fitCSVFile="fit.csv",
     predictFile="predict.npy",
     scaledFile="scaled.npy",
@@ -905,6 +907,8 @@ def _generate_parameters_file(data):
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
+    v.bestFile = _OUTPUT_FILE.bestFile
+    v.worstFile = _OUTPUT_FILE.worstFile
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
@@ -1133,9 +1137,24 @@ def _image_preview(data, run_dir=None):
             f"No matching dimension found output size: {io.output.size}"
         )
 
-    def _x_y(data, io, file):
+    def _by_indices(method, run_dir):
+        i = PKDict(
+            bestLosses=_read_file(run_dir, _OUTPUT_FILE.bestFile),
+            worstLosses=_read_file(run_dir, _OUTPUT_FILE.worstFile),
+        )[method].flatten()
+        i.sort()
+        x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+        y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+        return (
+            x.reshape(len(x) // 64 // 64, 64, 64)[i],
+            y.reshape(len(y) // 64 // 64, 64, 64)[i],
+        )
+
+    def _x_y(data, io, file, run_dir=None):
         if data.args.method == "segmentViewer":
             return _masks(numpy.array(file[io.output.path]).shape[-1], run_dir)
+        if data.args.method in ("bestLosses", "worstLosses"):
+            return _by_indices(data.args.method, run_dir)
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):
@@ -1145,7 +1164,7 @@ def _image_preview(data, run_dir=None):
 
     def _set_image_to_image_plt(plt, data):
         _, a = plt.subplots(3, 2)
-        if data.args.method == "segmentViewer":
+        if data.args.method in ("segmentViewer", "bestLosses", "worstLosses"):
             a[0, 0].set_title("actual")
             a[0, 1].set_title("prediction")
         plt.setp(a, xticks=[], yticks=[])
@@ -1195,10 +1214,14 @@ def _image_preview(data, run_dir=None):
             break
 
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
-        x, y = _x_y(data, io, f)
+        x, y = _x_y(data, io, f, run_dir=run_dir)
         u = []
         k = 0
-        g = _grid(x, info)
+        g = (
+            _grid(x, info)
+            if data.args.method not in ("bestLosses", "worstLosses")
+            else [_SEGMENT_ROWS]
+        )
         for i in g:
             plt.figure(figsize=[10, 10])
             axarr = (

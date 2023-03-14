@@ -411,6 +411,9 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ac
     };
 
     self.imageToImage = () => {
+        if (! self.reports) {
+            return false;
+        }
         var info = appState.models.columnInfo;
         var idx = info.inputOutput.indexOf('output');
         if (! info.shape) {
@@ -1135,15 +1138,16 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         restrict: 'A',
         scope: {
             method: '@',
+            imageClass: '@',
         },
         template: `
         <div>
-          <img class="img-responsive srw-processed-image" />
+          <img class="img-responsive {{ imageClass }}" />
           <div data-ng-if="isLoading()" class="progress">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
           </div>
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
-          <div data-ng-if="! isLoading()">
+          <div data-ng-if="! isLoading() && multiPage">
             <div class="pull-left">
               <button class="btn btn-primary" title="first" data-ng-click="first()">|<</button>
               <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
@@ -1161,7 +1165,6 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             let numPages = 0;
             let uris;
             $scope.dataFileMissing = false;
-
             $scope.canUpdateUri = increment => {
                 return idx + increment >= 0 && idx + increment < numPages;
             };
@@ -1185,8 +1188,8 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             };
 
             function setImageFromUriIndex(index) {
-                if ($('.srw-processed-image').length && uris) {
-                    $('.srw-processed-image')[0].src = uris[index];
+                if ($('.' + $scope.imageClass).length && uris) {
+                    $('.' + $scope.imageClass)[0].src = uris[index];
                 }
                 if (! uris) {
                     $scope.dataFileMissing = true;
@@ -1201,7 +1204,10 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     response => {
                         numPages = response.numPages;
                         uris = response.uris;
-                        setImageFromUriIndex(0);
+                        if (uris) {
+                            $scope.multiPage = uris.length > 1;
+                            setImageFromUriIndex(0);
+                        }
                         loading = false;
                     },
                     {
@@ -2118,7 +2124,11 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
 SIREPO.viewLogic('partitionView', function(activaitService, appState, panelState, $scope) {
 
     function updatePartitionMethod() {
-        panelState.showField('partition', 'method', activaitService.isAppMode('regression'));
+        panelState.showField(
+            'partition',
+            'method',
+            activaitService.isAppMode('regression') && !activaitService.isImageData()
+        );
         const partition = appState.models.partition;
         ['training', 'testing'].forEach(f => {
             panelState.showField(
