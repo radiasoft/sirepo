@@ -1,21 +1,31 @@
 import React, { useContext, useState } from "react";
 import { Button, Col, Container, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router";
-import { AppWrapper, CAppName } from "../../data/appwrapper";
-import { LoginExtraInfoForm } from "./login";
+import { CAppName, CAppWrapper, CLoginStatusRef } from "../../data/appwrapper";
+import { CRouteHelper } from "../../utility/route";
+import { LoginExtraInfoForm, updateLoginStatusRef } from "./login";
 
 export const LoginEmailConfirm = (props) => {
     let { token, needCompleteRegistration } = props;
     let appName = useContext(CAppName);
+    let routeHelper = useContext(CRouteHelper);
+    let loginStatusRef = useContext(CLoginStatusRef);
+    let appWrapper = useContext(CAppWrapper);
     let navigate = useNavigate();
     let completeLogin = (extra?: {[key: string]: any}) => {
-        fetch(`/auth-email-authorized/${appName}/${token}`, {
+        fetch(routeHelper.globalRoute("authEmailAuthorized", {
+            simulation_type: appName,
+            token: token
+        }), {
             method: "POST",
             body: JSON.stringify({ token, ...(extra || {}) }),
             headers: {
                 "Content-Type": "application/json"
             }
-        }).then(() => navigate(`/react/${appName}`))
+        }).then(() => 
+        updateLoginStatusRef(loginStatusRef, appWrapper)
+        .then(() => navigate(`/react/${appName}`))
+        )
     }
     return (
         <Container>
@@ -35,8 +45,7 @@ export const LoginEmailConfirm = (props) => {
 
 export const LoginWithEmail = (props) => {
     let [email, updateEmail] = useState<string>("");
-    let appName = useContext(CAppName);
-    let appWrapper = new AppWrapper(appName);
+    let appWrapper = useContext(CAppWrapper);
 
     let [emailSent, updateEmailSent] = useState<boolean>(false);
 

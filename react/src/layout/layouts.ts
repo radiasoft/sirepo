@@ -6,13 +6,16 @@ import { PanelLayout } from "./panel";
 import { AutoRunReportLayout, ManualRunReportLayout, SimulationStartLayout } from "./report";
 import { TabLayout } from "./tabs";
 import { LayoutWithSpacing } from "./spaced";
+import { MultiPanelLayout } from "./multipanel";
 import { NavBarModalButton, NavTabsLayout } from "./navbar";
 import { TableFromApi } from "./report/table";
 import { LayoutWithDownloadButton } from "./download";
 import { LayoutType, Layout } from "./layout";
 import { SchemaLayout } from "../utility/schema";
 import { TextLayout } from "./text";
-import { ColumnBreakLayout } from "./columnbreak";
+import { HorizontalStackLayout, VerticalStackLayout } from "./arrange/stack";
+import { ColumnLayout } from "./arrange/column";
+import { WaterfallLayout } from "./arrange/waterfall";
 
 
 // TODO rename to LayoutsWrapper
@@ -22,16 +25,22 @@ class LayoutWrapper {
         fieldList: LayoutWithSpacing(FieldListLayout),
         fieldTable: LayoutWithSpacing(FieldGridLayout),
         panel: LayoutWithFormController(PanelLayout),
+        multiPanel: LayoutWithDownloadButton(MultiPanelLayout),
         navbarModalButton: LayoutWithFormController(NavBarModalButton),
         autoRunReport: AutoRunReportLayout,
         manualRunReport: ManualRunReportLayout,
         graph2d: LayoutWithDownloadButton(Graph2dFromApi),
         heatplot: LayoutWithDownloadButton(HeatplotFromApi),
+        graph2dPlain: Graph2dFromApi,
+        heatplotPlain: HeatplotFromApi,
         navTabs: NavTabsLayout,
         table: TableFromApi,
         startSimulation: SimulationStartLayout,
         text: TextLayout,
-        columnBreak: ColumnBreakLayout,
+        column: ColumnLayout,
+        hStack: HorizontalStackLayout,
+        vStack: VerticalStackLayout,
+        waterfall: WaterfallLayout
     }
 
     constructor () {

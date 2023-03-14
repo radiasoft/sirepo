@@ -38,9 +38,13 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
 {% if loop.index == 1 %}
         if el_name == '{{ item.name }}':
 {% else %}
+        {% if item.type != 'watch' %}
         elif el_name == '{{ item.name }}':
+        {% endif %}
 {% endif %}
+            {% if item.type != 'watch' %}
             # {{ item.name }}: {{ item.type }} {{ item.position }}m
+            {% endif %}
 {% if item.type == 'aperture' %}
             el.append(srwlib.SRWLOptA(
                 _shape={{ field(item, 'shape') }},
@@ -317,7 +321,9 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _Dy=1e6,
             ))
             {% else %}
+            {% if item.type != 'watch' %}
             pass
+            {% endif %}
             {% endif %}
 {% elif item.type == 'zonePlate' %}
             el.append(srwlib.SRWLOptZP(

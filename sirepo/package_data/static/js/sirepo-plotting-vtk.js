@@ -7,6 +7,310 @@ SIREPO.ZERO_ARR = [0, 0, 0];
 SIREPO.ZERO_STR = '0, 0, 0';
 
 /**
+ *
+ */
+class Elevation {
+
+    static NAMES() {
+        return {
+            x: 'side',
+            y: 'top',
+            z: 'front',
+        };
+    }
+
+    static PLANES() {
+        return {
+            x: 'yz',
+            y: 'zx',
+            z: 'xy',
+        };
+    }
+
+    constructor(axis) {
+        if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(axis)) {
+            throw new Error('Invalid axis: ' + axis);
+        }
+        this.axis = axis;
+        this.class = `.plot-viewport elevation-${axis}`;
+        this.coordPlane = Elevation.PLANES()[this.axis];
+        this.name = Elevation.NAMES()[axis];
+        this.labDimensions = {
+            x: {
+                axis: this.coordPlane[0],
+                axisIndex: SIREPO.GEOMETRY.GeometryUtils.axisIndex(this.coordPlane[0]),
+            },
+            y: {
+                axis: this.coordPlane[1],
+                axisIndex: SIREPO.GEOMETRY.GeometryUtils.axisIndex(this.coordPlane[1]),
+            }
+        };
+    }
+
+    labAxis(dim) {
+        return this.labDimensions[dim].axis;
+    }
+
+    labAxes() {
+        return [this.labAxis('x'), this.labAxis('y')];
+    }
+
+    labAxisIndex(dim) {
+        return this.labDimensions[dim].axisIndex;
+    }
+
+    labAxisIndices() {
+        return [this.labAxisIndex('x'), this.labAxisIndex('y')];
+    }
+}
+
+class ObjectViews {
+
+    static scaledArray(arr, scale) {
+        return arr.map(x => scale * x);
+    }
+
+    constructor(id=SIREPO.UTILS.randomString(), name='ObjectViews', center=[0, 0, 0], size=[1, 1, 1], scale=1.0) {
+        this.id = id;
+        this.name = name;
+        this.scale = scale;
+        this.center = this.scaledArray(center);
+        this.size = this.scaledArray(size);
+
+        // for convenience
+        this._AXES = SIREPO.GEOMETRY.GeometryUtils.BASIS();
+
+        this.affineTransform = new SIREPO.GEOMETRY.AffineMatrix();
+        this.shapes = {};
+        this.virtualViews = [];
+    }
+
+    addCopyingTransform(t, numCopies=1) {
+        let c = this;
+        for (let i = 1; i <= numCopies; ++i) {
+            c = c.copy();
+            c.addTransform(t);
+            this.addVirtualView(c);
+        }
+    }
+
+    addTransform(t) {
+        this.affineTransform = this.affineTransform.multiplyAffine(t);
+        for (const v of this.virtualViews) {
+            v.addTransform(t);
+        }
+    }
+
+    addView(dim, shape) {
+        if (! this._AXES.includes(dim)) {
+            throw new Error('Invalid axis: ' + dim);
+        }
+        shape.id = this.id;
+        shape.name = this.name;
+        this.shapes[dim] = shape;
+    }
+
+    allViews(elevation) {
+        let v = [this.getView(elevation)];
+        for (const vv of this.virtualViews) {
+            v = v.concat(vv.allViews(elevation));
+        }
+        return v;
+    }
+
+    addVirtualView(v) {
+        for (const dim in v.shapes) {
+            v.id = `${this.id}-${v.id}`;
+            v.shapes[dim].draggable = false;
+        }
+        this.virtualViews.push(v);
+    }
+
+    copy(exclude=[]) {
+        const c = SIREPO.UTILS.copyInstance(this, exclude.concat(['id', 'affineTransform', 'shapes', 'virtualViews']));
+        c.affineTransform = SIREPO.UTILS.copyInstance(this.affineTransform);
+        for (const e in this.shapes) {
+            c.shapes[e] = this.shapes[e].copy();
+            c.shapes[e].transform = SIREPO.UTILS.copyInstance(this.shapes[e].transform);
+        }
+        for (const v of this.virtualViews) {
+            c.addVirtualView(v.copy());
+        }
+        return c;
+    }
+
+    getView(elevation) {
+        return this.shapes[elevation.axis];
+    }
+
+    scaledArray(arr) {
+        return ObjectViews.scaledArray(arr, this.scale);
+    }
+    
+    setShapeProperties(props) {
+        for (const e in this.shapes) {
+            const s = this.shapes[e];
+            for (const p in props) {
+                s[`set${SIREPO.UTILS.capitalize(p)}`](props[p]);
+            }
+        }
+    }
+}
+
+class ExtrudedPolyViews extends ObjectViews {
+    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], axis='z', points=[[0,0],[0,1],[1,1]], scale=1.0) {
+        super(id, name, center, size, scale);
+        this.axis = axis;
+        const k = SIREPO.GEOMETRY.GeometryUtils.axisIndex(axis);
+        const [w, h] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(axis);
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
+        this.points = [];
+        const pts = points.map(p => this.scaledArray(p));
+        for (const z of [this.center[k] - this.size[k] / 2.0,this.center[k] + this.size[k] / 2.0]) {
+            for (const p of pts) {
+                let pp = [0, 0, 0];
+                pp[i] = p[0];
+                pp[j] = p[1];
+                pp[k] = z;
+                this.points.push(new SIREPO.GEOMETRY.Point(...pp));
+            }
+        }
+        const s = new SIREPO.PLOTTING.PlotPolygon(id, name, this.shapePoints(axis));
+        s.z = this.center[k];
+        this.addView(axis, s);
+        for (const dim of [w, h]) {
+            const s = new SIREPO.PLOTTING.PlotPolygon(
+                id,
+                name,
+                this.shapePoints(dim)
+            );
+            s.z = this.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
+            this.addView(dim, s);
+        }
+    }
+
+    addTransform(t) {
+        super.addTransform(t);
+        const l = t.getLinearMinor();
+        const x = t.getTranslation().deltas;
+        for (let p of this.points) {
+            const c = SIREPO.GEOMETRY.Matrix.vect(l.val, p.coords());
+            p.x = c[0] + x[0];
+            p.y = c[1] + x[1];
+            p.z = c[2] + x[2];
+        }
+        for (const dim in this.shapes) {
+            const sp = this.shapePoints(dim);
+            this.shapes[dim].setPoints(sp.map(p => new SIREPO.GEOMETRY.Point(...p)));
+        }
+    }
+
+    copy(exclude = []) {
+        const c = super.copy(exclude.concat('points'));
+        c.points = [];
+        for (const p of this.points) {
+            c.points.push(new SIREPO.GEOMETRY.Point(p.x, p.y, p.z));
+        }
+        return c;
+    }
+
+    shapePoints(dim) {
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(this.axis);
+        if (dim === this.axis) {
+            return this.points.slice(0, this.points.length / 2).map(x => {
+                const c = x.coords();
+                return [c[i], c[j]];
+            });
+        }
+        const [ii, jj] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+        // points can stack on each other
+        const pp = SIREPO.UTILS.unique(
+            this.points, (a, b) => a.coordEquals(b, ii) && a.coordEquals(b, jj)
+        ).map(p => [p.coords()[ii], p.coords()[jj]]);
+        return d3.geom.hull(pp);
+    }
+}
+
+class CuboidViews extends ExtrudedPolyViews {
+    constructor(id, name, center=[0, 0, 0], size=[1, 1, 1], scale=1.0) {
+        super(
+            id,
+            name,
+            center,
+            size,
+            'z',
+            [
+                [center[0] - size[0] / 2, center[1] - size[1] / 2],
+                [center[0] - size[0] / 2, center[1] + size[1] / 2],
+                [center[0] + size[0] / 2, center[1] + size[1] / 2],
+                [center[0] + size[0] / 2, center[1] - size[1] / 2],
+            ],
+            scale
+        );
+    }
+}
+
+class CylinderViews extends ExtrudedPolyViews {
+    constructor(
+        id,
+        name,
+        center=[0, 0, 0],
+        size=[1, 1, 1],
+        axis='z',
+        numSides=8,
+        scale=1.0
+    ) {
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
+        const pts = [];
+        for (let n = 0; n < numSides; ++n) {
+            const t = 2 * n * Math.PI / numSides;
+            pts.push(
+                [
+                    center[i] + 0.5 * Math.cos(t) * size[i],
+                    center[j] + 0.5 * Math.sin(t) * size[j],
+                ]
+            );
+        }
+        super(id, name, center, size, axis, pts, scale);
+    }
+}
+
+class RacetrackViews extends ExtrudedPolyViews {
+    constructor(
+        id,
+        name,
+        center=[0, 0, 0],
+        size=[1, 1, 1],
+        axis='z',
+        numArcSides=8,
+        outerRadius=1.0,
+        scale=1.0
+
+    ) {
+        let pts = [];
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
+        const tr = [Math.cos, Math.sin];
+        [[-1, 1], [1, 1], [1, -1], [-1, -1]].forEach((d, n) => {
+            const c = [
+                center[i] + d[0] * (size[i] / 2 - outerRadius),
+                center[j] + d[1] * (size[j] / 2 - outerRadius)
+            ];
+            for (let m = 0; m <= numArcSides; ++m) {
+                const t = m * Math.PI / (2 * numArcSides);
+                pts.push(
+                    [
+                        c[0] + d[0] * outerRadius * tr[0](t),
+                        c[1] + d[1] * outerRadius * tr[1](t),
+                    ]
+                );
+            }
+            tr.reverse();
+        });
+        super(id, name, center, size, axis, pts, scale);
+    }
+}
+
+/**
  * Collection of static methods and fields related to vtk
  */
 class VTKUtils {
@@ -1677,50 +1981,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
         controller: function($scope, $element) {
             const ASPECT_RATIO = 1.0;
 
-            const ELEVATIONS = {
-                front: 'front',
-                side: 'side',
-                top: 'top'
-            };
-
-            const ELEVATION_INFO = {
-                front: {
-                    axis: 'z',
-                    class: '.plot-viewport elevation-front',
-                    coordPlane: 'xy',
-                    name: ELEVATIONS.front,
-                    x: {
-                        axis: 'x',
-                    },
-                    y: {
-                        axis: 'y',
-                    }
-                },
-                side: {
-                    axis: 'x',
-                    class: '.plot-viewport elevation-side',
-                    coordPlane: 'yz',
-                    name: ELEVATIONS.side,
-                    x: {
-                        axis: 'y',
-                    },
-                    y: {
-                        axis: 'z',
-                    }
-                },
-                top: {
-                    axis: 'y',
-                    class: '.plot-viewport elevation-top',
-                    coordPlane: 'zx',
-                    name: ELEVATIONS.top,
-                    x: {
-                        axis: 'z',
-                    },
-                    y: {
-                        axis: 'x',
-                    }
-                }
-            };
+            const ELEVATIONS = {};
+            for (const axis of SIREPO.GEOMETRY.GeometryUtils.BASIS().slice().reverse()) {
+                const e = new Elevation(axis);
+                ELEVATIONS[e.name] = e;
+            }
 
             // svg shapes
             const LAYOUT_SHAPES = ['circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'];
@@ -1741,16 +2006,17 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             const objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
             const invObjScale = 1.0 / objectScale;
 
-            $scope.autoFit = true;
-            $scope.elevation = 'front';
-            $scope.is3dPreview = false;
+            $scope.alignmentTools = SIREPO.APP_SCHEMA.constants.alignmentTools;
+            $scope.elevations = ELEVATIONS;
             $scope.isClientOnly = true;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
+            $scope.settings = appState.models.threeDBuilder;
+            $scope.snapGridSizes = appState.enumVals('SnapGridSize');
             $scope.width = $scope.height = 0;
 
             let didDrag = false;
-            let dragShape, dragStart, zoom;
-            let [dragX, dragY] = [0, 0];
+            let dragShape, dragInitialShape, zoom;
+            const dragDelta = {x: 0, y: 0};
             let draggedShape = null;
             const axisScale = {
                 x: 1.0,
@@ -1762,19 +2028,37 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
 
+            const snapSettingsFields = [
+                'threeDBuilder.snapToGrid',
+                'threeDBuilder.snapGridSize',
+            ];
+            const settingsFields = [
+                'threeDBuilder.autoFit',
+                'threeDBuilder.elevation',
+            ].concat(snapSettingsFields);
+
             function clearDragShadow() {
                 d3.selectAll('.vtk-object-layout-drag-shadow').remove();
+            }
+
+            function getElevation() {
+                return ELEVATIONS[$scope.settings.elevation];
+            }
+
+            function getLabAxis(dim) {
+                return getElevation().labAxis(dim);
             }
 
             function resetDrag() {
                 didDrag = false;
                 hideShapeLocation();
-                [dragX, dragY] = [0, 0];
+                dragDelta.x = 0;
+                dragDelta.y = 0;
                 draggedShape = null;
                 selectedObject = null;
             }
 
-            function d3DragEndShape(shape) {
+            function d3DragShapeEnd(shape) {
 
                 function reset() {
                     resetDrag();
@@ -1782,7 +2066,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
 
                 const dragThreshold = 1e-3;
-                if (! didDrag || Math.abs(dragX) < dragThreshold && Math.abs(dragY) < dragThreshold) {
+                if (! didDrag || Math.abs(dragDelta.x) < dragThreshold && Math.abs(dragDelta.y) < dragThreshold) {
                     reset();
                     return;
                 }
@@ -1793,11 +2077,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             reset();
                             return;
                         }
-                        o.center = [
-                            shape.center.x,
-                            shape.center.y,
-                            shape.center.z
-                        ].map(x => x * invObjScale);
+                        const e = getElevation();
+                        for (const dim of SIREPO.SCREEN_DIMS) {
+                            o.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(e.labAxis(dim))] = invObjScale * shape.center[dim];
+                        }
                         $scope.source.saveObject(shape.id, reset);
                     }
                     else {
@@ -1807,24 +2090,33 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
+            function canDrag(dim) {
+                const a = d3.event.sourceEvent.shiftKey ?
+                    (Math.abs(dragDelta.x) > Math.abs(dragDelta.y) ? 'x' : 'y') :
+                    null;
+                return ! a || a === dim;
+            }
+
             function d3DragShape(shape) {
+
                 if (! shape.draggable) {
                     return;
                 }
                 didDrag = true;
-                [dragX, dragY] = [d3.event.x, d3.event.y];
                 draggedShape = shape;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    const labDim = shape.elev[dim].axis;
-                    const dom = axes[dim].scale.domain();
-                    const pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
-                    shape.center[labDim] = dragStart.center[labDim] +
-                        SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
-                    shape[dim] = dragStart[dim] +
-                        SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
+                    if (appState.models.threeDBuilder.snapToGrid) {
+                        dragDelta[dim] = snap(shape, dim);
+                        return;
+                    }
+                    dragDelta[dim] = canDrag(dim) ? d3.event[dim] : 0;
+                    const numPixels = scaledPixels(dim, dragDelta[dim]);
+                    shape[dim] = dragInitialShape[dim] + numPixels;
+                    shape.center[dim] = dragInitialShape.center[dim] + numPixels;
                 });
                 d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
                 showShapeLocation(shape);
+                //TODO(mvk): restore live update of virtual shapes
                 shape.runLinks().forEach(linkedShape => {
                     d3.select(shapeSelectionId(linkedShape)).call(updateShapeAttributes);
                 });
@@ -1834,48 +2126,31 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return `${(includeHash ? '#' : '')}shape-${shape.id}`;
             }
 
-            function d3DragStartShape(shape) {
+            function d3DragShapeStart(shape) {
                 d3.event.sourceEvent.stopPropagation();
-                dragStart = appState.clone(shape);
+                dragInitialShape = appState.clone(shape);
                 showShapeLocation(shape);
             }
 
             function drawObjects(elevation) {
-                let shapes =  $scope.source.getShapes();
-
-                shapes.forEach(function(sh) {
-                    if (! sh.layoutShape || sh.layoutShape === '') {
-                        return;
-                    }
-                    sh.elev = elevation;
-                });
+                const shapes = $scope.source.getShapes(elevation);
 
                 // need to split the shapes up by type or the data will get mismatched
                 let layouts = {};
-                LAYOUT_SHAPES.forEach(function (l) {
-                    const norm = 'xyz'.replace(new RegExp('[' + elevation.coordPlane + ']', 'g'), '');
+                LAYOUT_SHAPES.forEach(l=> {
                     layouts[l] = shapes
-                        .filter(function (s) {
-                            return s.layoutShape === l;
-                        })
-                        .sort(function (s1, s2) {
-                            return (s2.center[norm] - s2.size[norm] / 2) - (s1.center[norm] - s1.size[norm] / 2);
-                        })
-                        .sort(function (s1, s2) {
-                            return s1.draggable - s2.draggable;
-                        });
+                        .filter(s => s.layoutShape === l)
+                        .sort((s1, s2) => s2.z - s1.z)
+                        .sort((s1, s2) => s1.draggable - s2.draggable);
                 });
 
                 for (let l in layouts) {
-                    let bs = layouts[l].filter(function (s) {
-                        return `${s.id}`.split('-').length === 1;
-                    });
                     let ds = d3.select('.plot-viewport').selectAll(`${l}.vtk-object-layout-shape`)
                         .data(layouts[l]);
                     ds.exit().remove();
                     // function must return a DOM object in the SVG namespace
                     ds.enter()
-                        .append(function (d) {
+                        .append(d => {
                             return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
                         })
                         .on('dblclick', editObject)
@@ -1887,7 +2162,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function drawShapes() {
-                drawObjects(ELEVATION_INFO[$scope.elevation]);
+                drawObjects(getElevation());
             }
 
             function editObject(shape) {
@@ -1895,6 +2170,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.$applyAsync(function() {
                     $scope.source.editObjectWithId(shape.id);
                 });
+            }
+
+            function formatObjectLength(val) {
+                return utilities.roundToPlaces(invObjScale * val, 4);
             }
 
             function hideShapeLocation() {
@@ -1965,7 +2244,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 resetZoom();
                 select('.plot-viewport').call(zoom);
                 $.each(axes, function(dim, axis) {
-                    var labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
                     var d = axes[dim].scale.domain();
                     var r = axes[dim].scale.range();
                     axisScale[dim] = Math.abs((d[1] - d[0]) / (r[1] - r[0]));
@@ -1974,7 +2252,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         width: $scope.width,
                         height: $scope.height,
                     }, select);
-                    axis.grid.ticks(axis.tickCount);
+                    axis.grid.ticks(
+                        $scope.settings.snapToGrid ?
+                            Math.round(Math.abs(d[1] - d[0]) / ($scope.settings.snapGridSize * objectScale)) :
+                            axis.tickCount
+                    );
                     select('.' + dim + '.axis.grid').call(axis.grid);
                 });
 
@@ -1987,15 +2269,14 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function replot(doFit=false) {
-                const b = $scope.source.shapeBounds();
+                const b = $scope.source.shapeBounds(getElevation());
                 const newDomain = $scope.cfg.initDomian;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
-                    const labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
                     const axis = axes[dim];
-                    const bd = b[labDim];
-                    const nd = newDomain[labDim];
+                    const bd = b[dim];
+                    const nd = newDomain[dim];
                     axis.domain = $scope.cfg.fullZoom ? [-Infinity, Infinity] : nd;
-                    if (($scope.autoFit || doFit)  && bd[0] !== bd[1]) {
+                    if (($scope.settings.autoFit || doFit)  && bd[0] !== bd[1]) {
                         nd[0] = fitDomainPct * bd[0];
                         nd[1] = fitDomainPct * bd[1];
                         // center
@@ -2003,13 +2284,18 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         nd[0] -= d;
                         nd[1] -= d;
                     }
-                    axis.scale.domain(newDomain[labDim]);
+                    axis.scale.domain(newDomain[dim]);
                 });
                 $scope.resize();
             }
 
             function resetZoom() {
                 zoom = axes.x.createZoom().y(axes.y.scale);
+            }
+
+            function scaledPixels(dim, pixels) {
+                const dom = axes[dim].scale.domain();
+                return pixels * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
             }
 
             function select(selector) {
@@ -2041,84 +2327,64 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 );
             }
 
-            function formatObjectLength(val) {
-                return utilities.roundToPlaces(invObjScale * val, 4);
+            function snap(shape, dim) {
+                function roundUnits(val, unit) {
+                    return unit * Math.round(val / unit);
+                }
+
+                if (! canDrag(dim)) {
+                    return 0;
+                }
+
+                const g = parseFloat($scope.settings.snapGridSize) * objectScale;
+                const ctr = dragInitialShape.center[dim];
+                const offset = axes[dim].scale(roundUnits(ctr, g)) - axes[dim].scale(ctr);
+                const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
+                const gridUnits = roundUnits(d3.event[dim], gridSpacing);
+                const numPixels = scaledPixels(dim, gridUnits + offset);
+                shape[dim] = roundUnits(dragInitialShape[dim] + numPixels, g);
+                shape.center[dim] = roundUnits(ctr + numPixels, g);
+                return Math.round(gridUnits + offset);
             }
 
-            // called when placing a new object, not dragging an existing object
-            function updateDragShadow(obj, p) {
-                clearDragShadow();
-                var shape = $scope.source.shapeForObject(obj);
-                //shape.elev = ELEVATION_INFO.front;
-                shape.elev = ELEVATION_INFO[$scope.elevation];
-                shape.x = shapeOrigin(shape, 'x'); // axes.x.scale.invert(p[0]) + shape.size[0]/ 2;
-                shape.y = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;
-                showShapeLocation(shape);
-                d3.select('.plot-viewport')
-                    .append('rect').attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
-                    .attr('x', function() { return shapeOrigin(shape, 'x'); })
-                    .attr('y', function() { return shapeOrigin(shape, 'y'); })
-                    .attr('width', function() { return shapeSize(shape, 'x'); })
-                    .attr('height', function() { return shapeSize(shape, 'y'); });
+            // called when dragging a new object, not an existing object
+            function updateDragShadow(o, p) {
+                let r = d3.select('.plot-viewport rect.vtk-object-layout-drag-shadow');
+                if (r.empty()) {
+                    const s = $scope.source.viewShadow(o).getView(getElevation());
+                    r = d3.select('.plot-viewport').append('rect')
+                        .attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
+                        .attr('width', shapeSize(s, 'x'))
+                        .attr('height', shapeSize(s, 'y'));
+                }
+                //showShapeLocation(shape);
+                r.attr('x', p[0]).attr('y', p[1]);
             }
 
             function shapeOrigin(shape, dim) {
-                var labDim = shape.elev[dim].axis;
-
                 return axes[dim].scale(
-                    shape.center[labDim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[labDim] / 2
+                    shape.center[dim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[dim] / 2
                 );
             }
 
             function shapePoints(shape) {
                 //TODO(mvk): apply transforms to dx, dy
-                const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragX, dragY] : [0, 0];
+                const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragDelta.x, dragDelta.y] : [0, 0];
                 let pts = '';
-                for (const p of shape.points[shape.elev.axis]) {
-                    pts += `${dx + axes.x.scale(p[0])},${dy + axes.y.scale(p[1])} `;
+                for (const p of shape.points) {
+                    pts += `${dx + axes.x.scale(p.x)},${dy + axes.y.scale(p.y)} `;
                 }
                 return pts;
             }
 
-            function shapeCenter(shape, dim) {
-                var labDim = shape.elev[dim].axis;
-                return axes[dim].scale(shape.center[labDim]);
-            }
-
-            function shapeRotation(shape) {
-                const e = shape.rotationMatrix.toEuler(true);
-                const angle = e[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev.axis)];
-                const c = shape.getCenterCoords();
-                const rc = shape.rotationMatrix.multiply(
-                    new SIREPO.GEOMETRY.Matrix([...c, 0])
-                ).val;
-                const t = {x: 0, y: 0};
-                if (! shape.rotateAroundShapeCenter) {
-                    for (const dim in t) {
-                        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(shape.elev[dim].axis);
-                        t[dim] = axes[dim].scale(rc[i]) - axes[dim].scale(c[i]);
-                    }
-                }
-                return `
-                    rotate(${-angle},${shapeCenter(shape, 'x')},${shapeCenter(shape, 'y')}) 
-                    translate(${t.x},${t.y})
-                `;
-            }
-
-
             function linePoints(shape) {
-                if (! shape.line || shape.elev.coordPlane !== shape.coordPlane) {
+                if (! shape.line || getElevation().coordPlane !== shape.coordPlane) {
                     return null;
                 }
 
-                //var pl = geometry.plane(vtkPlotting.COORDINATE_PLANES[shape.elev.coordPlane], geometry.point());
-                //if (! pl.intersectsLine(shape.line)) {
-                //    return null;
-                //}
-
-                var lp = shape.line.points;
-                var labX = shape.elev.x.axis;
-                var labY = shape.elev.y.axis;
+                const lp = shape.line.points;
+                const labX = getElevation().labAxis('x');
+                const labY = getElevation().labAxis('y');
 
                 // same points in this coord plane
                 if (lp[0][labX] === lp[1][labX] && lp[0][labY] === lp[1][labY]) {
@@ -2129,8 +2395,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     lp.map(function (p) {
                         var sp = [];
                         SIREPO.SCREEN_DIMS.forEach(function (dim) {
-                            var labDim = shape.elev[dim].axis;
-                            sp.push(axes[dim].scale(p[labDim]));
+                            sp.push(axes[dim].scale(p[getElevation().labAxis(dim)]));
                         });
                         return geometry.pointFromArr(sp);
                 }));
@@ -2139,13 +2404,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return pts;
             }
 
-            function shapeSize(shape, screenDim) {
-                let labDim = shape.elev[screenDim].axis;
-                let c = shape.center[labDim] || 0;
-                let s = shape.size[labDim] || 0;
-                return  Math.abs(axes[screenDim].scale(c + s / 2) - axes[screenDim].scale(c - s / 2));
+            function shapeSize(shape, dim) {
+                let c = shape.center[dim] || 0;
+                let s = shape.size[dim] || 0;
+                return Math.abs(axes[dim].scale(c + s / 2) - axes[dim].scale(c - s / 2));
             }
 
+            //TODO(mvk): set only those attributes that pertain to each svg shape
             function updateShapeAttributes(selection) {
                 selection
                     .attr('class', 'vtk-object-layout-shape')
@@ -2191,13 +2456,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             return `${fill}; stroke: ${shapeColor(d.color)}; stroke-width: ${d.strokeWidth || 1.0}`;
                         }
                     })
-                    .attr('stroke-dasharray', d => d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "")
-                    .attr('transform', d => {
-                        if (d.rotationMatrix) {
-                            return shapeRotation(d);
-                        }
-                        return '';
-                    });
+                    .attr('stroke-dasharray', d => d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "");
                 let tooltip = selection.select('title');
                 if (tooltip.empty()) {
                     tooltip = selection.append('title');
@@ -2212,6 +2471,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return `${d.id} ${d.name} center : ${ctr} size: ${sz}`;
                 });
             }
+
+            $scope.align = (o, alignType) => {
+                $scope.source.align(o, alignType, getElevation().labAxisIndices());
+            };
 
             $scope.copyObject = function(o) {
                 $scope.source.copyObject(o);
@@ -2229,7 +2492,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.dragMove = function(obj, evt) {
-                var p = isMouseInBounds(evt);
+                const p = isMouseInBounds(evt);
                 if (p) {
                     d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
                     updateDragShadow(obj, p);
@@ -2243,10 +2506,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             // called when dropping new objects, not existing
             $scope.dropSuccess = function(obj, evt) {
+                clearDragShadow();
                 const p = isMouseInBounds(evt);
                 if (p) {
-                    const labXIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].x.axis);
-                    const labYIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].y.axis);
+                    const labXIdx = geometry.basis.indexOf(getLabAxis('x'));
+                    const labYIdx = geometry.basis.indexOf(getLabAxis('y'));
                     const ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
@@ -2269,7 +2533,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.init = function() {
-                $scope.shapes = $scope.source.getShapes();
+                $scope.shapes = $scope.source.getShapes(getElevation());
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
                     $scope.shapes = $scope.source.getShapes();
@@ -2291,16 +2555,17 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 dragShape = d3.behavior.drag()
                     .origin(function(d) { return d; })
                     .on('drag', d3DragShape)
-                    .on('dragstart', d3DragStartShape)
-                    .on('dragend', d3DragEndShape);
-                axes.x.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].x.axis + ' [m]');
-                axes.y.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].y.axis + ' [m]');
+                    .on('dragstart', d3DragShapeStart)
+                    .on('dragend', d3DragShapeEnd);
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
+                });
                 replot();
             };
 
-            $scope.isDropEnabled = function() {
-                return $scope.source.isDropEnabled();
-            };
+            $scope.isDropEnabled = () => $scope.source.isDropEnabled();
+
+            $scope.isGroup = obj => $scope.source.isGroup(obj);
 
             $scope.plotHeight = function() {
                 var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
@@ -2319,19 +2584,19 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.setElevation = function(elev) {
-                $scope.elevation = elev;
-                axes.x.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].x.axis + ' [m]');
-                axes.y.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].y.axis + ' [m]');
+                $scope.settings.elevation = elev;
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
+                });
                 replot();
             };
 
-            $scope.toggle3dPreview = function() {
-                $scope.is3dPreview = !$scope.is3dPreview;
-            };
-
-            $scope.$on('shapes.loaded', () => {
-                drawShapes();
+            appState.watchModelFields($scope, settingsFields, () => {
+                appState.saveChanges('threeDBuilder');
             });
+            appState.watchModelFields($scope, snapSettingsFields, refresh);
+
+            $scope.$on('shapes.loaded', drawShapes);
 
         },
         link: function link(scope, element) {
@@ -2529,7 +2794,9 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
                         'rotate(' + angle + ')';
 
-                    axes[dim].scale.domain(newDom).nice();
+                    if (axisCfg.doNice) {
+                        axes[dim].scale.domain(newDom).nice();
+                    }
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
 
                     // this places the axis tick labels on the appropriate side of the axis
@@ -2907,8 +3174,13 @@ SIREPO.VTK = {
     ActorBundle: ActorBundle,
     BoxBundle: BoxBundle,
     CoordMapper: CoordMapper,
+    CuboidViews: CuboidViews,
+    CylinderViews: CylinderViews,
+    ExtrudedPolyViews: ExtrudedPolyViews,
     LineBundle: LineBundle,
+    ObjectViews: ObjectViews,
     PlaneBundle: PlaneBundle,
+    RacetrackViews: RacetrackViews,
     SphereBundle: SphereBundle,
     ViewPortBox: ViewPortBox,
     VTKUtils: VTKUtils,

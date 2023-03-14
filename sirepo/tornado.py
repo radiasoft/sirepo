@@ -5,7 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkdebug import pkdlog, pkdexc
-import sirepo.util
+import sirepo.const
 import tornado.locks
 import tornado.queues
 
@@ -47,11 +47,11 @@ class Queue(tornado.queues.Queue):
             # on the queue and before this task finishes the await.
             x = super().get()
             return await x
-        except sirepo.util.ASYNC_CANCELED_ERROR:
+        except sirepo.const.ASYNC_CANCELED_ERROR:
             if x:
                 try:
                     r = x.result()
-                except Exception:
+                except BaseException:
                     # there are many exceptions that can happen,
                     # including throwing an exception on the Future.
                     # However, none need to be cascaded as the task
@@ -62,7 +62,7 @@ class Queue(tornado.queues.Queue):
                         # got a valid result so put it back.
                         self.task_done()
                         self.put_nowait(r)
-                    except Exception as e:
+                    except BaseException as e:
                         # at this point, the task is canceled so
                         # we can't raise another exception, but we
                         # should log that an error has occurred.

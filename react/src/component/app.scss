@@ -5,7 +5,7 @@ $info: #5bc0de;
 $warning: #f0ad4e;
 $danger: #d9534f;
 
-$font-size-base: 0.875rem;
+$font-size-base: 0.9rem;
 $form-label-font-weight: 700;
 $form-feedback-icon-invalid: none;
 
@@ -30,7 +30,10 @@ a {
 
 .form-control.is-invalid {
   background-color: #fad8de;
-  padding-right: 0.75rem;
+  padding-right: 0.5rem;
+}
+.form-select.is-invalid {
+  background-color: #fad8de;
 }
 
 /* couldn't get a border via sass on standard bootstrap tooltip */
@@ -46,4 +49,8 @@ a {
 
 .btn-light {
   --bs-btn-border-color: #ccc;
+}
+
+.form-label {
+  padding-top: 2px;
 }

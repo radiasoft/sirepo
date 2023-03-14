@@ -346,19 +346,13 @@ class OpalMadxConverter(MadxConverter):
                     d1 = 2 * length / angle
                     element_out.l = d1 * math.sin(length / d1)
             if element_in.type in ("SBEND", "RBEND"):
-                # kenetic energy in MeV
+                # kinetic energy in MeV
                 element_out.designenergy = round(
-                    (
-                        math.sqrt(
-                            self.particle_energy.energy**2 + self.beam.mass**2
-                        )
-                        - self.beam.mass
-                    )
-                    * 1e3,
+                    (self.particle_energy.energy - self.beam.mass) * 1e3,
                     6,
                 )
                 element_out.gap = 2 * self.__val(element_in.hgap)
-                element_out.fmapfn = "hard_edge_profile.txt"
+                # element_out.fmapfn = "hard_edge_profile.txt"
             if element_in.type == "QUADRUPOLE":
                 k1 = self.__val(element_out.k1)
                 if self.beam.charge < 0:
@@ -477,7 +471,7 @@ def get_data_file(run_dir, model, frame, options):
 def import_file(req, unit_test_mode=False, **kwargs):
     from sirepo.template import opal_parser
 
-    text = pkcompat.from_bytes(req.file_stream.read())
+    text = req.form_file.as_str()
     if re.search(r"\.in$", req.filename, re.IGNORECASE):
         data, input_files = opal_parser.parse_file(text, filename=req.filename)
         missing_files = []
@@ -503,9 +497,7 @@ def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     if is_parallel:
@@ -643,40 +635,19 @@ def sim_frame_plotAnimation(frame_args):
 def sim_frame_plot2Animation(frame_args):
     from sirepo.template import sdds_util
 
-    x = None
-    plots = []
-    for f in ("x", "y1", "y2", "y3"):
-        name = frame_args[f].replace(" ", "_")
-        if name == "none":
-            continue
-        col = sdds_util.extract_sdds_column(
-            str(frame_args.run_dir.join(_OPAL_SDDS_FILE)), name, 0
+    def _format_col_name(name):
+        return name.replace(" ", "_")
+
+    def _format_plot(plot, sdds_units):
+        _field_units(sdds_units, plot)
+
+    return sdds_util.SDDSUtil(str(frame_args.run_dir.join(_OPAL_SDDS_FILE))).lineplot(
+        PKDict(
+            format_col_name=_format_col_name,
+            format_plot=_format_plot,
+            model=template_common.model_from_frame_args(frame_args),
+            dynamicYLabel=True,
         )
-        if col.err:
-            return col.err
-        field = PKDict(
-            points=col["values"],
-            label=frame_args[f],
-        )
-        _field_units(col.column_def[1], field)
-        if f == "x":
-            x = field
-        else:
-            plots.append(field)
-    # independent reads of file may produce more columns, trim to match x length
-    for p in plots:
-        if len(x.points) < len(p.points):
-            p.points = p.points[: len(x.points)]
-    return template_common.parameter_plot(
-        x.points,
-        plots,
-        {},
-        {
-            "title": "",
-            "dynamicYLabel": True,
-            "y_label": "",
-            "x_label": x.label,
-        },
     )
 
 

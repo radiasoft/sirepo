@@ -12,6 +12,7 @@ import { LayoutProps } from "../layout";
 import { LAYOUTS } from "../layouts";
 import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
 import "./file.scss";
+import { CRouteHelper } from "../../utility/route";
 
 export type FileInputConfig = {
     pattern: string,
@@ -19,10 +20,6 @@ export type FileInputConfig = {
 } & InputConfigBase
 
 export class FileInputLayout extends InputLayout<FileInputConfig, string, string> {
-    constructor(config: FileInputConfig) {
-        super(config);
-    }
-
     toModelValue: (value: string) => string = (v) => v;
     fromModelValue: (value: string) => string = (v) => v;
 
@@ -32,10 +29,11 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
     }
 
     component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
-        let { dependency, valid, touched, ...otherProps } = props;
+        let { dependency, ...otherProps } = props;
         let [dummyState, updateDummyState] = useState({})
 
         let appName = useContext(CAppName);
+        let routeHelper = useContext(CRouteHelper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let modelsWrapper = useContext(CModelsWrapper);
 
@@ -54,8 +52,11 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
         useEffect(() => {
             let fileListPromise = new Promise((resolve, reject) => {
                 simulationInfoPromise.then(({ simulationId, version }) => {
-                    //TODO, how should this be generated
-                    fetch(`/file-list/${appName}/unused/${dependency.modelName + "-" + dependency.fieldName}?${version}`).then(response => {
+                    fetch(routeHelper.globalRoute("listFiles", {
+                        simulation_type: appName,
+                        simulation_id: "unused", // TODO ???
+                        file_type: `${dependency.modelName + "-" + dependency.fieldName}?${version}` // TODO ???
+                    })).then(response => {
                         if(response.status !== 200) {
                             reject();
                         }
@@ -85,15 +86,18 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
                 <option key={fileName} value={fileName}>{fileName}</option>
             ))
         ]
-        
+
 
         let uploadFile = (event) => {
             let file = event.target.files[0];
             let formData = new FormData();
             formData.append("file", file);
             simulationInfoPromise.then(({ simulationId, version }) => {
-                //TODO, how should this be generated
-                fetch(`/upload-file/${appName}/${simulationId}/${dependency.modelName + "-" + dependency.fieldName}`, {
+                fetch(routeHelper.globalRoute("uploadFile", {
+                    simulation_type: appName,
+                    simulation_id: simulationId,
+                    file_type: dependency.modelName + "-" + dependency.fieldName
+                }), {
                     method: 'POST',
                     body: formData
                 }).then(resp => updateDummyState({}))
@@ -103,7 +107,11 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
         let downloadFile = () => {
             // TODO: do this better
             let selectedFileName = formSelectRef.current.selectedOptions[0].innerText;
-            fetch(`/download-file/${appName}/unused/${dependency.modelName + "-" + dependency.fieldName}.${selectedFileName}`)
+            fetch(routeHelper.globalRoute("downloadFile", {
+                simulation_type: appName,
+                simulation_id: "unused",
+                filename: `${dependency.modelName + "-" + dependency.fieldName}.${selectedFileName}`
+            }))
             .then(res => res.blob())
             .then(res => {
                 downloadAs(res, selectedFileName);
@@ -116,7 +124,7 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
 
         return (
             <div className="sr-form-file-upload-row">
-                <Form.Select ref={formSelectRef} {...otherProps} onChange={onChange} isInvalid={!valid && touched}>
+                <Form.Select ref={formSelectRef} {...otherProps} onChange={onChange}>
                     {options}
                 </Form.Select>
                 <Button onClick={downloadFile}>
@@ -141,7 +149,7 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
                     </Modal.Body>
                 </Modal>}
             </div>
-            
+
         )
     };
 }

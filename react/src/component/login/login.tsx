@@ -1,39 +1,48 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import React, { useContext, useEffect, useState } from "react"
-import { Button, Col, Container, Dropdown, Form, Image, Modal, Nav, Row } from "react-bootstrap"
+import React, { MutableRefObject, useContext, useEffect, useRef, useState } from "react"
+import { Button, Col, Container, Dropdown, Form, Image, Nav, Row } from "react-bootstrap"
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router"
-import { AppWrapper, AuthMethod, CAppName, CLoginStatus, CSchema } from "../../data/appwrapper"
+import { AppWrapper, AuthMethod, CAppName, CAppWrapper, CLoginStatusRef, CSchema, LoginStatus } from "../../data/appwrapper"
 import { useSetup } from "../../hook/setup"
 import { NavbarRightContainerId, NavToggleDropdown } from "../reusable/navbar";
 import { Portal } from "../reusable/portal";
 import "./login.scss";
 import { LoginEmailConfirm, LoginWithEmail } from "./email";
+import { CRouteHelper } from "../../utility/route";
+import { LoginWithGuest } from "./guest";
+
+export async function updateLoginStatusRef(ref: MutableRefObject<LoginStatus>, appWrapper: AppWrapper) {
+    let status = await appWrapper.getLoginStatus();
+    ref.current = status;
+}
 
 export const LoginRouter = (props) => {
-    let appName = useContext(CAppName);
-    const [hasLoginStatus, loginStatus] = useSetup(true, (new AppWrapper(appName)).getLoginStatus());
+    let appWrapper = useContext(CAppWrapper);
+    let routeHelper = useContext(CRouteHelper);
+    let loginStatusRef = useRef(undefined);
+    const [hasLoginStatus, _] = useSetup(true, updateLoginStatusRef(loginStatusRef, appWrapper));
 
     return hasLoginStatus && (
-        <CLoginStatus.Provider value={loginStatus}>
+        <CLoginStatusRef.Provider value={loginStatusRef}>
             <Portal targetId={NavbarRightContainerId} className="order-3">
                 <NavbarSlack/>
             </Portal>
-            <Portal targetId={NavbarRightContainerId} className="order-5 sr-navbar-auth">
+            <Portal targetId={NavbarRightContainerId} className="order-5">
                 <NavbarAuthStatus/>
             </Portal>
             <Routes>
-                <Route path="logout/*" element={<LogoutRoot/>}/>
-                <Route path="login/*" element={<LoginRoot/>}/>
-                <Route path="login-confirm/:method/:token/:needCompleteRegistration" element={<LoginConfirm/>}/>
+                <Route path={`${routeHelper.localRoutePattern("logout")}/*`} element={<LogoutRoot/>}/>
+                <Route path={`${routeHelper.localRoutePattern("login")}/*`} element={<LoginRoot/>}/>
+                <Route path={routeHelper.localRoutePattern("loginConfirm")} element={<LoginConfirm/>}/>
                 <Route path="*" element={<CatchLoggedOut>{props.children}</CatchLoggedOut>}/>
             </Routes>
-        </CLoginStatus.Provider>
+        </CLoginStatusRef.Provider>
     )
 }
 
 export const NavbarSlack = (props) => {
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatusRef).current;
 
     return (
         <>
@@ -47,12 +56,12 @@ export const NavbarSlack = (props) => {
 }
 
 export const NavbarAuthStatus = (props) => {
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatusRef).current;
     let schema = useContext(CSchema);
-    let appName = useContext(CAppName);
-    let appWrapper = new AppWrapper(appName);
+    let appWrapper = useContext(CAppWrapper);
+    let routeHelper = useContext(CRouteHelper);
 
-    if(loginStatus.method === "guest") {
+    if(loginStatus.visibleMethod === "guest") {
         return (<></>)
     }
 
@@ -82,30 +91,29 @@ export const NavbarAuthStatus = (props) => {
                         <Dropdown.Header>{loginStatus.userName}</Dropdown.Header>
                     )
                 }
-                <Dropdown.Item href={`/${appName}/logout`}>Sign Out</Dropdown.Item>
+                <Dropdown.Item href={routeHelper.localRoute("logout")}>Sign Out</Dropdown.Item>
             </NavToggleDropdown>
         )
     }
 
     return (
-        <Nav.Link href={`/${appName}/login`}>Sign In</Nav.Link>
+        <Nav.Link href={routeHelper.localRoute("login")}>Sign In</Nav.Link>
     )
 
 
 }
 
 export const CatchLoggedOut = (props) => {
-    let appName = useContext(CAppName);
-    let loginStatus = useContext(CLoginStatus);
-
+    let routeHelper = useContext(CRouteHelper);
+    let loginStatus = useContext(CLoginStatusRef).current;
     return (
         <>
             {
-                (loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) || loginStatus.method === "guest" ?
+                (loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) ?
                 (
                     props.children
                 ) : (
-                    <Navigate to={`/react/${appName}/login`}/> // TODO @garsuga: abstract
+                    <Navigate to={routeHelper.localRoute("login")}/> // TODO @garsuga: abstract
                 )
             }
         </>
@@ -133,15 +141,16 @@ export const LoginConfirm = (props) => {
 
 export const LoginNeedCompleteRegistration = (props) => {
     let appName = useContext(CAppName);
+    let routeHelper = useContext(CRouteHelper);
     let navigate = useNavigate();
     let onCompleteForm = (data: {[key: string]: any}) => {
-        fetch(`/auth-complete-registration`, {
+        fetch(routeHelper.globalRoute("authCompleteRegistration"), {
             method: "POST",
             body: JSON.stringify({ ...data, simulationType: appName }),
             headers: {
                 "Content-Type": "application/json"
             }
-        }).then(() => navigate(`/react/${appName}`))
+        }).then(() => navigate(routeHelper.localRoute("root")))
     }
     return (
         <LoginExtraInfoForm onComplete={(data) => onCompleteForm(data)}/>
@@ -168,15 +177,15 @@ export const LoginExtraInfoForm = (props: { onComplete: ({displayName}) => void 
 }
 
 export const LoginRoot = (props) => {
-    let loginStatus = useContext(CLoginStatus);
-    let appName = useContext(CAppName);
+    let loginStatus = useContext(CLoginStatusRef).current;
+    let routeHelper = useContext(CRouteHelper);
 
     let getLoginComponent = (method: string): JSX.Element => {
         switch(method) {
             case "email":
                 return <LoginWithEmail/>
             case "guest":
-                return <Navigate to={new AppWrapper(appName).getAppRootLink()}/>
+                return <LoginWithGuest/>
             default:
                 throw new Error(`could not handle login method=${method}`)
         }
@@ -193,7 +202,7 @@ export const LoginRoot = (props) => {
 
     if(loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) {
         return (
-            <Navigate to={new AppWrapper(appName).getAppRootLink()}></Navigate>
+            <Navigate to={routeHelper.localRoute("root")}></Navigate>
         )
     }
 
@@ -207,11 +216,11 @@ export const LoginRoot = (props) => {
 export function LogoutRoot(props) {
     let navigate = useNavigate();
     let appName = useContext(CAppName);
-
+    let routeHelper = useContext(CRouteHelper);
     useEffect(() => {
-        fetch(`/auth-logout/${appName}`).then(() => navigate(new AppWrapper(appName).getAppRootLink()));
+        fetch(routeHelper.globalRoute("authLogout", { simulation_type: appName })).then(() => navigate(routeHelper.localRoute("root")));
     })
 
 
-    return <>Singing out...</>
+    return <>Signing out...</>
 }

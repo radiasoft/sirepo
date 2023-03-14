@@ -1,0 +1,6 @@
+dn: mail=vagrant@radiasoft.net,ou=users,dc=example,dc=com
+cn: vagrant
+sn: vagrant
+objectClass: inetOrgPerson
+userPassword: vagrant
+uid: vagrant

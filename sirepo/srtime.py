@@ -42,7 +42,7 @@ def adjust_time(days, qcall=None):
     if qcall:
         if not _timedelta:
             days = 0
-        qcall.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
+        qcall.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days)).destroy()
 
 
 class API(sirepo.quest.API):
@@ -53,7 +53,6 @@ class API(sirepo.quest.API):
         Args:
             days (str): must be integer. If None or 0, no adjustment.
         """
-
         adjust_time(days, qcall=self)
         return self.reply_ok(
             {

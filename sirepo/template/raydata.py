@@ -11,6 +11,9 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdformat, pkdexc
 from sirepo.template import template_common
 import base64
+import pygments
+import pygments.formatters
+import pygments.lexers
 import requests
 import requests.exceptions
 import sirepo.feature_config
@@ -22,6 +25,22 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 def stateless_compute_analysis_output(data):
     return _request_scan_monitor(PKDict(method="analysis_output", uid=data.args.uid))
+
+
+def stateless_compute_analysis_run_log(data):
+    def _log_to_html(log):
+        return pygments.highlight(
+            log,
+            pygments.lexers.get_lexer_by_name("text"),
+            pygments.formatters.HtmlFormatter(
+                noclasses=False,
+                linenos=False,
+            ),
+        )
+
+    r = _request_scan_monitor(PKDict(method="analysis_run_log", uid=data.args.uid))
+    r.run_log = _log_to_html(r.run_log)
+    return r
 
 
 def stateless_compute_begin_replay(data):

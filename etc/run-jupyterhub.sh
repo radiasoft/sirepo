@@ -52,7 +52,7 @@ if [[ ${SIREPO_AUTH_GITHUB_KEY:-} && ${SIREPO_AUTH_GITHUB_SECRET:-} ]]; then
     export SIREPO_SIM_API_JUPYTERHUBLOGIN_RS_JUPYTER_MIGRATE=1
 fi
 
-sirepo service uwsgi &
+sirepo service tornado &
 sirepo service nginx-proxy &
 sirepo job_supervisor &
 sirepo service jupyterhub &
