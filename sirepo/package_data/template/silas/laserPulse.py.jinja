@@ -1,0 +1,42 @@
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdc, pkdlog
+from rslaser.pulse import pulse
+from rslaser.utils import srwl_uti_data
+import numpy
+
+def _build_pulse():
+    return pulse.LaserPulse(
+        params=PKDict(
+            chirp={{ laserPulse.chirp }},
+            dist_waist={{ laserPulse.distFromWaist }},
+            mx={{ laserPulse.modeOrder[0] }},
+            my={{ laserPulse.modeOrder[1] }},
+            nslice={{ laserPulse.numSlices }},
+            num_sig_long={{ laserPulse.numSigmas[0] }},
+            num_sig_trans={{ laserPulse.numSigmas[1] }},
+            nx_slice={{ laserPulse.numSliceMeshPoints[0] }},
+            ny_slice={{ laserPulse.numSliceMeshPoints[1] }},
+            pad_factor={{ laserPulse.padFactor }},
+            photon_e_ev={{ laserPulse.photonEnergy }},
+            poltype={{ laserPulse.polarization | int }},
+            pulseE={{ laserPulse.totalEnergy }},
+            sigx_waist={{ laserPulse.waistSize[0] }},
+            sigy_waist={{ laserPulse.waistSize[1] }},
+            tau_fwhm={{ laserPulse.tauFWHM }},
+        ),
+    )
+
+def save_pulse(pulse, filename):
+    (lpsxvals, lpsyvals) = pulse.rmsvals()
+    numpy.save(filename, numpy.array([
+        pulse.pulsePos(),
+        lpsxvals,
+        lpsyvals,
+        pulse.intensity_vals(),
+        pulse.energyvals(),
+    ]))
+
+
+p = _build_pulse()
+s = p.slice[0]
+ph = s.n_photons_2d

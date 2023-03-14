@@ -372,19 +372,18 @@ def _initial_laser_pulse_phase_plot(model):
 
 
 def _generate_parameters_file(data):
+    res, v = template_common.generate_parameters_file(data)
+    v.report = data.report
+    v.laserPulse = data.models.laserPulse
+    res += template_common.render_jinja(SIM_TYPE, v, "laserPulse.py")
     if data.report in (
         "laserPulseIntensityReport",
         "laserPulsePhaseReport"
     ):
-        res, v = template_common.generate_parameters_file(data)
-        v.report = data.report
-        v.laserPulse = data.models.laserPulse
         return res + template_common.render_jinja(SIM_TYPE, v)
-
     if data.report == "animation":
         beamline = data.models.beamline
         data.models.crystal = _get_crystal(data)
-        res, v = template_common.generate_parameters_file(data)
         v.leftMirrorFocusingError = beamline[0].focusingError
         v.rightMirrorFocusingError = beamline[-1].focusingError
         v.summaryCSV = _SUMMARY_CSV_FILE
@@ -392,7 +391,6 @@ def _generate_parameters_file(data):
         v.finalLaserFile = _FINAL_LASER_FILE
         return res + template_common.render_jinja(SIM_TYPE, v)
     if data.report == "crystalAnimation":
-        res, v = template_common.generate_parameters_file(data)
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     assert False, "invalid param report: {}".format(data.report)
