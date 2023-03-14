@@ -9,6 +9,12 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 
+_LASER_PULSE_REPORTS = frozenset(
+    (
+        "laserPulseIntensityReport",
+        "laserPulsePhaseReport",
+    )
+)
 
 class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(
@@ -54,14 +60,19 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if r in (
-            "laserPulseIntensityReport",
-            "laserPulsePhaseReport",
-        ):
+        if r in _LASER_PULSE_REPORTS:
             return cls._non_analysis_fields(data, "laserPulse")
         res = []
         return res
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        return []
+        res = []
+        if data.report in _LASER_PULSE_REPORTS:
+            for f in ("geomFileCCD", "geomFileMeta", "geomFileWavefronts"):
+                res.append(
+                    cls.lib_file_name_with_model_field(
+                        "laserPulse", f, data.models.laserPulse[f]
+                    )
+                )
+        return res

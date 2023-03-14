@@ -270,6 +270,30 @@ SIREPO.beamlineItemLogic('mirrorView', function(appState, panelState, $scope) {
     $scope.whenSelected = () => panelState.enableField('mirror', 'position', false);
 });
 
+SIREPO.viewLogic('laserPulseView', function(appState, panelState, silasService, $scope) {
+    $scope.watchFields = [
+        [
+            'laserPulse.geometryFromFiles',
+        ], updateEditor,
+    ];
+
+    function updateEditor() {
+        const useFiles = $scope.model.geometryFromFiles === '1';
+        ['geomFileCCD', 'geomFileMeta', 'geomFileWavefronts'].forEach(f => {
+            panelState.showField($scope.modelName, f, useFiles);
+        });
+        panelState.enableField($scope.modelName, 'numSlices', ! useFiles);
+        if (useFiles) {
+            $scope.model.numSlices = 1;
+        }
+    }
+
+    $scope.whenSelected = () => {
+        $scope.model = appState.models[$scope.modelName];
+        updateEditor();
+    };
+});
+
 SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, requestSender, silasService, $scope) {
 
     function computeRMSSize(field, saveChanges) {

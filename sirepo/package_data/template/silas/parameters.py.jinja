@@ -1,12 +1,21 @@
+# ^^ laserPulse.py ^^ #
 
+w = p.slice_wfr(0)
 {% if report == "laserPulseIntensityReport" %}
-z = srwl_uti_data.calc_int_from_elec(p.slice_wfr(0)).tolist()
+z = srwl_uti_data.calc_int_from_elec(w).tolist()
 {% elif report == "laserPulsePhaseReport" %}
-z, _ = srwl_uti_data.calc_int_from_wfr(
-    p.slice_wfr(0),
+z, m = srwl_uti_data.calc_int_from_wfr(
+    w,
     _pol={{ laserPulse.polarization | int }},
     _int_type=4,
     _pr=False,
 )
-z = numpy.array(z).reshape(s.nx_slice, s.ny_slice).tolist()
+{% if laserPulse.geometryFromFiles == "1" %}
+nx = m.nx
+ny = m.ny
+{% else %}
+nx = s.nx_slice
+ny = s.ny_slice
+{% endif %}
+z = numpy.array(z).reshape(nx, ny).tolist()
 {% endif %}

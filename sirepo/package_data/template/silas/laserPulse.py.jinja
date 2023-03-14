@@ -3,6 +3,7 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from rslaser.pulse import pulse
 from rslaser.utils import srwl_uti_data
 import numpy
+import sirepo
 
 def _build_pulse():
     return pulse.LaserPulse(
@@ -24,9 +25,22 @@ def _build_pulse():
             sigy_waist={{ laserPulse.waistSize[1] }},
             tau_fwhm={{ laserPulse.tauFWHM }},
         ),
+        {% if laserPulse.geometryFromFiles == "1" %}
+        files=PKDict(
+            ccd=_lib_file("geomFileCCD", "{{ laserPulse.geomFileCCD }}"),
+            meta=_lib_file("geomFileMeta", "{{ laserPulse.geomFileMeta }}"),
+            wfs=_lib_file("geomFileWavefronts", "{{ laserPulse.geomFileWavefronts }}"),
+        ),
+        {% endif %}
     )
 
-def save_pulse(pulse, filename):
+
+def _lib_file(field, basename):
+    sim_data = sirepo.sim_data.get_class("silas")
+    return sim_data.lib_file_name_with_model_field("laserPulse", field, basename)
+
+
+def _save_pulse(pulse, filename):
     (lpsxvals, lpsyvals) = pulse.rmsvals()
     numpy.save(filename, numpy.array([
         pulse.pulsePos(),
