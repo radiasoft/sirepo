@@ -1153,6 +1153,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
               <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
             </div>
             <div class="pull-right">
+                page {{ idx + 1 }} of {{ uris.length }}
               <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
               <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
             </div>
@@ -1160,38 +1161,38 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         </div>
         `,
         controller: function($scope, appState) {
-            let idx = 0;
             let loading = true;
             let numPages = 0;
-            let uris;
+            $scope.uris;
+            $scope.idx = 0;
             $scope.dataFileMissing = false;
             $scope.canUpdateUri = increment => {
-                return idx + increment >= 0 && idx + increment < numPages;
+                return $scope.idx + increment >= 0 && $scope.idx + increment < numPages;
             };
 
             $scope.first = () => {
-                setImageFromUriIndex(idx = 0);
+                setImageFromUriIndex($scope.idx = 0);
             };
 
             $scope.isLoading = () => loading;
 
             $scope.last = () => {
-                setImageFromUriIndex(idx = uris.length - 1);
+                setImageFromUriIndex($scope.idx = $scope.uris.length - 1);
             };
 
             $scope.next = () => {
-                setImageFromUriIndex(idx += 1);
+                setImageFromUriIndex($scope.idx += 1);
             };
 
             $scope.prev = () => {
-                setImageFromUriIndex(idx -= 1);
+                setImageFromUriIndex($scope.idx -= 1);
             };
 
             function setImageFromUriIndex(index) {
-                if ($('.' + $scope.imageClass).length && uris) {
-                    $('.' + $scope.imageClass)[0].src = uris[index];
+                if ($('.' + $scope.imageClass).length && $scope.uris) {
+                    $('.' + $scope.imageClass)[0].src = $scope.uris[index];
                 }
-                if (! uris) {
+                if (! $scope.uris) {
                     $scope.dataFileMissing = true;
                     $scope.fileName = appState.models.dataFile.file;
                 }
@@ -1203,9 +1204,9 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     appState,
                     response => {
                         numPages = response.numPages;
-                        uris = response.uris;
-                        if (uris) {
-                            $scope.multiPage = uris.length > 1;
+                        $scope.uris = response.uris;
+                        if ($scope.uris) {
+                            $scope.multiPage = $scope.uris.length > 1;
                             setImageFromUriIndex(0);
                         }
                         loading = false;
