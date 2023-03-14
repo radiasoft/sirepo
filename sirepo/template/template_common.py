@@ -527,9 +527,11 @@ def jinja_filename(filename):
 
 
 def model_from_frame_args(frame_args):
-    res = frame_args.sim_in.models[frame_args.frameReport]
-    res.update(frame_args)
-    return res
+    if frame_args.frameReport in frame_args.sim_in.models:
+        res = frame_args.sim_in.models[frame_args.frameReport]
+        res.update(frame_args)
+        return res
+    return frame_args
 
 
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
