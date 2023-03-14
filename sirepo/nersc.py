@@ -30,4 +30,4 @@ def _hpssquota(project=None):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
-    )
+    ).stdout
