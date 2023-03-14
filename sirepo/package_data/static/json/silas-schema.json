@@ -114,7 +114,8 @@
             "photonEnergy": ["Photon energy [eV]", "Float", 1.5],
             "polarization": ["Polarization", "GaussianBeamPolarization", "1"],
             "tauFWHM": ["FWHM Length [s]", "Float", 2.35865e-11],
-            "totalEnergy": ["Total Energy [J]", "Float", 0.001]
+            "totalEnergy": ["Total Energy [J]", "Float", 0.001],
+            "waistSize": ["RMS Waist Size [m]", "FloatArray", [0.001, 0.001], "", ["Horizontal", "Vertical"]]
         },
         "laserPulseIntensityReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"]
@@ -214,9 +215,10 @@
                 ]],
                 ["Geometry", [
                     "numSlices",
+                    "waistSize",
                     "distFromWaist",
                     "tauFWHM",
-                    "numsSliceMeshPoints",
+                    "numSliceMeshPoints",
                     "numSigmas",
                     "modeOrder"
                 ]]
