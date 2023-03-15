@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """Sirepo setup script
 
-:copyright: Copyright (c) 2015-2018 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pykern.pksetup
 import os
+import pykern.pksetup
 
 install_requires = [
     "Flask==2.0.3",
