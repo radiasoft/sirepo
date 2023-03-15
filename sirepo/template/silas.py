@@ -223,6 +223,22 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
     )
 
 
+def stateful_compute_mesh_dimensions(data):
+    f = {
+        k: _SIM_DATA.lib_file_abspath(
+             _SIM_DATA.lib_file_name_with_model_field("laserPulse", k, data.args[k])
+        )
+        for k in data.args
+    }
+    m = pulse.LaserPulse(
+        params=PKDict(nslice=1),
+        files=PKDict(f)
+    ).slice_wfr(0).mesh
+    return PKDict(
+        numSliceMeshPoints=[m.nx, m.ny]
+    )
+
+
 def stateless_compute_rms_size(data):
     return _compute_rms_size(data.args)
 
@@ -236,9 +252,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _build_pulse(model):
     f = PKDict(
-        ccd=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "geomFileCCD", model.geomFileCCD),
-        meta=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "geomFileMeta", model.geomFileMeta),
-        wfs=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "geomFileWavefronts", model.geomFileWavefronts),
+        ccd=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "ccd", model.ccd),
+        meta=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "meta", model.meta),
+        wfs=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "wfs", model.wfs),
     ) if model.geometryFromFiles == "1" else None
     return pulse.LaserPulse(
         params=PKDict(

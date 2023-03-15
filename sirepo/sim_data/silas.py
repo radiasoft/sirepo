@@ -68,8 +68,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
-        if data.report in _LASER_PULSE_REPORTS:
-            for f in ("geomFileCCD", "geomFileMeta", "geomFileWavefronts"):
+        if data.report in _LASER_PULSE_REPORTS and data.models.laserPulse.geometryFromFiles == "1":
+            for f in ("ccd", "meta", "wfs"):
                 res.append(
                     cls.lib_file_name_with_model_field(
                         "laserPulse", f, data.models.laserPulse[f]

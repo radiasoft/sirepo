@@ -27,9 +27,9 @@ def _build_pulse():
         ),
         {% if laserPulse.geometryFromFiles == "1" %}
         files=PKDict(
-            ccd=_lib_file("geomFileCCD", "{{ laserPulse.geomFileCCD }}"),
-            meta=_lib_file("geomFileMeta", "{{ laserPulse.geomFileMeta }}"),
-            wfs=_lib_file("geomFileWavefronts", "{{ laserPulse.geomFileWavefronts }}"),
+            ccd=_lib_file("ccd", "{{ laserPulse.ccd }}"),
+            meta=_lib_file("meta", "{{ laserPulse.meta }}"),
+            wfs=_lib_file("wfs", "{{ laserPulse.wfs }}"),
         ),
         {% endif %}
     )

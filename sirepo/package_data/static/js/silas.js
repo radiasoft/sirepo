@@ -270,21 +270,52 @@ SIREPO.beamlineItemLogic('mirrorView', function(appState, panelState, $scope) {
     $scope.whenSelected = () => panelState.enableField('mirror', 'position', false);
 });
 
-SIREPO.viewLogic('laserPulseView', function(appState, panelState, silasService, $scope) {
+SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender, silasService, $scope) {
+    const _FILES = ['ccd', 'meta', 'wfs'];
+
     $scope.watchFields = [
         [
             'laserPulse.geometryFromFiles',
         ], updateEditor,
     ];
 
+    function hasFiles() {
+        return _FILES.every(f => (! ! $scope.model[f]) && $scope.model[f] !== "");
+    }
+
+    function updateMesh() {
+        requestSender.sendStatefulCompute(
+            appState,
+            data => {
+                $scope.model.numSliceMeshPoints = data.numSliceMeshPoints;
+                appState.saveChanges($scope.model);
+            },
+            {
+                method: 'mesh_dimensions',
+                args: {
+                    ccd: $scope.model.ccd,
+                    meta: $scope.model.meta,
+                    wfs: $scope.model.wfs,
+                }
+            },
+            err => {
+                throw new Error(err);
+            }
+        );
+    }
+
     function updateEditor() {
         const useFiles = $scope.model.geometryFromFiles === '1';
-        ['geomFileCCD', 'geomFileMeta', 'geomFileWavefronts'].forEach(f => {
+        _FILES.forEach(f => {
             panelState.showField($scope.modelName, f, useFiles);
         });
         panelState.enableField($scope.modelName, 'numSlices', ! useFiles);
+        panelState.enableField($scope.modelName, 'numSliceMeshPoints', ! useFiles);
         if (useFiles) {
             $scope.model.numSlices = 1;
+            if (hasFiles()) {
+                updateMesh();
+            }
         }
     }
 
