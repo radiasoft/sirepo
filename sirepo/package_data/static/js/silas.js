@@ -288,7 +288,7 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             appState,
             data => {
                 $scope.model.numSliceMeshPoints = data.numSliceMeshPoints;
-                appState.saveChanges($scope.model);
+                //appState.saveQuietly($scope.modelName);
             },
             {
                 method: 'mesh_dimensions',
@@ -305,7 +305,7 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
     }
 
     function updateEditor() {
-        const useFiles = $scope.model.geometryFromFiles === '1';
+        const useFiles = appState.models[$scope.modelName].geometryFromFiles === '1';
         _FILES.forEach(f => {
             panelState.showField($scope.modelName, f, useFiles);
         });
@@ -323,6 +323,12 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
         $scope.model = appState.models[$scope.modelName];
         updateEditor();
     };
+
+    $scope.$on('cancelChanges', (e, model) => {
+        if (model === $scope.modelName) {
+            updateEditor();
+        }
+    });
 });
 
 SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, requestSender, silasService, $scope) {
