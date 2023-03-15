@@ -288,7 +288,6 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             appState,
             data => {
                 $scope.model.numSliceMeshPoints = data.numSliceMeshPoints;
-                //appState.saveQuietly($scope.modelName);
             },
             {
                 method: 'mesh_dimensions',
