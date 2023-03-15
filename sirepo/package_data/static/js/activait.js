@@ -1163,7 +1163,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         controller: function($scope, appState) {
             let loading = true;
             let numPages = 0;
-            $scope.uris;
+            $scope.uris = null;
             $scope.idx = 0;
             $scope.dataFileMissing = false;
             $scope.canUpdateUri = increment => {
