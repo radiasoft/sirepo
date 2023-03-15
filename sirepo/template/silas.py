@@ -235,6 +235,11 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _build_pulse(model):
+    f = PKDict(
+        ccd=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "geomFileCCD", model.geomFileCCD),
+        meta=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "geomFileMeta", model.geomFileMeta),
+        wfs=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "geomFileWavefronts", model.geomFileWavefronts),
+    ) if model.geometryFromFiles == "1" else None
     return pulse.LaserPulse(
         params=PKDict(
             chirp=model.chirp,
@@ -254,6 +259,7 @@ def _build_pulse(model):
             sigy_waist=model.waistSize[1],
             tau_fwhm=model.tauFWHM,
         ),
+        files=f,
     )
 
 
@@ -336,14 +342,14 @@ def _format_float(v):
 
 def _initial_laser_pulse_intensity_plot(model):
     p = _build_pulse(model)
-    s = p.slice[0]
-    ph = s.n_photons_2d
-    z = srwl_uti_data.calc_int_from_elec(p.slice_wfr(0)).tolist()
+    w = p.slice_wfr(0)
+    m = w.mesh
+    z = srwl_uti_data.calc_int_from_elec(w).tolist()
 
     return PKDict(
         title="Intensity",
-        x_range=[ph.x[0], ph.x[-1], len(z)],
-        y_range=[ph.y[0], ph.y[-1], len(z[0])],
+        x_range=[m.xStart, m.xFin, m.nx],
+        y_range=[m.yStart, m.yFin, m.ny],
         x_label="Horizontal Position [m]",
         y_label="Vertical Position [m]",
         z_matrix=z,
@@ -352,19 +358,17 @@ def _initial_laser_pulse_intensity_plot(model):
 
 def _initial_laser_pulse_phase_plot(model):
     p = _build_pulse(model)
-    s = p.slice[0]
-    ph = s.n_photons_2d
-    z, _ = srwl_uti_data.calc_int_from_wfr(
+    z, m = srwl_uti_data.calc_int_from_wfr(
         p.slice_wfr(0),
         _pol=int(model.polarization),
         _int_type=4,
         _pr=False,
     )
-    z = numpy.array(z).reshape(s.nx_slice, s.ny_slice).tolist()
+    z = numpy.array(z).reshape(m.ny, m.nx).tolist()
     return PKDict(
         title="Phase",
-        x_range=[ph.x[0], ph.x[-1], len(z)],
-        y_range=[ph.y[0], ph.y[-1], len(z[0])],
+        x_range=[m.xStart, m.xFin, m.nx],
+        y_range=[m.yStart, m.yFin, m.ny],
         x_label="Horizontal Position [m]",
         y_label="Vertical Position [m]",
         z_matrix=z,
