@@ -37,6 +37,14 @@ _DEFAULT_DRIFT_ELEMENT = "DRIFT 1e-16 1e+16 2" + "\n"
 _HELLWEG_PARSED_FILE = "PARSED.TXT"
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_files,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(
@@ -59,13 +67,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def get_application_data(data, **kwargs):
-    if data["method"] == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_files)
-    assert False, "unknown application data method: {}".format(data["method"])
-
-
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return """
 from rshellweg import solver
 
@@ -206,7 +208,7 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _compute_range_across_files(run_dir, data):
+def _compute_range_across_files(run_dir, **kwargs):
     res = {}
     for v in SCHEMA.enum.BeamReportType:
         x, y = v[0].split("-")

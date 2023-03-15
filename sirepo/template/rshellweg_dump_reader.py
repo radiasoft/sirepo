@@ -4,8 +4,8 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import ctypes
 import math
 
@@ -142,18 +142,25 @@ _PARTICLE_LABEL = {
     "w": "W [eV]",
 }
 
-# TDimension, TPivot and TFieldMap2D are used in future versions
-# pointer fields are typed as c_int for TPivot and TFieldMap2D
+# some values are pointers which would never serialize correctly
+# the same size in bytes as a long integer
+_POINTER_TYPE = ctypes.c_long
+
+
 class TDimension(ctypes.Structure):
-    _fields_ = [("Nx", ctypes.c_int), ("Ny", ctypes.c_int), ("Nz", ctypes.c_int)]
+    _fields_ = [
+        ("Nx", ctypes.c_int),
+        ("Ny", ctypes.c_int),
+        ("Nz", ctypes.c_int),
+    ]
 
 
 class TPivot(ctypes.Structure):
-    _fields_ = [("X", ctypes.c_int), ("Y", ctypes.c_int), ("Z", ctypes.c_int)]
+    _fields_ = [("X", _POINTER_TYPE), ("Y", _POINTER_TYPE), ("Z", _POINTER_TYPE)]
 
 
 class TFieldMap2D(ctypes.Structure):
-    _fields_ = [("Dim", TDimension), ("Piv", TPivot), ("Field", ctypes.c_int)]
+    _fields_ = [("Dim", TDimension), ("Piv", TPivot), ("Field", _POINTER_TYPE)]
 
 
 class THeader(ctypes.Structure):
@@ -177,9 +184,7 @@ class TStructure(ctypes.Structure):
         ("alpha", ctypes.c_double),
         ("betta", ctypes.c_double),
         ("Ra", ctypes.c_double),
-        ("Hext", TField),
-        # Bmap replaces Hext in future versions
-        # ('Bmap', TFieldMap2D),
+        ("Bmap", TFieldMap2D),
         ("jump", ctypes.c_bool),
         ("drift", ctypes.c_bool),
         ("CellNumber", ctypes.c_int),
@@ -249,8 +254,8 @@ def beam_info(filename, idx):
                 * (ctypes.sizeof(beam_header) + ctypes.sizeof(p) * header.NParticles),
                 1,
             )
-        # TODO(e-carlin): is this safe?
-        # assert f.readinto(header) == 0
+        # must have reached end of file or bin format has changed
+        assert f.readinto(header) == 0
     return info
 
 
