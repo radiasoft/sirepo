@@ -125,7 +125,7 @@
         "initialIntensityReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
-        "laserPulsePhaseReport": {
+        "initialPhaseReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "laserPulse1Animation": {},
@@ -270,7 +270,7 @@
                 "colorMap"
             ]
         },
-        "laserPulsePhaseReport": {
+        "initialPhaseReport": {
             "title": "Phase",
             "advanced": [
                 "colorMap"

@@ -12,7 +12,7 @@ import sirepo.sim_data
 _LASER_PULSE_REPORTS = frozenset(
     (
         "initialIntensityReport",
-        "laserPulsePhaseReport",
+        "initialPhaseReport",
     )
 )
 
@@ -37,7 +37,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "gaussianBeam",
                 "laserPulse",
                 "initialIntensityReport",
-                "laserPulsePhaseReport",
+                "initialPhaseReport",
                 "lens",
                 "plotAnimation",
                 "plot2Animation",
