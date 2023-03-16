@@ -1680,7 +1680,7 @@ SIREPO.app.directive('pendingLinkToSimulations', function() {
         template: `
             <div data-ng-show="simState.isStatePending()">
               <a data-ng-click="showJobsList()" style="cursor:pointer">
-                <span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}
+                <span class="glyphicon glyphicon-hourglass"></span> {{ simState.getQState() }} {{ simState.dots }}
               </a>
             </div>
         `,

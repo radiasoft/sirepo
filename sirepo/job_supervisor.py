@@ -582,6 +582,7 @@ class _ComputeJob(_Supervisor):
     def __db_init_new(cls, data, prev_db=None):
         db = PKDict(
             alert=None,
+            qState="queued",
             canceledAfterSecs=None,
             computeJid=data.computeJid,
             computeJobHash=data.computeJobHash,
@@ -954,6 +955,8 @@ class _ComputeJob(_Supervisor):
                         self.db.alert = r.get("alert")
                         if self.db.status == job.ERROR:
                             self.db.error = r.get("error", "<unknown error>")
+                        if "qState" in r:
+                            self.db.qState = r.qState
                         if "computeJobStart" in r:
                             self.db.computeJobStart = r.computeJobStart
                         if "parallelStatus" in r:
@@ -1024,6 +1027,7 @@ class _ComputeJob(_Supervisor):
                 r.computeJobSerial = self.db.computeJobSerial
                 r.computeModel = self.db.computeModel
                 r.elapsedTime = self.elapsed_time()
+                r.qState = self.db.qState
             if self._is_running_pending():
                 c = req.content
                 r.update(
@@ -1036,6 +1040,7 @@ class _ComputeJob(_Supervisor):
                         report=c.analysisModel,
                         simulationId=self.db.simulationId,
                         simulationType=self.db.simulationType,
+                        qState= self.db.qState,
                     ),
                 )
             return r
