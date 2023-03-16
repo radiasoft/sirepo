@@ -13,6 +13,12 @@
             ["4", "Circular Right"],
             ["5", "Circular Left"],
             ["6", "Total"]
+        ],
+        "PropagationType": [
+            ["default", "Default"],
+            ["n0n2_srw", "SRW"],
+            ["abcd", "ABCD"],
+            ["lct", "LCT"]
         ]
     },
     "dynamicFiles": {
@@ -70,14 +76,19 @@
         "plot2Animation": []
     },
     "model": {
-        "crystal": {
-            "icon": ["", "String", "ti-sapphire-crystal.png"],
-            "title": ["Element Name", "String", "Crystal"],
-            "numSlices": ["Number of Slices", "Integer", 50],
+        "beamElement": {
             "position": ["Central Position [m]", "Float"],
+            "propagationType": ["Propagation Type", "PropagationType", "default"]
+        },
+        "crystal": {
+            "_super": ["_", "model", "beamElement"],
+            "icon": ["", "String", "ti-sapphire-crystal.png"],
+            "numSlices": ["Number of Slices", "Integer", 50],
+            "propagationType": ["Propagation Type", "PropagationType", "n0n2_srw"],
             "radius": ["Transverse Variation", "Float", 0.001, "Transverse variation of index of refraction", 0.0],
-            "width": ["Length [m]", "Float", 0.02],
-            "refractionIndex": ["Index of Refraction", "Float", 1.75, "Index of refraction along the optical axis", 1e-24]
+            "refractionIndex": ["Index of Refraction", "Float", 1.75, "Index of refraction along the optical axis", 1e-24],
+            "title": ["Element Name", "String", "Crystal"],
+            "width": ["Length [m]", "Float", 0.02]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -134,8 +145,8 @@
         "laserPulse3Animation": {},
         "laserPulse4Animation": {},
         "lens": {
+            "_super": ["_", "model", "beamElement"],
             "focalLength": ["Focal Length [m]", "Float", 2.0],
-            "position": ["Position along Optical Path [m]", "Float"],
             "title": ["Element Name", "String", "Lens"]
         },
         "mirror": {
@@ -153,8 +164,8 @@
             "nslice": ["Laser Pulse Slice Count", "Integer", 11, "", 3]
         },
         "watch": {
-            "title": ["Element Name", "SafePath", "Watchpoint"],
-            "position": ["Position along Optical Path [m]", "Float"]
+            "_super": ["_", "model", "beamElement"],
+            "title": ["Element Name", "SafePath", "Watchpoint"]
         },
         "watchpointReport": {
             "_super": ["_", "model", "initialIntensityReport"]
@@ -176,7 +187,8 @@
                 "width",
                 "refractionIndex",
                 "radius",
-                "numSlices"
+                "numSlices",
+                "propagationType"
             ]
         },
         "crystalAnimation": {

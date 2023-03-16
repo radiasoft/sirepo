@@ -30,17 +30,17 @@ def _build_crystal(model):
             n2=[model.radius] * model.numSlices,
             nslice=model.numSlices,
         )
-    ), "n0n2_srw"
+    )
 
 
 def _build_drift(length):
     from rslaser.optics import drift
-    return drift.Drift(length), "default"
+    return drift.Drift(length)
 
 
 def _build_lens(model):
     from rslaser.optics import lens
-    return lens.Lens(model.focalLength), "default"
+    return lens.Lens(model.focalLength)
 
 
 def _build_watch(model):
@@ -54,10 +54,10 @@ def propagate(pulse):
     for element in beamline:
         dz = element["position"] - prev["position"]
         if dz:
-            e, t = _build_drift(dz)
-            pulse = e.propagate(pulse, t)
-        e, t = globals()[f"_build_{element['type']}"](PKDict(element))
-        pulse = e.propagate(pulse, t)
+            e = _build_drift(dz)
+            pulse = e.propagate(pulse, "default")
+        e = globals()[f"_build_{element['type']}"](PKDict(element))
+        pulse = e.propagate(pulse, element["propagationType"])
         prev = element
 
 propagate(pulse)

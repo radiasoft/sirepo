@@ -36,19 +36,23 @@ SIREPO.app.config(function() {
 });
 
 SIREPO.app.factory('silasService', function(appState) {
-    var self = {};
+    const self = {};
+
     self.computeModel = (analysisModel) => {
         if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'].indexOf(analysisModel) >= 0) {
             return 'crystalAnimation';
         }
         return 'animation';
     };
-    self.getCrystal = () => {
-        return appState.models.beamline[1];
-    };
-    self.getFirstMirror = () => {
-        return appState.models.beamline[0];
-    };
+
+    self.getCrystal = () => self.getCrystals()[0];
+
+    self.getCrystals = () => appState.models.beamline.filter(e => e.type === 'crystal');
+
+    self.getFirstMirror = () => appState.models.beamline[0];
+
+    self.hasCrystal = () => (appState.models.beamline || []).some(e => e.type === 'crystal');
+
     appState.setAppService(self);
     return self;
 });
@@ -131,7 +135,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     self.simState = persistentSimulation.initSimulationState(self);
     beamlineService.setEditable(true);
     appState.whenModelsLoaded($scope, () => {
-        var oldWidth = silasService.getCrystal().width;
+        let oldWidth = silasService.hasCrystal() ? silasService.getCrystal().width : 0;
         updateWavefrontModels();
         $scope.$on('modelChanged', (e, name) => {
             if (! appState.isReportModelName(name)) {
@@ -199,7 +203,7 @@ SIREPO.app.directive('appFooter', function(appState, silasService) {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState) {
+SIREPO.app.directive('appHeader', function(appState, silasService) {
     return {
         restrict: 'A',
         scope: {
@@ -213,7 +217,7 @@ SIREPO.app.directive('appHeader', function(appState) {
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Laser Pulse</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('crystal')}"><a href data-ng-click="nav.openSection('crystal')"><span class="glyphicon glyphicon-th"></span> Crystal</a></li>
+                  <li data-ng-show="hasCrystal()" class="sim-section" data-ng-class="{active: nav.isActive('crystal')}"><a href data-ng-click="nav.openSection('crystal')"><span class="glyphicon glyphicon-th"></span> Crystal</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -225,6 +229,9 @@ SIREPO.app.directive('appHeader', function(appState) {
               </app-header-right-sim-list>
             </div>
         `,
+        controller:  function($scope) {
+            $scope.hasCrystal = () => silasService.hasCrystal();
+        },
     };
 });
 
