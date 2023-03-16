@@ -32,7 +32,7 @@ _JSON_TYPE = re.compile(r"^application/json")
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("internal_test", days="TimeDeltaDays")
-    def api_adjustSupervisorSrtime(self, days):
+    await def api_adjustSupervisorSrtime(self, days):
         return self._request_api(
             api_name="not used",
             _request_content=PKDict(days=days),
@@ -40,18 +40,18 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_adm")
-    def api_admJobs(self):
+    await def api_admJobs(self):
         return self._request_api(
             _request_content=PKDict(**self._parse_post_just_data()),
         )
 
     @sirepo.quest.Spec("require_user")
-    def api_analysisJob(self):
+    await def api_analysisJob(self):
         # TODO(robnagler): computeJobHash has to be checked
         return self._request_api()
 
     @sirepo.quest.Spec("require_user")
-    def api_beginSession(self):
+    await def api_beginSession(self):
         u = self.auth.logged_in_user()
         return self._request_api(
             _request_content=PKDict(
@@ -67,7 +67,7 @@ class API(sirepo.quest.API):
         frame="DataFileIndex",
         suffix="FileSuffix optional",
     )
-    def api_downloadDataFile(
+    await def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
         # TODO(robnagler) validate suffix and frame
@@ -108,7 +108,7 @@ class API(sirepo.quest.API):
             )
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_jobSupervisorPing(self):
+    await def api_jobSupervisorPing(self):
         import requests.exceptions
 
         e = None
@@ -136,7 +136,7 @@ class API(sirepo.quest.API):
         return PKDict(state="error", error=e)
 
     @sirepo.quest.Spec("require_user")
-    def api_ownJobs(self):
+    await def api_ownJobs(self):
         return self._request_api(
             _request_content=self._parse_post_just_data().pkupdate(
                 uid=self.auth.logged_in_user(),
@@ -144,7 +144,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_user")
-    def api_runCancel(self):
+    await def api_runCancel(self):
         try:
             return self._request_api()
         except Exception as e:
@@ -153,7 +153,7 @@ class API(sirepo.quest.API):
         return self.reply_json({"state": "canceled"})
 
     @sirepo.quest.Spec("require_user", data="RunMultiSpec")
-    def api_runMulti(self):
+    await def api_runMulti(self):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
             sirepo.uri_router.assert_api_name_and_auth(
@@ -175,18 +175,18 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_user")
-    def api_runSimulation(self):
+    await def api_runSimulation(self):
         r = self._request_content(PKDict(fixup_old_data=True))
         if r.isParallel:
             r.isPremiumUser = self.auth.is_premium_user()
         return self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user")
-    def api_runStatus(self):
+    await def api_runStatus(self):
         return self._request_api()
 
     @sirepo.quest.Spec("require_user")
-    def api_sbatchLogin(self):
+    await def api_sbatchLogin(self):
         r = self._request_content(
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
         )
@@ -194,7 +194,7 @@ class API(sirepo.quest.API):
         return self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user", frame_id="SimFrameId")
-    def api_simulationFrame(self, frame_id):
+    await def api_simulationFrame(self, frame_id):
         return template_common.sim_frame(
             frame_id,
             lambda a: self._request_api(
@@ -208,11 +208,11 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_user")
-    def api_statefulCompute(self):
+    await def api_statefulCompute(self):
         return self._request_compute()
 
     @sirepo.quest.Spec("require_user")
-    def api_statelessCompute(self):
+    await def api_statelessCompute(self):
         return self._request_compute()
 
     def _parse_post_just_data(self):

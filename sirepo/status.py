@@ -21,7 +21,7 @@ _SLEEP = 1
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_auth_basic")
-    def api_serverStatus(self):
+    await def api_serverStatus(self):
         """Allow for remote monitoring of the web server status.
 
         The user must be an existing sirepo uid.  The status checks
