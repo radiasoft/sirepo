@@ -1,9 +1,9 @@
-# ^^ laserPulse.py ^^ #
+# ^^ pulse, slice defined in laserPulse.py ^^ #
 
-w = p.slice_wfr(0)
-{% if report == "laserPulseIntensityReport" %}
+w = pulse.slice_wfr(0)
+{% if report == "initialIntensityReport" %}
 z = srwl_uti_data.calc_int_from_elec(w).tolist()
-{% elif report == "laserPulsePhaseReport" %}
+{% elif report == "initialPhaseReport" %}
 z, m = srwl_uti_data.calc_int_from_wfr(
     w,
     _pol={{ laserPulse.polarization | int }},
@@ -14,8 +14,52 @@ z, m = srwl_uti_data.calc_int_from_wfr(
 nx = m.nx
 ny = m.ny
 {% else %}
-nx = s.nx_slice
-ny = s.ny_slice
+nx = slice.nx_slice
+ny = slice.ny_slice
 {% endif %}
-z = numpy.array(z).reshape(nx, ny).tolist()
+z = numpy.array(z).reshape(ny, nx).tolist()
+{% elif report == "animation" %}
+
+def _build_crystal(model):
+    from rslaser.optics import crystal
+    return crystal.Crystal(
+        params=PKDict(
+            l_scale=1,
+            length=model.width,
+            n0=[model.refractionIndex] * model.numSlices,
+            n2=[model.radius] * model.numSlices,
+            nslice=model.numSlices,
+        )
+    ), "n0n2_srw"
+
+
+def _build_drift(length):
+    from rslaser.optics import drift
+    return drift.Drift(length), "default"
+
+
+def _build_lens(model):
+    from rslaser.optics import lens
+    return lens.Lens(model.focalLength), "default"
+
+
+def _build_watch(model):
+    return _build_drift(0.0)
+
+
+def propagate(pulse):
+
+    beamline = {{ beamline }}
+    prev = {"position": 0.0}
+    for element in beamline:
+        dz = element["position"] - prev["position"]
+        if dz:
+            e, t = _build_drift(dz)
+            pulse = e.propagate(pulse, t)
+        e, t = globals()[f"_build_{element['type']}"](PKDict(element))
+        pulse = e.propagate(pulse, t)
+        prev = element
+
+propagate(pulse)
 {% endif %}
+

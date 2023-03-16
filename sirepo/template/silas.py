@@ -402,13 +402,7 @@ def _generate_parameters_file(data):
     ):
         return res + template_common.render_jinja(SIM_TYPE, v)
     if data.report == "animation":
-        beamline = data.models.beamline
-        data.models.crystal = _get_crystal(data)
-        v.leftMirrorFocusingError = beamline[0].focusingError
-        v.rightMirrorFocusingError = beamline[-1].focusingError
-        v.summaryCSV = _SUMMARY_CSV_FILE
-        v.initialLaserFile = _INITIAL_LASER_FILE
-        v.finalLaserFile = _FINAL_LASER_FILE
+        v.beamline = data.models.beamline
         return res + template_common.render_jinja(SIM_TYPE, v)
     if data.report == "crystalAnimation":
         v.crystalCSV = _CRYSTAL_CSV_FILE

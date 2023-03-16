@@ -73,10 +73,11 @@
         "crystal": {
             "icon": ["", "String", "ti-sapphire-crystal.png"],
             "title": ["Element Name", "String", "Crystal"],
+            "numSlices": ["Number of Slices", "Integer", 50],
             "position": ["Central Position [m]", "Float"],
-            "radius": ["Radial Variation", "Float", 0.02, "Radial variation of index of refraction"],
-            "width": ["Crystal Width [cm]", "Float", 2.0],
-            "refractionIndex": ["Index of Refraction", "Float", 2.0, "Index of refraction along the optical axis", 1e-24]
+            "radius": ["Transverse Variation", "Float", 0.001, "Transverse variation of index of refraction", 0.0],
+            "width": ["Length [m]", "Float", 0.02],
+            "refractionIndex": ["Index of Refraction", "Float", 1.75, "Index of refraction along the optical axis", 1e-24]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -133,12 +134,9 @@
         "laserPulse3Animation": {},
         "laserPulse4Animation": {},
         "lens": {
-            "title": ["Element Name", "String", "Lens"],
+            "focalLength": ["Focal Length [m]", "Float", 2.0],
             "position": ["Position along Optical Path [m]", "Float"],
-            "horizontalFocalLength": ["Horizontal Focal Length [m]", "Float", 3],
-            "verticalFocalLength": ["Vertical Focal Length [m]", "Float", 1.0e+23],
-            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+            "title": ["Element Name", "String", "Lens"]
         },
         "mirror": {
             "title": ["Element Name", "String", "Planar Mirror"],
@@ -177,7 +175,8 @@
                 "position",
                 "width",
                 "refractionIndex",
-                "radius"
+                "radius",
+                "numSlices"
             ]
         },
         "crystalAnimation": {
@@ -282,16 +281,7 @@
             "advanced": [
                 "title",
                 "position",
-                [
-                    ["Horizontal", [
-                        "horizontalFocalLength",
-                        "horizontalOffset"
-                    ]],
-                    ["Vertical", [
-                        "verticalFocalLength",
-                        "verticalOffset"
-                    ]]
-                ]
+                "focalLength"
             ]
         },
         "plotAnimation": {

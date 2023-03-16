@@ -1,11 +1,12 @@
+from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from rslaser.pulse import pulse
 from rslaser.utils import srwl_uti_data
 import numpy
 import sirepo
 
 def _build_pulse():
+    from rslaser.pulse import pulse
     return pulse.LaserPulse(
         params=PKDict(
             chirp={{ laserPulse.chirp }},
@@ -51,6 +52,6 @@ def _save_pulse(pulse, filename):
     ]))
 
 
-p = _build_pulse()
-s = p.slice[0]
-ph = s.n_photons_2d
+pulse = _build_pulse()
+slice = pulse.slice[0]
+
