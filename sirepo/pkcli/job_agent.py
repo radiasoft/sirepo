@@ -502,9 +502,7 @@ class _Cmd(PKDict):
         else:
             await self.dispatcher.send(
                 self.dispatcher.format_op(
-                    self.msg,
-                    job.OP_OK,
-                    reply=PKDict(state=job.PENDING, qState=None)
+                    self.msg, job.OP_OK, reply=PKDict(state=job.PENDING, qState=None)
                 )
             )
         self._process.start()

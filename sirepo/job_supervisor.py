@@ -1040,7 +1040,7 @@ class _ComputeJob(_Supervisor):
                         report=c.analysisModel,
                         simulationId=self.db.simulationId,
                         simulationType=self.db.simulationType,
-                        qState= self.db.qState,
+                        qState=self.db.qState,
                     ),
                 )
             return r
