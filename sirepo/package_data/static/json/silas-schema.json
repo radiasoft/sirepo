@@ -122,7 +122,7 @@
             "geometryFromFiles": ["Load From Files", "Boolean", "0"],
             "waistSize": ["RMS Waist Size [m]", "FloatArray", [0.001, 0.001], "", ["Horizontal", "Vertical"]]
         },
-        "laserPulseIntensityReport": {
+        "initialIntensityReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "laserPulsePhaseReport": {
@@ -157,6 +157,9 @@
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
             "position": ["Position along Optical Path [m]", "Float"]
+        },
+        "watchpointReport": {
+            "_super": ["_", "model", "initialIntensityReport"]
         },
         "wavefrontSummaryAnimation": {
             "element": ["Beamline Element", "SelectElement", "all"]
@@ -261,7 +264,7 @@
             "title": "Intensity Along Laser Pulse",
             "advanced": []
         },
-        "laserPulseIntensityReport": {
+        "initialIntensityReport": {
             "title": "Intensity",
             "advanced": [
                 "colorMap"

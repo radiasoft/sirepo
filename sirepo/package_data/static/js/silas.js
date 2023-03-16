@@ -31,6 +31,8 @@ SIREPO.app.config(function() {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
+
+    SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'laserPulse';
 });
 
 SIREPO.app.factory('silasService', function(appState) {

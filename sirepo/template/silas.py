@@ -104,7 +104,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def save_sequential_report_data(run_dir, sim_in):
-    if sim_in.report == "laserPulseIntensityReport":
+    if sim_in.report == "initialIntensityReport":
         _extract_laser_pulse_intensity_report(run_dir, sim_in)
     if sim_in.report == "laserPulsePhaseReport":
         _extract_laser_pulse_phase_report(run_dir, sim_in)
@@ -397,7 +397,7 @@ def _generate_parameters_file(data):
     v.laserPulse = data.models.laserPulse
     res += template_common.render_jinja(SIM_TYPE, v, "laserPulse.py")
     if data.report in (
-        "laserPulseIntensityReport",
+        "initialIntensityReport",
         "laserPulsePhaseReport"
     ):
         return res + template_common.render_jinja(SIM_TYPE, v)
