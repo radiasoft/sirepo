@@ -536,9 +536,12 @@ def import_file(req, tmp_dir, qcall, **kwargs):
     import sirepo.server
 
     i = None
+    r = None
     try:
         r = kwargs["reply_op"](simulation_db.default_data(SIM_TYPE))
         d = pykern.pkjson.load_any(r.content_as_str())
+        r.destroy()
+        r = None
         i = d.models.simulation.simulationId
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
@@ -567,7 +570,9 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             c = None
             try:
                 c = r.content_as_str()
-                r = pykern.pkjson.load_any(c)
+                r.destroy()
+                r = None
+                x = pykern.pkjson.load_any(c)
             except Exception as e:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
@@ -575,30 +580,30 @@ def import_file(req, tmp_dir, qcall, **kwargs):
                     e,
                     c,
                 )
-            if "error" in r:
-                pkdc("runSimulation error msg={}", r)
-                raise sirepo.util.UserAlert(r.get("error"))
-            if PARSED_DATA_ATTR in r:
+            if "error" in x:
+                pkdc("runSimulation error msg={}", x)
+                raise sirepo.util.UserAlert(x.get("error"))
+            if PARSED_DATA_ATTR in x:
                 break
-            if "nextRequest" not in r:
+            if "nextRequest" not in x:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
                     "unable to find nextRequest in response={}",
                     PARSED_DATA_ATTR,
-                    r,
+                    x,
                 )
-            time.sleep(r.nextRequestSeconds)
-            r = qcall.call_api("runStatus", data=r.nextRequest)
+            time.sleep(x.nextRequestSeconds)
+            r = qcall.call_api("runStatus", data=x.nextRequest)
         else:
             raise sirepo.util.UserAlert(
                 "error parsing python",
                 "polled too many times, last response={}",
                 r,
             )
-        r = r.get(PARSED_DATA_ATTR)
-        r.models.simulation.simulationId = i
-        r = simulation_db.save_simulation_json(
-            r, do_validate=True, fixup=True, qcall=qcall
+        x = x.get(PARSED_DATA_ATTR)
+        x.models.simulation.simulationId = i
+        x = simulation_db.save_simulation_json(
+            x, do_validate=True, fixup=True, qcall=qcall
         )
     except Exception:
         # TODO(robnagler) need to clean up simulations except in dev
@@ -609,10 +614,14 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             except Exception:
                 pass
         raise
+    finally:
+        if r:
+            r.destroy()
+            r = None
     raise sirepo.util.SReplyExc(
         qcall.call_api(
             "simulationData",
-            kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i),
+            kwargs=PKDict(simulation_type=x.simulationType, simulation_id=i),
         ),
     )
 
@@ -1268,8 +1277,9 @@ def _compute_PGM_value(model):
         else:
             model.orientation = "x"
         _compute_grating_orientation(model)
-    except Exception:
-        pkdlog("\n{}", traceback.format_exc())
+    except Exception as e:
+        if type(e) not in (ZeroDivisionError, ValueError, TypeError):
+            pkdlog("\n{}", traceback.format_exc())
         if model.computeParametersFrom == "1":
             model.grazingAngle = None
         elif model.computeParametersFrom == "2":
@@ -1714,7 +1724,7 @@ def _flux_units(model):
 
 
 def _generate_beamline_optics(report, data, qcall=None):
-    res = PKDict(names=[], last_id=None, watches=PKDict())
+    res = PKDict(names=[], exclude=[], last_id=None, watches=PKDict())
     models = data.models
     if len(models.beamline) == 0 or not (
         _SIM_DATA.srw_is_beamline_report(report) or report == "beamlineAnimation"
@@ -1783,10 +1793,13 @@ def _generate_beamline_optics(report, data, qcall=None):
         if int(res.last_id) == int(item.id):
             break
         prev = item
+    for item in items:
+        if item.type == "watch":
+            res.exclude.append(item.name)
     args = PKDict(
         report=report,
         items=items,
-        names=res.names,
+        names=[n for n in res.names if n not in res.exclude],
         postPropagation=models.postPropagation,
         maxNameSize=max_name_size,
         nameMap=PKDict(
@@ -1956,7 +1969,13 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     ):
         content.append(
             "names = [{}]".format(
-                ",".join(["'{}'".format(name) for name in beamline_info.names]),
+                ",".join(
+                    [
+                        "'{}'".format(name)
+                        for name in beamline_info.names
+                        if name not in beamline_info.exclude
+                    ]
+                ),
             )
         )
         content.append(

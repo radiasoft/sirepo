@@ -653,8 +653,11 @@ SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $inte
             'tooltip': '@',
         },
         template: `
-            <label><span data-text-with-math="label"></span>&nbsp;<span data-sr-tooltip="{{ tooltip }}"></span></label>
+            <label><span data-text-with-math="label" data-is-dynamic="isDynamic()"></span>&nbsp;<span data-sr-tooltip="{{ tooltip }}"></span></label>
         `,
+        controller: function($scope) {
+            $scope.isDynamic = () => ! ! $scope.label.match(/{{\s*.+\s*}}/);
+        },
     };
 });
 
@@ -2678,7 +2681,7 @@ SIREPO.app.directive('numArray', function(appState, utilities) {
         template: `
             <div data-ng-repeat="v in model[fieldName] track by $index"
               style="display: inline-block;" >
-              <label data-text-with-math="valueLabels[$index]" style="margin-right: 1ex"></label>
+              <label data-text-with-math="info[4][$index]" data-is-dynamic="isDynamic(info[4][$index])" style="margin-right: 1ex"></label>
               <input class="form-control sr-number-list" data-string-to-number="{{ numType }}"
                 data-ng-model="model[fieldName][$index]" data-min="info[5][$index]" data-max="info[6][$index]"
                 style="text-align: right" required />
@@ -2686,7 +2689,7 @@ SIREPO.app.directive('numArray', function(appState, utilities) {
         `,
         controller: $scope => {
             $scope.appState = appState;
-            $scope.valueLabels = $scope.info[4].map(s => utilities.interpolateString(s, $scope));
+            $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
         },
     };
 });
@@ -3056,6 +3059,78 @@ SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
               </div>
             </form>
         `,
+    };
+});
+
+SIREPO.app.directive('ldapLogin', function (requestSender, errorService) {
+    return {
+        restrict: 'A',
+        scope: {
+            email: '@',
+            password: '@',
+        },
+        template: `
+            <form class="form-horizontal" autocomplete="off" novalidate>
+              <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                  <p>Enter your LDAP login</p>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label">Email</label>
+                <div class="col-sm-10">
+                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="email"/>
+                </div>
+                <label class="col-sm-2 control-label">Password</label>
+                <div class="col-sm-10">
+                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="password"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                  <div data-disable-after-click="">
+                    <button data-ng-click="login()" class="btn btn-primary">Continue</button>
+                  </div>
+                  <div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                </div>
+              </div>
+            </form>
+        `,
+        controller: function ($scope) {
+            function handleResponse(data) {
+                if (data.state == 'ok') {
+                    showWarning(data.form_error);
+                }
+                else {
+                    showWarning('Server reported an error, please contact support@sirepo.com.');
+                }
+            }
+
+            function showWarning(msg) {
+                $scope.showWarning = true;
+                $scope.warningText = msg;
+                $scope.$broadcast('sr-clearDisableAfterClick');
+            }
+
+            $scope.login = function () {
+                if (!$scope.email || !$scope.password) {
+                    showWarning('Empty field(s)');
+                }
+                else {
+                    $scope.showWarning = false;
+                    requestSender.sendRequest(
+                        'authLdapLogin',
+                        handleResponse,
+                        {
+                            email: $scope.email,
+                            password: $scope.password,
+                            simulationType: SIREPO.APP_SCHEMA.simulationType
+                        }
+                    );
+                }
+            };
+        },
     };
 });
 
@@ -3850,13 +3925,13 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                     }
                     delegate.update();
                 });
-            });
 
-            $scope.$on('sliderParent.ready', function (e, m) {
-                if (m) {
-                    $scope.model = m;
-                }
-                update();
+                $scope.$on('sliderParent.ready', function (e, m) {
+                    if (m) {
+                        $scope.model = m;
+                    }
+                    update();
+                });
             });
         },
     };

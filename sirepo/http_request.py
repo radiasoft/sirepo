@@ -32,10 +32,7 @@ def parse_json(qcall):
     # certain clients have been using this in the past.  This
     # fits our general approach of being nice in what we accept
     # and strict in what we send out.
-    return simulation_db.json_load(
-        qcall.sreq.body_as_bytes(),
-        encoding=qcall.sreq.content_type_encoding(),
-    )
+    return simulation_db.json_load(qcall.sreq.body_as_bytes())
 
 
 def parse_post(qcall, kwargs):

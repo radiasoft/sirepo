@@ -84,6 +84,7 @@ class _SReply(sirepo.quest.Attr):
         super().__init__(**kwargs)
         # Needed in tornado_response
         self.internal_req = self.qcall.sreq.internal_req
+        self._cookies_to_delete = None
 
     def content_as_str(
         self,
@@ -100,6 +101,13 @@ class _SReply(sirepo.quest.Attr):
         assert "value" in kwargs
         self.__attrs.cookie = PKDict(kwargs)
         return self
+
+    def delete_third_party_cookies(self, names_and_paths):
+        if self._cookies_to_delete is not None:
+            raise AssertionError(
+                f"setting names_and_paths={names_and_paths} but found existing _cookies_to_delete={self._cookies_to_delete}"
+            )
+        self._cookies_to_delete = names_and_paths
 
     def destroy(self, **kwargs):
         """Must be called"""
@@ -130,6 +138,13 @@ class _SReply(sirepo.quest.Attr):
                 resp.headers["Pragma"] = "no-cache"
             return resp
 
+        def _delete_cookies(resp):
+            for n, p in self.pkdel(self._cookies_to_delete) or ():
+                resp.delete_cookie(
+                    n,
+                    path=p,
+                )
+
         def _file():
             # Takes over some of the work for werkzeug.send_file
             c = self.__attrs.content
@@ -158,11 +173,16 @@ class _SReply(sirepo.quest.Attr):
         r.headers.update(a.headers)
         if "cookie" in a and 200 <= r.status_code < 400:
             r.set_cookie(**a.cookie)
+            _delete_cookies(r)
         return _cache_control(r)
 
     def from_api(self, res):
+        """Process the reply of a call to another API
+
+        Destructively copies `res` to `self` if res is an`_SReply`
+        """
         if isinstance(res, _SReply):
-            return res
+            return self._copy(res)
         if isinstance(res, dict):
             return self.gen_json(res)
         raise AssertionError(f"invalid return type={type(res)} from qcall={self.qcall}")
@@ -212,6 +232,7 @@ class _SReply(sirepo.quest.Attr):
             if h:
                 h.close()
                 self.__attrs.pkdel("content")
+            raise
 
     def gen_file_as_attachment(self, content_or_path, filename=None, content_type=None):
         """Generate a file attachment response
@@ -446,6 +467,14 @@ class _SReply(sirepo.quest.Attr):
                 else:
                     raise AssertionError(f"unhandled cookie attr={k}")
             resp.set_header("Set-Cookie", "; ".join(r))
+            _cookie_aux_delete(resp)
+
+        def _cookie_aux_delete(resp):
+            for n, p in self.pkdel(self._cookies_to_delete) or ():
+                resp.clear_cookie(
+                    n,
+                    path=p,
+                )
 
         def _file(resp):
             a = self.__attrs
@@ -481,6 +510,15 @@ class _SReply(sirepo.quest.Attr):
         _cache_control(r)
         _cookie(r)
         return r
+
+    def _copy(self, source):
+        """Destructive copy unless `self` is `res`"""
+        if source == self:
+            return self
+        res = self.from_kwargs(**source.__attrs)
+        # Destructive so "handle" not used by caller
+        source.__attrs = None
+        return res
 
     def _disposition(self, disposition):
         self.header_set(
@@ -564,7 +602,7 @@ class _SReply(sirepo.quest.Attr):
         r = args.sreply
         if not isinstance(r, _SReply):
             raise AssertionError(f"invalid class={type(r)} response={r}")
-        return r
+        return self._copy(r)
 
     def _gen_exception_reply_ServerError(self, args):
         return self._gen_http_exception(500)

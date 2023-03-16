@@ -746,6 +746,26 @@
             "basic": [],
             "advanced": []
         },
+        "segmentViewer": {
+            "title": "Segments Sample",
+            "basic": [],
+            "advanced": []
+        },
+        "bestLosses": {
+            "title": "Best Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "worstLosses": {
+            "title": "Worst Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "diceCoefficient": {
+            "title": "Dice Coefficient",
+            "basic": [],
+            "advanced": []
+        },
         "separableConv2D": {
             "columns": [
                 "dimensionality",

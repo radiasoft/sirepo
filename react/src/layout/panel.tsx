@@ -70,10 +70,8 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         }
 
         return (
-            <Col md={6} xl={4} className="mb-3">
-                <EditorPanel {...formProps}>
-                </EditorPanel>
-            </Col>
+            <EditorPanel {...formProps}>
+            </EditorPanel>
         )
     }
 }
