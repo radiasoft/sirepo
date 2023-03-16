@@ -29,6 +29,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
+                "crystal",
                 "crystalAnimation",
                 "crystal3dAnimation",
                 "crystalCylinder",
@@ -37,10 +38,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "laserPulse",
                 "laserPulseIntensityReport",
                 "laserPulsePhaseReport",
+                "lens",
                 "plotAnimation",
                 "plot2Animation",
                 "simulation",
                 "simulationSettings",
+                "watch",
                 "wavefrontSummaryAnimation",
             ),
         )

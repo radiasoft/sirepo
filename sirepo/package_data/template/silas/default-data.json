@@ -1,32 +1,6 @@
 {
     "models": {
-        "beamline": [
-            {
-                "focusingError": 1,
-                "icon": "lmirror.svg",
-                "id": 4,
-                "position": 0,
-                "title": "Left Mirror",
-                "type": "mirror"
-            },
-            {
-                "icon": "ti-sapphire-crystal.png",
-                "id": 5,
-                "position": 5,
-                "radius": 0.02,
-                "refractionIndex": 2,
-                "title": "Ti-Sapphire Crystal",
-                "type": "crystal"
-            },
-            {
-                "focusingError": 1,
-                "icon": "rmirror.svg",
-                "id": 6,
-                "position": 10,
-                "title": "Right Mirror",
-                "type": "mirror"
-            }
-        ],
+        "beamline": [],
         "gaussianBeam": {
             "energyPerPulse": 0.001,
             "initialPropagationLength": 15,

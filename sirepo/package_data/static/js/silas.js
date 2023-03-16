@@ -51,7 +51,7 @@ SIREPO.app.factory('silasService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('SourceController', function (appState, beamlineService, frameCache, persistentSimulation, silasService, $scope) {
+SIREPO.app.controller('SourceController', function (appState, silasService, $scope) {
 
 });
 
@@ -61,7 +61,10 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     self.appState = appState;
     self.beamlineModels = ['beamline'];
     self.prepareToSave = () => {};
-    self.toolbarItemNames = ['crystal', 'mirror'];
+    self.toolbarItemNames = [
+        ['Optics', ['crystal', 'lens']],
+        'watch',
+    ];
 
     function updateCavityDistance() {
         var pos = 0;
@@ -124,7 +127,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
-    beamlineService.setEditable(false);
+    beamlineService.setEditable(true);
     appState.whenModelsLoaded($scope, () => {
         var oldWidth = silasService.getCrystal().width;
         updateWavefrontModels();
@@ -132,12 +135,12 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
             if (! appState.isReportModelName(name)) {
                 updateWavefrontModels();
             }
-            if (name == 'simulationSettings') {
+            if (name === 'simulationSettings') {
                 updateCavityDistance();
             }
-            else if (name == 'beamline') {
+            else if (name === 'beamline') {
                 var width = silasService.getCrystal().width;
-                if (oldWidth != width) {
+                if (oldWidth !== width) {
                     oldWidth = width;
                     appState.models.crystalCylinder.crystalWidth = width;
                     appState.saveQuietly('crystalCylinder');

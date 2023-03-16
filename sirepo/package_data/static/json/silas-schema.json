@@ -71,6 +71,7 @@
     },
     "model": {
         "crystal": {
+            "icon": ["", "String", "ti-sapphire-crystal.png"],
             "title": ["Element Name", "String", "Crystal"],
             "position": ["Central Position [m]", "Float"],
             "radius": ["Radial Variation", "Float", 0.02, "Radial variation of index of refraction"],
@@ -131,6 +132,14 @@
         "laserPulse2Animation": {},
         "laserPulse3Animation": {},
         "laserPulse4Animation": {},
+        "lens": {
+            "title": ["Element Name", "String", "Lens"],
+            "position": ["Position along Optical Path [m]", "Float"],
+            "horizontalFocalLength": ["Horizontal Focal Length [m]", "Float", 3],
+            "verticalFocalLength": ["Vertical Focal Length [m]", "Float", 1.0e+23],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+        },
         "mirror": {
             "title": ["Element Name", "String", "Planar Mirror"],
             "position": ["Central Position [m]", "Float"],
@@ -144,6 +153,10 @@
             "sample_factor": ["Sample Factor", "Float", 12.0, "Sampling factor for adjusting simulation grid resolution.", 1, 30],
             "sig_s": ["Laser Pulse RMS Length [m]", "Float", 0.1],
             "nslice": ["Laser Pulse Slice Count", "Integer", 11, "", 3]
+        },
+        "watch": {
+            "title": ["Element Name", "SafePath", "Watchpoint"],
+            "position": ["Position along Optical Path [m]", "Float"]
         },
         "wavefrontSummaryAnimation": {
             "element": ["Beamline Element", "SelectElement", "all"]
@@ -260,6 +273,24 @@
                 "colorMap"
             ]
         },
+        "lens": {
+            "title": "Lens",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                [
+                    ["Horizontal", [
+                        "horizontalFocalLength",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalFocalLength",
+                        "verticalOffset"
+                    ]]
+                ]
+            ]
+        },
         "plotAnimation": {
             "title": "Radial Temperature Profile",
             "advanced": []
@@ -298,6 +329,14 @@
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
+        },
+        "watch": {
+            "title": "Watchpoint",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position"
+            ]
         },
         "wavefrontAnimation": {
             "title": "Wavefront",
