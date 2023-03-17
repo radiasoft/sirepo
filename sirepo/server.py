@@ -434,7 +434,9 @@ class API(sirepo.quest.API):
         model="ComputeModelName optional",
         title="DownloadNamePostfix optional",
     )
-    async def api_pythonSource(self, simulation_type, simulation_id, model=None, title=None):
+    async def api_pythonSource(
+        self, simulation_type, simulation_id, model=None, title=None
+    ):
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         m = model and req.sim_data.parse_model(model)
         d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
