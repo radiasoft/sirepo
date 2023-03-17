@@ -35,7 +35,7 @@ user_model = "AuthEmailUser"
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel")
-    await def api_authLdapLogin(self):
+    async def api_authLdapLogin(self):
         def _bind(creds):
             try:
                 ldap.initialize(_cfg.server).simple_bind_s(creds.dn, creds.password)

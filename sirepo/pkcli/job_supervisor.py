@@ -155,11 +155,11 @@ class _ServerReq(_JsonPostRequestHandler):
 
 
 class _ServerSrtime(_JsonPostRequestHandler):
-    def post(self):
+    async def post(self):
         assert (
             pkconfig.channel_in_internal_test()
         ), "You can only adjust time in internal test"
-        sirepo.srtime.adjust_time(pkjson.load_any(self.request.body).days)
+        await sirepo.srtime.adjust_time(pkjson.load_any(self.request.body).days)
         self.write(PKDict())
 
 

@@ -20,6 +20,7 @@ import sirepo.auth
 import sirepo.events
 import sirepo.feature_config
 import sirepo.quest
+import sirepo.spa_session
 import sirepo.uri
 import sirepo.util
 import urllib.parse
@@ -75,7 +76,7 @@ def assert_api_name_and_auth(qcall, name, allowed):
         raise AssertionError(f"api={name} not in allowed={allowed}")
 
 
-def call_api(qcall, name, kwargs=None, data=None):
+async def call_api(qcall, name, kwargs=None, data=None):
     """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
 
     Call another API with permission checks.
@@ -88,7 +89,7 @@ def call_api(qcall, name, kwargs=None, data=None):
     Returns:
         Response: result
     """
-    return _call_api(
+    return await _call_api(
         qcall,
         _api_to_route[name],
         kwargs=kwargs,
@@ -195,7 +196,7 @@ def start_tornado(ip, port, debug=False):
     from tornado import httpserver, ioloop, web, log
 
     class _Handler(web.RequestHandler):
-        def _route(self):
+        async def _route(self):
             p = pykern.pkcompat.from_bytes(
                 urllib.parse.unquote_to_bytes(self.request.path),
             )
@@ -203,7 +204,7 @@ def start_tornado(ip, port, debug=False):
             if e:
                 pkdlog("uri={} {}; route={} kwargs={} ", p, e, r, k)
                 r = _not_found_route
-            _call_api(
+            await _call_api(
                 None,
                 r,
                 kwargs=k,
@@ -212,10 +213,10 @@ def start_tornado(ip, port, debug=False):
             )
 
         async def get(self):
-            self._route()
+            await self._route()
 
         async def post(self):
-            self._route()
+            await self._route()
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(
@@ -284,7 +285,7 @@ class _URIParams(PKDict):
     pass
 
 
-def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None):
+async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None):
     qcall = route.cls()
     c = False
     r = None
@@ -296,6 +297,7 @@ def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None
         qcall.sim_type_set_from_spec(route.func)
         if not parent:
             sirepo.auth.init_quest(qcall=qcall, internal_req=internal_req)
+            await sirepo.spa_session.init_quest(qcall=qcall)
         if data:
             qcall.http_data_set(data)
         try:
@@ -357,18 +359,20 @@ def _flask_dispatch(path):
     Returns:
         response
     """
-    import flask
+    import flask, asyncio
 
     error, route, kwargs = _path_to_route(path)
     if error:
         pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
         route = _not_found_route
-    return _call_api(
-        None,
-        route,
-        kwargs=kwargs,
-        internal_req=flask.request,
-        reply_op=lambda r: r.flask_response(_app.response_class),
+    return asyncio.run(
+        _call_api(
+            None,
+            route,
+            kwargs=kwargs,
+            internal_req=flask.request,
+            reply_op=lambda r: r.flask_response(_app.response_class),
+        )
     )
 
 

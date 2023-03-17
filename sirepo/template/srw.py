@@ -532,7 +532,7 @@ def sim_frame(frame_args):
     return extract_report_data(frame_args.sim_in)
 
 
-def import_file(req, tmp_dir, qcall, **kwargs):
+async def import_file(req, tmp_dir, qcall, **kwargs):
     import sirepo.server
 
     i = None
@@ -558,7 +558,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             forceRun=True,
             simulationId=i,
         )
-        r = qcall.call_api("runSimulation", data=d)
+        r = await qcall.call_api("runSimulation", data=d)
         for _ in range(_IMPORT_PYTHON_POLLS):
             if r.status_as_int() != 200:
                 raise sirepo.util.UserAlert(
@@ -593,7 +593,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
                     x,
                 )
             time.sleep(x.nextRequestSeconds)
-            r = qcall.call_api("runStatus", data=x.nextRequest)
+            r = await qcall.call_api_sync("runStatus", data=x.nextRequest)
         else:
             raise sirepo.util.UserAlert(
                 "error parsing python",
@@ -619,7 +619,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             r.destroy()
             r = None
     raise sirepo.util.SReplyExc(
-        qcall.call_api(
+        await qcall.call_api(
             "simulationData",
             kwargs=PKDict(simulation_type=x.simulationType, simulation_id=i),
         ),
