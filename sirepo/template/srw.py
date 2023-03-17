@@ -2001,7 +2001,11 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             ]
         )
     else:
-        if report in ("multiElectronAnimation", "coherenceXAnimation", "coherenceYAnimation"):
+        if report in (
+            "multiElectronAnimation",
+            "coherenceXAnimation",
+            "coherenceYAnimation",
+        ):
             if not run_all:
                 content.append("v.wm = True")
         else:
