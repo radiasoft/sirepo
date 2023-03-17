@@ -1,23 +1,29 @@
 # ^^ pulse, slice defined in laserPulse.py ^^ #
 
+def intensity(wavefront):
+    return srwl_uti_data.calc_int_from_elec(w).tolist()
+
+
+def phase(wavefront, polarization):
+    z, m = srwl_uti_data.calc_int_from_wfr(
+        wavefront,
+        _pol={{ laserPulse.polarization | int }},
+        _int_type=4,
+        _pr=False,
+    )
+    {% if laserPulse.geometryFromFiles == "1" %}
+    nx, ny = m.nx, m.ny
+    {% else %}
+    nx, ny = slice.nx_slice, slice.ny_slice
+    {% endif %}
+    return numpy.array(z).reshape(ny, nx).tolist()
+
+
 w = pulse.slice_wfr(0)
 {% if report == "initialIntensityReport" %}
-z = srwl_uti_data.calc_int_from_elec(w).tolist()
+z = intensity(w)
 {% elif report == "initialPhaseReport" %}
-z, m = srwl_uti_data.calc_int_from_wfr(
-    w,
-    _pol={{ laserPulse.polarization | int }},
-    _int_type=4,
-    _pr=False,
-)
-{% if laserPulse.geometryFromFiles == "1" %}
-nx = m.nx
-ny = m.ny
-{% else %}
-nx = slice.nx_slice
-ny = slice.ny_slice
-{% endif %}
-z = numpy.array(z).reshape(ny, nx).tolist()
+z = phase(w)
 {% elif report == "animation" %}
 
 def _build_crystal(model):
@@ -50,14 +56,16 @@ def _build_watch(model):
 def propagate(pulse):
 
     beamline = {{ beamline }}
-    prev = {"position": 0.0}
-    for element in beamline:
-        dz = element["position"] - prev["position"]
+    prev = PKDict(position=0.0)
+    for element in [PKDict(e) for e in beamline]:
+        dz = element.position - prev.position
         if dz:
             e = _build_drift(dz)
             pulse = e.propagate(pulse, "default")
-        e = globals()[f"_build_{element['type']}"](PKDict(element))
-        pulse = e.propagate(pulse, element["propagationType"])
+        e = globals()[f"_build_{element['type']}"](element)
+        pulse = e.propagate(pulse, element.propagationType)
+        w = pulse.slice_wfr(0)
+
         prev = element
 
 propagate(pulse)
