@@ -170,8 +170,6 @@ disown
                     write_to_log(
                         o, e, f"remote-{'before' if before_start else 'after'}-start"
                     )
-            except sirepo.util.ASYNC_CANCELED_ERROR:
-                raise
             except Exception as e:
                 pkdlog(
                     "{} e={} stack={}",

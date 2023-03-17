@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['CRL', 'CRL_Watchpoint', 'Watchpoint', 'Fiber', 'Fiber_Watchpoint2', 'Watchpoint2']
+        names = ['CRL', 'CRL_Watchpoint', 'Fiber', 'Fiber_Watchpoint2']
     for el_name in names:
         if el_name == 'CRL':
             # CRL: crl 36.0m
@@ -42,9 +42,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_CRL_Watchpoint_L,
             ))
             pp.append(v.op_CRL_Watchpoint_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 70.1915m
-            pass
         elif el_name == 'Fiber':
             # Fiber: fiber 70.1915m
             el.append(srwlib.srwl_opt_setup_cyl_fiber(
@@ -65,9 +62,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_Fiber_Watchpoint2_L,
             ))
             pp.append(v.op_Fiber_Watchpoint2_pp)
-        elif el_name == 'Watchpoint2':
-            # Watchpoint2: watch 70.85m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -320,7 +314,7 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['CRL','CRL_Watchpoint','Watchpoint','Fiber','Fiber_Watchpoint2','Watchpoint2']
+    names = ['CRL','CRL_Watchpoint','Fiber','Fiber_Watchpoint2']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'

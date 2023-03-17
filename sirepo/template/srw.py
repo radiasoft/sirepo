@@ -1277,8 +1277,9 @@ def _compute_PGM_value(model):
         else:
             model.orientation = "x"
         _compute_grating_orientation(model)
-    except Exception:
-        pkdlog("\n{}", traceback.format_exc())
+    except Exception as e:
+        if type(e) not in (ZeroDivisionError, ValueError, TypeError):
+            pkdlog("\n{}", traceback.format_exc())
         if model.computeParametersFrom == "1":
             model.grazingAngle = None
         elif model.computeParametersFrom == "2":
@@ -1723,7 +1724,7 @@ def _flux_units(model):
 
 
 def _generate_beamline_optics(report, data, qcall=None):
-    res = PKDict(names=[], last_id=None, watches=PKDict())
+    res = PKDict(names=[], exclude=[], last_id=None, watches=PKDict())
     models = data.models
     if len(models.beamline) == 0 or not (
         _SIM_DATA.srw_is_beamline_report(report) or report == "beamlineAnimation"
@@ -1792,10 +1793,13 @@ def _generate_beamline_optics(report, data, qcall=None):
         if int(res.last_id) == int(item.id):
             break
         prev = item
+    for item in items:
+        if item.type == "watch":
+            res.exclude.append(item.name)
     args = PKDict(
         report=report,
         items=items,
-        names=res.names,
+        names=[n for n in res.names if n not in res.exclude],
         postPropagation=models.postPropagation,
         maxNameSize=max_name_size,
         nameMap=PKDict(
@@ -1965,7 +1969,13 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     ):
         content.append(
             "names = [{}]".format(
-                ",".join(["'{}'".format(name) for name in beamline_info.names]),
+                ",".join(
+                    [
+                        "'{}'".format(name)
+                        for name in beamline_info.names
+                        if name not in beamline_info.exclude
+                    ]
+                ),
             )
         )
         content.append(

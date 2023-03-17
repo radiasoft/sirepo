@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['MOAT_1', 'MOAT_1_MOAT_2', 'MOAT_2', 'MOAT_2_HFM', 'HFM', 'HFM_VFM', 'VFM', 'VFM_VDM', 'VDM', 'VDM_SSA', 'SSA', 'SSA_ES1', 'ES1', 'ES1_CRL', 'CRL', 'CRL_ES2', 'ES2']
+        names = ['MOAT_1', 'MOAT_1_MOAT_2', 'MOAT_2', 'MOAT_2_HFM', 'HFM', 'HFM_VFM', 'VFM', 'VFM_VDM', 'VDM', 'VDM_SSA', 'SSA', 'SSA_ES1', 'ES1_CRL', 'CRL', 'CRL_ES2']
     for el_name in names:
         if el_name == 'MOAT_1':
             # MOAT_1: crystal 31.94m
@@ -199,9 +199,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_SSA_ES1_L,
             ))
             pp.append(v.op_SSA_ES1_pp)
-        elif el_name == 'ES1':
-            # ES1: watch 50.9m
-            pass
         elif el_name == 'ES1_CRL':
             # ES1_CRL: drift 50.9m
             el.append(srwlib.SRWLOptD(
@@ -230,9 +227,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_CRL_ES2_L,
             ))
             pp.append(v.op_CRL_ES2_pp)
-        elif el_name == 'ES2':
-            # ES2: watch 59.0m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -604,7 +598,7 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['MOAT_1','MOAT_1_MOAT_2','MOAT_2','MOAT_2_HFM','HFM','HFM_VFM','VFM','VFM_VDM','VDM','VDM_SSA','SSA','SSA_ES1','ES1','ES1_CRL','CRL','CRL_ES2','ES2']
+    names = ['MOAT_1','MOAT_1_MOAT_2','MOAT_2','MOAT_2_HFM','HFM','HFM_VFM','VFM','VFM_VDM','VDM','VDM_SSA','SSA','SSA_ES1','ES1_CRL','CRL','CRL_ES2']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
