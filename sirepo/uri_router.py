@@ -310,7 +310,7 @@ async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_o
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)
             r = qcall.sreply.from_api(
-                getattr(qcall, qcall.uri_route.func_name)(**kwargs),
+                await getattr(qcall, qcall.uri_route.func_name)(**kwargs)
             )
             c = True
         except Exception as e:

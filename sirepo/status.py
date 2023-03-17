@@ -101,7 +101,7 @@ class API(sirepo.quest.API):
                 pass
 
     async def _validate_auth_state(self):
-        r = await self.call_api("authState").content_as_str()
+        r = (await self.call_api("authState")).content_as_str()
         m = re.search(r"SIREPO.authState\s*=\s*(.*?);", r)
         assert m, pkdformat("no authState in response={}", r)
         assert pkjson.load_any(m.group(1)).isLoggedIn, pkdformat(

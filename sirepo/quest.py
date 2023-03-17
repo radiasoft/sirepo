@@ -87,6 +87,15 @@ class API(pykern.quest.API):
         """
         return await uri_router.call_api(self, name, kwargs=kwargs, data=data)
 
+    def call_api_sync(self, *args, **kwargs):
+        """Synchronous call_api
+
+        Only use in tests.
+        """
+        import asyncio
+
+        return asyncio.run(self.call_api(*args, **kwargs))
+
     def destroy(self, commit=False):
         for k, v in reversed(list(self.items())):
             if hasattr(v, "destroy") and not getattr(v, "quest_no_destroy", False):
