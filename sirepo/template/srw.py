@@ -1991,7 +1991,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             ]
         )
     else:
-        if report == "multiElectronAnimation":
+        if report in ("multiElectronAnimation", "coherenceXAnimation", "coherenceYAnimation"):
             if not run_all:
                 content.append("v.wm = True")
         else:
@@ -2364,6 +2364,7 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
         if sirepo.mpi.cfg().in_slurm:
             v.sbatchBackup = "1"
         if report == "multiElectronAnimation":
+            v.multiElectronAnimation = ""
             if dm.multiElectronAnimation.calcCoherence == "1":
                 v.multiElectronCharacteristic = 41
             if dm.multiElectronAnimation.wavefrontSource == "cmd":
