@@ -27,6 +27,7 @@ _SUMMARY_CSV_FILE = "wavefront.csv"
 _INITIAL_LASER_FILE = "initial-laser.npy"
 _FINAL_LASER_FILE = "final-laser.npy"
 
+_PROP_RESULTS_FILE = "propagation-results.h5"
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -35,15 +36,9 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
     )
     if report == "animation":
-        line = template_common.read_last_csv_line(run_dir.join(_SUMMARY_CSV_FILE))
-        m = re.search(r"^(\d+)", line)
-        if m and int(m.group(1)) > 0:
-            res.frameCount = int((int(m.group(1)) + 1) / 2)
-            res.wavefrontsFrameCount = _counts_for_beamline(
-                res.frameCount, data.models.beamline
-            )[0]
-            total_count = _total_frame_count(data)
-            res.percentComplete = res.frameCount * 100 / total_count
+        total = _num_watchpoints(data.models.beamline)
+        res.frameCount = len(pkio.sorted_glob(run_dir.join("*.h5")))
+        res.percentComplete = (res.frameCount * 100 / total) if total else 100
         return res
     assert report == "crystalAnimation"
     count = 0
@@ -431,6 +426,10 @@ def _laser_pulse_report(value_index, filename, title, label):
             x_label="s [m]",
         ),
     )
+
+
+def _num_watchpoints(beamline):
+    return len([x for x in beamline if x.type == "watch"])
 
 
 def _parse_silas_log(run_dir):

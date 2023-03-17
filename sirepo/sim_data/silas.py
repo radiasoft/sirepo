@@ -51,6 +51,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             cls.update_model_defaults(m, m.type)
 
     @classmethod
+    def h5_data_file(cls, element=None):
+        return f"{element.type}_{element.id}.h5" if element else "results.h5"
+
+    @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model in (
             "crystalAnimation",

@@ -123,11 +123,6 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
             return;
         }
         if ((data.frameCount || 0) > 1) {
-            appState.models.beamline.forEach((item, idx) => {
-                frameCache.setFrameCount(
-                    data.wavefrontsFrameCount[idx],
-                    wavefrontAnimationName(item));
-            });
             frameCache.setFrameCount(data.frameCount);
         }
     };

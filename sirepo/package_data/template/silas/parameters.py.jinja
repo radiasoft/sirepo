@@ -1,10 +1,10 @@
 # ^^ pulse, slice defined in laserPulse.py ^^ #
 
-def intensity(wavefront):
+def _intensity(wavefront):
     return srwl_uti_data.calc_int_from_elec(w).tolist()
 
 
-def phase(wavefront, polarization):
+def _phase(wavefront):
     z, m = srwl_uti_data.calc_int_from_wfr(
         wavefront,
         _pol={{ laserPulse.polarization | int }},
@@ -19,11 +19,17 @@ def phase(wavefront, polarization):
     return numpy.array(z).reshape(ny, nx).tolist()
 
 
+def _write_h5(file_path, h5_path, data):
+    with h5py.File(file_path, "a") as f:
+        f.create_dataset(h5_path, data=_intensity(w))
+
+
 w = pulse.slice_wfr(0)
+sim_data = sirepo.sim_data.get_class("silas")
 {% if report == "initialIntensityReport" %}
-z = intensity(w)
+_write_h5(sim_data.h5_data_file(), "intensity", _intensity(w))
 {% elif report == "initialPhaseReport" %}
-z = phase(w)
+_write_h5(sim_data.h5_data_file(), "phase", _phase(w))
 {% elif report == "animation" %}
 
 def _build_crystal(model):
@@ -54,19 +60,23 @@ def _build_watch(model):
 
 
 def propagate(pulse):
-
+    sim_data = sirepo.sim_data.get_class("silas")
     beamline = {{ beamline }}
     prev = PKDict(position=0.0)
     for element in [PKDict(e) for e in beamline]:
         dz = element.position - prev.position
+        t = element.type
         if dz:
             e = _build_drift(dz)
             pulse = e.propagate(pulse, "default")
-        e = globals()[f"_build_{element['type']}"](element)
+        e = globals()[f"_build_{t}"](element)
         pulse = e.propagate(pulse, element.propagationType)
-        w = pulse.slice_wfr(0)
-
+        if t == "watch":
+            w = pulse.slice_wfr(0)
+            for x in ("intensity", "phase"):
+                _write_h5(sim_data.h5_data_file(element), x, globals()[f"_{x}"](w))
         prev = element
+
 
 propagate(pulse)
 {% endif %}
