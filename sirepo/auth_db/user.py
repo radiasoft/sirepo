@@ -85,17 +85,25 @@ class UserRole(sirepo.auth_db.UserDbBase):
         return r.expiration < sirepo.srtime.utc_now()
 
     def uids_of_paid_users(self):
+        import sqlalchemy.exc
+
         cls = self.__class__
-        return [
-            x[0]
-            for x in self.query()
-            .with_entities(cls.uid)
-            .filter(
-                cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
-            )
-            .distinct()
-            .all()
-        ]
+        for _ in range(5):
+            try:
+                return [
+                    x[0]
+                    for x in self.query()
+                    .with_entities(cls.uid)
+                    .filter(
+                        cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
+                    )
+                    .distinct()
+                    .all()
+                ]
+            except sqlalchemy.exc.OperationalError:
+                time.sleep(0.5)
+        else:
+            raise AssertionError("x")
 
 
 class UserRoleInvite(sirepo.auth_db.UserDbBase):

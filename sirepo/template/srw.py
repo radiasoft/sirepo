@@ -593,7 +593,7 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
                     x,
                 )
             time.sleep(x.nextRequestSeconds)
-            r = await qcall.call_api_sync("runStatus", data=x.nextRequest)
+            r = await qcall.call_api("runStatus", data=x.nextRequest)
         else:
             raise sirepo.util.UserAlert(
                 "error parsing python",
