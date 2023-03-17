@@ -58,6 +58,7 @@ _PARALLEL_STATUS_FIELDS = frozenset(
         "frameCount",
         "lastUpdateTime",
         "percentComplete",
+        "qState",
     )
 )
 
