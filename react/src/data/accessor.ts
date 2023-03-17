@@ -1,3 +1,4 @@
+import { ModelStates } from "../store/models";
 import { Dependency } from "./dependency";
 import { AbstractModelsWrapper } from "./wrapper";
 
@@ -25,7 +26,7 @@ export class ModelsAccessor<M, F> {
     }
 
     getFieldValue = (dependency: Dependency): F => {
-        return this.modelsWrapper.getFieldFromModel(dependency.fieldName, this.modelValues[dependency.modelName]);
+        return this.modelsWrapper.getFieldFromModel(dependency.fieldName, this.getModelValue(dependency.modelName));
     }
 
     getModelValue = (modelName: string): M => {

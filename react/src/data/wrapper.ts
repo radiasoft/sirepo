@@ -11,6 +11,31 @@ export abstract class AbstractModelsWrapper<M, F> {
     abstract getFieldFromModel(fieldName: string, model: M): F;
     abstract setFieldInModel(fieldName: string, model: M, value: F): M;
 
+    getArraySubField = (fieldName: string, index: number, subFieldName: string, model: M): F => {
+        let fieldState = this.getFieldFromModel(fieldName, model);
+        let len = this.getArrayFieldLength(fieldState);
+        if(index >= len) {
+            throw new Error(`index=${index} of out bounds=${len}`);
+        }
+
+        return this.getFieldFromModel(subFieldName, fieldState[index]);
+    }
+
+    setArraySubField = (fieldName: string, index: number, subFieldName: string, model: M, value: F) => {
+        let fieldState = this.getFieldFromModel(fieldName, model);
+        let len = this.getArrayFieldLength(fieldState);
+        if(index >= len) {
+            throw new Error(`index=${index} of out bounds=${len}`);
+        }
+
+        let subModel = fieldState[index];
+        this.setFieldInModel(subFieldName, subModel, value);
+    }
+
+    getArrayFieldLength = (field: F): number => {
+        return (field as any[] || []).length;
+    }
+
     updateField = (fieldName: string, modelName: string, state: any, value: F): void => {
         let model = this.getModel(modelName, state);
         model = this.setFieldInModel(fieldName, model, value);
@@ -140,3 +165,53 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
         })
     }
 }
+
+
+/*export type ModelAliases = {
+    [key: string]: string
+}
+
+export class ModelsWrapperWithAliases<M, F> extends AbstractModelsWrapper<M, F> {
+    private reverseAliases: ModelAliases = undefined;
+    constructor(private parent: AbstractModelsWrapper<M, F>, private aliases: ModelAliases) {
+        super();
+        this.reverseAliases = Object.fromEntries(Object.entries(this.aliases).map(([name, value]) => [value, name]));
+    }
+
+    private getAliasedModelName = (mn: string): string => {
+        if(mn in this.aliases) {
+            return this.aliases[mn];
+        }
+        return mn;
+    }
+
+    private getInverseAliasedModelName = (mn: string): string => {
+        if(mn in this.reverseAliases) {
+            return this.reverseAliases[mn];
+        }
+        return mn;
+    }
+
+    getModel(modelName: string, state: any): M {
+        return this.parent.getModel(this.getAliasedModelName(modelName), state);
+    }
+
+    hookModel(modelName: string): M {
+        return this.parent.hookModel(this.getAliasedModelName(modelName));
+    }
+
+    updateModel(modelName: string, value: M): void {
+        return this.parent.updateModel(this.getAliasedModelName(modelName), value);
+    }
+
+    getFieldFromModel(fieldName: string, model: M): F {
+        return this.parent.getFieldFromModel(fieldName, model);
+    }
+
+    setFieldInModel(fieldName: string, model: M, value: F): M {
+        return this.parent.setFieldInModel(fieldName, model, value);
+    }
+}*/
+
+
+

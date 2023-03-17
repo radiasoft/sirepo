@@ -308,6 +308,8 @@ function convertPanel(
         config['advanced'] = convertPanelContents(view.advanced);
     }
 
+    config['title'] = view.title;
+
     return {
         layout: "panel",
         config

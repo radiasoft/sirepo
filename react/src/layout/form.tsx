@@ -15,6 +15,19 @@ import { useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
 import { ValueSelectors } from "../utility/string";
 
+export function FormControllerElement(props: {children?: React.ReactNode, dependencies: Dependency[]}) {
+    let formState = useContext(CFormStateWrapper);
+    let schema = useContext(CSchema);
+    let modelsWrapper = useContext(CModelsWrapper);
+    let formController = new FormController(formState, modelsWrapper, props.dependencies, schema);
+
+    return (
+        <CFormController.Provider value={formController}>
+            { props.children }
+        </CFormController.Provider>
+    )
+}
+
 export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
     return class extends Child {
         constructor(config: C) {
@@ -24,30 +37,13 @@ export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutT
 
             this.component = (props) => {
                 let ChildComponent = childComponent;
-                let FormComponent = this.formComponent;
                 return (
-                    <FormComponent {...props}>
+                    <FormControllerElement dependencies={this.getFormDependencies()} {...props}>
                         <ChildComponent {...props}/>
-                    </FormComponent>
+                    </FormControllerElement>
                 )
             };
         }
-
-        formComponent = (props: LayoutProps<P>) => {
-            let formState = useContext(CFormStateWrapper);
-            let schema = useContext(CSchema);
-            let modelsWrapper = useContext(CModelsWrapper);
-
-            let dependencies = this.getFormDependencies();
-
-            let formController = new FormController(formState, modelsWrapper, dependencies, schema);
-
-            return (
-                <CFormController.Provider value={formController}>
-                    { props.children }
-                </CFormController.Provider>
-            )
-        };
     };
 }
 

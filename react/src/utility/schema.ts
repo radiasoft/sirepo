@@ -46,6 +46,7 @@ export type SchemaLayout = SchemaLayoutJson;
 export type SchemaField<T> = {
     displayName: string,
     type: InputLayout,
+    typeName: string,
     defaultValue?: T,
     description?: string,
     shown?: string,
@@ -144,7 +145,7 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
         let missingTypeNames = [];
 
         models = mapProperties(schemaObj.model, (modelName, modelObj) => {
-            return mapProperties(modelObj, (fieldName, field) => {
+            return mapProperties(modelObj, (fieldName, field): SchemaField<unknown> => {
                 let { displayName, type: typeName, defaultValue, description, shown, min, max } = field;
                 let type = types[typeName];
                 if(!typeName) {
@@ -156,6 +157,7 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
                 return {
                     displayName,
                     type,
+                    typeName,
                     shown,
                     defaultValue,
                     description,

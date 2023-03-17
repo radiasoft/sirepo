@@ -41,6 +41,16 @@
                 "type": "String",
                 "defaultValue": ""
             }
+        },
+        "panelState": {
+            "hidden": {
+                "displayName": "Hidden Panels",
+                "type": "PanelArray",
+                "defaultValue": []
+            }
+        },
+        "runSettings": {
+            
         }
     },
     "constants": {
@@ -52,6 +62,9 @@
         "plansUrl": "/en/plans.html"
     },
     "type": {
+        "PanelArray": {
+            "base": "Array"
+        },
         "String": {
             "base": "String",
             "config": {
@@ -338,6 +351,7 @@
         "simulationData": "/simulation/:simulation_type/:simulation_id/:pretty/?:section",
         "simulationFrame": "/simulation-frame/:frame_id",
         "simulationSchema": "/simulation-schema",
+        "svg": "/static/svg/react-svg/:fileName",
         "srUnit": "/ srunit",
         "srwLight": "/light",
         "statefulCompute": "/stateful-compute",

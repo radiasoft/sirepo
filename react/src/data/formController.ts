@@ -10,16 +10,27 @@ import { InputLayout } from "../layout/input/input";
 
 
 
-export let formStateFromModel = (model: ModelState, modelSchema: SchemaModel) => {
+export let formStateFromModel = (model: ModelState, modelSchema: SchemaModel, schema: Schema) => {
     if(!modelSchema) {
         throw new Error(`while converting model to form state, model schema was undefiend; model=${JSON.stringify(model)}`);
     }
     if(!model) {
         throw new Error(`while converting model to form state, model was undefined; schema=${JSON.stringify(modelSchema)}`);
     }
-    return mapProperties(modelSchema, (fieldName, { type }) => {
+    // TODO: should this be mapping from schema or from the model being mapped?
+    return mapProperties(modelSchema, (fieldName, { type, typeName }) => {
         if(!(fieldName in model)) {
             throw new Error(`model=${JSON.stringify(model)} was missing field=${fieldName}`)
+        }
+
+        if(typeName === "Array") {
+            let v: {item: ModelState, model: string}[] = model[fieldName] as any[] || [];
+            return v.map(i => {
+                return {
+                    item: formStateFromModel(i.item, schema.models[i.model], schema),
+                    model: i.model
+                }
+            })
         }
 
         return {
@@ -28,7 +39,7 @@ export let formStateFromModel = (model: ModelState, modelSchema: SchemaModel) =>
             touched: false,
             active: true
         }
-    })
+    }) 
 }
 
 export const CFormController = React.createContext<FormController>(undefined);
@@ -79,7 +90,7 @@ export class FormController {
             // this should make sure that if any part of the reducers are inconsistent / cause mutations
             // then the form state should remain consistent with saved model copy
             // TODO: this line has been changed with recent update, evaluate
-            this.formStatesWrapper.updateModel(modelChanges.modelName, formStateFromModel(m, this.schema.models[modelChanges.modelName]))
+            this.formStatesWrapper.updateModel(modelChanges.modelName, formStateFromModel(m, this.schema.models[modelChanges.modelName], this.schema))
         })
     }
 
@@ -97,9 +108,9 @@ export class FormController {
 
     cancelChanges = () => {
         this.formStatesAccessor.modelNames.map(modelName => {
-            this.formStatesWrapper.updateModel(modelName, formStateFromModel(
+            return this.formStatesWrapper.updateModel(modelName, formStateFromModel(
                 this.modelStatesAccessor.getModelValue(modelName), 
-                this.schema.models[modelName]));
+                this.schema.models[modelName], this.schema));
         });
     }
 

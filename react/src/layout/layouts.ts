@@ -15,6 +15,9 @@ import { SchemaLayout } from "../utility/schema";
 import { TextLayout } from "./text";
 import { HorizontalStackLayout, VerticalStackLayout } from "./arrange/stack";
 import { WaterfallLayout } from "./arrange/waterfall";
+import { Histogram2dFromApi } from "./report/histogram2d";
+import { BeamlineWatchpointReports } from "./shadow/beamlineWatchpointReports";
+import { BeamlineLayout } from "./beamline";
 
 
 // TODO rename to LayoutsWrapper
@@ -32,13 +35,16 @@ class LayoutWrapper {
         heatplot: LayoutWithDownloadButton(HeatplotFromApi),
         graph2dPlain: Graph2dFromApi,
         heatplotPlain: HeatplotFromApi,
+        histogram2d: Histogram2dFromApi,
         navTabs: NavTabsLayout,
         table: TableFromApi,
         startSimulation: SimulationStartLayout,
         text: TextLayout,
         hStack: HorizontalStackLayout,
         vStack: VerticalStackLayout,
-        waterfall: WaterfallLayout
+        waterfall: WaterfallLayout,
+        beamlineWatchpointReports: BeamlineWatchpointReports,
+        beamline: BeamlineLayout
     }
 
     constructor () {

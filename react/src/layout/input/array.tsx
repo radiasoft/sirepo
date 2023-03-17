@@ -1,7 +1,14 @@
 import { InputConfigBase, InputLayout } from "./input";
 
+export type ArrayModelElement<T> = {
+    item: T,
+    model: string
+}
+
+export type ArrayField<F> = ArrayModelElement<F>[]
+
 export type ArrayInputConfig = {
-    models: string[]
+    
 } & InputConfigBase
 
 // TODO: garsuga, implement

@@ -56,7 +56,6 @@ export function FormStateInitializer(props) {
         formSelectors
     })
 
-    //let modelNames = Object.keys(schema.models);
     let modelNames = models.getModelNames(store.getState());
 
     useEffect(() => {
@@ -74,7 +73,7 @@ export function FormStateInitializer(props) {
             if(!modelSchema) {
                 throw new Error(`could not get schema for model=${modelName}`);
             }
-            formState.updateModel(modelName, formStateFromModel(value, modelSchema));
+            formState.updateModel(modelName, formStateFromModel(value, modelSchema, schema));
         });
 
         updateHasInit(true);

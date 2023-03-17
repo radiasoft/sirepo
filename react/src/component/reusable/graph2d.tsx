@@ -93,9 +93,11 @@ export function Graph2d(props: Graph2dConfig) {
                          nice: true
                      });
 
+                     let legendPlots = plots.filter(p => !!p.label);
+
                      let legendScale = Scale.scaleOrdinal({
-                         domain: plots.map(plot => plot.label),
-                         range: plots.map(plot => plot.color)
+                         domain: legendPlots.map(plot => plot.label),
+                         range: legendPlots.map(plot => plot.color)
                      })
 
                      let toPath = (plot, index) => {

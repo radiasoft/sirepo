@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 import scipy.constants
@@ -21,6 +22,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             (
                 "beamStatisticsReport",
                 "bendingMagnet",
+                "histogramReport",
                 "initialIntensityReport",
                 "plotXYReport",
                 "undulator",
@@ -34,11 +36,34 @@ class SimData(sirepo.sim_data.SimDataBase):
                 * float(dm.electronBeam.bener)
                 / float(dm.bendingMagnet.r_magnet)
             )
+        if isinstance(dm.beamline, list):
+            dm.beamline = PKDict(
+                elements=list(map(lambda i: PKDict(
+                    model=i.type,
+                    item=i
+                ), dm.beamline))
+            )
+        pkdp(dm)
+        if not "watchpointReports" in dm:
+            dm.watchpointReports = PKDict(
+                reports=[]
+            )
+        n = []
         for m in dm:
-            if cls.is_watchpoint(m):
+            if cls.is_watchpoint(m) and m != "watchpointReports":
                 cls.update_model_defaults(dm[m], "watchpointReport")
-        for m in dm.beamline:
+                i = cls.watchpoint_id(m)
+                dm[m].id = i
+                dm.watchpointReports.reports.append(PKDict(
+                    model="watchpointReport",
+                    item=dm[m]
+                ))
+                n.append(m)
+        for i in n:
+            del dm[i]
+        for m in map(lambda i: i.item, dm.beamline.elements):
             cls.update_model_defaults(m, m.type)
+        pkdp(dm)
         cls._organize_example(data)
 
     @classmethod
@@ -67,8 +92,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             "undulatorBeam",
             "wiggler",
         ]
-        if r == "initialIntensityReport" and data["models"]["beamline"]:
-            res.append([data["models"]["beamline"][0]["position"]])
+        if r == "initialIntensityReport" and data["models"]["beamline"] and data["models"]["beamline"]["elements"] and len(data["models"]["beamline"]["elements"]) > 0:
+            res.append([data["models"]["beamline"]["elements"][0]["item"]["position"]])
         # TODO(pjm): only include items up to the current watchpoint
         if cls.is_watchpoint(r) or r == "beamStatisticsReport":
             res.append("beamline")
