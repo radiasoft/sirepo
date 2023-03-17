@@ -4237,6 +4237,7 @@
                                                 "elements": [
                                                     {
                                                         "name": "Aperture",
+                                                        "model": "aperture",
                                                         "icon": "aperture.svg",
                                                         "items": [
                                                             {
@@ -4278,6 +4279,7 @@
                                                     },
                                                     {
                                                         "name": "CRL",
+                                                        "model": "crl",
                                                         "icon": "crl.svg",
                                                         "items": [
                                                             {
@@ -4308,6 +4310,7 @@
                                                     },
                                                     {
                                                         "name": "Crystal",
+                                                        "model": "crystal",
                                                         "icon": "crystal.svg",
                                                         "items": [
                                                             {
@@ -4520,6 +4523,7 @@
                                                     },
                                                     {
                                                         "name": "Empty Element",
+                                                        "model": "emptyElement",
                                                         "icon": "emptyElement.svg",
                                                         "items": [
                                                             {
@@ -4536,6 +4540,7 @@
                                                     },
                                                     {
                                                         "name": "Grating",
+                                                        "model": "grating",
                                                         "icon": "grating.svg",
                                                         "items": [
                                                             {
@@ -4740,6 +4745,7 @@
                                                     },
                                                     {
                                                         "name": "Lens",
+                                                        "model": "lens",
                                                         "icon": "lens.svg",
                                                         "items": [
                                                             {
@@ -4757,6 +4763,7 @@
                                                     },
                                                     {
                                                         "name": "Mirror",
+                                                        "model": "mirror",
                                                         "icon": "mirror.svg",
                                                         "items": [
                                                             {
@@ -4935,6 +4942,7 @@
                                                     },
                                                     {
                                                         "name": "Obstacle",
+                                                        "model": "obstacle",
                                                         "icon": "obstacle.svg",
                                                         "items": [
                                                             {
@@ -4976,6 +4984,7 @@
                                                     },
                                                     {
                                                         "name": "Watch",
+                                                        "model": "watch",
                                                         "icon": "watch.svg",
                                                         "items": [
                                                             {
@@ -4991,6 +5000,7 @@
                                                     },
                                                     {
                                                         "name": "Zone Plate",
+                                                        "model": "zonePlate",
                                                         "icon": "zonePlate.svg",
                                                         "items": [
                                                             {
