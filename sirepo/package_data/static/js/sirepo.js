@@ -2733,7 +2733,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             isReadyForModelChanges: false,
             model: controller.simComputeModel || appState.appService.computeModel(controller.simAnalysisModel || null),
             percentComplete: 0,
-            backgroundState: "",
+            qState: null,
             simulationQueueItem: null,
             timeData: {},
         };
