@@ -500,12 +500,6 @@ class _Cmd(PKDict):
                     reply=PKDict(state=job.RUNNING, computeJobStart=self._start_time),
                 ),
             )
-        else:
-            await self.dispatcher.send(
-                self.dispatcher.format_op(
-                    self.msg, job.OP_OK, reply=PKDict(state=job.PENDING, qState=None)
-                )
-            )
         self._process.start()
         tornado.ioloop.IOLoop.current().add_callback(self._await_exit)
 

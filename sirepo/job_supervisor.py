@@ -58,7 +58,7 @@ _PARALLEL_STATUS_FIELDS = frozenset(
         "frameCount",
         "lastUpdateTime",
         "percentComplete",
-        "qState",
+        "queueState",
     )
 )
 
@@ -580,7 +580,7 @@ class _ComputeJob(_Supervisor):
     def __db_init_new(cls, data, prev_db=None):
         db = PKDict(
             alert=None,
-            qState="queued",
+            queueState="queued",
             canceledAfterSecs=None,
             computeJid=data.computeJid,
             computeJobHash=data.computeJobHash,
@@ -943,6 +943,7 @@ class _ComputeJob(_Supervisor):
                 while True:
                     try:
                         r = await op.reply_get()
+                        self.db.queueState = None
                         # TODO(robnagler) is this ever true?
                         if op != self.run_op:
                             return
@@ -952,8 +953,6 @@ class _ComputeJob(_Supervisor):
                         self.db.alert = r.get("alert")
                         if self.db.status == job.ERROR:
                             self.db.error = r.get("error", "<unknown error>")
-                        if "qState" in r:
-                            self.db.qState = r.qState
                         if "computeJobStart" in r:
                             self.db.computeJobStart = r.computeJobStart
                         if "parallelStatus" in r:
@@ -967,6 +966,7 @@ class _ComputeJob(_Supervisor):
                         if r.state in job.EXIT_STATUSES:
                             break
                     except sirepo.const.ASYNC_CANCELED_ERROR:
+                        self.db.queueState = None
                         return
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
@@ -1024,7 +1024,7 @@ class _ComputeJob(_Supervisor):
                 r.computeJobSerial = self.db.computeJobSerial
                 r.computeModel = self.db.computeModel
                 r.elapsedTime = self.elapsed_time()
-                r.qState = self.db.qState
+                r.queueState = self.db.queueState
             if self._is_running_pending():
                 c = req.content
                 r.update(
@@ -1037,7 +1037,6 @@ class _ComputeJob(_Supervisor):
                         report=c.analysisModel,
                         simulationId=self.db.simulationId,
                         simulationType=self.db.simulationType,
-                        qState=self.db.qState,
                     ),
                 )
             return r
