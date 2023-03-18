@@ -21,25 +21,26 @@ def _phase(wavefront):
 
 def _ranges(wavefront):
     m = wavefront.mesh
-    return PKDict(
-        x=[m.xStart, m.xFin],
-        y=[m.yStart, m.yFin],
-    )
+    return {
+        "x": [m.xStart, m.xFin],
+        "y": [m.yStart, m.yFin],
+    }
 
 
 def _write_h5(file_path, h5_path, data):
     with h5py.File(file_path, "a") as f:
-        f.create_dataset(h5_path, data=_intensity(w))
+        f.create_dataset(h5_path, data=data)
 
 
 w = pulse.slice_wfr(0)
 sim_data = sirepo.sim_data.get_class("silas")
+h5_data = PKDict()
 {% if report in ("initialIntensityReport","initialPhaseReport")  %}
 f = sim_data.h5_data_file()
-for x in ("ranges", "{{ report }}".replace("initial", "").replace("Report", "").lower()):
-    _write_h5(f, x, globals()[f"_{x}"](w))
+for x in {{ dataPaths }}:
+    h5_data[x] = globals()[f"_{x}"](w)
+template_common.write_dict_to_h5(h5_data, f)
 {% elif report == "animation" %}
-
 
 def _build_crystal(model):
     from rslaser.optics import crystal
@@ -83,9 +84,9 @@ def propagate(pulse):
         if t == "watch":
             w = pulse.slice_wfr(0)
             f = sim_data.h5_data_file(element)
-            _write_ranges(f, m)
-            for x in ("ranges", "intensity", "phase"):
-                _write_h5(f, x, globals()[f"_{x}"](w))
+            for x in {{ dataPaths }}:
+                h5_data[x] = globals()[f"_{x}"](w)
+            template_common.write_dict_to_h5(h5_data, f)
         prev = element
 
 

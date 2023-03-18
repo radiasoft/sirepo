@@ -9,7 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 
-_LASER_PULSE_REPORTS = frozenset(
+INITIAL_REPORTS = frozenset(
     (
         "initialIntensityReport",
         "initialPhaseReport",
@@ -57,6 +57,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         return f"{element.type}_{element.id}.h5" if element else _RESULTS_FILE
 
     @classmethod
+    def initial_reports(cls):
+        return INITIAL_REPORTS
+
+    @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model in (
             "crystalAnimation",
@@ -69,7 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if r in _LASER_PULSE_REPORTS:
+        if r in INITIAL_REPORTS:
             return cls._non_analysis_fields(data, "laserPulse")
         res = []
         return res
@@ -77,7 +81,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
-        if data.report in _LASER_PULSE_REPORTS and data.models.laserPulse.geometryFromFiles == "1":
+        if data.report in INITIAL_REPORTS and data.models.laserPulse.geometryFromFiles == "1":
             for f in ("ccd", "meta", "wfs"):
                 res.append(
                     cls.lib_file_name_with_model_field(
