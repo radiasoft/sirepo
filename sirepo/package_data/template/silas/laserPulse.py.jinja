@@ -42,17 +42,6 @@ def _lib_file(field, basename):
     return sim_data.lib_file_name_with_model_field("laserPulse", field, basename)
 
 
-def _save_pulse(pulse, filename):
-    (lpsxvals, lpsyvals) = pulse.rmsvals()
-    numpy.save(filename, numpy.array([
-        pulse.pulsePos(),
-        lpsxvals,
-        lpsyvals,
-        pulse.intensity_vals(),
-        pulse.energyvals(),
-    ]))
-
-
 pulse = _build_pulse()
 slice = pulse.slice[0]
 

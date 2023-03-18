@@ -19,6 +19,14 @@ def _phase(wavefront):
     return numpy.array(z).reshape(ny, nx).tolist()
 
 
+def _ranges(wavefront):
+    m = wavefront.mesh
+    return PKDict(
+        x=[m.xStart, m.xFin],
+        y=[m.yStart, m.yFin],
+    )
+
+
 def _write_h5(file_path, h5_path, data):
     with h5py.File(file_path, "a") as f:
         f.create_dataset(h5_path, data=_intensity(w))
@@ -26,11 +34,12 @@ def _write_h5(file_path, h5_path, data):
 
 w = pulse.slice_wfr(0)
 sim_data = sirepo.sim_data.get_class("silas")
-{% if report == "initialIntensityReport" %}
-_write_h5(sim_data.h5_data_file(), "intensity", _intensity(w))
-{% elif report == "initialPhaseReport" %}
-_write_h5(sim_data.h5_data_file(), "phase", _phase(w))
+{% if report in ("initialIntensityReport","initialPhaseReport")  %}
+f = sim_data.h5_data_file()
+for x in ("ranges", "{{ report }}".replace("initial", "").replace("Report", "").lower()):
+    _write_h5(f, x, globals()[f"_{x}"](w))
 {% elif report == "animation" %}
+
 
 def _build_crystal(model):
     from rslaser.optics import crystal
@@ -73,8 +82,10 @@ def propagate(pulse):
         pulse = e.propagate(pulse, element.propagationType)
         if t == "watch":
             w = pulse.slice_wfr(0)
-            for x in ("intensity", "phase"):
-                _write_h5(sim_data.h5_data_file(element), x, globals()[f"_{x}"](w))
+            f = sim_data.h5_data_file(element)
+            _write_ranges(f, m)
+            for x in ("ranges", "intensity", "phase"):
+                _write_h5(f, x, globals()[f"_{x}"](w))
         prev = element
 
 

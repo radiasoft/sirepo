@@ -27,7 +27,6 @@ _SUMMARY_CSV_FILE = "wavefront.csv"
 _INITIAL_LASER_FILE = "initial-laser.npy"
 _FINAL_LASER_FILE = "final-laser.npy"
 
-_PROP_RESULTS_FILE = "propagation-results.h5"
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -335,14 +334,16 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
 
 def _extract_laser_pulse_intensity_report(run_dir, sim_in):
     template_common.write_sequential_result(
-        _initial_laser_pulse_intensity_plot(sim_in.models.laserPulse),
+        #_initial_laser_pulse_intensity_plot(sim_in.models.laserPulse),
+        _initial_laser_pulse_intensity_plot(run_dir),
         run_dir=run_dir,
     )
 
 
 def _extract_laser_pulse_phase_report(run_dir, sim_in):
     template_common.write_sequential_result(
-        _initial_laser_pulse_phase_plot(sim_in.models.laserPulse),
+        #_initial_laser_pulse_phase_plot(sim_in.models.laserPulse),
+        _initial_laser_pulse_phase_plot(run_dir),
         run_dir=run_dir,
     )
 
@@ -351,39 +352,50 @@ def _format_float(v):
     return float("{:.4f}".format(v))
 
 
-def _initial_laser_pulse_intensity_plot(model):
-    p = _build_pulse(model)
-    w = p.slice_wfr(0)
-    m = w.mesh
-    z = srwl_uti_data.calc_int_from_elec(w).tolist()
+#def _initial_laser_pulse_intensity_plot(model):
+def _initial_laser_pulse_intensity_plot(run_dir):
+    import h5py
+    #p = _build_pulse(model)
+    #w = p.slice_wfr(0)
+    #m = w.mesh
+    #srwl_uti_data.calc_int_from_elec(w).tolist()
+    with h5py.File(run_dir.join(_SIM_DATA.h5_data_file()), "r") as f:
+        r = f["ranges"]
+        pkdp("RRANGES {}", r)
+        z = f["intensity"]
 
-    return PKDict(
-        title="Intensity",
-        x_range=[m.xStart, m.xFin, m.nx],
-        y_range=[m.yStart, m.yFin, m.ny],
-        x_label="Horizontal Position [m]",
-        y_label="Vertical Position [m]",
-        z_matrix=z,
-    )
+        return PKDict(
+            title="Intensity",
+            x_range=[r["x"][0], r["x"][1], len(z)],
+            y_range=[r["y"][0], r["y"][1], len(z[0])],
+            x_label="Horizontal Position [m]",
+            y_label="Vertical Position [m]",
+            z_matrix=z,
+        )
 
 
-def _initial_laser_pulse_phase_plot(model):
-    p = _build_pulse(model)
-    z, m = srwl_uti_data.calc_int_from_wfr(
-        p.slice_wfr(0),
-        _pol=int(model.polarization),
-        _int_type=4,
-        _pr=False,
-    )
-    z = numpy.array(z).reshape(m.ny, m.nx).tolist()
-    return PKDict(
-        title="Phase",
-        x_range=[m.xStart, m.xFin, m.nx],
-        y_range=[m.yStart, m.yFin, m.ny],
-        x_label="Horizontal Position [m]",
-        y_label="Vertical Position [m]",
-        z_matrix=z,
-    )
+#def _initial_laser_pulse_phase_plot(run_dir, model):
+def _initial_laser_pulse_phase_plot(run_dir):
+    #p = _build_pulse(model)
+    #z, m = srwl_uti_data.calc_int_from_wfr(
+    #    p.slice_wfr(0),
+    #    _pol=int(model.polarization),
+    #    _int_type=4,
+    #    _pr=False,
+    #)
+    #z = numpy.array(z).reshape(m.ny, m.nx).tolist()
+    with h5py.File(run_dir.join(_SIM_DATA.h5_data_file()), "r") as f:
+        r = f["ranges"]
+        pkdp("RRANGES {}", r)
+        z = f["phase"]
+        return PKDict(
+            title="Phase",
+            x_range=[r["x"][0], r["x"][1], len(z)],
+            y_range=[r["y"][0], r["y"][1], len(z[0])],
+            x_label="Horizontal Position [m]",
+            y_label="Vertical Position [m]",
+            z_matrix=z,
+        )
 
 
 def _generate_parameters_file(data):

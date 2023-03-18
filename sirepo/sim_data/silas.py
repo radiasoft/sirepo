@@ -16,6 +16,8 @@ _LASER_PULSE_REPORTS = frozenset(
     )
 )
 
+_RESULTS_FILE = "results.h5"
+
 class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(
         (
@@ -52,7 +54,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def h5_data_file(cls, element=None):
-        return f"{element.type}_{element.id}.h5" if element else "results.h5"
+        return f"{element.type}_{element.id}.h5" if element else _RESULTS_FILE
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
