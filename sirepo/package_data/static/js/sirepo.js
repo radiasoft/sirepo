@@ -2733,7 +2733,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             isReadyForModelChanges: false,
             model: controller.simComputeModel || appState.appService.computeModel(controller.simAnalysisModel || null),
             percentComplete: 0,
-            qState: null,
+            queueState: null,
             simulationQueueItem: null,
             timeData: {},
         };
@@ -2756,8 +2756,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             if (data.hasOwnProperty('percentComplete')) {
                 state.percentComplete = data.percentComplete;
             }
-            if (data.hasOwnProperty('qState')) {
-                state.qState = data.qState;
+            if (data.hasOwnProperty('queueState')) {
+                state.queueState = data.queueState;
             }
             if (state.isProcessing()) {
                 state.dots += '.';
@@ -2864,9 +2864,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return state.percentComplete;
         };
 
-        state.getQState = function() {
-            if (state.qState) {
-                return stringsService.ucfirst(state.qState);
+        state.getQueueState = function() {
+            if (state.queueState) {
+                return stringsService.ucfirst(state.queueState);
             }
             return state.stateAsText();
         };
