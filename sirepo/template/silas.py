@@ -250,35 +250,6 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _build_pulse(model):
-    f = PKDict(
-        ccd=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "ccd", model.ccd),
-        meta=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "meta", model.meta),
-        wfs=_SIM_DATA.lib_file_name_with_model_field("laserPulse", "wfs", model.wfs),
-    ) if model.geometryFromFiles == "1" else None
-    return pulse.LaserPulse(
-        params=PKDict(
-            chirp=model.chirp,
-            dist_waist=model.distFromWaist,
-            mx=model.modeOrder[0],
-            my=model.modeOrder[1],
-            nslice=model.numSlices,
-            num_sig_long=model.numSigmas[0],
-            num_sig_trans=model.numSigmas[1],
-            nx_slice=model.numSliceMeshPoints[0],
-            ny_slice=model.numSliceMeshPoints[1],
-            pad_factor=model.padFactor,
-            photon_e_ev=model.photonEnergy,
-            poltype=int(model.polarization),
-            pulseE=model.totalEnergy,
-            sigx_waist=model.waistSize[0],
-            sigy_waist=model.waistSize[1],
-            tau_fwhm=model.tauFWHM,
-        ),
-        files=f,
-    )
-
-
 def _compute_rms_size(data):
     wavefrontEnergy = data.gaussianBeam.photonEnergy
     n0 = data.crystal.refractionIndex
@@ -357,15 +328,14 @@ def _format_float(v):
 
 
 def _initial_intensity_plot(run_dir):
-    import h5py
     with h5py.File(run_dir.join(_SIM_DATA.h5_data_file()), "r") as f:
         d = template_common.h5_to_dict(f)
         r = d.ranges
         z = d.intensity
         return PKDict(
             title="Intensity",
-            x_range=[r["x"][0], r["x"][1], len(z)],
-            y_range=[r["y"][0], r["y"][1], len(z[0])],
+            x_range=[r.x[0], r.x[1], len(z)],
+            y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",
             y_label="Vertical Position [m]",
             z_matrix=z,
@@ -379,8 +349,8 @@ def _initial_phase_plot(run_dir):
         z = d.phase
         return PKDict(
             title="Phase",
-            x_range=[r["x"][0], r["x"][1], len(z)],
-            y_range=[r["y"][0], r["y"][1], len(z[0])],
+            x_range=[r.x[0], r.x[1], len(z)],
+            y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",
             y_label="Vertical Position [m]",
             z_matrix=z,
