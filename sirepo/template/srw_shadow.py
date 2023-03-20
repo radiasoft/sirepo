@@ -548,7 +548,7 @@ class Convert:
                 else:
                     from_f, scale = fields[f], 1
                 v = input[from_f] if is_item else input[from_name][from_f]
-                if schema[from_f][1] == "Float":
+                if schema[from_f][1] in ("Float", "Integer"):
                     v = float(v) * scale
                 if is_item:
                     out[f] = v
