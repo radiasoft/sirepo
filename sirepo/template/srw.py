@@ -2005,6 +2005,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             "multiElectronAnimation",
             "coherenceXAnimation",
             "coherenceYAnimation",
+            "coherentModesAnimation",
         ):
             if not run_all:
                 content.append("v.wm = True")
@@ -2378,7 +2379,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
         if sirepo.mpi.cfg().in_slurm:
             v.sbatchBackup = "1"
         if report == "multiElectronAnimation":
-            v.multiElectronAnimation = ""
             if dm.multiElectronAnimation.calcCoherence == "1":
                 v.multiElectronCharacteristic = 41
             if dm.multiElectronAnimation.wavefrontSource == "cmd":
@@ -2391,7 +2391,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
                 _core_error(sirepo.mpi.cfg().cores)
             if sirepo.mpi.cfg().in_slurm and c.sbatchCores < _MIN_CORES:
                 _core_error(c.sbatchCores)
-            v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
             v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = "h5"
