@@ -35,3 +35,23 @@ def test_validate_path():
         util.validate_path("a/../b")
     with pkunit.pkexcept("dot prefix"):
         util.validate_path(".a")
+
+
+def test_import_submodule():
+    from pykern import pkunit, pkconfig
+    from sirepo import util
+    import sys
+
+    t = str(pkunit.data_dir())
+    sys.path.insert(0, t)
+    pkconfig.reset_state_for_testing(
+        dict(
+            SIREPO_FEATURE_CONFIG_PACKAGE_PATH="pkg:sirepo",
+            SIREPO_FEATURE_CONFIG_SIM_TYPES="appok:apperr:appmissing",
+        ),
+    )
+    util.import_submodule("template", "appok")
+    with pkunit.pkexcept("'not_found_module'"):
+        util.import_submodule("template", "apperr")
+    with pkunit.pkexcept("sim_type=appmissing"):
+        util.import_submodule("template", "appmissing")
