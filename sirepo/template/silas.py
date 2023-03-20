@@ -32,6 +32,7 @@ _DATA_PATHS = PKDict(
     crystalAnimation=(),
     initialIntensityReport=("ranges", "intensity"),
     initialPhaseReport=("ranges", "phase"),
+    watchpointReport=("ranges", "intensity"),
 )
 
 def background_percent_complete(report, run_dir, is_running):
@@ -104,10 +105,13 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def save_sequential_report_data(run_dir, sim_in):
-    if sim_in.report == "initialIntensityReport":
+    r = sim_in.report
+    if r == "initialIntensityReport":
         _extract_initial_intensity_report(run_dir, sim_in)
-    if sim_in.report == "initialPhaseReport":
+    if r == "initialPhaseReport":
         _extract_initial_phase_report(run_dir, sim_in)
+    if _SIM_DATA.is_watchpoint(r):
+        _extract_watchpoint_report(run_dir, sim_in)
 
 
 def sim_frame(frame_args):
@@ -309,6 +313,11 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
     )
 
 
+def _data_paths(report):
+    r = _SIM_DATA.WATCHPOINT_REPORT if _SIM_DATA.is_watchpoint(report) else report
+    return _DATA_PATHS[r]
+
+
 def _extract_initial_intensity_report(run_dir, sim_in):
     template_common.write_sequential_result(
         _laser_pulse_plot(run_dir, "intensity"),
@@ -319,6 +328,14 @@ def _extract_initial_intensity_report(run_dir, sim_in):
 def _extract_initial_phase_report(run_dir, sim_in):
     template_common.write_sequential_result(
         _laser_pulse_plot(run_dir, "phase"),
+        run_dir=run_dir,
+    )
+
+
+def _extract_watchpoint_report(run_dir, sim_in):
+    _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir)
+    template_common.write_sequential_result(
+        _laser_pulse_plot(run_dir, "intensity", _SIM_DATA.get_watchpoint(sim_in)),
         run_dir=run_dir,
     )
 
@@ -343,20 +360,24 @@ def _laser_pulse_plot(run_dir, data_path, element=None):
 
 
 def _generate_parameters_file(data):
+    r = data.report
+    if _SIM_DATA.is_watchpoint(r):
+        return ""
     res, v = template_common.generate_parameters_file(data)
-    v.dataPaths = _DATA_PATHS[data.report]
+    v.simId = data.models.simulation.simulationId
+    v.report = r
+    v.dataPaths = _data_paths(r)
     v.laserPulse = data.models.laserPulse
-    v.report = data.report
     res += template_common.render_jinja(SIM_TYPE, v, "laserPulse.py")
-    if data.report in _SIM_DATA.initial_reports():
+    if r in _SIM_DATA.initial_reports():
         return res + template_common.render_jinja(SIM_TYPE, v)
-    if data.report == "animation":
+    if r == "animation":
         v.beamline = data.models.beamline
         return res + template_common.render_jinja(SIM_TYPE, v)
-    if data.report == "crystalAnimation":
+    if r == "crystalAnimation":
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
-    assert False, "invalid param report: {}".format(data.report)
+    assert False, "invalid report: {}".format(r)
 
 
 def _get_crystal(data):

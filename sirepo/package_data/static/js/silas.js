@@ -31,8 +31,6 @@ SIREPO.app.config(function() {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
-
-    SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'laserPulse';
 });
 
 SIREPO.app.factory('silasService', function(appState) {
@@ -66,6 +64,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     self.simScope = $scope;
     self.appState = appState;
     self.beamlineModels = ['beamline'];
+    self.beamlineService = beamlineService;
     self.prepareToSave = () => {};
     self.toolbarItemNames = [
         ['Optics', ['crystal', 'lens']],
@@ -108,17 +107,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
 
     self.hasFrames = frameCache.hasFrames;
 
-    self.hasLaserProfile = function(isInitial) {
-        if (! self.hasFrames()) {
-            return false;
-        }
-        if (isInitial) {
-            return true;
-        }
-        return self.simState.getPercentComplete() == 100;
-    };
-
-    self.simHandleStatus = (data) => {
+    self.simHandleStatus = data => {
         if (! appState.isLoaded()) {
             return;
         }

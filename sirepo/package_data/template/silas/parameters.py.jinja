@@ -87,6 +87,7 @@ def propagate(pulse):
             for x in {{ dataPaths }}:
                 h5_data[x] = globals()[f"_{x}"](w)
             template_common.write_dict_to_h5(h5_data, f)
+            sim_data.put_sim_file("{{ simId }}", f, f)
         prev = element
 
 

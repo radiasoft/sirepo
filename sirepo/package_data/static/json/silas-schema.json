@@ -343,6 +343,9 @@
                 "position"
             ]
         },
+        "watchpointReport": {
+            "_super": ["_", "view", "initialIntensityReport"]
+        },
         "wavefrontAnimation": {
             "title": "Wavefront",
             "advanced": []
