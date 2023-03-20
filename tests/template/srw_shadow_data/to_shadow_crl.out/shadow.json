@@ -34,7 +34,7 @@
             "lensDiameter": 1.5,
             "lensThickness": 0.05,
             "numberOfEmptySlots": 0,
-            "numberOfLenses": 9,
+            "numberOfLenses": 9.0,
             "pilingThickness": 0,
             "position": 35,
             "refractionIndex": 0.999994673547,
