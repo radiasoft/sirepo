@@ -256,6 +256,13 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         appState.saveChanges(POST_SIM_REPORTS);
     };
 
+    self.updateCylinder = o => {
+        const k = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.extrusionAxis);
+        for (const j of [0, 1]) {
+            o.size[(k + j + 1) % 3] = 2.0 * o.radius;
+        }
+    };
+
     self.updateExtruded = (o, callback) => {
         o.layoutShape = 'polygon';
         o.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis(o.extrusionAxis);
@@ -291,6 +298,16 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             appState.models[c] = model;
         }
         return s;
+    };
+
+    self.updateRaceTrack = o => {
+        const s = [0, 0, 0];
+        const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
+        s[i] = o.height;
+        for (const j of [0, 1]) {
+            s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
+        }
+        o.size = s;
     };
 
     self.upload = function(inputFile) {
@@ -598,6 +615,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             view = new SIREPO.VTK.ExtrudedPolyViews(o.id, o.name, center, size, o.extrusionAxis, o.points, scale);
         }
+        else if (o.type === 'cylinder') {
+            view = new SIREPO.VTK.CylinderViews(o.id, o.name, center, size, o.extrusionAxis, o.numSides, scale);
+        }
+        else if (o.type === 'racetrack') {
+            view = new SIREPO.VTK.RacetrackViews(o.id, o.name, center, size, o.axis, o.numSegments, o.radii[1], scale);
+        }
         else {
             view = new SIREPO.VTK.CuboidViews(o.id, o.name, center, size, scale);
         }
@@ -818,6 +841,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     loadObjectViews();
 
     $scope.$on('modelChanged', function(e, modelName) {
+
         if (! watchedModels.includes(modelName)) {
             return;
         }
@@ -833,15 +857,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             }
             if (o.type === 'racetrack') {
-                // calculate the size
-                let s = [0, 0, 0];
-                const i = geometry.basis.indexOf(o.axis);
-                s[i] = o.height;
-                for (const j of [0, 1]) {
-                    s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
-                }
-                o.size = s;
-                appState.saveQuietly('racetrack');
+                radiaService.updateRaceTrack(o);
+            }
+            if (o.type === 'cylinder') {
+                radiaService.updateCylinder(o);
             }
             if (o.materialFile) {
                 o.hmFileName = o.materialFile.name;
@@ -3159,6 +3178,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     $scope.watchFields = [
         [
             'geomObject.type',
+            'cylinder.radius',
             'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
             'extrudedObject.extrusionAxis',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
@@ -3294,24 +3314,90 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.enableField('geomObject', 'size', true);
         panelState.showField('geomObject', 'segments', ! editedModels.includes('extrudedObject'));
 
-        if (o.type === 'stl') {
+        if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);
+            return;
         }
 
-        if (o.type !== 'extrudedPoints') {
+        if (! appState.isSubclass(modelType, 'extrudedObject')) {
+            return;
+        }
+
+        for (const i in axes) {
+            panelState.enableArrayField('geomObject', 'size', i, axes[i] === o.extrusionAxis);
+        }
+
+        if (modelType === 'cylinder') {
+            radiaService.updateCylinder(o);
+        }
+
+        if (modelType !== 'extrudedPoints') {
             return;
         }
 
         panelState.showField('extrudedPoints', 'referencePoints', hasPoints());
         panelState.enableField('extrudedPoints', 'pointsFile', ! hasPoints());
-        
-        for (const i in axes) {
-            panelState.enableArrayField('geomObject', 'size', i, axes[i] === o.extrusionAxis);
-        }
     }
 
 
     buildTriangulationLevelDelegate();
+    const self = {};
+    self.getBaseObject = () => $scope.modelData;
+    return self;
+});
+
+SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
+
+    const parent = $scope.$parent;
+
+    $scope.watchFields = [
+        [
+            'racetrack.axis',
+            'racetrack.height',
+        ], updateObjectEditor
+    ];
+
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+        updateObjectEditor();
+    };
+
+    function modelField(f) {
+        const m = appState.parseModelField(f);
+        return m ? m : [parent.modelName, f];
+    }
+
+    function updateObjectEditor() {
+        const o = $scope.modelData;
+        if (! o) {
+            return;
+        }
+
+        [appState.models[$scope.modelName].planeAxis1, appState.models[$scope.modelName].planeAxis2]  = SIREPO.GEOMETRY.GeometryUtils.nextAxes($scope.modelData.axis);
+        const modelType = o.type;
+        parent.activePage.items.forEach((f) => {
+            const m = modelField(f);
+            const hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;
+            panelState.showField(
+                m[0],
+                m[1],
+                hasField || appState.isSubclass(modelType, m[0])
+            );
+        });
+        radiaService.updateRaceTrack(o);
+        panelState.enableField('racetrack', 'size', false);
+    }
+
+    // appState.watchModelFields does not work with arrays
+    $scope.$watchGroup(
+        [
+            "appState['models']['racetrack']['sides'][0]",
+            "appState['models']['racetrack']['sides'][1]",
+            "appState['models']['racetrack']['radii'][1]",
+        ],
+        updateObjectEditor
+    );
+
     const self = {};
     self.getBaseObject = () => $scope.modelData;
     return self;
@@ -3322,7 +3408,12 @@ for(const m of ['Dipole', 'Undulator']) {
         SIREPO.viewLogic(`${d[0]}View`, function(appState, panelState, radiaService, validationService, $scope) {
 
             $scope.model = appState.models[$scope.modelName];
-            $scope.watchFields = [];
+            $scope.watchFields = [
+                [
+                    `${$scope.modelName}.coil.height`,
+                ],
+                updateEditor
+            ];
 
             let editedModels = [];
             let models = {};
@@ -3379,6 +3470,11 @@ for(const m of ['Dipole', 'Undulator']) {
                 appState.models[$scope.modelName][activeObjModelName()] = o;
                 editedModels = radiaService.updateModelAndSuperClasses(o.type, o);
                 appState.saveChanges([$scope.modelName, ...editedModels]);
+
+                if (o.type === 'racetrack') {
+                    watchCoil();
+                    panelState.enableField('racetrack', 'size', false);
+                }
             };
 
             function activeModelId() {
@@ -3391,6 +3487,28 @@ for(const m of ['Dipole', 'Undulator']) {
 
             function getObjFromGeomRpt() {
                 return radiaService.getObject(activeModelId());
+            }
+
+            function updateEditor() {
+                const o = getObjFromGeomRpt();
+                if (! o) {
+                    return;
+                }
+                if (o.type === 'racetrack') {
+                    radiaService.updateRacetrack(o);
+                }
+            }
+
+            function watchCoil() {
+                const coil = `appState.models['${$scope.modelName}']['coil']`;
+                $scope.$watchGroup(
+                    [
+                        `${coil}['sides'][0]`,
+                        `${coil}['sides'][1]`,
+                        `${coil}['radii'][1]`,
+                    ],
+                    updateEditor
+                );
             }
 
             //TODO(mvk): implement validation for parameterized magnets - this is a placeholder

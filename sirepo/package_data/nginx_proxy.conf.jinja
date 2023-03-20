@@ -55,10 +55,7 @@ http {
         }
         {% endif %}
         location / {
-            include /etc/nginx/uwsgi_params;
-            uwsgi_read_timeout 300s;
-            uwsgi_send_timeout 300s;
-            uwsgi_pass 127.0.0.1:{{ port }};
+            proxy_pass http://127.0.0.1:{{ port }};
         }
     }
 }

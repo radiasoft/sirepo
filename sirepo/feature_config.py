@@ -4,8 +4,6 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-
 # defer all imports so *_CODES is available to testing functions
 
 
@@ -45,6 +43,7 @@ _NON_PROD_FOSS_CODES = frozenset(
         "myapp",
         "silas",
         "omega",
+        "rshellweg",
     )
 )
 
@@ -110,6 +109,15 @@ def proprietary_sim_types():
     )
 
 
+def _is_fedora_36():
+    from pykern import pkio
+
+    p = pkio.py_path("/etc/os-release")
+    if not p.check():
+        return False
+    return "fedora:36" in p.read()
+
+
 def _init():
     from pykern import pkconfig
     from pykern import pkio
@@ -141,13 +149,13 @@ def _init():
         schema_common=dict(
             hide_guest_warning=b("Hide the guest warning in the UI", dev=True),
         ),
+        jspec=dict(
+            derbenevskrinsky_force_formula=b("Include Derbenev-Skrinsky force formula"),
+        ),
         moderated_sim_types=(
             frozenset(),
             set,
             "codes where all users must be authorized via moderation",
-        ),
-        jspec=dict(
-            derbenevskrinsky_force_formula=b("Include Derbenev-Skrinsky force formula"),
         ),
         package_path=(
             tuple(["sirepo"]),
@@ -200,6 +208,11 @@ def _init():
                 'Show "Export ML Script" menu item',
             ),
         ),
+        trust_sh_env=(
+            False,
+            bool,
+            "Trust Bash env to run Python and agents",
+        ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),
             display_test_boxes=b(
@@ -222,6 +235,7 @@ def _init():
             s.add(v[1])
     _cfg.sim_types = frozenset(s)
     _check_packages(_cfg.package_path)
+    _cfg.is_fedora_36 = _is_fedora_36()
     return _cfg
 
 

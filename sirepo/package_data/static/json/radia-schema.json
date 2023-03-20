@@ -282,6 +282,11 @@
             ["", "None"],
             ["pln", "Planar"]
         ],
+        "Elevation": [
+            ["front", "front"],
+            ["side", "side"],
+            ["top", "top"]
+        ],
         "FieldScaling": [
             ["uniform", "Uniform"],
             ["linear", "Linear"],
@@ -341,6 +346,13 @@
             ["filePath", "File"],
             ["fieldMapPath", "Field Map"]
         ],
+        "SnapGridSize": [
+            ["0.1", "0.1"],
+            ["0.5", "0.5"],
+            ["1", "1"],
+            ["5", "5"],
+            ["10", "10"]
+        ],
         "SolveMethod": [
             ["0", "0"],
             ["3", "3"],
@@ -397,8 +409,8 @@
         "axisPath": {
             "_super": ["_", "model", "linePath"],
             "axis": ["Axis", "BeamAxis", "z"],
-            "start": ["Start", "Float", -10.0, "Start point"],
-            "stop": ["End", "Float", 10.0, "End point"],
+            "start": ["Start [mm]", "Float", -10.0, "Start point"],
+            "stop": ["End [mm]", "Float", 10.0, "End point"],
             "type": ["_", "PathType", "axisPath"]
         },
         "cuboid": {
@@ -430,6 +442,12 @@
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "ModelArrayTable", [], "", ["rotateClone", "translateClone"]],
             "type": ["_", "TransformTypes", "cloneTransform"]
+        },
+        "threeDBuilder": {
+            "autoFit": ["", "Bool", true],
+            "elevation": ["_", "Elevation", "front"],
+            "snapToGrid": ["_", "Bool", false],
+            "snapGridSize": ["_", "SnapGridSize", "1"]
         },
         "dipoleBasic": {
             "_super": ["_", "model", "radiaObject"],
@@ -789,7 +807,7 @@
         },
         "kickMapReport": {
             "beamAxis": ["_", "BeamAxis", "z", ""],
-            "begin": ["Start", "FloatArray", [0, 0, 0], "Start point", ["x", "y", "z"]],
+            "begin": ["Start [mm]", "FloatArray", [0, 0, 0], "Start point", ["x", "y", "z"]],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "component": ["Component", "KickMapComponent", "h"],
             "direction": ["Direction", "FloatArray", [0, 0, 1], "Beam direction", ["x", "y", "z"]],
@@ -811,8 +829,8 @@
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
-            "begin": ["Start", "FloatArray", [-10.0, 0, 0], "Start point", ["x", "y", "z"]],
-            "end": ["End", "FloatArray", [10.0, 0, 0], "End point", ["x", "y", "z"]],
+            "begin": ["Start [mm]", "FloatArray", [-10.0, 0, 0], "Start point", ["x", "y", "z"]],
+            "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "End point", ["x", "y", "z"]],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "linePath"]
         },
@@ -870,13 +888,13 @@
             "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "currentDensity": ["Current Density [A/$mm^2$]", "Float", -2000.0],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
-            "height": ["Height ({{ appState.models.simulation.heightAxis }}) [mm]", "Float", 105.0, "", "Size along axis"],
+            "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "Float", 105.0, "Measured along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
             "radii": ["Radii [mm]", "FloatArray", [5.0, 40.0], "", ["Inner", "Outer"], [0, 0]],
-            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})"], [0, 0]],
-            "size": ["_", "FloatArray", [1.0, 1.0, 105.0], "", ["x", "y", "z"], [0, 0, 0]],
+            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", ["Length ({{ appState.models.racetrack.planeAxis1 }})", "Width ({{ appState.models.racetrack.planeAxis2 }})"], [0, 0]],
+            "size": ["Size", "FloatArray", [1.0, 1.0, 1.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["_", "ObjectType", "racetrack"]
         },
         "radiaObject": {
@@ -1140,6 +1158,7 @@
                     "dipoleC.coil.radii",
                     "dipoleC.coil.height",
                     "dipoleC.coil.sides",
+                    "dipoleC.coil.size",
                     "dipoleC.coil.currentDensity"
                 ]],
                 ["Magnet", [
@@ -1171,6 +1190,7 @@
                     "dipoleH.coil.radii",
                     "dipoleH.coil.height",
                     "dipoleH.coil.sides",
+                    "dipoleH.coil.size",
                     "dipoleH.coil.currentDensity"
                 ]],
                 ["Magnet", [
@@ -1446,6 +1466,7 @@
                 "sides",
                 "height",
                 "radii",
+                "size",
                 "numSegments",
                 "currentDensity",
                 "fieldCalc",
@@ -1459,6 +1480,7 @@
                 "sides",
                 "height",
                 "radii",
+                "size",
                 "numSegments",
                 "currentDensity",
                 "fieldCalc",

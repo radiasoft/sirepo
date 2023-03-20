@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['Lens', 'Lens_CRL', 'CRL', 'CRL_Zone_Plate', 'Zone_Plate', 'Zone_Plate_Fiber', 'Fiber', 'Fiber_Aperture', 'Aperture', 'Aperture_Obstacle', 'Obstacle', 'Obstacle_Mask', 'Mask', 'Mask_Sample', 'Sample', 'Sample_Planar', 'Planar', 'Planar_Circular_Cylinder', 'Circular_Cylinder', 'Circular_Cylinder_Circular_Cylinder2', 'Circular_Cylinder2', 'Circular_Cylinder2_Elliptical_Cylinder', 'Elliptical_Cylinder', 'Elliptical_Cylinder_Elliptical_Cylinder2', 'Elliptical_Cylinder2', 'Elliptical_Cylinder2_Toroid', 'Toroid', 'Toroid_Toroid2', 'Toroid2', 'Toroid2_Crystal', 'Crystal', 'Crystal_Crystal2', 'Crystal2', 'Crystal2_Grating', 'Grating', 'Grating_Watchpoint', 'Watchpoint']
+        names = ['Lens', 'Lens_CRL', 'CRL', 'CRL_Zone_Plate', 'Zone_Plate', 'Zone_Plate_Fiber', 'Fiber', 'Fiber_Aperture', 'Aperture', 'Aperture_Obstacle', 'Obstacle', 'Obstacle_Mask', 'Mask', 'Mask_Sample', 'Sample', 'Sample_Planar', 'Planar', 'Planar_Circular_Cylinder', 'Circular_Cylinder', 'Circular_Cylinder_Circular_Cylinder2', 'Circular_Cylinder2', 'Circular_Cylinder2_Elliptical_Cylinder', 'Elliptical_Cylinder', 'Elliptical_Cylinder_Elliptical_Cylinder2', 'Elliptical_Cylinder2', 'Elliptical_Cylinder2_Toroid', 'Toroid', 'Toroid_Toroid2', 'Toroid2', 'Toroid2_Crystal', 'Crystal', 'Crystal_Crystal2', 'Crystal2', 'Crystal2_Grating', 'Grating', 'Grating_Watchpoint']
     for el_name in names:
         if el_name == 'Lens':
             # Lens: lens 20.0m
@@ -489,9 +489,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_Grating_Watchpoint_L,
             ))
             pp.append(v.op_Grating_Watchpoint_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 34.0m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -1020,7 +1017,7 @@ varParam = [
     ['op_Grating_tvy', 'f', 0.012955216595673965, 'tvy'],
     ['op_Grating_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Grating_y', 'f', 0.0, 'verticalOffset'],
-    ['op_Grating_m', 'f', 1.0, 'diffractionOrder'],
+    ['op_Grating_m', 'f', 1, 'diffractionOrder'],
     ['op_Grating_grDen', 'f', 1800.0, 'grooveDensity0'],
     ['op_Grating_grDen1', 'f', 0.08997, 'grooveDensity1'],
     ['op_Grating_grDen2', 'f', 3.004e-06, 'grooveDensity2'],
@@ -1107,10 +1104,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['Lens','Lens_CRL','CRL','CRL_Zone_Plate','Zone_Plate','Zone_Plate_Fiber','Fiber','Fiber_Aperture','Aperture','Aperture_Obstacle','Obstacle','Obstacle_Mask','Mask','Mask_Sample','Sample','Sample_Planar','Planar','Planar_Circular_Cylinder','Circular_Cylinder','Circular_Cylinder_Circular_Cylinder2','Circular_Cylinder2','Circular_Cylinder2_Elliptical_Cylinder','Elliptical_Cylinder','Elliptical_Cylinder_Elliptical_Cylinder2','Elliptical_Cylinder2','Elliptical_Cylinder2_Toroid','Toroid','Toroid_Toroid2','Toroid2','Toroid2_Crystal','Crystal','Crystal_Crystal2','Crystal2','Crystal2_Grating','Grating','Grating_Watchpoint','Watchpoint']
+    names = ['Lens','Lens_CRL','CRL','CRL_Zone_Plate','Zone_Plate','Zone_Plate_Fiber','Fiber','Fiber_Aperture','Aperture','Aperture_Obstacle','Obstacle','Obstacle_Mask','Mask','Mask_Sample','Sample','Sample_Planar','Planar','Planar_Circular_Cylinder','Circular_Cylinder','Circular_Cylinder_Circular_Cylinder2','Circular_Cylinder2','Circular_Cylinder2_Elliptical_Cylinder','Elliptical_Cylinder','Elliptical_Cylinder_Elliptical_Cylinder2','Elliptical_Cylinder2','Elliptical_Cylinder2_Toroid','Toroid','Toroid_Toroid2','Toroid2','Toroid2_Crystal','Crystal','Crystal_Crystal2','Crystal2','Crystal2_Grating','Grating','Grating_Watchpoint']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

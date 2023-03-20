@@ -12,10 +12,12 @@ import importlib
 import pykern.pkio
 import re
 import sirepo.auth
+import sirepo.const
 import sirepo.events
 import sirepo.sim_db_file
 import sirepo.simulation_db
 import sirepo.tornado
+import sirepo.util
 import tornado.gen
 import tornado.ioloop
 import tornado.locks
@@ -273,7 +275,7 @@ class DriverBase(PKDict):
                 # POSIT: Canceled errors aren't smothered by any of the below calls
                 await self.kill()
                 await self._do_agent_start(op)
-            except Exception as e:
+            except (Exception, sirepo.const.ASYNC_CANCELED_ERROR) as e:
                 pkdlog("{} error={} stack={}", self, e, pkdexc())
                 self.free_resources(internal_error="failure starting agent")
                 raise
