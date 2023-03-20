@@ -44,7 +44,7 @@ class GeometryUtils {
         return GeometryUtils.BASIS().indexOf(axis);
     }
 
-    static bounds(points) {
+    static bounds(points, useRadius=false) {
         let b = {
             x: [Number.MAX_VALUE, -Number.MAX_VALUE],
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
@@ -54,9 +54,9 @@ class GeometryUtils {
         }
         const ex = GeometryUtils.extrema;
         for (const dim in b) {
-            b[dim] = [ex(points, dim, true)[0][dim], ex(points, dim, false)[0][dim]];
+            b[dim] = [ex(points, dim, false)[0][dim], ex(points, dim, true)[0][dim]];
         }
-        return GeometryUtils.boundsRadius(b);
+        return useRadius ? GeometryUtils.boundsRadius(b) : b;
     }
 
     static boundsRadius(b) {
@@ -74,7 +74,7 @@ class GeometryUtils {
     }
 
     /**
-     * Get the indices of the given axis and the two axes in BASIS that comes after it axis, wrapping around
+     * Get the indices of the given axis and the two axes in BASIS that comes after it, wrapping around
      * @param {string} axis - start axis (x|y|z)
      * @returns {[number]}
      */
@@ -141,7 +141,7 @@ class GeometryUtils {
      * @returns {[Point]}
      */
     static sortInDimension(points, dim, doReverse = false) {
-        return points.slice(0).sort((p1, p2) => {
+        return points.slice().sort((p1, p2) => {
             // throws an exception if the points have different dimensions
             p1.dist(p2);
             return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
@@ -850,6 +850,17 @@ class Point extends GeometricObject {
     }
 
     /**
+     * Determines whether the coordinate at the given index of this point and the given point are
+     * equal according to equalWithin
+     * @param {Point} point - another Point
+     * @param {number} index - index of the coordinate
+     * @returns {boolean}
+     */
+    coordEquals(point, index) {
+        return this.equalWithin(this.coords()[index], point.coords()[index]);
+    }
+
+    /**
      * Distance to another Point
      * @param {Point} point - another Point
      * @returns {number}
@@ -1061,6 +1072,27 @@ class Line extends GeometricObject {
         this.points = [point1, point2];
     }
 
+    /**
+     * Compares a given Point to this line, in the following sense:
+     * - if the Point is on this Line, return 0
+     * - if the Line is vertical, return 1 if the x coordinate of the Point is greater than the Line's, else -1
+     * - if the Line is horizontal, return 1 if the y coordinate of the Point is greater than the Line's, else -1
+     * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
+     * @param {Point} point - the point to compare
+     * @returns {number} - -1|0|1
+     */
+    comparePoint(point) {
+        if (this.contains(point)) {
+            return 0;
+        }
+        if (this.slope() === Infinity) {
+            return point.x > this.points[0].x ? 1 : -1;
+        }
+        if (this.slope() === 0) {
+            return point.y > this.points[0].y ? 1 : -1;
+        }
+        return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
+    }
 
     /**
      * Determines whether the given Point is on this Line, that is it satisfies:
@@ -1075,7 +1107,7 @@ class Line extends GeometricObject {
         }
         return this.equalWithin(point.y, s * point.x + this.intercept());
     }
-
+    
     /**
      * Determines whether this Line is equal to another, according to the following criteria:
      *  - if the slopes of each are Infinite, and they have the same x coordinate, they are equal
@@ -1129,23 +1161,6 @@ class Line extends GeometricObject {
     slope() {
         return this.points[1].x === this.points[0].x ? Infinity :
             (this.points[1].y - this.points[0].y) / (this.points[1].x - this.points[0].x);
-    }
-
-    /**
-     * Compares a given Point to this line, in the following sense:
-     * - if the Point is on this Line, return 0
-     * - if the Line is vertical, return 1 if the x coordinate of the Point is greater than the Line's, else -1
-     * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
-     * @returns {number} - -1|0|1
-     */
-    comparePoint(point) {
-        if (this.contains(point)) {
-            return 0;
-        }
-        if (this.slope() === Infinity) {
-            return point.x > this.points[0].x ? 1 : -1;
-        }
-        return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
     }
 
     /**

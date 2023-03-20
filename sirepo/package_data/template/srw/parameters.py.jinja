@@ -48,7 +48,7 @@ varParam = [
 #---Data Folder
     ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
 
-{% if simulation_sourceType != 'g' %}
+{% if rs_type != 'g' %}
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
     ['ebm_nms', 's', '', 'standard electron beam name suffix: e.g. can be Day1, Final'],
@@ -85,35 +85,35 @@ varParam = [
     {% endif %}
 
 {% endif %}
-{% if simulation_sourceType in ['u', 't'] %}
+{% if rs_type in ['u', 't'] %}
 #---Undulator
 #---idealized params
-{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_bx', 'f', {{undulator_horizontalAmplitude}}, 'undulator horizontal peak magnetic field [T]'],
-{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_by', 'f', {{undulator_verticalAmplitude}}, 'undulator vertical peak magnetic field [T]'],
-{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_phx', 'f', {{undulator_horizontalInitialPhase}}, 'initial phase of the horizontal magnetic field [rad]'],
-{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_phy', 'f', {{undulator_verticalInitialPhase}}, 'initial phase of the vertical magnetic field [rad]'],
-{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_sx', 'i', {{undulator_horizontalSymmetry}}, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
-{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_sy', 'i', {{undulator_verticalSymmetry}}, 'undulator vertical magnetic field symmetry vs longitudinal position'],
-{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
-{% if simulation_sourceType != 'u' %}#{% endif %}    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
+{% if rs_type != 'u' %}#{% endif %}    ['und_bx', 'f', {{undulator_horizontalAmplitude}}, 'undulator horizontal peak magnetic field [T]'],
+{% if rs_type != 'u' %}#{% endif %}    ['und_by', 'f', {{undulator_verticalAmplitude}}, 'undulator vertical peak magnetic field [T]'],
+{% if rs_type != 'u' %}#{% endif %}    ['und_phx', 'f', {{undulator_horizontalInitialPhase}}, 'initial phase of the horizontal magnetic field [rad]'],
+{% if rs_type != 'u' %}#{% endif %}    ['und_phy', 'f', {{undulator_verticalInitialPhase}}, 'initial phase of the vertical magnetic field [rad]'],
+{% if rs_type != 'u' %}#{% endif %}    ['und_sx', 'i', {{undulator_horizontalSymmetry}}, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
+{% if rs_type != 'u' %}#{% endif %}    ['und_sy', 'i', {{undulator_verticalSymmetry}}, 'undulator vertical magnetic field symmetry vs longitudinal position'],
+{% if rs_type != 'u' %}#{% endif %}    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
+{% if rs_type != 'u' %}#{% endif %}    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
 #---tabulated params
-{% if simulation_sourceType != 't' %}#{% endif %}    ['und_g', 'f', {{tabulatedUndulator_gap}}, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
-{% if simulation_sourceType != 't' %}#{% endif %}    ['und_ph', 'f', {{tabulatedUndulator_phase}}, 'shift of magnet arrays [mm] for which the field should be set up'],
-{% if simulation_sourceType != 't' %}#{% endif %}    ['und_mdir', 's', '{{magneticMeasurementsDir}}', 'name of magnetic measurements sub-folder'],
-{% if simulation_sourceType != 't' %}#{% endif %}    ['und_mfs', 's', '{{magneticMeasurementsIndexFile}}', 'name of magnetic measurements for different gaps summary file'],
+{% if rs_type != 't' %}#{% endif %}    ['und_g', 'f', {{tabulatedUndulator_gap}}, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
+{% if rs_type != 't' %}#{% endif %}    ['und_ph', 'f', {{tabulatedUndulator_phase}}, 'shift of magnet arrays [mm] for which the field should be set up'],
+{% if rs_type != 't' %}#{% endif %}    ['und_mdir', 's', '{{magneticMeasurementsDir}}', 'name of magnetic measurements sub-folder'],
+{% if rs_type != 't' %}#{% endif %}    ['und_mfs', 's', '{{magneticMeasurementsIndexFile}}', 'name of magnetic measurements for different gaps summary file'],
 #---both  params
     ['und_zc', 'f', {{undulator_longitudinalPosition}}, 'undulator center longitudinal position [m]'],
     ['und_per', 'f', {{undulator_period}}, 'undulator period [m]'],
     ['und_len', 'f', {{undulator_length}}, 'undulator length [m]'],
 
 {% endif %}
-{% if simulation_sourceType == 'a' %}
+{% if rs_type == 'a' %}
     ['mag_ior','f', {{arbitraryMagField_interpolationOrder}}, 'interpolation order to use for tabulated magnetic field (1<= mag_ior <= 3)'],
     ['mag_zc','f', {{arbitraryMagField_longitudinalPosition}}, 'center longitudinal position [m]'],
     ['mag_fn','s', '{{arbitraryMagField_magneticFile}}', 'input 3D magnetic field file name'],
 {% endif %}
 
-{% if simulation_sourceType == 'g' %}
+{% if rs_type == 'g' %}
     ['gbm_x', 'f', {{gaussianBeam_waistX}}, 'average horizontal coordinates of waist [m]'],
     ['gbm_y', 'f', {{gaussianBeam_waistY}}, 'average vertical coordinates of waist [m]'],
     ['gbm_z', 'f', {{gaussianBeam_waistZ}}, 'average longitudinal coordinate of waist [m]'],
@@ -207,7 +207,7 @@ varParam = [
     #Single-Electron Wavefront Propagation
     ['ws', '', '', 'calculate single-electron (/ fully coherent) wavefront propagation', 'store_true'],
     #Multi-Electron (partially-coherent) Wavefront Propagation
-    ['wm', '', '{{multiElectronAnimation}}', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
+    ['wm', '', '', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
 
     ['w_e', 'f', {{simulation_photonEnergy}}, 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ef', 'f', {{simulation_finalPhotonEnergy}}, 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
@@ -261,7 +261,7 @@ varParam = [
     {% endif %}
     # Former appParam:
     ['rs_type', 's', '{{rs_type}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
-{% if simulation_sourceType == 'm' %}
+{% if rs_type == 'm' %}
 #---Multipole
     ['mag_by', 'f', {{multipole_by}}, 'vertical magnetic field [T]'],
     ['mag_bx', 'f', {{multipole_bx}}, 'horizontal magnetic field [T]'],
@@ -441,4 +441,3 @@ def epilogue():
 def main():
 {{srwMain}}
 epilogue()
-

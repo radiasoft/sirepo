@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['Aperture', 'Aperture_Watchpoint', 'Watchpoint']
+        names = ['Aperture', 'Aperture_Watchpoint']
     for el_name in names:
         if el_name == 'Aperture':
             # Aperture: aperture 33.1798m
@@ -37,9 +37,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_Aperture_Watchpoint_L,
             ))
             pp.append(v.op_Aperture_Watchpoint_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 45.0m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -305,10 +302,11 @@ def epilogue():
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     setup_magnetic_measurement_files("magnetic_measurements.zip", v)
-    names = ['Aperture','Aperture_Watchpoint','Watchpoint']
+    names = ['Aperture','Aperture_Watchpoint']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True
