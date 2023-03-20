@@ -323,6 +323,7 @@ def main():
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

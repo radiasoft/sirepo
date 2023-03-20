@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import signal
+import sirepo.feature_config
 import sirepo.modules
 import sirepo.nersc
 import sirepo.tornado
@@ -472,6 +473,8 @@ class _Cmd(PKDict):
         )
 
     def job_cmd_source_bashrc(self):
+        if sirepo.feature_config.cfg().trust_sh_env:
+            return ""
         return "source $HOME/.bashrc"
 
     async def on_stderr_read(self, text):
