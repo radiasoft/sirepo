@@ -311,14 +311,14 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
 
 def _extract_initial_intensity_report(run_dir, sim_in):
     template_common.write_sequential_result(
-        _initial_intensity_plot(run_dir),
+        _laser_pulse_plot(run_dir, "intensity"),
         run_dir=run_dir,
     )
 
 
 def _extract_initial_phase_report(run_dir, sim_in):
     template_common.write_sequential_result(
-        _initial_phase_plot(run_dir),
+        _laser_pulse_plot(run_dir, "phase"),
         run_dir=run_dir,
     )
 
@@ -327,28 +327,13 @@ def _format_float(v):
     return float("{:.4f}".format(v))
 
 
-def _initial_intensity_plot(run_dir):
-    with h5py.File(run_dir.join(_SIM_DATA.h5_data_file()), "r") as f:
+def _laser_pulse_plot(run_dir, data_path, element=None):
+    with h5py.File(run_dir.join(_SIM_DATA.h5_data_file(element)), "r") as f:
         d = template_common.h5_to_dict(f)
         r = d.ranges
-        z = d.intensity
+        z = d[data_path]
         return PKDict(
-            title="Intensity",
-            x_range=[r.x[0], r.x[1], len(z)],
-            y_range=[r.y[0], r.y[1], len(z[0])],
-            x_label="Horizontal Position [m]",
-            y_label="Vertical Position [m]",
-            z_matrix=z,
-        )
-
-
-def _initial_phase_plot(run_dir):
-    with h5py.File(run_dir.join(_SIM_DATA.h5_data_file()), "r") as f:
-        d = template_common.h5_to_dict(f)
-        r = d.ranges
-        z = d.phase
-        return PKDict(
-            title="Phase",
+            title=data_path.capitalize(),
             x_range=[r.x[0], r.x[1], len(z)],
             y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",
