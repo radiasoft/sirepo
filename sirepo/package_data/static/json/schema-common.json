@@ -52,6 +52,10 @@
             "longName": "Raydata",
             "shortName": "Raydata"
         },
+        "rshellweg": {
+            "longName": "RSHellweg",
+            "shortName": "RSHellweg"
+        },
         "shadow": {
             "longName": "SHADOW",
             "shortName": "SHADOW"
