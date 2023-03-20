@@ -5,6 +5,10 @@
         }
     },
     "enum": {
+        "DataAspect": [
+            ["intensity", "Intensity"],
+            ["phase", "Phase"]
+        ],
         "GaussianBeamPolarization": [
             ["0", "Linear Horizontal"],
             ["1", "Linear Vertical"],
@@ -135,6 +139,7 @@
             "waistSize": ["RMS Waist Size [m]", "FloatArray", [0.001, 0.001], "", ["Horizontal", "Vertical"]]
         },
         "initialIntensityReport": {
+            "aspect": ["Value to Plot", "DataAspect", "intensity"],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "initialPhaseReport": {
@@ -344,7 +349,10 @@
             ]
         },
         "watchpointReport": {
-            "_super": ["_", "view", "initialIntensityReport"]
+            "_super": ["_", "view", "initialIntensityReport"],
+            "advanced": [
+                "aspect"
+            ]
         },
         "wavefrontAnimation": {
             "title": "Wavefront",

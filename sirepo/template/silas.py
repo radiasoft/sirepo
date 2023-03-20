@@ -335,7 +335,7 @@ def _extract_initial_phase_report(run_dir, sim_in):
 def _extract_watchpoint_report(run_dir, sim_in):
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir)
     template_common.write_sequential_result(
-        _laser_pulse_plot(run_dir, "intensity", _SIM_DATA.get_watchpoint(sim_in)),
+        _laser_pulse_plot(run_dir, sim_in.models[sim_in.report].aspect, _SIM_DATA.get_watchpoint(sim_in)),
         run_dir=run_dir,
     )
 

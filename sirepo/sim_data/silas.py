@@ -48,6 +48,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "simulation",
                 "simulationSettings",
                 "watch",
+                "watchpointReport",
                 "wavefrontSummaryAnimation",
             ),
         )
@@ -85,9 +86,11 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if r in INITIAL_REPORTS:
-            return cls._non_analysis_fields(data, "laserPulse")
         res = []
+        if r in INITIAL_REPORTS:
+            res += cls._non_analysis_fields(data, "laserPulse")
+        if cls.is_watchpoint(r):
+            res += ["initialIntensityReport.aspect"]
         return res
 
     @classmethod
