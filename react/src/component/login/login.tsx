@@ -62,7 +62,6 @@ export const NavbarNewSimulation = (props) => {
     };
     const onComplete = (data: { [key: string]: any }) => {
         const folder = location.pathname.replace(/^.*?\/simulations/, '');
-        console.log('pathname:', location.pathname, 'folder:', folder);
         fetch(routeHelper.globalRoute("newSimulation"), {
             method: "POST",
             body: JSON.stringify({ ...data, simulationType: appName, folder: folder || '/' }),
