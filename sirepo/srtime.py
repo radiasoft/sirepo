@@ -28,7 +28,7 @@ def adjust_time(days):
     """Shift the system time by days
 
     Args:
-        days (str): must be integer. If None or 0, no adjustment.
+        days (str): must be integer. If None or 0, clear the adjustment.
     """
     global _timedelta
 
@@ -47,7 +47,7 @@ class API(sirepo.quest.API):
         """Shift the system time by days and get the adjusted time
 
         Args:
-            days (str): must be integer. If None or 0, no adjustment.
+            days (str): must be integer. If None or 0, clear the adjustment.
         """
         days = adjust_time(days)
         (
