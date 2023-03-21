@@ -12,7 +12,6 @@ from scipy import constants
 from sirepo import simulation_db
 from sirepo.template import template_common
 from rslaser.pulse import pulse
-from rslaser.utils import srwl_uti_data
 import csv
 import h5py
 import math

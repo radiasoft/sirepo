@@ -49,7 +49,7 @@ def _build_crystal(model):
             l_scale=1,
             length=model.width,
             n0=[model.refractionIndex] * model.numSlices,
-            n2=[model.radius] * model.numSlices,
+            n2=[model.radialVariation] * model.numSlices,
             nslice=model.numSlices,
         )
     )

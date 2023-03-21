@@ -275,7 +275,6 @@ SIREPO.app.directive('selectElement', function(appState) {
 });
 
 SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, $scope) {
-    $scope.whenSelected = () => panelState.enableField('crystal', 'position', false);
 });
 
 SIREPO.beamlineItemLogic('mirrorView', function(appState, panelState, $scope) {
