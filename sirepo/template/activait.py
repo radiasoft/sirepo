@@ -358,7 +358,10 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
 
 
 def analysis_job_dice_coefficient(data, run_dir, **kwargs):
-    return _dice_coefficient_plot(data, run_dir)
+    # pkdp("\n\n\n shape={}", data.args.columnInfo.shape)
+    # pkdp("\n\n\n data.args={}", data.args)
+    i = data.args.columnInfo.inputOutput.index("output")
+    return _dice_coefficient_plot(data, run_dir, data.args.columnInfo.shape[i][1:])
 
 
 def stateful_compute_sample_images(data):
@@ -1091,7 +1094,7 @@ def _masks(out_width, out_height, run_dir):
     return x, y
 
 
-def _dice_coefficient_plot(data, run_dir):
+def _dice_coefficient_plot(data, run_dir, y_shape):
     import matplotlib.pyplot as plt
 
     def _dice(run_dir):
@@ -1102,7 +1105,7 @@ def _dice_coefficient_plot(data, run_dir):
             )
 
         d = []
-        x, y = _masks(64, 64, run_dir)
+        x, y = _masks(y_shape[0], y_shape[1], run_dir)
         for pair in zip(x, y):
             d.append(_dice_coefficient(pair[0], pair[1]))
         return d
