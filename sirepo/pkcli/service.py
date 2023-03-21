@@ -3,10 +3,9 @@
 
 Also supports starting nginx proxy.
 
-:copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcli
 from pykern import pkcollections
 from pykern import pkconfig
@@ -114,7 +113,14 @@ def http():
         except (psutil.TimeoutExpired, subprocess.TimeoutExpired):
             proc.kill()
 
-    def _start(service, extra_environ, cwd=".", prefix=("pyenv", "exec", "sirepo")):
+    def _start(service, extra_environ, cwd=".", want_prefix=True):
+        if not want_prefix:
+            prefix = ()
+        else:
+            if sirepo.feature_config.cfg().trust_sh_env:
+                prefix = ("sirepo",)
+            else:
+                prefix = ("pyenv", "exec", "sirepo")
         processes.append(
             subprocess.Popen(
                 prefix + service,
@@ -140,7 +146,7 @@ def http():
                 _start(
                     ("npm", "start"),
                     cwd="../react",
-                    prefix=(),
+                    want_prefix=False,
                     extra_environ=PKDict(PORT=str(_cfg().react_port)),
                 )
                 e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"

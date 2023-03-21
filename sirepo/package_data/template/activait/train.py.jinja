@@ -69,8 +69,15 @@ def _predictions_initial(testx, testy):
             )
         )
     p = model.predict(testx)
+    {% if imageToImage %}
+    b = _best_worst_images(testy, p.reshape(*numpy.array(testy).shape))
+    {% endif %}
     return PKDict(
         p=p,
+        {% if imageToImage %}
+        best=b.best,
+        worst=b.worst,
+        {% endif %}
         testy=_test_y(testy),
     )
 
@@ -83,6 +90,16 @@ def _test_y(testy):
         testy = numpy.array(testy).flatten()
     return testy
 
+
+def _best_worst_images(y_true, predictions):
+    loss_fn = {{ neuralNet_losses }}
+    losses = []
+    for i in range(len(y_true)):
+        losses.append((i, float(loss_fn(y_true[i], predictions[i]))))
+    losses.sort(key = lambda x: x[1])
+    return PKDict(best=[x[0] for x in losses[:3]], worst=[x[0] for x in losses[-3:]])
+
+
 o = _predictions_initial(testx, testy)
 p = _predictions_final(o.p, o.testy)
 print(p)
@@ -93,3 +110,7 @@ p = model.predict(x=testx)
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', {% if image_data %}o.testy{% else %}testy{% endif %})
 np.save('{{ predictFile }}', p)
+{% if imageToImage %}
+np.save('{{ bestFile }}', o.best)
+np.save('{{ worstFile }}', o.worst)
+{% endif %}

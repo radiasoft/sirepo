@@ -1277,8 +1277,9 @@ def _compute_PGM_value(model):
         else:
             model.orientation = "x"
         _compute_grating_orientation(model)
-    except Exception:
-        pkdlog("\n{}", traceback.format_exc())
+    except Exception as e:
+        if type(e) not in (ZeroDivisionError, ValueError, TypeError):
+            pkdlog("\n{}", traceback.format_exc())
         if model.computeParametersFrom == "1":
             model.grazingAngle = None
         elif model.computeParametersFrom == "2":
@@ -2000,6 +2001,16 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             ]
         )
     else:
+        if report in (
+            "multiElectronAnimation",
+            "coherenceXAnimation",
+            "coherenceYAnimation",
+            "coherentModesAnimation",
+        ):
+            if not run_all:
+                content.append("v.wm = True")
+        else:
+            content.append("v.wm = False")
         if (run_all and source_type != "g") or report == "intensityReport":
             content.append("v.ss = True")
             if plot_reports:
@@ -2380,7 +2391,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
                 _core_error(sirepo.mpi.cfg().cores)
             if sirepo.mpi.cfg().in_slurm and c.sbatchCores < _MIN_CORES:
                 _core_error(c.sbatchCores)
-            v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
             v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = "h5"

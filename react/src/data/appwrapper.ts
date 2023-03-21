@@ -1,4 +1,4 @@
-import React from "react"
+import React, { MutableRefObject, Ref } from "react"
 import { SimulationInfo } from "../component/simulation"
 import { RouteHelper } from "../utility/route"
 import { Schema } from "../utility/schema"
@@ -46,7 +46,7 @@ export const CSimulationList = React.createContext<SimulationListItem[]>(undefin
 export const CSimulationInfoPromise = React.createContext<Promise<SimulationInfo>>(undefined);
 export const CAppName = React.createContext<string>(undefined);
 export const CSchema = React.createContext<Schema>(undefined);
-export const CLoginStatus = React.createContext<LoginStatus>(undefined);
+export const CLoginStatusRef = React.createContext<MutableRefObject<LoginStatus>>(undefined);
 export const CAppWrapper = React.createContext<AppWrapper>(undefined);
 
 export class AppWrapper {
@@ -86,7 +86,7 @@ export class AppWrapper {
 
     // TODO @garsuga: this should be its own api call, http errors should be used to signal login missing
     getLoginStatus: () => Promise<LoginStatus> = async () => {
-        return await fetch(this.routeHelper.globalRoute("authState2")).then(async (resp) => await resp.json() as LoginStatus)
+        return await fetch(this.routeHelper.globalRoute("authState2")).then(async (resp) => await resp.json() as LoginStatus);
     }
 
     doGuestLogin = (): Promise<void> => {
