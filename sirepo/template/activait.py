@@ -518,7 +518,7 @@ from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
 input_args = Input(shape=input_shape)
 {_build_layers(net)}
-x = Dense(output_shape, activation="linear")(x)
+#x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
@@ -1145,7 +1145,7 @@ def _image_preview(data, run_dir=None):
             f"No matching dimension found output size: {io.output.size}"
         )
 
-    def _by_indices(method, run_dir):
+    def _by_indices(method, run_dir, y_shape):
         i = PKDict(
             bestLosses=_read_file(run_dir, _OUTPUT_FILE.bestFile),
             worstLosses=_read_file(run_dir, _OUTPUT_FILE.worstFile),
@@ -1154,8 +1154,8 @@ def _image_preview(data, run_dir=None):
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
         return (
-            x.reshape(len(x) // 64 // 64, 64, 64)[i],
-            y.reshape(len(y) // 64 // 64, 64, 64)[i],
+            x.reshape(len(x) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
+            y.reshape(len(y) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
         )
 
     def _x_y(data, io, file, run_dir=None):
@@ -1164,7 +1164,8 @@ def _image_preview(data, run_dir=None):
             h = numpy.array(file[io.output.path]).shape[-2]
             return _masks(w, h, run_dir)
         if data.args.method in ("bestLosses", "worstLosses"):
-            return _by_indices(data.args.method, run_dir)
+            i = data.args.columnInfo.inputOutput.index("output")
+            return _by_indices(data.args.method, run_dir, data.args.columnInfo.shape[i][1:])
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):
