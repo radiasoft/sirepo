@@ -90,7 +90,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if r in INITIAL_REPORTS:
             res += cls._non_analysis_fields(data, "laserPulse")
         if cls.is_watchpoint(r):
-            res += ["initialIntensityReport.aspect"]
+            res += [f"{r}.aspect"]
         return res
 
     @classmethod
