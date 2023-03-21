@@ -20,12 +20,9 @@ WATCHPOINT_REPORT = "watchpointReport"
 
 _RESULTS_FILE = "results.h5"
 
+
 class SimData(sirepo.sim_data.SimDataBase):
-    ANALYSIS_ONLY_FIELDS = frozenset(
-        (
-            "colorMap",
-        )
-    )
+    ANALYSIS_ONLY_FIELDS = frozenset(("colorMap",))
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
@@ -90,13 +87,16 @@ class SimData(sirepo.sim_data.SimDataBase):
         if r in INITIAL_REPORTS:
             res += cls._non_analysis_fields(data, "laserPulse")
         if cls.is_watchpoint(r):
-            res += [f"{r}.aspect"]
+            res += [f"{r}.dataType"]
         return res
 
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
-        if data.report in INITIAL_REPORTS and data.models.laserPulse.geometryFromFiles == "1":
+        if (
+            data.report in INITIAL_REPORTS
+            and data.models.laserPulse.geometryFromFiles == "1"
+        ):
             for f in ("ccd", "meta", "wfs"):
                 res.append(
                     cls.lib_file_name_with_model_field(
@@ -109,9 +109,5 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _sim_file_basenames(cls, data):
         res = []
         if cls.is_watchpoint(data.report):
-            res.append(
-                PKDict(
-                    basename=cls.h5_data_file(cls.get_watchpoint(data))
-                )
-            )
+            res.append(PKDict(basename=cls.h5_data_file(cls.get_watchpoint(data))))
         return res

@@ -114,7 +114,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
         if (! appState.isLoaded()) {
             return;
         }
-        if ((data.frameCount || 0) > 1) {
+        if ((data.frameCount || 0) > 0) {
             frameCache.setFrameCount(data.frameCount);
         }
     };

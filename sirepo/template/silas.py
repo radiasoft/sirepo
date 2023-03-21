@@ -34,6 +34,7 @@ _DATA_PATHS = PKDict(
     watchpointReport=("ranges", "intensity"),
 )
 
+
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = PKDict(
@@ -229,17 +230,12 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
 def stateful_compute_mesh_dimensions(data):
     f = {
         k: _SIM_DATA.lib_file_abspath(
-             _SIM_DATA.lib_file_name_with_model_field("laserPulse", k, data.args[k])
+            _SIM_DATA.lib_file_name_with_model_field("laserPulse", k, data.args[k])
         )
         for k in data.args
     }
-    m = pulse.LaserPulse(
-        params=PKDict(nslice=1),
-        files=PKDict(f)
-    ).slice_wfr(0).mesh
-    return PKDict(
-        numSliceMeshPoints=[m.nx, m.ny]
-    )
+    m = pulse.LaserPulse(params=PKDict(nslice=1), files=PKDict(f)).slice_wfr(0).mesh
+    return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
 def stateless_compute_rms_size(data):
@@ -334,7 +330,11 @@ def _extract_initial_phase_report(run_dir, sim_in):
 def _extract_watchpoint_report(run_dir, sim_in):
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir)
     template_common.write_sequential_result(
-        _laser_pulse_plot(run_dir, sim_in.models[sim_in.report].aspect, _SIM_DATA.get_watchpoint(sim_in)),
+        _laser_pulse_plot(
+            run_dir,
+            sim_in.models[sim_in.report].dataType,
+            _SIM_DATA.get_watchpoint(sim_in),
+        ),
         run_dir=run_dir,
     )
 
@@ -343,13 +343,13 @@ def _format_float(v):
     return float("{:.4f}".format(v))
 
 
-def _laser_pulse_plot(run_dir, data_path, element=None):
+def _laser_pulse_plot(run_dir, data_type, element=None):
     with h5py.File(run_dir.join(_SIM_DATA.h5_data_file(element)), "r") as f:
         d = template_common.h5_to_dict(f)
         r = d.ranges
-        z = d[data_path]
+        z = d[data_type]
         return PKDict(
-            title=data_path.capitalize(),
+            title=data_type.capitalize(),
             x_range=[r.x[0], r.x[1], len(z)],
             y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",

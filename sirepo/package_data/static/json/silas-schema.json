@@ -5,7 +5,7 @@
         }
     },
     "enum": {
-        "DataAspect": [
+        "DataType": [
             ["intensity", "Intensity"],
             ["phase", "Phase"]
         ],
@@ -145,7 +145,7 @@
             "waistSize": ["RMS Waist Size [m]", "FloatArray", [0.001, 0.001], "", ["Horizontal", "Vertical"]]
         },
         "initialIntensityReport": {
-            "aspect": ["Value to Plot", "DataAspect", "intensity"],
+            "dataType": ["Value to Plot", "DataType", "intensity"],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "initialPhaseReport": {
@@ -167,6 +167,9 @@
         },
         "plotAnimation": {},
         "plot2Animation": {},
+        "simulation": {
+            "distanceFromSource": ["", "Float", 0.0 , "", 0.0]
+        },
         "simulationSettings": {
             "n_reflections": ["Number of Reflections", "Integer", 15, "", 1, 10000],
             "cavity_length": ["Cavity Distance [m]", "Float", 10.0, "", 1e-6],
@@ -364,7 +367,7 @@
         "watchpointReport": {
             "_super": ["_", "view", "initialIntensityReport"],
             "advanced": [
-                "aspect"
+                "dataType"
             ]
         },
         "wavefrontAnimation": {
