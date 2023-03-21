@@ -30,16 +30,15 @@ def adjust_time(days):
     Args:
         days (str): must be integer. If None or 0, no adjustment.
     """
-
     global _timedelta
+
     _timedelta = None
-    try:
-        d = int(days)
-        if d != 0:
-            _timedelta = datetime.timedelta(days=d)
-    except Exception:
-        pass
-    return _timedelta or 0
+    if not days:
+        return 0
+    d = int(days)
+    if d != 0:
+        _timedelta = datetime.timedelta(days=d)
+    return d
 
 
 class API(sirepo.quest.API):

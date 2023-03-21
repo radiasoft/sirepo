@@ -122,16 +122,16 @@ class API(sirepo.quest.API):
                 return r
             try:
                 x = r.pknested_get("ping")
+            except KeyError:
+                e = "incorrectly formatted reply"
+            else:
                 if x == k:
                     return r
                 e = "expected={} but got ping={}".format(k, x)
-            except KeyError:
-                e = "incorrectly formatted reply"
-                pkdlog(r)
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as e2:
             e = "unable to connect to supervisor"
-        except Exception as e:
-            pkdlog(e)
+        except Exception as e2:
+            pkdlog("unexpected exception={} exc={} stack={}", type(e2), e2, pkdexc())
             e = "unexpected exception"
         return PKDict(state="error", error=e)
 
