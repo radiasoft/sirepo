@@ -12,6 +12,7 @@ export type MultiPanelConfig = {
     reportName: string,
     reportGroupName: string,
     frameIdFields: string[],
+    columns?: number,
 }
 
 export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
@@ -19,6 +20,9 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
 
     constructor(config: MultiPanelConfig) {
         super(config);
+        if (! config.columns) {
+            config.columns = 3;
+        }
         this.items = config.items.map(LAYOUTS.getLayoutForSchema);
     }
 
@@ -38,7 +42,7 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
         let mapLayoutsToComponents = (views: Layout[], currentFrameIndex: number) => views.map((child, idx) => {
             let LayoutComponent = child.component;
             return (
-                <Col sm="4" key={idx} className="p-0">
+                <Col sm={ 12 / this.config.columns } key={idx} className="p-0">
                     <LayoutComponent key={idx} currentFrameIndex={currentFrameIndex}></LayoutComponent>
                 </Col>
             );
