@@ -21,6 +21,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="IntArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
         </div>
+        <div data-ng-switch-when="SelectCrystal" data-ng-class="fieldClass">
+          <div data-select-crystal="" data-model="model" data-field="field"></div>
+        </div>
         <div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">
           <div data-select-element="" data-model="model" data-field="field"></div>
         </div>
@@ -129,13 +132,8 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
                 updateCavityDistance();
             }
             else if (name === 'beamline') {
-                var width = silasService.getCrystal().width;
-                if (oldWidth !== width) {
-                    oldWidth = width;
-                    appState.models.crystalCylinder.crystalWidth = width;
-                    appState.saveQuietly('crystalCylinder');
-                    frameCache.setFrameCount(0);
-                }
+                appState.models.crystalCylinder.crystal = silasService.getCrystals();
+                appState.saveQuietly('crystalCylinder');
             }
         });
         $scope.$on('wavefrontSummaryAnimation.summaryData', function (e, data) {
@@ -215,6 +213,24 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
         `,
         controller:  function($scope) {
             $scope.hasCrystal = () => silasService.hasCrystal();
+        },
+    };
+});
+
+SIREPO.app.directive('selectCrystal', function(appState, silasService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item as name(item) for item in silasService.getCrystals() track by name(item)"></select>
+        `,
+        controller: function($scope) {
+           $scope.silasService = silasService;
+
+           $scope.name = item => `${item.title} (${item.position}m)`;
         },
     };
 });
@@ -368,12 +384,37 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, reques
 });
 
 SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasService, $scope) {
-    $scope.whenSelected = () => {
-        appState.models.crystalCylinder.crystalWidth = silasService.getCrystal().width;
+
+    const parent = $scope.$parent;
+    parent.silasService = silasService;
+
+    $scope.watchFields = [
+        [
+            'crystalCylinder.crystal',
+        ], updateCylinder,
+    ];
+
+    function updateCylinder()  {
+        appState.models.crystalCylinder.crystalWidth = appState.models.crystalCylinder.crystal.width;
+        appState.models.crystalCylinder.diameter = appState.models.crystalCylinder.crystal.diameter;
+        appState.models.crystalCylinder.diffusionConstant = appState.models.crystalCylinder.crystal.diffusionConstant;
+        updateEditor();
+    }
+
+    function updateEditor() {
         panelState.enableFields('crystalCylinder', [
-            'crystalWidth', false,
+           ['crystalWidth', 'diameter', 'diffusionConstant'], false,
         ]);
+    }
+
+    $scope.whenSelected = () => {
+        if (! appState.models.crystalCylinder.crystal) {
+            appState.models.crystalCylinder.crystal = silasService.getCrystals()[0];
+            updateCylinder();
+        }
+        updateEditor();
     };
+
 });
 
 SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plotToPNG, utilities) {

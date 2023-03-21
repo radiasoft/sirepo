@@ -19,10 +19,12 @@
             ["6", "Total"]
         ],
         "PropagationType": [
+            ["abcd_lct", "ABCD"],
+            ["attenuate", "Attenuate"],
             ["default", "Default"],
-            ["n0n2_srw", "SRW"],
-            ["abcd", "ABCD"],
-            ["lct", "LCT"]
+            ["gain_calc", "Gain Calculation"],
+            ["n0n2_srw", "N0N2 SRW"],
+            ["n0n2_lct", "N0N2 LCT"]
         ]
     },
     "dynamicFiles": {
@@ -86,13 +88,15 @@
         },
         "crystal": {
             "_super": ["_", "model", "beamElement"],
+            "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
             "icon": ["", "String", "ti-sapphire-crystal.png"],
             "numSlices": ["Number of Slices", "Integer", 50],
             "propagationType": ["Propagation Type", "PropagationType", "n0n2_srw"],
-            "radius": ["Transverse Variation", "Float", 0.001, "Transverse variation of index of refraction", 0.0],
+            "radialVariation": ["Transverse Variation", "Float", 0.001, "Transverse variation of index of refraction", 0.0],
+            "diameter": ["Diameter [cm]", "Float", 7.0, "", 1e-24],
             "refractionIndex": ["Index of Refraction", "Float", 1.75, "Index of refraction along the optical axis", 1e-24],
             "title": ["Element Name", "String", "Crystal"],
-            "width": ["Length [m]", "Float", 0.02]
+            "width": ["Length [cm]", "Float", 2.0]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -103,8 +107,9 @@
             "tolerance": ["Boundary Tolerance", "Float", 8e-3, "Adjust this value to avoid points outside domain (for a coarse mesh, increase this value)"]
         },
         "crystalCylinder": {
-            "diameter": ["Crystal Diameter [cm]", "Float", 7, "", 1e-24],
-            "crystalWidth": ["Crystal Width [cm]", "Float", 2, "Crystal Width is editable on the Laser Cavity tab"],
+            "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
+            "crystal": ["Select Crystal", "SelectCrystal", {}],
+            "crystalWidth": ["Width [cm]", "Float", 2],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
             "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
             "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
@@ -187,13 +192,19 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "width",
-                "refractionIndex",
-                "radius",
-                "numSlices",
-                "propagationType"
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "width",
+                    "diameter"
+                ]],
+                ["Propagation", [
+                    "refractionIndex",
+                    "radialVariation",
+                    "numSlices",
+                    "propagationType",
+                    "diffusionConstant"
+                    ]]
             ]
         },
         "crystalAnimation": {
@@ -214,6 +225,7 @@
         "crystalCylinder": {
             "title": "Ti:Sapphire Crystal Cylinder",
             "basic": [
+                "crystal",
                 "diameter",
                 "crystalWidth",
                 "diffusionConstant",

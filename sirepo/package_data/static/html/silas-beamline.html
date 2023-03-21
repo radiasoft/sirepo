@@ -7,12 +7,8 @@
         <div data-sim-status-panel="beamline.simState"></div>
       </div>
     </div>
+    <div data-beamline-reports="" data-ng-if="beamline.hasFrames()"></div>
   </div>
-  <div class="clearfix"></div>
-  <div class="row">
-    <div data-beamline-reports=""></div>
-  </div>
-  <div class="clearfix"></div>
   <div class="row">
     <div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-item-id="item.id"></div>
   </div>
