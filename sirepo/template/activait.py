@@ -480,6 +480,12 @@ def _build_model_py(v):
         ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
     )
 
+    def _final_layer(v):
+        # TODO (gurhar1133): return "" when params to images
+        # otherwise return string below
+        # return '\nx = Dense(output_shape, activation="linear")(x)'
+        return ""
+
     def _layer(layer):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
         return args_map[layer.layer](layer)
@@ -517,9 +523,9 @@ def _build_model_py(v):
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
 input_args = Input(shape=input_shape)
-{_build_layers(net)}
-#x = Dense(output_shape, activation="linear")(x)
-model = Model(input_args, x)
+{_build_layers(net)}""" + \
+_final_layer(v) + \
+f"""\nmodel = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
 
