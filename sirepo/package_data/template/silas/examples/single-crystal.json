@@ -147,6 +147,11 @@
             "propagationType": "default",
             "title": "Watchpoint"
         },
+        "watchpointReport3": {
+            "_super": "initialIntensityReport",
+            "colorMap": "viridis",
+            "dataType": "intensity"
+        },
         "wavefrontAnimation2": {
             "id": 2
         },
