@@ -44,7 +44,7 @@ class LayoutWrapper {
         vStack: VerticalStackLayout,
         waterfall: WaterfallLayout,
         beamlineWatchpointReports: BeamlineWatchpointReports,
-        beamline: BeamlineLayout
+        beamline: LayoutWithFormController(BeamlineLayout)
     }
 
     constructor () {

@@ -11,11 +11,12 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { CRelativeRouterHelper, RelativeRouteHelper } from "../utility/route";
 import React from "react";
 import { CFormController } from "../data/formController";
-import { CModelsWrapper } from "../data/wrapper";
+import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
 import { Portal } from "../component/reusable/portal";
+import { formActionFunctions } from "../component/reusable/form";
 
 export type NavBarModalButtonConfig = {
     modal: {
@@ -57,17 +58,7 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
 
         let store = useStore();
 
-        let _cancel = () => {
-            updateModalShown(false);
-            formController.cancelChanges();
-        }
-
-        let _submit = () => {
-            formController.saveToModels();
-            simulationInfoPromise.then(simulationInfo => {
-                modelsWrapper.saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
-            })
-        }
+        let { submit: _submit, cancel: _cancel } = formActionFunctions(formController, store, simulationInfoPromise, schema, modelsWrapper as ModelsWrapper);
 
         let children = this.children.map((child, idx) => {
             let LayoutElement = child.component;

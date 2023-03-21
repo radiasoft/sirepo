@@ -6,7 +6,7 @@ import { EditorPanel } from "../component/reusable/panel";
 import "./panel.scss";
 import React from "react";
 import { CFormController } from "../data/formController";
-import { CModelsWrapper } from "../data/wrapper";
+import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
@@ -50,9 +50,9 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         let modalChildren = (!!this.advanced) ? mapLayoutsToComponents(this.advanced) : undefined;
 
         let submit = () => {
-            formController.saveToModels();
+            formController.saveToModels(store.getState());
             simulationInfoPromise.then(simulationInfo => {
-                modelsWrapper.saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
+                (modelsWrapper as ModelsWrapper).saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
             })
 
         }

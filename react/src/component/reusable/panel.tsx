@@ -4,13 +4,17 @@ import {
     Button,
     Modal
 } from "react-bootstrap";
-import React, { useState, Fragment } from "react";
+import React, { useState, Fragment, useContext } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { EditorForm } from "./form";
 import { v4 as uuidv4 } from 'uuid';
 import { CPanelController } from "../../data/panel"
 import { PanelController } from "../../data/panel";
+import { CFormController } from "../../data/formController";
+import { useStore } from "react-redux";
+import { CSchema, CSimulationInfoPromise } from "../../data/appwrapper";
+import { CModelsWrapper, ModelsWrapper } from "../../data/wrapper";
 
 export function Panel(props) {
     let { title, buttons, panelBodyShown } = props;

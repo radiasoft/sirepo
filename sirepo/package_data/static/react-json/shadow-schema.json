@@ -4446,7 +4446,7 @@
                                                                                                             "layout": "fieldList",
                                                                                                             "config": {
                                                                                                                 "fields": [
-                                                                                                                    "braggMaterial"
+                                                                                                                    "crystal.braggMaterial"
                                                                                                                 ]
                                                                                                             }
                                                                                                         }
@@ -4469,9 +4469,9 @@
                                                                                                             "layout": "fieldList",
                                                                                                             "config": {
                                                                                                                 "fields": [
-                                                                                                                    "braggMillerH",
-                                                                                                                    "braggMillerK",
-                                                                                                                    "braggMillerL"
+                                                                                                                    "crystal.braggMillerH",
+                                                                                                                    "crystal.braggMillerK",
+                                                                                                                    "crystal.braggMillerL"
                                                                                                                 ]
                                                                                                             }
                                                                                                         }

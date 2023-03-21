@@ -30,6 +30,7 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
 import { downloadAs, getAttachmentFileName } from "../utility/download";
+import { useStore } from "react-redux";
 
 export type SimulationInfoRaw = {
     models: ModelStates,
@@ -48,6 +49,7 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
     let [hasInit, updateHasInit] = useState(false);
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
+    let store = useStore();
 
     let modelsWrapper = new ModelsWrapper({
         modelActions,
@@ -63,9 +65,10 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
             })).then(async (resp) => {
                 let simulationInfo = await resp.json();
                 let models = simulationInfo['models'] as ModelState[];
+                console.log("models", models);
 
                 for(let [modelName, model] of Object.entries(models)) {
-                    modelsWrapper.updateModel(modelName, model);
+                    modelsWrapper.updateModel(modelName, model, store.getState());
                 }
 
                 resolve({...simulationInfo, simulationId});

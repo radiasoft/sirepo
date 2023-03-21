@@ -43,7 +43,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                     item=i
                 ), dm.beamline))
             )
-        pkdp(dm)
         if not "watchpointReports" in dm:
             dm.watchpointReports = PKDict(
                 reports=[]
@@ -63,7 +62,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             del dm[i]
         for m in map(lambda i: i.item, dm.beamline.elements):
             cls.update_model_defaults(m, m.type)
-        pkdp(dm)
         cls._organize_example(data)
 
     @classmethod

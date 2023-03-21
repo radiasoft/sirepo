@@ -13,10 +13,13 @@ import {
     formActions,
     formSelectors
 } from "../../store/formState";
-import { formStateFromModel } from "../../data/formController";
+import { FormController, formStateFromModel } from "../../data/formController";
 import { useStore } from "react-redux";
-import { CModelsWrapper, CFormStateWrapper, FormStateWrapper } from "../../data/wrapper";
-import { CSchema } from "../../data/appwrapper";
+import { CModelsWrapper, CFormStateWrapper, FormStateWrapper, ModelsWrapper, AbstractModelsWrapper } from "../../data/wrapper";
+import { CSchema, CSimulationInfoPromise } from "../../data/appwrapper";
+import { SimulationInfo } from "../simulation";
+import { Schema } from "../../utility/schema";
+import { AnyAction, Store } from "redux";
 
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
@@ -43,6 +46,18 @@ export function EditorForm(props) {
     );
 }
 
+export function formActionFunctions(formController: FormController, store: Store<any, AnyAction>, simulationInfoPromise: Promise<SimulationInfo>, schema: Schema, modelsWrapper: ModelsWrapper): { cancel: () => void, submit: () => void } {
+    return {
+        cancel: () => formController.cancelChanges(store.getState()),
+        submit: () => {
+            formController.saveToModels(store.getState());
+            simulationInfoPromise.then(simulationInfo => {
+                modelsWrapper.saveToServer(simulationInfo, Object.keys(schema.models), store.getState())
+            })
+        }
+    } 
+}
+
 export function FormStateInitializer(props) {
     let [hasInit, updateHasInit] = useState(undefined);
 
@@ -56,7 +71,7 @@ export function FormStateInitializer(props) {
         formSelectors
     })
 
-    let modelNames = models.getModelNames(store.getState());
+    let modelNames = (models as ModelsWrapper).getModelNames(store.getState());
 
     useEffect(() => {
         let state = store.getState();
@@ -73,7 +88,7 @@ export function FormStateInitializer(props) {
             if(!modelSchema) {
                 throw new Error(`could not get schema for model=${modelName}`);
             }
-            formState.updateModel(modelName, formStateFromModel(value, modelSchema, schema));
+            formState.updateModel(modelName, formStateFromModel(value, modelSchema, schema), store.getState());
         });
 
         updateHasInit(true);

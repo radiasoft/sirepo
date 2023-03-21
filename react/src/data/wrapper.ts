@@ -1,50 +1,68 @@
 import React, { Dispatch } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AnyAction } from "redux";
+import { ArrayModelElement } from "../layout/input/array";
 import { FormActions, FormFieldState, FormModelState, FormSelectors } from "../store/formState";
 import { ModelActions, ModelSelectors, ModelState } from "../store/models";
 
 export abstract class AbstractModelsWrapper<M, F> {
     abstract getModel(modelName: string, state: any): M;
     abstract hookModel(modelName: string): M;
-    abstract updateModel(modelName: string, value: M): void;
+    abstract updateModel(modelName: string, value: M, state: any): void;
     abstract getFieldFromModel(fieldName: string, model: M): F;
     abstract setFieldInModel(fieldName: string, model: M, value: F): M;
 
     getArraySubField = (fieldName: string, index: number, subFieldName: string, model: M): F => {
-        let fieldState = this.getFieldFromModel(fieldName, model);
-        let len = this.getArrayFieldLength(fieldState);
-        if(index >= len) {
-            throw new Error(`index=${index} of out bounds=${len}`);
-        }
-
-        return this.getFieldFromModel(subFieldName, fieldState[index]);
+        return this.getFieldFromModel(subFieldName, this.getArrayFieldAtIndex(fieldName, index, model).item);
     }
 
-    setArraySubField = (fieldName: string, index: number, subFieldName: string, model: M, value: F) => {
+    setArraySubField = (fieldName: string, index: number, subFieldName: string, model: M, value: F): M => {
+        let af = this.getArrayFieldAtIndex(fieldName, index, model);
+        let nm = this.setFieldInModel(subFieldName, af.item, value);
+        return this.setArrayFieldAtIndex(fieldName, index, model, {
+            item: nm,
+            model: af.model
+        });
+    }
+
+    getArrayFieldAtIndex = (fieldName: string, index: number, model: M): ArrayModelElement<M> => {
         let fieldState = this.getFieldFromModel(fieldName, model);
         let len = this.getArrayFieldLength(fieldState);
         if(index >= len) {
             throw new Error(`index=${index} of out bounds=${len}`);
         }
 
-        let subModel = fieldState[index];
-        this.setFieldInModel(subFieldName, subModel, value);
+        return fieldState[index];
+    }
+
+    setArrayFieldAtIndex = (fieldName: string, index: number, model: M, value: ArrayModelElement<M>): M => {
+        let fieldState = this.getFieldFromModel(fieldName, model);
+        let len = this.getArrayFieldLength(fieldState);
+        if(index >= len) {
+            throw new Error(`index=${index} of out bounds=${len}`);
+        }
+
+        // TODO: cant change types of model
+        let nv = [...(fieldState as any)];
+        console.log("value", value);
+        nv[index] = value;
+        console.log("nv", nv);
+        return this.setFieldInModel(fieldName, model, nv as F);
     }
 
     getArrayFieldLength = (field: F): number => {
-        return (field as any[] || []).length;
+        return ((field as any[]) || []).length;
     }
 
     updateField = (fieldName: string, modelName: string, state: any, value: F): void => {
         let model = this.getModel(modelName, state);
         model = this.setFieldInModel(fieldName, model, value);
-        this.updateModel(modelName, model);
+        this.updateModel(modelName, model, state);
     }
 }
 
-export const CFormStateWrapper = React.createContext<FormStateWrapper>(undefined);
-export const CModelsWrapper = React.createContext<ModelsWrapper>(undefined);
+export const CFormStateWrapper = React.createContext<AbstractModelsWrapper<FormModelState, FormFieldState<unknown>>>(undefined);
+export const CModelsWrapper = React.createContext<AbstractModelsWrapper<ModelState, unknown>>(undefined);
 
 export function getModelValues<M, F>(modelNames: string[], modelsWrapper: AbstractModelsWrapper<M, F>, state: any): {[modelName: string]: M} {
     return Object.fromEntries(modelNames.map(mn => [mn, modelsWrapper.getModel(mn, state)]));
@@ -67,7 +85,7 @@ export class FormStateWrapper extends AbstractModelsWrapper<FormModelState, Form
         return this.formSelectors.selectFormState(modelName)(state);
     }
 
-    override updateModel = (modelName: string, value: any) => {
+    override updateModel = (modelName: string, value: any, state: any) => {
         //console.log("dispatching update form to ", modelName, " changing to value ", value);
         this.dispatch(this.formActions.updateFormState({
             name: modelName,
@@ -120,7 +138,7 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
         return this.modelSelectors.selectModelNames()(state);
     }
 
-    updateModel = (modelName: string, value: ModelState) => {
+    updateModel = (modelName: string, value: ModelState, state: any) => {
         //console.log("dispatching update to ", modelName, " changing to value ", value);
         this.dispatch(this.modelActions.updateModel({
             name: modelName,
@@ -167,41 +185,47 @@ export class ModelsWrapper extends AbstractModelsWrapper<ModelState, unknown> {
 }
 
 
-/*export type ModelAliases = {
-    [key: string]: string
+export type ModelHandle<M, F> = {
+    getModel(modelName: string, state: any): M,
+    hookModel(modelName: string): M,
+    updateModel(modelName: string, value: M, state: any): void
+}
+
+/**
+ * Fake -> real
+ */
+export type ModelAliases<M, F> = {
+    [fake: string]: {
+        handle: ModelHandle<M, F>,
+        realSchemaName: string
+    }
 }
 
 export class ModelsWrapperWithAliases<M, F> extends AbstractModelsWrapper<M, F> {
-    private reverseAliases: ModelAliases = undefined;
-    constructor(private parent: AbstractModelsWrapper<M, F>, private aliases: ModelAliases) {
+    constructor(private parent: AbstractModelsWrapper<M, F>, private aliases: ModelAliases<M, F>) {
         super();
-        this.reverseAliases = Object.fromEntries(Object.entries(this.aliases).map(([name, value]) => [value, name]));
+
+        this['getModelNames'] = parent['getModelNames']
+        this['saveToServer'] = parent['saveToServer']
     }
 
-    private getAliasedModelName = (mn: string): string => {
-        if(mn in this.aliases) {
-            return this.aliases[mn];
+    private getAliasedHandle(modelName: string): ModelHandle<M, F> | undefined {
+        if(modelName in this.aliases) {
+            return this.aliases[modelName].handle;
         }
-        return mn;
-    }
-
-    private getInverseAliasedModelName = (mn: string): string => {
-        if(mn in this.reverseAliases) {
-            return this.reverseAliases[mn];
-        }
-        return mn;
+        return undefined;
     }
 
     getModel(modelName: string, state: any): M {
-        return this.parent.getModel(this.getAliasedModelName(modelName), state);
+        return (this.getAliasedHandle(modelName) || this.parent).getModel(modelName, state);
     }
 
     hookModel(modelName: string): M {
-        return this.parent.hookModel(this.getAliasedModelName(modelName));
+        return (this.getAliasedHandle(modelName) || this.parent).hookModel(modelName);
     }
 
-    updateModel(modelName: string, value: M): void {
-        return this.parent.updateModel(this.getAliasedModelName(modelName), value);
+    updateModel(modelName: string, value: M, state: any): void {
+        return (this.getAliasedHandle(modelName) || this.parent).updateModel(modelName, value, state);
     }
 
     getFieldFromModel(fieldName: string, model: M): F {
@@ -211,7 +235,7 @@ export class ModelsWrapperWithAliases<M, F> extends AbstractModelsWrapper<M, F> 
     setFieldInModel(fieldName: string, model: M, value: F): M {
         return this.parent.setFieldInModel(fieldName, model, value);
     }
-}*/
+}
 
 
 
