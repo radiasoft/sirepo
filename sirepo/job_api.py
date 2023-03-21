@@ -13,13 +13,13 @@ import inspect
 import pykern.pkconfig
 import pykern.pkio
 import re
-import requests
 import sirepo.quest
 import sirepo.auth
 import sirepo.job
 import sirepo.sim_data
 import sirepo.uri_router
 import sirepo.util
+import tornado.httpclient
 
 
 #: how many call frames to search backwards to find the api_.* caller
@@ -97,8 +97,8 @@ class API(sirepo.quest.API):
                 if len(f) > 0:
                     assert len(f) == 1, "too many files={}".format(f)
                     return self.reply_attachment(f[0])
-            except requests.exceptions.HTTPError:
-                # TODO(robnagler) HTTPError is too coarse a check
+            except tornado.httpclient.HTTPClientError:
+                # TODO(robnagler) HTTPClientError is too coarse a check
                 pass
             finally:
                 if t:
@@ -109,8 +109,6 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_jobSupervisorPing(self):
-        import requests.exceptions
-
         e = None
         try:
             k = sirepo.job.unique_key()
@@ -128,7 +126,8 @@ class API(sirepo.quest.API):
                 if x == k:
                     return r
                 e = "expected={} but got ping={}".format(k, x)
-        except requests.exceptions.ConnectionError as e2:
+        except tornado.httpclient.HTTPClientError as e2:
+            pkdlog("HTTPClientError={}", e2)
             e = "unable to connect to supervisor"
         except Exception as e2:
             pkdlog("unexpected exception={} exc={} stack={}", type(e2), e2, pkdexc())
@@ -223,7 +222,7 @@ class API(sirepo.quest.API):
         return r
 
     async def _request_api(self, **kwargs):
-        def get_api_name():
+        def _api_name():
             if "api_name" in kwargs:
                 return kwargs["api_name"]
             f = inspect.currentframe()
@@ -237,37 +236,45 @@ class API(sirepo.quest.API):
                     "{}: max frame search depth reached".format(f.f_code)
                 )
 
-        k = PKDict(kwargs)
-        u = k.pkdel("_request_uri") or self._supervisor_uri(sirepo.job.SERVER_URI)
-        c = (
-            k.pkdel("_request_content")
-            if "_request_content" in k
-            else self._request_content(k)
-        )
-        c.pkupdate(
-            api=get_api_name(),
-            serverSecret=sirepo.job.cfg().server_secret,
-        )
-        if c.api in _MUST_HAVE_METHOD:
-            # TODO(robnagler) should be error reply
-            assert (
-                "method" in c.data
-            ), f"missing method for api={c.api} in content={list(c.keys())}"
-        if c.api not in ("api_runStatus",):
-            pkdlog("api={} runDir={}", c.api, c.get("runDir"))
-        with self._reply_maybe_file(c) as d:
-            r = requests.post(
-                u,
-                data=pkjson.dump_bytes(c),
-                headers=PKDict({"Content-type": "application/json"}),
-                verify=sirepo.job.cfg().verify_tls,
+        def _content_and_uri(kwargs):
+            k = PKDict(kwargs)
+            u = k.pkdel("_request_uri") or self._supervisor_uri(sirepo.job.SERVER_URI)
+            c = (
+                k.pkdel("_request_content")
+                if "_request_content" in k
+                else self._request_content(k)
             )
-            r.raise_for_status()
+            c.pkupdate(
+                api=_api_name(),
+                serverSecret=sirepo.job.cfg().server_secret,
+            )
+            if c.api in _MUST_HAVE_METHOD:
+                # TODO(robnagler) should be error reply
+                assert (
+                    "method" in c.data
+                ), f"missing method for api={c.api} in content={list(c.keys())}"
+            if c.api not in ("api_runStatus",):
+                pkdlog("api={} runDir={}", c.api, c.get("runDir"))
+            return c, u
+
+        c, u = _content_and_uri(kwargs)
+        with self._reply_maybe_file(c) as d:
+            r = await tornado.httpclient.AsyncHTTPClient().fetch(
+                tornado.httpclient.HTTPRequest(
+                    body=pkjson.dump_bytes(c),
+                    connect_timeout=60,
+                    headers=PKDict({"Content-type": "application/json"}),
+                    method="POST",
+                    request_timeout=0,
+                    url=u,
+                    validate_cert=sirepo.job.cfg().verify_tls,
+                ),
+            )
             if not _JSON_TYPE.search(r.headers["content-type"]):
                 raise AssertionError(
                     f"expected json content-type={r.headers['content-type']}"
                 )
-            j = pkjson.load_any(r.content)
+            j = pkjson.load_any(r.body)
             if d and sirepo.job.is_ok_reply(j):
                 return self._reply_with_file(d)
             return j
