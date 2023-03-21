@@ -375,6 +375,7 @@ def _generate_parameters_file(data):
         v.beamline = data.models.beamline
         return res + template_common.render_jinja(SIM_TYPE, v)
     if r == "crystalAnimation":
+        v.crystal = data.models.crystalCylinder.crystal
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     assert False, "invalid report: {}".format(r)
@@ -427,7 +428,7 @@ def _parse_silas_log(run_dir):
 
 def _summary_data(frame_args):
     return PKDict(
-        crystalWidth=frame_args.sim_in.models.beamline[1].width,
+        crystalWidth=frame_args.sim_in.models.crystalCylinder.crystal.width,
     )
 
 

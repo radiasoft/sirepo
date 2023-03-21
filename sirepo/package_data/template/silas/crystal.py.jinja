@@ -2,7 +2,6 @@ import dolfin
 import fenics
 import mshr
 import numpy
-import rslaser
 
 #---
 
@@ -11,15 +10,15 @@ import rslaser
 # simulation parameters
 # -- crystal properties
 # cm^2/s diffusion constant of sapphire
-a_saph = {{ crystalCylinder_diffusionConstant }}
+a_saph = {{ crystal.diffusionConstant }}
 # -- time step
 T = {{ crystalSettings_time }}
 n_steps = {{ crystalSettings_steps }}
 dt = T / n_steps  # size of time step
 nip = {{ crystalSettings_plotInterval }} # number of intervals between records
 # -- crystal dimensions
-diam = {{ crystalCylinder_diameter }}
-leng = {{ crystalCylinder_crystalWidth }}
+diam = {{ crystal.diameter }}
+leng = {{ crystal.width }}
 # --  mesh density within cylinder
 md = {{ crystalSettings_meshDensity }}
 
