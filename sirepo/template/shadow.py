@@ -731,7 +731,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v = template_common.flatten_data(data.models, PKDict())
     r = data.report
 
-    #report_model = data.models[r]
+    # report_model = data.models[r]
     beamline = list(map(lambda i: i.item, data.models.beamline.elements))
     v.shadowOutputFile = _SHADOW_OUTPUT_FILE
     if _has_zone_plate(beamline):
@@ -783,9 +783,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     elif _SIM_DATA.is_watchpoint(r):
         di = _SIM_DATA.watchpoint_id(r)
         rd = data.models.watchpointReports.reports[di]
-        v.beamlineOptics = _generate_beamline_optics(
-            data.models, last_id=rd.item.id
-        )
+        v.beamlineOptics = _generate_beamline_optics(data.models, last_id=rd.item.id)
     else:
         v.distanceFromSource = data.models[r].distanceFromSource
     return template_common.render_jinja(SIM_TYPE, v)

@@ -96,25 +96,19 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
         if isinstance(dm.beamline, list):
             dm.beamline = PKDict(
-                elements=list(map(lambda i: PKDict(
-                    model=i.type,
-                    item=i
-                ), dm.beamline))
+                elements=list(map(lambda i: PKDict(model=i.type, item=i), dm.beamline))
             )
         if not "watchpointReports" in dm:
-            dm.watchpointReports = PKDict(
-                reports=[]
-            )
+            dm.watchpointReports = PKDict(reports=[])
         n = []
         for m in dm:
             if cls.is_watchpoint(m) and m != "watchpointReports":
                 cls.update_model_defaults(dm[m], "watchpointReport")
                 i = cls.watchpoint_id(m)
                 dm[m].id = i
-                dm.watchpointReports.reports.append(PKDict(
-                    model="watchpointReport",
-                    item=dm[m]
-                ))
+                dm.watchpointReports.reports.append(
+                    PKDict(model="watchpointReport", item=dm[m])
+                )
                 n.append(m)
         for i in n:
             del dm[i]
@@ -148,7 +142,12 @@ class SimData(sirepo.sim_data.SimDataBase):
             "undulatorBeam",
             "wiggler",
         ]
-        if r == "initialIntensityReport" and data["models"]["beamline"] and data["models"]["beamline"]["elements"] and len(data["models"]["beamline"]["elements"]) > 0:
+        if (
+            r == "initialIntensityReport"
+            and data["models"]["beamline"]
+            and data["models"]["beamline"]["elements"]
+            and len(data["models"]["beamline"]["elements"]) > 0
+        ):
             res.append([data["models"]["beamline"]["elements"][0]["item"]["position"]])
         # TODO(pjm): only include items up to the current watchpoint
         if cls.is_watchpoint(r) or r == "beamStatisticsReport":
