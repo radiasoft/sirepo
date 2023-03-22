@@ -409,7 +409,7 @@ SIREPO.app.directive('scansTable', function() {
             $scope.runLogScanId = null;
             $scope.scans = [];
             $scope.selectedScan = null;
-            $scope.showPdfColumn = $scope.analysisStatus === 'executed';
+            $scope.showPdfColumn = $scope.analysisStatus === 'executed' || $scope.analysisStatus === 'allStatuses';
 
             let cols = [];
             let hoveredIndex = null;
@@ -531,7 +531,7 @@ SIREPO.app.directive('scansTable', function() {
             $scope.downloadSelectedAnalyses = () => {
                 requestSender.sendStatelessCompute(
                     appState,
-                    function(data) {
+                    function (data) {
                         saveAs(data, "analysis_pdfs.zip");
                     },
                     {
@@ -543,6 +543,7 @@ SIREPO.app.directive('scansTable', function() {
                     },
                     errorOptions,
                 );
+            };
 
             $scope.getHeader = function() {
                 return cols.length > 0 ? ['select'].concat(cols) : [];
