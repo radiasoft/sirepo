@@ -665,12 +665,12 @@ def remote_file_to_simulation_lib(sim_data, url, headers_only, model_name, field
     )
 
 
-def sim_frame(frame_id, op, qcall):
+async def sim_frame(frame_id, op, qcall):
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
     qcall.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
-        x = op(f)
+        x = await op(f)
     except Exception as e:
         if isinstance(e, sirepo.util.ReplyExc):
             return e

@@ -22,7 +22,6 @@ import sirepo.job
 import sirepo.quest
 import sirepo.reply
 import sirepo.request
-import sirepo.spa_session
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -102,7 +101,6 @@ def init_quest(qcall, internal_req=None):
         sirepo.cookie.init_quest(qcall)
         # TODO(robnagler) auth_db
         o._set_log_user()
-        sirepo.spa_session.init_quest(qcall)
 
 
 def init_module(**imports):

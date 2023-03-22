@@ -463,7 +463,7 @@ def stateful_compute_tosca_info(data):
     return zgoubi_importer.tosca_info(data.args.tosca)
 
 
-def import_file(req, unit_test_mode=False, **kwargs):
+async def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(
         req.form_file.as_str(),
         unit_test_mode=unit_test_mode,

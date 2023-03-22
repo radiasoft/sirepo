@@ -348,9 +348,9 @@ def _subprocess_setup(request, fc_args):
 
 @contextlib.contextmanager
 def _subprocess_start(request, fc_args):
-    from pykern import pkunit
+    from pykern import pkunit, pkjson
     from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdlog
+    from pykern.pkdebug import pkdlog, pkdp
     from sirepo import srunit
     import time
 
@@ -362,15 +362,20 @@ def _subprocess_start(request, fc_args):
         empty_work_dir=True,
     )
 
-    def _post(uri, data):
-        for _ in range(30):
+    def _ping_supervisor(uri):
+        l = None
+        for _ in range(10):
             try:
-                r = requests.post(uri, json=data)
-                if r.status_code == 200:
+                r = requests.post(uri, json=None)
+                r.raise_for_status()
+                d = pkjson.load_any(r.text)
+                if d.state == "ok":
                     return
-            except requests.exceptions.ConnectionError:
+                raise RuntimeError(f"state={r.get('state')}")
+            except Exception as e:
+                l = e
                 time.sleep(0.3)
-        pkunit.pkfail("could not connect to {}", uri)
+        pkunit.pkfail("start failed uri={} exception={}", uri, l)
 
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))
@@ -379,13 +384,15 @@ def _subprocess_start(request, fc_args):
     wd = pkunit.work_dir()
     p = []
     try:
-        _subprocess(("sirepo", "job_supervisor"))
         if fc_args.uwsgi:
             _subprocess(("sirepo", "service", "nginx-proxy"))
             _subprocess(("sirepo", "service", "uwsgi"))
         else:
             _subprocess(("sirepo", "service", "server"))
-        _post(c.http_prefix + "/job-supervisor-ping", None)
+        # allow db to be created
+        time.sleep(0.5)
+        _subprocess(("sirepo", "job_supervisor"))
+        _ping_supervisor(c.http_prefix + "/job-supervisor-ping")
         from sirepo import template
         from pykern import pkio
 
