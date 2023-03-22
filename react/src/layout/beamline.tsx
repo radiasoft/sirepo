@@ -12,7 +12,7 @@ import { AbstractModelsWrapper, CFormStateWrapper, CModelsWrapper, ModelAliases,
 import { FormFieldState, FormModelState } from "../store/formState";
 import { CRouteHelper } from "../utility/route";
 import { Schema, SchemaLayout } from "../utility/schema";
-import { FormControllerElement } from "./form";
+import { AliasedFormControllerWrapper, FormControllerAliases, FormControllerElement } from "./form";
 import { ArrayField, ArrayModelElement } from "./input/array";
 import { Layout, LayoutProps } from "./layout";
 import { createLayouts } from "./layouts";
@@ -128,6 +128,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
                 position: nextPosition,
                 type: element.model
             }, ms, schema);
+            console.log("new beamline element mv", mv);
             let bv = [...beamlineValue];
             bv.push({
                 item: mv,
@@ -219,67 +220,3 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
     }
 }
 
-export function arrayPositionHandle<M, F>(modelsWrapper: AbstractModelsWrapper<M, F>, realArrayDep: Dependency, arrayIndex: number): ModelHandle<M, F> {
-    let handle: ModelHandle<M, F> = {
-        updateModel: (modelName: string, value: M, state: any) => {
-            let m = modelsWrapper.getModel(realArrayDep.modelName, state);
-            let nm = modelsWrapper.setArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m, {
-                model: modelName,
-                item: value
-            });
-            modelsWrapper.updateModel(realArrayDep.modelName, nm, state);
-        },
-        getModel: (modelName: string, state: any): M => {
-            let m = modelsWrapper.getModel(realArrayDep.modelName, state);
-            return modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
-        },
-        hookModel: (modelName: string): M => {
-            let m = modelsWrapper.hookModel(realArrayDep.modelName);
-            return modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
-        }
-    }
-    return handle;
-}
-
-export type FormControllerAliases = { real: { modelName: string, fieldName: string, index: number }, fake: string, realSchemaName: string }[]
-export function AliasedFormControllerWrapper(props: { aliases: FormControllerAliases, children?: React.ReactNode }) {
-    let { aliases } = props;
-
-    let schema = useContext(CSchema);
-    let modelsWrapper = useContext(CModelsWrapper);
-    let formStateWrapper = useContext(CFormStateWrapper);
-
-    let nSchema: Schema = {...schema};
-    
-
-    for(let alias of aliases) {
-        nSchema.models[alias.fake] = nSchema.models[alias.realSchemaName];
-    }
-
-    function aliasesForWrapper<M, F>(wrapper: AbstractModelsWrapper<M, F>, aliases: FormControllerAliases): ModelAliases<M, F> {
-        return Object.fromEntries(
-            aliases.map(alias => {
-                return [
-                    alias.fake,
-                    {
-                        handle: arrayPositionHandle(wrapper, new Dependency(`${alias.real.modelName}.${alias.real.fieldName}`), alias.real.index),
-                        realSchemaName: alias.realSchemaName
-                    }
-                ]
-            })
-        );
-    }
-
-    let nModelsWrapper = new ModelsWrapperWithAliases(modelsWrapper, aliasesForWrapper(modelsWrapper, aliases));
-    let nFormStateWrapper = new ModelsWrapperWithAliases(formStateWrapper, aliasesForWrapper(formStateWrapper, aliases));
-
-    return (
-        <CSchema.Provider value={nSchema}>
-            <CModelsWrapper.Provider value={nModelsWrapper}>
-                <CFormStateWrapper.Provider value={nFormStateWrapper}>
-                    {props.children}
-                </CFormStateWrapper.Provider>
-            </CModelsWrapper.Provider>
-        </CSchema.Provider>
-    )
-}

@@ -375,7 +375,7 @@ function fieldTableLayout(
                             align: "left",
                             text: name
                         }),
-                        fieldListLayout(fieldNames)
+                        fieldListLayout(fieldNames.map(fn => fullFieldName(fn, modelName)))
                     ]
                 })
             })

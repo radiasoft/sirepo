@@ -10,11 +10,13 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import simulation_db
 from sirepo.template import template_common
+import sirepo.sim_data
 import numpy
 import py.path
 import re
 import sirepo.template.shadow as template
 
+_SIM_DATA, _, _ = sirepo.sim_data.template_globals()
 
 _MM_TO_CM = 0.1
 _CM_TO_M = 0.01
@@ -120,7 +122,13 @@ def _run_beam_statistics(cfg_dir, data):
 
 def _run_shadow(cfg_dir, data):
     beam = template_common.exec_parameters().beam
-    model = data["models"][data["report"]]
+    r = data["report"]
+    model = None
+    if _SIM_DATA.is_watchpoint(r):
+        i = _SIM_DATA.watchpoint_id(r)
+        model = data["models"]["watchpointReports"]["reports"][i].item
+    else:
+        model = data["models"][data["report"]]
     column_values = _SCHEMA["enum"]["ColumnValue"]
 
     if "y" in model:

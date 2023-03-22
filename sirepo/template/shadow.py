@@ -954,6 +954,7 @@ def _item_field(item, fields):
 def _parse_shadow_log(run_dir):
     if run_dir.join(template_common.RUN_LOG).exists():
         text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
+        pkdp(text)
         for line in text.split("\n"):
             if re.search(r"invalid chemical formula", line):
                 return "A mirror contains an invalid reflectivity material"

@@ -10,10 +10,11 @@ import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
 import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
 import { useShown } from "../hook/shown";
-import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
+import { CModelsWrapper, CFormStateWrapper, ModelsWrapperWithAliases, AbstractModelsWrapper, ModelAliases, ModelHandle } from "../data/wrapper";
 import { useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
 import { ValueSelectors } from "../utility/string";
+import { Schema } from "../utility/schema";
 
 export function FormControllerElement(props: {children?: React.ReactNode, dependencies: Dependency[]}) {
     let formState = useContext(CFormStateWrapper);
@@ -179,4 +180,69 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
             })}
         </>
     }
+}
+
+export function arrayPositionHandle<M, F>(modelsWrapper: AbstractModelsWrapper<M, F>, realArrayDep: Dependency, arrayIndex: number): ModelHandle<M, F> {
+    let handle: ModelHandle<M, F> = {
+        updateModel: (modelName: string, value: M, state: any) => {
+            let m = modelsWrapper.getModel(realArrayDep.modelName, state);
+            let nm = modelsWrapper.setArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m, {
+                model: modelName,
+                item: value
+            });
+            modelsWrapper.updateModel(realArrayDep.modelName, nm, state);
+        },
+        getModel: (modelName: string, state: any): M => {
+            let m = modelsWrapper.getModel(realArrayDep.modelName, state);
+            return modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
+        },
+        hookModel: (modelName: string): M => {
+            let m = modelsWrapper.hookModel(realArrayDep.modelName);
+            return modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
+        }
+    }
+    return handle;
+}
+
+export type FormControllerAliases = { real: { modelName: string, fieldName: string, index: number }, fake: string, realSchemaName: string }[]
+export function AliasedFormControllerWrapper(props: { aliases: FormControllerAliases, children?: React.ReactNode }) {
+    let { aliases } = props;
+
+    let schema = useContext(CSchema);
+    let modelsWrapper = useContext(CModelsWrapper);
+    let formStateWrapper = useContext(CFormStateWrapper);
+
+    let nSchema: Schema = {...schema};
+    
+
+    for(let alias of aliases) {
+        nSchema.models[alias.fake] = nSchema.models[alias.realSchemaName];
+    }
+
+    function aliasesForWrapper<M, F>(wrapper: AbstractModelsWrapper<M, F>, aliases: FormControllerAliases): ModelAliases<M, F> {
+        return Object.fromEntries(
+            aliases.map(alias => {
+                return [
+                    alias.fake,
+                    {
+                        handle: arrayPositionHandle(wrapper, new Dependency(`${alias.real.modelName}.${alias.real.fieldName}`), alias.real.index),
+                        realSchemaName: alias.realSchemaName
+                    }
+                ]
+            })
+        );
+    }
+
+    let nModelsWrapper = new ModelsWrapperWithAliases(modelsWrapper, aliasesForWrapper(modelsWrapper, aliases));
+    let nFormStateWrapper = new ModelsWrapperWithAliases(formStateWrapper, aliasesForWrapper(formStateWrapper, aliases));
+
+    return (
+        <CSchema.Provider value={nSchema}>
+            <CModelsWrapper.Provider value={nModelsWrapper}>
+                <CFormStateWrapper.Provider value={nFormStateWrapper}>
+                    {props.children}
+                </CFormStateWrapper.Provider>
+            </CModelsWrapper.Provider>
+        </CSchema.Provider>
+    )
 }

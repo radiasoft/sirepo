@@ -7,12 +7,70 @@
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from pykern import pkconfig
+from pykern import pkjson
 import sirepo.sim_data
 import scipy.constants
+import hashlib
 
 
 class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(("colorMap", "notes", "aspectRatio"))
+
+    @classmethod
+    def compute_job_hash(cls, data, qcall):
+        """Hash fields related to data and set computeJobHash
+
+        Only needs to be unique relative to the report, not globally unique
+        so MD5 is adequate. Long and cryptographic hashes make the
+        cache checks slower.
+
+        Args:
+            data (dict): simulation data
+            changed (callable): called when value changed
+        Returns:
+            bytes: hash value
+        """
+        cls._assert_server_side()
+        c = cls.compute_model(data)
+        if data.get("forceRun") or cls.is_parallel(c):
+            return "HashIsUnused"
+        m = data["models"]
+        res = hashlib.md5()
+        fields = sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(
+            data, data.report, c
+        )
+        # values may be string or PKDict
+        fields.sort(key=lambda x: str(x))
+        for f in fields:
+            # assert isinstance(f, pkconfig.STRING_TYPES), \
+            #     'value={} not a string_type'.format(f)
+            # TODO(pjm): work-around for now
+            if isinstance(f, pkconfig.STRING_TYPES):
+                x = f.split(".")
+                if cls.is_watchpoint(f) and f != "watchpointReports":
+                    i = cls.watchpoint_id(f)
+                    value = m.watchpointReports.reports[i].item
+                else:
+                    value = m[x[0]][x[1]] if len(x) > 1 else m[x[0]]
+            else:
+                value = f
+            res.update(
+                pkjson.dump_bytes(
+                    value,
+                    sort_keys=True,
+                    allow_nan=False,
+                )
+            )
+        res.update(
+            "".join(
+                (
+                    str(cls.lib_file_abspath(b, data=data, qcall=qcall).mtime())
+                    for b in sorted(cls.lib_file_basenames(data))
+                ),
+            ).encode()
+        )
+        return res.hexdigest()
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):

@@ -5136,6 +5136,13 @@
                                                         "_NAME": "initialIntensityReport"
                                                     },
                                                     {
+                                                        "layout": "beamlineWatchpointReports",
+                                                        "config": {
+                                                            "beamlineDependency": "beamline.elements",
+                                                            "watchpointReportsDependency": "watchpointReports.reports"
+                                                        }
+                                                    },
+                                                    {
                                                         "layout": "panel",
                                                         "config": {
                                                             "title": "Beam Statistics",

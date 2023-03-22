@@ -29,7 +29,8 @@ export abstract class AbstractModelsWrapper<M, F> {
         let fieldState = this.getFieldFromModel(fieldName, model);
         let len = this.getArrayFieldLength(fieldState);
         if(index >= len) {
-            throw new Error(`index=${index} of out bounds=${len}`);
+            //throw new Error(`index=${index} of out bounds=${len}`);
+            return undefined;
         }
 
         return fieldState[index];
@@ -39,7 +40,8 @@ export abstract class AbstractModelsWrapper<M, F> {
         let fieldState = this.getFieldFromModel(fieldName, model);
         let len = this.getArrayFieldLength(fieldState);
         if(index >= len) {
-            throw new Error(`index=${index} of out bounds=${len}`);
+            //throw new Error(`index=${index} of out bounds=${len}`);
+            return undefined;
         }
 
         // TODO: cant change types of model
