@@ -365,6 +365,7 @@ def analysis_job_dice_coefficient(data, run_dir, **kwargs):
 
 
 def stateful_compute_sample_images(data):
+    pkdp("\n\n\n\nhit")
     return _image_preview(data)
 
 
@@ -1194,8 +1195,20 @@ def _image_preview(data, run_dir=None):
         return a
 
     def _gen_image(params):
+        # TODO (gurhar1133): need an if _param_to_image() case
+        if _param_to_image(info) and not data.args.method in ("segmentViewer", "bestLosses", "worstLosses"):
+            mask = params.output
+            pkdp("\n\n\ninput={}", params.input)
+            params.axes[params.row, 0].spines['top'].set_visible(False)
+            params.axes[params.row, 0].spines['right'].set_visible(False)
+            params.axes[params.row, 0].spines['bottom'].set_visible(False)
+            params.axes[params.row, 0].spines['left'].set_visible(False)
+            params.axes[params.row, 0].text(.2, .2, "Params:\n"+", ".join([str(round(n, 3)) for n in params.input]), style ='italic', fontsize=10)
+            params.axes[params.row, 1].imshow(mask)
+            return
         if _image_out(info):
             mask = params.output
+            # pkdp("\n\n\n params.input={}", params.input)
             params.axes[params.row, 0].imshow(params.input)
             params.axes[params.row, 1].imshow(mask)
             return
@@ -1230,14 +1243,23 @@ def _image_preview(data, run_dir=None):
     if "input" not in io:
         raise AssertionError("No multidimensional data found in dataset")
     io.output = _output(info, io)
+
     # look for a string column for labels
     for idx in range(len(info.header)):
         if info.dtypeKind[idx] in {"U", "S"}:
             io.output.label_path = info.header[idx]
             break
-
+    if _param_to_image(info):
+        io.input = PKDict(
+            path="metadata/control_settings",
+            kind="f",
+        )
+    pkdp("\n\n\n io.input={}", io.input)
+    pkdp("\n\n\n io.output={}", io.output)
+    pkdp("\n\n\n data.args.columnInfo={}", data.args.columnInfo)
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
         x, y = _x_y(data, io, f, run_dir=run_dir)
+        # pkdp("\n\n\n\nx={}", x)
         u = []
         k = 0
         g = (
