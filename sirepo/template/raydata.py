@@ -4,13 +4,11 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdformat, pkdexc
 from sirepo.template import template_common
-import base64
 import pygments
 import pygments.formatters
 import pygments.lexers

@@ -306,7 +306,7 @@ SIREPO.app.directive('scansTable', function() {
             <div data-show-loading-and-error="" data-model-key="scans">
               <div>
                 <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right; margin:5px;"><span class="glyphicon glyphicon-plus"></span></button>
-                <button class="btn btn-info btn-xs"  data-ng-show="showPdfColumn" data-ng-click="downloadSelectedAnalyses()" style="float: right; margin:5px;">Download Selected Analysis PDFs</button>
+                <button class="btn btn-info btn-xs" data-ng-show="showPdfButton()" data-ng-click="downloadSelectedAnalyses()" style="float: right; margin:5px;">Download Selected Analysis PDFs</button>
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
@@ -321,7 +321,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
-                      <td style="width: 20px; height: 20px;" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans.includes(s.uid)" data-ng-click="togglePdfSelectScan(s.uid, $event)"/></td>
+                      <td style="width: 20px; height: 20px;" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.uid]" data-ng-click="togglePdfSelectScan(s.uid, $event)"/></td>
                       <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">View Log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
@@ -381,7 +381,7 @@ SIREPO.app.directive('scansTable', function() {
             $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
             $scope.pdfSelectAllScans = false;
-            $scope.pdfSelectedScans = [];
+            $scope.pdfSelectedScans = {};
             $scope.reverseSortScans = false;
             $scope.runLogModalId = 'sr-view-log-iframe-' + $scope.analysisStatus;
             $scope.runLogScanId = null;
@@ -446,11 +446,11 @@ SIREPO.app.directive('scansTable', function() {
                             if ($scope.scans.length === 0) {
                                 $scope.noScansReturned = true;
                             }
-                            $scope.pdfSelectedScans.forEach(p => {
+                            for (const p in $scope.pdfSelectedScans) {
                                 if ($scope.scans.findIndex(s => s.uid === p) === -1) {
-                                    $scope.pdfSelectedScans.splice($scope.pdfSelectedScans.indexOf(p),1);
+                                    delete $scope.pdfSelectedScans[p];
                                 }
-                            });
+                            };
                         },
                         {
                             method: 'scans',
@@ -500,9 +500,6 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.downloadSelectedAnalyses = () => {
-                if (! $scope.pdfSelectedScans.length) {
-                    return;
-                }
                 requestSender.sendStatelessCompute(
                     appState,
                     function(data) {
@@ -512,7 +509,7 @@ SIREPO.app.directive('scansTable', function() {
                         method: 'download_analysis_pdfs',
                         responseType: 'blob',
                         args: {
-                            uids: $scope.pdfSelectedScans,
+                            uids: Object.keys($scope.pdfSelectedScans),
                         }
                     },
                     errorOptions,
@@ -566,6 +563,10 @@ SIREPO.app.directive('scansTable', function() {
                 return index > $scope.defaultColumns.length - 1 && index === hoveredIndex;
             };
 
+            $scope.showPdfButton = () => {
+                return $scope.showPdfColumn && Object.keys($scope.pdfSelectedScans).length;
+            };
+
             $scope.showRunLogModal = (scan, event) => {
                 event.stopPropagation();
                 $scope.runLogScanId = scan.uid;
@@ -587,23 +588,23 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.togglePdfSelectAll = () => {
-                $scope.pdfSelectedScans = [];
-                if (! $scope.pdfSelectAllScans) {
+                $scope.pdfSelectedScans = {};
+                $scope.pdfSelectAllScans = ! $scope.pdfSelectAllScans;
+                if ($scope.pdfSelectAllScans) {
                     $scope.scans.forEach(s => {
                         if (s.pdf) {
-                            $scope.pdfSelectedScans.push(s.uid);
+                            $scope.pdfSelectedScans[s.uid] = true;
                         }
                     });
                 }
-                $scope.pdfSelectAllScans = ! $scope.pdfSelectAllScans;
             };
 
             $scope.togglePdfSelectScan = (uid, event) => {
                 event.stopPropagation();
-                if ($scope.pdfSelectedScans.includes(uid)) {
-                    $scope.pdfSelectedScans.splice($scope.pdfSelectedScans.indexOf(uid), 1);
+                if (uid in $scope.pdfSelectedScans) {
+                    delete $scope.pdfSelectedScans[uid];
                 } else {
-                    $scope.pdfSelectedScans.push(uid);
+                    $scope.pdfSelectedScans[uid] = true;
                 }
             };
 
