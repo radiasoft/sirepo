@@ -937,6 +937,8 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, panelS
         self.simState.saveAndRunSimulation([model, 'simulation']);
     };
 
+    self.unsolvedMessage = () => solving ? '' : 'No solution found'
+
     self.simComputeModel = 'solverAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
@@ -1936,7 +1938,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                                 <div><strong>Max |M|: </strong> {{ solution().maxM }} A/m</div>
                                 <div><strong>Max |H|: </strong> {{ solution().maxH }} A/m</div>
                         </div>
-                        <div data-ng-hide="viz.solution">No solution found</div>
+                        <div data-ng-hide="viz.solution">{{ viz.unsolvedMessage() }}</div>
                         <div class="col-sm-6 pull-right" style="padding-top: 8px;">
                             <button class="btn btn-default" data-ng-click="viz.resetSimulation()">Reset</button>
                         </div>
