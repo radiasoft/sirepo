@@ -481,10 +481,10 @@ def _build_model_py(v):
     )
 
     def _final_layer(v):
-        # TODO (gurhar1133): return "" when params to images
-        # otherwise return string below
-        # return '\nx = Dense(output_shape, activation="linear")(x)'
-        return ""
+        pkdp("\n\n\nparam to image={}", v.paramToImage)
+        if v.paramToImage:
+            return ""
+        return '\nx = Dense(output_shape, activation="linear")(x)'
 
     def _layer(layer):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
@@ -906,7 +906,19 @@ def _image_to_image(info):
     if not info.get("shape"):
         return False
     idx = info.inputOutput.index("output")
+    # TODO (gurhar1133): change this to require image
+    # in? or rename to image_out
     return len(info.shape[idx][1:]) > 1
+
+
+def _param_to_image(info):
+    if not info.get("shape"):
+        return False
+    o = info.inputOutput.index("output")
+    i = info.inputOutput.index("input")
+    # pkdp("\n\n\nout shape={}", info.shape[o])
+    # pkdp("\n\n\nin shape={}", info.shape[i])
+    return len(info.shape[o][1:]) > 1 and len(info.shape[i][1:]) == 1
 
 
 def _generate_parameters_file(data):
@@ -933,6 +945,7 @@ def _generate_parameters_file(data):
     v.feature_min = dm.dataFile.featureRangeMin
     v.feature_max = dm.dataFile.featureRangeMax
     v.discreteOutputs = _discrete_out(dm.columnInfo)
+    v.paramToImage = _param_to_image(dm.columnInfo)
     if v.image_data:
         v.inPath = None
         v.outPath = None
