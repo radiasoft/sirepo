@@ -2208,7 +2208,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 updateLayout();
                 setAlpha();
                 setBgColor();
-                $scope.vtkScene.setCam();
                 enableWatchFields(true);
             }
 
@@ -2657,6 +2656,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 buildScene();
                 if (! initDone) {
                     initDone = true;
+                    $scope.vtkScene.setCam();
                 }
             }
 
