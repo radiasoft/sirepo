@@ -167,7 +167,7 @@ class API(sirepo.quest.API):
             type=simulation_type,
         )
         from sirepo import exporter
-
+        pkdp("\n\n\n HIT \n\n\n", req)
         return exporter.create_archive(req, self)
 
     @sirepo.quest.Spec("allow_visitor")

@@ -2091,6 +2091,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                 throw new Error(`param=${p.name} param missing map=${map._name} route=${r.name}`);
             }
         }
+        srdbg("u=", u);
         return u;
     }
 
@@ -2156,6 +2157,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     };
 
     self.newWindow = function(routeName, params) {
+        srdbg("routeName=", routeName);
         $window.open(self.formatUrl(routeName, params), '_blank');
     };
 

@@ -439,6 +439,7 @@ def extract_report_data(sim_in):
 
 
 def get_data_file(run_dir, model, frame, options):
+    pkdp("\n\n\n HIT")
     if options.suffix == template_common.RUN_LOG:
         return template_common.text_data_file(options.suffix, run_dir)
     if options.suffix == _PROGRESS_LOG_DIR:
