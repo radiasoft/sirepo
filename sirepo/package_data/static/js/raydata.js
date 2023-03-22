@@ -472,7 +472,7 @@ SIREPO.app.directive('scansTable', function() {
                                 if ($scope.scans.findIndex(s => s.uid === p) === -1) {
                                     delete $scope.pdfSelectedScans[p];
                                 }
-                            };
+                            }
                         },
                         {
                             method: 'scans',

@@ -106,9 +106,9 @@ def _dispatch_compute(msg, template):
         if x:
             if sirepo.feature_config.for_sim_type(template.SIM_TYPE).file_reply_tmp_dir:
                 with tempfile.TemporaryDirectory(
-                        dir=sirepo.feature_config.for_sim_type(
-                            template.SIM_TYPE
-                        ).file_reply_tmp_dir
+                    dir=sirepo.feature_config.for_sim_type(
+                        template.SIM_TYPE
+                    ).file_reply_tmp_dir
                 ) as t:
                     msg.data.temp_dir = t
                     return _op(expect_file=x)
