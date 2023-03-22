@@ -389,7 +389,6 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ac
             }
         }
         if (! res.length){
-            srdbg("res", res);
             return res;
         }
         res[res.length - 1].break = true;

@@ -360,8 +360,6 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
 
 
 def analysis_job_dice_coefficient(data, run_dir, **kwargs):
-    # pkdp("\n\n\n shape={}", data.args.columnInfo.shape)
-    # pkdp("\n\n\n data.args={}", data.args)
     i = data.args.columnInfo.inputOutput.index("output")
     return _dice_coefficient_plot(data, run_dir, data.args.columnInfo.shape[i][1:])
 
@@ -481,7 +479,6 @@ def _build_model_py(v):
     )
 
     def _final_layer(v):
-        pkdp("\n\n\nparam to image={}", v.paramToImage)
         if v.paramToImage:
             return ""
         return '\nx = Dense(output_shape, activation="linear")(x)'
@@ -519,15 +516,17 @@ def _build_model_py(v):
     net = PKDict(layers=v.neuralNetLayers)
     _name_layers(net, "input_args", first_level=True)
 
-    return f"""
+    return (
+        f"""
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
 input_args = Input(shape=input_shape)
-{_build_layers(net)}""" + \
-_final_layer(v) + \
-f"""\nmodel = Model(input_args, x)
+{_build_layers(net)}"""
+        + _final_layer(v)
+        + f"""\nmodel = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
+    )
 
 
 def _build_ui_nn(model):
@@ -902,12 +901,10 @@ def _fit_animation(frame_args):
     )
 
 
-def _image_to_image(info):
+def _image_out(info):
     if not info.get("shape"):
         return False
     idx = info.inputOutput.index("output")
-    # TODO (gurhar1133): change this to require image
-    # in? or rename to image_out
     return len(info.shape[idx][1:]) > 1
 
 
@@ -916,8 +913,6 @@ def _param_to_image(info):
         return False
     o = info.inputOutput.index("output")
     i = info.inputOutput.index("input")
-    # pkdp("\n\n\nout shape={}", info.shape[o])
-    # pkdp("\n\n\nin shape={}", info.shape[i])
     return len(info.shape[o][1:]) > 1 and len(info.shape[i][1:]) == 1
 
 
@@ -925,7 +920,7 @@ def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
-    v.imageToImage = _image_to_image(dm.columnInfo)
+    v.imageOut = _image_out(dm.columnInfo)
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
@@ -957,7 +952,7 @@ def _generate_parameters_file(data):
             elif dm.columnInfo.inputOutput[idx] == "output":
                 assert not v.outPath, "Only one output allow for h5 data"
                 v.outPath = dm.columnInfo.header[idx]
-                v.outputShape = 1 if v.imageToImage else dm.columnInfo.outputShape[idx]
+                v.outputShape = 1 if v.imageOut else dm.columnInfo.outputShape[idx]
                 v.outScaling = dm.columnInfo.dtypeKind[idx] == "f"
         assert v.inPath, "Missing input data path"
         assert v.outPath, "Missing output data path"
@@ -1106,13 +1101,9 @@ def _data_url(filename):
 
 
 def _masks(out_width, out_height, run_dir):
-    # TODO (gurhar1133): need to do out_width, out_height
     x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-    pkdp("\n\n\n\n shape of actual={}", numpy.array(x).shape)
-    pkdp("\n\n\n len(x)={}", len(x))
     x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
     y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-    pkdp("\n\n\n\n shape of predict={}", numpy.array(y).shape)
     y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
     return x, y
 
@@ -1184,11 +1175,13 @@ def _image_preview(data, run_dir=None):
             return _masks(w, h, run_dir)
         if data.args.method in ("bestLosses", "worstLosses"):
             i = data.args.columnInfo.inputOutput.index("output")
-            return _by_indices(data.args.method, run_dir, data.args.columnInfo.shape[i][1:])
+            return _by_indices(
+                data.args.method, run_dir, data.args.columnInfo.shape[i][1:]
+            )
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):
-        if _image_to_image(info):
+        if _image_out(info):
             return [_SEGMENT_ROWS] * _SEGMENT_PAGES
         return _image_grid(len(x))
 
@@ -1201,7 +1194,7 @@ def _image_preview(data, run_dir=None):
         return a
 
     def _gen_image(params):
-        if _image_to_image(info):
+        if _image_out(info):
             mask = params.output
             params.axes[params.row, 0].imshow(params.input)
             params.axes[params.row, 1].imshow(mask)
@@ -1254,9 +1247,7 @@ def _image_preview(data, run_dir=None):
         )
         for i in g:
             plt.figure(figsize=[10, 10])
-            axarr = (
-                _set_image_to_image_plt(plt, data) if _image_to_image(info) else None
-            )
+            axarr = _set_image_to_image_plt(plt, data) if _image_out(info) else None
             for j in range(i):
                 v = x[k + j]
                 if io.input.kind == "f":
