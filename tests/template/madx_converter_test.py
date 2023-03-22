@@ -43,10 +43,15 @@ def test_import_elegant_export_madx(import_req):
     from sirepo import srunit
     from sirepo.template import elegant
     from sirepo.template.elegant import ElegantMadxConverter
+    import asyncio
 
-    data = elegant.import_file(import_req(pkunit.data_dir().join("test1.ele")))
-    data = elegant.import_file(
-        import_req(pkunit.data_dir().join("test1.lte")), test_data=data
+    data = asyncio.run(
+        elegant.import_file(import_req(pkunit.data_dir().join("test1.ele")))
+    )
+    data = asyncio.run(
+        elegant.import_file(
+            import_req(pkunit.data_dir().join("test1.lte")), test_data=data
+        )
     )
     # this is updated from javascript unfortunately
     data.models.bunch.longitudinalMethod = "3"
@@ -105,11 +110,16 @@ def _opal_to_madx(import_req, basename):
     from sirepo import srunit
     from sirepo.template import opal
     from sirepo.template.opal import OpalMadxConverter
+    import asyncio
 
     with srunit.quest_start() as qcall:
         file_eq(
             f"{basename}.madx",
             actual=OpalMadxConverter(qcall=qcall).to_madx_text(
-                opal.import_file(import_req(pkunit.data_dir().join(f"{basename}.in")))
+                asyncio.run(
+                    opal.import_file(
+                        import_req(pkunit.data_dir().join(f"{basename}.in"))
+                    )
+                )
             ),
         )

@@ -271,7 +271,7 @@ def get_data_file(run_dir, model, frame, options):
         return f
 
 
-def import_file(req, tmp_dir=None, **kwargs):
+async def import_file(req, tmp_dir=None, **kwargs):
     data = simulation_db.default_data(req.type)
     data.models.simulation.pkupdate(
         {k: v for k, v in req.req_data.items() if k in data.models.simulation}

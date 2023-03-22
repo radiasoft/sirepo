@@ -59,6 +59,10 @@ def stateless_compute_download_analysis_pdfs(data):
     )
 
 
+def stateless_compute_run_analysis(data):
+    return _request_scan_monitor(PKDict(method="run_analysis", data=data))
+
+
 def stateless_compute_scans(data):
     return _request_scan_monitor(PKDict(method="get_scans", data=data))
 

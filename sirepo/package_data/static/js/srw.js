@@ -1733,8 +1733,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
 
             $scope.showOpenShadow = function() {
                 return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
-                    && $scope.nav.isActive('beamline')
-                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator() || srwService.isMultipole());
+                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator() || srwService.isMultipole()
+                     || (srwService.isTabulatedUndulator() && ! srwService.isTabulatedUndulatorWithMagenticFile()));
             };
 
             $scope.showRsOptML = function() {

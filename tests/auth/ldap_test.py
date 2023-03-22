@@ -37,13 +37,14 @@ def test_incorrect_creds():
 def _call_login(email, password):
     from pykern import pkinspect
     from sirepo import srunit
+    from pykern.pkdebug import pkdp
     import sys
 
     sys.modules["ldap"] = pkinspect.this_module()
     with srunit.quest_start(cfg={"SIREPO_AUTH_METHODS": "ldap"}) as qcall:
         from pykern.pkcollections import PKDict
 
-        r = qcall.call_api(
+        r = qcall.call_api_sync(
             "authLdapLogin",
             data=PKDict(
                 simulationType="myapp",
