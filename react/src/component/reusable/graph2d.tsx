@@ -5,6 +5,7 @@ import { LegendOrdinal } from "@visx/legend";
 import { Point2d, Range1d } from '../../types';
 import { Zoom } from '@visx/zoom';
 import { constrainZoom, useGraphContentBounds } from "../../utility/component";
+import { useWindowSize } from '../../hook/breakpoint';
 
 export type Graph2dPlot = {
     color: string,
@@ -26,6 +27,7 @@ export function Graph2d(props: Graph2dConfig) {
     const ref = useRef(null);
     //TODO(pjm): use props.aspectRatio if present
     const gc = useGraphContentBounds(ref, 9 / 16.0);
+    useWindowSize(); // needs to resize when window does
 
     function constrain(transformMatrix) {
         // no Y zoom

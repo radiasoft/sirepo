@@ -1,4 +1,4 @@
-import { FunctionComponent, MutableRefObject, RefObject, useLayoutEffect, useRef, useState } from "react";
+import { FunctionComponent, MutableRefObject, RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dependency } from "../../data/dependency";
 import { SchemaLayout } from "../../utility/schema";
 import { Layout, LayoutProps } from "../layout";
@@ -79,24 +79,16 @@ export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
         return Object.entries(ret).map(([name, value]) => `${name}: ${value}`).join("; ")
     }
 
-    component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
+    waterfallBins = (props: { children: React.ReactNode }) => {
         let windowSize = useWindowSize();
         let breakpoint = resolveBreakpoint(windowSize);
-        let c: JSX.Element[] = this.children.map((c, idx) => {
-            let LayoutComponent = c.component;
-            return <LayoutComponent key={idx}/>
-        });
-
         let numBins = this.numBinsForBreakpoint(breakpoint);
 
         let bins: JSX.Element[] = [];
-        let binRefs: RefObject<HTMLElement>[] = [];
         for(let b = 0; b < numBins; b++) {
-            let ref = useRef<HTMLDivElement>();
-            bins.push(<div ref={ref}>
+            bins.push(<div key={b}>
 
             </div>)
-            binRefs.push(ref);
         }
 
         let gridStyle = {
@@ -104,38 +96,63 @@ export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
             "gridTemplateRows": "1fr"
         }
 
-        let containerRef = useRef<HTMLDivElement>();
-
-        useLayoutEffect(() => {
-            for(let r of binRefs) {
-                if(!r.current) {
-                    console.log("bin was not defined");
-                    return;
-                }
-            }
-
+        useEffect(() => {
+            console.log("bins.length", bins.length);
             if(!containerRef.current) {
                 console.log("container was not defined");
-                return;
+                return () => {};
             }
+
+            if(!waterfallRef.current) {
+                console.log("waterfall was not defined");
+                return () => {};
+            }
+
+            let binEles = Array.from(waterfallRef.current.children);
 
             let container = containerRef.current;
             // needs to be done this way, avoids mutating length during for loop
             let children = Array.from(container.children);
+            let cleanups = [];
             children.forEach((e, i) => {
-                let b = binRefs[i % binRefs.length].current;
+                let b = binEles[i % binEles.length];
                 b.appendChild(e);
                 e.setAttribute("style", this.getMarginStyles())
+                cleanups.push(() => {
+                    container.appendChild(e);
+                })
             })
-        })
+
+            return () => cleanups.forEach(c => c())
+        }, [bins.length])
+
+        let waterfallRef = useRef<HTMLDivElement>();
+        let containerRef = useRef<HTMLDivElement>();
 
         return (
-            <div style={gridStyle} className="sr-waterfall-container">
-                <div style={{display: "none"}} ref={containerRef}>
-                    {c}
+            <>
+                <div style={gridStyle} ref={waterfallRef} className="sr-waterfall-container">
+                    {bins}
                 </div>
-                {bins}
-            </div>
+                <div style={{display: "none"}} ref={containerRef}>
+                    {props.children}
+                </div>
+            </>
+        )
+    }
+
+    component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
+        
+        let c: JSX.Element[] = this.children.map((c, idx) => {
+            let LayoutComponent = c.component;
+            return <LayoutComponent key={idx}/>
+        });
+        
+
+        let WaterfallBins = this.waterfallBins;
+
+        return (
+            <WaterfallBins>{c}</WaterfallBins>
         )
     };
 }
