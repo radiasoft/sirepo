@@ -13,7 +13,7 @@ export type Histogram2dConfigApi = {
 }
 
 export function apiResponseHistogramToGraph2dConfig(cfg: Histogram2dConfigApi): Graph2dConfig {
-    if(!cfg) return undefined;
+    if(!cfg || !cfg.x_range) return undefined;
     
     // TODO: put in schema or get from server
     let color = "#006699";
