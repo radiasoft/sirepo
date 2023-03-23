@@ -33,7 +33,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_adm", token="AuthModerationToken", status="AuthModerationStatus"
     )
-    def api_admModerate(self):
+    async def api_admModerate(self):
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
                 recipient=info.user_name,
@@ -90,7 +90,7 @@ class API(sirepo.quest.API):
         return self.reply_ok()
 
     @sirepo.quest.Spec("require_adm")
-    def api_admModerateRedirect(self):
+    async def api_admModerateRedirect(self):
         def _type():
             x = sirepo.feature_config.auth_controlled_sim_types()
             res = sorted(sirepo.feature_config.cfg().sim_types - x)
@@ -103,7 +103,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_adm")
-    def api_getModerationRequestRows(self):
+    async def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
                 rows=self.auth_db.model("UserRoleInvite").get_moderation_request_rows(),
@@ -113,7 +113,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "allow_sim_typeless_require_email_user", reason="AuthModerationReason"
     )
-    def api_saveModerationReason(self):
+    async def api_saveModerationReason(self):
         def _send_request_email(info):
             sirepo.smtp.send(
                 recipient=_cfg.moderator_email,

@@ -353,7 +353,7 @@ def get_data_file(run_dir, model, frame, options):
     assert False, f"no data file for model: {model}"
 
 
-def import_file(req, **kwargs):
+async def import_file(req, **kwargs):
     text = req.form_file.as_str()
     if not bool(re.search(r"\.madx$|\.seq$", req.filename, re.IGNORECASE)):
         raise AssertionError("invalid file extension, expecting .madx or .seq")
