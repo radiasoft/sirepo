@@ -21,25 +21,25 @@ _SLEEP = 1
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_auth_basic")
-    def api_serverStatus(self):
+    async def api_serverStatus(self):
         """Allow for remote monitoring of the web server status.
 
         The user must be an existing sirepo uid.  The status checks
         that a simple simulation can complete successfully within a
         short period of time.
         """
-        self._run_tests()
+        await self._run_tests()
         return self.reply_ok(
             {
                 "datetime": datetime.datetime.utcnow().isoformat(),
             }
         )
 
-    def _run_tests(self):
+    async def _run_tests(self):
         """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
-        self._validate_auth_state()
+        await self._validate_auth_state()
         simulation_type = _cfg.sim_type
-        res = self.call_api(
+        res = await self.call_api(
             "findByNameWithAuth",
             dict(
                 simulation_type=simulation_type,
@@ -70,7 +70,7 @@ class API(sirepo.quest.API):
         r = None
         resp = None
         try:
-            resp = self.call_api("runSimulation", data=d)
+            resp = await self.call_api("runSimulation", data=d)
             for _ in range(_cfg.max_calls):
                 r = simulation_db.json_load(resp.content_as_str())
                 resp.destroy()
@@ -85,7 +85,7 @@ class API(sirepo.quest.API):
                             raise RuntimeError("received bad report output: resp={}", r)
                     return
                 d = r.nextRequest
-                resp = self.call_api("runStatus", data=d)
+                resp = await self.call_api("runStatus", data=d)
                 time.sleep(_SLEEP)
             raise RuntimeError(
                 "simulation timed out: seconds={} resp=".format(
@@ -96,12 +96,12 @@ class API(sirepo.quest.API):
             if resp:
                 resp.destroy()
             try:
-                self.call_api("runCancel", data=d)
+                await self.call_api("runCancel", data=d)
             except Exception:
                 pass
 
-    def _validate_auth_state(self):
-        r = self.call_api("authState").content_as_str()
+    async def _validate_auth_state(self):
+        r = (await self.call_api("authState")).content_as_str()
         m = re.search(r"SIREPO.authState\s*=\s*(.*?);", r)
         assert m, pkdformat("no authState in response={}", r)
         assert pkjson.load_any(m.group(1)).isLoggedIn, pkdformat(
