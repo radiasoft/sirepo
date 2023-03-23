@@ -1,4 +1,4 @@
-# ^^ pulse, slice defined in laserPulse.py ^^ #
+# ^^ pulse defined in laserPulse.py.jinja ^^ #
 
 def _intensity(wavefront):
     return srwl_uti_data.calc_int_from_elec(w).tolist()
@@ -13,9 +13,8 @@ def _phase(wavefront):
     {% if laserPulse.geometryFromFiles == "1" %}
     nx, ny = m.nx, m.ny
     {% else %}
-    nx, ny = slice.nx_slice, slice.ny_slice
     {% endif %}
-    return numpy.array(z).reshape(ny, nx).tolist()
+    return numpy.array(z).reshape(wavefront.mesh.ny, wavefront.mesh.nx).tolist()
 
 
 def _ranges(wavefront):
@@ -63,22 +62,21 @@ def _build_watch(model):
 
 def propagate(pulse):
     beamline = {{ beamline }}
-    prev = PKDict(position=0.0)
+    prev = 0
     for element in [PKDict(e) for e in beamline]:
-        dz = element.position - prev.position
-        t = element.type
+        dz = element.position - prev
         if dz:
             e = _build_drift(dz)
             pulse = e.propagate(pulse, "default")
-        e = globals()[f"_build_{t}"](element)
+        e = globals()[f"_build_{element.type}"](element)
         pulse = e.propagate(pulse, element.propagationType)
-        if t == "watch":
-            w = pulse.slice_wfr(0)
-            for x in {{ dataPaths }}:
-                h5_data[x] = globals()[f"_{x}"](w)
-            template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
-        prev = element
+        prev = element.position
+    return pulse
 
 
-propagate(pulse)
+w = propagate(pulse).slice_wfr(0)
+for x in {{ dataPaths }}:
+    h5_data[x] = globals()[f"_{x}"](w)
+template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
+
 {% endif %}

@@ -86,13 +86,13 @@
         },
         "crystal": {
             "_super": ["_", "model", "beamElement"],
-            "diameter": ["Diameter [cm]", "Float", 7.0, "", 1e-24],
+            "diameter": ["Diameter [cm]", "Float", 0.01, "", 1e-24],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
             "icon": ["", "String", "ti-sapphire-crystal.png"],
-            "numSlices": ["Number of Slices", "Integer", 50],
+            "numSlices": ["Number of Slices", "Integer", 1],
             "position": ["Central Position [m]", "Float", 4.0],
             "propagationType": ["Propagation Type", "PropagationType", "n0n2_srw"],
-            "radialVariation": ["Transverse Variation", "Float", 0.001, "Transverse variation of index of refraction", 0.0],
+            "radialVariation": ["Transverse Variation", "Float", 4, "Transverse variation of index of refraction", 0.0],
             "refractionIndex": ["Index of Refraction", "Float", 1.75, "Index of refraction along the optical axis", 1e-24],
             "title": ["Element Name", "String", "Crystal"],
             "width": ["Length [cm]", "Float", 2.0]

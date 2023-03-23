@@ -30,19 +30,12 @@ def _build_pulse():
         ),
         {% if laserPulse.geometryFromFiles == "1" %}
         files=PKDict(
-            ccd=_lib_file("ccd", "{{ laserPulse.ccd }}"),
-            meta=_lib_file("meta", "{{ laserPulse.meta }}"),
-            wfs=_lib_file("wfs", "{{ laserPulse.wfs }}"),
+            ccd="{{ ccdFile }}",
+            meta="{{ metaFile }}",
+            wfs="{{ wfsFile }}",
         ),
         {% endif %}
     )
 
 
-def _lib_file(field, basename):
-    sim_data = sirepo.sim_data.get_class("silas")
-    return sim_data.lib_file_name_with_model_field("laserPulse", field, basename)
-
-
 pulse = _build_pulse()
-slice = pulse.slice[0]
-

@@ -90,7 +90,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
     if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
         data.report = "crystalAnimation"
     if "report" not in data:
-        data.report = "watchpointReport"
+        data.report = _last_watchpoint(data) or "initialIntensityReport"
     return _generate_parameters_file(data)
 
 
@@ -266,16 +266,22 @@ def _generate_parameters_file(data):
     v.dataPaths = _data_paths(r)
     v.laserPulse = data.models.laserPulse
     v.resultsFile = _RESULTS_FILE
+    if data.models.laserPulse.geometryFromFiles == "1":
+        for f in ("ccd", "meta", "wfs"):
+            v[f"{f}File"] = _SIM_DATA.lib_file_name_with_model_field(
+                "laserPulse", f, data.models.laserPulse[f]
+            )
     res += template_common.render_jinja(SIM_TYPE, v, "laserPulse.py")
     if r in _SIM_DATA.initial_reports():
         return res + template_common.render_jinja(SIM_TYPE, v)
     if _SIM_DATA.is_watchpoint(r):
         v.beamline = []
-        # only include the watch for the selected report
+        # only include elements up to the selected watch report
         for b in data.models.beamline:
             if b.type == "watch":
                 if b.id == _SIM_DATA.watchpoint_id(r):
                     v.beamline.append(b)
+                    break
             else:
                 v.beamline.append(b)
         return res + template_common.render_jinja(SIM_TYPE, v)
@@ -307,6 +313,14 @@ def _laser_pulse_report(value_index, filename, title, label):
             x_label="s [m]",
         ),
     )
+
+
+def _last_watchpoint(data):
+    res = None
+    for b in data.models.beamline:
+        if b.type == "watch":
+            res = b
+    return f"watchpointReport{b.id}" if res else None
 
 
 def _num_watchpoints(beamline):

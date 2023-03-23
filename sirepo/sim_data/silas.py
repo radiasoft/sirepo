@@ -28,7 +28,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
-                "crystal",
                 "crystalAnimation",
                 "crystal3dAnimation",
                 "crystalCylinder",
@@ -37,11 +36,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "laserPulse",
                 "initialIntensityReport",
                 "initialPhaseReport",
-                "lens",
                 "plotAnimation",
                 "plot2Animation",
                 "simulation",
-                "watch",
                 "watchpointReport",
             ),
         )
@@ -80,9 +77,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _lib_file_basenames(cls, data):
         res = []
         if (
-            data.report in INITIAL_REPORTS
-            and data.models.laserPulse.geometryFromFiles == "1"
-        ):
+            data.report in INITIAL_REPORTS or cls.is_watchpoint(data.report)
+        ) and data.models.laserPulse.geometryFromFiles == "1":
             for f in ("ccd", "meta", "wfs"):
                 res.append(
                     cls.lib_file_name_with_model_field(

@@ -25,19 +25,6 @@
                 "type": "watch"
             }
         ],
-        "crystal": {
-            "_super": "beamElement",
-            "diameter": 7,
-            "diffusionConstant": 0.0565,
-            "icon": "ti-sapphire-crystal.png",
-            "numSlices": 50,
-            "position": 4,
-            "propagationType": "n0n2_srw",
-            "radialVariation": 0.001,
-            "refractionIndex": 1.75,
-            "title": "Crystal",
-            "width": 2
-        },
         "crystal3dAnimation": {},
         "crystalAnimation": {},
         "crystalCylinder": {
@@ -116,13 +103,6 @@
             ],
             "wfs": ""
         },
-        "lens": {
-            "_super": "beamElement",
-            "focalLength": 2,
-            "position": 0,
-            "propagationType": "default",
-            "title": "Lens"
-        },
         "plot2Animation": {},
         "plotAnimation": {},
         "simulation": {
@@ -131,19 +111,6 @@
             "folder": "/Examples",
             "name": "Single Crystal",
             "notes": ""
-        },
-        "simulationSettings": {
-            "cavity_length": 10,
-            "n_reflections": 4,
-            "nslice": 11,
-            "sample_factor": 12,
-            "sig_s": 0.1
-        },
-        "watch": {
-            "_super": "beamElement",
-            "position": 0,
-            "propagationType": "default",
-            "title": "Watchpoint"
         },
         "watchpointReport3": {
             "_super": "initialIntensityReport",

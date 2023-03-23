@@ -13,11 +13,6 @@
             "folder": "/",
             "name": "default",
             "notes": ""
-        },
-        "simulationSettings": {
-            "cavity_length": 10,
-            "n_reflections": 4,
-            "sample_factor": 12
         }
     },
     "simulationType": "silas"
