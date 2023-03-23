@@ -50,11 +50,6 @@ export function BeamlineItem(props: { baseElement: BeamlineElement & { layouts: 
     let modelsWrapper = useContext(CModelsWrapper);
     let schema = useContext(CSchema);
 
-    // TODO: override form controller
-    //console.log("ele", ele);
-    //console.log("id", id);
-    console.log("modalShown", modalShown);
-
     let { submit: _submit, cancel: _cancel } = formActionFunctions(formController, store, simulationInfoPromise, schema, modelsWrapper as ModelsWrapper);
 
     let isDirty = formController.isFormStateDirty();
@@ -99,7 +94,6 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
     }
 
     component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
-        console.log("RENDER");
         let routeHelper = useContext(CRouteHelper);
         let formStateWrapper = useContext(CFormStateWrapper);
         let modelsWrapper = useContext(CModelsWrapper);
@@ -111,7 +105,6 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
         let beamlineDependency: Dependency = new Dependency(this.config.beamlineDependency);
 
         let [shownModal, updateShownModal] = useState<number>(undefined);
-        console.log("shownModal", shownModal);
 
         let accessor = new ModelsAccessor(formStateWrapper, [beamlineDependency]);
 
@@ -146,8 +139,6 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
             )
         })
 
-        //console.log("elements", this.elements);
-
         let findBaseElementByModel = (model: string) => {
             let r = this.elements.filter(e => e.model === model);
             if(r.length > 1) {
@@ -156,7 +147,6 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
             return r[0];
         }
 
-        //console.log("beamlineValue", beamlineValue);
         let beamlineComponents = beamlineValue.map((e, i) => {
             let model = e.model;
             let ele: FormModelState = e.item;

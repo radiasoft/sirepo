@@ -19,6 +19,8 @@ import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
 import { ModelState } from "../store/models";
+import { useShown } from "../hook/shown";
+import { ValueSelectors } from "../utility/string";
 
 
 export type ReportVisualProps<L> = { data: L, model: ModelState };
@@ -202,11 +204,12 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                                     : true;
         let modelsWrapper = useContext(CModelsWrapper);
         let store = useStore();
+        let shown = useShown(this.config.shown, true, modelsWrapper, ValueSelectors.Models);
         let model = getModelValues([reportName], modelsWrapper, store.getState())[reportName];
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
         return (
             <>
-                {this.reportLayout &&
+                {shown && this.reportLayout &&
                 animationReader &&
                 <ReportAnimationController animationReader={animationReader} showAnimationController={showAnimationController} currentFrameIndex={props.currentFrameIndex}>
                     {

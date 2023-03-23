@@ -12,6 +12,5 @@ export function downloadAs(blob: Blob, fileName: string) {
 export function getAttachmentFileName(response: Response) {
     let pattern = /filename=["]?([\w.\-_]+)["]?/g
     let match = pattern.exec(response.headers.get('content-disposition'));
-    console.log("match", match);
     return match[1];
 }

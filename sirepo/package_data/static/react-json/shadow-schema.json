@@ -5146,6 +5146,7 @@
                                                         "layout": "panel",
                                                         "config": {
                                                             "title": "Beam Statistics",
+                                                            "shown": "$(simulation.sourceType) == 'bendingMagnet' || $(simulation.sourceType) == 'geometricSource' || $(simulation.sourceType) == 'undulator'",
                                                             "basic": [
                                                                 {
                                                                     "layout": "autoRunReport",

@@ -10,11 +10,13 @@ import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
+import { useShown } from "../hook/shown";
 
 export type PanelConfig = {
     basic: SchemaLayout[],
     advanced: SchemaLayout[],
-    title: string
+    title: string,
+    shown: string
 }
 
 export class PanelLayout extends Layout<PanelConfig, {}> {
@@ -36,6 +38,8 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         let formController = useContext(CFormController);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let schema = useContext(CSchema);
+
+        let shown = useShown(this.config.shown, true, modelsWrapper, ValueSelectors.Models);
 
         let store = useStore();
 
@@ -69,8 +73,12 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         }
 
         return (
-            <EditorPanel {...formProps}>
-            </EditorPanel>
+            <>
+                {
+                    shown && <EditorPanel {...formProps}/>
+                }
+            </>
+            
         )
     }
 }

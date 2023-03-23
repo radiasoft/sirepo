@@ -97,14 +97,11 @@ export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
         }
 
         useEffect(() => {
-            console.log("bins.length", bins.length);
             if(!containerRef.current) {
-                console.log("container was not defined");
                 return () => {};
             }
 
             if(!waterfallRef.current) {
-                console.log("waterfall was not defined");
                 return () => {};
             }
 
