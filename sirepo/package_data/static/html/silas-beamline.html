@@ -2,14 +2,7 @@
   <div data-beamline-toolbar="beamline.toolbarItemNames" data-parent-controller="beamline"></div>
   <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels"></div>
   <div class="row">
-    <div class="col-md-6 col-xl-4">
-      <div data-simple-panel="simulationStatus">
-        <div data-sim-status-panel="beamline.simState"></div>
-      </div>
-    </div>
-    <div data-beamline-reports="" data-ng-if="beamline.hasFrames()"></div>
-  </div>
-  <div class="row">
-    <div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-item-id="item.id"></div>
+    <div data-beamline-reports=""></div>
   </div>
 </div>
+<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-item-id="item.id"></div>

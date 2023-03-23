@@ -18,8 +18,6 @@ INITIAL_REPORTS = frozenset(
 
 WATCHPOINT_REPORT = "watchpointReport"
 
-_RESULTS_FILE = "results.h5"
-
 
 class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(("colorMap",))
@@ -43,24 +41,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "plotAnimation",
                 "plot2Animation",
                 "simulation",
-                "simulationSettings",
                 "watch",
                 "watchpointReport",
-                "wavefrontSummaryAnimation",
             ),
         )
         for m in dm.beamline:
             cls.update_model_defaults(m, m.type)
-
-    @classmethod
-    def get_watchpoint(cls, data):
-        r = data.report
-        w_id = int(r.replace(cls.WATCHPOINT_REPORT, ""))
-        return [e for e in data.models.beamline if e.id == w_id][0]
-
-    @classmethod
-    def h5_data_file(cls, element=None):
-        return f"{element.type}_{element.id}.h5" if element else _RESULTS_FILE
 
     @classmethod
     def initial_reports(cls):
@@ -87,7 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if r in INITIAL_REPORTS:
             res += cls._non_analysis_fields(data, "laserPulse")
         if cls.is_watchpoint(r):
-            res += [f"{r}.dataType"]
+            res += ["laserPulse", "beamline", f"{r}.dataType"]
         return res
 
     @classmethod
@@ -103,11 +89,4 @@ class SimData(sirepo.sim_data.SimDataBase):
                         "laserPulse", f, data.models.laserPulse[f]
                     )
                 )
-        return res
-
-    @classmethod
-    def _sim_file_basenames(cls, data):
-        res = []
-        if cls.is_watchpoint(data.report):
-            res.append(PKDict(basename=cls.h5_data_file(cls.get_watchpoint(data))))
         return res

@@ -7,7 +7,7 @@
                 "diffusionConstant": 0.0565,
                 "icon": "ti-sapphire-crystal.png",
                 "id": 2,
-                "numSlices": 50,
+                "numSlices": 1,
                 "position": 1,
                 "propagationType": "n0n2_srw",
                 "radialVariation": 0.001,
@@ -42,23 +42,21 @@
         "crystalAnimation": {},
         "crystalCylinder": {
             "T0": 20,
-            "crystal": [
-                {
-                    "_super": "beamElement",
-                    "diameter": 7,
-                    "diffusionConstant": 0.0565,
-                    "icon": "ti-sapphire-crystal.png",
-                    "id": 2,
-                    "numSlices": 50,
-                    "position": 1,
-                    "propagationType": "n0n2_srw",
-                    "radialVariation": 0.001,
-                    "refractionIndex": 1.75,
-                    "title": "Crystal",
-                    "type": "crystal",
-                    "width": 2
-                }
-            ],
+            "crystal": {
+                "_super": "beamElement",
+                "diameter": 7,
+                "diffusionConstant": 0.0565,
+                "icon": "ti-sapphire-crystal.png",
+                "id": 2,
+                "numSlices": 1,
+                "position": 1,
+                "propagationType": "n0n2_srw",
+                "radialVariation": 0.001,
+                "refractionIndex": 1.75,
+                "title": "Crystal",
+                "type": "crystal",
+                "width": 2
+            },
             "crystalWidth": 2,
             "dT": 3.8,
             "diameter": 7,

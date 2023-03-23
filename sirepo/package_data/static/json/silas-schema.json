@@ -10,13 +10,12 @@
             ["phase", "Phase"]
         ],
         "GaussianBeamPolarization": [
-            ["0", "Linear Horizontal"],
-            ["1", "Linear Vertical"],
-            ["2", "Linear 45 degrees"],
-            ["3", "Linear 135 degrees"],
-            ["4", "Circular Right"],
-            ["5", "Circular Left"],
-            ["6", "Total"]
+            ["1", "Linear Horizontal"],
+            ["2", "Linear Vertical"],
+            ["3", "Linear 45 degrees"],
+            ["4", "Linear 135 degrees"],
+            ["5", "Circular Right"],
+            ["6", "Circular Left"]
         ],
         "PropagationType": [
             ["abcd_lct", "ABCD"],
@@ -77,7 +76,6 @@
         "laserPulse2Animation": [],
         "laserPulse3Animation": [],
         "laserPulse4Animation": [],
-        "wavefrontSummaryAnimation": ["element"],
         "plotAnimation": [],
         "plot2Animation": []
     },
@@ -170,25 +168,12 @@
         "simulation": {
             "distanceFromSource": ["", "Float", 0.0 , "", 0.0]
         },
-        "simulationSettings": {
-            "n_reflections": ["Number of Reflections", "Integer", 15, "", 1, 10000],
-            "cavity_length": ["Cavity Distance [m]", "Float", 10.0, "", 1e-6],
-            "sample_factor": ["Sample Factor", "Float", 12.0, "Sampling factor for adjusting simulation grid resolution.", 1, 30],
-            "sig_s": ["Laser Pulse RMS Length [m]", "Float", 0.1],
-            "nslice": ["Laser Pulse Slice Count", "Integer", 11, "", 3]
-        },
         "watch": {
             "_super": ["_", "model", "beamElement"],
             "title": ["Element Name", "SafePath", "Watchpoint"]
         },
         "watchpointReport": {
             "_super": ["_", "model", "initialIntensityReport"]
-        },
-        "wavefrontSummaryAnimation": {
-            "element": ["Beamline Element", "SelectElement", "all"]
-        },
-        "wavefrontAnimation": {
-            "position": ["Position", "Float", 0]
         }
     },
     "view": {
@@ -325,33 +310,6 @@
             "title": "Longitudinal Temperature Profile",
             "advanced": []
         },
-        "simulationSettings": {
-            "title": "Simulation Settings",
-            "basic": [
-                "n_reflections",
-                "cavity_length",
-                "gaussianBeam.rmsSize",
-                "sample_factor",
-                "sig_s",
-                "nslice"
-            ],
-            "advanced": [
-                ["Main", [
-                    "n_reflections",
-                    "cavity_length",
-                    "sample_factor",
-                    "sig_s",
-                    "nslice"
-                ]],
-                ["Beam", [
-                    "gaussianBeam.photonEnergy",
-                    "gaussianBeam.rmsSize",
-                    "gaussianBeam.polarization",
-                    "gaussianBeam.energyPerPulse",
-                    "gaussianBeam.initialPropagationLength"
-                ]]
-            ]
-        },
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
@@ -368,16 +326,6 @@
             "_super": ["_", "view", "initialIntensityReport"],
             "advanced": [
                 "dataType"
-            ]
-        },
-        "wavefrontAnimation": {
-            "title": "Wavefront",
-            "advanced": []
-        },
-        "wavefrontSummaryAnimation": {
-            "title": "Wavefront Summary",
-            "advanced": [
-                "element"
             ]
         }
     }

@@ -5,7 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = [
-        'wavefrontSummaryAnimation',
         'laserPulse1Animation',
         'laserPulse2Animation',
         'laserPulse3Animation',
@@ -64,7 +63,6 @@ SIREPO.app.controller('SourceController', function (appState, silasService, $sco
 
 SIREPO.app.controller('BeamlineController', function (appState, beamlineService, frameCache, persistentSimulation, silasService, $scope) {
     var self = this;
-    self.simScope = $scope;
     self.appState = appState;
     self.beamlineModels = ['beamline'];
     self.beamlineService = beamlineService;
@@ -73,75 +71,6 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
         ['Optics', ['crystal', 'lens']],
         'watch',
     ];
-
-    function updateCavityDistance() {
-        var pos = 0;
-        appState.models.beamline.forEach((item) => {
-            item.position = pos;
-            pos += appState.models.simulationSettings.cavity_length / 2;
-        });
-        appState.saveChanges('beamline');
-    }
-
-    function updateWavefrontModels() {
-        var names = [];
-        self.wavefronts = [];
-        appState.models.beamline.forEach((item) => names.push(wavefront(item)));
-        appState.saveChanges(names);
-    }
-
-    function wavefront(item) {
-        var modelKey = wavefrontAnimationName(item);
-        if (! appState.models[modelKey]) {
-            appState.models[modelKey] = {};
-        }
-        appState.models[modelKey].id = item.id;
-        self.wavefronts.push({
-            title: item.title,
-            modelKey: modelKey,
-            getData: () => appState.models[modelKey],
-        });
-        return modelKey;
-    }
-
-    function wavefrontAnimationName(item) {
-        return 'wavefrontAnimation' + item.id;
-    }
-
-    self.hasFrames = frameCache.hasFrames;
-
-    self.simHandleStatus = data => {
-        if (! appState.isLoaded()) {
-            return;
-        }
-        if ((data.frameCount || 0) > 0) {
-            frameCache.setFrameCount(data.frameCount);
-        }
-    };
-
-    self.simState = persistentSimulation.initSimulationState(self);
-    beamlineService.setEditable(true);
-    appState.whenModelsLoaded($scope, () => {
-        let oldWidth = silasService.hasCrystal() ? silasService.getCrystal().width : 0;
-        updateWavefrontModels();
-        $scope.$on('modelChanged', (e, name) => {
-            if (! appState.isReportModelName(name)) {
-                updateWavefrontModels();
-            }
-            if (name === 'simulationSettings') {
-                updateCavityDistance();
-            }
-            else if (name === 'beamline') {
-                appState.models.crystalCylinder.crystal = silasService.getCrystals();
-                appState.saveQuietly('crystalCylinder');
-            }
-        });
-        $scope.$on('wavefrontSummaryAnimation.summaryData', function (e, data) {
-            if (data.crystalWidth && data.crystalWidth != silasService.getCrystal().width) {
-                frameCache.setFrameCount(0);
-            }
-        });
-    });
 });
 
 SIREPO.app.controller('CrystalController', function (appState, frameCache, persistentSimulation, silasService, $scope) {
@@ -337,47 +266,6 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
     $scope.$on('cancelChanges', (e, model) => {
         if (model === $scope.modelName) {
             updateEditor();
-        }
-    });
-});
-
-SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, requestSender, silasService, $scope) {
-
-    function computeRMSSize(field, saveChanges) {
-        var beamline = appState.applicationState().beamline;
-        requestSender.sendStatelessCompute(
-            appState,
-            (data) => {
-                if (data.rmsSize) {
-                    appState.models.gaussianBeam.rmsSize = appState.formatFloat(data.rmsSize * 1e6, 4);
-                    if (saveChanges) {
-                        appState.saveQuietly('gaussianBeam');
-                    }
-                }
-            },
-            {
-                method: 'rms_size',
-                args: {
-                    gaussianBeam: appState.models.gaussianBeam,
-                    simulationSettings: appState.models.simulationSettings,
-                    mirror: silasService.getFirstMirror(),
-                    crystal: silasService.getCrystal(),
-                }
-            }
-        );
-    }
-
-    $scope.whenSelected = () => panelState.enableField('gaussianBeam', 'rmsSize', false);
-    $scope.watchFields = [
-        [
-            'simulationSettings.cavity_length',
-            'gaussianBeam.photonEnergy',
-        ], computeRMSSize,
-    ];
-
-    $scope.$on('modelChanged', (e, name) => {
-        if (name == 'beamline') {
-            computeRMSSize(name, true);
         }
     });
 });

@@ -7,7 +7,6 @@ def _intensity(wavefront):
 def _phase(wavefront):
     z, m = srwl_uti_data.calc_int_from_wfr(
         wavefront,
-        _pol={{ laserPulse.polarization | int }},
         _int_type=4,
         _pr=False,
     )
@@ -27,20 +26,13 @@ def _ranges(wavefront):
     }
 
 
-def _write_h5(file_path, h5_path, data):
-    with h5py.File(file_path, "a") as f:
-        f.create_dataset(h5_path, data=data)
-
-
 w = pulse.slice_wfr(0)
-sim_data = sirepo.sim_data.get_class("silas")
 h5_data = PKDict()
 {% if report in ("initialIntensityReport","initialPhaseReport")  %}
-f = sim_data.h5_data_file()
 for x in {{ dataPaths }}:
     h5_data[x] = globals()[f"_{x}"](w)
-template_common.write_dict_to_h5(h5_data, f)
-{% elif report == "animation" %}
+template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
+{% else %}
 
 def _build_crystal(model):
     from rslaser.optics import crystal
@@ -70,7 +62,6 @@ def _build_watch(model):
 
 
 def propagate(pulse):
-    sim_data = sirepo.sim_data.get_class("silas")
     beamline = {{ beamline }}
     prev = PKDict(position=0.0)
     for element in [PKDict(e) for e in beamline]:
@@ -83,14 +74,11 @@ def propagate(pulse):
         pulse = e.propagate(pulse, element.propagationType)
         if t == "watch":
             w = pulse.slice_wfr(0)
-            f = sim_data.h5_data_file(element)
             for x in {{ dataPaths }}:
                 h5_data[x] = globals()[f"_{x}"](w)
-            template_common.write_dict_to_h5(h5_data, f)
-            sim_data.put_sim_file("{{ simId }}", f, f)
+            template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
         prev = element
 
 
 propagate(pulse)
 {% endif %}
-
