@@ -1848,6 +1848,7 @@ def _generate_beamline_optics(report, data, qcall=None):
             mainAttenuationLength="atLen1",
             mainRefractiveIndex="delta1",
             maskThickness="thick",
+            nameDir=data.models.simulation.name.replace(" ", "_"),
             normalVectorX="nvx",
             normalVectorY="nvy",
             normalVectorZ="nvz",
@@ -1902,6 +1903,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         data,
         is_run_mpi=_SIM_DATA.is_run_mpi(data),
     )
+    v.simNameDir = dm.simulation.name.replace(" ", "_")
     v.rs_type = dm.simulation.sourceType
     if v.rs_type == "t" and dm.tabulatedUndulator.undulatorType == "u_i":
         v.rs_type = "u"

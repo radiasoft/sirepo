@@ -58,6 +58,7 @@ def _create_zip(sim, out_dir, qcall):
     Returns:
         py.path.Local: zip file name
     """
+    pkdp("\n\n\n sim={}", sim)
     path = out_dir.join(sim.id + ".zip")
     data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
     simulation_db.update_rsmanifest(data)
