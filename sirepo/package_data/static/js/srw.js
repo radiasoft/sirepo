@@ -2682,7 +2682,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (isCoherentModes() && $scope.particleCount) {
                     return 'Calculating 4D cross-spectral density';
                 }
-                return 'Initializing Simulation';
+                return 'Running: awaiting output';
             };
 
             $scope.isFluxWithApproximateMethod = function() {
