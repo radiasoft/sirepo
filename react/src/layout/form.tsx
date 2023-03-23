@@ -192,11 +192,11 @@ export function arrayPositionHandle<M, F>(modelsWrapper: AbstractModelsWrapper<M
             });
             modelsWrapper.updateModel(realArrayDep.modelName, nm, state);
         },
-        getModel: (modelName: string, state: any): M => {
+        getModel: (_: string, state: any): M => {
             let m = modelsWrapper.getModel(realArrayDep.modelName, state);
             return modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
         },
-        hookModel: (modelName: string): M => {
+        hookModel: (_: string): M => {
             let m = modelsWrapper.hookModel(realArrayDep.modelName);
             return modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
         }
