@@ -1029,7 +1029,7 @@ SIREPO.app.directive('bevelEdge', function(appState, panelState, radiaService, u
                 const signs = [['-', '+'], ['+', '+'], ['+', '-'], ['-', '-']][parseInt(index)];
                 const axes = SIREPO.GEOMETRY.GeometryUtils.nextAxes($scope.model.cutAxis);
                 return `(${signs[0]}${axes[0]}, ${signs[1]}${axes[1]})`;
-            }
+            };
         },
     };
 });
