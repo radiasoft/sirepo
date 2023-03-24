@@ -872,7 +872,7 @@
             "amountVert": ["Vertical Cut [mm]", "Float", 1.0],
             "amountHoriz": ["Horizontal Cut [mm]", "Float", 1.0],
             "cutDir": ["", "Array", [0, 0, 1]],
-            "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
+            "edge": ["Bevel Edge", "BevelEdge", "0", "Edge of cross-section to bevel"],
             "heightDir": ["", "Array", [0, 1, 0]],
             "type": ["_", "ObjectCutType", "objectBevel"],
             "widthDir": ["", "Array", [1, 0, 0]]
@@ -1407,15 +1407,15 @@
             "basic": [
                 "cutAxis",
                 "edge",
-                "amountVert",
                 "amountHoriz",
+                "amountVert",
                 "cutRemoval"
             ],
             "advanced": [
                 "cutAxis",
                 "edge",
-                "amountVert",
                 "amountHoriz",
+                "amountVert",
                 "cutRemoval"
             ]
         },
