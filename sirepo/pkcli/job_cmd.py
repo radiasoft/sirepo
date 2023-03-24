@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -22,6 +21,7 @@ import sirepo.template
 import sirepo.util
 import subprocess
 import sys
+import tempfile
 import time
 
 _MAX_FASTCGI_EXCEPTIONS = 3
@@ -104,6 +104,14 @@ def _dispatch_compute(msg, template):
             template.SIM_TYPE,
         ).does_api_reply_with_file(msg.api, msg.data.method)
         if x:
+            if sirepo.feature_config.for_sim_type(template.SIM_TYPE).file_reply_tmp_dir:
+                with tempfile.TemporaryDirectory(
+                    dir=sirepo.feature_config.for_sim_type(
+                        template.SIM_TYPE
+                    ).file_reply_tmp_dir
+                ) as t:
+                    msg.data.temp_dir = t
+                    return _op(expect_file=x)
             with simulation_db.tmp_dir(chdir=True) as d:
                 return _op(expect_file=x)
         else:
