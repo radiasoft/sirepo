@@ -174,6 +174,22 @@ def _init():
             "codes that contain proprietary information and authorization to use is granted through oauth",
         ),
         raydata=dict(
+            catalog_names=(frozenset(), set, "list of catalog names to monitor"),
+            concurrent_analyses=(
+                2,
+                int,
+                "max number of analyses that can run concurrently",
+            ),
+            db_dir=(
+                "~/src/radiasoft/sirepo/run/raydata",
+                pkio.py_path,
+                "root directory for db",
+            ),
+            notebook_dir=(
+                "~/src/radiasoft/raydata/raydata/package_data",
+                pkio.py_path,
+                "root directory for proprietary files",
+            ),
             scan_monitor_url=(
                 "http://127.0.0.1:9001/scan-monitor",
                 str,
