@@ -835,7 +835,7 @@ def _generate_parameters_file(data, qcall=None):
 
 def _bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
     def _points(file, frame_index, name):
-        np.array(file["/Step#{}/{}".format(frame_index, name)])
+        return np.array(file["/Step#{}/{}".format(frame_index, name)])
 
     def _title(file, frame_index):
         t = "Step {}".format(frame_index)
