@@ -872,7 +872,7 @@
             "amountVert": ["Vertical Cut [mm]", "Float", 1.0],
             "amountHoriz": ["Horizontal Cut [mm]", "Float", 1.0],
             "cutDir": ["", "Array", [0, 0, 1]],
-            "edge": ["Bevel Edge", "BevelEdge", "0", "Edge of cross-section to bevel"],
+            "edge": ["Corner", "BevelEdge", "0", "Corner of cross-sectional footprint to cut"],
             "heightDir": ["", "Array", [0, 1, 0]],
             "type": ["_", "ObjectCutType", "objectBevel"],
             "widthDir": ["", "Array", [1, 0, 0]]
