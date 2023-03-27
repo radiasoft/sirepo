@@ -533,5 +533,7 @@ def start():
         l.http_server(PKDict(uri_map=((_URI, _Req),)))
         l.start()
 
+    if _cfg:
+        return
     _init()
     _start()
