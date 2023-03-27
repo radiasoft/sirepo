@@ -80,18 +80,16 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
 
         let { icon } = this.config;
         let iconElement = undefined;
-        if(icon && icon !== "") {
+        if (icon && icon !== "") {
             iconElement = <FontAwesomeIcon fixedWidth icon={Icon[icon]}></FontAwesomeIcon>;
         }
-
-        // TODO fix button cursor on hover
         return (
             <>
                 <Portal targetId={NavbarLeftContainerId} className="order-2">
                     <Col>
-                        <div onClick={() => updateModalShown(true)}>
-                            <span>{title}<a className="ms-2">{iconElement}</a></span>
-                        </div>
+                        <Nav.Link onClick={() => updateModalShown(true)}>
+                            <span className="ms-2">{iconElement} {title}</span>
+                        </Nav.Link>
                     </Col>
                 </Portal>
 
@@ -205,7 +203,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         let location = useResolvedPath('');
 
         let routeHelper = new RelativeRouteHelper(location);
-        
+
         let SwitcherComponent = this.TabsSwitcher;
 
         let routedElement = useRoutes([
