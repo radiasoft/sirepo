@@ -13,7 +13,7 @@ import sirepo.util
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel", display_name="UserDisplayName")
-    def api_authCompleteRegistration(self):
+    async def api_authCompleteRegistration(self):
         # Needs to be explicit, because we would need a special permission
         # for just this API.
         if not self.auth.is_logged_in():
@@ -24,7 +24,7 @@ class API(sirepo.quest.API):
         return self.reply_ok()
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_authState(self):
+    async def api_authState(self):
         return self.reply_static_jinja(
             "auth-state",
             "js",
@@ -32,7 +32,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_authState2(self):
+    async def api_authState2(self):
         """is alternative to auth_state that returns the JSON struct instead of static JS"""
         a = self.auth.only_for_api_auth_state()
         # only one method is valid, replace visibleMethods array with single value including guest
@@ -43,7 +43,7 @@ class API(sirepo.quest.API):
         return a
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_authLogout(self, simulation_type=None):
+    async def api_authLogout(self, simulation_type=None):
         """Set the current user as logged out.
 
         Redirects to root simulation page.

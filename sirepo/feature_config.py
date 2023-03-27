@@ -4,12 +4,11 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-
 # defer all imports so *_CODES is available to testing functions
 
 
 #: Codes that depend on other codes. [x][0] depends on [x][1]
+
 _DEPENDENT_CODES = [
     ["jspec", "elegant"],
     ["controls", "madx"],
@@ -45,6 +44,7 @@ _NON_PROD_FOSS_CODES = frozenset(
         "myapp",
         "silas",
         "omega",
+        "rshellweg",
     )
 )
 
@@ -150,13 +150,13 @@ def _init():
         schema_common=dict(
             hide_guest_warning=b("Hide the guest warning in the UI", dev=True),
         ),
+        jspec=dict(
+            derbenevskrinsky_force_formula=b("Include Derbenev-Skrinsky force formula"),
+        ),
         moderated_sim_types=(
             frozenset(),
             set,
             "codes where all users must be authorized via moderation",
-        ),
-        jspec=dict(
-            derbenevskrinsky_force_formula=b("Include Derbenev-Skrinsky force formula"),
         ),
         package_path=(
             tuple(["sirepo"]),
@@ -174,6 +174,11 @@ def _init():
             "codes that contain proprietary information and authorization to use is granted through oauth",
         ),
         raydata=dict(
+            file_reply_tmp_dir=pkconfig.RequiredUnlessDev(
+                "raydata_file_reply_tmp_dir",
+                _tmp_dir,
+                "directory to share analysis pdfs between scan monitor and supervisor",
+            ),
             scan_monitor_url=(
                 "http://127.0.0.1:9001/scan-monitor",
                 str,
@@ -209,6 +214,11 @@ def _init():
                 'Show "Export ML Script" menu item',
             ),
         ),
+        trust_sh_env=(
+            False,
+            bool,
+            "Trust Bash env to run Python and agents",
+        ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),
             display_test_boxes=b(
@@ -240,3 +250,17 @@ def _check_packages(packages):
 
     for p in packages:
         importlib.import_module(p)
+
+
+def _tmp_dir(dir):
+    from pykern import pkconfig
+    from pykern import pkio
+    import os.path
+
+    if pkconfig.channel_in("dev"):
+        assert not os.path.isabs(dir), f"must use a relative path in dev dir={dir}"
+        import sirepo.srdb
+
+        return pkio.mkdir_parent(sirepo.srdb.root().join(dir))
+    assert os.path.isabs(dir), f"must use an absolute path outside of dev dir={dir}"
+    return pkio.py_path(dir)
