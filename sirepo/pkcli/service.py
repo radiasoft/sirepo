@@ -235,19 +235,19 @@ def server():
 
 def tornado():
     with pkio.save_chdir(_run_dir()) as r:
-        sirepo.pkcli.setup_dev.default_command()
-        # above will throw better assertion, but just in case
-        assert pkconfig.channel_in("dev")
-        if _cfg().use_reloader:
-            import tornado.autoreload
+        d = pkconfig.channel_in("dev")
+        if d:
+            sirepo.pkcli.setup_dev.default_command()
+            if _cfg().use_reloader:
+                import tornado.autoreload
 
-            for f in sirepo.util.files_to_watch_for_reload("json", "py"):
-                tornado.autoreload.watch(f)
+                for f in sirepo.util.files_to_watch_for_reload("json", "py"):
+                    tornado.autoreload.watch(f)
         pkdlog("ip={} port={}", _cfg().ip, _cfg().port)
         sirepo.modules.import_and_init("sirepo.uri_router").start_tornado(
+            debug=d,
             ip=_cfg().ip,
             port=_cfg().port,
-            debug=True,
         )
 
 
