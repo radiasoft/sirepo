@@ -485,7 +485,7 @@ def _build_model_py(v):
     )
 
     def _final_layer(v):
-        if v.paramToImage:
+        if v.get("paramToImage", False):
             return ""
         return '\nx = Dense(output_shape, activation="linear")(x)'
 
