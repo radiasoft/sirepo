@@ -133,7 +133,7 @@ def _add_object(o, radia_objs, id_map):
                 )
         g_id = build_container(grp)
     for transform in o["transforms"]:
-        apply_transform(g_id, PKDict(transform))
+        apply_transform(g_id, **transform)
     id_map[g_id] = o["id"]
     # don't add objects if they are already in a group
     if not o["groupId"]:

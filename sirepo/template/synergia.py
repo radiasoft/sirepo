@@ -136,7 +136,7 @@ def format_float(v):
     return float(format(v, ".10f"))
 
 
-def import_file(req, tmp_dir=None, **kwargs):
+async def import_file(req, tmp_dir=None, **kwargs):
     f = req.form_file.as_str()
     if re.search(r".madx$", req.filename, re.IGNORECASE):
         data = _import_madx_file(f)

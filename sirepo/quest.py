@@ -75,7 +75,7 @@ class API(pykern.quest.API):
     def bucket_unchecked_get(self, name):
         return self._bucket.get(name)
 
-    def call_api(self, name, kwargs=None, data=None):
+    async def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
 
         Args:
@@ -85,7 +85,16 @@ class API(pykern.quest.API):
         Returns:
             Reply: result
         """
-        return uri_router.call_api(self, name, kwargs=kwargs, data=data)
+        return await uri_router.call_api(self, name, kwargs=kwargs, data=data)
+
+    def call_api_sync(self, *args, **kwargs):
+        """Synchronous call_api
+
+        Only use in tests.
+        """
+        import asyncio
+
+        return asyncio.run(self.call_api(*args, **kwargs))
 
     def destroy(self, commit=False):
         for k, v in reversed(list(self.items())):
