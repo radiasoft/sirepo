@@ -1195,7 +1195,8 @@ def _image_preview(data, run_dir=None):
         return a
 
     def _gen_image(params):
-        # TODO (gurhar1133): need an if _param_to_image() case
+        # TODO (gurhar1133): maybe just swap x and y and do the same way
+        # the params to image is done
         if _param_to_image(info) and not data.args.method in ("segmentViewer", "bestLosses", "worstLosses"):
             mask = params.output
             pkdp("\n\n\ninput={}", params.input)
