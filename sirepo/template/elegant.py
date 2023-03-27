@@ -703,7 +703,7 @@ def get_data_file(run_dir, model, frame, options):
     return _sdds(_report_output_filename("bunchReport"))
 
 
-def import_file(req, test_data=None, **kwargs):
+async def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
     d = test_data
     if "id" in req:

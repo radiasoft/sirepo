@@ -1,129 +1,82 @@
-from collections.abc import Iterable
-from pykern.pkcollections import PKDict
-from rslaser.cavity import laser_cavity
-from scipy import ndimage
-import array
-import h5py
-import math
-import numpy
-import scipy.constants
-import srwlib
+# ^^ pulse defined in laserPulse.py.jinja ^^ #
+
+def _intensity(wavefront):
+    return srwl_uti_data.calc_int_from_elec(wavefront).tolist()
 
 
-def intensity_to_hdf5(count, pos, vals):
-    (wfr, ar2d, sx, sy, xavg, yavg) = vals
-    with open('{{ summaryCSV }}', 'a' if pos else 'w') as f:
-        if pos == 0:
-            f.write('count,pos,sx,sy,xavg,yavg\n')
-        f.write(f'{count},{pos},{sx},{sy},{xavg},{yavg}\n')
-    if count % 2 == 0:
-        return
-    count = int((count + 1) / 2)
-    with h5py.File(f'wfr{count:05d}.h5', 'w') as f:
-        # resize output data to 500x500 max
-        max_size = 500
-        x_resize = 1
-        y_resize = 1
-        if len(ar2d[0]) > max_size:
-            x_resize = max_size / len(ar2d[0])
-        if len(ar2d) > max_size:
-            y_resize = max_size / len(ar2d)
-        if y_resize != 1 or x_resize != 1:
-            ar2d = ndimage.zoom(ar2d, [y_resize, x_resize], order=1)
-        dset = f.create_dataset('wfr', data=ar2d)
-        dset.attrs['eStart'] = wfr.mesh.eStart
-        for dim in ('x', 'y'):
-            for field in (f'n{dim}', f'{dim}Start', f'{dim}Fin'):
-                dset.attrs[field] = getattr(wfr.mesh, field)
-        dset.attrs['sx'] = sx
-        dset.attrs['sy'] = sy
-        dset.attrs['xavg'] = xavg
-        dset.attrs['yavg'] = yavg
-        dset.attrs['pos'] = pos
+def _phase(wavefront):
+    z, m = srwl_uti_data.calc_int_from_wfr(
+        wavefront,
+        _int_type=4,
+        _pr=False,
+    )
+    {% if laserPulse.distribution == "file" %}
+    nx, ny = m.nx, m.ny
+    {% else %}
+    {% endif %}
+    return numpy.array(z).reshape(wavefront.mesh.ny, wavefront.mesh.nx).tolist()
 
 
-def save_laser_pulse(filename, cav):
-    svals = cav.laser_pulse.pulsePos()
-    (lpsxvals,lpsyvals) = cav.laser_pulse.rmsvals()
-    ivals = cav.laser_pulse.intensity_vals()
-    evals = cav.laser_pulse.energyvals()
-    numpy.save(filename, numpy.array([
-        svals,
-        lpsxvals,
-        lpsyvals,
-        ivals,
-        evals,
-    ]))
+def _ranges(wavefront):
+    m = wavefront.mesh
+    return {
+        "x": [m.xStart, m.xFin],
+        "y": [m.yStart, m.yFin],
+    }
 
-#---
 
-#Specify parameters for simulation
-L_cav = {{ simulationSettings_cavity_length }} #Length of cavity [m]
-dfL = {{ leftMirrorFocusingError }}
-dfR = {{ rightMirrorFocusingError }}
+def save_wavefront(pulse):
+    h5_data = PKDict()
+    for x in {{ dataPaths }}:
+        h5_data[x] = globals()[f"_{x}"](pulse.slice_wfr({{ sliceNumber }}))
+    template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
 
-#Crystal parameters
-L_cryst = {{ crystal_width }} * 1e-2
-n0 = {{ crystal_refractionIndex }}
-n2 = {{ crystal_radius }}
 
-wavefrontEnergy = {{ gaussianBeam_photonEnergy }} #Wavefront Energy [eV]. 1.55 eV is 800 nm wavelength
-lam = scipy.constants.c * scipy.constants.value('Planck constant in eV/Hz')/wavefrontEnergy # convert energy [eV] to wavelength [m]
+{% if report in ("initialIntensityReport","initialPhaseReport")  %}
+save_wavefront(pulse)
+{% else %}
 
-L_eff = L_cav+(1/n0 - 1)*L_cryst #Define effective length as path length reduced by index of refraction n0
-print("L_eff=",L_eff)
-beta0 = math.sqrt(L_eff*(L_cav/4+dfL)-L_eff**2/4)
-print("beta0=",beta0)
-sigx0 = math.sqrt(lam*beta0/4/math.pi)
-print("sigx0=",sigx0)
-
-propLen = {{ gaussianBeam_initialPropagationLength }} #Propagation of initial Gaussian [m]. It will then be back-propagated by propLen: a trick to get the Gaussian mode at the waist
-pulseE = {{ gaussianBeam_energyPerPulse }} #Total energy of pulse [eV]
-poltype = {{ gaussianBeam_polarization }} #Polarization of mode (0=linear horizontal, 1=linear vertical, 2=linear 45 deg, 3=linear 135 deg, 4=circular right, 5=circular left, 6=total)
-sampFact = {{ simulationSettings_sample_factor }} #Determines grid size of initial wavefront
-
-nslice = {{ simulationSettings_nslice }}
-sig_s = {{ simulationSettings_sig_s }} # rms length of Gaussian laser pulse [m]
-if nslice % 2 == 0:
-    nslice += 1
-
-cavity_inputs = PKDict(
-    drift_right_length=L_cav / 2 - L_cryst / 2,
-    drift_left_length=L_cav / 2 - L_cryst / 2,
-    lens_left_focal_length=L_cav / 4 + dfR,
-    lens_right_focal_length=L_cav / 4 + dfL,
-    n0=n0,
-    n2=n2,
-    L_half_cryst=L_cryst / 2,
-    pulse_params=PKDict(
-        phE=wavefrontEnergy,
-        nslice=nslice,
-        tau_fwhm=0.1 / scipy.constants.c / math.sqrt(2.),
-        slice_params=PKDict(
-            propLen=propLen,
-            pulseE=pulseE,
-            poltype=poltype,
-            sampFact=sampFact,
+def _build_crystal(model):
+    from rslaser.optics import crystal
+    return crystal.Crystal(
+        params=PKDict(
+            l_scale=1,
+            length=model.width,
+            n0=[model.refractionIndex] * model.numSlices,
+            n2=[model.radialVariation] * model.numSlices,
+            nslice=model.numSlices,
         )
     )
-)
 
-lc = laser_cavity.LaserCavity(cavity_inputs)
 
-save_laser_pulse('{{ initialLaserFile }}', lc)
+def _build_drift(length):
+    from rslaser.optics import drift
+    return drift.Drift(length)
 
-#---
 
-prev_position = -1
-count = 0
-def intensity_callback(position, vals):
-    global count, prev_position
-    # only record intensity if position has changed
-    if position - prev_position > 0:
-        count += 1
-        intensity_to_hdf5(count, position, vals)
-    prev_position = position
+def _build_lens(model):
+    from rslaser.optics import lens
+    return lens.Lens(model.focalLength)
 
-lc.propagate(num_cycles={{ simulationSettings_n_reflections }}, callback=intensity_callback)
 
-save_laser_pulse('{{ finalLaserFile }}', lc)
+def _build_watch(model):
+    return _build_drift(0.0)
+
+
+def propagate(pulse):
+    beamline = {{ beamline }}
+    prev = 0
+    for element in [PKDict(e) for e in beamline]:
+        dz = element.position - prev
+        if dz:
+            e = _build_drift(dz)
+            pulse = e.propagate(pulse, "default")
+        e = globals()[f"_build_{element.type}"](element)
+        pulse = e.propagate(pulse, element.propagationType)
+        prev = element.position
+    return pulse
+
+
+save_wavefront(propagate(pulse))
+
+{% endif %}

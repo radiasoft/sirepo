@@ -11,6 +11,10 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
+    def does_api_reply_with_file(cls, api, method):
+        return api in "api_statelessCompute" and method == "download_analysis_pdfs"
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         cls._init_models(data.models)
 

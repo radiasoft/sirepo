@@ -129,20 +129,14 @@ def http():
             )
         )
 
+    assert pkconfig.channel_in("dev")
     try:
         with pkio.save_chdir(_run_dir()), _handle_signals(
             (signal.SIGINT, signal.SIGTERM)
         ):
-            if pkconfig.channel_in("dev") and _cfg().react_port:
-                _install_react()
-            _start(
-                ("job_supervisor",),
-                extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
-            )
             e = PKDict()
             if _cfg().react_port:
-                # Avoid race condition on creating auth db
-                time.sleep(0.3)
+                _install_react()
                 _start(
                     ("npm", "start"),
                     cwd="../react",
@@ -150,8 +144,13 @@ def http():
                     extra_environ=PKDict(PORT=str(_cfg().react_port)),
                 )
                 e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
-            time.sleep(0.3)
             _start(("service", "server"), extra_environ=e)
+            # Avoid race condition on creating auth db
+            time.sleep(0.3)
+            _start(
+                ("job_supervisor",),
+                extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
+            )
             p, _ = os.wait()
     except ChildProcessError:
         pass
@@ -236,19 +235,19 @@ def server():
 
 def tornado():
     with pkio.save_chdir(_run_dir()) as r:
-        sirepo.pkcli.setup_dev.default_command()
-        # above will throw better assertion, but just in case
-        assert pkconfig.channel_in("dev")
-        if _cfg().use_reloader:
-            import tornado.autoreload
+        d = pkconfig.channel_in("dev")
+        if d:
+            sirepo.pkcli.setup_dev.default_command()
+            if _cfg().use_reloader:
+                import tornado.autoreload
 
-            for f in sirepo.util.files_to_watch_for_reload("json", "py"):
-                tornado.autoreload.watch(f)
+                for f in sirepo.util.files_to_watch_for_reload("json", "py"):
+                    tornado.autoreload.watch(f)
         pkdlog("ip={} port={}", _cfg().ip, _cfg().port)
         sirepo.modules.import_and_init("sirepo.uri_router").start_tornado(
+            debug=d,
             ip=_cfg().ip,
             port=_cfg().port,
-            debug=True,
         )
 
 
