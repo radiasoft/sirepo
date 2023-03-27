@@ -22,8 +22,6 @@ import sirepo.sim_data
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = "crystal.csv"
-_FINAL_LASER_FILE = "final-laser.npy"
-_INITIAL_LASER_FILE = "initial-laser.npy"
 _RESULTS_FILE = "results.h5"
 
 _DATA_PATHS = PKDict(
@@ -70,10 +68,6 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model in ("laserPulseAnimation", "laserPulse2Animation"):
-        return _INITIAL_LASER_FILE
-    if model in ("laserPulse3Animation", "laserPulse4Animation"):
-        return _FINAL_LASER_FILE
     if model in ("plotAnimation", "plot2Animation"):
         return _CRYSTAL_CSV_FILE
     if model == "crystal3dAnimation":
@@ -115,28 +109,6 @@ def sim_frame_crystal3dAnimation(frame_args):
     )
 
 
-def sim_frame_laserPulse1Animation(frame_args):
-    return _laser_pulse_report(
-        1, _INITIAL_LASER_FILE, "Before Propagation", "RMS x [m]"
-    )
-
-
-def sim_frame_laserPulse2Animation(frame_args):
-    return _laser_pulse_report(
-        3, _INITIAL_LASER_FILE, "Before Propagation", "Pulse Intensity"
-    )
-
-
-def sim_frame_laserPulse3Animation(frame_args):
-    return _laser_pulse_report(1, _FINAL_LASER_FILE, "After Propagation", "RMS x [m]")
-
-
-def sim_frame_laserPulse4Animation(frame_args):
-    return _laser_pulse_report(
-        3, _FINAL_LASER_FILE, "After Propagation", "Pulse Intensity"
-    )
-
-
 def sim_frame_plotAnimation(frame_args):
     return _crystal_plot(frame_args, "xv", "ux", "[m]", 1e-2)
 
@@ -161,23 +133,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
-
-
-def _counts_for_beamline(total_frames, beamline):
-    # start at 2nd element, loop forward and backward across beamline
-    counts = [0 for _ in beamline]
-    idx = 1
-    direction = 1
-    frames = [[] for _ in beamline]
-
-    for i in range(total_frames):
-        counts[idx] += 1
-        frames[idx].append(i + 1)
-        idx += direction
-        if idx < 0 or idx > len(counts) - 1:
-            direction *= -1
-            idx += 2 * direction
-    return counts, frames
 
 
 def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
@@ -217,14 +172,14 @@ def _data_paths(report):
 
 def _extract_initial_intensity_report(run_dir, sim_in):
     template_common.write_sequential_result(
-        _laser_pulse_plot(run_dir, "intensity"),
+        _laser_pulse_plot(run_dir, "intensity", sim_in),
         run_dir=run_dir,
     )
 
 
 def _extract_initial_phase_report(run_dir, sim_in):
     template_common.write_sequential_result(
-        _laser_pulse_plot(run_dir, "phase"),
+        _laser_pulse_plot(run_dir, "phase", sim_in),
         run_dir=run_dir,
     )
 
@@ -234,22 +189,21 @@ def _extract_watchpoint_report(run_dir, sim_in):
         _laser_pulse_plot(
             run_dir,
             sim_in.models[sim_in.report].dataType,
+            sim_in,
         ),
         run_dir=run_dir,
     )
 
 
-def _format_float(v):
-    return float("{:.4f}".format(v))
-
-
-def _laser_pulse_plot(run_dir, data_type):
+def _laser_pulse_plot(run_dir, data_type, sim_in):
     with h5py.File(run_dir.join(_RESULTS_FILE), "r") as f:
         d = template_common.h5_to_dict(f)
         r = d.ranges
         z = d[data_type]
         return PKDict(
-            title=data_type.capitalize(),
+            title=data_type.capitalize()
+            + " Slice #"
+            + str(_slice_number(sim_in, sim_in.report) + 1),
             x_range=[r.x[0], r.x[1], len(z)],
             y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",
@@ -266,7 +220,8 @@ def _generate_parameters_file(data):
     v.dataPaths = _data_paths(r)
     v.laserPulse = data.models.laserPulse
     v.resultsFile = _RESULTS_FILE
-    if data.models.laserPulse.geometryFromFiles == "1":
+    v.sliceNumber = _slice_number(data, r)
+    if data.models.laserPulse.distribution == "file":
         for f in ("ccd", "meta", "wfs"):
             v[f"{f}File"] = _SIM_DATA.lib_file_name_with_model_field(
                 "laserPulse", f, data.models.laserPulse[f]
@@ -286,14 +241,22 @@ def _generate_parameters_file(data):
                 v.beamline.append(b)
         return res + template_common.render_jinja(SIM_TYPE, v)
     if r == "crystalAnimation":
-        v.crystal = data.models.crystalCylinder.crystal
+        v.crystal = _get_crystal(data)
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     assert False, "invalid report: {}".format(r)
 
 
 def _get_crystal(data):
-    return data.models.beamline[1]
+    crystals = [x for x in data.models.beamline if x.type == "crystal"]
+    idx = data.models.crystalCylinder.crystal
+    if idx:
+        idx = int(idx)
+        if idx + 1 > len(crystals):
+            idx = 0
+    else:
+        idx = 0
+    return crystals[idx]
 
 
 def _laser_pulse_report(value_index, filename, title, label):
@@ -323,10 +286,6 @@ def _last_watchpoint(data):
     return f"watchpointReport{b.id}" if res else None
 
 
-def _num_watchpoints(beamline):
-    return len([x for x in beamline if x.type == "watch"])
-
-
 def _parse_silas_log(run_dir):
     res = ""
     path = run_dir.join(template_common.RUN_LOG)
@@ -345,7 +304,20 @@ def _parse_silas_log(run_dir):
     return "An unknown error occurred"
 
 
+def _slice_number(data, report_name):
+    n = (
+        data.models[report_name].sliceNumber
+        if report_name in data.models
+        and "sliceNumber" in data.models[report_name]
+        and data.models[report_name].sliceNumber
+        else 0
+    )
+    if n + 1 > data.models.laserPulse.nslice:
+        n = 0
+    return n
+
+
 def _summary_data(frame_args):
     return PKDict(
-        crystalWidth=frame_args.sim_in.models.crystalCylinder.crystal.width,
+        crystalWidth=_get_crystal(frame_args.sim_in).width,
     )

@@ -1,13 +1,6 @@
 {
     "models": {
         "beamline": [],
-        "gaussianBeam": {
-            "energyPerPulse": 0.001,
-            "initialPropagationLength": 15,
-            "photonEnergy": 1.55,
-            "polarization": "1",
-            "rmsSize": 469.578
-        },
         "simulation": {
             "documentationUrl": "",
             "folder": "/",

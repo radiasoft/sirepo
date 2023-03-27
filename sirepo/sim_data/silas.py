@@ -32,7 +32,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "crystal3dAnimation",
                 "crystalCylinder",
                 "crystalSettings",
-                "gaussianBeam",
                 "laserPulse",
                 "initialIntensityReport",
                 "initialPhaseReport",
@@ -67,18 +66,16 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
-        if r in INITIAL_REPORTS:
-            res += cls._non_analysis_fields(data, "laserPulse")
-        if cls.is_watchpoint(r):
-            res += ["laserPulse", "beamline", f"{r}.dataType"]
+        if r in INITIAL_REPORTS or cls.is_watchpoint(r):
+            res += ["laserPulse"] + cls._non_analysis_fields(data, r)
+            if cls.is_watchpoint(r):
+                res.append("beamline")
         return res
 
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
-        if (
-            data.report in INITIAL_REPORTS or cls.is_watchpoint(data.report)
-        ) and data.models.laserPulse.geometryFromFiles == "1":
+        if data.models.laserPulse.distribution == "file":
             for f in ("ccd", "meta", "wfs"):
                 res.append(
                     cls.lib_file_name_with_model_field(

@@ -1,7 +1,7 @@
 # ^^ pulse defined in laserPulse.py.jinja ^^ #
 
 def _intensity(wavefront):
-    return srwl_uti_data.calc_int_from_elec(w).tolist()
+    return srwl_uti_data.calc_int_from_elec(wavefront).tolist()
 
 
 def _phase(wavefront):
@@ -10,7 +10,7 @@ def _phase(wavefront):
         _int_type=4,
         _pr=False,
     )
-    {% if laserPulse.geometryFromFiles == "1" %}
+    {% if laserPulse.distribution == "file" %}
     nx, ny = m.nx, m.ny
     {% else %}
     {% endif %}
@@ -25,12 +25,15 @@ def _ranges(wavefront):
     }
 
 
-w = pulse.slice_wfr(0)
-h5_data = PKDict()
+def save_wavefront(pulse):
+    h5_data = PKDict()
+    for x in {{ dataPaths }}:
+        h5_data[x] = globals()[f"_{x}"](pulse.slice_wfr({{ sliceNumber }}))
+    template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
+
+
 {% if report in ("initialIntensityReport","initialPhaseReport")  %}
-for x in {{ dataPaths }}:
-    h5_data[x] = globals()[f"_{x}"](w)
-template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
+save_wavefront(pulse)
 {% else %}
 
 def _build_crystal(model):
@@ -74,9 +77,6 @@ def propagate(pulse):
     return pulse
 
 
-w = propagate(pulse).slice_wfr(0)
-for x in {{ dataPaths }}:
-    h5_data[x] = globals()[f"_{x}"](w)
-template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
+save_wavefront(propagate(pulse))
 
 {% endif %}

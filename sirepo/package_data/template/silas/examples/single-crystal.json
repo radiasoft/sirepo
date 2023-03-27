@@ -29,21 +29,7 @@
         "crystalAnimation": {},
         "crystalCylinder": {
             "T0": 20,
-            "crystal": {
-                "_super": "beamElement",
-                "diameter": 7,
-                "diffusionConstant": 0.0565,
-                "icon": "ti-sapphire-crystal.png",
-                "id": 2,
-                "numSlices": 1,
-                "position": 1,
-                "propagationType": "n0n2_srw",
-                "radialVariation": 0.001,
-                "refractionIndex": 1.75,
-                "title": "Crystal",
-                "type": "crystal",
-                "width": 2
-            },
+            "crystal": "0",
             "crystalWidth": 2,
             "dT": 3.8,
             "diameter": 7,
@@ -58,13 +44,6 @@
             "time": 1,
             "tolerance": 0.008
         },
-        "gaussianBeam": {
-            "energyPerPulse": 0.001,
-            "initialPropagationLength": 15,
-            "photonEnergy": 1.55,
-            "polarization": "1",
-            "rmsSize": 469.578
-        },
         "initialIntensityReport": {
             "colorMap": "viridis",
             "dataType": "intensity"
@@ -75,32 +54,22 @@
         "laserPulse": {
             "ccd": "",
             "chirp": 0,
-            "distFromWaist": 0,
-            "geometryFromFiles": "0",
-            "maxPulseEnergy": 1,
+            "distribution": "gaussian",
             "meta": "",
-            "modeOrder": [
-                0,
-                0
-            ],
-            "numSigmas": [
-                3,
-                6
-            ],
-            "numSliceMeshPoints": [
-                500,
-                500
-            ],
-            "numSlices": 3,
-            "padFactor": 0,
-            "photonEnergy": 1.5,
-            "polarization": "1",
-            "tauFWHM": 2.35865e-11,
-            "totalEnergy": 0.001,
-            "waistSize": [
-                0.001,
-                0.001
-            ],
+            "mx": 0,
+            "my": 0,
+            "num_sig_long": 3,
+            "num_sig_trans": 6,
+            "nx_slice": 500,
+            "ny_slice": 500,
+            "nslice": 3,
+            "pad_factor": 0,
+            "photon_e_ev": 1.5,
+            "poltype": "1",
+            "tau_fwhm": 2.35865e-11,
+            "pulseE": 0.001,
+            "sigx_waist": 0.001,
+            "sigy_waist": 0.001,
             "wfs": ""
         },
         "plot2Animation": {},
@@ -116,15 +85,6 @@
             "_super": "initialIntensityReport",
             "colorMap": "viridis",
             "dataType": "intensity"
-        },
-        "wavefrontAnimation2": {
-            "id": 2
-        },
-        "wavefrontAnimation3": {
-            "id": 3
-        },
-        "wavefrontSummaryAnimation": {
-            "element": "all"
         }
     },
     "simulationType": "silas",

@@ -1,34 +1,34 @@
-from pykern import pkinspect
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdc, pkdlog
 from rslaser.utils import srwl_uti_data
 from sirepo.template import template_common
 import h5py
 import numpy
-import sirepo
 
 def _build_pulse():
     from rslaser.pulse import pulse
     return pulse.LaserPulse(
         params=PKDict(
-            chirp={{ laserPulse.chirp }},
-            dist_waist={{ laserPulse.distFromWaist }},
-            mx={{ laserPulse.modeOrder[0] }},
-            my={{ laserPulse.modeOrder[1] }},
-            nslice={{ laserPulse.numSlices }},
-            num_sig_long={{ laserPulse.numSigmas[0] }},
-            num_sig_trans={{ laserPulse.numSigmas[1] }},
-            nx_slice={{ laserPulse.numSliceMeshPoints[0] }},
-            ny_slice={{ laserPulse.numSliceMeshPoints[1] }},
-            pad_factor={{ laserPulse.padFactor }},
-            photon_e_ev={{ laserPulse.photonEnergy }},
-            poltype={{ laserPulse.polarization | int }},
-            pulseE={{ laserPulse.totalEnergy }},
-            sigx_waist={{ laserPulse.waistSize[0] }},
-            sigy_waist={{ laserPulse.waistSize[1] }},
-            tau_fwhm={{ laserPulse.tauFWHM }},
+            {% for f in (
+                'chirp',
+                'mx',
+                'my',
+                'nslice',
+                'num_sig_long',
+                'num_sig_trans',
+                'nx_slice',
+                'ny_slice',
+                'pad_factor',
+                'photon_e_ev',
+                'poltype',
+                'pulseE',
+                'sigx_waist',
+                'sigy_waist',
+                'tau_fwhm'
+            ) %}
+            {{ f }}={{ laserPulse[f] }},
+            {% endfor %}
         ),
-        {% if laserPulse.geometryFromFiles == "1" %}
+        {% if laserPulse.distribution == "file" %}
         files=PKDict(
             ccd="{{ ccdFile }}",
             meta="{{ metaFile }}",
