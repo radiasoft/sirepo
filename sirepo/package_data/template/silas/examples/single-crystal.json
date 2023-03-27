@@ -1,0 +1,92 @@
+{
+    "models": {
+        "beamline": [
+            {
+                "_super": "beamElement",
+                "diameter": 7,
+                "diffusionConstant": 0.0565,
+                "icon": "ti-sapphire-crystal.png",
+                "id": 2,
+                "numSlices": 1,
+                "position": 1,
+                "propagationType": "n0n2_srw",
+                "radialVariation": 0.001,
+                "refractionIndex": 1.75,
+                "title": "Crystal",
+                "type": "crystal",
+                "width": 2
+            },
+            {
+                "_super": "beamElement",
+                "id": 3,
+                "position": 2,
+                "propagationType": "default",
+                "title": "Watchpoint",
+                "type": "watch"
+            }
+        ],
+        "crystal3dAnimation": {},
+        "crystalAnimation": {},
+        "crystalCylinder": {
+            "T0": 20,
+            "crystal": "0",
+            "crystalWidth": 2,
+            "dT": 3.8,
+            "diameter": 7,
+            "diffusionConstant": 0.0565,
+            "supergaussian": 8,
+            "wdT": 1
+        },
+        "crystalSettings": {
+            "meshDensity": 30,
+            "plotInterval": 10,
+            "steps": 100,
+            "time": 1,
+            "tolerance": 0.008
+        },
+        "initialIntensityReport": {
+            "colorMap": "viridis",
+            "dataType": "intensity"
+        },
+        "initialPhaseReport": {
+            "colorMap": "viridis"
+        },
+        "laserPulse": {
+            "ccd": "",
+            "chirp": 0,
+            "distribution": "gaussian",
+            "meta": "",
+            "mx": 0,
+            "my": 0,
+            "num_sig_long": 3,
+            "num_sig_trans": 6,
+            "nx_slice": 500,
+            "ny_slice": 500,
+            "nslice": 3,
+            "pad_factor": 0,
+            "photon_e_ev": 1.5,
+            "poltype": "1",
+            "tau_fwhm": 2.35865e-11,
+            "pulseE": 0.001,
+            "sigx_waist": 0.001,
+            "sigy_waist": 0.001,
+            "wfs": ""
+        },
+        "plot2Animation": {},
+        "plotAnimation": {},
+        "simulation": {
+            "distanceFromSource": 0,
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "name": "Single Crystal",
+            "notes": ""
+        },
+        "watchpointReport3": {
+            "_super": "initialIntensityReport",
+            "colorMap": "viridis",
+            "dataType": "intensity"
+        }
+    },
+    "simulationType": "silas",
+    "version": "1679092125.582176"
+}

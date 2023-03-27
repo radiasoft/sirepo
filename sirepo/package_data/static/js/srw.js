@@ -1733,7 +1733,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
 
             $scope.showOpenShadow = function() {
                 return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
-                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator() || srwService.isMultipole());
+                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator() || srwService.isMultipole()
+                     || (srwService.isTabulatedUndulator() && ! srwService.isTabulatedUndulatorWithMagenticFile()));
             };
 
             $scope.showRsOptML = function() {
@@ -2681,7 +2682,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (isCoherentModes() && $scope.particleCount) {
                     return 'Calculating 4D cross-spectral density';
                 }
-                return 'Initializing Simulation';
+                return 'Running: awaiting output';
             };
 
             $scope.isFluxWithApproximateMethod = function() {

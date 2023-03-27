@@ -27,7 +27,7 @@ UserModel = "AuthGithubUser"
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_cookieless_set_user")
-    def api_authGithubAuthorized(self):
+    async def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.
 
         Tracks oauth users in a database.
@@ -48,7 +48,7 @@ class API(sirepo.quest.API):
             raise AssertionError("auth.login returned unexpectedly")
 
     @sirepo.quest.Spec("require_cookie_sentinel")
-    def api_authGithubLogin(self, simulation_type):
+    async def api_authGithubLogin(self, simulation_type):
         """Redirects to Github"""
         sirepo.oauth.raise_authorize_redirect(
             self,
@@ -57,7 +57,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_cookieless_set_user")
-    def api_oauthAuthorized(self, oauth_type):
+    async def api_oauthAuthorized(self, oauth_type):
         """Deprecated use `api_authGithubAuthorized`"""
         return self.api_authGithubAuthorized()
 
