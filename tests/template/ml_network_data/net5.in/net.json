@@ -136,7 +136,7 @@
     "knnConfusionFile": "confusion.json",
     "knnConfusionMatrixAnimation_colorMap": "blues",
     "knnErrorFile": "error.npy",
-    "layerImplementationNames": "dict_keys(['Flatten', 'Dense', 'Reshape'])",
+    "layerImplementationNames": ["Flatten", "Dense", "Reshape"],
     "linearSvcClassification_toleranceMax": 0.15,
     "linearSvcClassification_toleranceMin": 0.001,
     "linearSvcClassification_totalNumValues": 20,

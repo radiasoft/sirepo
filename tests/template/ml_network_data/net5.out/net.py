@@ -1,6 +1,6 @@
 
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, d, i, c, t, _, k, e, y, s, (, [, ', F, l, a, t, t, e, n, ', ,,  , ', D, e, n, s, e, ', ,,  , ', R, e, s, h, a, p, e, ', ], )
+from keras.layers import Input, Dense, Flatten, Reshape
 input_args = Input(shape=input_shape)
 x = Flatten()(input_args)
 x = Dense(2030, activation="relu")(x)
