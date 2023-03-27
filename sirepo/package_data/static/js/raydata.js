@@ -326,10 +326,12 @@ SIREPO.app.directive('scansTable', function() {
         template: `
             <div data-show-loading-and-error="" data-model-key="scans">
               <div>
-                <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right;"><span class="glyphicon glyphicon-plus"></span></button>
+                <button class="btn btn-info btn-xs" data-ng-click="addColumn()" style="float: right; margin:5px;"><span class="glyphicon glyphicon-plus"></span></button>
+                <button class="btn btn-info btn-xs" data-ng-show="showPdfButton()" data-ng-click="downloadSelectedAnalyses()" style="float: right; margin:5px;">Download Selected Analysis PDFs</button>
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
+                      <th style="width: 20px; height: 20px;" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> PDF</th>
                       <th data-ng-if="analysisStatus === 'allStatuses'" style="width: 50px; height: 40px;"></th>
                       <th style="width: 50px; height: 40px;"></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
@@ -341,6 +343,7 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans" data-ng-click="setSelectedScan(s)">
+                      <td style="width: 20px; height: 20px;" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.uid]" data-ng-click="togglePdfSelectScan(s.uid, $event)"/></td>
                       <td data-ng-if="analysisStatus === 'allStatuses'"><button class="btn btn-info btn-xs" data-ng-click="runAnalysis(s, $event)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button></td>
                       <td><button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s, $event)">View Log</button></td>
                       <td><span data-header-tooltip="s.status"></span></td>
@@ -398,12 +401,15 @@ SIREPO.app.directive('scansTable', function() {
             $scope.images = null;
             $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
+            $scope.pdfSelectAllScans = false;
+            $scope.pdfSelectedScans = {};
             $scope.pendingRunAnalysis = {};
             $scope.reverseSortScans = false;
             $scope.runLogModalId = 'sr-view-log-iframe-' + $scope.analysisStatus;
             $scope.runLogScanId = null;
             $scope.scans = [];
             $scope.selectedScan = null;
+            $scope.showPdfColumn = $scope.analysisStatus === 'executed' || $scope.analysisStatus === 'allStatuses';
 
             let cols = [];
             let hoveredIndex = null;
@@ -462,6 +468,11 @@ SIREPO.app.directive('scansTable', function() {
                             if ($scope.scans.length === 0) {
                                 $scope.noScansReturned = true;
                             }
+                            for (const p in $scope.pdfSelectedScans) {
+                                if ($scope.scans.findIndex(s => s.uid === p) === -1) {
+                                    delete $scope.pdfSelectedScans[p];
+                                }
+                            }
                         },
                         {
                             method: 'scans',
@@ -515,6 +526,23 @@ SIREPO.app.directive('scansTable', function() {
                     return true;
                 }
                 return raydataService.ANALYSIS_STATUS_NON_STOPPED.includes(scan.status);
+            };
+
+            $scope.downloadSelectedAnalyses = () => {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    function (data) {
+                        saveAs(data, "analysis_pdfs.zip");
+                    },
+                    {
+                        method: 'download_analysis_pdfs',
+                        responseType: 'blob',
+                        args: {
+                            uids: Object.keys($scope.pdfSelectedScans),
+                        }
+                    },
+                    errorOptions,
+                );
             };
 
             $scope.getHeader = function() {
@@ -589,8 +617,16 @@ SIREPO.app.directive('scansTable', function() {
                 }
             };
 
+            $scope.showCheckbox = (scan) => {
+                return scan.pdf;
+            };
+
             $scope.showDeleteButton = (index) => {
                 return index > raydataService.DEFAULT_COLUMNS.length - 1 && index === hoveredIndex;
+            };
+
+            $scope.showPdfButton = () => {
+                return $scope.showPdfColumn && Object.keys($scope.pdfSelectedScans).length;
             };
 
             $scope.showRunLogModal = (scan, event) => {
@@ -600,6 +636,10 @@ SIREPO.app.directive('scansTable', function() {
                     $('#' + $scope.runLogModalId).modal('show');
                 });
             };
+            
+            $scope.showSelectAllButton = (index) => {
+                return index === 0;
+            };
 
             $scope.sortCol = (column) => {
                 if (column === 'selected') {
@@ -607,6 +647,27 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 $scope.orderByColumn = column;
                 $scope.reverseSortScans = ! $scope.reverseSortScans;
+            };
+
+            $scope.togglePdfSelectAll = () => {
+                $scope.pdfSelectedScans = {};
+                $scope.pdfSelectAllScans = ! $scope.pdfSelectAllScans;
+                if ($scope.pdfSelectAllScans) {
+                    $scope.scans.forEach(s => {
+                        if (s.pdf) {
+                            $scope.pdfSelectedScans[s.uid] = true;
+                        }
+                    });
+                }
+            };
+
+            $scope.togglePdfSelectScan = (uid, event) => {
+                event.stopPropagation();
+                if (uid in $scope.pdfSelectedScans) {
+                    delete $scope.pdfSelectedScans[uid];
+                } else {
+                    $scope.pdfSelectedScans[uid] = true;
+                }
             };
 
             $scope.$on(`${$scope.modelName}.changed`, sendScanRequest);

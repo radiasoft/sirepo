@@ -3497,7 +3497,7 @@ for(const m of ['Dipole', 'Undulator']) {
                     return;
                 }
                 if (o.type === 'racetrack') {
-                    radiaService.updateRacetrack(o);
+                    radiaService.updateRaceTrack(o);
                 }
             }
 
