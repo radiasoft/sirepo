@@ -14,6 +14,9 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.freehandType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="BevelEdge" class="col-sm-12">
+          <div data-bevel-edge="" data-model="model" data-model-name="modelName" data-field="field"></div>
+        </div>
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
@@ -1003,6 +1006,31 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) >= 0;
             }
         }
+    };
+});
+
+SIREPO.app.directive('bevelEdge', function(appState, panelState, radiaService, utilities) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+            modelName: '=',
+        },
+        template: `
+          <select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as cornerLabel(item[0]) for item in enum[info[1]]"></select>
+        `,
+        controller: function($scope) {
+            $scope.enum = SIREPO.APP_SCHEMA.enum;
+            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
+
+            $scope.cornerLabel = index => {
+                const signs = [['-', '+'], ['+', '+'], ['+', '-'], ['-', '-']][parseInt(index)];
+                const axes = SIREPO.GEOMETRY.GeometryUtils.nextAxes($scope.model.cutAxis);
+                return `(${signs[0]}${axes[0]}, ${signs[1]}${axes[1]})`;
+            };
+        },
     };
 });
 
