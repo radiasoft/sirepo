@@ -8,7 +8,7 @@ import time
 import uuid
 
 
-def replay(source_catalog, destination_catalog, num_scans):
+def begin(source_catalog, destination_catalog, num_scans):
     def _emit_new_document(
         destination_catalog_name,
         new_uid,

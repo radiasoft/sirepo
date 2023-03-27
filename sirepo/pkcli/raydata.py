@@ -12,11 +12,11 @@ import sirepo.raydata.scan_monitor
 
 
 def create_scans(num_scans, catalog_name, delay=True):
-    sirepo.raydata.create_scans.create_scans(num_scans, catalog_name, delay)
+    sirepo.raydata.scans.create(num_scans, catalog_name, delay)
 
 
 def replay(source_catalog, destination_catalog, num_scans):
-    sirepo.raydata.replay.replay(source_catalog, destination_catalog, num_scans)
+    sirepo.raydata.replay.begin(source_catalog, destination_catalog, num_scans)
 
 
 def run(cfg_dir):
@@ -29,7 +29,7 @@ def run_background(cfg_dir):
 
 
 def scan_monitor():
-    sirepo.raydata.scan_monitor.scan_monitor()
+    sirepo.raydata.scan_monitor.start()
 
 
 def _run():

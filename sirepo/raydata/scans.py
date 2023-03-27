@@ -5,7 +5,7 @@ import ophyd.sim
 import time
 
 
-def create_scans(num_scans, catalog_name, delay=True):
+def create(num_scans, catalog_name, delay=True):
     num_scans = int(num_scans)
     assert num_scans > 0, f"num_scans={num_scans} must be > 0"
     RE = bluesky.RunEngine({})
