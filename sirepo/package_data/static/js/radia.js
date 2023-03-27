@@ -887,17 +887,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, $scope) {
+SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, requestSender, $scope) {
 
     let solving = false;
 
     let self = this;
     self.simScope = $scope;
+    self.solution = null;
+    self.simComputeModel = 'solverAnimation';
+    self.simState = persistentSimulation.initSimulationState(self);
+
     $scope.mpiCores = 0;
     $scope.panelState = panelState;
     $scope.svc = radiaService;
 
-    self.solution = null;
+    function reset(data) {
+        srdbg('RESET', data);
+        self.simState.resetSimulation();
+    }
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
@@ -911,8 +918,22 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, panelS
         self.solution = null;
         solving = false;
         panelState.clear('geometryReport');
-        panelState.requestData('reset', () => {}, true);
-        radiaService.syncReports();
+        requestSender.sendStatelessCompute(
+            appState,
+            reset,
+            {
+                method: 'reset',
+                args: {},
+            },
+            {
+                onError: res => {
+                    throw new Error(res.error);
+                }
+            }
+        );
+        panelState.requestData('geometryReport', () => {radiaService.syncReports();}, true);
+        //panelState.requestData('reset', () => {}, true);
+       // radiaService.syncReports();
     };
 
     self.simHandleStatus = function(data) {
@@ -936,9 +957,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, panelS
         solving = true;
         self.simState.saveAndRunSimulation([model, 'simulation']);
     };
-
-    self.simComputeModel = 'solverAnimation';
-    self.simState = persistentSimulation.initSimulationState(self);
 
 });
 
@@ -1956,10 +1974,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                     maxM: s ? utilities.roundToPlaces(s.maxM, 4) : '',
                     maxH: s ?  utilities.roundToPlaces(s.maxH, 4) : '',
                 };
-            };
-
-            $scope.reset = () => {
-                $scope.viz.resetSimulation();
             };
         },
     };

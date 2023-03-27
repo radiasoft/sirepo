@@ -338,6 +338,15 @@ def stateless_compute_build_shape_points(data):
     return PKDict(points=pts)
 
 
+def stateless_compute_reset(data):
+    try:
+        with h5py.File(_GEOM_FILE, "a") as f:
+            del f[_H5_PATH_SOLUTION]
+    except Exception as e:
+        return PKDict(error=e)
+    return PKDict()
+
+
 def stateless_compute_stl_size(data):
     f = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
