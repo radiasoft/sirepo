@@ -58,6 +58,10 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
     };
 
     self.getReportTitle = function(modelName, itemId) {
+        if (modelName == 'initialIntensityReport'
+            && SIREPO.INITIAL_INTENSITY_REPORT_TITLE) {
+            return SIREPO.INITIAL_INTENSITY_REPORT_TITLE;
+        }
         var savedModelValues = appState.applicationState();
         if (itemId && savedModelValues.beamline) {
             for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
