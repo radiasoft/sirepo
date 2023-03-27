@@ -30,6 +30,12 @@ _SEGMENT_ROWS = 3
 
 _SEGMENT_PAGES = 5
 
+_IMG_ROWS = 5
+
+_IMG_COLS = 5
+
+_POST_TRAINING_PLOTS = ("segmentViewer", "bestLosses", "worstLosses")
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
@@ -365,7 +371,6 @@ def analysis_job_dice_coefficient(data, run_dir, **kwargs):
 
 
 def stateful_compute_sample_images(data):
-    pkdp("\n\n\n\nhit")
     return _image_preview(data)
 
 
@@ -1188,32 +1193,32 @@ def _image_preview(data, run_dir=None):
 
     def _set_image_to_image_plt(plt, data):
         _, a = plt.subplots(3, 2)
-        if data.args.method in ("segmentViewer", "bestLosses", "worstLosses"):
+        if data.args.method in _POST_TRAINING_PLOTS:
             a[0, 0].set_title("actual")
             a[0, 1].set_title("prediction")
         plt.setp(a, xticks=[], yticks=[])
         return a
 
     def _gen_image(params):
-        # TODO (gurhar1133): maybe just swap x and y and do the same way
-        # the params to image is done
-        if _param_to_image(info) and not data.args.method in ("segmentViewer", "bestLosses", "worstLosses"):
+        if _param_to_image(info) and not data.args.method in _POST_TRAINING_PLOTS:
             mask = params.output
-            pkdp("\n\n\ninput={}", params.input)
-            params.axes[params.row, 0].spines['top'].set_visible(False)
-            params.axes[params.row, 0].spines['right'].set_visible(False)
-            params.axes[params.row, 0].spines['bottom'].set_visible(False)
-            params.axes[params.row, 0].spines['left'].set_visible(False)
-            params.axes[params.row, 0].text(.2, .2, "Params:\n"+", ".join([str(round(n, 3)) for n in params.input]), style ='italic', fontsize=10)
+            for section in ("top", "right", "bottom", "left"):
+                params.axes[params.row, 0].spines[section].set_visible(False)
+            params.axes[params.row, 0].text(
+                0.2,
+                0.2,
+                "Params:\n" + ", ".join([str(round(n, 3)) for n in params.input]),
+                style="italic",
+                fontsize=10,
+            )
             params.axes[params.row, 1].imshow(mask)
             return
         if _image_out(info):
             mask = params.output
-            # pkdp("\n\n\n params.input={}", params.input)
             params.axes[params.row, 0].imshow(params.input)
             params.axes[params.row, 1].imshow(mask)
             return
-        params.plt.subplot(5, 5, params.row + 1)
+        params.plt.subplot(_IMG_ROWS, _IMG_COLS, params.row + 1)
         params.plt.xticks([])
         params.plt.yticks([])
         params.plt.imshow(v)
@@ -1255,12 +1260,8 @@ def _image_preview(data, run_dir=None):
             path="metadata/control_settings",
             kind="f",
         )
-    pkdp("\n\n\n io.input={}", io.input)
-    pkdp("\n\n\n io.output={}", io.output)
-    pkdp("\n\n\n data.args.columnInfo={}", data.args.columnInfo)
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
         x, y = _x_y(data, io, f, run_dir=run_dir)
-        # pkdp("\n\n\n\nx={}", x)
         u = []
         k = 0
         g = (
