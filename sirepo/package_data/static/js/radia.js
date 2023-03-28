@@ -888,23 +888,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 });
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, requestSender, $scope) {
-
-    let solving = false;
-
     let self = this;
-    self.simScope = $scope;
-    self.solution = null;
-    self.simComputeModel = 'solverAnimation';
-    self.simState = persistentSimulation.initSimulationState(self);
-
-    $scope.mpiCores = 0;
-    $scope.panelState = panelState;
-    $scope.svc = radiaService;
-
-    function reset(data) {
-        srdbg('RESET', data);
-        self.simState.resetSimulation();
-    }
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
@@ -913,51 +897,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, panelS
     self.isSolvable = function() {
         return appState.isLoaded() && appState.models.geometryReport.isSolvable == '1';
     };
-
-    self.resetSimulation = function() {
-        self.solution = null;
-        solving = false;
-        panelState.clear('geometryReport');
-        requestSender.sendStatelessCompute(
-            appState,
-            reset,
-            {
-                method: 'reset',
-                args: {},
-            },
-            {
-                onError: res => {
-                    throw new Error(res.error);
-                }
-            }
-        );
-        panelState.requestData('geometryReport', () => {radiaService.syncReports();}, true);
-        //panelState.requestData('reset', () => {}, true);
-       // radiaService.syncReports();
-    };
-
-    self.simHandleStatus = function(data) {
-        if (data.error) {
-            solving = false;
-        }
-        if ('percentComplete' in data && ! data.error) {
-            if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
-                self.solution = data.solution;
-                if (solving) {
-                    radiaService.syncReports();
-                }
-                solving = false;
-                radiaService.saveGeometry(false, true);
-            }
-        }
-    };
-
-    self.startSimulation = function(model) {
-        self.solution = null;
-        solving = true;
-        self.simState.saveAndRunSimulation([model, 'simulation']);
-    };
-
 });
 
 
@@ -1534,6 +1473,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             appState.watchModelFields($scope, [`${$scope.modelName}.fieldPath`],  () => {
                 if (appState.models[$scope.modelName].fieldPath.axis) {
                     appState.models[$scope.modelName].plotAxis = appState.models[$scope.modelName].fieldPath.axis;
+                    panelState.enableField('fieldPath', 'axis', false);
                 }
             });
 
@@ -1935,46 +1875,95 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
     };
 });
 
-// does not need to be its own directive?  everything in viz and service? (and move template to html)
-SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService, utilities) {
+SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, persistentSimulation, radiaService, utilities) {
 
     return {
         restrict: 'A',
         scope: {
-            viz: '<',
             modelName: '@',
         },
         template: `
             <div class="col-md-6">
                 <div data-basic-editor-panel="" data-view-name="solverAnimation">
-                        <div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation(modelName)"></div>
-                        <div data-ng-show="viz.solution">
-                                <div><strong>Time:</strong> {{ solution().time }}ms</div>
-                                <div><strong>Step Count:</strong> {{ solution().steps }}</div>
-                                <div><strong>Max |M|: </strong> {{ solution().maxM }} A/m</div>
-                                <div><strong>Max |H|: </strong> {{ solution().maxH }} A/m</div>
+                        <div data-sim-status-panel="simState" data-start-function="startSimulation(modelName)"></div>
+                        <div data-ng-show="solution">
+                                <div><strong>Time:</strong> {{ solution.time }}ms</div>
+                                <div><strong>Step Count:</strong> {{ solution.steps }}</div>
+                                <div><strong>Max |M|: </strong> {{ solution.maxM }} A/m</div>
+                                <div><strong>Max |H|: </strong> {{ solution.maxH }} A/m</div>
                         </div>
-                        <div data-ng-hide="viz.solution">No solution found</div>
+                        <div data-ng-hide="solution">No solution found</div>
                         <div class="col-sm-6 pull-right" style="padding-top: 8px;">
-                            <button class="btn btn-default" data-ng-click="viz.resetSimulation()">Reset</button>
+                            <button class="btn btn-default" data-ng-click="resetSimulation()">Reset</button>
                         </div>
                     </div>
                 </div>
             </div>
         `,
         controller: function($scope) {
+            let solving = false;
+            $scope.simScope = $scope;
+            $scope.solution = null;
+            $scope.simComputeModel = $scope.modelName;
+            $scope.simState = persistentSimulation.initSimulationState($scope);
+
+            $scope.mpiCores = 0;
+
+            function reset(data) {
+                srdbg('RESET', data);
+                $scope.simState.resetSimulation();
+            }
 
             $scope.model = appState.models[$scope.modelName];
 
-            $scope.solution = () => {
-                const s = $scope.viz.solution;
-                return {
-                    time: s ? utilities.roundToPlaces(1000 * s.time, 3) : '',
-                    steps: s ? s.steps : '',
-                    maxM: s ? utilities.roundToPlaces(s.maxM, 4) : '',
-                    maxH: s ?  utilities.roundToPlaces(s.maxH, 4) : '',
-                };
+            $scope.resetSimulation = function() {
+                $scope.solution = null;
+                solving = false;
+                panelState.clear('geometryReport');
+                //appState.models.geometryReport.doReset = true;
+                //radiaService.saveGeometry(true, false, data => {
+                //    radiaService.syncReports();
+                //})
+                //panelState.requestData('geometryReport', () => {}, true);
+                $scope.simState.resetSimulation();
+                panelState.requestData('reset', () => {}, true);
+                radiaService.syncReports();
             };
+
+            $scope.simHandleStatus = data => {
+                srdbg('SOLVE HDL', data);
+                if (data.error) {
+                    solving = false;
+                }
+                if ('percentComplete' in data && ! data.error) {
+                    if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
+                        $scope.solution = formatSolution(data.solution);
+                        if (solving) {
+                            radiaService.syncReports();
+                        }
+                        solving = false;
+                        radiaService.saveGeometry(false, true);
+                    }
+                }
+            };
+
+            $scope.startSimulation = model => {
+                $scope.solution = null;
+                solving = true;
+                $scope.simState.saveAndRunSimulation([model, 'simulation']);
+            };
+
+            function formatSolution(s) {
+                if (! s) {
+                    return null;
+                }
+                return {
+                    time: utilities.roundToPlaces(1000 * s.time, 3),
+                    steps: s.steps,
+                    maxM: utilities.roundToPlaces(s.maxM, 4),
+                    maxH: utilities.roundToPlaces(s.maxH, 4),
+                };
+            }
         },
     };
 });

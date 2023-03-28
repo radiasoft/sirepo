@@ -134,13 +134,13 @@ def background_percent_complete(report, run_dir, is_running):
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
-        res.percentComplete = 0.0
+        res.percentComplete = 0
         return res
-    return PKDict(
-        percentComplete=100,
-        frameCount=1,
-        solution=_read_solution(),
-    )
+    res.percentComplete = 100
+    res.frameCount = 1
+    if report == "solverAnimation":
+        res.solution = _read_solution()
+    return res
 
 
 def create_archive(sim, qcall):
@@ -336,15 +336,6 @@ def stateless_compute_build_shape_points(data):
     if all(numpy.isclose(pts[0], pts[-1])):
         del pts[-1]
     return PKDict(points=pts)
-
-
-def stateless_compute_reset(data):
-    try:
-        with h5py.File(_GEOM_FILE, "a") as f:
-            del f[_H5_PATH_SOLUTION]
-    except Exception as e:
-        return PKDict(error=e)
-    return PKDict()
 
 
 def stateless_compute_stl_size(data):
@@ -875,6 +866,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.simId = data.models.simulation.simulationId
 
     v.doSolve = "solver" in report or for_export
+    #v.doReset = g.get("doReset", False)
     v.doReset = "reset" in report
     do_generate = _normalize_bool(g.get("doGenerate", True)) or v.doSolve or v.doReset
     if not do_generate:
@@ -1238,6 +1230,7 @@ def _read_data(view_type, field_type):
 
 
 def _read_h5_path(filename, h5path):
+    pkdp("H5 {} PATH {}", filename, pkio.py_path(filename))
     try:
         with h5py.File(filename, "r") as f:
             return template_common.h5_to_dict(f, path=h5path)
