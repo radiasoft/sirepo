@@ -50,13 +50,7 @@ def stateless_compute_catalog_names(_):
 
 
 def stateless_compute_download_analysis_pdfs(data):
-    return template_common.JobCmdFile(
-        path=pkio.py_path(
-            _request_scan_monitor(
-                PKDict(method="download_analysis_pdfs", data=data)
-            ).path
-        )
-    )
+    return _request_scan_monitor(PKDict(method="download_analysis_pdfs", data=data))
 
 
 def stateless_compute_run_analysis(data):

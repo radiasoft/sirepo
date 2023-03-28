@@ -80,6 +80,8 @@ def _background_percent_complete(msg, template, is_running):
 
 def _dispatch_compute(msg, template):
     def _op(expect_file):
+        if "dataFileUri" in msg:
+            msg.data.dataFileUri = msg.dataFileUri
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(msg.data)
         if not isinstance(r, template_common.JobCmdFile):
             # ok to not return JobCmdFile if there was an error
@@ -104,14 +106,6 @@ def _dispatch_compute(msg, template):
             template.SIM_TYPE,
         ).does_api_reply_with_file(msg.api, msg.data.method)
         if x:
-            if sirepo.feature_config.for_sim_type(template.SIM_TYPE).file_reply_tmp_dir:
-                with tempfile.TemporaryDirectory(
-                    dir=sirepo.feature_config.for_sim_type(
-                        template.SIM_TYPE
-                    ).file_reply_tmp_dir
-                ) as t:
-                    msg.data.temp_dir = t
-                    return _op(expect_file=x)
             with simulation_db.tmp_dir(chdir=True) as d:
                 return _op(expect_file=x)
         else:
