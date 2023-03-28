@@ -348,13 +348,15 @@ def create_archive(sim, qcall):
         simulation_db.update_rsmanifest(data)
         data.pkdel("report")
         files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
+        l = sim.filename.replace(".zip", "")
         # TODO (gurhar1133): set something for setting fdir when exporting
+        data.fDir = l
         for f in exporter.python(data, sim, qcall):
             files.append(f)
         with sirepo.util.write_zip(str(path)) as z:
             for f in files:
                 if f.basename not in ("run.py", "sirepo-data.json"):
-                    z.write(str(f), sim.filename.replace(".zip", "") + "/" + f.basename)
+                    z.write(str(f), l + "/" + f.basename)
                 else:
                     z.write(str(f), f.basename)
             z.writestr(
@@ -1856,6 +1858,7 @@ def _generate_beamline_optics(report, data, qcall=None):
             externalRefractiveIndex="delta_ext",
             energyAvg="e_avg",
             firstFocusLength="p",
+            fDir=data.get("fDir", "") + "/",
             focalLength="q",
             focalPlane="foc_plane",
             grazingAngle="ang",
@@ -1940,6 +1943,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         data,
         is_run_mpi=_SIM_DATA.is_run_mpi(data),
     )
+    v.fDir = data.get("fDir", "")
     v.simNameDir = dm.simulation.name.replace(" ", "_")
     v.rs_type = dm.simulation.sourceType
     if v.rs_type == "t" and dm.tabulatedUndulator.undulatorType == "u_i":
@@ -1965,10 +1969,18 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
     return _trim(res + template_common.render_jinja(SIM_TYPE, v))
 
 
+def _mag_dir(data):
+    d = data.get("fDir", "")
+    if d:
+        return d + "/" + data.models.tabulatedUndulator.magneticFile
+    return data.models.tabulatedUndulator.magneticFile
+
+
 def _generate_srw_main(data, plot_reports, beamline_info):
     report = data.report
     is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     source_type = data.models.simulation.sourceType
+    m = _mag_dir(data)
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
     vp_var = "vp" if is_for_rsopt else "varParam"
     content = [
@@ -1977,7 +1989,8 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append(
             'setup_magnetic_measurement_files("{}", v)'.format(
-                data.models.tabulatedUndulator.magneticFile
+                # data.models.tabulatedUndulator.magneticFile,
+                m,
             )
         )
     if report == "beamlineAnimation":

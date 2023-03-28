@@ -4,7 +4,7 @@
 {%- macro fields(item, type, names) %}
 {% for name in names %}
 {% if type == 's' %}
-    ['op_{{ item.name }}_{{ nameMap.get(name, name) }}', '{{ type }}', '{{ item[name] }}', '{{ name }}'],
+    ['op_{{ item.name }}_{{ nameMap.get(name, name) }}', '{{ type }}', '{{ nameMap.fDir if item[name] == "mirror_1d.dat"}}{{ item[name] }}', '{{ name }}'],
 {% elif type == 'b' %}
     ['op_{{ item.name }}_{{ nameMap.get(name, name) }}', '{{ type }}', {{ item[name] == '1' }}, '{{ name }}'],
 {% else %}
