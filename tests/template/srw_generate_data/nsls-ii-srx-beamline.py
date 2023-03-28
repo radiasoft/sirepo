@@ -622,7 +622,7 @@ def setup_magnetic_measurement_files(filename, v):
                     )
                 )
             f = f[0]
-            z.extractall()
+            z.extractall('')
         except Exception:
             if c:
                 c.Abort(1)

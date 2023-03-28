@@ -1757,6 +1757,13 @@ def _flux_units(model):
     return "ph/s/.1%bw" if int(model.fluxType) == 1 else "ph/s/.1%bw/mm^2"
 
 
+def _fdir(data):
+    f = data.get("fDir", "")
+    if f:
+        return f + "/"
+    return f
+
+
 def _generate_beamline_optics(report, data, qcall=None):
     res = PKDict(names=[], exclude=[], last_id=None, watches=PKDict())
     models = data.models
@@ -1852,7 +1859,7 @@ def _generate_beamline_optics(report, data, qcall=None):
             externalRefractiveIndex="delta_ext",
             energyAvg="e_avg",
             firstFocusLength="p",
-            fDir=data.get("fDir", "") + "/",
+            fDir=_fdir(data),
             focalLength="q",
             focalPlane="foc_plane",
             grazingAngle="ang",
