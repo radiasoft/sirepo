@@ -348,6 +348,7 @@ def create_archive(sim, qcall):
         simulation_db.update_rsmanifest(data)
         data.pkdel("report")
         files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
+        # TODO (gurhar1133): set something for setting fdir when exporting
         for f in exporter.python(data, sim, qcall):
             files.append(f)
         with sirepo.util.write_zip(str(path)) as z:
