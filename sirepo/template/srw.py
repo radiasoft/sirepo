@@ -821,7 +821,7 @@ def run_epilogue():
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
 
-def stateful_compute_sample_preview(data):
+def stateful_compute_sample_preview(data, **kwargs):
     """Process image and return
 
     Args:
@@ -901,17 +901,17 @@ def stateful_compute_sample_preview(data):
     return template_common.JobCmdFile(path=p)
 
 
-def stateful_compute_undulator_length(data):
+def stateful_compute_undulator_length(data, **kwargs):
     return compute_undulator_length(data.args["tabulated_undulator"])
 
 
-def stateful_compute_create_shadow_simulation(data):
+def stateful_compute_create_shadow_simulation(data, **kwargs):
     from sirepo.template.srw_shadow import Convert
 
     return Convert().to_shadow(data)
 
 
-def stateful_compute_delete_user_models(data):
+def stateful_compute_delete_user_models(data, **kwargs):
     """Remove the beam and undulator user model list files"""
     electron_beam = data.args.electron_beam
     tabulated_undulator = data.args.tabulated_undulator
@@ -928,7 +928,7 @@ def stateful_compute_delete_user_models(data):
     return PKDict()
 
 
-def stateful_compute_model_list(data):
+def stateful_compute_model_list(data, **kwargs):
     res = []
     model_name = data.args["model_name"]
     if model_name == "electronBeam":
@@ -940,11 +940,11 @@ def stateful_compute_model_list(data):
     return PKDict(modelList=res)
 
 
-def stateless_compute_PGM_value(data):
+def stateless_compute_PGM_value(data, **kwargs):
     return _compute_PGM_value(data.optical_element)
 
 
-def stateless_compute_crl_characteristics(data):
+def stateless_compute_crl_characteristics(data, **kwargs):
     return compute_crl_focus(
         _compute_material_characteristics(
             data.optical_element,
@@ -953,22 +953,22 @@ def stateless_compute_crl_characteristics(data):
     )
 
 
-def stateless_compute_crystal_init(data):
+def stateless_compute_crystal_init(data, **kwargs):
     return _compute_crystal_init(data.optical_element)
 
 
-def stateless_compute_crystal_orientation(data):
+def stateless_compute_crystal_orientation(data, **kwargs):
     return _compute_crystal_orientation(data.optical_element)
 
 
-def stateless_compute_delta_atten_characteristics(data):
+def stateless_compute_delta_atten_characteristics(data, **kwargs):
     return _compute_material_characteristics(
         data.optical_element,
         data.photon_energy,
     )
 
 
-def stateless_compute_dual_characteristics(data):
+def stateless_compute_dual_characteristics(data, **kwargs):
     return _compute_material_characteristics(
         _compute_material_characteristics(
             data.optical_element,
@@ -980,11 +980,11 @@ def stateless_compute_dual_characteristics(data):
     )
 
 
-def stateless_compute_compute_grazing_orientation(data):
+def stateless_compute_compute_grazing_orientation(data, **kwargs):
     return _compute_grazing_orientation(data.optical_element)
 
 
-def stateless_compute_process_beam_parameters(data):
+def stateless_compute_process_beam_parameters(data, **kwargs):
     data.ebeam = srw_common.process_beam_parameters(data.ebeam)
     data.ebeam.drift = calculate_beam_drift(
         data.ebeam_position,
@@ -996,7 +996,7 @@ def stateless_compute_process_beam_parameters(data):
     return data.ebeam
 
 
-def stateless_compute_process_undulator_definition(data):
+def stateless_compute_process_undulator_definition(data, **kwargs):
     return process_undulator_definition(data)
 
 

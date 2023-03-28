@@ -8,6 +8,7 @@
 
 
 #: Codes that depend on other codes. [x][0] depends on [x][1]
+
 _DEPENDENT_CODES = [
     ["jspec", "elegant"],
     ["controls", "madx"],
