@@ -340,45 +340,15 @@ def create_archive(sim, qcall):
     from sirepo import sim_data
     from pykern import pkcollections
     from pykern import pkjson
-
-    def _python(data, sim, qcall):
-        """Generate python in current directory
-
-        Args:
-            data (dict): simulation
-
-        Returns:
-            py.path.Local: file to append
-        """
-        import sirepo.template
-        import copy
-
-        template = sirepo.template.import_module(data)
-        res = pkio.py_path("run.py")
-        d = copy.deepcopy(data)
-        d.file_ext = ".zip"
-        t = template.python_source_for_model(d, model=None, qcall=qcall)
-        if type(t) == pkcollections.PKDict:
-            return _write_multiple_export_files(t)
-        res.write(t)
-        return [res]
+    from sirepo import exporter
 
     def _create_zip(sim, out_dir, qcall):
-        """Zip up the json file and its dependencies
-
-        Args:
-            sim (req): simulation
-            out_dir (py.path): where to write to
-
-        Returns:
-            py.path.Local: zip file name
-        """
         path = out_dir.join(sim.id + ".zip")
         data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
         simulation_db.update_rsmanifest(data)
         data.pkdel("report")
         files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
-        for f in _python(data, sim, qcall):
+        for f in exporter.python(data, sim, qcall):
             files.append(f)
         with sirepo.util.write_zip(str(path)) as z:
             for f in files:

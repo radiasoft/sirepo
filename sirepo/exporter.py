@@ -61,7 +61,7 @@ def _create_zip(sim, out_dir, qcall):
     simulation_db.update_rsmanifest(data)
     data.pkdel("report")
     files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
-    for f in _python(data, sim, qcall):
+    for f in python(data, sim, qcall):
         files.append(f)
     with sirepo.util.write_zip(str(path)) as z:
         for f in files:
@@ -73,7 +73,7 @@ def _create_zip(sim, out_dir, qcall):
     return path, data
 
 
-def _python(data, sim, qcall):
+def python(data, sim, qcall):
     """Generate python in current directory
 
     Args:
