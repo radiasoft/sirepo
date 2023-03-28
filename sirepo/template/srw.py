@@ -336,10 +336,6 @@ def clean_run_dir(run_dir):
 
 
 def create_archive(sim, qcall):
-    # TODO (gurhar1133): better code sharing with exporter.py
-    from sirepo import sim_data
-    from pykern import pkcollections
-    from pykern import pkjson
     from sirepo import exporter
 
     def _create_zip(sim, out_dir, qcall):
@@ -347,9 +343,8 @@ def create_archive(sim, qcall):
         data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
         simulation_db.update_rsmanifest(data)
         data.pkdel("report")
-        files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
+        files = sirepo.sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
         l = sim.filename.replace(".zip", "")
-        # TODO (gurhar1133): set something for setting fdir when exporting
         data.fDir = l
         for f in exporter.python(data, sim, qcall):
             files.append(f)
@@ -361,7 +356,7 @@ def create_archive(sim, qcall):
                     z.write(str(f), f.basename)
             z.writestr(
                 simulation_db.SIMULATION_DATA_FILE,
-                pkjson.dump_pretty(data, pretty=True),
+                pykern.pkjson.dump_pretty(data, pretty=True),
             )
         return path, data
 
@@ -478,7 +473,6 @@ def extract_report_data(sim_in):
 
 
 def get_data_file(run_dir, model, frame, options):
-    pkdp("\n\n\n HIT")
     if options.suffix == template_common.RUN_LOG:
         return template_common.text_data_file(options.suffix, run_dir)
     if options.suffix == _PROGRESS_LOG_DIR:
@@ -1989,7 +1983,6 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append(
             'setup_magnetic_measurement_files("{}", v)'.format(
-                # data.models.tabulatedUndulator.magneticFile,
                 m,
             )
         )
