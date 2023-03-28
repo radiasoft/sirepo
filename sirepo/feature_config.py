@@ -174,7 +174,7 @@ def _init():
             "codes that contain proprietary information and authorization to use is granted through oauth",
         ),
         raydata=dict(
-            file_reply_tmp_dir=pkconfig.RequiredUnlessDev(
+            file_reply_tmp_dir=(
                 "raydata_file_reply_tmp_dir",
                 _tmp_dir,
                 "directory to share analysis pdfs between scan monitor and supervisor",
