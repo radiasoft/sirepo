@@ -336,6 +336,7 @@ def clean_run_dir(run_dir):
 
 
 def create_archive(sim, qcall):
+    # TODO (gurhar1133): better code sharing with exporter.py
     from sirepo import sim_data
     from pykern import pkcollections
     from pykern import pkjson
@@ -372,7 +373,6 @@ def create_archive(sim, qcall):
         Returns:
             py.path.Local: zip file name
         """
-        pkdp("\n\n\n sim={}", sim)
         path = out_dir.join(sim.id + ".zip")
         data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
         simulation_db.update_rsmanifest(data)
@@ -380,13 +380,10 @@ def create_archive(sim, qcall):
         files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
         for f in _python(data, sim, qcall):
             files.append(f)
-        pkdp("\n\n\nFILES={}", files)
         with sirepo.util.write_zip(str(path)) as z:
-            pkdp("\n\n\n z={}", z)
             for f in files:
-                pkdp("\n\n\n str(f)={}, f.basename={}", str(f), f.basename)
-                if f.basename == "run.py":
-                    z.write(str(f), "test/"+f.basename)
+                if f.basename not in ("run.py", "sirepo-data.json"):
+                    z.write(str(f), sim.filename.replace(".zip", "") + "/" + f.basename)
                 else:
                     z.write(str(f), f.basename)
             z.writestr(
@@ -397,8 +394,6 @@ def create_archive(sim, qcall):
 
     with simulation_db.tmp_dir(qcall=qcall) as d:
         f, c = _create_zip(sim, out_dir=d, qcall=qcall)
-        pkdp("\n\n\n\nf={}", f)
-        # if sim.filename.endswith("dat"):
         return qcall.reply_attachment(
             f,
             filename=sim.filename,

@@ -26,7 +26,6 @@ def create_archive(sim, qcall):
     """
     if hasattr(sim.template, "create_archive"):
         res = sim.template.create_archive(sim, qcall)
-        pkdp("\n\n\n xxxxx \n\n\n")
         if res:
             return res
     if not pkio.has_file_extension(sim.filename, "zip"):
@@ -34,7 +33,6 @@ def create_archive(sim, qcall):
             "unknown file type={}; expecting zip".format(sim.filename)
         )
     with simulation_db.tmp_dir(qcall=qcall) as d:
-        pkdp("\n\n\n yyyyyy \n\n\n")
         want_zip = sim.filename.endswith("zip")
         f, c = _create_zip(sim, out_dir=d, qcall=qcall)
         if want_zip:
@@ -58,7 +56,6 @@ def _create_zip(sim, out_dir, qcall):
     Returns:
         py.path.Local: zip file name
     """
-    pkdp("\n\n\n sim={}", sim)
     path = out_dir.join(sim.id + ".zip")
     data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
     simulation_db.update_rsmanifest(data)
