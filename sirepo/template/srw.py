@@ -335,6 +335,77 @@ def clean_run_dir(run_dir):
         zip_dir.remove()
 
 
+def create_archive(sim, qcall):
+    from sirepo import sim_data
+    from pykern import pkcollections
+    from pykern import pkjson
+
+    def _python(data, sim, qcall):
+        """Generate python in current directory
+
+        Args:
+            data (dict): simulation
+
+        Returns:
+            py.path.Local: file to append
+        """
+        import sirepo.template
+        import copy
+
+        template = sirepo.template.import_module(data)
+        res = pkio.py_path("run.py")
+        d = copy.deepcopy(data)
+        d.file_ext = ".zip"
+        t = template.python_source_for_model(d, model=None, qcall=qcall)
+        if type(t) == pkcollections.PKDict:
+            return _write_multiple_export_files(t)
+        res.write(t)
+        return [res]
+
+    def _create_zip(sim, out_dir, qcall):
+        """Zip up the json file and its dependencies
+
+        Args:
+            sim (req): simulation
+            out_dir (py.path): where to write to
+
+        Returns:
+            py.path.Local: zip file name
+        """
+        pkdp("\n\n\n sim={}", sim)
+        path = out_dir.join(sim.id + ".zip")
+        data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
+        simulation_db.update_rsmanifest(data)
+        data.pkdel("report")
+        files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
+        for f in _python(data, sim, qcall):
+            files.append(f)
+        pkdp("\n\n\nFILES={}", files)
+        with sirepo.util.write_zip(str(path)) as z:
+            pkdp("\n\n\n z={}", z)
+            for f in files:
+                pkdp("\n\n\n str(f)={}, f.basename={}", str(f), f.basename)
+                if f.basename == "run.py":
+                    z.write(str(f), "test/"+f.basename)
+                else:
+                    z.write(str(f), f.basename)
+            z.writestr(
+                simulation_db.SIMULATION_DATA_FILE,
+                pkjson.dump_pretty(data, pretty=True),
+            )
+        return path, data
+
+    with simulation_db.tmp_dir(qcall=qcall) as d:
+        f, c = _create_zip(sim, out_dir=d, qcall=qcall)
+        pkdp("\n\n\n\nf={}", f)
+        # if sim.filename.endswith("dat"):
+        return qcall.reply_attachment(
+            f,
+            filename=sim.filename,
+            content_type="application/zip",
+        )
+
+
 def _extract_coherent_modes(model, out_info):
     out_file = "combined-modes.dat"
     wfr = srwlib.srwl_uti_read_wfr_cm_hdf5(_file_path=out_info.filename)
