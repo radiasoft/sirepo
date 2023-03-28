@@ -1107,6 +1107,8 @@ def _data_url(filename):
 
 
 def _masks(out_width, out_height, run_dir):
+    # TODO (gurhar1133): in this case need to write corresponding
+    # original images to file to be read here
     x = _read_file(run_dir, _OUTPUT_FILE.testFile)
     x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
     y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
@@ -1167,8 +1169,11 @@ def _image_preview(data, run_dir=None):
             worstLosses=_read_file(run_dir, _OUTPUT_FILE.worstFile),
         )[method].flatten()
         i.sort()
+        pkdp("\n\n\ni = {}", i)
+        # TODO (gurhar1133): use indices to get original images
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+        pkdp("\n\n\n len={}", len(x) // y_shape[0] // y_shape[1])
         return (
             x.reshape(len(x) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
             y.reshape(len(y) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
@@ -1192,10 +1197,15 @@ def _image_preview(data, run_dir=None):
         return _image_grid(len(x))
 
     def _set_image_to_image_plt(plt, data):
-        _, a = plt.subplots(3, 2)
+
         if data.args.method in _POST_TRAINING_PLOTS:
-            a[0, 0].set_title("actual")
-            a[0, 1].set_title("prediction")
+            _, a = plt.subplots(3, 3)
+            a[0, 0].set_title("mask actual")
+            a[0, 1].set_title("mask pred")
+            a[0, 2].set_title("image")
+            plt.setp(a, xticks=[], yticks=[])
+            return a
+        _, a = plt.subplots(3, 2)
         plt.setp(a, xticks=[], yticks=[])
         return a
 
@@ -1214,9 +1224,11 @@ def _image_preview(data, run_dir=None):
             params.axes[params.row, 1].imshow(mask)
             return
         if _image_out(info):
-            mask = params.output
-            params.axes[params.row, 0].imshow(params.input)
-            params.axes[params.row, 1].imshow(mask)
+            c = [params.input, params.output]
+            if params.get("original"):
+                c.insert(0, params.get("original"))
+            for i, column in enumerate(c):
+                params.axes[params.row, i].imshow(column)
             return
         params.plt.subplot(_IMG_ROWS, _IMG_COLS, params.row + 1)
         params.plt.xticks([])

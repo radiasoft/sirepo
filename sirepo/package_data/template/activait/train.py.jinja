@@ -106,6 +106,7 @@ p = model.predict(x=testx)
 {% endif %}
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', {% if image_data %}o.testy{% else %}testy{% endif %})
+print(o.testy)
 np.save('{{ predictFile }}', p)
 {% if imageOut %}
 np.save('{{ bestFile }}', o.best)
