@@ -725,7 +725,7 @@ def stateless_compute_dispatch(data, **kwargs):
     return getattr(
         t,
         f"stateless_compute_{_validate_method(t, data)}",
-    )(data)
+    )(data, **kwargs)
 
 
 def subprocess_output(cmd, env=None):

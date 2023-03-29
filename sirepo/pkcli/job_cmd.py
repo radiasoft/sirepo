@@ -80,8 +80,6 @@ def _background_percent_complete(msg, template, is_running):
 
 def _dispatch_compute(msg, template):
     def _op(expect_file):
-        if "dataFileUri" in msg:
-            msg.data.dataFileUri = msg.dataFileUri
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
             msg.data, data_file_uri=msg.get("dataFileUri")
         )
