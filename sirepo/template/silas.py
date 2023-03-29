@@ -117,7 +117,7 @@ def sim_frame_plot2Animation(frame_args):
     return _crystal_plot(frame_args, "zv", "uz", "[m]", 1e-2)
 
 
-def stateful_compute_mesh_dimensions(data):
+def stateful_compute_mesh_dimensions(data, **kwargs):
     f = {
         k: _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field("laserPulse", k, data.args[k])
