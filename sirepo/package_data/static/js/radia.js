@@ -1473,7 +1473,6 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             appState.watchModelFields($scope, [`${$scope.modelName}.fieldPath`],  () => {
                 if (appState.models[$scope.modelName].fieldPath.axis) {
                     appState.models[$scope.modelName].plotAxis = appState.models[$scope.modelName].fieldPath.axis;
-                    panelState.enableField('fieldPath', 'axis', false);
                 }
             });
 
