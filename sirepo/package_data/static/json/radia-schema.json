@@ -152,6 +152,12 @@
         },
         "objectScale": 0.001,
         "rawExamples": ["Dipole", "Wiggler"],
+        "solverModeReset": "reset",
+        "solverModeSolve": "solve",
+        "solverProgressText": {
+            "reset": "Resetting",
+            "solve": "Solving"
+        },
         "toolbarItems": [
             {
                 "canDrag": true,

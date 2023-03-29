@@ -865,10 +865,11 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     g = data.models.geometryReport
     v.simId = data.models.simulation.simulationId
 
-    v.doSolve = "solver" in report or for_export
-    #v.doReset = g.get("doReset", False)
-    v.doReset = "reset" in report
-    do_generate = _normalize_bool(g.get("doGenerate", True)) or v.doSolve or v.doReset
+    if report == "solverAnimation":
+        v.solverMode = data.models.solverAnimation.get("mode")
+    elif for_export:
+        v.solverMode = SCHEMA.constants.solverModeSolve
+    do_generate = _normalize_bool(g.get("doGenerate", True)) or v.get("solverMode")
     if not do_generate:
         try:
             # use the previous results
@@ -883,7 +884,6 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     for f in _SIM_FILES:
         pkio.unchecked_remove(f)
 
-    v.doReset = False
     v.isParallel = is_parallel
 
     # include methods from non-template packages
@@ -955,14 +955,11 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         v.fieldPaths = data.models.fieldPaths.get("paths", [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get("paths", []))
     v.kickMap = data.models.get("kickMapReport")
-    if "solver" in report or for_export:
-        v.doSolve = True
+    if v.get("solverMode") == SCHEMA.constants.solverModeSolve:
         s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
         v.solveMethod = s.method
-    if "reset" in report:
-        v.doReset = True
     v.h5FieldPath = _geom_h5_path(SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(SCHEMA.constants.viewTypeObjects)
@@ -1230,7 +1227,6 @@ def _read_data(view_type, field_type):
 
 
 def _read_h5_path(filename, h5path):
-    pkdp("H5 {} PATH {}", filename, pkio.py_path(filename))
     try:
         with h5py.File(filename, "r") as f:
             return template_common.h5_to_dict(f, path=h5path)

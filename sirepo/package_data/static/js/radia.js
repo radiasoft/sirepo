@@ -1885,7 +1885,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         template: `
             <div class="col-md-6">
                 <div data-basic-editor-panel="" data-view-name="solverAnimation">
-                        <div data-sim-status-panel="simState" data-start-function="startSimulation(modelName)"></div>
+                        <div data-sim-status-panel="simState" data-start-function="startSimulation()"></div>
                         <div data-ng-show="solution">
                                 <div><strong>Time:</strong> {{ solution.time }}ms</div>
                                 <div><strong>Step Count:</strong> {{ solution.steps }}</div>
@@ -1909,29 +1909,13 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
 
             $scope.mpiCores = 0;
 
-            function reset(data) {
-                srdbg('RESET', data);
-                $scope.simState.resetSimulation();
-            }
-
             $scope.model = appState.models[$scope.modelName];
 
             $scope.resetSimulation = function() {
-                $scope.solution = null;
-                solving = false;
-                panelState.clear('geometryReport');
-                //appState.models.geometryReport.doReset = true;
-                //radiaService.saveGeometry(true, false, data => {
-                //    radiaService.syncReports();
-                //})
-                //panelState.requestData('geometryReport', () => {}, true);
-                $scope.simState.resetSimulation();
-                panelState.requestData('reset', () => {}, true);
-                radiaService.syncReports();
+                $scope.startSimulation(SIREPO.APP_SCHEMA.constants.solverModeReset);
             };
 
             $scope.simHandleStatus = data => {
-                srdbg('SOLVE HDL', data);
                 if (data.error) {
                     solving = false;
                 }
@@ -1947,10 +1931,12 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                 }
             };
 
-            $scope.startSimulation = model => {
+            $scope.startSimulation = (mode=SIREPO.APP_SCHEMA.constants.solverModeSolve) => {
                 $scope.solution = null;
+                appState.models[$scope.modelName].mode = mode;
+                appState.models[$scope.modelName].inProgressText = SIREPO.APP_SCHEMA.constants.solverProgressText[mode];
                 solving = true;
-                $scope.simState.saveAndRunSimulation([model, 'simulation']);
+                $scope.simState.saveAndRunSimulation([$scope.modelName, 'simulation']);
             };
 
             function formatSolution(s) {
