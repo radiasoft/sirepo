@@ -1911,8 +1911,8 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
 
             $scope.model = appState.models[$scope.modelName];
 
-            $scope.resetSimulation = function() {
-                $scope.startSimulation(SIREPO.APP_SCHEMA.constants.solverModeReset);
+            $scope.resetSimulation = () => {
+                $scope.startSimulation('reset');
             };
 
             $scope.simHandleStatus = data => {
@@ -1931,10 +1931,10 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                 }
             };
 
-            $scope.startSimulation = (mode=SIREPO.APP_SCHEMA.constants.solverModeSolve) => {
+            $scope.startSimulation = (mode='solve') => {
                 $scope.solution = null;
                 appState.models[$scope.modelName].mode = mode;
-                appState.models[$scope.modelName].inProgressText = SIREPO.APP_SCHEMA.constants.solverProgressText[mode];
+                SIREPO.APP_SCHEMA.strings[$scope.modelName].typeOfSimulation = mode;
                 solving = true;
                 $scope.simState.saveAndRunSimulation([$scope.modelName, 'simulation']);
             };

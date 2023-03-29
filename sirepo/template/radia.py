@@ -868,7 +868,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     if report == "solverAnimation":
         v.solverMode = data.models.solverAnimation.get("mode")
     elif for_export:
-        v.solverMode = SCHEMA.constants.solverModeSolve
+        v.solverMode = "solve"
     do_generate = _normalize_bool(g.get("doGenerate", True)) or v.get("solverMode")
     if not do_generate:
         try:
@@ -955,7 +955,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         v.fieldPaths = data.models.fieldPaths.get("paths", [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get("paths", []))
     v.kickMap = data.models.get("kickMapReport")
-    if v.get("solverMode") == SCHEMA.constants.solverModeSolve:
+    if v.get("solverMode") == "solve":
         s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations

@@ -152,8 +152,6 @@
         },
         "objectScale": 0.001,
         "rawExamples": ["Dipole", "Wiggler"],
-        "solverModeReset": "reset",
-        "solverModeSolve": "solve",
         "solverProgressText": {
             "reset": "Resetting",
             "solve": "Solving"
@@ -364,6 +362,10 @@
             ["3", "3"],
             ["4", "4"],
             ["5", "5"]
+        ],
+        "SolverMode": [
+            ["solve", "Solve"],
+            ["reset", "Reset"]
         ],
         "SymmetryType": [
             ["perpendicular", "Parallel"],
@@ -908,8 +910,6 @@
             "name": ["Name", "String", ""],
             "transforms": ["", "ModelArrayTable", [], "", ["cloneTransform" ,"rotate", "symmetryTransform"]]
         },
-        "reset": {
-        },
         "rotate": {
             "_super": ["_", "model", "spatialTransform"],
             "angle": ["Angle [deg]", "Float", "0.0"],
@@ -944,6 +944,7 @@
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
             "method": ["Method", "SolveMethod", "4"],
+            "mode": ["Action", "SolverMode", "solve"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
@@ -1085,7 +1086,9 @@
     },
     "strings": {
         "completionState": "",
-        "typeOfSimulation": "solve",
+        "solverAnimation": {
+            "typeOfSimulation": "Solve"
+        },
         "fieldLineoutAnimation": {
             "typeOfSimulation": "Field Plot"
         }
