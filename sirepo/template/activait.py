@@ -1115,7 +1115,7 @@ def _masks(out_width, out_height, run_dir):
     x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
     y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
     y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
-    return x, y
+    return x, y, None
 
 
 def _dice_coefficient_plot(data, run_dir, y_shape):
@@ -1175,10 +1175,12 @@ def _image_preview(data, run_dir=None):
         # TODO (gurhar1133): use indices to get original images
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+        o = _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)
         pkdp("\n\n\n len={}", len(x) // y_shape[0] // y_shape[1])
         return (
             x.reshape(len(x) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
             y.reshape(len(y) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
+            o[i],
         )
 
     def _x_y(data, io, file, run_dir=None):
@@ -1191,7 +1193,7 @@ def _image_preview(data, run_dir=None):
             return _by_indices(
                 data.args.method, run_dir, data.args.columnInfo.shape[i][1:]
             )
-        return file[io.input.path], file[io.output.path]
+        return file[io.input.path], file[io.output.path], None
 
     def _grid(x, info):
         if _image_out(info):
@@ -1277,7 +1279,7 @@ def _image_preview(data, run_dir=None):
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
         # TODO (gurhar1133): need a third output, from _x_y() for original image
         # output should be PKDict and then can pass in params PKDict to _gen_image etc.
-        x, y = _x_y(data, io, f, run_dir=run_dir)
+        x, y, o = _x_y(data, io, f, run_dir=run_dir)
         u = []
         k = 0
         g = (

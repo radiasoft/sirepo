@@ -106,10 +106,15 @@ p = model.predict(x=testx)
 {% endif %}
 model.save('{{ weightedFile }}')
 np.save('{{ testFile }}', {% if image_data %}o.testy{% else %}testy{% endif %})
-print(o.testy)
 np.save('{{ predictFile }}', p)
 {% if imageOut %}
 np.save('{{ bestFile }}', o.best)
-np.save('{{ originalImageInFile }}', testx)
+print(type(testx))
+original_x = []
+for i, img in testx:
+    print(i, img)
+    original_x.append(img)
+print(original_x.shape)
+np.save('{{ originalImageInFile }}', original_x)
 np.save('{{ worstFile }}', o.worst)
 {% endif %}
