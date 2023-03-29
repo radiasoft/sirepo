@@ -110,5 +110,6 @@ print(o.testy)
 np.save('{{ predictFile }}', p)
 {% if imageOut %}
 np.save('{{ bestFile }}', o.best)
+np.save('{{ originalImageInFile }}', testx)
 np.save('{{ worstFile }}', o.worst)
 {% endif %}

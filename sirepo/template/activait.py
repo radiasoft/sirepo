@@ -59,6 +59,7 @@ _CLASSIFIER_OUTPUT_FILE = PKDict(
 _OUTPUT_FILE = PKDict(
     classificationOutputColEncodingFile="classification-output-col-encoding.json",
     bestFile="bestFile.npy",
+    originalImageInFile="originalImageInFile.npy",
     worstFile="worstFile.npy",
     fitCSVFile="fit.csv",
     predictFile="predict.npy",
@@ -931,6 +932,7 @@ def _generate_parameters_file(data):
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
     v.bestFile = _OUTPUT_FILE.bestFile
+    v.originalImageInFile = _OUTPUT_FILE.originalImageInFile
     v.worstFile = _OUTPUT_FILE.worstFile
     v.neuralNet_losses = _loss_function(v.neuralNet_losses)
     v.pkupdate(
@@ -1273,6 +1275,8 @@ def _image_preview(data, run_dir=None):
             kind="f",
         )
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
+        # TODO (gurhar1133): need a third output, from _x_y() for original image
+        # output should be PKDict and then can pass in params PKDict to _gen_image etc.
         x, y = _x_y(data, io, f, run_dir=run_dir)
         u = []
         k = 0
