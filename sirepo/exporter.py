@@ -60,12 +60,21 @@ def _create_zip(sim, out_dir, qcall):
     data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
     simulation_db.update_rsmanifest(data)
     data.pkdel("report")
+    if hasattr(sim.template, "add_fdir"):
+        sim.template.add_fdir(data, sim)
     files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
     for f in python(data, sim, qcall):
         files.append(f)
     with sirepo.util.write_zip(str(path)) as z:
         for f in files:
-            z.write(str(f), f.basename)
+            if hasattr(sim.template, "export_filename"):
+                n = sim.template.export_filename(
+                    data.get("fDir", sim.filename.replace(".zip", "")),
+                    f.basename,
+                )
+            else:
+                n = f.basename
+            z.write(str(f), n)
         z.writestr(
             simulation_db.SIMULATION_DATA_FILE,
             pkjson.dump_pretty(data, pretty=True),

@@ -335,38 +335,14 @@ def clean_run_dir(run_dir):
         zip_dir.remove()
 
 
-def create_archive(sim, qcall):
-    from sirepo import exporter
+def add_fdir(data, sim):
+    data.fDir = sim.filename.replace(".zip", "")
 
-    def _create_zip(sim, out_dir, qcall):
-        path = out_dir.join(sim.id + ".zip")
-        data = simulation_db.open_json_file(sim.type, sid=sim.id, qcall=qcall)
-        simulation_db.update_rsmanifest(data)
-        data.pkdel("report")
-        files = sirepo.sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
-        l = sim.filename.replace(".zip", "")
-        data.fDir = l
-        for f in exporter.python(data, sim, qcall):
-            files.append(f)
-        with sirepo.util.write_zip(str(path)) as z:
-            for f in files:
-                if f.basename not in ("run.py", "sirepo-data.json"):
-                    z.write(str(f), l + "/" + f.basename)
-                else:
-                    z.write(str(f), f.basename)
-            z.writestr(
-                simulation_db.SIMULATION_DATA_FILE,
-                pykern.pkjson.dump_pretty(data, pretty=True),
-            )
-        return path, data
 
-    with simulation_db.tmp_dir(qcall=qcall) as d:
-        f, c = _create_zip(sim, out_dir=d, qcall=qcall)
-        return qcall.reply_attachment(
-            f,
-            filename=sim.filename,
-            content_type="application/zip",
-        )
+def export_filename(fdir, filename):
+    if filename not in ("run.py", "sirepo-data.json"):
+        return f"{fdir}/{filename}"
+    return filename
 
 
 def _extract_coherent_modes(model, out_info):
