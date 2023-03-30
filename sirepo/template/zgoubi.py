@@ -459,7 +459,7 @@ def sim_frame(frame_args):
     return None
 
 
-def stateful_compute_tosca_info(data):
+def stateful_compute_tosca_info(data, **kwargs):
     return zgoubi_importer.tosca_info(data.args.tosca)
 
 
