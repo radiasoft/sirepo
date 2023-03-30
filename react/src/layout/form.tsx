@@ -198,7 +198,13 @@ export function arrayPositionHandle<M, F>(modelsWrapper: AbstractModelsWrapper<M
         },
         hookModel: (_: string): M => {
             let m = modelsWrapper.hookModel(realArrayDep.modelName);
-            return modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
+            console.log("handle hookModel");
+            console.log("m", m);
+            console.log("real field name", realArrayDep.fieldName);
+            console.log("index in array", arrayIndex);
+            let af = modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
+            console.log("af", af);
+            return af;
         }
     }
     return handle;
@@ -236,13 +242,18 @@ export function AliasedFormControllerWrapper(props: { aliases: FormControllerAli
     let nModelsWrapper = new ModelsWrapperWithAliases(modelsWrapper, aliasesForWrapper(modelsWrapper, aliases));
     let nFormStateWrapper = new ModelsWrapperWithAliases(formStateWrapper, aliasesForWrapper(formStateWrapper, aliases));
 
+    // i dont know why but the div is required!! for updates to work correctly
+    // https://stackoverflow.com/questions/54880669/react-domexception-failed-to-execute-removechild-on-node-the-node-to-be-re
     return (
-        <CSchema.Provider value={nSchema}>
-            <CModelsWrapper.Provider value={nModelsWrapper}>
-                <CFormStateWrapper.Provider value={nFormStateWrapper}>
-                    {props.children}
-                </CFormStateWrapper.Provider>
-            </CModelsWrapper.Provider>
-        </CSchema.Provider>
+        <div>
+            <CSchema.Provider value={nSchema}>
+                <CModelsWrapper.Provider value={nModelsWrapper}>
+                    <CFormStateWrapper.Provider value={nFormStateWrapper}>
+                        {props.children}
+                    </CFormStateWrapper.Provider>
+                </CModelsWrapper.Provider>
+            </CSchema.Provider>
+        </div>
+        
     )
 }

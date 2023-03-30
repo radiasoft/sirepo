@@ -94,6 +94,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
     }
 
     component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
+        console.log("RENDER BEAMLINE");
         let routeHelper = useContext(CRouteHelper);
         let formStateWrapper = useContext(CFormStateWrapper);
         let modelsWrapper = useContext(CModelsWrapper);
@@ -111,11 +112,12 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
         let beamlineValue: ArrayField<FormModelState> = accessor.getFieldValue(beamlineDependency) as any as ArrayField<FormModelState>;
 
         let addBeamlineElement = (element: BeamlineElement) => {
+            console.log("AAA");
             let ms = schema.models[element.model];
             // TODO: use generic methods
             let prev: FormModelState | undefined = beamlineValue.length > 0 ? beamlineValue[beamlineValue.length - 1].item : undefined
-            let nextPosition: number = prev ? prev.position.value + 5 : 0;
-            let nextId: number = prev ? prev.id.value + 1 : 1;
+            let nextPosition: string = prev ? `${parseFloat(prev.position.value) + 5}` : "0";
+            let nextId: string = prev ? `${parseInt(prev.id.value) + 1}` : "1";
             let mv = formStateFromModel({
                 id: nextId,
                 position: nextPosition,
@@ -147,10 +149,13 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
             return r[0];
         }
 
+        console.log("MAPPING BEAMLINE ELEMENTS");
+
         let beamlineComponents = beamlineValue.map((e, i) => {
             let model = e.model;
             let ele: FormModelState = e.item;
             let id = ele.id.value;
+            console.log("id", id);
             let baseElement = findBaseElementByModel(model);
             let deps = baseElement.layouts.flatMap(l => l.getFormDependencies());
             let aliases: FormControllerAliases = [
@@ -165,13 +170,11 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
                 }
             ];
             return (
-                <React.Fragment key={id}>
-                    <AliasedFormControllerWrapper aliases={aliases}>
-                        <FormControllerElement dependencies={deps}>
-                            <BeamlineItem baseElement={baseElement} onClick={() => updateShownModal(i)} modalShown={shownModal === i} onHideModal={() => shownModal === i && updateShownModal(undefined)}/>
-                        </FormControllerElement>
-                    </AliasedFormControllerWrapper>   
-                </React.Fragment>
+                <AliasedFormControllerWrapper key={id} aliases={aliases}>
+                    <FormControllerElement dependencies={deps}>
+                        <BeamlineItem baseElement={baseElement} onClick={() => updateShownModal(i)} modalShown={shownModal === i} onHideModal={() => shownModal === i && updateShownModal(undefined)}/>
+                    </FormControllerElement>
+                </AliasedFormControllerWrapper>
             )
         })
 
@@ -182,7 +185,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
         let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
 
         return (
-            <>
+            <div>
                 <div className="col-sm-12" style={{ display: "flex", flexFlow: "row nowrap", justifyContent: "center", backgroundColor: "#d9edf7", borderRadius: "6px", marginBottom: "15px" }}>
                     {elementThumbnails}
                 </div>
@@ -205,7 +208,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
                         {isDirty && actionButtons}
                     </div>
                 </div>
-            </>
+            </div>
         )
     }
 }

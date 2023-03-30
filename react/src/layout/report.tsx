@@ -70,7 +70,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         useEffect(() => {
             updateSimulationData(undefined);
             let pollingVersion = uuidv4();
-            simulationPollingVersionRef.current = pollingVersion;
+            //simulationPollingVersionRef.current = pollingVersion;
             simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
                 updateModel(models[report]);
                 pollRunReport(routeHelper, {
@@ -81,11 +81,11 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
                     forceRun: false,
                     callback: (simulationData) => {
                         // guard concurrency
-                        if(simulationPollingVersionRef.current === pollingVersion) {
-                            updateSimulationData(simulationData);
-                        } else {
-                            console.log("polling data was not from newest request");
-                        }
+                        //if(simulationPollingVersionRef.current === pollingVersion) {
+                        updateSimulationData(simulationData);
+                        //} else {
+                        //    console.log("polling data was not from newest request");
+                        //}
                     }
                 })
             })

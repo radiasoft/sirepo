@@ -11,18 +11,15 @@ import React, {
 import {
     modelSelectors,
     modelActions,
-    ModelState,
-    ModelStates
+    ModelState
 } from "../store/models";
 import { FormStateInitializer } from "./reusable/form";
 import { useNavigate, useResolvedPath } from "react-router-dom";
 import { CRelativeRouterHelper, CRouteHelper, RelativeRouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";
 import { CReportEventManager } from "../data/report";
-import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { LAYOUTS } from "../layout/layouts";
-import { ModelsAccessor } from "../data/accessor";
 import { Dependency } from "../data/dependency";
 import { NavbarRightContainerId, NavToggleDropdown } from "./reusable/navbar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -31,9 +28,10 @@ import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
 import { downloadAs, getAttachmentFileName } from "../utility/download";
 import { useStore } from "react-redux";
+import { StoreState } from "../store/common";
 
 export type SimulationInfoRaw = {
-    models: ModelStates,
+    models: StoreState<ModelState>,
     simulationType: string,
     version: string
 }
@@ -50,11 +48,6 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
     let store = useStore();
-
-    let modelsWrapper = new ModelsWrapper({
-        modelActions,
-        modelSelectors
-    })
 
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {

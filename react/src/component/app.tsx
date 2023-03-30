@@ -14,7 +14,7 @@ import { CRouteHelper, RouteHelper } from "../utility/route";
 import { getAppCombinedSchema } from "../utility/schema";
 
 export const AppContextWrapper = (props) => {
-    const modelsStore = configureStore({
+    const modelsStore = configureStore({ // TODO: this belongs on the simulation root component
         reducer: {
             [modelsSlice.name]: modelsSlice.reducer,
             [formStatesSlice.name]: formStatesSlice.reducer,

@@ -1,14 +1,6 @@
-import { ModelsAccessor } from "../data/accessor";
+import { getValueSelector, StoreType } from "../data/data";
 import { Dependency } from "../data/dependency";
-import { AbstractModelsWrapper } from "../data/wrapper";
-import { FormFieldState } from "../store/formState";
-
-export type ValueSelector<T> = (v: T) => any;
-
-export const ValueSelectors = {
-    Models: (v: any) => v,
-    Fields: (v: FormFieldState<unknown>) => v.value
-}
+import { HandleFactory } from "../data/handle";
 
 function getStringReplacementPatterns(str: string): RegExpMatchArray[] {
     return [...str.matchAll(/\$\(([^\%]+?)\)/g)];
@@ -44,7 +36,9 @@ export class InterpolationBase {
         )
     }
 
-    withDependencies<M, F>(modelsWrapper: AbstractModelsWrapper<M, F>, valueSelector: ValueSelector<F>): InterpolationResult {
+    withDependencies<M, F>(handleFactory: HandleFactory, type: StoreType): InterpolationResult {
+        let valueSelector = getValueSelector(type) as (v: F) => any;
+
         let mappingsArr = this.matches.map(([originalString, mappedGroup]) => {
             return {
                 original: originalString,
@@ -52,12 +46,10 @@ export class InterpolationBase {
             }
         });
 
-        let modelAccessor = new ModelsAccessor(modelsWrapper, mappingsArr.map(v => v.dependency));
-
         let valuesArr = mappingsArr.map(mapping => {
             return {
                 ...mapping,
-                value: (valueSelector)(modelAccessor.getFieldValue(mapping.dependency))
+                value: (valueSelector)(handleFactory.createHandle<F>(mapping.dependency, type).hook().value)
             }
         })
 
