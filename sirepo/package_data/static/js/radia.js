@@ -66,10 +66,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     const POST_SIM_REPORTS = ['electronTrajectoryReport', 'fieldIntegralReport', 'fieldLineoutAnimation', 'kickMapReport',];
 
-    // why is this here? - answer: for getting frames
-    self.computeModel = function(analysisModel) {
-        return 'fieldLineoutAnimation';
-    };
+    self.computeModel = analysisModel => analysisModel;
 
     appState.setAppService(self);
 
@@ -890,17 +887,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, $scope) {
-
-    let solving = false;
-
+SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, requestSender, $scope) {
     let self = this;
-    self.simScope = $scope;
-    $scope.mpiCores = 0;
-    $scope.panelState = panelState;
-    $scope.svc = radiaService;
-
-    self.solution = null;
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
@@ -909,40 +897,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, panelS
     self.isSolvable = function() {
         return appState.isLoaded() && appState.models.geometryReport.isSolvable == '1';
     };
-
-    self.resetSimulation = function() {
-        self.solution = null;
-        solving = false;
-        panelState.clear('geometryReport');
-        panelState.requestData('reset', () => {}, true);
-        radiaService.syncReports();
-    };
-
-    self.simHandleStatus = function(data) {
-        if (data.error) {
-            solving = false;
-        }
-        if ('percentComplete' in data && ! data.error) {
-            if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
-                self.solution = data.solution;
-                if (solving) {
-                    radiaService.syncReports();
-                }
-                solving = false;
-                radiaService.saveGeometry(false, true);
-            }
-        }
-    };
-
-    self.startSimulation = function(model) {
-        self.solution = null;
-        solving = true;
-        self.simState.saveAndRunSimulation([model, 'simulation']);
-    };
-
-    self.simComputeModel = 'solverAnimation';
-    self.simState = persistentSimulation.initSimulationState(self);
-
 });
 
 
@@ -1945,50 +1899,89 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
     };
 });
 
-// does not need to be its own directive?  everything in viz and service? (and move template to html)
-SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService, utilities) {
+SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, persistentSimulation, radiaService, utilities, $rootScope) {
 
     return {
         restrict: 'A',
         scope: {
-            viz: '<',
             modelName: '@',
         },
         template: `
             <div class="col-md-6">
                 <div data-basic-editor-panel="" data-view-name="solverAnimation">
-                        <div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation(modelName)"></div>
-                        <div data-ng-show="viz.solution">
-                                <div><strong>Time:</strong> {{ solution().time }}ms</div>
-                                <div><strong>Step Count:</strong> {{ solution().steps }}</div>
-                                <div><strong>Max |M|: </strong> {{ solution().maxM }} A/m</div>
-                                <div><strong>Max |H|: </strong> {{ solution().maxH }} A/m</div>
+                        <div data-sim-status-panel="simState" data-start-function="startSimulation()"></div>
+                        <div data-ng-show="solution">
+                                <div><strong>Time:</strong> {{ solution.time }}ms</div>
+                                <div><strong>Step Count:</strong> {{ solution.steps }}</div>
+                                <div><strong>Max |M|: </strong> {{ solution.maxM }} A/m</div>
+                                <div><strong>Max |H|: </strong> {{ solution.maxH }} A/m</div>
                         </div>
-                        <div data-ng-hide="viz.solution">No solution found</div>
+                        <div data-ng-hide="solution">No solution found</div>
                         <div class="col-sm-6 pull-right" style="padding-top: 8px;">
-                            <button class="btn btn-default" data-ng-click="viz.resetSimulation()">Reset</button>
+                            <button class="btn btn-default" data-ng-click="resetSimulation()">Reset</button>
                         </div>
                     </div>
                 </div>
             </div>
         `,
         controller: function($scope) {
+            let solving = false;
+            $scope.simScope = $scope;
+            $scope.solution = null;
+            $scope.simComputeModel = $scope.modelName;
+            $scope.simState = persistentSimulation.initSimulationState($scope);
+
+            $scope.mpiCores = 0;
 
             $scope.model = appState.models[$scope.modelName];
 
-            $scope.solution = () => {
-                const s = $scope.viz.solution;
-                return {
-                    time: s ? utilities.roundToPlaces(1000 * s.time, 3) : '',
-                    steps: s ? s.steps : '',
-                    maxM: s ? utilities.roundToPlaces(s.maxM, 4) : '',
-                    maxH: s ?  utilities.roundToPlaces(s.maxH, 4) : '',
-                };
+            $scope.resetSimulation = () => {
+                $scope.startSimulation('reset');
             };
 
-            $scope.reset = () => {
-                $scope.viz.resetSimulation();
+            $scope.simHandleStatus = data => {
+                if (data.error) {
+                    solving = false;
+                }
+                if ('percentComplete' in data && ! data.error) {
+                    if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
+                        $scope.solution = solutionValidForGeom() ? formatSolution(data.solution) : null;
+                        if (solving) {
+                            $rootScope.$broadcast('solve.complete');
+                            radiaService.syncReports();
+                        }
+                        solving = false;
+                        radiaService.saveGeometry(false, true);
+                    }
+                }
             };
+
+            $scope.startSimulation = (mode='solve') => {
+                $scope.solution = null;
+                appState.models[$scope.modelName].mode = mode;
+                appState.models[$scope.modelName].objects = appState.clone(appState.models.geometryReport.objects);
+                solving = true;
+                $scope.simState.saveAndRunSimulation([$scope.modelName, 'simulation']);
+            };
+
+            function formatSolution(s) {
+                if (! s) {
+                    return null;
+                }
+                return {
+                    time: utilities.roundToPlaces(1000 * s.time, 3),
+                    steps: s.steps,
+                    maxM: utilities.roundToPlaces(s.maxM, 4),
+                    maxH: utilities.roundToPlaces(s.maxH, 4),
+                };
+            }
+
+            function solutionValidForGeom() {
+                return appState.deepEquals(
+                    appState.models[$scope.modelName].objects,
+                    appState.models.geometryReport.objects
+                );
+            }
         },
     };
 });
@@ -2722,12 +2715,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 });
             }
 
-            function updateViewer() {
+            function updateViewer(doShowLoader=false) {
                 const c = didDisplayValsChange();
                 sceneData = {};
                 actorInfo = {};
                 radiaService.objBounds = null;
-                if (c || ! initDone) {
+                if (doShowLoader || c || ! initDone) {
                     $rootScope.$broadcast('vtk.showLoader');
                 }
                 panelState.clear('geometryReport');
@@ -2832,12 +2825,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             });
 
-            $scope.$on('framesCleared', updateViewer);
-            $scope.$on('framesLoaded', (e, d) => {
+            $scope.$on('solve.complete', (e, d) => {
                 if (! initDone) {
                     return;
                 }
-                updateViewer();
+                updateViewer(true);
             });
 
             $scope.$on('$destroy', () => {
