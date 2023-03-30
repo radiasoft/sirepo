@@ -63,7 +63,7 @@ def _create_zip(sim, out_dir, qcall):
     if hasattr(sim.template, "add_fdir"):
         sim.template.add_fdir(data, sim)
     files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
-    for f in python(data, sim, qcall):
+    for f in _python(data, sim, qcall):
         files.append(f)
     with sirepo.util.write_zip(str(path)) as z:
         for f in files:
@@ -82,7 +82,7 @@ def _create_zip(sim, out_dir, qcall):
     return path, data
 
 
-def python(data, sim, qcall):
+def _python(data, sim, qcall):
     """Generate python in current directory
 
     Args:
