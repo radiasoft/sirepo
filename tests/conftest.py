@@ -354,7 +354,7 @@ def _subprocess_start(request, fc_args):
 
     def _ping_supervisor(uri):
         l = None
-        for _ in range(10):
+        for _ in range(100):
             try:
                 r = requests.post(uri, json=None)
                 r.raise_for_status()
@@ -379,7 +379,7 @@ def _subprocess_start(request, fc_args):
                 pkdlog("{}={}", k, env[k])
         _subprocess(("sirepo", "service", "server"))
         # allow db to be created
-        time.sleep(30)
+        time.sleep(0.5)
         _subprocess(("sirepo", "job_supervisor"))
         _ping_supervisor(c.http_prefix + "/job-supervisor-ping")
         from sirepo import template
