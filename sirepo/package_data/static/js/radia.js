@@ -63,10 +63,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     const POST_SIM_REPORTS = ['electronTrajectoryReport', 'fieldIntegralReport', 'fieldLineoutAnimation', 'kickMapReport',];
 
-    // why is this here? - answer: for getting frames
-    self.computeModel = function(analysisModel) {
-        return 'fieldLineoutAnimation';
-    };
+    self.computeModel = analysisModel => analysisModel;
 
     appState.setAppService(self);
 
@@ -1874,7 +1871,7 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
     };
 });
 
-SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, persistentSimulation, radiaService, utilities) {
+SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, persistentSimulation, radiaService, utilities, $rootScope) {
 
     return {
         restrict: 'A',
@@ -1922,6 +1919,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                     if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
                         $scope.solution = solutionValidForGeom() ? formatSolution(data.solution) : null;
                         if (solving) {
+                            $rootScope.$broadcast('solve.complete');
                             radiaService.syncReports();
                         }
                         solving = false;
@@ -2689,12 +2687,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 });
             }
 
-            function updateViewer() {
+            function updateViewer(doShowLoader=false) {
                 const c = didDisplayValsChange();
                 sceneData = {};
                 actorInfo = {};
                 radiaService.objBounds = null;
-                if (c || ! initDone) {
+                if (doShowLoader || c || ! initDone) {
                     $rootScope.$broadcast('vtk.showLoader');
                 }
                 panelState.clear('geometryReport');
@@ -2799,12 +2797,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             });
 
-            $scope.$on('framesCleared', updateViewer);
-            $scope.$on('framesLoaded', (e, d) => {
+            $scope.$on('solve.complete', (e, d) => {
                 if (! initDone) {
                     return;
                 }
-                updateViewer();
+                updateViewer(true);
             });
 
             $scope.$on('$destroy', () => {
