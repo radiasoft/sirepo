@@ -604,8 +604,10 @@ def sim_frame_plotAnimation(frame_args):
         PKDict(
             model=frame_args,
             index=lambda parts: _DIM_INDEX[parts[1]] if len(parts) > 1 else 0,
-            format_plots=lambda plots: _iterate_hdf5_steps(
-                frame_args.run_dir.join(_OPAL_H5_FILE), _walk_file, plots
+            format_plots=lambda h5file, plots: _iterate_hdf5_steps_from_handle(
+                h5file,
+                _walk_file,
+                plots,
             ),
         )
     )
@@ -1035,14 +1037,18 @@ def _generate_beamline(
 
 def _iterate_hdf5_steps(path, callback, state):
     with h5py.File(str(path), "r") as f:
-        step = 0
-        key = "Step#{}".format(step)
-        while key in f:
-            callback(f, key, step, state)
-            step += 1
-            key = "Step#{}".format(step)
-        callback(f, None, -1, state)
+        _iterate_hdf5_steps_from_handle(f, callback, state)
     return state
+
+
+def _iterate_hdf5_steps_from_handle(h5file, callback, state):
+    step = 0
+    key = "Step#{}".format(step)
+    while key in h5file:
+        callback(h5file, key, step, state)
+        step += 1
+        key = "Step#{}".format(step)
+    callback(h5file, None, -1, state)
 
 
 def _output_info(run_dir):

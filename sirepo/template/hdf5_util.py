@@ -74,7 +74,8 @@ class HDF5Util:
                 name=name_and_field[0],
                 index=plot_attrs.index(name_and_field),
             )
-        plot_attrs.format_plots(plots)
+        with h5py.File(self.filename, "r") as p:
+            plot_attrs.format_plots(p, plots)
         x = plots.get(x_field)
         return template_common.parameter_plot(
             x=x.points,
