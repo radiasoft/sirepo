@@ -1,10 +1,18 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "laser-cavity"
+            "localRoute": "source"
         }
     },
     "enum": {
+        "DataType": [
+            ["intensity", "Intensity"],
+            ["phase", "Phase"]
+        ],
+        "DistributionType": [
+            ["gaussian", "Gaussian"],
+            ["file", "From Files"]
+        ],
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"],
             ["2", "Linear Vertical"],
@@ -12,6 +20,14 @@
             ["4", "Linear 135 degrees"],
             ["5", "Circular Right"],
             ["6", "Circular Left"]
+        ],
+        "PropagationType": [
+            ["abcd_lct", "ABCD"],
+            ["attenuate", "Attenuate"],
+            ["default", "Default"],
+            ["gain_calc", "Gain Calculation"],
+            ["n0n2_srw", "N0N2 SRW"],
+            ["n0n2_lct", "N0N2 LCT"]
         ]
     },
     "dynamicFiles": {
@@ -34,8 +50,15 @@
         }
     },
     "localRoutes": {
-        "laser-cavity": {
-            "route": "/laser-cavity/:simulationId",
+        "source": {
+            "route": "/source/:simulationId",
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/silas-source.html"
+            }
+        },
+        "beamline": {
+            "route": "/beamline/:simulationId",
             "config": {
                 "controller": "BeamlineController as beamline",
                 "templateUrl": "/static/html/silas-beamline.html"
@@ -50,24 +73,28 @@
         }
     },
     "frameIdFields": {
-        "animation": ["id"],
         "crystalAnimation": [],
         "crystal3dAnimation": [],
-        "laserPulse1Animation": [],
-        "laserPulse2Animation": [],
-        "laserPulse3Animation": [],
-        "laserPulse4Animation": [],
-        "wavefrontSummaryAnimation": ["element"],
         "plotAnimation": [],
         "plot2Animation": []
     },
     "model": {
+        "beamElement": {
+            "position": ["Central Position [m]", "Float", 0.0],
+            "propagationType": ["Propagation Type", "PropagationType", "default"]
+        },
         "crystal": {
+            "_super": ["_", "model", "beamElement"],
+            "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
+            "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
+            "icon": ["", "String", "ti-sapphire-crystal.png"],
+            "numSlices": ["Number of Slices", "Integer", 1, "", 1],
+            "position": ["Central Position [m]", "Float", 4.0],
+            "propagationType": ["Propagation Type", "PropagationType", "n0n2_srw"],
+            "radialVariation": ["Transverse Variation", "Float", 4, "Transverse variation of index of refraction", 0.0],
+            "refractionIndex": ["Index of Refraction", "Float", 1.75, "Index of refraction along the optical axis", 1e-24],
             "title": ["Element Name", "String", "Crystal"],
-            "position": ["Central Position [m]", "Float"],
-            "radius": ["Radial Variation", "Float", 0.02, "Radial variation of index of refraction"],
-            "width": ["Crystal Width [cm]", "Float", 2.0],
-            "refractionIndex": ["Index of Refraction", "Float", 2.0, "Index of refraction along the optical axis", 1e-24]
+            "width": ["Width [cm]", "Float", 2]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -78,8 +105,9 @@
             "tolerance": ["Boundary Tolerance", "Float", 8e-3, "Adjust this value to avoid points outside domain (for a coarse mesh, increase this value)"]
         },
         "crystalCylinder": {
-            "diameter": ["Crystal Diameter [cm]", "Float", 7, "", 1e-24],
-            "crystalWidth": ["Crystal Width [cm]", "Float", 2, "Crystal Width is editable on the Laser Cavity tab"],
+            "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
+            "crystal": ["Crystal in Beamline", "SelectCrystal", "0"],
+            "crystalWidth": ["Width [cm]", "Float", 2],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
             "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
             "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
@@ -87,17 +115,41 @@
             "supergaussian": ["$\\Large P$", "Integer", 8, "Supergaussian degree", 1, 12]
         },
         "crystal3dAnimation": {},
-        "gaussianBeam": {
-            "energyPerPulse": ["Energy per Pulse [J]", "Float", 0.001],
-            "initialPropagationLength": ["Initial Propagation Length [m]", "Float", 15],
-            "photonEnergy": ["Average Photon Energy [eV]", "Float", 1.55],
-            "polarization": ["Polarization", "GaussianBeamPolarization", "1"],
-            "rmsSize": ["RMS Waist [µm]", "Float", 200]
+        "laserPulse": {
+            "chirp": ["Chirp [eV]", "Float", 0, "Energy variation from first to last slice in laser pulse"],
+            "ccd": ["CCD", "InputFile", ""],
+            "meta": ["Meta", "InputFile", ""],
+            "wfs": ["WaveFronts", "InputFile", ""],
+            "mx": ["Horizontal Gauss-Hermite Mode Order", "Integer", 0],
+            "my": ["Vertical Gauss-Hermite Mode Order", "Integer", 0],
+            "num_sig_long": ["Longitudinal Number of Gaussian Sigmas", "Integer", 3],
+            "num_sig_trans": ["Transverse Number of Gaussian Sigmas", "Integer", 6],
+            "nx_slice": ["Horizontal Number of Mesh Points in Slice", "Integer", 500, "", 1],
+            "ny_slice": ["Vertical Number of Mesh Points in Slice", "Integer", 500, "", 1],
+            "nslice": ["Number of Slices", "Integer", 3, "", 1],
+            "pad_factor": ["Pad Factor", "Float", 1.0],
+            "photon_e_ev": ["Photon energy [eV]", "Float", 1.5],
+            "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
+            "tau_fwhm": ["FWHM Length [s]", "Float", 2.35865e-11],
+            "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
+            "distribution": ["Distribution Type", "DistributionType", "gaussian"],
+            "sigx_waist": ["Horizontal RMS Waist Size [m]", "Float", 0.001],
+            "sigy_waist": ["Vertical RMS Waist Size [m]", "Float", 0.001]
         },
-        "laserPulse1Animation": {},
-        "laserPulse2Animation": {},
-        "laserPulse3Animation": {},
-        "laserPulse4Animation": {},
+        "initialIntensityReport": {
+            "dataType": ["Value to Plot", "DataType", "intensity"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "sliceNumber": ["Slice Number", "SliceNumber", 0]
+        },
+        "initialPhaseReport": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "sliceNumber": ["Slice Number", "SliceNumber", 0]
+        },
+        "lens": {
+            "_super": ["_", "model", "beamElement"],
+            "focalLength": ["Focal Length [m]", "Float", 2.0],
+            "title": ["Element Name", "String", "Lens"]
+        },
         "mirror": {
             "title": ["Element Name", "String", "Planar Mirror"],
             "position": ["Central Position [m]", "Float"],
@@ -105,18 +157,15 @@
         },
         "plotAnimation": {},
         "plot2Animation": {},
-        "simulationSettings": {
-            "n_reflections": ["Number of Reflections", "Integer", 15, "", 1, 10000],
-            "cavity_length": ["Cavity Distance [m]", "Float", 10.0, "", 1e-6],
-            "sample_factor": ["Sample Factor", "Float", 12.0, "Sampling factor for adjusting simulation grid resolution.", 1, 30],
-            "sig_s": ["Laser Pulse RMS Length [m]", "Float", 0.1],
-            "nslice": ["Laser Pulse Slice Count", "Integer", 11, "", 3]
+        "simulation": {
+            "distanceFromSource": ["", "Float", 0.0 , "", 0.0]
         },
-        "wavefrontSummaryAnimation": {
-            "element": ["Beamline Element", "SelectElement", "all"]
+        "watch": {
+            "_super": ["_", "model", "beamElement"],
+            "title": ["Element Name", "SafePath", "Watchpoint"]
         },
-        "wavefrontAnimation": {
-            "position": ["Position", "Float", 0]
+        "watchpointReport": {
+            "_super": ["_", "model", "initialIntensityReport"]
         }
     },
     "view": {
@@ -124,11 +173,19 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "width",
-                "refractionIndex",
-                "radius"
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "width",
+                    "diameter"
+                ]],
+                ["Propagation", [
+                    "refractionIndex",
+                    "radialVariation",
+                    "numSlices",
+                    "propagationType",
+                    "diffusionConstant"
+                    ]]
             ]
         },
         "crystalAnimation": {
@@ -149,6 +206,7 @@
         "crystalCylinder": {
             "title": "Ti:Sapphire Crystal Cylinder",
             "basic": [
+                "crystal",
                 "diameter",
                 "crystalWidth",
                 "diffusionConstant",
@@ -173,21 +231,77 @@
                 "focusingError"
             ]
         },
-        "laserPulse1Animation": {
-            "title": "RMS Beam Size Along Laser Pulse",
-            "advanced": []
+        "laserPulse": {
+            "title": "Laser Pulse",
+            "advanced": [],
+            "basic": [
+                ["Energy", [
+                    "photon_e_ev",
+                    "chirp",
+                    "pulseE"
+                ]],
+                ["Distribution", [
+                    "distribution",
+                    [
+                        ["Horizontal", [
+                            "sigx_waist",
+                            "mx"
+                        ]],
+                        ["Vertical", [
+                            "sigy_waist",
+                            "my"
+                        ]]
+                    ],
+                    "poltype",
+                    "ccd",
+                    "meta",
+                    "wfs",
+                    "pad_factor"
+                ]],
+                ["Geometry", [
+                    "nslice",
+                    "tau_fwhm",
+                    [
+                        ["Horizontal", [
+                            "nx_slice"
+                        ]],
+                        ["Vertical", [
+                            "ny_slice"
+                        ]]
+                    ],
+                    [
+                        ["Longitudinal", [
+                            "num_sig_long"
+                        ]],
+                        ["Transverse", [
+                            "num_sig_trans"
+                        ]]
+                    ]
+                ]]
+            ]
         },
-        "laserPulse2Animation": {
-            "title": "Intensity Along Laser Pulse",
-            "advanced": []
+        "initialIntensityReport": {
+            "title": "Intensity",
+            "advanced": [
+                "sliceNumber",
+                "colorMap"
+            ]
         },
-        "laserPulse3Animation": {
-            "title": "RMS Beam Size Along Laser Pulse",
-            "advanced": []
+        "initialPhaseReport": {
+            "title": "Phase",
+            "advanced": [
+                "sliceNumber",
+                "colorMap"
+            ]
         },
-        "laserPulse4Animation": {
-            "title": "Intensity Along Laser Pulse",
-            "advanced": []
+        "lens": {
+            "title": "Lens",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "focalLength"
+            ]
         },
         "plotAnimation": {
             "title": "Radial Temperature Profile",
@@ -197,45 +311,22 @@
             "title": "Longitudinal Temperature Profile",
             "advanced": []
         },
-        "simulationSettings": {
-            "title": "Simulation Settings",
-            "basic": [
-                "n_reflections",
-                "cavity_length",
-                "gaussianBeam.rmsSize",
-                "sample_factor",
-                "sig_s",
-                "nslice"
-            ],
-            "advanced": [
-                ["Main", [
-                    "n_reflections",
-                    "cavity_length",
-                    "sample_factor",
-                    "sig_s",
-                    "nslice"
-                ]],
-                ["Beam", [
-                    "gaussianBeam.photonEnergy",
-                    "gaussianBeam.rmsSize",
-                    "gaussianBeam.polarization",
-                    "gaussianBeam.energyPerPulse",
-                    "gaussianBeam.initialPropagationLength"
-                ]]
-            ]
-        },
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
         },
-        "wavefrontAnimation": {
-            "title": "Wavefront",
-            "advanced": []
-        },
-        "wavefrontSummaryAnimation": {
-            "title": "Wavefront Summary",
+        "watch": {
+            "title": "Watchpoint",
+            "basic": [],
             "advanced": [
-                "element"
+                "title",
+                "position"
+            ]
+        },
+        "watchpointReport": {
+            "_super": ["_", "view", "initialIntensityReport"],
+            "advanced": [
+                "dataType"
             ]
         }
     }

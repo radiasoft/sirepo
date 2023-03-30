@@ -5,18 +5,15 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
-from rshellweg import solver
 from sirepo import simulation_db
 from sirepo.template import template_common, rshellweg_dump_reader
-import math
-import numpy as np
+import numpy
 import os.path
-import py.path
 import re
+import rshellweg.solver
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -35,6 +32,10 @@ WANT_BROWSER_FRAME_CACHE = True
 _DEFAULT_DRIFT_ELEMENT = "DRIFT 1e-16 1e+16 2" + "\n"
 
 _HELLWEG_PARSED_FILE = "PARSED.TXT"
+
+_PARAMETER_SCALE = PKDict(
+    rb=2.0,
+)
 
 
 def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
@@ -108,7 +109,7 @@ def sim_frame_beamAnimation(frame_args):
     model["x"] = x
     model["y"] = y
     # see issue #872
-    if not np.any(values):
+    if not numpy.any(values):
         values = [[], []]
     return template_common.heatmap(
         values,
@@ -128,7 +129,7 @@ def sim_frame_beamHistogramAnimation(frame_args):
         _dump_file(frame_args.run_dir), frame_args.frameIndex
     )
     points = rshellweg_dump_reader.get_points(beam_info, frame_args.reportType)
-    hist, edges = np.histogram(
+    hist, edges = numpy.histogram(
         points, template_common.histogram_bins(frame_args.histogramBins)
     )
     return {
@@ -143,18 +144,18 @@ def sim_frame_beamHistogramAnimation(frame_args):
 
 
 def sim_frame_parameterAnimation(frame_args):
-    s = solver.BeamSolver(
+    s = rshellweg.solver.BeamSolver(
         os.path.join(str(frame_args.run_dir), HELLWEG_INI_FILE),
         os.path.join(str(frame_args.run_dir), HELLWEG_INPUT_FILE),
     )
     s.load_bin(os.path.join(str(frame_args.run_dir), HELLWEG_DUMP_FILE))
     y1_var, y2_var = frame_args.reportType.split("-")
     x_field = "z"
-    x = s.get_structure_parameters(_parameter_index(x_field))
-    y1 = s.get_structure_parameters(_parameter_index(y1_var))
-    y1_extent = [np.min(y1), np.max(y1)]
-    y2 = s.get_structure_parameters(_parameter_index(y2_var))
-    y2_extent = [np.min(y2), np.max(y2)]
+    x = _scale_structure_parameters(s, x_field)
+    y1 = _scale_structure_parameters(s, y1_var)
+    y1_extent = [numpy.min(y1), numpy.max(y1)]
+    y2 = _scale_structure_parameters(s, y2_var)
+    y2_extent = [numpy.min(y2), numpy.max(y2)]
     return {
         "title": _enum_text("ParameterReportType", frame_args.reportType),
         "x_range": [x[0], x[-1]],
@@ -181,7 +182,7 @@ def sim_frame_particleAnimation(frame_args):
     x = particle_info["z_values"]
     return {
         "title": _enum_text("ParticleReportType", frame_args.reportType),
-        "x_range": [np.min(x), np.max(x)],
+        "x_range": [numpy.min(x), numpy.max(x)],
         "y_label": rshellweg_dump_reader.get_label(frame_args.reportType),
         "x_label": rshellweg_dump_reader.get_label(x_field),
         "x_points": x,
@@ -450,10 +451,6 @@ def _generate_transverse_dist(models):
     raise RuntimeError("unknown transverse distribution: {}".format(dist_type))
 
 
-def _parameter_index(name):
-    return rshellweg_dump_reader.parameter_index(name)
-
-
 def _parse_error_message(run_dir):
     path = os.path.join(str(run_dir), _HELLWEG_PARSED_FILE)
     if not os.path.exists(path):
@@ -471,6 +468,13 @@ def _report_title(report_type, enum_name, beam_info):
         _enum_text(enum_name, report_type),
         100 * rshellweg_dump_reader.get_parameter(beam_info, "z"),
     )
+
+
+def _scale_structure_parameters(solver, field):
+    v = solver.get_structure_parameters(rshellweg_dump_reader.parameter_index(field))
+    if field in _PARAMETER_SCALE:
+        return (_PARAMETER_SCALE[field] * numpy.array(v)).tolist()
+    return v
 
 
 def _summary_text(run_dir):
