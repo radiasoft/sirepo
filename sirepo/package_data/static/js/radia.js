@@ -1920,7 +1920,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                 }
                 if ('percentComplete' in data && ! data.error) {
                     if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
-                        $scope.solution = formatSolution(data.solution);
+                        $scope.solution = solutionValidForGeom() ? formatSolution(data.solution) : null;
                         if (solving) {
                             radiaService.syncReports();
                         }
@@ -1933,7 +1933,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             $scope.startSimulation = (mode='solve') => {
                 $scope.solution = null;
                 appState.models[$scope.modelName].mode = mode;
-                SIREPO.APP_SCHEMA.strings[$scope.modelName].typeOfSimulation = mode;
+                appState.models[$scope.modelName].objects = appState.clone(appState.models.geometryReport.objects);
                 solving = true;
                 $scope.simState.saveAndRunSimulation([$scope.modelName, 'simulation']);
             };
@@ -1948,6 +1948,13 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                     maxM: utilities.roundToPlaces(s.maxM, 4),
                     maxH: utilities.roundToPlaces(s.maxH, 4),
                 };
+            }
+
+            function solutionValidForGeom() {
+                return appState.deepEquals(
+                    appState.models[$scope.modelName].objects,
+                    appState.models.geometryReport.objects
+                );
             }
         },
     };
