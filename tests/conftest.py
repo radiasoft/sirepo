@@ -379,7 +379,7 @@ def _subprocess_start(request, fc_args):
                 pkdlog("{}={}", k, env[k])
         _subprocess(("sirepo", "service", "server"))
         # allow db to be created
-        time.sleep(0.5)
+        time.sleep(30)
         _subprocess(("sirepo", "job_supervisor"))
         _ping_supervisor(c.http_prefix + "/job-supervisor-ping")
         from sirepo import template
