@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """Common functionality that is shared between the server, supervisor, and driver.
 
-:copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2019-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import pykern.pkdebug
 import sirepo.const
+import sirepo.feature_config
 import sirepo.srdb
 import sirepo.util
 import re
@@ -159,11 +159,13 @@ def agent_cmd_stdin_env(cmd, env, uid, cwd=".", source_bashrc=""):
         cwd (str): directory for the agent to run in (will be created if it doesn't exist)
 
     Returns:
-        tuple: new cmd (tuple), stdin (file), env (PKDict)
+        tuple: new cmd (tuple), stdin (file), env (PKDict or None)
     """
     import os
     import tempfile
 
+    if sirepo.feature_config.cfg().trust_sh_env:
+        source_bashrc = ""
     t = tempfile.TemporaryFile()
     c = "exec " + " ".join(("'{}'".format(x) for x in cmd))
     # POSIT: we control all these values
@@ -183,6 +185,9 @@ cd '{}'
         ).encode()
     )
     t.seek(0)
+    if sirepo.feature_config.cfg().trust_sh_env:
+        # Trust the local environment
+        return ("bash", t, None)
     # it's reasonable to hardwire this path, even though we don't
     # do that with others. We want to make sure the subprocess starts
     # with a clean environment (no $PATH). You have to pass HOME.
@@ -212,8 +217,6 @@ def agent_env(uid, env=None):
             **x,
         )
         .pksetdefault(
-            PYTHONPATH="",
-            PYTHONSTARTUP="",
             PYTHONUNBUFFERED="1",
             SIREPO_AUTH_LOGGED_IN_USER=uid,
             SIREPO_JOB_MAX_MESSAGE_BYTES=_cfg.max_message_bytes,
@@ -224,6 +227,11 @@ def agent_env(uid, env=None):
             SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
         )
     )
+    if not sirepo.feature_config.cfg().trust_sh_env:
+        env.pksetdefault(
+            PYTHONPATH="",
+            PYTHONSTARTUP="",
+        )
     for k in env.keys():
         assert not pykern.pkdebug.SECRETS_RE.search(
             k
@@ -279,7 +287,9 @@ def init_module():
 
 
 def is_ok_reply(value):
-    return isinstance(value, PKDict) and value == _OK_REPLY
+    if not isinstance(value, PKDict):
+        return False
+    return value == _OK_REPLY or value.get("state") == COMPLETED
 
 
 def join_jid(uid, sid, compute_model):

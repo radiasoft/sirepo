@@ -703,7 +703,7 @@ def get_data_file(run_dir, model, frame, options):
     return _sdds(_report_output_filename("bunchReport"))
 
 
-def import_file(req, test_data=None, **kwargs):
+async def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
     d = test_data
     if "id" in req:
@@ -841,7 +841,7 @@ def sim_frame(frame_args):
     )
 
 
-def stateful_compute_get_beam_input_type(data):
+def stateful_compute_get_beam_input_type(data, **kwargs):
     if data.args.input_file:
         data.input_type = _sdds_beam_type_from_file(
             _SIM_DATA.lib_file_abspath(data.args.input_file),

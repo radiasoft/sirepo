@@ -8,6 +8,7 @@ import {
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
+import * as IconRegular from "@fortawesome/free-regular-svg-icons";
 import { Link, Route, Routes, Navigate, useParams } from "react-router-dom";
 import { SimulationRoot } from "./simulation";
 import { CRouteHelper } from "../utility/route";
@@ -130,7 +131,7 @@ function SimulationIconView(props: {
     ]
 
     return (
-        <div className="sr-sim-icon-view">
+        <div className="sr-sim-icon-view mt-3">
             {elements}
         </div>
     )
@@ -173,7 +174,7 @@ function SimulationIconViewItem(props: {
         <Link to={path}>
             <div className="sr-sim-icon-view-base sr-sim-icon-view-folder">
                 <div className="sr-sim-icon-view-icon-outer">
-                    <FontAwesomeIcon className="sr-sim-icon-view-icon sr-sim-icon-view-folder-icon" icon={Icon.faFile}/>
+                    <FontAwesomeIcon className="sr-sim-icon-view-icon sr-sim-icon-view-folder-icon" icon={IconRegular.faFile} />
                 </div>
                 <div className="sr-sim-icon-view-name text-center">
                     <span>

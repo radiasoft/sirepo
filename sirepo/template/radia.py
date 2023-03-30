@@ -271,7 +271,7 @@ def get_data_file(run_dir, model, frame, options):
         return f
 
 
-def import_file(req, tmp_dir=None, **kwargs):
+async def import_file(req, tmp_dir=None, **kwargs):
     data = simulation_db.default_data(req.type)
     data.models.simulation.pkupdate(
         {k: v for k, v in req.req_data.items() if k in data.models.simulation}
@@ -317,7 +317,7 @@ def sim_frame_fieldLineoutAnimation(frame_args):
     )
 
 
-def stateless_compute_build_shape_points(data):
+def stateless_compute_build_shape_points(data, **kwargs):
     o = data.args.object
     if not o.get("pointsFile"):
         return PKDict(
@@ -338,7 +338,7 @@ def stateless_compute_build_shape_points(data):
     return PKDict(points=pts)
 
 
-def stateless_compute_stl_size(data):
+def stateless_compute_stl_size(data, **kwargs):
     f = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
     )

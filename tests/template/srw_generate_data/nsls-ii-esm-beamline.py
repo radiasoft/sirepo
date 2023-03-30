@@ -408,7 +408,7 @@ varParam = [
     ['op_Grating_tvy', 'f', 0.012955216577138128, 'tvy'],
     ['op_Grating_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Grating_y', 'f', 0.0, 'verticalOffset'],
-    ['op_Grating_m', 'f', 1.0, 'diffractionOrder'],
+    ['op_Grating_m', 'f', 1, 'diffractionOrder'],
     ['op_Grating_grDen', 'f', 1800.0, 'grooveDensity0'],
     ['op_Grating_grDen1', 'f', 0.08997, 'grooveDensity1'],
     ['op_Grating_grDen2', 'f', 3.004e-06, 'grooveDensity2'],
@@ -569,6 +569,7 @@ def main():
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

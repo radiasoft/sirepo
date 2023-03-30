@@ -36,7 +36,7 @@ this_module = pkinspect.this_module()
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_cookieless_set_user", token="EmailAuthToken")
-    def api_authEmailAuthorized(self, simulation_type, token):
+    async def api_authEmailAuthorized(self, simulation_type, token):
         """Clicked by user in an email
 
         Token must exist in db and not be expired.
@@ -79,7 +79,7 @@ class API(sirepo.quest.API):
             self.auth.login_fail_redirect(req.type, this_module, "email-token")
 
     @sirepo.quest.Spec("require_cookie_sentinel", email="Email")
-    def api_authEmailLogin(self):
+    async def api_authEmailLogin(self):
         """Start the login process for the user.
 
         User has sent an email, which needs to be verified.
