@@ -480,7 +480,7 @@ def h5_to_dict(hf, path=None):
     return d
 
 
-def heatmap(values, model, plot_fields=None):
+def heatmap(values, model, plot_fields=None, weights=None):
     """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
     import numpy
 
@@ -499,6 +499,7 @@ def heatmap(values, model, plot_fields=None):
     hist, edges = numpy.histogramdd(
         values,
         histogram_bins(model["histogramBins"]),
+        weights=weights,
         range=r,
     )
     res = PKDict(
