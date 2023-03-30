@@ -19,9 +19,9 @@ test_js() {
 }
 
 test_main() {
-#    test_js
-#    test_no_h5py
-    pykern test
+    test_js
+    test_no_h5py
+    pykern ci run
 }
 
 test_no_h5py() {
