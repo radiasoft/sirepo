@@ -1242,12 +1242,15 @@ class _ImagePreview:
         if self.data.args.method in _POST_TRAINING_PLOTS and not _param_to_image(self.info):
             _, a = plt.subplots(3, 3)
             # TODO (gurhar1133): column labels for TES and better names for pets
-            a[0, 0].set_title("mask actual")
-            a[0, 1].set_title("mask pred")
+            a[0, 0].set_title("original contour")
+            a[0, 1].set_title("predicted contour")
             a[0, 2].set_title("image")
             plt.setp(a, xticks=[], yticks=[])
             return a
         _, a = plt.subplots(3, 2)
+        if _param_to_image(self.info):
+            a[0, 0].set_title("actual")
+            a[0, 1].set_title("predicted")
         plt.setp(a, xticks=[], yticks=[])
         return a
 
