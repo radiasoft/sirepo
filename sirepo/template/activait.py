@@ -1129,7 +1129,7 @@ def _dice_coefficient_plot(data, run_dir, y_shape):
             )
 
         d = []
-        x, y = _masks(y_shape[0], y_shape[1], run_dir)
+        x, y, _ = _masks(y_shape[0], y_shape[1], run_dir)
         for pair in zip(x, y):
             d.append(_dice_coefficient(pair[0], pair[1]))
         return d
@@ -1229,9 +1229,11 @@ def _image_preview(data, run_dir=None):
             return
         if _image_out(info):
             c = [params.input, params.output]
-            if params.get("original"):
-                c.insert(0, params.get("original"))
+            if params.get("original") is not None:
+                c.append(params.get("original"))
             for i, column in enumerate(c):
+                pkdp("\n\n\n\n\n column.shape={}", column.shape)
+                pkdp("\ncolumn={}", column)
                 params.axes[params.row, i].imshow(column)
             return
         params.plt.subplot(_IMG_ROWS, _IMG_COLS, params.row + 1)
@@ -1291,6 +1293,10 @@ def _image_preview(data, run_dir=None):
             plt.figure(figsize=[10, 10])
             axarr = _set_image_to_image_plt(plt, data) if _image_out(info) else None
             for j in range(i):
+                if o is not None:
+                    original_img = o[j]
+                else:
+                    original_img = None
                 v = x[k + j]
                 if io.input.kind == "f":
                     v = v.astype(float)
@@ -1301,6 +1307,7 @@ def _image_preview(data, run_dir=None):
                         output=y[k + j],
                         input=v,
                         plt=plt,
+                        original=original_img,
                         file=f,
                         io=io,
                         row=j,

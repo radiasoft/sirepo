@@ -111,10 +111,14 @@ np.save('{{ predictFile }}', p)
 np.save('{{ bestFile }}', o.best)
 print(type(testx))
 original_x = []
-for i, img in testx:
-    print(i, img)
-    original_x.append(img)
-print(original_x.shape)
+for batch in testx:
+    for img in batch:
+        print(img.shape)
+        original_x.append(img)
+original_x = np.array(original_x)
+print(original_x)
+np.reshape(original_x, (-1, 64, 64, 3))
+print(original_x)
 np.save('{{ originalImageInFile }}', original_x)
 np.save('{{ worstFile }}', o.worst)
 {% endif %}
