@@ -66,10 +66,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     const POST_SIM_REPORTS = ['electronTrajectoryReport', 'fieldIntegralReport', 'fieldLineoutAnimation', 'kickMapReport',];
 
-    // why is this here? - answer: for getting frames
-    self.computeModel = function(analysisModel) {
-        return 'fieldLineoutAnimation';
-    };
+    self.computeModel = analysisModel => analysisModel;
 
     appState.setAppService(self);
 
@@ -1085,7 +1082,7 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
             </div>
         `,
         controller: function($scope, $element) {
-            const doSaveGeom = appState.superClasses($scope.modelName).includes('radiaObject');
+            const doSaveGeom = true;  //appState.superClasses($scope.modelName).includes('radiaObject');
             let expanded = {};
             for (const i in $scope.field) {
                 expanded[i] = false;
