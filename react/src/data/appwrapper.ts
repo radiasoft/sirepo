@@ -1,5 +1,7 @@
 import React from "react"
-import { SimulationInfo } from "../component/simulation"
+import { SimulationInfo, SimulationInfoRaw } from "../component/simulation"
+import { StoreState } from "../store/common"
+import { ModelState } from "../store/models"
 import { RouteHelper } from "../utility/route"
 import { Schema } from "../utility/schema"
 
@@ -104,5 +106,16 @@ export class AppWrapper {
                 simulationType: this.appName
             })
         }).then();
+    }
+
+    saveModelsToServer = (simulationInfo: SimulationInfoRaw, models: StoreState<ModelState>): Promise<Response> => {
+        simulationInfo.models = models;
+        return fetch("/save-simulation", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(simulationInfo)
+        })
     }
 }

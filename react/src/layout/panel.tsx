@@ -5,10 +5,14 @@ import { useStore } from "react-redux";
 import { EditorPanel } from "../component/reusable/panel";
 import "./panel.scss";
 import React from "react";
-import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { AppWrapper, CAppWrapper, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
 import { useShown } from "../hook/shown";
+import { StoreType } from "../data/data";
+import { CHandleFactory } from "../data/handle";
+import { FormStateHandleFactory } from "../data/form";
+import { modelsSlice } from "../store/models";
 
 export type PanelConfig = {
     basic: SchemaLayout[],
@@ -34,12 +38,14 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
     component = (props: LayoutProps<{}>) => {
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let schema = useContext(CSchema);
+        let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
+        let appWrapper = useContext(CAppWrapper);
 
-        let shown = useShown(this.config.shown, true, modelsWrapper, ValueSelectors.Models);
+        let shown = useShown(this.config.shown, true, StoreType.Models);
 
         let store = useStore();
 
-        let title = interpolate(this.config.title).withDependencies(modelsWrapper, ValueSelectors.Models).raw();
+        let title = interpolate(this.config.title).withDependencies(formHandleFactory, StoreType.Models).raw();
 
         let mapLayoutsToComponents = (views: Layout[]) => views.map((child, idx) => {
             let LayoutComponent = child.component;
@@ -50,9 +56,8 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         let modalChildren = (!!this.advanced) ? mapLayoutsToComponents(this.advanced) : undefined;
 
         let submit = () => {
-            //formController.saveToModels(store.getState());
             simulationInfoPromise.then(simulationInfo => {
-                (modelsWrapper as ModelsWrapper).saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
+                appWrapper.saveModelsToServer(simulationInfo, store.getState()[modelsSlice.name]);
             })
 
         }
