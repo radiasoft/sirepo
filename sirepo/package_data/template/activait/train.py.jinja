@@ -110,19 +110,12 @@ np.save('{{ predictFile }}', p)
 {% if imageOut %}
 np.save('{{ bestFile }}', o.best)
 if len(testx.original_shape_x) > 2:
-    print(type(testx))
     original_x = []
     for batch in testx:
         for img in batch:
-            print(img.shape)
             original_x.append(img)
     original_x = np.array(original_x)
-    print(original_x)
-    # TODO (gurhar1133): needs to not be hardcoded
-    # Try using testx.x_channels
-    # and needs to not be called when not image x
-    np.reshape(original_x, (-1, *testx.x_channels))
-    print(original_x)
+    np.reshape(original_x, (-1, *testx.original_shape_x[1:]))
     np.save('{{ originalImageInFile }}', original_x)
 np.save('{{ worstFile }}', o.worst)
 {% endif %}
