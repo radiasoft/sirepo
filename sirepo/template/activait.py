@@ -1182,7 +1182,6 @@ def _image_preview(data, run_dir=None):
         )[method].flatten()
         i.sort()
         pkdp("\n\n\ni = {}", i)
-        # TODO (gurhar1133): use indices to get original images
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
         o = _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)
@@ -1321,6 +1320,7 @@ def _image_preview(data, run_dir=None):
                         output=y[k + j],
                         input=v,
                         plt=plt,
+                        # TODO (gurhar1133): fix for TES and other image examples
                         original=original_img,
                         file=f,
                         io=io,
