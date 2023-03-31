@@ -159,11 +159,11 @@ _LOWERCASE_FIELDS = set(["focal_x", "focal_z"])
 _WIGGLER_TRAJECTORY_FILENAME = "xshwig.sha"
 
 
-def stateless_compute_harmonic_photon_energy(data):
+def stateless_compute_harmonic_photon_energy(data, **kwargs):
     return _compute_harmonic_photon_energy(data.args)
 
 
-def stateful_compute_convert_to_srw(data):
+def stateful_compute_convert_to_srw(data, **kwargs):
     return sirepo.template.srw_shadow.Convert().to_srw(data)
 
 

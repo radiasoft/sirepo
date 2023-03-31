@@ -385,7 +385,7 @@ def sim_frame_turnComparisonAnimation(frame_args):
         }
 
 
-def stateless_compute_calculate_bunch_parameters(data):
+def stateless_compute_calculate_bunch_parameters(data, **kwargs):
     return _calc_bunch_parameters(data.args.bunch)
 
 

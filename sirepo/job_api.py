@@ -275,7 +275,9 @@ class API(sirepo.quest.API):
                     f"expected json content-type={r.headers['content-type']}"
                 )
             j = pkjson.load_any(r.body)
-            if d and sirepo.job.is_ok_reply(j):
+            if d and (
+                sirepo.job.is_ok_reply(j) or j.get("state") == sirepo.job.COMPLETED
+            ):
                 return self._reply_with_file(d)
             return j
 
