@@ -1109,8 +1109,7 @@ def _data_url(filename):
 
 
 def _masks(out_width, out_height, run_dir, method):
-    # TODO (gurhar1133): in this case need to write corresponding
-    # original images to file to be read here
+    # TODO (gurhar1133): o should be None if input is non-image
     pkdp("\n\n\n method={}", method)
     x = _read_file(run_dir, _OUTPUT_FILE.testFile)
     x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
@@ -1121,8 +1120,6 @@ def _masks(out_width, out_height, run_dir, method):
 
 def _original_images(method, run_dir):
     if method == "segmentViewer":
-        pkdp("\n\n\n method={}", method)
-        # TODO (gurhar1133): not returning all pages of images
         return _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)
     return None
 
@@ -1138,7 +1135,6 @@ def _dice_coefficient_plot(data, run_dir, y_shape):
             )
 
         d = []
-        pkdp("\n\n\ndata.args={}", data.args)
         x, y, _ = _masks(y_shape[0], y_shape[1], run_dir, data.method)
         for pair in zip(x, y):
             d.append(_dice_coefficient(pair[0], pair[1]))
@@ -1181,11 +1177,11 @@ def _image_preview(data, run_dir=None):
             worstLosses=_read_file(run_dir, _OUTPUT_FILE.worstFile),
         )[method].flatten()
         i.sort()
-        pkdp("\n\n\ni = {}", i)
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+        # TODO (gurhar1133): condition for when o should be None:
+        # if non-image input
         o = _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)
-        pkdp("\n\n\n len={}", len(x) // y_shape[0] // y_shape[1])
         return (
             x.reshape(len(x) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
             y.reshape(len(y) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
@@ -1210,7 +1206,6 @@ def _image_preview(data, run_dir=None):
         return _image_grid(len(x))
 
     def _set_image_to_image_plt(plt, data):
-
         if data.args.method in _POST_TRAINING_PLOTS:
             _, a = plt.subplots(3, 3)
             a[0, 0].set_title("mask actual")
@@ -1288,13 +1283,7 @@ def _image_preview(data, run_dir=None):
             kind="f",
         )
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
-        # TODO (gurhar1133): need a third output, from _x_y() for original image
-        # output should be PKDict and then can pass in params PKDict to _gen_image etc.
         x, y, o = _x_y(data, io, f, run_dir=run_dir)
-        if data.args.method == "imagePreview":
-            pkdp("\n\n\n\n x={}", x)
-        if data.args.method == "segmentViewer":
-            pkdp("\n\n\n\n og={}", o)
         u = []
         k = 0
         g = (
