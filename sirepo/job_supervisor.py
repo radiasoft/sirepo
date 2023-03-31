@@ -1024,7 +1024,7 @@ class _ComputeJob(_Supervisor):
                 r.computeJobSerial = self.db.computeJobSerial
                 r.computeModel = self.db.computeModel
                 r.elapsedTime = self.elapsed_time()
-                r.queueState = self.db.queueState
+                r.queueState = self.db.get("queueState")
             if self._is_running_pending():
                 c = req.content
                 r.update(
