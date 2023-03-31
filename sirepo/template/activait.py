@@ -1108,7 +1108,7 @@ def _data_url(filename):
     return u
 
 
-def _masks(out_width, out_height, run_dir, method,  data, file):
+def _masks(out_width, out_height, run_dir, method):
     # TODO (gurhar1133): in this case need to write corresponding
     # original images to file to be read here
     pkdp("\n\n\n method={}", method)
@@ -1116,16 +1116,14 @@ def _masks(out_width, out_height, run_dir, method,  data, file):
     x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
     y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
     y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
-    return x, y, _original_images(method, data, file)
+    return x, y, _original_images(method, run_dir)
 
 
-def _original_images(method, data, file):
+def _original_images(method, run_dir):
     if method == "segmentViewer":
         pkdp("\n\n\n method={}", method)
-        pkdp("\n\n\n data.args.columnInfo.header={}", data.args.columnInfo.header)
-        pkdp("\n\n\n file={}", file)
         # TODO (gurhar1133): not returning all pages of images
-        return file['images']
+        return _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)
     return None
 
 
@@ -1141,7 +1139,7 @@ def _dice_coefficient_plot(data, run_dir, y_shape):
 
         d = []
         pkdp("\n\n\ndata.args={}", data.args)
-        x, y, _ = _masks(y_shape[0], y_shape[1], run_dir, data.method, None, None)
+        x, y, _ = _masks(y_shape[0], y_shape[1], run_dir, data.method)
         for pair in zip(x, y):
             d.append(_dice_coefficient(pair[0], pair[1]))
         return d
@@ -1199,7 +1197,7 @@ def _image_preview(data, run_dir=None):
         if data.args.method == "segmentViewer":
             w = numpy.array(file[io.output.path]).shape[-1]
             h = numpy.array(file[io.output.path]).shape[-2]
-            return _masks(w, h, run_dir, data.args.method, data, file)
+            return _masks(w, h, run_dir, data.args.method)
         if data.args.method in ("bestLosses", "worstLosses"):
             i = data.args.columnInfo.inputOutput.index("output")
             return _by_indices(
@@ -1294,6 +1292,10 @@ def _image_preview(data, run_dir=None):
         # TODO (gurhar1133): need a third output, from _x_y() for original image
         # output should be PKDict and then can pass in params PKDict to _gen_image etc.
         x, y, o = _x_y(data, io, f, run_dir=run_dir)
+        if data.args.method == "imagePreview":
+            pkdp("\n\n\n\n x={}", x)
+        if data.args.method == "segmentViewer":
+            pkdp("\n\n\n\n og={}", o)
         u = []
         k = 0
         g = (
