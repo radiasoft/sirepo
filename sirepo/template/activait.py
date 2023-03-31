@@ -1108,14 +1108,24 @@ def _data_url(filename):
     return u
 
 
-def _masks(out_width, out_height, run_dir):
+def _masks(out_width, out_height, run_dir, method,  data, file):
     # TODO (gurhar1133): in this case need to write corresponding
     # original images to file to be read here
+    pkdp("\n\n\n method={}", method)
     x = _read_file(run_dir, _OUTPUT_FILE.testFile)
     x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
     y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
     y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
-    return x, y, None
+    return x, y, _original_images(method, data, file)
+
+
+def _original_images(method, data, file):
+    if method == "segmentViewer":
+        pkdp("\n\n\n method={}", method)
+        pkdp("\n\n\n data.args.columnInfo.header={}", data.args.columnInfo.header)
+        pkdp("\n\n\n file={}", file)
+        return file['images']
+    return None
 
 
 def _dice_coefficient_plot(data, run_dir, y_shape):
@@ -1129,7 +1139,8 @@ def _dice_coefficient_plot(data, run_dir, y_shape):
             )
 
         d = []
-        x, y, _ = _masks(y_shape[0], y_shape[1], run_dir)
+        pkdp("\n\n\ndata.args={}", data.args)
+        x, y, _ = _masks(y_shape[0], y_shape[1], run_dir, data.method, None, None)
         for pair in zip(x, y):
             d.append(_dice_coefficient(pair[0], pair[1]))
         return d
@@ -1187,7 +1198,7 @@ def _image_preview(data, run_dir=None):
         if data.args.method == "segmentViewer":
             w = numpy.array(file[io.output.path]).shape[-1]
             h = numpy.array(file[io.output.path]).shape[-2]
-            return _masks(w, h, run_dir)
+            return _masks(w, h, run_dir, data.args.method, data, file)
         if data.args.method in ("bestLosses", "worstLosses"):
             i = data.args.columnInfo.inputOutput.index("output")
             return _by_indices(
@@ -1232,8 +1243,8 @@ def _image_preview(data, run_dir=None):
             if params.get("original") is not None:
                 c.append(params.get("original"))
             for i, column in enumerate(c):
-                pkdp("\n\n\n\n\n column.shape={}", column.shape)
-                pkdp("\ncolumn={}", column)
+                # pkdp("\n\n\n\n\n column.shape={}", column.shape)
+                # pkdp("\ncolumn={}", column)
                 params.axes[params.row, i].imshow(column)
             return
         params.plt.subplot(_IMG_ROWS, _IMG_COLS, params.row + 1)
