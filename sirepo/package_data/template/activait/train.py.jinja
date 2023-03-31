@@ -117,6 +117,9 @@ for batch in testx:
         original_x.append(img)
 original_x = np.array(original_x)
 print(original_x)
+# TODO (gurhar1133): needs to not be hardcoded
+# Try using testx.x_channels
+# and needs to not be called when not image x
 np.reshape(original_x, (-1, 64, 64, 3))
 print(original_x)
 np.save('{{ originalImageInFile }}', original_x)
