@@ -1308,7 +1308,7 @@ def _image_preview(data, run_dir=None):
             axarr = _set_image_to_image_plt(plt, data) if _image_out(info) else None
             for j in range(i):
                 if o is not None:
-                    original_img = o[j]
+                    original_img = o[k + j]
                 else:
                     original_img = None
                 v = x[k + j]
