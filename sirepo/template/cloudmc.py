@@ -90,7 +90,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 
-def stateful_compute_download_remote_lib_file(data):
+def stateful_compute_download_remote_lib_file(data, **kwargs):
     return template_common.remote_file_to_simulation_lib(
         _SIM_DATA,
         "{}/{}".format(
@@ -135,7 +135,7 @@ def sim_frame(frame_args):
     )
 
 
-def stateless_compute_validate_material_name(data):
+def stateless_compute_validate_material_name(data, **kwargs):
     import openmc
 
     res = PKDict()
