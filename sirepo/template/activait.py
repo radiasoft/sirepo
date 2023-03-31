@@ -1108,58 +1108,59 @@ def _data_url(filename):
     return u
 
 
-def _masks(out_width, out_height, run_dir, method):
-    # TODO (gurhar1133): o should be None if input is non-image
-    pkdp("\n\n\n method={}", method)
-    x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-    x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
-    y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-    y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
-    return x, y, _original_images(method, run_dir)
-
-
-def _original_images(method, run_dir):
-    if method == "segmentViewer":
-        return _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)
-    return None
-
-
-def _dice_coefficient_plot(data, run_dir, y_shape):
-    import matplotlib.pyplot as plt
-
-    def _dice(run_dir):
-        def _dice_coefficient(mask1, mask2):
-            return round(
-                (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
-                3,
-            )
-
-        d = []
-        x, y, _ = _masks(y_shape[0], y_shape[1], run_dir, data.method)
-        for pair in zip(x, y):
-            d.append(_dice_coefficient(pair[0], pair[1]))
-        return d
-
-    plt.figure(figsize=[10, 10])
-    plt.hist(_dice(run_dir))
-    plt.xlabel("Dice Scores", fontsize=20)
-    plt.ylabel("Counts", fontsize=20)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    p = _SIM_DATA.lib_file_write_path(data.args.imageFilename) + ".png"
-    plt.tight_layout()
-    plt.savefig(p)
-    return PKDict(
-        uris=[_data_url(p)],
-    )
-
-
 def _image_preview(data, run_dir=None):
     import matplotlib.pyplot as plt
 
     def _image_grid(num_images):
         num_pages = min(5, 1 + (num_images - 1) // 25)
         return [min(25, num_images - 25 * i) for i in range(num_pages)]
+
+
+    def _masks(out_width, out_height, run_dir, method):
+        # TODO (gurhar1133): o should be None if input is non-image
+        pkdp("\n\n\n method={}", method)
+        x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+        x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
+        y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+        y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
+        return x, y, _original_images(method, run_dir)
+
+
+    def _original_images(method, run_dir):
+        if method == "segmentViewer" and not _param_to_image(info):
+            return _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)
+        return None
+
+
+    def _dice_coefficient_plot(data, run_dir, y_shape):
+        import matplotlib.pyplot as plt
+
+        def _dice(run_dir):
+            def _dice_coefficient(mask1, mask2):
+                return round(
+                    (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
+                    3,
+                )
+
+            d = []
+            x, y, _ = _masks(y_shape[0], y_shape[1], run_dir, data.method)
+            for pair in zip(x, y):
+                d.append(_dice_coefficient(pair[0], pair[1]))
+            return d
+
+        plt.figure(figsize=[10, 10])
+        plt.hist(_dice(run_dir))
+        plt.xlabel("Dice Scores", fontsize=20)
+        plt.ylabel("Counts", fontsize=20)
+        plt.xticks(fontsize=14)
+        plt.yticks(fontsize=14)
+        p = _SIM_DATA.lib_file_write_path(data.args.imageFilename) + ".png"
+        plt.tight_layout()
+        plt.savefig(p)
+        return PKDict(
+            uris=[_data_url(p)],
+        )
+
 
     def _output(info, io):
         if "output" in info.inputOutput:
@@ -1179,13 +1180,14 @@ def _image_preview(data, run_dir=None):
         i.sort()
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-        # TODO (gurhar1133): condition for when o should be None:
-        # if non-image input
-        o = _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)
+        x = x.reshape(len(x) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i]
+        y = y.reshape(len(y) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i]
+        if _param_to_image(info):
+            return x, y, None
         return (
-            x.reshape(len(x) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
-            y.reshape(len(y) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
-            o[i],
+            x,
+            y,
+            _read_file(run_dir, _OUTPUT_FILE.originalImageInFile)[i],
         )
 
     def _x_y(data, io, file, run_dir=None):
@@ -1206,7 +1208,7 @@ def _image_preview(data, run_dir=None):
         return _image_grid(len(x))
 
     def _set_image_to_image_plt(plt, data):
-        if data.args.method in _POST_TRAINING_PLOTS:
+        if data.args.method in _POST_TRAINING_PLOTS and not _param_to_image(info):
             _, a = plt.subplots(3, 3)
             a[0, 0].set_title("mask actual")
             a[0, 1].set_title("mask pred")
@@ -1236,8 +1238,6 @@ def _image_preview(data, run_dir=None):
             if params.get("original") is not None:
                 c.append(params.get("original"))
             for i, column in enumerate(c):
-                # pkdp("\n\n\n\n\n column.shape={}", column.shape)
-                # pkdp("\ncolumn={}", column)
                 params.axes[params.row, i].imshow(column)
             return
         params.plt.subplot(_IMG_ROWS, _IMG_COLS, params.row + 1)
