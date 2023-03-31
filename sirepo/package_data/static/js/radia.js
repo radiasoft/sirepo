@@ -223,6 +223,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
+        srdbg('SAVE GEOM GEN?', doGenerate, 'Q?', isQuiet);
         appState.models.geometryReport.lastModified = Date.now();
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
@@ -1084,6 +1085,7 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
             </div>
         `,
         controller: function($scope, $element) {
+            const doSaveGeom = appState.superClasses($scope.modelName).includes('radiaObject');
             let expanded = {};
             for (const i in $scope.field) {
                 expanded[i] = false;
@@ -1114,7 +1116,9 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
             $scope.deleteItem = index => {
                 $scope.field.splice(index, 1);
                 delete expanded[index];
-                radiaService.saveGeometry(true);
+                if (doSaveGeom) {
+                   radiaService.saveGeometry(true);
+                }
             };
 
             $scope.fieldLabel = (modelName, field) => info(modelName, field)[SIREPO.INFO_INDEX_LABEL];
@@ -1155,7 +1159,9 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
                     return;
                 }
                 $scope.selectedItem = null;
-                radiaService.saveGeometry(true, false);
+                if (doSaveGeom) {
+                    radiaService.saveGeometry(true, false);
+                }
             });
 
             $scope.$on('cancelChanges', (e, name) => {
