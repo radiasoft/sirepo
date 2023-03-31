@@ -1099,6 +1099,7 @@ def _histogram_plot(values, vrange):
     y.insert(0, 0)
     return x, y
 
+
 class _ImagePreview:
     def __init__(self, data, run_dir=None):
         self.data = data
@@ -1136,7 +1137,6 @@ class _ImagePreview:
         self.info = info
         self.io = io
 
-
     def _data_url(self, filename):
         f = open(filename, "rb")
         u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
@@ -1147,7 +1147,6 @@ class _ImagePreview:
         num_pages = min(5, 1 + (num_images - 1) // 25)
         return [min(25, num_images - 25 * i) for i in range(num_pages)]
 
-
     def _masks(self, out_width, out_height, method):
         x = _read_file(self.run_dir, _OUTPUT_FILE.testFile)
         x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
@@ -1155,21 +1154,23 @@ class _ImagePreview:
         y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
         return x, y, self._original_images(method)
 
-
     def _original_images(self, method):
         if method == "segmentViewer" and not _param_to_image(self.info):
             return _read_file(self.run_dir, _OUTPUT_FILE.originalImageInFile)
         return None
 
-
     def dice_coefficient_plot(self):
         import matplotlib.pyplot as plt
 
-        s = self.data.args.columnInfo.shape[self.data.args.columnInfo.inputOutput.index("output")][1:]
+        s = self.data.args.columnInfo.shape[
+            self.data.args.columnInfo.inputOutput.index("output")
+        ][1:]
+
         def _dice():
             def _dice_coefficient(mask1, mask2):
                 return round(
-                    (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
+                    (2 * numpy.sum(mask1 * mask2))
+                    / (numpy.sum(mask1) + numpy.sum(mask2)),
                     3,
                 )
 
@@ -1191,7 +1192,6 @@ class _ImagePreview:
         return PKDict(
             uris=[self._data_url(p)],
         )
-
 
     def _output(self, info, io):
         if "output" in info.inputOutput:
@@ -1239,23 +1239,27 @@ class _ImagePreview:
         return self._image_grid(len(x))
 
     def _set_image_to_image_plt(self, plt):
-        if self.data.args.method in _POST_TRAINING_PLOTS and not _param_to_image(self.info):
+        if self.data.args.method in _POST_TRAINING_PLOTS and not _param_to_image(
+            self.info
+        ):
             _, a = plt.subplots(3, 3)
-            # TODO (gurhar1133): column labels for TES and better names for pets
             a[0, 0].set_title("original contour")
             a[0, 1].set_title("predicted contour")
             a[0, 2].set_title("image")
             plt.setp(a, xticks=[], yticks=[])
             return a
         _, a = plt.subplots(3, 2)
-        if _param_to_image(self.info):
+        if _param_to_image(self.info) and self.data.args.method != "imagePreview":
             a[0, 0].set_title("actual")
             a[0, 1].set_title("predicted")
         plt.setp(a, xticks=[], yticks=[])
         return a
 
     def _gen_image(self):
-        if _param_to_image(self.info) and not self.data.args.method in _POST_TRAINING_PLOTS:
+        if (
+            _param_to_image(self.info)
+            and not self.data.args.method in _POST_TRAINING_PLOTS
+        ):
             for section in ("top", "right", "bottom", "left"):
                 self.axes[self.row, 0].spines[section].set_visible(False)
             self.axes[self.row, 0].text(
@@ -1305,7 +1309,9 @@ class _ImagePreview:
             )
             for i in g:
                 plt.figure(figsize=[10, 10])
-                self.axes = self._set_image_to_image_plt(plt) if _image_out(self.info) else None
+                self.axes = (
+                    self._set_image_to_image_plt(plt) if _image_out(self.info) else None
+                )
                 for j in range(i):
                     self.row = j
                     if o is not None:
