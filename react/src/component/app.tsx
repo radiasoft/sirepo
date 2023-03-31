@@ -14,12 +14,7 @@ import { CRouteHelper, RouteHelper } from "../utility/route";
 import { getAppCombinedSchema } from "../utility/schema";
 
 export const AppContextWrapper = (props) => {
-    const modelsStore = configureStore({ // TODO: this belongs on the simulation root component
-        reducer: {
-            [modelsSlice.name]: modelsSlice.reducer,
-            [formStatesSlice.name]: formStatesSlice.reducer,
-        },
-    });
+    
     let appName = useContext(CAppName);
     const [hasAppSchema, schema] = useSetup(true, getAppCombinedSchema(appName));
 
@@ -27,15 +22,13 @@ export const AppContextWrapper = (props) => {
         const routeHelper = new RouteHelper(appName, schema);
         let appWrapper = new AppWrapper(appName, routeHelper);
         return (
-            <Provider store={modelsStore}>
-                <CAppWrapper.Provider value={appWrapper}>
-                    <CSchema.Provider value={schema}>
-                        <CRouteHelper.Provider value={routeHelper}>
-                            {props.children}
-                        </CRouteHelper.Provider>
-                    </CSchema.Provider>
-                </CAppWrapper.Provider>
-            </Provider>
+            <CAppWrapper.Provider value={appWrapper}>
+                <CSchema.Provider value={schema}>
+                    <CRouteHelper.Provider value={routeHelper}>
+                        {props.children}
+                    </CRouteHelper.Provider>
+                </CSchema.Provider>
+            </CAppWrapper.Provider>
         )
     }
     return undefined;

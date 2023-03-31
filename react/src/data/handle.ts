@@ -1,7 +1,10 @@
+import React from "react";
 import { useSelector } from "react-redux";
 import { AnyAction, Dispatch } from "redux";
 import { ArrayFieldElement, ArrayFieldState } from "../store/common";
 import { getModelReadSelector, getModelWriteActionCreator, StoreType } from "./data";
+
+export const CHandleFactory = React.createContext<HandleFactory>(undefined);
 
 export abstract class DataHandle<V> {
     constructor(protected currentValue: V) {

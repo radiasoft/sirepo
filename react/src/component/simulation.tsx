@@ -11,7 +11,8 @@ import React, {
 import {
     modelSelectors,
     modelActions,
-    ModelState
+    ModelState,
+    modelsSlice
 } from "../store/models";
 import { FormStateInitializer } from "./reusable/form";
 import { useNavigate, useResolvedPath } from "react-router-dom";
@@ -27,8 +28,12 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
 import { downloadAs, getAttachmentFileName } from "../utility/download";
-import { useStore } from "react-redux";
+import { Provider, useDispatch } from "react-redux";
 import { StoreState } from "../store/common";
+import { configureStore } from "@reduxjs/toolkit";
+import { formStatesSlice } from "../store/formState";
+import { BaseHandleFactory, CHandleFactory } from "../data/handle";
+import { StoreType } from "../data/data";
 
 export type SimulationInfoRaw = {
     models: StoreState<ModelState>,
@@ -43,11 +48,18 @@ export type SimulationInfo = SimulationInfoRaw & {
 function SimulationInfoInitializer(props: { simulationId: string } & {[key: string]: any}) {
     let { simulationId } = props;
 
+    const modelsStore = configureStore({ // TODO: this belongs on the simulation root component
+        reducer: {
+            [modelsSlice.name]: modelsSlice.reducer,
+            [formStatesSlice.name]: formStatesSlice.reducer,
+        },
+    });
+
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
-    let store = useStore();
+    let dispatch = useDispatch();
 
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
@@ -58,12 +70,14 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
             })).then(async (resp) => {
                 let simulationInfo = await resp.json();
                 let models = simulationInfo['models'] as ModelState[];
-                console.log("models", models);
 
                 for(let [modelName, model] of Object.entries(models)) {
-                    modelsWrapper.updateModel(modelName, model, store.getState());
+                    dispatch(modelActions.updateModel({
+                        name: modelName,
+                        value: model
+                    }))
                 }
-
+                
                 resolve({...simulationInfo, simulationId});
                 updateHasInit(true);
             })
@@ -71,11 +85,13 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
     }, [])
 
     return hasInit && simulationInfoPromise && (
-        <CModelsWrapper.Provider value={modelsWrapper}>
-            <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
-                {props.children}
-            </CSimulationInfoPromise.Provider>
-        </CModelsWrapper.Provider>
+        <Provider store={modelsStore}>
+            <CHandleFactory.Provider value={new BaseHandleFactory()}>
+                <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
+                    {props.children}
+                </CSimulationInfoPromise.Provider>
+            </CHandleFactory.Provider>
+        </Provider>
     )
 }
 
@@ -238,12 +254,11 @@ export function SimulationOuter(props) {
     let pathPrefix = useResolvedPath('');
     let currentRelativeRouter = new RelativeRouteHelper(pathPrefix);
 
-    let modelsWrapper = useContext(CModelsWrapper);
-    let simNameDep = new Dependency("simulation.name");
-    let simNameAccessor = new ModelsAccessor(modelsWrapper, [simNameDep]);
+    let handleFactory = useContext(CHandleFactory);
+    let simNameHandle = handleFactory.createHandle(new Dependency("simulation.name"), StoreType.Models).hook();
 
     useEffect(() => {
-        document.title = simNameAccessor.getFieldValue(simNameDep) as string;
+        document.title = simNameHandle.value as string;
     })
 
     // TODO: navbar should route to home, when one is made

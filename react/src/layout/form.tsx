@@ -8,24 +8,24 @@ import {
 } from "react-bootstrap";
 import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
-import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
 import { useShown } from "../hook/shown";
-import { CModelsWrapper, CFormStateWrapper, ModelsWrapperWithAliases, AbstractModelsWrapper, ModelAliases, ModelHandle } from "../data/wrapper";
-import { useStore } from "react-redux";
+import { useDispatch, useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
-import { ValueSelectors } from "../utility/string";
 import { Schema } from "../utility/schema";
+import { FormStateHandleFactory } from "../data/saver";
+import { CHandleFactory } from "../data/handle";
+import { StoreType } from "../data/data";
+import { FormFieldState } from "../store/formState";
 
-export function FormControllerElement(props: {children?: React.ReactNode, dependencies: Dependency[]}) {
-    let formState = useContext(CFormStateWrapper);
+export function FormControllerElement(props: {children?: React.ReactNode}) {
     let schema = useContext(CSchema);
-    let modelsWrapper = useContext(CModelsWrapper);
-    let formController = new FormController(formState, modelsWrapper, props.dependencies, schema);
+    let formHandleFactory = new FormStateHandleFactory(schema);
+    // TODO: form controller might need to "subscribe to updates" during save
 
     return (
-        <CFormController.Provider value={formController}>
+        <CHandleFactory.Provider value={formHandleFactory}>
             { props.children }
-        </CFormController.Provider>
+        </CHandleFactory.Provider>
     )
 }
 
@@ -39,7 +39,7 @@ export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutT
             this.component = (props) => {
                 let ChildComponent = childComponent;
                 return (
-                    <FormControllerElement dependencies={this.getFormDependencies()} {...props}>
+                    <FormControllerElement {...props}>
                         <ChildComponent {...props}/>
                     </FormControllerElement>
                 )
@@ -71,11 +71,10 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        let formController = useContext(CFormController);
-        let formState = useContext(CFormStateWrapper);
+        let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         let schema = useContext(CSchema);
-        let store = useStore();
-        let gridShown = useShown(this.config.shown, true, formState, ValueSelectors.Fields);
+        let dispatch = useDispatch();
+        let gridShown = useShown(this.config.shown, true, StoreType.FormState);
 
         if (! gridShown) {
             return <></>
@@ -96,27 +95,28 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
 
         for(let idx = 0; idx < rows.length; idx++) {
             let row = rows[idx];
-            let shown = useShown(row.shown, true, formState, ValueSelectors.Fields);
+            let shown = useShown(row.shown, true, StoreType.FormState);
             let fields = row.fields;
             let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
             let rowElement = shown ? (
                 <Row className="mb-2" key={idx}>
                     {labelElement ? <Col className="text-end">{labelElement}</Col> : undefined}
                     {columns.map((_, index) => {
-                        let fieldDepString = fields[index];
-                        let fieldDependency = new Dependency(fieldDepString);
-                        let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDependency);
+                        let fieldDependency = new Dependency(fields[index]);
+                        let fieldHandle = formHandleFactory.createHandle<FormFieldState<unknown>>(fieldDependency, StoreType.FormState).hook();
                         let fieldType = schema.models[fieldDependency.modelName][fieldDependency.fieldName].type;
+                        let active = fieldHandle.value?.active !== undefined ? fieldHandle.value.active : true;
                         return (<Col key={index}>
                             <FieldInput
                                 key={index}
-                                value={fieldValue}
+                                value={fieldHandle.value}
                                 updateField={(value: unknown): void => {
-                                    formState.updateField(
-                                        fieldDependency.fieldName,
-                                        fieldDependency.modelName,
-                                        store.getState(),
-                                        fieldStateFromValue(value, fieldValue, fieldType));
+                                    fieldHandle.write({
+                                        valid: fieldType.validate(value),
+                                        touched: true,
+                                        value,
+                                        active
+                                    }, dispatch)
                                 }}
                                 dependency={fieldDependency}
                                 inputComponent={fieldType.component}/>
@@ -145,33 +145,35 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        let formController = useContext(CFormController);
-        let formState = useContext(CFormStateWrapper);
+        let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         let schema = useContext(CSchema);
-        let store = useStore();
+        let dispatch = useDispatch();
 
         let fields = this.config.fields;
 
         return <>
             {fields.map((fieldDepString, idx) => {
                 let fieldDep = new Dependency(fieldDepString);
-                let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDep);
+                let fieldHandle = formHandleFactory.createHandle<FormFieldState<unknown>>(fieldDep, StoreType.FormState).hook();
+                let fieldType = schema.models[fieldDep.modelName][fieldDep.fieldName].type;
+                let active = fieldHandle.value?.active !== undefined ? fieldHandle.value.active : true;
                 let fieldSchema = schema.models[fieldDep.modelName][fieldDep.fieldName];
-                let shown = useShown(fieldSchema.shown, true, formState, ValueSelectors.Fields);
+                let shown = useShown(fieldSchema.shown, true, StoreType.FormState);
 
-                if(shown && fieldValue.active) {
+                if(shown && active) {
                     return <LabeledFieldInput
                     key={idx}
-                    value={fieldValue}
+                    value={fieldHandle.value}
                     dependency={fieldDep}
                     displayName={fieldSchema.displayName}
                     description={fieldSchema.description}
                     updateField={(value: unknown): void => {
-                        formState.updateField(
-                            fieldDep.fieldName,
-                            fieldDep.modelName,
-                            store.getState(),
-                            fieldStateFromValue(value, fieldValue, fieldSchema.type));
+                        fieldHandle.write({
+                            valid: fieldType.validate(value),
+                            touched: true,
+                            value,
+                            active
+                        }, dispatch)
                     }}
                     inputComponent={fieldSchema.type.component}/>
                 }
@@ -180,80 +182,4 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
             })}
         </>
     }
-}
-
-export function arrayPositionHandle<M, F>(modelsWrapper: AbstractModelsWrapper<M, F>, realArrayDep: Dependency, arrayIndex: number): ModelHandle<M, F> {
-    let handle: ModelHandle<M, F> = {
-        updateModel: (modelName: string, value: M, state: any) => {
-            let m = modelsWrapper.getModel(realArrayDep.modelName, state);
-            let nm = modelsWrapper.setArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m, {
-                model: modelName,
-                item: value
-            });
-            modelsWrapper.updateModel(realArrayDep.modelName, nm, state);
-        },
-        getModel: (_: string, state: any): M => {
-            let m = modelsWrapper.getModel(realArrayDep.modelName, state);
-            return modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
-        },
-        hookModel: (_: string): M => {
-            let m = modelsWrapper.hookModel(realArrayDep.modelName);
-            console.log("handle hookModel");
-            console.log("m", m);
-            console.log("real field name", realArrayDep.fieldName);
-            console.log("index in array", arrayIndex);
-            let af = modelsWrapper.getArrayFieldAtIndex(realArrayDep.fieldName, arrayIndex, m)?.item;
-            console.log("af", af);
-            return af;
-        }
-    }
-    return handle;
-}
-
-export type FormControllerAliases = { real: { modelName: string, fieldName: string, index: number }, fake: string, realSchemaName: string }[]
-export function AliasedFormControllerWrapper(props: { aliases: FormControllerAliases, children?: React.ReactNode }) {
-    let { aliases } = props;
-
-    let schema = useContext(CSchema);
-    let modelsWrapper = useContext(CModelsWrapper);
-    let formStateWrapper = useContext(CFormStateWrapper);
-
-    let nSchema: Schema = {...schema};
-    
-
-    for(let alias of aliases) {
-        nSchema.models[alias.fake] = nSchema.models[alias.realSchemaName];
-    }
-
-    function aliasesForWrapper<M, F>(wrapper: AbstractModelsWrapper<M, F>, aliases: FormControllerAliases): ModelAliases<M, F> {
-        return Object.fromEntries(
-            aliases.map(alias => {
-                return [
-                    alias.fake,
-                    {
-                        handle: arrayPositionHandle(wrapper, new Dependency(`${alias.real.modelName}.${alias.real.fieldName}`), alias.real.index),
-                        realSchemaName: alias.realSchemaName
-                    }
-                ]
-            })
-        );
-    }
-
-    let nModelsWrapper = new ModelsWrapperWithAliases(modelsWrapper, aliasesForWrapper(modelsWrapper, aliases));
-    let nFormStateWrapper = new ModelsWrapperWithAliases(formStateWrapper, aliasesForWrapper(formStateWrapper, aliases));
-
-    // i dont know why but the div is required!! for updates to work correctly
-    // https://stackoverflow.com/questions/54880669/react-domexception-failed-to-execute-removechild-on-node-the-node-to-be-re
-    return (
-        <div>
-            <CSchema.Provider value={nSchema}>
-                <CModelsWrapper.Provider value={nModelsWrapper}>
-                    <CFormStateWrapper.Provider value={nFormStateWrapper}>
-                        {props.children}
-                    </CFormStateWrapper.Provider>
-                </CModelsWrapper.Provider>
-            </CSchema.Provider>
-        </div>
-        
-    )
 }

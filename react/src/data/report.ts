@@ -1,9 +1,10 @@
 import { getSimulationFrame, pollRunReport, ResponseHasState, getRunStatusOnce } from "../utility/compute";
 import { v4 as uuidv4 } from 'uuid';
 import React from "react";
-import { ModelStates } from "../store/models";
+import { ModelState } from "../store/models";
 import { mapProperties } from "../utility/object";
 import { RouteHelper } from "../utility/route";
+import { StoreState } from "../store/common";
 
 export const CReportEventManager = React.createContext<ReportEventManager>(undefined);
 
@@ -24,7 +25,7 @@ export type ReportEventSubscriber = {
 
 type RunStatusParams = {
     appName: string,
-    models: ModelStates,
+    models: StoreState<ModelState>,
     simulationId: string,
     report: string
 }
@@ -91,7 +92,7 @@ export class ReportEventManager {
         report
     }: {
         appName: string,
-        models: ModelStates,
+        models: StoreState<ModelState>,
         simulationId: string,
         report: string
     }) => {
@@ -114,7 +115,7 @@ export class ReportEventManager {
         report
     }: {
         appName: string,
-        models: ModelStates,
+        models: StoreState<ModelState>,
         simulationId: string,
         report: string
     }) => {

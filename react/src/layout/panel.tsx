@@ -1,12 +1,10 @@
 import { useContext } from "react";
-import { interpolate, ValueSelectors } from "../utility/string";
+import { interpolate } from "../utility/string";
 import { LayoutProps, Layout } from "./layout";
 import { useStore } from "react-redux";
 import { EditorPanel } from "../component/reusable/panel";
 import "./panel.scss";
 import React from "react";
-import { CFormController } from "../data/formController";
-import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
 import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
@@ -34,8 +32,6 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        let modelsWrapper = useContext(CModelsWrapper);
-        let formController = useContext(CFormController);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let schema = useContext(CSchema);
 
@@ -54,7 +50,7 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         let modalChildren = (!!this.advanced) ? mapLayoutsToComponents(this.advanced) : undefined;
 
         let submit = () => {
-            formController.saveToModels(store.getState());
+            //formController.saveToModels(store.getState());
             simulationInfoPromise.then(simulationInfo => {
                 (modelsWrapper as ModelsWrapper).saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
             })
