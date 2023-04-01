@@ -370,7 +370,7 @@ def analysis_job_dice_coefficient(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).dice_coefficient_plot()
 
 
-def stateful_compute_sample_images(data):
+def stateful_compute_sample_images(data, **kwargs):
     return _ImagePreview(data).images()
 
 
