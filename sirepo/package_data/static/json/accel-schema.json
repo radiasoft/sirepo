@@ -1,0 +1,39 @@
+{
+    "enum": {},
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["accel.js"]
+        }
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "accelController as source",
+                "templateUrl": "/static/html/accel-source.html"
+            }
+        }
+    },
+    "model": {
+        "processVariables": {
+            "a": ["a", "Float"],
+            "b": ["b", "Float"],
+            "c": ["c", "Float"]
+        },
+        "simulationStatus": {}
+    },
+    "view": {
+        "processVariables": {
+            "title": "Process Variables",
+            "basic": [
+                "a",
+                "b",
+                "c"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation status",
+            "advanced": []
+        }
+    }
+}

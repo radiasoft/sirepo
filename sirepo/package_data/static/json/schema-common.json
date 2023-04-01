@@ -4,6 +4,10 @@
             "longName": "MyApp",
             "shortName": "MyApp"
         },
+        "accel": {
+            "longName": "Accel",
+            "shortName": "Accel"
+        },
         "activait": {
             "longName": "Activait",
             "shortName": "Activait"
