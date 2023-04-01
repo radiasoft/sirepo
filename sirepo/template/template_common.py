@@ -269,14 +269,14 @@ class ParticleEnergy:
         cls.__set_from_beta(particle, energy)
 
 
-def analysis_job_dispatch(data):
+def analysis_job_dispatch(data, **kwargs):
     from sirepo import simulation_db
 
     t = sirepo.template.import_module(data.simulationType)
     return getattr(
         t,
         f"analysis_job_{_validate_method(t, data)}",
-    )(data, simulation_db.simulation_run_dir(data))
+    )(data, simulation_db.simulation_run_dir(data), **kwargs)
 
 
 def compute_field_range(args, compute_range, run_dir):
@@ -480,7 +480,7 @@ def h5_to_dict(hf, path=None):
     return d
 
 
-def heatmap(values, model, plot_fields=None):
+def heatmap(values, model, plot_fields=None, weights=None):
     """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
     import numpy
 
@@ -499,6 +499,7 @@ def heatmap(values, model, plot_fields=None):
     hist, edges = numpy.histogramdd(
         values,
         histogram_bins(model["histogramBins"]),
+        weights=weights,
         range=r,
     )
     res = PKDict(
@@ -709,7 +710,7 @@ def sim_frame_dispatch(frame_args):
     return res
 
 
-def stateful_compute_dispatch(data):
+def stateful_compute_dispatch(data, **kwargs):
     t = sirepo.template.import_module(data.simulationType)
     m = _validate_method(t, data)
     k = PKDict(data=data)
@@ -717,15 +718,15 @@ def stateful_compute_dispatch(data):
         k.schema = getattr(t, "SCHEMA")
         t = getattr(t, "code_var")(data.variables)
         k.ignore_array_values = getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True)
-    return getattr(t, f"stateful_compute_{m}")(**k)
+    return getattr(t, f"stateful_compute_{m}")(**k, **kwargs)
 
 
-def stateless_compute_dispatch(data):
+def stateless_compute_dispatch(data, **kwargs):
     t = sirepo.template.import_module(data.simulationType)
     return getattr(
         t,
         f"stateless_compute_{_validate_method(t, data)}",
-    )(data)
+    )(data, **kwargs)
 
 
 def subprocess_output(cmd, env=None):

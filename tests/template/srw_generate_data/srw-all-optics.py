@@ -500,7 +500,7 @@ varParam = [
     ['name', 's', 'All optical elements', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'All_optical_elements/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -773,7 +773,7 @@ varParam = [
     ['op_Mask_Sample_L', 'f', 1.0, 'length'],
 
     # Sample: sample
-    ['op_Sample_file_path', 's', 'sample.tif', 'imageFile'],
+    ['op_Sample_file_path', 's', 'All_optical_elements/sample.tif', 'imageFile'],
     ['op_Sample_outputImageFormat', 's', 'tif', 'outputImageFormat'],
     ['op_Sample_position', 'f', 27.0, 'position'],
     ['op_Sample_resolution', 'f', 2.480469e-09, 'resolution'],
@@ -823,7 +823,7 @@ varParam = [
     ['op_Sample_Planar_L', 'f', 1.0, 'length'],
 
     # Planar: mirror
-    ['op_Planar_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_Planar_hfn', 's', 'All_optical_elements/mirror_1d.dat', 'heightProfileFile'],
     ['op_Planar_dim', 's', 'x', 'orientation'],
     ['op_Planar_ang', 'f', 0.0031415926, 'grazingAngle'],
     ['op_Planar_amp_coef', 'f', 1.0, 'heightAmplification'],
@@ -853,7 +853,7 @@ varParam = [
     ['op_Circular_Cylinder_Circular_Cylinder2_L', 'f', 0.5, 'length'],
 
     # Circular_Cylinder2: sphericalMirror
-    ['op_Circular_Cylinder2_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_Circular_Cylinder2_hfn', 's', 'All_optical_elements/mirror_1d.dat', 'heightProfileFile'],
     ['op_Circular_Cylinder2_dim', 's', 'x', 'orientation'],
     ['op_Circular_Cylinder2_r', 'f', 1049.0, 'radius'],
     ['op_Circular_Cylinder2_size_tang', 'f', 0.3, 'tangentialSize'],
@@ -892,7 +892,7 @@ varParam = [
     ['op_Elliptical_Cylinder_Elliptical_Cylinder2_L', 'f', 0.5, 'length'],
 
     # Elliptical_Cylinder2: ellipsoidMirror
-    ['op_Elliptical_Cylinder2_hfn', 's', 'mirror_2d.dat', 'heightProfileFile'],
+    ['op_Elliptical_Cylinder2_hfn', 's', 'All_optical_elements/mirror_2d.dat', 'heightProfileFile'],
     ['op_Elliptical_Cylinder2_dim', 's', 'x', 'orientation'],
     ['op_Elliptical_Cylinder2_p', 'f', 35.0, 'firstFocusLength'],
     ['op_Elliptical_Cylinder2_q', 'f', 1.7, 'focalLength'],
@@ -933,7 +933,7 @@ varParam = [
     ['op_Toroid_Toroid2_L', 'f', 0.5, 'length'],
 
     # Toroid2: toroidalMirror
-    ['op_Toroid2_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_Toroid2_hfn', 's', 'All_optical_elements/mirror2_1d.dat', 'heightProfileFile'],
     ['op_Toroid2_dim', 's', 'x', 'orientation'],
     ['op_Toroid2_ap_shape', 's', 'r', 'apertureShape'],
     ['op_Toroid2_rt', 'f', 7592.12, 'tangentialRadius'],
@@ -980,7 +980,7 @@ varParam = [
     ['op_Crystal_Crystal2_L', 'f', 0.5, 'length'],
 
     # Crystal2: crystal
-    ['op_Crystal2_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_Crystal2_hfn', 's', 'All_optical_elements/mirror_1d.dat', 'heightProfileFile'],
     ['op_Crystal2_dim', 's', 'x', 'orientation'],
     ['op_Crystal2_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
     ['op_Crystal2_psi0r', 'f', -1.2078420054211536e-05, 'psi0r'],

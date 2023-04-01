@@ -860,7 +860,8 @@
                             "layout": "fieldList",
                             "config": {
                                 "fields": [
-                                    "simulation.name"
+                                    "simulation.name",
+                                    "simulation.sourceType"
                                 ]
                             }
                         }

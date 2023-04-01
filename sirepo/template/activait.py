@@ -216,7 +216,7 @@ def prepare_sequential_output_file(run_dir, data):
                 pass
 
 
-def stateless_compute_load_keras_model(data):
+def stateless_compute_load_keras_model(data, **kwargs):
     import keras.models
 
     l = _SIM_DATA.lib_file_abspath(
@@ -353,7 +353,7 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
     )
 
 
-def stateful_compute_column_info(data):
+def stateful_compute_column_info(data, **kwargs):
     f = data.args.dataFile.file
     if pkio.has_file_extension(f, "csv"):
         return _compute_csv_info(f)
@@ -374,7 +374,7 @@ def stateful_compute_sample_images(data):
     return _ImagePreview(data).images()
 
 
-def stateless_compute_get_remote_data(data):
+def stateless_compute_get_remote_data(data, **kwargs):
     return template_common.remote_file_to_simulation_lib(
         _SIM_DATA,
         data.args.url,
@@ -384,11 +384,11 @@ def stateless_compute_get_remote_data(data):
     )
 
 
-def stateless_compute_remote_data_bytes_loaded(data):
+def stateless_compute_remote_data_bytes_loaded(data, **kwargs):
     return _remote_data_bytes_loaded(data.args.filename)
 
 
-def stateless_compute_get_archive_file_list(data):
+def stateless_compute_get_archive_file_list(data, **kwargs):
     return _archive_file_list(data.args.filename, data.args.data_type)
 
 

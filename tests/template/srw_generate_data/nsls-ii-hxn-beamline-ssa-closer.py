@@ -227,7 +227,7 @@ varParam = [
     ['name', 's', 'NSLS-II HXN beamline: SSA closer', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_HXN_beamline_SSA_closer/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -415,7 +415,7 @@ varParam = [
     ['op_S1_HCM_L', 'f', 1.7300000000000004, 'length'],
 
     # HCM: sphericalMirror
-    ['op_HCM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HCM_hfn', 's', '', 'heightProfileFile'],
     ['op_HCM_dim', 's', 'x', 'orientation'],
     ['op_HCM_r', 'f', 17718.8, 'radius'],
     ['op_HCM_size_tang', 'f', 1.0, 'tangentialSize'],
@@ -483,7 +483,7 @@ varParam = [
     ['op_DCM_C2_HFM_L', 'f', 2.219999999999999, 'length'],
 
     # HFM: sphericalMirror
-    ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HFM_hfn', 's', '', 'heightProfileFile'],
     ['op_HFM_dim', 's', 'x', 'orientation'],
     ['op_HFM_r', 'f', 18193.8, 'radius'],
     ['op_HFM_size_tang', 'f', 1.0, 'tangentialSize'],
@@ -620,7 +620,7 @@ def setup_magnetic_measurement_files(filename, v):
                     )
                 )
             f = f[0]
-            z.extractall()
+            z.extractall(v.fdir)
         except Exception:
             if c:
                 c.Abort(1)
@@ -637,7 +637,7 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    setup_magnetic_measurement_files("magn_meas_u20_hxn.zip", v)
+    setup_magnetic_measurement_files(v.fdir + "magn_meas_u20_hxn.zip", v)
     names = ['S1','S1_HCM','HCM','HCM_DCM_C1','DCM_C1','DCM_C2','DCM_C2_HFM','HFM','After_HFM_CRL1','CRL1','CRL2','CRL2_Before_SSA','SSA','SSA_Before_FFO','AFFO','FFO','FFO_At_Sample']
     op = set_optics(v, names, True)
     v.ws = True

@@ -841,7 +841,7 @@ def sim_frame(frame_args):
     )
 
 
-def stateful_compute_get_beam_input_type(data):
+def stateful_compute_get_beam_input_type(data, **kwargs):
     if data.args.input_file:
         data.input_type = _sdds_beam_type_from_file(
             _SIM_DATA.lib_file_abspath(data.args.input_file),
@@ -1188,7 +1188,6 @@ def _extract_report_data(filename, frame_args, page_count=0):
     y_field = "y1" if "y1" in frame_args else "y"
     return sdds_util.SDDSUtil(filename).heatmap(
         plot_attrs=plot_attrs.pkupdate(
-            model=frame_args,
             title=_title(
                 frame_args[x_field],
                 frame_args[y_field],
