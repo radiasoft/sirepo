@@ -55,7 +55,6 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
             self.original_shape_x = f[self.x.key].shape
             self.original_shape_y = f[self.y.key].shape
             self.x_channels = self.original_shape_x[-1]
-            print(f"x_channels={self.x_channels}")
             self.y_channels = self.__y_channels(numpy.array(f[self.y.key]))
             if self.inScaler:
                 self.inScaler.fit(numpy.array(f[self.x.key]).reshape(-1, self.x_channels))
