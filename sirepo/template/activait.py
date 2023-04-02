@@ -1197,7 +1197,7 @@ class _ImagePreview:
         if "output" in info.inputOutput:
             return PKDict(path=info.header[info.inputOutput.index("output")])
         for idx in range(len(info.header)):
-            if len(info.shape[idx]) <= 2 and self.info.shape[idx][0] == io.input.count:
+            if len(info.shape[idx]) <= 2 and info.shape[idx][0] == io.input.count:
                 return PKDict(path=info.header[idx])
         raise AssertionError(
             f"No matching dimension found output size: {io.output.size}"
@@ -1281,7 +1281,7 @@ class _ImagePreview:
         self.plt.subplot(_IMG_ROWS, _IMG_COLS, self.row + 1)
         self.plt.xticks([])
         self.plt.yticks([])
-        self.plt.imshow(v)
+        self.plt.imshow(self.input)
         if len(self.file[self.io.output.path].shape) == 1:
             if "label_path" in self.io.output:
                 self.plt.xlabel(
