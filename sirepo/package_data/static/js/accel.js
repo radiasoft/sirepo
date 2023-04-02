@@ -3,25 +3,11 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.controller('accelController', function (appState, panelState, $scope) {
-    var self = this;
 
-    // function handleDogDisposition() {
-    //     panelState.showField('dog', 'favoriteTreat', appState.models.dog.disposition == 'friendly');
-    // }
-    self.startSimulation = () => {
-        self.simState.saveAndRunSimulation('simulation');
-    };
-    appState.whenModelsLoaded($scope, function() {
-        // after the model data is available, hide/show the
-        // favoriteTreat field depending on the disposition
-        // handleDogDisposition();
-        // appState.watchModelFields($scope, ['dog.disposition'], function() {
-        //     // respond to changes in the disposition field value
-        //     handleDogDisposition();
-        // });
-    });
+SIREPO.app.controller('accelController', function (appState, panelState, persistentSimulation, $scope) {
+    var self = this;
 });
+
 
 SIREPO.app.directive('appFooter', function() {
     return {
@@ -32,29 +18,6 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
         `,
-    };
-});
-
-SIREPO.app.directive('simPanel', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            nav: '=appHeader',
-        },
-        template: `
-        <button class="btn btn-default" data-ng-click="runSimulation()">Run Simulation</button>
-        `,
-        controller: function($scope) {
-            $scope.runSimulation = () => {
-                srdbg("running...");
-                srdbg(appState);
-
-                // appState.models.simulationType = "accel";
-                // appState.saveChanges('simulationType');
-                // // appState.saveAndRunSimulation();
-                // appState.newSimulation();
-            }
-        }
     };
 });
 

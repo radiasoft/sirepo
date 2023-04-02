@@ -8,5 +8,5 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
 
 
-def run_background(cfg_dir):
+def run(cfg_dir):
     template_common.exec_parameters()

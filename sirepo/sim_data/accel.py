@@ -16,10 +16,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
-        return [
-            data.report,
-            "dog",
-        ]
+        return [data.report]
 
     @classmethod
     def _lib_file_basenames(cls, *args, **kwargs):
