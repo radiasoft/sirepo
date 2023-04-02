@@ -294,11 +294,11 @@ SIREPO.app.controller('DataController', function (activaitService, appState) {
                 return true;
         }
         return false;
-    }
+    };
 
     self.showImageViewer = () => {
         return activaitService.isImageData() && hasColumnInfo(appState.models.columnInfo);
-    }
+    };
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
