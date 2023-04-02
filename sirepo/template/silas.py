@@ -83,8 +83,8 @@ def get_data_file(run_dir, model, frame, options):
 def python_source_for_model(data, model, qcall, **kwargs):
     if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
         data.report = "crystalAnimation"
-    if "report" not in data:
-        data.report = _last_watchpoint(data) or "initialIntensityReport"
+    else:
+        data.report = model or _last_watchpoint(data) or "initialIntensityReport"
     return _generate_parameters_file(data)
 
 
@@ -212,6 +212,74 @@ def _laser_pulse_plot(run_dir, data_type, sim_in):
         )
 
 
+def _generate_beamline_elements(data):
+    def _callback(state, element, dz):
+        if dz:
+            state.res += f'(Drift({dz}), ["default"]),\n'
+        if element.type == "watch" or element.get("isDisabled"):
+            return
+        if element.type == "lens":
+            state.res += f'(Lens({element.focalLength}), ["default"]),\n'
+        elif element.type == "mirror":
+            state.res += "(Mirror(), []),\n"
+        elif element.type == "crystal":
+            if element.origin == "reuseCrystal":
+                return
+            state.res += _generate_crystal(element)
+        else:
+            raise AssertionError("unknown element type={}".format(element.type))
+
+    state = PKDict(res="")
+    _iterate_beamline(state, data, _callback)
+    return state.res
+
+
+def _generate_beamline_indices(data):
+    def _callback(state, element, dz):
+        if dz:
+            state.res.append(str(state.idx))
+            state.idx += 1
+        if element.get("isDisabled") or element.type == "watch":
+            return
+        if element.type == "crystal":
+            if element.origin == "new":
+                state.id_to_index[element.id] = state.idx
+            else:
+                state.res.append(str(state.id_to_index[element.reuseCrystal]))
+                return
+        state.res.append(str(state.idx))
+        state.idx += 1
+
+    state = PKDict(res=[], idx=0, id_to_index=PKDict())
+    _iterate_beamline(state, data, _callback)
+    return ", ".join(state.res)
+
+
+def _generate_crystal(crystal):
+    return f"""(
+        Crystal(
+            params=PKDict(
+                l_scale={crystal.l_scale},
+                length={crystal.length * 1e-2},
+                n0={_slice_n_field(crystal, 'n0')},
+                n2={_slice_n_field(crystal, 'n2')},
+                nslice={crystal.nslice},
+                population_inversion=PKDict(
+                    n_cells={crystal.inversion_n_cells},
+                    mesh_extent={crystal.inversion_mesh_extent},
+                    crystal_alpha={crystal.crystal_alpha},
+                    pump_waist={crystal.pump_waist},
+                    pump_wavelength={crystal.pump_wavelength},
+                    pump_energy={crystal.pump_energy},
+                    pump_type="{crystal.pump_type}",
+                ),
+            ),
+        ),
+        ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
+    ),
+    """
+
+
 def _generate_parameters_file(data):
     r = data.report
     res, v = template_common.generate_parameters_file(data)
@@ -221,42 +289,39 @@ def _generate_parameters_file(data):
     v.laserPulse = data.models.laserPulse
     v.resultsFile = _RESULTS_FILE
     v.sliceNumber = _slice_number(data, r)
+    if r == "crystalAnimation":
+        v.crystalLength = _get_crystal(data).length
+        v.crystalCSV = _CRYSTAL_CSV_FILE
+        return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.models.laserPulse.distribution == "file":
         for f in ("ccd", "meta", "wfs"):
             v[f"{f}File"] = _SIM_DATA.lib_file_name_with_model_field(
                 "laserPulse", f, data.models.laserPulse[f]
             )
-    res += template_common.render_jinja(SIM_TYPE, v, "laserPulse.py")
-    if r in _SIM_DATA.initial_reports():
-        return res + template_common.render_jinja(SIM_TYPE, v)
     if _SIM_DATA.is_watchpoint(r):
-        v.beamline = []
-        # only include elements up to the selected watch report
-        for b in data.models.beamline:
-            if b.type == "watch":
-                if b.id == _SIM_DATA.watchpoint_id(r):
-                    v.beamline.append(b)
-                    break
-            else:
-                v.beamline.append(b)
-        return res + template_common.render_jinja(SIM_TYPE, v)
-    if r == "crystalAnimation":
-        v.crystal = _get_crystal(data)
-        v.crystalCSV = _CRYSTAL_CSV_FILE
-        return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
-    assert False, "invalid report: {}".format(r)
+        v.beamlineElements = _generate_beamline_elements(data)
+        v.beamlineIndices = _generate_beamline_indices(data)
+    return res + template_common.render_jinja(SIM_TYPE, v)
 
 
 def _get_crystal(data):
-    crystals = [x for x in data.models.beamline if x.type == "crystal"]
-    idx = data.models.crystalCylinder.crystal
-    if idx:
-        idx = int(idx)
-        if idx + 1 > len(crystals):
-            idx = 0
-    else:
-        idx = 0
-    return crystals[idx]
+    crystals = [
+        x for x in data.models.beamline if x.type == "crystal" and x.origin == "new"
+    ]
+    for e in crystals:
+        if e.id == data.models.crystalCylinder.crystal:
+            return e
+    return crystals[0]
+
+
+def _iterate_beamline(state, data, callback):
+    prev = 0
+    for e in data.models.beamline:
+        dz = e.position - prev
+        prev = e.position
+        callback(state, e, dz)
+        if e.id == _SIM_DATA.watchpoint_id(data.report):
+            break
 
 
 def _laser_pulse_report(value_index, filename, title, label):
@@ -304,6 +369,14 @@ def _parse_silas_log(run_dir):
     return "An unknown error occurred"
 
 
+def _slice_n_field(crystal, field):
+    return (
+        crystal[field][0 : crystal.nslice]
+        if crystal.nslice <= 6
+        else f"interpolate_across_slice({crystal.length * 1e-2}, {crystal.nslice}, {crystal[field]})"
+    )
+
+
 def _slice_number(data, report_name):
     n = (
         data.models[report_name].sliceNumber
@@ -319,5 +392,5 @@ def _slice_number(data, report_name):
 
 def _summary_data(frame_args):
     return PKDict(
-        crystalWidth=_get_crystal(frame_args.sim_in).width,
+        crystalLength=_get_crystal(frame_args.sim_in).length,
     )

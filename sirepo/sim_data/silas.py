@@ -42,6 +42,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             ),
         )
         for m in dm.beamline:
+            if m.type == "crystal" and not isinstance(m.n0, list):
+                del m["n0"]
+                del m["n2"]
             cls.update_model_defaults(m, m.type)
 
     @classmethod
