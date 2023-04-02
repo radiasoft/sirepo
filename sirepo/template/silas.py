@@ -264,6 +264,10 @@ def _generate_crystal(crystal):
                 n0={_slice_n_field(crystal, 'n0')},
                 n2={_slice_n_field(crystal, 'n2')},
                 nslice={crystal.nslice},
+                A={crystal.A},
+                B={crystal.B},
+                C={crystal.C},
+                D={crystal.D},
                 population_inversion=PKDict(
                     n_cells={crystal.inversion_n_cells},
                     mesh_extent={crystal.inversion_mesh_extent},
