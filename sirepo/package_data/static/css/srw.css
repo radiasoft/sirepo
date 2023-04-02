@@ -279,6 +279,11 @@ img.srw-beamline-item-icon {
   height: 35px;
 }
 
+.srw-toolbar-button img.srw-beamline-item-icon {
+  width: 70px;
+  height: 55px;
+}
+
 .srw-propagation-button {
   position: absolute;
   right: 21px;

@@ -689,6 +689,8 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
             </div>
             <div data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">
               <div data-watchpoint-report="" data-item-id="item.id"></div>
+              <div class="clearfix hidden-xl" data-ng-hide="$index % 2"></div>
+              <div class="clearfix visible-xl" data-ng-hide="($index - 1) % 3"></div>
             </div>
         `,
         controller: function($scope) {
