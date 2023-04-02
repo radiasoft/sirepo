@@ -96,6 +96,10 @@
             "n0": ["Index of Refraction ($n_0$)", "Float6", [1.75, 1.75, 1.75, 1.75, 1.75, 1.75], "On axis index of refraction", 1e-24],
             "n2": ["Thermal Lensing ($n_2$)", "Float6", [30.5, 18.3, 10.4, 5.9, 3.3, 1.9], "Quadratic variations of index of refraction, with $n(r) = n_0 - \\frac{n_2 r^2} 2  [\\frac 1 {m^2}]$", 0.0],
             "title": ["Element Name", "String", "Crystal"],
+            "A": ["A", "Float", 0.99736924],
+            "B": ["B", "Float", 0.0141972275],
+            "C": ["C", "Float", -0.260693],
+            "D": ["D", "Float", 0.99892682],
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 1],
             "radial_n2": ["Include Transverse Variation", "Boolean", "0"],
@@ -194,6 +198,10 @@
                 ["Propagation", [
                     "n0",
                     "n2",
+                    "A",
+                    "B",
+                    "C",
+                    "D",
                     "propagationType",
                     "l_scale"
                 ]],
