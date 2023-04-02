@@ -1243,6 +1243,7 @@ class _ImagePreview:
             self.info
         ):
             _, a = plt.subplots(3, 3)
+            # TODO (gurhar1133): change the order
             a[0, 0].set_title("original contour")
             a[0, 1].set_title("predicted contour")
             a[0, 2].set_title("image")

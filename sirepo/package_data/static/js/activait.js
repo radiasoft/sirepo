@@ -282,23 +282,31 @@ SIREPO.app.controller('AnalysisController', function (appState, activaitService,
     buildSubplots();
 });
 
-SIREPO.app.controller('DataController', function (activaitService, appState) {
+SIREPO.app.controller('DataController', function (activaitService, appState, $scope) {
     const self = this;
     self.activaitService = activaitService;
+    self.imageViewer = appState.models.imageViewerShow ? true : false;
 
-    const hasColumnInfo = (columnInfo) => {
-        if (columnInfo.inputOutput.includes('input')
-            && columnInfo.inputOutput.includes('output')
-            && columnInfo.header) {
-                appState.saveChanges(['columnInfo']);
-                return true;
-        }
-        return false;
-    };
+
+    $scope.$on('columnInfo.changed', () => {
+        if (appState.models.columnInfo.inputOutput.includes('input')
+            && appState.models.columnInfo.inputOutput.includes('output')
+            && appState.models.columnInfo.header) {
+                appState.models.imageViewerShow = true;
+                appState.saveChanges('imageViewerShow');
+                self.imageViewer = true;
+                return;
+            }
+        appState.models.imageViewerShow = false;
+        appState.saveChanges('imageViewerShow');
+        self.imageViewer = false;
+        return;
+    });
 
     self.showImageViewer = () => {
-        return activaitService.isImageData() && hasColumnInfo(appState.models.columnInfo);
+        return activaitService.isImageData() && self.imageViewer;
     };
+
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
