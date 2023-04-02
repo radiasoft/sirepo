@@ -1243,10 +1243,9 @@ class _ImagePreview:
             self.info
         ):
             _, a = plt.subplots(3, 3)
-            # TODO (gurhar1133): change the order
-            a[0, 0].set_title("original contour")
-            a[0, 1].set_title("predicted contour")
-            a[0, 2].set_title("image")
+            a[0, 0].set_title("image")
+            a[0, 1].set_title("original contour")
+            a[0, 2].set_title("predicted contour")
             plt.setp(a, xticks=[], yticks=[])
             return a
         _, a = plt.subplots(3, 2)
@@ -1275,7 +1274,7 @@ class _ImagePreview:
         if _image_out(self.info):
             c = [self.input, self.output]
             if self.original is not None:
-                c.append(self.original)
+                c.insert(0, self.original)
             for i, column in enumerate(c):
                 self.axes[self.row, i].imshow(column)
             return
