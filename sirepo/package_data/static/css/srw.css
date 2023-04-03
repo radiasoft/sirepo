@@ -153,10 +153,11 @@
 .srw-disabled-item .srw-beamline-item-icon {
   opacity: 0.5;
 }
-
+/* TODO (gurhar1133): make just for silas? */
 .srw-drop-between-zone {
   display: inline-block;
-  width: 20px;
+  width: 1.5em;
+  max-width: 10px;
   height: 107px;
   margin: 0;
   background-color: #fff;
@@ -167,7 +168,8 @@
 .srw-drop-between-zone.drag-enter {
   opacity: 1;
   background: blue;
-  width: 40px !important;
+  width: 1em !important;
+  max-width: 1em;
   transition: width 0.5s ease 0s;
 }
 

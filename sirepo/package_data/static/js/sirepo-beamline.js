@@ -241,6 +241,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
         template: `
             <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">
               <div data-ng-transclude=""></div>
+              hhh
               <p class="lead text-center">beamline definition area
                 <button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-cloud-download"></span></button><br>
                 <small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>
