@@ -12,6 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import re
 import sirepo.sim_data
+import sirepo.util
 
 _STATUS_FILE = "status.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -59,5 +60,17 @@ def _read_epics_data(run_dir):
             else:
                 v = float(v)
             d[f] = v
+        pkdp("\n\n\nd={}", d)
+        if _disconected(d):
+            raise sirepo.util.UserAlert("Disconnected from Process Variables")
         return d
     return PKDict()
+
+
+def _disconected(process_variables):
+    for k in process_variables:
+        if type(process_variables[k]) == float:
+            continue
+        if "disconnected" in process_variables[k]:
+            return True
+    return False
