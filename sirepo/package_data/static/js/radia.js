@@ -1039,7 +1039,7 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
             </div>
         `,
         controller: function($scope, $element) {
-            const doSaveGeom = true;  //appState.superClasses($scope.modelName).includes('radiaObject');
+            const doSaveGeom = appState.superClasses($scope.modelName).includes('radiaObject');
             let expanded = {};
             for (const i in $scope.field) {
                 expanded[i] = false;
@@ -1450,6 +1450,17 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
                 return null;
             }
 
+            function run() {
+                if ($scope.showFieldLineoutPanel()) {
+                    // Don't run automatically for sbatch or nersc
+                    if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
+                        if (! $scope.simState.isProcessing()) {
+                            $scope.simState.runSimulation();
+                        }
+                    }
+                }
+            }
+
             function setPath(p) {
                 appState.models[$scope.modelName].lastModified = Date.now();
                 if (p) {
@@ -1472,18 +1483,9 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
 
             $scope.showFieldLineoutPanel = () => ! $scope.dataCleared && $scope.hasPaths();
 
-            $scope.$on('fieldLineoutAnimation.saved', () => {
-                if ($scope.showFieldLineoutPanel()) {
-                    // Don't run automatically for sbatch or nersc
-                    if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
-                        if (! $scope.simState.isProcessing()) {
-                            $scope.simState.runSimulation();
-                        }
-                    }
-                }
-            });
-
+            $scope.$on('fieldLineoutAnimation.saved', run);
             $scope.$on('fieldPaths.changed', updatePath);
+            $scope.$on('solve.complete', run);
 
             appState.watchModelFields($scope, [`${$scope.modelName}.fieldPath`],  () => {
                 if (appState.models[$scope.modelName].fieldPath.axis) {
@@ -1941,7 +1943,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                             radiaService.syncReports();
                         }
                         solving = false;
-                        radiaService.saveGeometry(false, true);
                     }
                 }
             };
