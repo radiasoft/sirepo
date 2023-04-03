@@ -1188,7 +1188,6 @@ def _extract_report_data(filename, frame_args, page_count=0):
     y_field = "y1" if "y1" in frame_args else "y"
     return sdds_util.SDDSUtil(filename).heatmap(
         plot_attrs=plot_attrs.pkupdate(
-            model=frame_args,
             title=_title(
                 frame_args[x_field],
                 frame_args[y_field],
