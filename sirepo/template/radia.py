@@ -134,13 +134,13 @@ def background_percent_complete(report, run_dir, is_running):
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
-        res.percentComplete = 0.0
+        res.percentComplete = 0
         return res
-    return PKDict(
-        percentComplete=100,
-        frameCount=1,
-        solution=_read_solution(),
-    )
+    res.percentComplete = 100
+    res.frameCount = 1
+    if report == "solverAnimation":
+        res.solution = _read_solution()
+    return res
 
 
 def create_archive(sim, qcall):
@@ -865,9 +865,11 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     g = data.models.geometryReport
     v.simId = data.models.simulation.simulationId
 
-    v.doSolve = "solver" in report or for_export
-    v.doReset = "reset" in report
-    do_generate = _normalize_bool(g.get("doGenerate", True)) or v.doSolve or v.doReset
+    if report == "solverAnimation":
+        v.solverMode = data.models.solverAnimation.get("mode")
+    elif for_export:
+        v.solverMode = "solve"
+    do_generate = _normalize_bool(g.get("doGenerate", True)) or v.get("solverMode")
     if not do_generate:
         try:
             # use the previous results
@@ -882,7 +884,6 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     for f in _SIM_FILES:
         pkio.unchecked_remove(f)
 
-    v.doReset = False
     v.isParallel = is_parallel
 
     # include methods from non-template packages
@@ -954,14 +955,11 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         v.fieldPaths = data.models.fieldPaths.get("paths", [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get("paths", []))
     v.kickMap = data.models.get("kickMapReport")
-    if "solver" in report or for_export:
-        v.doSolve = True
+    if v.get("solverMode") == "solve":
         s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
         v.solveMethod = s.method
-    if "reset" in report:
-        v.doReset = True
     v.h5FieldPath = _geom_h5_path(SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(SCHEMA.constants.viewTypeObjects)
