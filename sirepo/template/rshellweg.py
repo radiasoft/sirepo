@@ -359,7 +359,7 @@ def _generate_longitude_dist(models):
     if dist_type == "file2d":
         return "FILE2D {}".format(
             _SIM_DATA.lib_file_name_with_model_field(
-                "beam", "transversalFile2d", beam.transversalFile2d
+                "beam", "transversalFile2d", models.beam.transversalFile2d
             )
         )
 
