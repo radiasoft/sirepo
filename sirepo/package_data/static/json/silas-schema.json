@@ -101,7 +101,7 @@
             "C": ["C", "Float", -0.260693],
             "D": ["D", "Float", 0.99892682],
             "length": ["Length [cm]", "Float", 2],
-            "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 1],
+            "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
             "radial_n2": ["Include Transverse Variation", "Boolean", "0"],
             "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
             "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
