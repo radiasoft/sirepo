@@ -10,8 +10,10 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import filecmp
 import os
 import re
+import shutil
 import sirepo.sim_data
 import sirepo.util
 
@@ -23,7 +25,7 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=0,
-        epicsData=_read_epics_data(run_dir),
+        hasEpicsData=run_dir.join(_STATUS_FILE).exists(),
     )
 
 
@@ -37,6 +39,22 @@ def epics_env(server_address):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
+
+
+def stateless_compute_read_epics_values(data, **kwargs):
+    _PREV_EPICS_FILE = "prev-status.json"
+    # TODO(pjm): hacked in animation directory
+    run_dir = pkio.py_path(
+        re.sub(r"/unused$", "/animation", str(simulation_db.simulation_run_dir(data)))
+    )
+    p = run_dir.join(_PREV_EPICS_FILE)
+    e = run_dir.join(_STATUS_FILE)
+    if e.exists() and p.exists() and filecmp.cmp(str(e), str(p), False):
+        return PKDict()
+    shutil.copyfile(str(e), str(p))
+    return PKDict(
+        epicsData=_read_epics_data(run_dir),
+    )
 
 
 def write_parameters(data, run_dir, is_parallel):

@@ -17,7 +17,7 @@ SIREPO.app.config(function() {
           </div>
           <div data-epics-value="" data-model-name="modelName" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="ReadOnlyFloat" class="">
+        <div data-ng-switch-when="ReadOnlyFloat">
           <div class="text-right" data-epics-value="" data-model-name="modelName" data-field="field"></div>
         </div>
         <div data-ng-switch-when="EpicsEnum">
@@ -50,7 +50,7 @@ SIREPO.app.factory('accelService', function(appState) {
 });
 
 
-SIREPO.app.controller('accelController', function (accelService, appState, panelState, errorService, persistentSimulation, $scope, $rootScope) {
+SIREPO.app.controller('accelController', function (accelService, appState, panelState, errorService, persistentSimulation, requestSender, $interval, $scope, $rootScope) {
     const self = this;
     let prevEpicsData;
     self.simScope = $scope;
@@ -63,49 +63,96 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
     }
 
     self.simHandleStatus = data => {
-        if (data.epicsData && Object.keys(data.epicsData).length) {
-            if (data.epicsData.error) {
+        if (self.simState.isStateRunning() && data.hasEpicsData) {
+            readEpicsData();
+        }
+    };
+
+    let inRequest = false;
+    function readEpicsData() {
+        $interval(
+            () => {
+                if (inRequest) {
+                    return;
+                }
+                inRequest = true;
+                requestSender.sendStatelessCompute(
+                    appState,
+                    function (data) {
+                        inRequest = false;
+                        if (! appState.isLoaded()) {
+                            return;
+                        }
+                        if (data.epicsData) {
+                            loadEpicsData(data.epicsData);
+                        }
+                    },
+                    {
+                        method: 'read_epics_values',
+                        simulationId: appState.models.simulation.simulationId,
+                        report: 'animation',
+                    }
+                );
+            },
+            //TODO(pjm): calculate based on 2 seconds
+            500,
+            4,
+        );
+    }
+
+    function loadEpicsData(epicsData) {
+        if (epicsData && Object.keys(epicsData).length) {
+            if (epicsData.error) {
                 errorService.alertText(
-                    data.epicsData.error
+                    epicsData.error
                 );
                 return;
             }
-            accelService.setEpicsData(data.epicsData);
+            accelService.setEpicsData(epicsData);
             const changed = [];
-            for (const f in data.epicsData) {
+            for (const f in epicsData) {
                 let [modelName, field] = f.split(':');
-                const m = appState.models[modelName];
-                if (m && fieldType(modelName, field) == 'ReadOnlyFloatArray') {
+                if (fieldType(modelName, field) == 'ReadOnlyFloatArray') {
                     if (
                         (
                             prevEpicsData
-                            && appState.deepEquals(prevEpicsData[f], m[field])
-                            && ! appState.deepEquals(data.epicsData[f], m[field])
+                            && ! appState.deepEquals(prevEpicsData[f], epicsData[f])
                         )
                         || ! prevEpicsData
                     ) {
-                        m[field] = data.epicsData[f];
-                        appState.applicationState()[modelName][field] = m[field];
                         changed.push(f);
                     }
                 }
             }
+            const visited = {};
             for (const f of changed) {
                 for (const [r, v] of Object.entries(SIREPO.APP_SCHEMA.constants.epicsPlots)) {
+                    if (visited[r]) {
+                        continue;
+                    }
                     for (const [dim, field] of Object.entries(v)) {
                         if (field == f) {
+                            for (const dim of ['x', 'y1', 'y2']) {
+                                if (! angular.isArray(epicsData[v[dim]])) {
+                                    //TODO(pjm): invalid epics data recieved
+                                    prevEpicsData = null;
+                                    return;
+                                }
+                            }
+                            visited[r] = true;
                             $scope.$broadcast('sr-accel-waveform', [
                                 r,
-                                data.epicsData[v.x].slice(1),
-                                data.epicsData[v.y].slice(1),
+                                epicsData[v.x].slice(1),
+                                epicsData[v.y1].slice(1),
+                                epicsData[v.y2].slice(1),
                             ]);
                         }
                     }
                 }
             }
-            prevEpicsData = data.epicsData;
+            prevEpicsData = epicsData;
         }
-    };
+    }
 
     self.simState = persistentSimulation.initSimulationState(self);
 });
@@ -183,7 +230,8 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
 
             function updatePlot() {
                 const x = plotData[1];
-                const y = plotData[2];
+                const y1 = plotData[2];
+                const y2 = plotData[3];
                 plotData = null;
                 if (plotScope) {
                     plotScope.clearData();
@@ -198,13 +246,18 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                         plots: [
                             {
                                 color: '#1f77b4',
-                                points: y,
-                                label: "",
+                                points: y1,
+                                label: "Waveform 1",
+                            },
+                            {
+                                color: '#ff7f0e',
+                                points: y2,
+                                label: "Waveform 2",
                             },
                         ],
                         y_range: [
-                            Math.min(...y),
-                            Math.max(...y),
+                            Math.min(Math.min(...y1), Math.min(...y2)),
+                            Math.max(Math.max(...y1), Math.max(...y2)),
                         ],
                     });
                 }

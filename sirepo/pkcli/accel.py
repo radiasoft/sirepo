@@ -34,8 +34,12 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     subprocess.Popen(
-        "camonitor MTEST:Run MTEST:MaxPoints MTEST:UpdateTime MTEST:TimePerDivision MTEST:TriggerDelay MTEST:VoltOffset MTEST:NoiseAmplitude MTEST:Waveform MTEST:TimeBase MTEST:MinValue MTEST:MaxValue MTEST:MeanValue | python parameters.py",
+        "camonitor MTEST:Run MTEST:MaxPoints MTEST:UpdateTime MTEST:TimePerDivision MTEST:TriggerDelay MTEST:VoltOffset MTEST:NoiseAmplitude MTEST:Waveform MTEST:Waveform2 MTEST:Waveform3 MTEST:Waveform4  MTEST:TimeBase MTEST:MinValue MTEST:MaxValue MTEST:MeanValue | python parameters.py",
         shell=True,
         stdin=subprocess.PIPE,
-        env=accel.epics_env(simulation_db.read_json(template_common.INPUT_BASE_NAME).models.epicsServer.serverAddress),
+        env=accel.epics_env(
+            simulation_db.read_json(
+                template_common.INPUT_BASE_NAME
+            ).models.epicsServer.serverAddress
+        ),
     ).wait()

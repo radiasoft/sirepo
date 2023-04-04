@@ -2,9 +2,15 @@
     "constants": {
         "inProgressText": "Reading",
         "epicsPlots": {
-            "waveformReport": {
+            "waveformAReport": {
                 "x": "MTEST:TimeBase",
-                "y": "MTEST:Waveform"
+                "y1": "MTEST:Waveform",
+                "y2": "MTEST:Waveform2"
+            },
+            "waveformBReport": {
+                "x": "MTEST:TimeBase",
+                "y1": "MTEST:Waveform3",
+                "y2": "MTEST:Waveform4"
             }
         }
     },
@@ -17,7 +23,9 @@
     "dynamicFiles": {
         "sirepoLibs": {
             "js": ["accel.js"],
-            "css": ["accel.css"]
+            "css": [
+                "accel.css"
+            ]
         }
     },
     "localRoutes": {
@@ -38,16 +46,20 @@
             "VoltOffset": ["Volt Offset", "EpicsFloat", 0],
             "NoiseAmplitude": ["Noise Amplitude", "EpicsFloat", 0.2],
             "Waveform": ["Waveform", "ReadOnlyFloatArray", []],
+            "Waveform2": ["Waveform", "ReadOnlyFloatArray", []],
+            "Waveform3": ["Waveform", "ReadOnlyFloatArray", []],
+            "Waveform4": ["Waveform", "ReadOnlyFloatArray", []],
             "TimeBase": ["Time Base", "ReadOnlyFloatArray", []],
             "MinValue": ["Min Value", "ReadOnlyFloat", 0],
             "MaxValue": ["Max Value", "ReadOnlyFloat", 0],
             "MeanValue": ["Mean Value", "ReadOnlyFloat", 0]
         },
         "epicsServer": {
-            "serverAddress": ["Network Address", "String", "localhost:5064"]
+            "serverAddress": ["Network Address", "String", "localhost:5064", "EPICS server network address, $\\text{<host>:<port>}$"]
         },
         "simulationStatus": {},
-        "waveformReport": {}
+        "waveformAReport": {},
+        "waveformBReport": {}
     },
     "strings": {
         "completionState": "",
@@ -72,10 +84,16 @@
         },
         "simulationStatus": {
             "title": "EPICS Monitor",
+            "advanced": [
+                "epicsServer.serverAddress"
+            ]
+        },
+        "waveformAReport": {
+            "title": "Waveform A",
             "advanced": []
         },
-        "waveformReport": {
-            "title": "Waveform",
+        "waveformBReport": {
+            "title": "Waveform B",
             "advanced": []
         }
     }
