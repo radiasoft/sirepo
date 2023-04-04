@@ -3,18 +3,16 @@
         "beamline": [
             {
                 "_super": "beamElement",
-                "diameter": 7,
-                "diffusionConstant": 0.0565,
                 "icon": "ti-sapphire-crystal.png",
                 "id": 2,
-                "numSlices": 1,
+                "nslice": 1,
                 "position": 1,
                 "propagationType": "n0n2_srw",
-                "radialVariation": 0.001,
-                "refractionIndex": 1.75,
+                "n0": 1.75,
+                "n2": 0.001,
                 "title": "Crystal",
                 "type": "crystal",
-                "width": 2
+                "length": 2
             },
             {
                 "_super": "beamElement",
@@ -30,7 +28,7 @@
         "crystalCylinder": {
             "T0": 20,
             "crystal": "0",
-            "crystalWidth": 2,
+            "crystalLength": 2,
             "dT": 3.8,
             "diameter": 7,
             "diffusionConstant": 0.0565,
@@ -56,14 +54,11 @@
             "chirp": 0,
             "distribution": "gaussian",
             "meta": "",
-            "mx": 0,
-            "my": 0,
             "num_sig_long": 3,
             "num_sig_trans": 6,
-            "nx_slice": 500,
-            "ny_slice": 500,
+            "nx_slice": 64,
+            "ny_slice": 64,
             "nslice": 3,
-            "pad_factor": 0,
             "photon_e_ev": 1.5,
             "poltype": "1",
             "tau_fwhm": 2.35865e-11,

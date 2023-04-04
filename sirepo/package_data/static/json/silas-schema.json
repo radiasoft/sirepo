@@ -14,15 +14,10 @@
             ["file", "From Files"]
         ],
         "GaussianBeamPolarization": [
-            ["1", "Linear Horizontal"],
-            ["2", "Linear Vertical"],
-            ["3", "Linear 45 degrees"],
-            ["4", "Linear 135 degrees"],
-            ["5", "Circular Right"],
-            ["6", "Circular Left"]
+            ["1", "Linear Horizontal"]
         ],
         "PropagationType": [
-            ["abcd_lct", "ABCD"],
+            ["abcd_lct", "ABCD LCT"],
             ["attenuate", "Attenuate"],
             ["default", "Default"],
             ["gain_calc", "Gain Calculation"],
@@ -64,11 +59,11 @@
                 "templateUrl": "/static/html/silas-beamline.html"
             }
         },
-        "crystal": {
-            "route": "/crystal/:simulationId",
+        "thermal-transport": {
+            "route": "/thermal-transport/:simulationId",
             "config": {
                 "controller": "CrystalController as crystal",
-                "templateUrl": "/static/html/silas-crystal.html"
+                "templateUrl": "/static/html/silas-thermal-transport.html"
             }
         }
     },
@@ -85,16 +80,23 @@
         },
         "crystal": {
             "_super": ["_", "model", "beamElement"],
-            "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
-            "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
             "icon": ["", "String", "ti-sapphire-crystal.png"],
-            "numSlices": ["Number of Slices", "Integer", 1, "", 1],
+            "nslice": ["Number of Slices", "Integer", 1, "", 1],
             "position": ["Central Position [m]", "Float", 4.0],
             "propagationType": ["Propagation Type", "PropagationType", "n0n2_srw"],
-            "radialVariation": ["Transverse Variation", "Float", 4, "Transverse variation of index of refraction", 0.0],
-            "refractionIndex": ["Index of Refraction", "Float", 1.75, "Index of refraction along the optical axis", 1e-24],
+            "n0": ["Index of Refraction ($n_0$)", "Float", 1.75, "On axis index of refraction", 1e-24],
+            "n2": ["Thermal Lensing ($n_2$)", "Float", 4, "Quadratic variations of index of refraction, with $n(r) = n_0 - \\frac{n_2 r^2} 2  [\\frac 1 {m^2}]$", 0.0],
             "title": ["Element Name", "String", "Crystal"],
-            "width": ["Width [cm]", "Float", 2]
+            "length": ["Length [cm]", "Float", 2],
+            "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 1],
+            "radial_n2": ["Include Transverse Variation", "Boolean", "0"],
+            "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
+            "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
+            "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
+            "crystal_alpha": ["Crystal Alpha [1/m]", "Float", 120.0],
+            "pump_waist": ["Pump Waist [m]", "Float", 0.00164],
+            "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
+            "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -107,7 +109,7 @@
         "crystalCylinder": {
             "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
             "crystal": ["Crystal in Beamline", "SelectCrystal", "0"],
-            "crystalWidth": ["Width [cm]", "Float", 2],
+            "crystalLength": ["Length [cm]", "Float", 2],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
             "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
             "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
@@ -117,17 +119,14 @@
         "crystal3dAnimation": {},
         "laserPulse": {
             "chirp": ["Chirp [eV]", "Float", 0, "Energy variation from first to last slice in laser pulse"],
-            "ccd": ["CCD", "InputFile", ""],
-            "meta": ["Meta", "InputFile", ""],
-            "wfs": ["WaveFronts", "InputFile", ""],
-            "mx": ["Horizontal Gauss-Hermite Mode Order", "Integer", 0],
-            "my": ["Vertical Gauss-Hermite Mode Order", "Integer", 0],
-            "num_sig_long": ["Longitudinal Number of Gaussian Sigmas", "Integer", 3],
-            "num_sig_trans": ["Transverse Number of Gaussian Sigmas", "Integer", 6],
-            "nx_slice": ["Horizontal Number of Mesh Points in Slice", "Integer", 500, "", 1],
-            "ny_slice": ["Vertical Number of Mesh Points in Slice", "Integer", 500, "", 1],
+            "ccd": ["Intensity", "InputFile", ""],
+            "meta": ["WFS Space Data", "InputFile", "", "A file describing the pixel dimensions of your wavefront sensor. Pixel dimensions are assumed to be in microns."],
+            "wfs": ["Phase", "InputFile", ""],
+            "num_sig_long": ["Number of Gaussian Sigmas", "Integer", 3],
+            "num_sig_trans": ["Number of Gaussian Sigmas", "Integer", 6],
+            "nx_slice": ["Horizontal Number of Mesh Points in Slice", "Integer", 64, "", 1],
+            "ny_slice": ["Vertical Number of Mesh Points in Slice", "Integer", 64, "", 1],
             "nslice": ["Number of Slices", "Integer", 3, "", 1],
-            "pad_factor": ["Pad Factor", "Float", 1.0],
             "photon_e_ev": ["Photon energy [eV]", "Float", 1.5],
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
             "tau_fwhm": ["FWHM Length [s]", "Float", 2.35865e-11],
@@ -176,16 +175,25 @@
                 ["Geometry", [
                     "title",
                     "position",
-                    "width",
-                    "diameter"
+                    "length",
+                    "nslice"
                 ]],
                 ["Propagation", [
-                    "refractionIndex",
-                    "radialVariation",
-                    "numSlices",
+                    "n0",
+                    "n2",
                     "propagationType",
-                    "diffusionConstant"
-                    ]]
+                    "l_scale"
+                ]],
+                ["Gain", [
+                    "radial_n2",
+                    "calc_gain",
+                    "inversion_n_cells",
+                    "inversion_mesh_extent",
+                    "crystal_alpha",
+                    "pump_waist",
+                    "pump_wavelength",
+                    "pump_energy"
+                ]]
             ]
         },
         "crystalAnimation": {
@@ -207,8 +215,8 @@
             "title": "Ti:Sapphire Crystal Cylinder",
             "basic": [
                 "crystal",
+                "crystalLength",
                 "diameter",
-                "crystalWidth",
                 "diffusionConstant",
                 "*Initial Temperature Due to Pump Laser:\n$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{\\xi^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$",
                 "T0",
@@ -240,43 +248,28 @@
                     "chirp",
                     "pulseE"
                 ]],
-                ["Distribution", [
+                ["Transverse", [
+                    "num_sig_trans",
                     "distribution",
+                    "poltype",
+                    "ccd",
+                    "wfs",
+                    "meta",
                     [
                         ["Horizontal", [
                             "sigx_waist",
-                            "mx"
-                        ]],
-                        ["Vertical", [
-                            "sigy_waist",
-                            "my"
-                        ]]
-                    ],
-                    "poltype",
-                    "ccd",
-                    "meta",
-                    "wfs",
-                    "pad_factor"
-                ]],
-                ["Geometry", [
-                    "nslice",
-                    "tau_fwhm",
-                    [
-                        ["Horizontal", [
                             "nx_slice"
                         ]],
                         ["Vertical", [
+                            "sigy_waist",
                             "ny_slice"
                         ]]
-                    ],
-                    [
-                        ["Longitudinal", [
-                            "num_sig_long"
-                        ]],
-                        ["Transverse", [
-                            "num_sig_trans"
-                        ]]
                     ]
+                ]],
+                ["Longitudinal", [
+                    "num_sig_long",
+                    "nslice",
+                    "tau_fwhm"
                 ]]
             ]
         },

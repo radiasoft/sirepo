@@ -96,7 +96,7 @@ SIREPO.app.controller('CrystalController', function (appState, frameCache, persi
 
     appState.whenModelsLoaded($scope, () => {
         $scope.$on('plotAnimation.summaryData', function (e, data) {
-            if (data.crystalWidth && data.crystalWidth != silasService.getCrystal().width) {
+            if (data.crystalLength && data.crystalLength != silasService.getCrystal().length) {
                 frameCache.setFrameCount(0);
             }
         });
@@ -130,7 +130,7 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Laser Pulse</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
-                  <li data-ng-show="hasCrystal()" class="sim-section" data-ng-class="{active: nav.isActive('crystal')}"><a href data-ng-click="nav.openSection('crystal')"><span class="glyphicon glyphicon-th"></span> Crystal</a></li>
+                  <li data-ng-show="hasCrystal()" class="sim-section" data-ng-class="{active: nav.isActive('thermal-transport')}"><a href data-ng-click="nav.openSection('thermal-transport')"><span class="glyphicon glyphicon-th"></span> Thermal Transport</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -164,6 +164,30 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
             $scope.name = item => `${item.title} (${item.position}m)`;
         },
     };
+});
+
+SIREPO.beamlineItemLogic('crystalView', function(panelState, $scope) {
+    function updateCrystalFields(item) {
+        panelState.showFields(item.type, [
+            ['l_scale'], item.propagationType === 'n0n2_lct',
+            ['pump_waist'], item.propagationType === 'gain_calc'
+                || item.radial_n2 === '1' || item.calc_gain == '1',
+            [
+                'inversion_n_cells', 'inversion_mesh_extent', 'crystal_alpha',
+                'pump_wavelength', 'pump_energy',
+            ], item.calc_gain === '1' || item.propagationType === 'gain_calc',
+            ['calc_gain'], item.propagationType !== 'gain_calc',
+            ['radial_n2'], item.propagationType == 'n0n2_srw',
+        ]);
+        if (item.radial_n2 === '1' && item.propagationType !== 'n0n2_srw') {
+            item.radial_n2 = '0';
+        }
+    }
+
+    $scope.whenSelected = updateCrystalFields;
+    $scope.watchFields = [
+        ['propagationType', 'radial_n2', 'calc_gain'], updateCrystalFields,
+    ];
 });
 
 SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender, silasService, $scope) {
@@ -204,13 +228,11 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
         const useFiles = appState.models[$scope.modelName].distribution === 'file';
         panelState.showFields($scope.modelName, [
             _FILES, useFiles,
-            ['pad_factor'], useFiles,
-            ['poltype'], ! useFiles,
+            ['poltype', 'sigx_waist', 'sigy_waist'], ! useFiles,
         ]);
         panelState.enableFields($scope.modelName, [
             ['nx_slice', 'ny_slice'], ! useFiles,
         ]);
-        panelState.showRow($scope.modelName, 'sigx_waist', ! useFiles);
         if (useFiles) {
             if (hasFiles()) {
                 updateMesh();
@@ -238,11 +260,9 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
     function updateCylinder(saveChanges)  {
         const cc = appState.models.crystalCylinder;
         const c = silasService.getCrystal();
-        cc.crystalWidth = c.width;
-        cc.diameter = c.diameter;
-        cc.diffusionConstant = c.diffusionConstant;
+        cc.crystalLength = c.length;
         panelState.enableFields('crystalCylinder', [
-            ['crystalWidth', 'diameter', 'diffusionConstant'], false,
+            ['crystalLength'], false,
         ]);
         if (saveChanges) {
             appState.saveChanges('crystalCylinder');
@@ -356,7 +376,7 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
                 let indices = [];
                 let verts = data.vertices;
                 let size = $scope.boundAxis == 'Z'
-                    ? silasService.getCrystal().width
+                    ? silasService.getCrystal().length
                     : appState.applicationState().crystalCylinder.diameter;
                 let axisIdx = $scope.axes.indexOf($scope.boundAxis);
                 $scope.bound = (size + 0.01) * ($scope.sliderValue - 50) / 100;

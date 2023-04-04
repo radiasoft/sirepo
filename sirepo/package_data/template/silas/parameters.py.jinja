@@ -1,82 +1,86 @@
-# ^^ pulse defined in laserPulse.py.jinja ^^ #
-
-def _intensity(wavefront):
-    return srwl_uti_data.calc_int_from_elec(wavefront).tolist()
-
-
-def _phase(wavefront):
-    z, m = srwl_uti_data.calc_int_from_wfr(
-        wavefront,
-        _int_type=4,
-        _pr=False,
-    )
-    {% if laserPulse.distribution == "file" %}
-    nx, ny = m.nx, m.ny
-    {% else %}
-    {% endif %}
-    return numpy.array(z).reshape(wavefront.mesh.ny, wavefront.mesh.nx).tolist()
+from pykern.pkcollections import PKDict
+from rslaser.optics.crystal import Crystal
+from rslaser.optics.drift import Drift
+from rslaser.optics.lens import Lens
+from rslaser.pulse.pulse import LaserPulse
+from rslaser.utils import srwl_uti_data
+from sirepo.template import template_common
+import numpy
 
 
-def _ranges(wavefront):
-    m = wavefront.mesh
-    return {
-        "x": [m.xStart, m.xFin],
-        "y": [m.yStart, m.yFin],
-    }
+def propagate(pulse, elements, beamline):
+    for idx in beamline:
+        e = elements[idx]
+        pulse = e[0].propagate(pulse, *e[1])
+    return pulse
 
 
 def save_wavefront(pulse):
+    def intensity(wavefront):
+        return srwl_uti_data.calc_int_from_elec(wavefront).tolist()
+
+    
+    def phase(wavefront):
+        z, m = srwl_uti_data.calc_int_from_wfr(
+            wavefront,
+            _int_type=4,
+            _pr=False,
+        )
+        return numpy.array(z).reshape(wavefront.mesh.ny, wavefront.mesh.nx).tolist()
+
+    
+    def ranges(wavefront):
+        m = wavefront.mesh
+        return {
+            "x": [m.xStart, m.xFin],
+            "y": [m.yStart, m.yFin],
+        }
+
     h5_data = PKDict()
     for x in {{ dataPaths }}:
-        h5_data[x] = globals()[f"_{x}"](pulse.slice_wfr({{ sliceNumber }}))
+        h5_data[x] = locals()[x](pulse.slice_wfr({{ sliceNumber }}))
     template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
 
 
+pulse = LaserPulse(
+    params=PKDict(
+        {% for f in (
+            'chirp',
+            'nslice',
+            'num_sig_long',
+            'num_sig_trans',
+            'nx_slice',
+            'ny_slice',
+            'photon_e_ev',
+            'poltype',
+            'pulseE',
+            'sigx_waist',
+            'sigy_waist',
+            'tau_fwhm'
+        ) %}
+        {{ f }}={{ laserPulse[f] }},
+        {% endfor %}
+    ),
+    {% if laserPulse.distribution == "file" %}
+    files=PKDict(
+        ccd="{{ ccdFile }}",
+        meta="{{ metaFile }}",
+        wfs="{{ wfsFile }}",
+    ),
+    {% endif %}
+)
+    
 {% if report in ("initialIntensityReport","initialPhaseReport")  %}
 save_wavefront(pulse)
 {% else %}
 
-def _build_crystal(model):
-    from rslaser.optics import crystal
-    return crystal.Crystal(
-        params=PKDict(
-            l_scale=1,
-            length=model.width,
-            n0=[model.refractionIndex] * model.numSlices,
-            n2=[model.radialVariation] * model.numSlices,
-            nslice=model.numSlices,
-        )
-    )
+elements = [
+    {% filter indent(width=4) %}
+    {{ beamlineElements }}
+    {%- endfilter -%}
+]
 
+beamline = [{{ beamlineIndices }}]
 
-def _build_drift(length):
-    from rslaser.optics import drift
-    return drift.Drift(length)
-
-
-def _build_lens(model):
-    from rslaser.optics import lens
-    return lens.Lens(model.focalLength)
-
-
-def _build_watch(model):
-    return _build_drift(0.0)
-
-
-def propagate(pulse):
-    beamline = {{ beamline }}
-    prev = 0
-    for element in [PKDict(e) for e in beamline]:
-        dz = element.position - prev
-        if dz:
-            e = _build_drift(dz)
-            pulse = e.propagate(pulse, "default")
-        e = globals()[f"_build_{element.type}"](element)
-        pulse = e.propagate(pulse, element.propagationType)
-        prev = element.position
-    return pulse
-
-
-save_wavefront(propagate(pulse))
-
+save_wavefront(propagate(pulse, elements, beamline))
 {% endif %}
