@@ -26,6 +26,16 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def epics_env(server_address):
+    if not server_address:
+        return None
+    env = os.environ.copy()
+    env["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
+    env["EPICS_CA_ADDR_LIST"] = server_address
+    env["EPICS_CA_SERVER_PORT"] = server_address.split(":")[1]
+    return env
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
@@ -40,6 +50,7 @@ def write_parameters(data, run_dir, is_parallel):
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     v.statusFile = _STATUS_FILE
+    v.epics_env = epics_env(data.models.epicsServer.serverAddress)
     return template_common.render_jinja(
         SIM_TYPE,
         v,

@@ -43,6 +43,9 @@
             "MaxValue": ["Max Value", "ReadOnlyFloat", 0],
             "MeanValue": ["Mean Value", "ReadOnlyFloat", 0]
         },
+        "epicsServer": {
+            "serverAddress": ["Network Address", "OptionalString", ""]
+        },
         "simulationStatus": {},
         "waveformReport": {}
     },
