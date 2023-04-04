@@ -70,9 +70,9 @@ def _check_connection(process_variables):
         if type(process_variables[k]) == float:
             continue
         for e in (
-            ("disconnected", "Disconnected from EPICS"),
-            ("(PV not found)", "No EPICS process found"),
+            PKDict(value="disconnected", error="Disconnected from EPICS"),
+            PKDict(value="(PV not found)", error="No EPICS process found"),
         ):
-            if e[0] in process_variables[k]:
-                return PKDict(error=e[1])
+            if e.value in process_variables[k]:
+                return PKDict(error=e.error)
     return process_variables
