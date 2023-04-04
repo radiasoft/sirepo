@@ -6,7 +6,8 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from sirepo.template import template_common
+from sirepo.template import template_common, accel
+from sirepo import simulation_db
 import subprocess
 
 
@@ -36,4 +37,5 @@ def run_background(cfg_dir):
         "camonitor MTEST:Run MTEST:MaxPoints MTEST:UpdateTime MTEST:TimePerDivision MTEST:TriggerDelay MTEST:VoltOffset MTEST:NoiseAmplitude MTEST:Waveform MTEST:TimeBase MTEST:MinValue MTEST:MaxValue MTEST:MeanValue | python parameters.py",
         shell=True,
         stdin=subprocess.PIPE,
+        env=accel.epics_env(simulation_db.read_json(template_common.INPUT_BASE_NAME).models.epicsServer.serverAddress),
     ).wait()

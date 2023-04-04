@@ -44,7 +44,7 @@
             "MeanValue": ["Mean Value", "ReadOnlyFloat", 0]
         },
         "epicsServer": {
-            "serverAddress": ["Network Address", "OptionalString", ""]
+            "serverAddress": ["Network Address", "String", "localhost:5064"]
         },
         "simulationStatus": {},
         "waveformReport": {}

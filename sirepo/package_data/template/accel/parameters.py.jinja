@@ -11,30 +11,19 @@ OUT_FILE = 'out.json'
 pvs = PKDict()
 
 
-def run_local():
-    for line in sys.stdin:
-        if line != '\n':
-            m = re.match(r'^(\S+)\s+(\S+\s\S+)\s+(.*?)\s*((UDF INVALID)|(STATE .*))?$', line)
-            if not m:
-                print(f'unmatched: {line}')
-                continue
-            name, time, value = m.group(1, 2, 3)
-            print(name)
-            pvs[name] = [value, time]
-            if name == 'MTEST:MinValue':
-                print(f'time: {time}')
-        if not select.select([sys.stdin, ], [], [], 0.0)[0]:
-            # no remaining data, save input file info
-            with open(OUT_FILE, 'w') as f:
-                json.dump(pvs, f)
-            # move is atomic, so full file will be available for reader
-            shutil.move(OUT_FILE, STATUS_FILE)
-
-def run_epics_remote_server(env):
-    # TODO (gurhar1133): caget and put from env.server_address?
-    pass
-
-if {{ epics_env }}:
-    run_epics_remote_server(v.epics_env)
-else:
-    run_local()
+for line in sys.stdin:
+    if line != '\n':
+        m = re.match(r'^(\S+)\s+(\S+\s\S+)\s+(.*?)\s*((UDF INVALID)|(STATE .*))?$', line)
+        if not m:
+            print(f'unmatched: {line}')
+            continue
+        name, time, value = m.group(1, 2, 3)
+        pvs[name] = [value, time]
+        if name == 'MTEST:MinValue':
+            print(f'time: {time}')
+    if not select.select([sys.stdin, ], [], [], 0.0)[0]:
+        # no remaining data, save input file info
+        with open(OUT_FILE, 'w') as f:
+            json.dump(pvs, f)
+        # move is atomic, so full file will be available for reader
+        shutil.move(OUT_FILE, STATUS_FILE)

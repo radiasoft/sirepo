@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import os
 import re
 import sirepo.sim_data
 import sirepo.util
@@ -27,8 +28,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def epics_env(server_address):
-    if not server_address:
-        return None
     env = os.environ.copy()
     env["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
     env["EPICS_CA_ADDR_LIST"] = server_address
@@ -50,7 +49,6 @@ def write_parameters(data, run_dir, is_parallel):
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     v.statusFile = _STATUS_FILE
-    v.epics_env = epics_env(data.models.epicsServer.serverAddress)
     return template_common.render_jinja(
         SIM_TYPE,
         v,
