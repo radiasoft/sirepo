@@ -1480,7 +1480,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
 
             $scope.hasPaths = () => (appState.models.fieldPaths.paths || []).length;
 
-            $scope.showFieldLineoutPanel = () => ! $scope.dataCleared && $scope.hasPaths();
+            $scope.showFieldLineoutPanel = () => $scope.hasPaths();
 
             $scope.$on('fieldLineoutAnimation.saved', run);
             $scope.$on('fieldPaths.changed', updatePath);
