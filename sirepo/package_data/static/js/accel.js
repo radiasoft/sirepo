@@ -156,21 +156,10 @@ SIREPO.app.directive('epicsValue', function(accelService, $timeout) {
             field: '=',
         },
         template: `
-          <div data-ng-class="{'sr-updated-cell': isChanged}" data-ng-model="field" data-ng-change="{{ changed() }}" class="form-control-static col-sm-3">{{ accelService.getEpicsValue(modelName, field) }}</div>
+          <div data-ng-model="field" class="form-control-static col-sm-3">{{ accelService.getEpicsValue(modelName, field) }}</div>
         `,
         controller: function($scope) {
-            const PV_UPDATE_TIMEOUT = 700;
-            let prevValue;
             $scope.accelService = accelService;
-
-            $scope.changed = () => {
-                const v = accelService.getEpicsValue($scope.modelName, $scope.field);
-                if (prevValue != v) {
-                    prevValue = v;
-                    $scope.isChanged = true;
-                    $timeout(() => { $scope.isChanged = false; }, PV_UPDATE_TIMEOUT);
-                }
-            };
         },
     };
 });
