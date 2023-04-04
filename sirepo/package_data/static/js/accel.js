@@ -148,7 +148,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('epicsValue', function(accelService, $timeout) {
+SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -160,6 +160,8 @@ SIREPO.app.directive('epicsValue', function(accelService, $timeout) {
         `,
         controller: function($scope) {
             $scope.accelService = accelService;
+            srdbg($scope.field);
+            srdbg(appState.models, accelService.getEpicsValue($scope.modelName, $scope.field));
         },
     };
 });
