@@ -203,12 +203,27 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
             field: '=',
         },
         template: `
-          <div data-ng-model="field" class="form-control-static col-sm-3">{{ accelService.getEpicsValue(modelName, field) }}</div>
+          <div data-ng-class="{'highlight-cell': isDiff}" data-ng-model="field" data-ng-change="{{ changed() }}" class="form-control-static col-sm-3">{{ accelService.getEpicsValue(modelName, field) }}</div>
         `,
         controller: function($scope) {
             $scope.accelService = accelService;
-            srdbg($scope.field);
-            srdbg(appState.models, accelService.getEpicsValue($scope.modelName, $scope.field));
+            $scope.changed = () => {
+                const v = accelService.getEpicsValue($scope.modelName, $scope.field);
+                if (nonReadOnlyDiff(appState.models.MTEST[$scope.field], v, $scope.field)) {
+                    $scope.isDiff = true;
+                } else {
+                    $scope.isDiff = false;
+                }
+            };
+
+            const nonReadOnlyDiff = (inputVal, epicsVal, pvName) => {
+                if (! ["MinValue", "MaxValue", "MeanValue"].includes(pvName)){
+                    if (inputVal != epicsVal) {
+                        return true;
+                    }
+                }
+                return false;
+            }
         },
     };
 });
