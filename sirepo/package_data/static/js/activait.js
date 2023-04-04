@@ -285,28 +285,29 @@ SIREPO.app.controller('AnalysisController', function (appState, activaitService,
 SIREPO.app.controller('DataController', function (activaitService, appState, $scope) {
     const self = this;
     self.activaitService = activaitService;
-    self.imageViewer = appState.models.imageViewerShow ? true : false;
+    const c = appState.models.columnInfo;
 
+    const inOut = (inputOutput) => {
+        let res = true;
+        ['input', 'output'].forEach(x => {
+           if (!inputOutput.includes(x)){
+               res = false;
+           }
+        });
+        return res;
+    };
 
     $scope.$on('columnInfo.changed', () => {
-        if (appState.models.columnInfo.inputOutput.includes('input')
-            && appState.models.columnInfo.inputOutput.includes('output')
-            && appState.models.columnInfo.header) {
+        if (inOut(c.inputOutput) && c.header) {
                 appState.models.imageViewerShow = true;
                 appState.saveChanges('imageViewerShow');
-                self.imageViewer = true;
                 return;
             }
         appState.models.imageViewerShow = false;
         appState.saveChanges('imageViewerShow');
-        self.imageViewer = false;
-        return;
     });
 
-    self.showImageViewer = () => {
-        return activaitService.isImageData() && self.imageViewer;
-    };
-
+    self.showImageViewer = () => activaitService.isImageData() && appState.models.imageViewerShow;
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {

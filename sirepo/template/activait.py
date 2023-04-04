@@ -1138,10 +1138,9 @@ class _ImagePreview:
         self.io = io
 
     def _data_url(self, filename):
-        f = open(filename, "rb")
-        u = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
-        f.close()
-        return u
+        with open(filename, "rb") as f:
+            r = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
+        return r
 
     def _image_grid(self, num_images):
         num_pages = min(5, 1 + (num_images - 1) // 25)
@@ -1149,10 +1148,15 @@ class _ImagePreview:
 
     def _masks(self, out_width, out_height, method):
         x = _read_file(self.run_dir, _OUTPUT_FILE.testFile)
-        x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
         y = _read_file(self.run_dir, _OUTPUT_FILE.predictFile)
-        y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
+        x, y = self._shape_images(x, y, out_width, out_height)
         return x, y, self._original_images(method)
+
+    def _shape_images(self, x, y, width, height):
+        s = width * height
+        return x.reshape(len(x) // s, height, width), y.reshape(
+            len(y) // s, height, width
+        )
 
     def _original_images(self, method):
         if method == "segmentViewer" and not _param_to_image(self.info):
@@ -1209,10 +1213,14 @@ class _ImagePreview:
             worstLosses=_read_file(self.run_dir, _OUTPUT_FILE.worstFile),
         )[method].flatten()
         i.sort()
-        x = _read_file(self.run_dir, _OUTPUT_FILE.testFile)
-        y = _read_file(self.run_dir, _OUTPUT_FILE.predictFile)
-        x = x.reshape(len(x) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i]
-        y = y.reshape(len(y) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i]
+        x, y = self._shape_images(
+            _read_file(self.run_dir, _OUTPUT_FILE.testFile),
+            _read_file(self.run_dir, _OUTPUT_FILE.predictFile),
+            y_shape[1],
+            y_shape[0],
+        )
+        x = x[i]
+        y = y[i]
         if _param_to_image(self.info):
             return x, y, None
         return (
@@ -1222,16 +1230,17 @@ class _ImagePreview:
         )
 
     def _x_y(self, run_dir=None):
+        o = self.file[self.io.output.path]
         if self.data.args.method == "segmentViewer":
-            w = numpy.array(self.file[self.io.output.path]).shape[-1]
-            h = numpy.array(self.file[self.io.output.path]).shape[-2]
+            w = numpy.array(o).shape[-1]
+            h = numpy.array(o).shape[-2]
             return self._masks(w, h, self.data.args.method)
         if self.data.args.method in ("bestLosses", "worstLosses"):
             i = self.data.args.columnInfo.inputOutput.index("output")
             return self._by_indices(
                 self.data.args.method, self.data.args.columnInfo.shape[i][1:]
             )
-        return self.file[self.io.input.path], self.file[self.io.output.path], None
+        return self.file[self.io.input.path], o, None
 
     def _grid(self, x):
         if _image_out(self.info):
@@ -1314,10 +1323,7 @@ class _ImagePreview:
                 )
                 for j in range(i):
                     self.row = j
-                    if o is not None:
-                        self.original = o[k + j]
-                    else:
-                        self.original = None
+                    self.original = o[k + j] if o is not None else None
                     self.input = x[k + j]
                     if self.io.input.kind == "f":
                         self.input = self.input.astype(float)
