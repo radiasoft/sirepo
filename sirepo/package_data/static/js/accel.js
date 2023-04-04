@@ -11,11 +11,17 @@ SIREPO.app.factory('accelService', function(appState) {
 });
 
 
-SIREPO.app.controller('accelController', function (appState, panelState, persistentSimulation, $scope, $rootScope) {
+SIREPO.app.controller('accelController', function (appState, panelState, errorService, persistentSimulation, $scope, $rootScope) {
     const self = this;
     self.simScope = $scope;
     self.simHandleStatus = data => {
         if (data.epicsData) {
+            if (data.epicsData.error) {
+                errorService.alertText(
+                    data.epicsData.error
+                );
+                return;
+            }
             const updated = [];
             for (const f in data.epicsData) {
                 let modelName, field;

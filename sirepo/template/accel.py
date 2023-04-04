@@ -60,9 +60,8 @@ def _read_epics_data(run_dir):
             else:
                 v = float(v)
             d[f] = v
-        pkdp("\n\n\nd={}", d)
         if _disconected(d):
-            raise sirepo.util.UserAlert("Disconnected from Process Variables")
+            return PKDict(error="Disconnected from EPICS")
         return d
     return PKDict()
 
