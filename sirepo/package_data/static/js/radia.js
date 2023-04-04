@@ -220,7 +220,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
-        srdbg('SAVE GEOM GEN?', doGenerate, 'Q?', isQuiet);
         appState.models.geometryReport.lastModified = Date.now();
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
@@ -1943,6 +1942,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                             radiaService.syncReports();
                         }
                         solving = false;
+                        radiaService.saveGeometry(false, true);
                     }
                 }
             };
