@@ -287,18 +287,10 @@ SIREPO.app.controller('DataController', function (activaitService, appState, $sc
     self.activaitService = activaitService;
     const c = appState.models.columnInfo;
 
-    const inOut = (inputOutput) => {
-        let res = true;
-        ['input', 'output'].forEach(x => {
-           if (!inputOutput.includes(x)){
-               res = false;
-           }
-        });
-        return res;
-    };
+    const hasInOut = inputOutput => ['input', 'output'].map(x => inputOutput.includes(x)).reduce((p, c) => p && c);
 
     $scope.$on('columnInfo.changed', () => {
-        if (inOut(c.inputOutput) && c.header) {
+        if (hasInOut(c.inputOutput) && c.header) {
                 appState.models.imageViewerShow = true;
                 appState.saveChanges('imageViewerShow');
                 return;
