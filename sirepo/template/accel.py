@@ -60,16 +60,19 @@ def _read_epics_data(run_dir):
             else:
                 v = float(v)
             d[f] = v
-        if _disconected(d):
-            return PKDict(error="Disconnected from EPICS")
+        d = _check_connection(d)
         return d
     return PKDict()
 
 
-def _disconected(process_variables):
+def _check_connection(process_variables):
     for k in process_variables:
         if type(process_variables[k]) == float:
             continue
-        if "disconnected" in process_variables[k]:
-            return True
-    return False
+        for e in (
+            ("disconnected", "Disconnected from EPICS"),
+            ("(PV not found)", "No EPICS process found"),
+        ):
+            if e[0] in process_variables[k]:
+                return PKDict(error=e[1])
+    return process_variables
