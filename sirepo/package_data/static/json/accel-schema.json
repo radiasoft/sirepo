@@ -16,7 +16,8 @@
     },
     "dynamicFiles": {
         "sirepoLibs": {
-            "js": ["accel.js"]
+            "js": ["accel.js"],
+            "css": ["accel.css"]
         }
     },
     "localRoutes": {

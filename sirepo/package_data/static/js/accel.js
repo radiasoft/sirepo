@@ -75,6 +75,12 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
             for (const f in data.epicsData) {
                 let [modelName, field] = f.split(':');
                 const m = appState.models[modelName];
+                // if (m && fieldType(modelName, field) == 'ReadOnlyFloat') {
+                //     srdbg(data.epicsData[f], field, modelName);
+
+                //     appState.saveChanges([modelName]);
+                //     srdbg(appState.models);
+                // }
                 if (m && fieldType(modelName, field) == 'ReadOnlyFloatArray') {
                     if (
                         (
@@ -106,6 +112,10 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
             prevEpicsData = data.epicsData;
         }
     };
+
+    // $scope.$on('MTEST.changed', ()=> {
+    //     srdbg("changed pv");
+    // })
 
     self.simState = persistentSimulation.initSimulationState(self);
 });
@@ -148,18 +158,29 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('epicsValue', function(accelService) {
+SIREPO.app.directive('epicsValue', function(accelService, $timeout) {
     return {
         restrict: 'A',
         scope: {
             modelName: '=',
             field: '=',
-            },
+        },
         template: `
-          <div class="form-control-static">{{ accelService.getEpicsValue(modelName, field) }}</div>
+          <div data-ng-class="{'sr-updated-cell': isChanged}" data-ng-model="field" data-ng-change="{{ changed() }}" class="form-control-static">{{ accelService.getEpicsValue(modelName, field) }}</div>
         `,
         controller: function($scope) {
+            let prevValue;
             $scope.accelService = accelService;
+            $scope.changed = () => {
+                const v = accelService.getEpicsValue($scope.modelName, $scope.field);
+                const u = accelService.getEpicsValue($scope.modelName, 'UpdateTime')*1000 - 50;
+                if (prevValue != v) {
+                    prevValue = v;
+                    $scope.isChanged = true;
+                    // TODO (gurhar1133): un hardcode timeout to match update time
+                    $timeout(() => { $scope.isChanged = false }, u);
+                }
+            };
         },
     };
 });
