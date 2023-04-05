@@ -2038,8 +2038,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             let colorScale = null;
             let cPicker = null;
             const displayFields = [
-                 'magnetDisplay.viewType',
-                 'magnetDisplay.fieldType',
+                'magnetDisplay.viewType',
+                'magnetDisplay.fieldType',
             ];
             let displayVals = getDisplayVals();
             const fieldDisplayModelFields = {
@@ -2763,17 +2763,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('fieldPaths.changed', function () {
-                if (! $scope.model.fieldPoints) {
-                    $scope.model.fieldPoints = [];
-                }
-                const r = 'fieldLineoutAnimation';
-                for (const p of appState.models.fieldPaths.paths) {
-                    if (! appState.models[r].fieldPath || p.id === appState.models[r].fieldPath.id) {
-                        appState.models[r].fieldPath = p;
-                        appState.saveChanges(r);
-                        break;
-                    }
-                }
                 updateViewer();
             });
 
