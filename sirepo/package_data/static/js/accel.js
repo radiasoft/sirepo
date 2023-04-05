@@ -218,7 +218,7 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
 
             const nonReadOnlyDiff = (inputVal, epicsVal, pvName) => {
                 if (! ["MinValue", "MaxValue", "MeanValue"].includes(pvName)){
-                    if (inputVal != epicsVal) {
+                    if (inputVal != epicsVal && epicsVal !== null) {
                         return true;
                     }
                 }
