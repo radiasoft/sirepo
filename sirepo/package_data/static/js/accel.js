@@ -7,7 +7,7 @@ SIREPO.app.config(function() {
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="EpicsFloat">
           <div class="col-sm-3">
-            <div data-model="model" data-field="field" data-epics-input=""></div>
+            <div data-model="model" data-field="field" data-model-name="modelName" data-epics-input=""></div>
           </div>
           <div data-epics-value="" data-model-name="modelName" data-field="field"></div>
         </div>
@@ -203,47 +203,39 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
             field: '=',
         },
         template: `
-          <div data-ng-class="{'highlight-cell': isDiff}" data-ng-model="field" data-ng-change="{{ changed() }}" class="form-control-static col-sm-3">{{ epicsVal }}</div>
+          <div data-ng-model="field" class="form-control-static col-sm-3">{{ fmtExp(accelService.getEpicsValue(modelName, field)) }}</div>
         `,
         controller: function($scope) {
             $scope.accelService = accelService;
-            $scope.epicsVal = accelService.getEpicsValue($scope.modelName, $scope.field);
-
-            $scope.changed = () => { // TODO (gurhar1133): remove?
-                const v = accelService.getEpicsValue($scope.modelName, $scope.field);
-                $scope.epicsVal = appState.formatExponential(v);
+            $scope.fmtExp = (value) => {
+                return appState.formatExponential(value);
             };
         },
     };
 });
 
-SIREPO.app.directive('epicsInput', function(appState, accelService, $timeout) {
+SIREPO.app.directive('epicsInput', function(appState, accelService) {
     return {
         restrict: 'A',
         scope: {
             model: '=',
             field: '=',
+            modelName: '=',
         },
         template:`
           <input data-string-to-number="" data-ng-class="{'highlight-cell': isDiff}" data-ng-change="{{ changed() }}" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
           `,
         controller: function($scope) {
-            srdbg($scope.model, $scope.field);
             $scope.accelService = accelService;
-            $scope.epicsVal = accelService.getEpicsValue($scope.modelName, $scope.field);
             $scope.changed = () => {
                 const v = accelService.getEpicsValue($scope.modelName, $scope.field);
-                $scope.epicsVal = appState.formatExponential(v);
                 if (nonReadOnlyDiff(appState.models.MTEST[$scope.field], v, $scope.field)) {
                     $scope.isDiff = true;
                 } else {
                     $scope.isDiff = false;
                 }
             };
-            // TODO (gurhar1133): need to highlight the inputs instead of the epics values
-            // so same logic for checking diff but need to wrap the inputs
-            // in a directive called 'epicsInput' or something and put the conditional
-            // highlighting on that
+
             const nonReadOnlyDiff = (inputVal, epicsVal, pvName) => {
                 if (! ["MinValue", "MaxValue", "MeanValue"].includes(pvName)){
                     if (inputVal != epicsVal && epicsVal !== null) {
@@ -251,7 +243,7 @@ SIREPO.app.directive('epicsInput', function(appState, accelService, $timeout) {
                     }
                 }
                 return false;
-            }
+            };
         },
     };
 });

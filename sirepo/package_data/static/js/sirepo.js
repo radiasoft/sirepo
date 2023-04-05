@@ -594,8 +594,8 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (Math.abs(value) >= 10000 || (value != 0 && Math.abs(value) < 0.001)) {
             value = (+value).toExponential(9).replace(/\.?0+e/, 'e');
         }
-        return value
-    }
+        return value;
+    };
 
     self.formatFloat = function(v, decimals) {
         return +parseFloat(v).toFixed(decimals);
