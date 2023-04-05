@@ -105,12 +105,9 @@ def extract_field_report(field, coordinate, mode, data_file):
 
 def extract_particle_report(frame_args, particle_type):
     data_file = open_data_file(frame_args.run_dir, frame_args.frameIndex)
-    xarg = frame_args.x
-    yarg = frame_args.y
-    nbins = frame_args.histogramBins
     opmd = _opmd_time_series(data_file)
     data_list = opmd.get_particle(
-        var_list=[xarg, yarg],
+        var_list=[frame_args.x, frame_args.y],
         species=particle_type,
         iteration=numpy.array([data_file.iteration]),
         select=None,
@@ -146,29 +143,24 @@ def extract_particle_report(frame_args, particle_type):
         else:
             with h5py.File(data_file.filename) as f:
                 main.apply_selection(f, data_list, select, particle_type, ())
-    xunits = " [m]" if len(xarg) == 1 else ""
-    yunits = " [m]" if len(yarg) == 1 else ""
 
-    if xarg == "z":
+    if frame_args.x == "z":
         data_list = _adjust_z_width(data_list, data_file)
 
-    hist, edges = numpy.histogramdd(
-        [data_list[0], data_list[1]],
-        template_common.histogram_bins(nbins),
+    return template_common.heatmap(
+        values=[data_list[0], data_list[1]],
+        model=PKDict(histogramBins=frame_args.histogramBins),
+        plot_fields=PKDict(
+            x_label="{}{}".format(
+                frame_args.x, " [m]" if len(frame_args.x) == 1 else ""
+            ),
+            y_label="{}{}".format(
+                frame_args.y, " [m]" if len(frame_args.y) == 1 else ""
+            ),
+            title="t = {}".format(_iteration_title(opmd, data_file)),
+            frameCount=data_file.num_frames,
+        ),
         weights=data_list[2],
-        range=[
-            _select_range(data_list[0], xarg, select),
-            _select_range(data_list[1], yarg, select),
-        ],
-    )
-    return PKDict(
-        x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        x_label="{}{}".format(xarg, xunits),
-        y_label="{}{}".format(yarg, yunits),
-        title="t = {}".format(_iteration_title(opmd, data_file)),
-        z_matrix=hist.T.tolist(),
-        frameCount=data_file.num_frames,
     )
 
 

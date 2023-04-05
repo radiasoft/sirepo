@@ -4,9 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import ast
-import astunparse
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -14,6 +11,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
+from sirepo.template import hdf5_util
 from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
@@ -602,33 +600,16 @@ def sim_frame_plotAnimation(frame_args):
             for field in res.values():
                 _units_from_hdf5(h5file, field)
 
-    res = PKDict()
-    for dim in "x", "y1", "y2", "y3":
-        parts = frame_args[dim].split(" ")
-        if parts[0] == "none":
-            continue
-        res[dim] = PKDict(
-            label=frame_args[dim],
-            dim=dim,
-            points=[],
-            name=parts[0],
-            index=_DIM_INDEX[parts[1]] if len(parts) > 1 else 0,
-        )
-    _iterate_hdf5_steps(frame_args.run_dir.join(_OPAL_H5_FILE), _walk_file, res)
-    plots = []
-    for field in res.values():
-        if field.dim != "x":
-            plots.append(field)
-    return template_common.parameter_plot(
-        res.x.points,
-        plots,
-        PKDict(),
+    return hdf5_util.HDF5Util(frame_args.run_dir.join(_OPAL_H5_FILE)).lineplot(
         PKDict(
-            dynamicYLabel=True,
-            title="",
-            y_label="",
-            x_label=res.x.label,
-        ),
+            model=frame_args,
+            index=lambda parts: _DIM_INDEX[parts[1]] if len(parts) > 1 else 0,
+            format_plots=lambda h5file, plots: _iterate_hdf5_steps_from_handle(
+                h5file,
+                _walk_file,
+                plots,
+            ),
+        )
     )
 
 
@@ -854,29 +835,26 @@ def _generate_parameters_file(data, qcall=None):
     return _Generate(data, qcall=qcall).sim()
 
 
-def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
-    res = PKDict()
-    title = "Step {}".format(idx)
-    with h5py.File(str(run_dir.join(filename)), "r") as f:
-        for field in ("x", "y"):
-            res[field] = PKDict(
-                name=report[field],
-                points=np.array(f["/Step#{}/{}".format(idx, report[field])]),
-                label=report[field],
+def _bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
+    def _points(file, frame_index, name):
+        return np.array(file["/Step#{}/{}".format(frame_index, name)])
+
+    def _title(file, frame_index):
+        t = "Step {}".format(frame_index)
+        if "SPOS" in file["/Step#{}".format(frame_index)].attrs:
+            t += ", SPOS {0:.5f}m".format(
+                file["/Step#{}".format(frame_index)].attrs["SPOS"][0]
             )
-            _units_from_hdf5(f, res[field])
-        if "SPOS" in f["/Step#{}".format(idx)].attrs:
-            title += ", SPOS {0:.5f}m".format(
-                f["/Step#{}".format(idx)].attrs["SPOS"][0]
-            )
-    return template_common.heatmap(
-        [res.x.points, res.y.points],
-        report,
+        return t
+
+    return hdf5_util.HDF5Util(str(run_dir.join(filename))).heatmap(
         PKDict(
-            x_label=res.x.label,
-            y_label=res.y.label,
-            title=title,
-        ),
+            format_plot=_units_from_hdf5,
+            frame_index=frame_index,
+            model=model,
+            points=_points,
+            title=_title,
+        )
     )
 
 
@@ -1059,14 +1037,18 @@ def _generate_beamline(
 
 def _iterate_hdf5_steps(path, callback, state):
     with h5py.File(str(path), "r") as f:
-        step = 0
-        key = "Step#{}".format(step)
-        while key in f:
-            callback(f, key, step, state)
-            step += 1
-            key = "Step#{}".format(step)
-        callback(f, None, -1, state)
+        _iterate_hdf5_steps_from_handle(f, callback, state)
     return state
+
+
+def _iterate_hdf5_steps_from_handle(h5file, callback, state):
+    step = 0
+    key = "Step#{}".format(step)
+    while key in h5file:
+        callback(h5file, key, step, state)
+        step += 1
+        key = "Step#{}".format(step)
+    callback(h5file, None, -1, state)
 
 
 def _output_info(run_dir):
