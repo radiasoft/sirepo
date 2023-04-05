@@ -756,9 +756,7 @@ class _SbatchRun(_SbatchCmd):
 
     def _sbatch_script(self):
         def _processor():
-            if self.msg.sbatchQueue == "debug" and pkconfig.channel_in("dev"):
-                return "knl"
-            return "haswell"
+            return "cpu"
 
         i = self.msg.shifterImage
         s = o = ""
