@@ -770,7 +770,10 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --tasks-per-node={self.msg.tasksPerNode}
 {sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
             s = "--cpu-bind=cores shifter --entrypoint"
-        m = "--mpi=pmi2" if pkconfig.channel_in("dev") else ""
+        m = ""
+
+        # todo
+        #        "--mpi=pmi2" if pkconfig.channel_in("dev") else ""
         f = self.run_dir.join(self.jid + ".sbatch")
         f.write(
             f"""#!/bin/bash
