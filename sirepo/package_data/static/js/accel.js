@@ -208,7 +208,7 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
         controller: function($scope) {
             $scope.accelService = accelService;
             $scope.fmtExp = (value) => {
-                return appState.formatExponential(value);
+                return value == null ? "" : appState.formatExponential(value);
             };
         },
     };
