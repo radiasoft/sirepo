@@ -2,7 +2,7 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { AnyAction, Dispatch } from "redux";
 import { ArrayFieldElement, ArrayFieldState } from "../store/common";
-import { getModelReadSelector, getModelWriteActionCreator, StoreType } from "./data";
+import { getModelReadSelector, getModelWriteActionCreator, getValueSelector, StoreType, StoreTypes } from "./data";
 
 export const CHandleFactory = React.createContext<HandleFactory>(undefined);
 
@@ -34,14 +34,15 @@ export interface EmptyDataHandle<V, D extends DataHandle<V> = DataHandle<V>> {
 }
 
 export abstract class HandleFactory {
-    abstract createHandle<V>(dependency: Dependency, type: StoreType): EmptyDataHandle<V>;
-    abstract createArrayHandle<V extends ArrayFieldState<V>>(dependency: Dependency, type: StoreType): EmptyDataHandle<V>;
+    abstract createHandle<V>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V>;
+    abstract createArrayHandle<V extends ArrayFieldState<V>>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V>;
 }
 
 export class BaseHandleFactory extends HandleFactory {
-    createHandle<V>(dependency: Dependency, type: StoreType): EmptyDataHandle<V> {
+    createHandle<V>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V> {
         let ms = getModelReadSelector<V>(type)(dependency.modelName);
         let mac = getModelWriteActionCreator<V>(type);
+        let vs = getValueSelector(type);
         let cdh = (value: V): DataHandle<V> => {
             return new (class extends DataHandle<V> {
                 write = (value: V, dispatch: Dispatch<AnyAction>) => {
@@ -51,17 +52,18 @@ export class BaseHandleFactory extends HandleFactory {
         }
         return {
             initialize: (state: any) => {
-                return cdh(ms(state));
+                return cdh(vs(ms(state)));
             },
             hook: () => {
-                return cdh(useSelector(ms));
+                return cdh(vs(useSelector(ms)));
             }
         }
     }
 
-    createArrayHandle<V extends ArrayFieldState<V>>(dependency: Dependency, type: StoreType): EmptyDataHandle<V, ArrayDataHandle<V>> {
+    createArrayHandle<V extends ArrayFieldState<V>>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V, ArrayDataHandle<V>> {
         let ms = getModelReadSelector<V>(type)(dependency.modelName);
         let mac = getModelWriteActionCreator<V>(type);
+        let vs = getValueSelector(type);
         let cdh = (value: V): ArrayDataHandle<V> => {
             return new (class extends ArrayDataHandle<V> {
                 write = (value: V, dispatch: Dispatch<AnyAction>) => {
@@ -83,11 +85,36 @@ export class BaseHandleFactory extends HandleFactory {
         }
         return {
             initialize: (state: any) => {
-                return cdh(ms(state));
+                return cdh(vs(ms(state)));
             },
             hook: () => {
-                return cdh(useSelector(ms));
+                return cdh(vs(useSelector(ms)));
             }
         }
+    }
+}
+
+export type DependencyValues<F> = {
+    getValues: () => F[]
+}
+
+/**
+ * Read-only alternative to handles that supports wildcards
+ */
+export class DependencyReader<F> {
+    constructor(private dependencies: Dependency[], private type: StoreType<any, F>) {
+        
+    }
+
+    hook = (): DependencyValues<F> => {
+        let vs = getModelReadSelector(this.type)
+
+
+        let ms = getModelReadSelector(this.type)(dependency.modelName);
+        
+    }
+
+    initialize = (state: any): DependencyValues<F> => {
+
     }
 }

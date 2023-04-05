@@ -1,6 +1,5 @@
 import React, { ChangeEventHandler, useContext, useEffect, useState } from "react";
 import { AppWrapper, CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
-import { CFormController } from "../../data/formController";
 import { CRouteHelper } from "../../utility/route";
 import { Dependency } from "../../data/dependency";
 import { Form } from "react-bootstrap";
@@ -8,6 +7,8 @@ import { FunctionComponent } from "react";
 import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
 import { LayoutProps } from "../layout";
 import { pollStatefulCompute } from "../../utility/compute";
+import { CHandleFactory } from "../../data/handle";
+import { StoreTypes } from "../../data/data";
 
 export type EnumAllowedValues = { value: string, displayName: string }[]
 
@@ -116,11 +117,12 @@ export class SimulationListEnumInputLayout extends EnumInputBaseLayout<EnumConfi
     component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
         const routeHelper = useContext(CRouteHelper);
         const [optionList, updateOptionList] = useState(undefined);
-        const formController = useContext(CFormController);
+        const handleFactory = useContext(CHandleFactory);
         //TODO(pjm): these 2 lines are specific to the omega app but could be generalized
         const suffix = props.dependency.fieldName.match(/_\d+/);
-        const simType = formController.getFormStateAccessor().getFieldValue(new Dependency(
-            `simWorkflow.simType${suffix}`)).value as string;
+        const simType = handleFactory.createHandle(new Dependency(
+            `simWorkflow.simType${suffix}`), StoreTypes.FormState).hook().value as string;
+            
         useEffect(() => {
             if (! simType) {
                 return;

@@ -1,4 +1,4 @@
-import { getValueSelector, StoreType } from "../data/data";
+import { getValueSelector, StoreTypes } from "../data/data";
 import { Dependency } from "../data/dependency";
 import { HandleFactory } from "../data/handle";
 
@@ -36,7 +36,7 @@ export class InterpolationBase {
         )
     }
 
-    withDependencies<M, F>(handleFactory: HandleFactory, type: StoreType): InterpolationResult {
+    withDependencies<M, F>(handleFactory: HandleFactory, type: StoreTypes): InterpolationResult {
         let valueSelector = getValueSelector(type) as (v: F) => any;
 
         let mappingsArr = this.matches.map(([originalString, mappedGroup]) => {

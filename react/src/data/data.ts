@@ -1,21 +1,26 @@
 import { ModelSelector, ModelWriteActionCreator } from "../store/common";
-import { formActions, FormFieldState, formSelectors } from "../store/formState";
-import { modelActions, modelSelectors } from "../store/models";
+import { formActions, FormFieldState, FormModelState, formSelectors } from "../store/formState";
+import { modelActions, modelSelectors, ModelState } from "../store/models";
 
-export enum StoreType {
-    Models,
-    FormState
+export type StoreType<M, F> = "Models" | "FormState"
+
+export const StoreTypes:{
+    Models: StoreType<ModelState, unknown>,
+    FormState: StoreType<FormModelState, FormFieldState<unknown>>
+} = {
+    Models: "Models",
+    FormState: "FormState"
 }
 
-export const getModelReadSelector = <V>(type: StoreType) => {
-    return (type === StoreType.Models ? modelSelectors.selectModel : formSelectors.selectModel) as ModelSelector<V>;
+export const getModelReadSelector = <V>(type: StoreType<V, any>) => {
+    return (type === StoreTypes.Models ? modelSelectors.selectModel : formSelectors.selectModel) as ModelSelector<V>;
 }
-export const getModelWriteActionCreator = <V>(type: StoreType) => {
-    let mac = (type === StoreType.Models ? modelActions.updateModel : formActions.updateModel) as ModelWriteActionCreator<V>;
+export const getModelWriteActionCreator = <V>(type: StoreType<V, any>) => {
+    let mac = (type === StoreTypes.Models ? modelActions.updateModel : formActions.updateModel) as ModelWriteActionCreator<V>;
     return (name: string, value: V) => mac({ name, value });
 }
-export const getModelNamesSelector = (type: StoreType) => {
-    return (type === StoreType.Models ? modelSelectors.selectModelNames : formSelectors.selectModelNames);
+export const getModelNamesSelector = (type: StoreType<any, any>) => {
+    return (type === StoreTypes.Models ? modelSelectors.selectModelNames : formSelectors.selectModelNames);
 }
 
 export type ValueSelector<T> = (v: T) => any;
@@ -25,6 +30,6 @@ export const ValueSelectors = {
     Form: (v: FormFieldState<unknown>) => v.value
 }
 
-export const getValueSelector = (storeType: StoreType): ((v: any) => any) | ((v: FormFieldState<unknown>) => unknown) => {
-    return storeType === StoreType.Models ? ValueSelectors.Models : ValueSelectors.Form;
+export const getValueSelector = <F>(storeType: StoreType<any, F>): ((v: F) => any) | ((v: F) => any) => {
+    return storeType === StoreTypes.Models ? ValueSelectors.Models : ValueSelectors.Form;
 }

@@ -33,7 +33,7 @@ import { StoreState } from "../store/common";
 import { configureStore } from "@reduxjs/toolkit";
 import { formStatesSlice } from "../store/formState";
 import { BaseHandleFactory, CHandleFactory } from "../data/handle";
-import { StoreType } from "../data/data";
+import { StoreTypes } from "../data/data";
 
 export type SimulationInfoRaw = {
     models: StoreState<ModelState>,
@@ -255,7 +255,7 @@ export function SimulationOuter(props) {
     let currentRelativeRouter = new RelativeRouteHelper(pathPrefix);
 
     let handleFactory = useContext(CHandleFactory);
-    let simNameHandle = handleFactory.createHandle(new Dependency("simulation.name"), StoreType.Models).hook();
+    let simNameHandle = handleFactory.createHandle(new Dependency("simulation.name"), StoreTypes.Models).hook();
 
     useEffect(() => {
         document.title = simNameHandle.value as string;

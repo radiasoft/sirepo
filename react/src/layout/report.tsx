@@ -12,15 +12,14 @@ import { AnimationReader, CReportEventManager, SimulationFrame } from "../data/r
 import React from "react";
 import { CPanelController } from "../data/panel";
 import { LAYOUTS } from "./layouts";
-import { CModelsWrapper, getModelValues } from "../data/wrapper";
-import { ModelsAccessor } from "../data/accessor";
-import { CFormController } from "../data/formController";
 import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
 import { ModelState } from "../store/models";
 import { useShown } from "../hook/shown";
-import { ValueSelectors } from "../utility/string";
+import { CHandleFactory } from "../data/handle";
+import { StoreTypes, ValueSelectors } from "../data/data";
+import { FormFieldState } from "../store/formState";
 
 
 export type ReportVisualProps<L> = { data: L, model: ModelState };
@@ -54,14 +53,10 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
         let routeHelper = useContext(CRouteHelper);
-        let modelsWrapper = useContext(CModelsWrapper);
-        let formController = useContext(CFormController);
+        let handleFactory = useContext(CHandleFactory);
 
         let reportDependencies = dependencies.map(dependencyString => new Dependency(dependencyString));
-
-        let dependentValuesAccessor = new ModelsAccessor(modelsWrapper, [...formController.getDependencies(), ...reportDependencies]);
-        let dependentValues = dependentValuesAccessor.getValues().map(dv => dv.value);
-
+        let dependentValues = reportDependencies.map(d => ValueSelectors.Form(handleFactory.createHandle(d, StoreTypes.FormState).hook().value as FormFieldState<unknown>));
         let [simulationData, updateSimulationData] = useState(undefined);
 
         let simulationPollingVersionRef = useRef(uuidv4())
@@ -69,9 +64,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
 
         useEffect(() => {
             updateSimulationData(undefined);
-            let pollingVersion = uuidv4();
-            //simulationPollingVersionRef.current = pollingVersion;
-            simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
+            simulationInfoPromise.then(({ models, simulationId }) => {
                 updateModel(models[report]);
                 pollRunReport(routeHelper, {
                     appName,
@@ -80,12 +73,7 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
                     report: report,
                     forceRun: false,
                     callback: (simulationData) => {
-                        // guard concurrency
-                        //if(simulationPollingVersionRef.current === pollingVersion) {
                         updateSimulationData(simulationData);
-                        //} else {
-                        //    console.log("polling data was not from newest request");
-                        //}
                     }
                 })
             })
@@ -114,14 +102,13 @@ export function useAnimationReader(reportName: string, reportGroupName: string, 
             panelController.setShown(s);
         }
     }, [animationReader?.frameCount])
+    let handleFactory = useContext(CHandleFactory);
     let reportEventManager = useContext(CReportEventManager);
-    let modelsWrapper = useContext(CModelsWrapper);
     let simulationInfoPromise = useContext(CSimulationInfoPromise);
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
     let reportEventsVersionRef = useRef(uuidv4())
-    let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
-    let frameIdAccessor = new ModelsAccessor(modelsWrapper, frameIdDependencies);
+    let frameIdHandles = frameIdFields.map(f => new Dependency(f)).map(d => handleFactory.createHandle(d, StoreTypes.Models).hook());
 
     function reportStatus(reportName, simulationData) {
         if (simulationData.reports) {
@@ -157,7 +144,7 @@ export function useAnimationReader(reportName: string, reportGroupName: string, 
                                 appName,
                                 computeJobSerial,
                                 computeJobHash,
-                                frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
+                                frameIdValues: frameIdHandles.map(h => ValueSelectors.Models(h.value)),
                                 frameCount: s.frameCount,
                                 hasAnimationControls: s.hasAnimationControls,
                             });
@@ -202,10 +189,11 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         let showAnimationController = 'showAnimationController' in this.config
                                     ? !!this.config.showAnimationController
                                     : true;
-        let modelsWrapper = useContext(CModelsWrapper);
+        let handleFactory = useContext(CHandleFactory);
         let store = useStore();
-        let shown = useShown(this.config.shown, true, modelsWrapper, ValueSelectors.Models);
-        let model = getModelValues([reportName], modelsWrapper, store.getState())[reportName];
+        let shown = useShown(this.config.shown, true, StoreTypes.Models);
+        //let model = getModelValues([reportName], modelsWrapper, store.getState())[reportName];
+        let reportModel = // need to deal with *
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
         return (
             <>
