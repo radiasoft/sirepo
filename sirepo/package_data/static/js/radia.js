@@ -1598,8 +1598,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 }, true);
             }
 
-            $scope.$on('radiaViewer.loaded', updateTable);
-            $scope.$on('fieldPaths.changed', updateTable);
+            $scope.$on('fieldPaths.saved', updateTable);
         },
     };
 });
