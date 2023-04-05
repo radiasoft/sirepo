@@ -208,27 +208,11 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
         controller: function($scope) {
             $scope.accelService = accelService;
             $scope.epicsVal = accelService.getEpicsValue($scope.modelName, $scope.field);
+
             $scope.changed = () => {
                 const v = accelService.getEpicsValue($scope.modelName, $scope.field);
                 $scope.epicsVal = appState.formatExponential(v);
-                if (nonReadOnlyDiff(appState.models.MTEST[$scope.field], v, $scope.field)) {
-                    $scope.isDiff = true;
-                } else {
-                    $scope.isDiff = false;
-                }
             };
-            // TODO (gurhar1133): need to highlight the inputs instead of the epics values
-            // so same logic for checking diff but need to wrap the inputs
-            // in a directive called 'epicsInput' or something and put the conditional
-            // highlighting on that
-            const nonReadOnlyDiff = (inputVal, epicsVal, pvName) => {
-                if (! ["MinValue", "MaxValue", "MeanValue"].includes(pvName)){
-                    if (inputVal != epicsVal && epicsVal !== null) {
-                        return true;
-                    }
-                }
-                return false;
-            }
         },
     };
 });
