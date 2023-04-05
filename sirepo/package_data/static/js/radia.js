@@ -1599,7 +1599,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             }
 
             $scope.$on('radiaViewer.loaded', updateTable);
-            $scope.$on('fieldPaths.changed', updateTable);
+            $scope.$on('fieldPaths.saved', updateTable);
         },
     };
 });
@@ -2047,10 +2047,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             let colorScale = null;
             let cPicker = null;
             const displayFields = [
+                'fieldPaths.paths',
                 'magnetDisplay.viewType',
                 'magnetDisplay.fieldType',
             ];
-            let displayVals = getDisplayVals();
+            let cachedDisplayVals = appState.clone(getDisplayVals());
             const fieldDisplayModelFields = {
                 'fieldDisplay': ['colorMap', 'scaling'],
             };
@@ -2235,7 +2236,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             function didDisplayValsChange() {
                 const v = getDisplayVals();
                 for (let i = 0; i < v.length; ++i) {
-                    if (v[i] !== displayVals[i]) {
+                    if (! appState.deepEquals(v[i], cachedDisplayVals[i])) {
                         return true;
                     }
                 }
@@ -2670,7 +2671,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
-                displayVals = getDisplayVals();
+                cachedDisplayVals = appState.clone(getDisplayVals());
                 $rootScope.$broadcast('radiaViewer.loaded');
                 $rootScope.$broadcast('vtk.hideLoader');
                 sceneData = data;
@@ -2771,8 +2772,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 radiaService.saveGeometry(true, false);
             });
 
-            $scope.$on('fieldPaths.changed', function () {
-                updateViewer();
+            $scope.$on('fieldPaths.saved', () => {
+                if (appState.models.magnetDisplay.viewType === 'fields') {
+                    updateViewer();
+                }
             });
 
             $scope.$watch('radiaObject.color', (color) => {
