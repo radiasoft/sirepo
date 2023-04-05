@@ -220,7 +220,7 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
             };
 
             const fmtEpicsVal = (epicsValue) => {
-                if ((epicsValue < 1e-3) && epicsValue != null) {
+                if ((epicsValue < 1e-3) && epicsValue != null && epicsValue != 0) {
                     return epicsValue.toExponential();
                 }
                 return epicsValue;
