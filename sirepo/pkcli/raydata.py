@@ -6,7 +6,7 @@
 """
 from pykern.pkcollections import PKDict
 from sirepo.template import template_common
-import sirepo.raydata.create_scans
+import sirepo.raydata.scans
 import sirepo.raydata.replay
 import sirepo.raydata.scan_monitor
 
