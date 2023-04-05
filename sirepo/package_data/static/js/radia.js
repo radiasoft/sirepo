@@ -64,7 +64,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
     let self = {};
 
-    const POST_SIM_REPORTS = ['electronTrajectoryReport', 'fieldIntegralReport', 'fieldLineoutAnimation', 'kickMapReport',];
+    const POST_SIM_REPORTS = ['electronTrajectoryReport', 'fieldIntegralReport', 'kickMapReport',];
 
     self.computeModel = analysisModel => analysisModel;
 
