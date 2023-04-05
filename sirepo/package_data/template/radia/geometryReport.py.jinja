@@ -177,7 +177,7 @@ def _write_dmp(g_id, f_path):
         f.write(radia_util.dump_bin(g_id))
 
 with radia_util.MPI() as m:
-{% if doReset %}
+{% if solverMode == "reset" %}
     radia_util.reset()
 {% endif %}
     g_id, id_map = _build_radia_geom()
@@ -185,7 +185,7 @@ with radia_util.MPI() as m:
     _write_dict_to_h5(g_data, '{{ h5ObjPath }}')
     _write_dict_to_h5(id_map, '{{ h5IdMapPath }}')
 
-{% if doSolve %}
+{% if solverMode == "solve" %}
     res = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
     m.barrier()
     _write_dict_to_h5(res, '{{ h5SolutionPath }}')

@@ -412,7 +412,7 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
-def stateless_compute_calculate_bunch_parameters(data):
+def stateless_compute_calculate_bunch_parameters(data, **kwargs):
     return _calc_bunch_parameters(
         data.args.bunch, data.args.command_beam, data.args.variables
     )

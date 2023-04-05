@@ -30,6 +30,12 @@ _SEGMENT_ROWS = 3
 
 _SEGMENT_PAGES = 5
 
+_IMG_ROWS = 5
+
+_IMG_COLS = 5
+
+_POST_TRAINING_PLOTS = ("segmentViewer", "bestLosses", "worstLosses")
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
@@ -209,7 +215,7 @@ def prepare_sequential_output_file(run_dir, data):
                 pass
 
 
-def stateless_compute_load_keras_model(data):
+def stateless_compute_load_keras_model(data, **kwargs):
     import keras.models
 
     l = _SIM_DATA.lib_file_abspath(
@@ -346,7 +352,7 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
     )
 
 
-def stateful_compute_column_info(data):
+def stateful_compute_column_info(data, **kwargs):
     f = data.args.dataFile.file
     if pkio.has_file_extension(f, "csv"):
         return _compute_csv_info(f)
@@ -360,14 +366,15 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
 
 
 def analysis_job_dice_coefficient(data, run_dir, **kwargs):
-    return _dice_coefficient_plot(data, run_dir)
+    i = data.args.columnInfo.inputOutput.index("output")
+    return _dice_coefficient_plot(data, run_dir, data.args.columnInfo.shape[i][1:])
 
 
-def stateful_compute_sample_images(data):
+def stateful_compute_sample_images(data, **kwargs):
     return _image_preview(data)
 
 
-def stateless_compute_get_remote_data(data):
+def stateless_compute_get_remote_data(data, **kwargs):
     return template_common.remote_file_to_simulation_lib(
         _SIM_DATA,
         data.args.url,
@@ -377,11 +384,11 @@ def stateless_compute_get_remote_data(data):
     )
 
 
-def stateless_compute_remote_data_bytes_loaded(data):
+def stateless_compute_remote_data_bytes_loaded(data, **kwargs):
     return _remote_data_bytes_loaded(data.args.filename)
 
 
-def stateless_compute_get_archive_file_list(data):
+def stateless_compute_get_archive_file_list(data, **kwargs):
     return _archive_file_list(data.args.filename, data.args.data_type)
 
 
@@ -472,9 +479,15 @@ def _build_model_py(v):
         MaxPooling2D=lambda layer: _pooling_args(layer),
         SeparableConv2D=lambda layer: _conv_args(layer),
         Conv2DTranspose=lambda layer: _conv_args(layer),
+        Reshape=lambda layer: f"{layer.new_shape}",
         UpSampling2D=lambda layer: f'size={layer.size}, interpolation="{layer.interpolation}"',
         ZeroPadding2D=lambda layer: f"padding=({layer.padding}, {layer.padding})",
     )
+
+    def _final_layer(v):
+        if v.get("paramToImage", False):
+            return ""
+        return '\nx = Dense(output_shape, activation="linear")(x)'
 
     def _layer(layer):
         assert layer.layer in args_map, ValueError(f"invalid layer.layer={layer.layer}")
@@ -509,15 +522,17 @@ def _build_model_py(v):
     net = PKDict(layers=v.neuralNetLayers)
     _name_layers(net, "input_args", first_level=True)
 
-    return f"""
+    return (
+        f"""
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
 input_args = Input(shape=input_shape)
-{_build_layers(net)}
-x = Dense(output_shape, activation="linear")(x)
-model = Model(input_args, x)
+{_build_layers(net)}"""
+        + _final_layer(v)
+        + f"""\nmodel = Model(input_args, x)
 model.save('{_OUTPUT_FILE.neuralNetLayer}')
 """
+    )
 
 
 def _build_ui_nn(model):
@@ -892,18 +907,26 @@ def _fit_animation(frame_args):
     )
 
 
-def _image_to_image(info):
+def _image_out(info):
     if not info.get("shape"):
         return False
     idx = info.inputOutput.index("output")
     return len(info.shape[idx][1:]) > 1
 
 
+def _param_to_image(info):
+    if not info.get("shape"):
+        return False
+    o = info.inputOutput.index("output")
+    i = info.inputOutput.index("input")
+    return len(info.shape[o][1:]) > 1 and len(info.shape[i][1:]) == 1
+
+
 def _generate_parameters_file(data):
     report = data.get("report", "")
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
-    v.imageToImage = _image_to_image(dm.columnInfo)
+    v.imageOut = _image_out(dm.columnInfo)
     v.shuffleEachEpoch = True if dm.neuralNet.shuffle == "1" else False
     v.dataFile = _filename(dm.dataFile.file)
     v.weightedFile = _OUTPUT_FILE.mlModel
@@ -923,6 +946,7 @@ def _generate_parameters_file(data):
     v.feature_min = dm.dataFile.featureRangeMin
     v.feature_max = dm.dataFile.featureRangeMax
     v.discreteOutputs = _discrete_out(dm.columnInfo)
+    v.paramToImage = _param_to_image(dm.columnInfo)
     if v.image_data:
         v.inPath = None
         v.outPath = None
@@ -934,7 +958,7 @@ def _generate_parameters_file(data):
             elif dm.columnInfo.inputOutput[idx] == "output":
                 assert not v.outPath, "Only one output allow for h5 data"
                 v.outPath = dm.columnInfo.header[idx]
-                v.outputShape = 1 if v.imageToImage else dm.columnInfo.outputShape[idx]
+                v.outputShape = 1 if v.imageOut else dm.columnInfo.outputShape[idx]
                 v.outScaling = dm.columnInfo.dtypeKind[idx] == "f"
         assert v.inPath, "Missing input data path"
         assert v.outPath, "Missing output data path"
@@ -1082,15 +1106,15 @@ def _data_url(filename):
     return u
 
 
-def _masks(out_width, run_dir):
+def _masks(out_width, out_height, run_dir):
     x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-    x = x.reshape(len(x) // out_width // out_width, out_width, out_width)
+    x = x.reshape(len(x) // out_width // out_height, out_height, out_width)
     y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
-    y = y.reshape(len(y) // out_width // out_width, out_width, out_width)
+    y = y.reshape(len(y) // out_width // out_height, out_height, out_width)
     return x, y
 
 
-def _dice_coefficient_plot(data, run_dir):
+def _dice_coefficient_plot(data, run_dir, y_shape):
     import matplotlib.pyplot as plt
 
     def _dice(run_dir):
@@ -1101,7 +1125,7 @@ def _dice_coefficient_plot(data, run_dir):
             )
 
         d = []
-        x, y = _masks(64, run_dir)
+        x, y = _masks(y_shape[0], y_shape[1], run_dir)
         for pair in zip(x, y):
             d.append(_dice_coefficient(pair[0], pair[1]))
         return d
@@ -1137,7 +1161,7 @@ def _image_preview(data, run_dir=None):
             f"No matching dimension found output size: {io.output.size}"
         )
 
-    def _by_indices(method, run_dir):
+    def _by_indices(method, run_dir, y_shape):
         i = PKDict(
             bestLosses=_read_file(run_dir, _OUTPUT_FILE.bestFile),
             worstLosses=_read_file(run_dir, _OUTPUT_FILE.worstFile),
@@ -1146,37 +1170,55 @@ def _image_preview(data, run_dir=None):
         x = _read_file(run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
         return (
-            x.reshape(len(x) // 64 // 64, 64, 64)[i],
-            y.reshape(len(y) // 64 // 64, 64, 64)[i],
+            x.reshape(len(x) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
+            y.reshape(len(y) // y_shape[0] // y_shape[1], y_shape[0], y_shape[1])[i],
         )
 
     def _x_y(data, io, file, run_dir=None):
         if data.args.method == "segmentViewer":
-            return _masks(numpy.array(file[io.output.path]).shape[-1], run_dir)
+            w = numpy.array(file[io.output.path]).shape[-1]
+            h = numpy.array(file[io.output.path]).shape[-2]
+            return _masks(w, h, run_dir)
         if data.args.method in ("bestLosses", "worstLosses"):
-            return _by_indices(data.args.method, run_dir)
+            i = data.args.columnInfo.inputOutput.index("output")
+            return _by_indices(
+                data.args.method, run_dir, data.args.columnInfo.shape[i][1:]
+            )
         return file[io.input.path], file[io.output.path]
 
     def _grid(x, info):
-        if _image_to_image(info):
+        if _image_out(info):
             return [_SEGMENT_ROWS] * _SEGMENT_PAGES
         return _image_grid(len(x))
 
     def _set_image_to_image_plt(plt, data):
         _, a = plt.subplots(3, 2)
-        if data.args.method in ("segmentViewer", "bestLosses", "worstLosses"):
+        if data.args.method in _POST_TRAINING_PLOTS:
             a[0, 0].set_title("actual")
             a[0, 1].set_title("prediction")
         plt.setp(a, xticks=[], yticks=[])
         return a
 
     def _gen_image(params):
-        if _image_to_image(info):
+        if _param_to_image(info) and not data.args.method in _POST_TRAINING_PLOTS:
+            mask = params.output
+            for section in ("top", "right", "bottom", "left"):
+                params.axes[params.row, 0].spines[section].set_visible(False)
+            params.axes[params.row, 0].text(
+                0.2,
+                0.2,
+                "Params:\n" + ", ".join([str(round(n, 3)) for n in params.input]),
+                style="italic",
+                fontsize=10,
+            )
+            params.axes[params.row, 1].imshow(mask)
+            return
+        if _image_out(info):
             mask = params.output
             params.axes[params.row, 0].imshow(params.input)
             params.axes[params.row, 1].imshow(mask)
             return
-        params.plt.subplot(5, 5, params.row + 1)
+        params.plt.subplot(_IMG_ROWS, _IMG_COLS, params.row + 1)
         params.plt.xticks([])
         params.plt.yticks([])
         params.plt.imshow(v)
@@ -1207,12 +1249,17 @@ def _image_preview(data, run_dir=None):
     if "input" not in io:
         raise AssertionError("No multidimensional data found in dataset")
     io.output = _output(info, io)
+
     # look for a string column for labels
     for idx in range(len(info.header)):
         if info.dtypeKind[idx] in {"U", "S"}:
             io.output.label_path = info.header[idx]
             break
-
+    if _param_to_image(info):
+        io.input = PKDict(
+            path="metadata/control_settings",
+            kind="f",
+        )
     with h5py.File(_filepath(data.args.dataFile.file), "r") as f:
         x, y = _x_y(data, io, f, run_dir=run_dir)
         u = []
@@ -1224,9 +1271,7 @@ def _image_preview(data, run_dir=None):
         )
         for i in g:
             plt.figure(figsize=[10, 10])
-            axarr = (
-                _set_image_to_image_plt(plt, data) if _image_to_image(info) else None
-            )
+            axarr = _set_image_to_image_plt(plt, data) if _image_out(info) else None
             for j in range(i):
                 v = x[k + j]
                 if io.input.kind == "f":
