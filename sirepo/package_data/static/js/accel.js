@@ -7,7 +7,7 @@ SIREPO.app.config(function() {
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="EpicsFloat">
           <div class="col-sm-3">
-            <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
+            <div data-model="model" data-field="field" data-model-name="modelName" data-epics-input=""></div>
           </div>
           <div data-epics-value="" data-model-name="modelName" data-field="field"></div>
         </div>
@@ -195,7 +195,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('epicsValue', function(accelService, $timeout) {
+SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -203,10 +203,47 @@ SIREPO.app.directive('epicsValue', function(accelService, $timeout) {
             field: '=',
         },
         template: `
-          <div data-ng-model="field" class="form-control-static col-sm-3">{{ accelService.getEpicsValue(modelName, field) }}</div>
+          <div data-ng-model="field" class="form-control-static col-sm-3">{{ fmtExp(accelService.getEpicsValue(modelName, field)) }}</div>
         `,
         controller: function($scope) {
             $scope.accelService = accelService;
+            $scope.fmtExp = (value) => {
+                return appState.formatExponential(value);
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('epicsInput', function(appState, accelService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            modelName: '=',
+        },
+        template:`
+          <input data-string-to-number="" data-ng-class="{'highlight-cell': isDiff}" data-ng-change="{{ changed() }}" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
+          `,
+        controller: function($scope) {
+            $scope.accelService = accelService;
+            $scope.changed = () => {
+                const v = accelService.getEpicsValue($scope.modelName, $scope.field);
+                if (nonReadOnlyDiff(appState.models.MTEST[$scope.field], v, $scope.field)) {
+                    $scope.isDiff = true;
+                } else {
+                    $scope.isDiff = false;
+                }
+            };
+
+            const nonReadOnlyDiff = (inputVal, epicsVal, pvName) => {
+                if (! ["MinValue", "MaxValue", "MeanValue"].includes(pvName)){
+                    if (inputVal != epicsVal && epicsVal !== null) {
+                        return true;
+                    }
+                }
+                return false;
+            };
         },
     };
 });
