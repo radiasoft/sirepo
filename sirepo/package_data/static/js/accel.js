@@ -209,7 +209,7 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
             $scope.accelService = accelService;
             $scope.epicsVal = accelService.getEpicsValue($scope.modelName, $scope.field);
 
-            $scope.changed = () => {
+            $scope.changed = () => { // TODO (gurhar1133): remove?
                 const v = accelService.getEpicsValue($scope.modelName, $scope.field);
                 $scope.epicsVal = appState.formatExponential(v);
             };
