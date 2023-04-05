@@ -1430,9 +1430,10 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             </div>
         `,
         controller: function($scope) {
-            $scope.model = appState.models[$scope.modelName];
+            const modelName = $scope.modelName;
+            $scope.model = appState.models[modelName];
             $scope.simScope = $scope;
-            $scope.simComputeModel = $scope.modelName;
+            $scope.simComputeModel = modelName;
 
             $scope.simHandleStatus = data => {
                 if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
@@ -1449,7 +1450,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
                 return null;
             }
 
-            function run() {
+            function runSimulation() {
                 if ($scope.showFieldLineoutPanel()) {
                     // Don't run automatically for sbatch or nersc
                     if (['sequential', 'parallel'].includes(appState.models.fieldLineoutAnimation.jobRunMode)) {
@@ -1461,20 +1462,28 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             }
 
             function setPath(p) {
-                appState.models[$scope.modelName].lastModified = Date.now();
-                if (p) {
-                    appState.models[$scope.modelName].fieldPath = p;
-                    if (p.axis) {
-                        appState.models[$scope.modelName].plotAxis = p.axis;
-                    }
+                if (! p) {
+                    return;
                 }
-                appState.saveQuietly($scope.modelName);
+                appState.models[modelName].lastModified = Date.now();
+                appState.models[modelName].fieldPath = p;
+                if (p.axis) {
+                    appState.models[modelName].plotAxis = p.axis;
+                }
+                appState.saveChanges(modelName);
             }
 
             function updatePath() {
-                if (! getPath((appState.models[$scope.modelName].fieldPath || {}).id)) {
-                    delete appState.models[$scope.modelName].fieldPath;
+                const currentPath = appState.models[modelName].fieldPath;
+                const p = getPath((currentPath || {}).id);
+                if (! p) {
+                    delete appState.models[modelName].fieldPath;
                     setPath(appState.models.fieldPaths.paths[0]);
+                }
+                else {
+                    if (! appState.deepEquals(p, currentPath)) {
+                        setPath(p);
+                    }
                 }
             }
 
@@ -1482,13 +1491,13 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
 
             $scope.showFieldLineoutPanel = () => $scope.hasPaths();
 
-            $scope.$on('fieldLineoutAnimation.saved', run);
+            $scope.$on('fieldLineoutAnimation.saved', runSimulation);
             $scope.$on('fieldPaths.changed', updatePath);
-            $scope.$on('solve.complete', run);
+            $scope.$on('solve.complete', runSimulation);
 
-            appState.watchModelFields($scope, [`${$scope.modelName}.fieldPath`],  () => {
-                if (appState.models[$scope.modelName].fieldPath.axis) {
-                    appState.models[$scope.modelName].plotAxis = appState.models[$scope.modelName].fieldPath.axis;
+            appState.watchModelFields($scope, [`${modelName}.fieldPath`],  () => {
+                if (appState.models[modelName].fieldPath.axis) {
+                    appState.models[modelName].plotAxis = appState.models[modelName].fieldPath.axis;
                 }
             });
 
