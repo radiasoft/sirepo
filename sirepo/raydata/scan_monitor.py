@@ -411,6 +411,8 @@ async def _init_catalog_monitors():
         assert catalog_name not in _CATALOG_MONITOR_TASKS
         return asyncio.create_task(_poll_catalog_for_scans(catalog_name))
 
+    if not _cfg.automatic_analysis:
+        return
     for c in _cfg.catalog_names:
         _CATALOG_MONITOR_TASKS[c] = _monitor_catalog(c)
     await asyncio.gather(*_CATALOG_MONITOR_TASKS.values())
@@ -507,6 +509,11 @@ def start():
     def _init():
         global _cfg
         _cfg = pkconfig.init(
+            automatic_analysis=(
+                True,
+                bool,
+                "automatically queue every incoming scan for analysis",
+            ),
             catalog_names=(frozenset(), set, "list of catalog names to monitor"),
             concurrent_analyses=(
                 2,
