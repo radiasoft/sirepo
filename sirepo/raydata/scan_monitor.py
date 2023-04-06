@@ -510,7 +510,7 @@ def start():
         global _cfg
         _cfg = pkconfig.init(
             automatic_analysis=(
-                False,
+                True,
                 bool,
                 "automatically queue every incoming scan for analysis",
             ),
