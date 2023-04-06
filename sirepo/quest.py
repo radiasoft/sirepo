@@ -75,7 +75,7 @@ class API(pykern.quest.API):
     def bucket_unchecked_get(self, name):
         return self._bucket.get(name)
 
-    def call_api(self, name, kwargs=None, data=None):
+    async def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
 
         Args:
@@ -85,11 +85,20 @@ class API(pykern.quest.API):
         Returns:
             Reply: result
         """
-        return uri_router.call_api(self, name, kwargs=kwargs, data=data)
+        return await uri_router.call_api(self, name, kwargs=kwargs, data=data)
+
+    def call_api_sync(self, *args, **kwargs):
+        """Synchronous call_api
+
+        Only use in tests.
+        """
+        import asyncio
+
+        return asyncio.run(self.call_api(*args, **kwargs))
 
     def destroy(self, commit=False):
         for k, v in reversed(list(self.items())):
-            if hasattr(v, "destroy"):
+            if hasattr(v, "destroy") and not getattr(v, "quest_no_destroy", False):
                 try:
                     v.destroy(commit=commit)
                 except Exception:
@@ -155,16 +164,14 @@ class API(pykern.quest.API):
             content_or_path, filename=filename, content_type=content_type
         )
 
-    def reply_file(self, path, content_type=None):
-        return self.sreply.gen_file(path, content_type)
+    def reply_file(self, path, content_type=None, filename=None):
+        return self.sreply.gen_file(path, content_type, filename)
 
     def reply_html(self, path):
         return self.sreply.render_html(path)
 
-    def reply_json(self, value, pretty=False, response_kwargs=None):
-        return self.sreply.gen_json(
-            value, pretty=pretty, response_kwargs=response_kwargs
-        )
+    def reply_json(self, value, response_kwargs=None):
+        return self.sreply.gen_json(value, response_kwargs=response_kwargs)
 
     def reply_ok(self, *args, **kwargs):
         return self.sreply.gen_json_ok(*args, **kwargs)

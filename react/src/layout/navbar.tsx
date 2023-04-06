@@ -80,18 +80,16 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
 
         let { icon } = this.config;
         let iconElement = undefined;
-        if(icon && icon !== "") {
+        if (icon && icon !== "") {
             iconElement = <FontAwesomeIcon fixedWidth icon={Icon[icon]}></FontAwesomeIcon>;
         }
-
-        // TODO fix button cursor on hover
         return (
             <>
                 <Portal targetId={NavbarLeftContainerId} className="order-2">
                     <Col>
-                        <div onClick={() => updateModalShown(true)}>
-                            <span>{title}<a className="ms-2">{iconElement}</a></span>
-                        </div>
+                        <Nav.Link onClick={() => updateModalShown(true)}>
+                            <span className="ms-2">{iconElement} {title}</span>
+                        </Nav.Link>
                     </Col>
                 </Portal>
 
@@ -164,6 +162,8 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         let modelsWrapper = useContext(CModelsWrapper);
         let routerHelper = useContext(CRelativeRouterHelper);
 
+        let ContentComponent = this.TabsContent;
+
         return (
             <>
                 <Portal targetId={NavbarRightContainerId} className="order-1">
@@ -185,7 +185,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
                 {
                     this.tabs.map(tab => (
                         <div key={tab.name} style={tab.name !== selectedTabName ? { display: 'none' } : undefined}>
-                            <this.TabsContent key={tab.name} tab={tab}/>
+                            <ContentComponent key={tab.name} tab={tab}/>
                         </div>
                     ))
                 }
@@ -204,6 +204,8 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
 
         let routeHelper = new RelativeRouteHelper(location);
 
+        let SwitcherComponent = this.TabsSwitcher;
+
         let routedElement = useRoutes([
             {
                 path: '/',
@@ -211,7 +213,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
             },
             {
                 path: ':tabName/*',
-                element: <this.TabsSwitcher/>
+                element: <SwitcherComponent/>
             }
         ])
 

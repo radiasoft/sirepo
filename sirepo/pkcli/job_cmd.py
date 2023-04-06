@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -22,6 +21,7 @@ import sirepo.template
 import sirepo.util
 import subprocess
 import sys
+import tempfile
 import time
 
 _MAX_FASTCGI_EXCEPTIONS = 3
@@ -80,7 +80,9 @@ def _background_percent_complete(msg, template, is_running):
 
 def _dispatch_compute(msg, template):
     def _op(expect_file):
-        r = getattr(template_common, f"{msg.jobCmd}_dispatch")(msg.data)
+        r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
+            msg.data, data_file_uri=msg.get("dataFileUri")
+        )
         if not isinstance(r, template_common.JobCmdFile):
             # ok to not return JobCmdFile if there was an error
             return r
@@ -149,6 +151,8 @@ def _do_compute(msg, template):
             msg.isParallel,
             template,
             msg.runDir,
+            msg.computeModel,
+            msg.simulationId,
         )
 
 
@@ -302,7 +306,9 @@ def _maybe_parse_user_alert(exception, error=None):
     return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
-def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
+def _on_do_compute_exit(
+    success_exit, is_parallel, template, run_dir, compute_model, sim_id
+):
     # locals() must be called before anything else so we only get the function
     # arguments
     kwargs = locals()

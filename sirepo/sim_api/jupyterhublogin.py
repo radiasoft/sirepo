@@ -28,7 +28,7 @@ _SIM_TYPE = "jupyterhublogin"
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
-    def api_checkAuthJupyterhub(self):
+    async def api_checkAuthJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
             self,
@@ -41,7 +41,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_user", do_migration="Bool", sim_type=f"SimType const={_SIM_TYPE}"
     )
-    def api_migrateJupyterhub(self):
+    async def api_migrateJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         if not _cfg.rs_jupyter_migrate:
             raise sirepo.util.Forbidden("migrate not enabled")
@@ -52,7 +52,7 @@ class API(sirepo.quest.API):
         sirepo.oauth.raise_authorize_redirect(self, _SIM_TYPE, github_auth=True)
 
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
-    def api_redirectJupyterHub(self):
+    async def api_redirectJupyterHub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(self)
         if u:
@@ -194,25 +194,30 @@ def _init():
 
 
 def _event_auth_logout(qcall, kwargs):
+    # We must set the uid here because in _event_end_api_call we won't
+    # be able to retrieve it. The user is already logged out by the
+    # time _event_end_api_call is called
+
     qcall.bucket_set(
         _JUPYTERHUB_LOGOUT_USER_NAME_ATTR, _unchecked_hub_user(qcall, kwargs.uid)
     )
 
 
 def _event_end_api_call(qcall, kwargs):
+    # We can't move this code into _event_auth_logout because we need
+    # the response object.
+
     u = qcall.bucket_unchecked_get(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR)
     if not u:
         return
-    # Delete the JupyterHub cookies, because we are logging out of Sirepo.
-    for c, v in (
-        ("jupyterhub-hub-login", "hub"),
-        (f"jupyterhub-user-{u}", f"user/{u}"),
-    ):
-        kwargs.resp.delete_cookie(
-            c,
-            # Trailing slash is required in paths
-            path=f"/{_cfg.uri_root}/{v}/",
+    # Delete the JupyterHub cookies because we are logging out of Sirepo.
+    # Trailing slash is required in paths
+    kwargs.resp.delete_third_party_cookies(
+        (
+            ("jupyterhub-hub-login", f"/{_cfg.uri_root}/hub/"),
+            (f"jupyterhub-user-{u}", f"/{_cfg.uri_root}/user/{u}/"),
         )
+    )
 
 
 def _event_github_authorized(qcall, kwargs):

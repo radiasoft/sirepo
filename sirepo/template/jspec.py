@@ -142,9 +142,7 @@ def get_data_file(run_dir, model, frame, options):
     return _ion_files(run_dir)[frame]
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if not success_exit or not is_parallel:
         return None
     return _get_time_step_warning(run_dir)
@@ -209,42 +207,34 @@ def sim_frame_forceTableAnimation(frame_args):
 
 
 def sim_frame_particleAnimation(frame_args):
-    page_index = frame_args.frameIndex
-    xfield = _map_field_name(frame_args.x)
-    yfield = _map_field_name(frame_args.y)
-    filename = _ion_files(frame_args.run_dir)[page_index]
-    data = frame_args.sim_in
-    settings = data.models.simulationSettings
-    time = (
-        settings.time
-        / settings.step_number
-        * settings.save_particle_interval
-        * page_index
-    )
-    if time > settings.time:
-        time = settings.time
-    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
-    if x_col.err:
-        return x_col.err
-    x = x_col["values"]
-    y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-    if y_col.err:
-        return y_col.err
-    y = y_col["values"]
-    model = data.models.particleAnimation
-    model.update(frame_args)
-    return template_common.heatmap(
-        [x, y],
-        model,
-        {
-            "x_label": _field_label(xfield, x_col.column_def),
-            "y_label": _field_label(yfield, y_col.column_def),
-            "title": "Ions at time {:.2f} [s]".format(time),
-        },
+    def _format_plot(field, sdds_units):
+        field.label = _field_label(field.label, sdds_units)
+
+    def _title(frame_args):
+        settings = frame_args.sim_in.models.simulationSettings
+        time = (
+            settings.time
+            / settings.step_number
+            * settings.save_particle_interval
+            * frame_args.frameIndex
+        )
+        if time > settings.time:
+            time = settings.time
+        return "Ions at time {:.2f} [s]".format(time)
+
+    return sdds_util.SDDSUtil(
+        _ion_files(frame_args.run_dir)[frame_args.frameIndex]
+    ).heatmap(
+        plot_attrs=PKDict(
+            format_col_name=_map_field_name,
+            title=_title(frame_args),
+            model=template_common.model_from_frame_args(frame_args),
+            format_plot=_format_plot,
+        )
     )
 
 
-def stateful_compute_get_elegant_sim_list(data):
+def stateful_compute_get_elegant_sim_list(data, **kwargs):
     tp = _SIM_DATA.jspec_elegant_twiss_path()
     res = []
     for f in pkio.sorted_glob(
@@ -375,8 +365,7 @@ def _field_direction(field):
     assert False, "invalid direction field: {}".format(field)
 
 
-def _field_label(field, field_def):
-    units = field_def[1]
+def _field_label(field, units):
     field = _FIELD_LABEL.get(field, field)
     if units == "NULL":
         return field
@@ -454,15 +443,6 @@ def _map_field_name(f):
     return _FIELD_MAP.get(f, f)
 
 
-def _resort_vtrans(x, plots):
-    # special case - the force_table.txt vTrans is not sequential
-    x = np.array(x)
-    sort_idx = np.argsort(x)
-    for p in plots:
-        p.points = np.array(p.points)[sort_idx].tolist()
-    return x[sort_idx].tolist()
-
-
 def _safe_sdds_value(v):
     if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return 0
@@ -470,57 +450,42 @@ def _safe_sdds_value(v):
 
 
 def _sdds_report(frame_args, filename, x_field):
-    xfield = _map_field_name(x_field)
-    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
-    if x_col.err:
-        return x_col.err
-    x = x_col["values"]
-    if "fieldRange" in frame_args.sim_in.models.particleAnimation:
-        frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
-    plots = []
-    for f in ("y1", "y2", "y3"):
-        if f not in frame_args or frame_args[f] == "none":
-            continue
-        yfield = _map_field_name(frame_args[f])
-        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-        if y_col.err:
-            return y_col.err
-        y = y_col["values"]
+    def _force_scale_and_label_prefix(plot):
         label_prefix = ""
         # TODO(pjm): the forceScale feature makes the code unmanageable
-        # it might be simpler if this was done on the client
+        #  it might be simpler if this was done on the client
         if (
             "forceScale" in frame_args
-            and yfield in ("f_x", "f_long")
+            and plot.col_name in ("f_x", "f_long")
             and frame_args.forceScale == "negative"
         ):
-            y = [-v for v in y]
+            plot.points = [-v for v in plot.points]
             label_prefix = "-"
             if "fieldRange" in frame_args:
-                r = frame_args.fieldRange[frame_args[f]]
-                frame_args.fieldRange[frame_args[f]] = [-r[1], -r[0]]
-        plots.append(
-            PKDict(
-                field=frame_args[f],
-                points=y,
-                label="{}{}{}".format(
-                    label_prefix,
-                    _field_label(yfield, y_col.column_def),
-                    _field_description(yfield, frame_args.sim_in),
-                ),
+                r = frame_args.fieldRange[plot.label]
+                frame_args.fieldRange[plot.label] = [-r[1], -r[0]]
+        return label_prefix
+
+    def _format_plot(plot, sdds_units):
+        if x_field == plot.col_name:
+            plot.label = _field_label(plot.col_name, sdds_units)
+        else:
+            plot.label = "{}{}{}".format(
+                _force_scale_and_label_prefix(plot),
+                _field_label(plot.col_name, sdds_units),
+                _field_description(plot.col_name, frame_args.sim_in),
             )
-        )
-    if xfield == "V_trans":
-        x = _resort_vtrans(x, plots)
+
+    if "fieldRange" in frame_args.sim_in.models.particleAnimation:
+        frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
     frame_args.x = x_field
-    return template_common.parameter_plot(
-        x,
-        plots,
-        frame_args,
+
+    return sdds_util.SDDSUtil(filename).lineplot(
         PKDict(
-            y_label="",
-            x_label=_field_label(xfield, x_col.column_def),
-        ),
+            format_col_name=_map_field_name,
+            model=template_common.model_from_frame_args(frame_args),
+            format_plot=_format_plot,
+        )
     )
 
 

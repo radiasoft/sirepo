@@ -1815,6 +1815,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
 
+    self.setData = (name, data) => setPanelValue(name, 'data', data);
+
     self.showEnum = function(model, field, value, isShown) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
         var optionIndex = -1;
@@ -1996,13 +1998,18 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             isOptional: !! m[2],
         };
     }
+
     for (let n in SIREPO.APP_SCHEMA.localRoutes) {
-        let u = SIREPO.APP_SCHEMA.localRoutes[n].route.split('/');
+        localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
+    }
+
+    function routeMapLocal(name, route) {
+        const u = route.split('/');
         u.shift();
-        localMap[n] = {
-            name: n,
+        return {
+            name: name,
             baseUri: u.shift(),
-            params: u.map(_localIterator)
+            params: u.map(_localIterator),
         };
     }
 
@@ -2131,8 +2138,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
 
-    self.formatUrlLocal = function(routeName, params, app) {
-        var u = '#' + formatUrl(localMap, routeName, params);
+    self.formatUrlLocal = function(routeName, params, app, routeMap=localMap) {
+        var u = '#' + formatUrl(routeMap, routeName, params);
         return app ? '/' + app + u : u;
     };
 
@@ -2726,6 +2733,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             isReadyForModelChanges: false,
             model: controller.simComputeModel || appState.appService.computeModel(controller.simAnalysisModel || null),
             percentComplete: 0,
+            queueState: null,
             simulationQueueItem: null,
             timeData: {},
         };
@@ -2747,6 +2755,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             }
             if (data.hasOwnProperty('percentComplete')) {
                 state.percentComplete = data.percentComplete;
+            }
+            if (data.hasOwnProperty('queueState')) {
+                state.queueState = data.queueState;
             }
             if (state.isProcessing()) {
                 state.dots += '.';
@@ -2851,6 +2862,13 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 return 100;
             }
             return state.percentComplete;
+        };
+
+        state.getQueueState = function() {
+            if (state.queueState) {
+                return stringsService.ucfirst(state.queueState);
+            }
+            return state.stateAsText();
         };
 
         state.hasFrames = function() {
@@ -3565,6 +3583,9 @@ SIREPO.app.controller('LoginWithController', function (authState, errorService, 
     }
     else if (m == 'email') {
         // handled by the emailLogin directive
+    }
+    else if (m == 'ldap') {
+        // created ldapLogin directive
     }
     else {
         self.msg = '';

@@ -134,13 +134,13 @@ def background_percent_complete(report, run_dir, is_running):
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
-        res.percentComplete = 0.0
+        res.percentComplete = 0
         return res
-    return PKDict(
-        percentComplete=100,
-        frameCount=1,
-        solution=_read_solution(),
-    )
+    res.percentComplete = 100
+    res.frameCount = 1
+    if report == "solverAnimation":
+        res.solution = _read_solution()
+    return res
 
 
 def create_archive(sim, qcall):
@@ -271,7 +271,7 @@ def get_data_file(run_dir, model, frame, options):
         return f
 
 
-def import_file(req, tmp_dir=None, **kwargs):
+async def import_file(req, tmp_dir=None, **kwargs):
     data = simulation_db.default_data(req.type)
     data.models.simulation.pkupdate(
         {k: v for k, v in req.req_data.items() if k in data.models.simulation}
@@ -300,9 +300,7 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
     )
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or not is_parallel:
         return None
     return template_common.parse_mpi_log(run_dir)
@@ -319,8 +317,7 @@ def sim_frame_fieldLineoutAnimation(frame_args):
     )
 
 
-def stateless_compute_build_shape_points(data):
-    pts = []
+def stateless_compute_build_shape_points(data, **kwargs):
     o = data.args.object
     if not o.get("pointsFile"):
         return PKDict(
@@ -328,23 +325,20 @@ def stateless_compute_build_shape_points(data):
                 o, _get_stemmed_info(o)
             )
         )
-    with open(
+    pts = sirepo.csv.read_as_number_list(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
                 "extrudedPoints", "pointsFile", o.pointsFile
             )
-        ),
-        "rt",
-    ) as f:
-        for r in csv.reader(f):
-            pts.append([float(x) for x in r])
+        )
+    )
     # Radia does not like it if the path is closed
     if all(numpy.isclose(pts[0], pts[-1])):
         del pts[-1]
     return PKDict(points=pts)
 
 
-def stateless_compute_stl_size(data):
+def stateless_compute_stl_size(data, **kwargs):
     f = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
     )
@@ -355,9 +349,14 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
 
 
-def validate_file(file_path, path):
+def validate_file(file_type, path):
     if path.ext not in (".csv", ".dat", ".stl", ".txt"):
         return f"invalid file type: {path.ext}"
+    if file_type == "extrudedPoints-pointsFile":
+        try:
+            _ = sirepo.csv.read_as_number_list(path)
+        except RuntimeError as e:
+            return e
     if path.ext == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
@@ -467,24 +466,28 @@ def _build_field_manual_pts(f_path):
 def _build_field_map_pts(f_path):
     res = []
     n = int(f_path.numPoints)
-    dx, dy, dz = f_path.lenX / (n - 1), f_path.lenY / (n - 1), f_path.lenZ / (n - 1)
+    dx, dy, dz = (
+        f_path.size[0] / (n - 1),
+        f_path.size[1] / (n - 1),
+        f_path.size[2] / (n - 1),
+    )
     for i in range(n):
-        x = f_path.ctrX - 0.5 * f_path.lenX + i * dx
+        x = f_path.center[0] - 0.5 * f_path.size[0] + i * dx
         for j in range(n):
-            y = f_path.ctrY - 0.5 * f_path.lenY + j * dy
+            y = f_path.center[1] - 0.5 * f_path.size[1] + j * dy
             for k in range(n):
-                z = f_path.ctrZ - 0.5 * f_path.lenZ + k * dz
+                z = f_path.center[2] - 0.5 * f_path.size[2] + k * dz
                 res.extend([x, y, z])
     return res
 
 
 def _build_field_circle_pts(f_path):
-    ctr = [float(f_path.ctrX), float(f_path.ctrY), float(f_path.ctrZ)]
+    ctr = f_path.center
     r = float(f_path.radius)
     # theta is a rotation about the x-axis
-    th = float(f_path.theta)
+    th = float(f_path.eulers[0])
     # phi is a rotation about the z-axis
-    phi = float(f_path.phi)
+    phi = float(f_path.eulers[1])
     n = int(f_path.numPoints)
     dpsi = 2.0 * math.pi / n
     # psi is the angle in the circle's plane
@@ -652,25 +655,25 @@ def _extruded_points_plot(name, points, width_axis, height_axis):
 
 
 _FIELD_PT_BUILDERS = {
-    "axis": _build_field_line_pts,
-    "circle": _build_field_circle_pts,
-    "fieldMap": _build_field_map_pts,
-    "file": _build_field_file_pts,
-    "line": _build_field_line_pts,
-    "manual": _build_field_manual_pts,
+    "axisPath": _build_field_line_pts,
+    "circlePath": _build_field_circle_pts,
+    "fieldMapPath": _build_field_map_pts,
+    "filePath": _build_field_file_pts,
+    "linePath": _build_field_line_pts,
+    "manualPath": _build_field_manual_pts,
 }
 
 
 def _electron_trajectory_plot(sim_id, **kwargs):
     d = PKDict(kwargs)
     t = _generate_electron_trajectory(sim_id, get_g_id(), **kwargs)
-    pts = (0.001 * t[radia_util.axes_index(d.beam_axis)]).tolist()
+    pts = (_MILLIS_TO_METERS * t[radia_util.axes_index(d.beam_axis)]).tolist()
     plots = []
     a = [d.width_axis, d.height_axis]
     for i in range(2):
         plots.append(
             PKDict(
-                points=(0.001 * t[radia_util.axes_index(a[i])]).tolist(),
+                points=(_MILLIS_TO_METERS * t[radia_util.axes_index(a[i])]).tolist(),
                 label=f"{a[i]}",
                 style="line",
             )
@@ -699,7 +702,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
             .vectors
         )
     )
-    pts = numpy.array(v.vertices).reshape(-1, 3)
+    pts = _MILLIS_TO_METERS * numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     f = numpy.array(v.directions).reshape(-1, 3)
     m = numpy.array(v.magnitudes)
@@ -719,7 +722,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
         PKDict(
             title=f"{f_type} on {f_path.name}",
             y_label=f_type,
-            x_label=f"{plot_axis} [mm]",
+            x_label=f"{plot_axis} [m]",
             summaryData=PKDict(),
         ),
     )
@@ -788,7 +791,7 @@ def generate_field_data(sim_id, g_id, name, field_type, field_paths):
 
 
 def _generate_field_integrals(sim_id, g_id, f_paths):
-    l_paths = [fp for fp in f_paths if fp.type in ("line", "axis")]
+    l_paths = [fp for fp in f_paths if fp.type in ("linePath", "axisPath")]
     if len(l_paths) == 0:
         # return something or server.py will raise an exception
         return PKDict(warning="No paths")
@@ -862,9 +865,11 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     g = data.models.geometryReport
     v.simId = data.models.simulation.simulationId
 
-    v.doSolve = "solver" in report or for_export
-    v.doReset = "reset" in report
-    do_generate = _normalize_bool(g.get("doGenerate", True)) or v.doSolve or v.doReset
+    if report == "solverAnimation":
+        v.solverMode = data.models.solverAnimation.get("mode")
+    elif for_export:
+        v.solverMode = "solve"
+    do_generate = _normalize_bool(g.get("doGenerate", True)) or v.get("solverMode")
     if not do_generate:
         try:
             # use the previous results
@@ -879,7 +884,6 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     for f in _SIM_FILES:
         pkio.unchecked_remove(f)
 
-    v.doReset = False
     v.isParallel = is_parallel
 
     # include methods from non-template packages
@@ -951,14 +955,11 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         v.fieldPaths = data.models.fieldPaths.get("paths", [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get("paths", []))
     v.kickMap = data.models.get("kickMapReport")
-    if "solver" in report or for_export:
-        v.doSolve = True
+    if v.get("solverMode") == "solve":
         s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
         v.solveMethod = s.method
-    if "reset" in report:
-        v.doReset = True
     v.h5FieldPath = _geom_h5_path(SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(SCHEMA.constants.viewTypeObjects)
@@ -1149,10 +1150,10 @@ def _kick_map_plot(model):
     z = km[component]
     return PKDict(
         title=f'{srschema.get_enums(SCHEMA, "KickMapComponent")[component]} (T2m2)',
-        x_range=[km.x[0], km.x[-1], len(z)],
-        y_range=[km.y[0], km.y[-1], len(z[0])],
-        x_label="x [mm]",
-        y_label="y [mm]",
+        x_range=[_MILLIS_TO_METERS * km.x[0], _MILLIS_TO_METERS * km.x[-1], len(z)],
+        y_range=[_MILLIS_TO_METERS * km.y[0], _MILLIS_TO_METERS * km.y[-1], len(z[0])],
+        x_label="x [m]",
+        y_label="y [m]",
         z_matrix=z,
     )
 
@@ -1242,15 +1243,12 @@ def _read_h5_path(filename, h5path):
 
 
 def _read_h_m_file(file_name, qcall=None):
-    h_m_file = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
-        qcall=qcall,
+    return sirepo.csv.read_as_number_list(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_type(file_name, SCHEMA.constants.fileTypeHM),
+            qcall=qcall,
+        )
     )
-    lines = [r for r in sirepo.csv.open_csv(h_m_file)]
-    f_lines = []
-    for l in lines:
-        f_lines.append([float(c.strip()) for c in l])
-    return f_lines
 
 
 def _read_id_map():

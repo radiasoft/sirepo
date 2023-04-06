@@ -3,10 +3,9 @@
 
 Also supports starting nginx proxy.
 
-:copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcli
 from pykern import pkcollections
 from pykern import pkconfig
@@ -24,6 +23,7 @@ import pyisemail
 import re
 import signal
 import sirepo.const
+import sirepo.feature_config
 import sirepo.modules
 import sirepo.pkcli.setup_dev
 import sirepo.sim_api.jupyterhublogin
@@ -66,7 +66,7 @@ def flask():
 
 
 def http():
-    """Starts the Flask server and job_supervisor.
+    """Starts the server and job_supervisor.
 
     Used for development only.
     """
@@ -113,7 +113,14 @@ def http():
         except (psutil.TimeoutExpired, subprocess.TimeoutExpired):
             proc.kill()
 
-    def _start(service, extra_environ, cwd=".", prefix=("pyenv", "exec", "sirepo")):
+    def _start(service, extra_environ, cwd=".", want_prefix=True):
+        if not want_prefix:
+            prefix = ()
+        else:
+            if sirepo.feature_config.cfg().trust_sh_env:
+                prefix = ("sirepo",)
+            else:
+                prefix = ("pyenv", "exec", "sirepo")
         processes.append(
             subprocess.Popen(
                 prefix + service,
@@ -122,29 +129,28 @@ def http():
             )
         )
 
+    assert pkconfig.channel_in("dev")
     try:
         with pkio.save_chdir(_run_dir()), _handle_signals(
             (signal.SIGINT, signal.SIGTERM)
         ):
-            if pkconfig.channel_in("dev") and _cfg().react_port:
+            e = PKDict()
+            if _cfg().react_port:
                 _install_react()
+                _start(
+                    ("npm", "start"),
+                    cwd="../react",
+                    want_prefix=False,
+                    extra_environ=PKDict(PORT=str(_cfg().react_port)),
+                )
+                e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
+            _start(("service", "server"), extra_environ=e)
+            # Avoid race condition on creating auth db
+            time.sleep(0.3)
             _start(
                 ("job_supervisor",),
                 extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
             )
-            e = PKDict()
-            if _cfg().react_port:
-                # Avoid race condition on creating auth db
-                time.sleep(0.3)
-                _start(
-                    ("npm", "start"),
-                    cwd="../react",
-                    prefix=(),
-                    extra_environ=PKDict(PORT=str(_cfg().react_port)),
-                )
-                e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
-            time.sleep(0.3)
-            _start(("service", "flask"), extra_environ=e)
             p, _ = os.wait()
     except ChildProcessError:
         pass
@@ -220,6 +226,31 @@ def nginx_proxy():
         pksubprocess.check_call_with_signals(cmd)
 
 
+def server():
+    if _cfg().tornado:
+        tornado()
+    else:
+        flask()
+
+
+def tornado():
+    with pkio.save_chdir(_run_dir()) as r:
+        d = pkconfig.channel_in("dev")
+        if d:
+            sirepo.pkcli.setup_dev.default_command()
+            if _cfg().use_reloader:
+                import tornado.autoreload
+
+                for f in sirepo.util.files_to_watch_for_reload("json", "py"):
+                    tornado.autoreload.watch(f)
+        pkdlog("ip={} port={}", _cfg().ip, _cfg().port)
+        sirepo.modules.import_and_init("sirepo.uri_router").start_tornado(
+            debug=d,
+            ip=_cfg().ip,
+            port=_cfg().port,
+        )
+
+
 def uwsgi():
     """Starts UWSGI server"""
     run_dir = _run_dir()
@@ -273,7 +304,8 @@ def _cfg():
             # so limit to 128, which is probably more than enough with
             # this application.
             threads=(10, _cfg_int(1, 128), "how many uwsgi threads in each process"),
-            use_reloader=(pkconfig.channel_in("dev"), bool, "use the Flask reloader"),
+            tornado=(False, bool, "use tornado for server"),
+            use_reloader=(pkconfig.channel_in("dev"), bool, "use the server reloader"),
         )
     return __cfg
 

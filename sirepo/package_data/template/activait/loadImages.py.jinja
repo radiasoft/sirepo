@@ -53,6 +53,7 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
             return
         with h5py.File(self.filename, "r") as f:
             self.original_shape_x = f[self.x.key].shape
+            self.original_shape_y = f[self.y.key].shape
             self.x_channels = self.original_shape_x[-1]
             self.y_channels = self.__y_channels(numpy.array(f[self.y.key]))
             if self.inScaler:
@@ -80,6 +81,7 @@ class SirepoHDF5Sequence(keras.utils.Sequence):
                 x = x.reshape(len(indices), *self.original_shape_x[1:])
             if self.outScaler:
                 y = self.outScaler.transform(numpy.array(y).reshape(-1, self.y_channels))
+                y = y.reshape(len(indices), *self.original_shape_y[1:])
             if self.return_value:
                 if self.return_value == "x":
                     return x
@@ -153,7 +155,11 @@ def image_train_val_test_split(
         )
     return r
 
-
+with h5py.File("{{ dataFile }}", "r") as f:
+    input_shape = f["{{ inPath }}"].shape[1:]
+    o = f["{{outPath}}"][0].shape
+    if len(input_shape) < 3:
+        input_shape += (1,)
 output_shape = {{outputShape}}
 split = image_train_val_test_split(
     "{{ dataFile }}",
@@ -169,10 +175,7 @@ split = image_train_val_test_split(
     out_scaler={{ outputsScaler }},
     {% endif %}
 )
-with h5py.File("{{ dataFile }}", "r") as f:
-    input_shape = f["{{ inPath }}"].shape[1:]
-    if len(input_shape) < 3:
-        input_shape += (1,)
+
 
 testy = []
 for y in split.test_gen.set_return_value("y"):

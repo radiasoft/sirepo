@@ -132,6 +132,9 @@ _OUTPUT_FOR_MODEL = PKDict(
 _OUTPUT_FOR_MODEL[f"{_SIM_DATA.EXPORT_RSOPT}"] = PKDict(
     filename=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
 )
+_OUTPUT_FOR_MODEL.machineLearningAnimation = PKDict(
+    filename=_SIM_DATA.ML_OUTPUT,
+)
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation.filename = "res_int_pr_se{watchpoint_id}.dat"
@@ -155,7 +158,7 @@ _RSOPT_PARAMS = {
     ]
     for i in sublist
 }
-_RSOPT_PARAMS_NO_ROT = [p for p in _RSOPT_PARAMS if p != "rotation"]
+_RSOPT_PARAMS_NO_ROTATION = [p for p in _RSOPT_PARAMS if p != "rotation"]
 
 _PROGRESS_LOG_DIR = "__srwl_logs__"
 
@@ -243,6 +246,8 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if report == "beamlineAnimation":
         return _beamline_animation_percent_complete(run_dir, res)
+    if _SIM_DATA.is_for_ml(report):
+        return _machine_learning_percent_complete(run_dir, res)
     status = PKDict(
         progress=0,
         particle_number=0,
@@ -527,17 +532,20 @@ def sim_frame(frame_args):
     return extract_report_data(frame_args.sim_in)
 
 
-def import_file(req, tmp_dir, qcall, **kwargs):
+async def import_file(req, tmp_dir, qcall, **kwargs):
     import sirepo.server
 
     i = None
+    r = None
     try:
         r = kwargs["reply_op"](simulation_db.default_data(SIM_TYPE))
         d = pykern.pkjson.load_any(r.content_as_str())
+        r.destroy()
+        r = None
         i = d.models.simulation.simulationId
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
-            python=pkcompat.from_bytes(req.file_stream.read()),
+            python=req.form_file.as_str(),
             userFilename=req.filename,
         )
         # POSIT: import.py uses ''', but we just don't allow quotes in names
@@ -550,7 +558,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             forceRun=True,
             simulationId=i,
         )
-        r = qcall.call_api("runSimulation", data=d)
+        r = await qcall.call_api("runSimulation", data=d)
         for _ in range(_IMPORT_PYTHON_POLLS):
             if r.status_as_int() != 200:
                 raise sirepo.util.UserAlert(
@@ -562,7 +570,9 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             c = None
             try:
                 c = r.content_as_str()
-                r = pykern.pkjson.load_any(c)
+                r.destroy()
+                r = None
+                x = pykern.pkjson.load_any(c)
             except Exception as e:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
@@ -570,30 +580,30 @@ def import_file(req, tmp_dir, qcall, **kwargs):
                     e,
                     c,
                 )
-            if "error" in r:
-                pkdc("runSimulation error msg={}", r)
-                raise sirepo.util.UserAlert(r.get("error"))
-            if PARSED_DATA_ATTR in r:
+            if "error" in x:
+                pkdc("runSimulation error msg={}", x)
+                raise sirepo.util.UserAlert(x.get("error"))
+            if PARSED_DATA_ATTR in x:
                 break
-            if "nextRequest" not in r:
+            if "nextRequest" not in x:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
                     "unable to find nextRequest in response={}",
                     PARSED_DATA_ATTR,
-                    r,
+                    x,
                 )
-            time.sleep(r.nextRequestSeconds)
-            r = qcall.call_api("runStatus", data=r.nextRequest)
+            time.sleep(x.nextRequestSeconds)
+            r = await qcall.call_api("runStatus", data=x.nextRequest)
         else:
             raise sirepo.util.UserAlert(
                 "error parsing python",
                 "polled too many times, last response={}",
                 r,
             )
-        r = r.get(PARSED_DATA_ATTR)
-        r.models.simulation.simulationId = i
-        r = simulation_db.save_simulation_json(
-            r, do_validate=True, fixup=True, qcall=qcall
+        x = x.get(PARSED_DATA_ATTR)
+        x.models.simulation.simulationId = i
+        x = simulation_db.save_simulation_json(
+            x, do_validate=True, fixup=True, qcall=qcall
         )
     except Exception:
         # TODO(robnagler) need to clean up simulations except in dev
@@ -604,10 +614,14 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             except Exception:
                 pass
         raise
+    finally:
+        if r:
+            r.destroy()
+            r = None
     raise sirepo.util.SReplyExc(
-        qcall.call_api(
+        await qcall.call_api(
             "simulationData",
-            kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i),
+            kwargs=PKDict(simulation_type=x.simulationType, simulation_id=i),
         ),
     )
 
@@ -630,9 +644,16 @@ def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
 
 
 def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
+    compute_model,
+    run_dir,
+    sim_id,
+    success_exit,
+    **kwargs,
 ):
     if success_exit:
+        if _SIM_DATA.is_for_ml(compute_model):
+            f = _SIM_DATA.ML_OUTPUT
+            _SIM_DATA.put_sim_file(sim_id, run_dir.join(f), f)
         return None
     return _parse_srw_log(run_dir)
 
@@ -766,7 +787,7 @@ def run_epilogue():
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
 
-def stateful_compute_sample_preview(data):
+def stateful_compute_sample_preview(data, **kwargs):
     """Process image and return
 
     Args:
@@ -846,17 +867,17 @@ def stateful_compute_sample_preview(data):
     return template_common.JobCmdFile(path=p)
 
 
-def stateful_compute_undulator_length(data):
+def stateful_compute_undulator_length(data, **kwargs):
     return compute_undulator_length(data.args["tabulated_undulator"])
 
 
-def stateful_compute_create_shadow_simulation(data):
+def stateful_compute_create_shadow_simulation(data, **kwargs):
     from sirepo.template.srw_shadow import Convert
 
     return Convert().to_shadow(data)
 
 
-def stateful_compute_delete_user_models(data):
+def stateful_compute_delete_user_models(data, **kwargs):
     """Remove the beam and undulator user model list files"""
     electron_beam = data.args.electron_beam
     tabulated_undulator = data.args.tabulated_undulator
@@ -873,7 +894,7 @@ def stateful_compute_delete_user_models(data):
     return PKDict()
 
 
-def stateful_compute_model_list(data):
+def stateful_compute_model_list(data, **kwargs):
     res = []
     model_name = data.args["model_name"]
     if model_name == "electronBeam":
@@ -885,11 +906,11 @@ def stateful_compute_model_list(data):
     return PKDict(modelList=res)
 
 
-def stateless_compute_PGM_value(data):
+def stateless_compute_PGM_value(data, **kwargs):
     return _compute_PGM_value(data.optical_element)
 
 
-def stateless_compute_crl_characteristics(data):
+def stateless_compute_crl_characteristics(data, **kwargs):
     return compute_crl_focus(
         _compute_material_characteristics(
             data.optical_element,
@@ -898,22 +919,22 @@ def stateless_compute_crl_characteristics(data):
     )
 
 
-def stateless_compute_crystal_init(data):
+def stateless_compute_crystal_init(data, **kwargs):
     return _compute_crystal_init(data.optical_element)
 
 
-def stateless_compute_crystal_orientation(data):
+def stateless_compute_crystal_orientation(data, **kwargs):
     return _compute_crystal_orientation(data.optical_element)
 
 
-def stateless_compute_delta_atten_characteristics(data):
+def stateless_compute_delta_atten_characteristics(data, **kwargs):
     return _compute_material_characteristics(
         data.optical_element,
         data.photon_energy,
     )
 
 
-def stateless_compute_dual_characteristics(data):
+def stateless_compute_dual_characteristics(data, **kwargs):
     return _compute_material_characteristics(
         _compute_material_characteristics(
             data.optical_element,
@@ -925,11 +946,11 @@ def stateless_compute_dual_characteristics(data):
     )
 
 
-def stateless_compute_compute_grazing_orientation(data):
+def stateless_compute_compute_grazing_orientation(data, **kwargs):
     return _compute_grazing_orientation(data.optical_element)
 
 
-def stateless_compute_process_beam_parameters(data):
+def stateless_compute_process_beam_parameters(data, **kwargs):
     data.ebeam = srw_common.process_beam_parameters(data.ebeam)
     data.ebeam.drift = calculate_beam_drift(
         data.ebeam_position,
@@ -941,7 +962,7 @@ def stateless_compute_process_beam_parameters(data):
     return data.ebeam
 
 
-def stateless_compute_process_undulator_definition(data):
+def stateless_compute_process_undulator_definition(data, **kwargs):
     return process_undulator_definition(data)
 
 
@@ -1074,12 +1095,19 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if data.report == "samplePreviewReport":
-        p = ""
-    elif data.report == _SIM_DATA.EXPORT_RSOPT:
-        p = ""
-        _export_rsopt_config(data)
-    else:
+    p = ""
+    if _SIM_DATA.is_for_rsopt(data.report):
+        _export_rsopt_config(data, run_dir=run_dir)
+        if _SIM_DATA.is_for_ml(data.report):
+            pkio.unchecked_remove(_SIM_DATA.ML_OUTPUT)
+            p = f"""import subprocess
+subprocess.call(['bash', '{_SIM_DATA.EXPORT_RSOPT}.sh'])
+"""
+    if data.report not in (
+        "samplePreviewReport",
+        _SIM_DATA.EXPORT_RSOPT,
+        _SIM_DATA.ML_REPORT,
+    ):
         p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -1249,8 +1277,9 @@ def _compute_PGM_value(model):
         else:
             model.orientation = "x"
         _compute_grating_orientation(model)
-    except Exception:
-        pkdlog("\n{}", traceback.format_exc())
+    except Exception as e:
+        if type(e) not in (ZeroDivisionError, ValueError, TypeError):
+            pkdlog("\n{}", traceback.format_exc())
         if model.computeParametersFrom == "1":
             model.grazingAngle = None
         elif model.computeParametersFrom == "2":
@@ -1477,8 +1506,12 @@ def _enum_text(name, model, field):
     return ""
 
 
-def _export_rsopt_config(data):
-    return _write_rsopt_zip(data, _rsopt_jinja_context(data))
+def _export_rsopt_config(data, run_dir):
+    ctx = _rsopt_jinja_context(data)
+    if _SIM_DATA.is_for_ml(data.report):
+        _write_rsopt_files(data, run_dir, ctx)
+    else:
+        _write_rsopt_zip(data, ctx)
 
 
 def _extend_plot(
@@ -1691,7 +1724,7 @@ def _flux_units(model):
 
 
 def _generate_beamline_optics(report, data, qcall=None):
-    res = PKDict(names=[], last_id=None, watches=PKDict())
+    res = PKDict(names=[], exclude=[], last_id=None, watches=PKDict())
     models = data.models
     if len(models.beamline) == 0 or not (
         _SIM_DATA.srw_is_beamline_report(report) or report == "beamlineAnimation"
@@ -1760,10 +1793,13 @@ def _generate_beamline_optics(report, data, qcall=None):
         if int(res.last_id) == int(item.id):
             break
         prev = item
+    for item in items:
+        if item.type == "watch":
+            res.exclude.append(item.name)
     args = PKDict(
         report=report,
         items=items,
-        names=res.names,
+        names=[n for n in res.names if n not in res.exclude],
         postPropagation=models.postPropagation,
         maxNameSize=max_name_size,
         nameMap=PKDict(
@@ -1853,7 +1889,7 @@ def _generate_beamline_optics(report, data, qcall=None):
 
 def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
     # do this before validation or arrays get turned into strings
     if is_for_rsopt:
@@ -1870,6 +1906,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         v.rs_type = "u"
     if is_for_rsopt:
         v.update(rsopt_ctx)
+        v.runInSirepo = _SIM_DATA.is_for_ml(report)
     # rsopt uses this as a lookup param so want it in one place
     v.ws_fni_desc = "file name for saving propagated single-e intensity distribution vs horizontal and vertical position"
     if report == "mirrorReport":
@@ -1890,7 +1927,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
 
 def _generate_srw_main(data, plot_reports, beamline_info):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     source_type = data.models.simulation.sourceType
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
     vp_var = "vp" if is_for_rsopt else "varParam"
@@ -1932,7 +1969,13 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     ):
         content.append(
             "names = [{}]".format(
-                ",".join(["'{}'".format(name) for name in beamline_info.names]),
+                ",".join(
+                    [
+                        "'{}'".format(name)
+                        for name in beamline_info.names
+                        if name not in beamline_info.exclude
+                    ]
+                ),
             )
         )
         content.append(
@@ -1958,6 +2001,16 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             ]
         )
     else:
+        if report in (
+            "multiElectronAnimation",
+            "coherenceXAnimation",
+            "coherenceYAnimation",
+            "coherentModesAnimation",
+        ):
+            if not run_all:
+                content.append("v.wm = True")
+        else:
+            content.append("v.wm = False")
         if (run_all and source_type != "g") or report == "intensityReport":
             content.append("v.ss = True")
             if plot_reports:
@@ -2039,6 +2092,19 @@ def _load_user_model_list(model_name, qcall=None):
         pkdlog("user list read failed, resetting contents: {}", f)
     _save_user_model_list(model_name, [], qcall=qcall)
     return _load_user_model_list(model_name, qcall=qcall)
+
+
+def _machine_learning_percent_complete(run_dir, res):
+    res.outputInfo = [
+        PKDict(
+            filename=_SIM_DATA.ML_OUTPUT,
+        ),
+    ]
+    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    count = len(pkio.walk_tree(run_dir, "values.npy"))
+    res.frameCount = count
+    res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
+    return res
 
 
 def _parse_srw_log(run_dir):
@@ -2186,12 +2252,24 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     return ar2d, x_range, y_range
 
 
+def _export_rsopt_files():
+    files = PKDict()
+    for t in (
+        "py",
+        "sh",
+        "yml",
+    ):
+        files[f"{t}FileName"] = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
+    files.postProcFileName = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
+    files.readmeFileName = "README.txt"
+    return files
+
+
 def _rsopt_jinja_context(data):
     import multiprocessing
 
     model = data.models[_SIM_DATA.EXPORT_RSOPT]
-    e = _process_rsopt_elements(model.elements)
-    return PKDict(
+    res = PKDict(
         fileBase=_SIM_DATA.EXPORT_RSOPT,
         forRSOpt=True,
         libFiles=_SIM_DATA.lib_file_basenames(data),
@@ -2200,15 +2278,19 @@ def _rsopt_jinja_context(data):
         numSamples=int(model.numSamples),
         outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
         randomSeed=model.randomSeed if model.randomSeed is not None else "",
-        readmeFileName="README.txt",
+        resultsFileName=_SIM_DATA.ML_OUTPUT,
         rsOptCharacteristic=model.characteristic,
-        rsOptElements=e,
+        rsOptElements=_process_rsopt_elements(model.elements),
         rsOptParams=_RSOPT_PARAMS,
-        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROT,
+        rsOptParamsNoRotation=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName="scan_results",
+        runInSirepo=data.report == _SIM_DATA.ML_REPORT,
         scanType=model.scanType,
         totalSamples=model.totalSamples,
+        zipFileName=f"{_SIM_DATA.EXPORT_RSOPT}.zip",
     )
+    res.update(_export_rsopt_files())
+    return res
 
 
 def _rsopt_main():
@@ -2272,7 +2354,7 @@ def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
 
 def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     report = data.report
-    is_for_rsopt = _is_for_rsopt(report)
+    is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
     (
         v.beamlineOptics,
@@ -2309,7 +2391,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
                 _core_error(sirepo.mpi.cfg().cores)
             if sirepo.mpi.cfg().in_slurm and c.sbatchCores < _MIN_CORES:
                 _core_error(c.sbatchCores)
-            v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
             v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = "h5"
@@ -2541,44 +2622,34 @@ def _wavefront_pickle_filename(el_id):
     return "initial.pkl"
 
 
-def _write_rsopt_zip(data, ctx):
-    def _files():
-        files = []
-        for t in (
-            "py",
-            "sh",
-            "yml",
-        ):
-            f = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
-            ctx[f"{t}FileName"] = f
-            files.append(f)
-        f = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
-        files.append(f)
-        ctx["postProcFileName"] = f
-        return files
+def _write_rsopt_files(data, run_dir, ctx):
+    for f in _export_rsopt_files().values():
+        pkio.write_text(
+            run_dir.join(f),
+            python_source_for_model(data, data.report, None, plot_reports=False)
+            if f == f"{_SIM_DATA.EXPORT_RSOPT}.py"
+            else template_common.render_jinja(SIM_TYPE, ctx, f),
+        )
 
+
+def _write_rsopt_zip(data, ctx):
     def _write(zip_file, path):
         zip_file.writestr(
             path,
-            python_source_for_model(data, model=ctx.fileBase, plot_reports=False)
+            python_source_for_model(data, data.report, None, plot_reports=False)
             if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
             else template_common.render_jinja(SIM_TYPE, ctx, path),
         )
 
     filename = f"{_SIM_DATA.EXPORT_RSOPT}.zip"
     with zipfile.ZipFile(
-        filename,
+        f"{_SIM_DATA.EXPORT_RSOPT}.zip",
         mode="w",
         compression=zipfile.ZIP_DEFLATED,
         allowZip64=True,
     ) as z:
-        # the shell script depends on the other filenames being defined
-        for f in _files():
+        for f in _export_rsopt_files().values():
             _write(z, f)
-        z.writestr(
-            ctx.readmeFileName,
-            template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName),
-        )
         for f in ctx.libFiles:
             z.write(f, f)
     return PKDict(

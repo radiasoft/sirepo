@@ -459,20 +459,18 @@ def sim_frame(frame_args):
     return None
 
 
-def stateful_compute_tosca_info(data):
+def stateful_compute_tosca_info(data, **kwargs):
     return zgoubi_importer.tosca_info(data.args.tosca)
 
 
-def import_file(req, unit_test_mode=False, **kwargs):
+async def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(
-        pkcompat.from_bytes(req.file_stream.read()),
+        req.form_file.as_str(),
         unit_test_mode=unit_test_mode,
     )
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     if not is_parallel:

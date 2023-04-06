@@ -29,6 +29,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
+import { downloadAs, getAttachmentFileName } from "../utility/download";
 
 export type SimulationInfoRaw = {
     models: ModelStates,
@@ -87,6 +88,7 @@ function SimulationCogMenu(props) {
     let routeHelper = useContext(CRouteHelper);
     let navigate = useNavigate();
     let simulationInfoPromise = useContext(CSimulationInfoPromise);
+    let schema = useContext(CSchema);
 
     let [showCopyModal, updateShowCopyModal] = useState<boolean>(false);
 
@@ -135,11 +137,21 @@ function SimulationCogMenu(props) {
 
     let pythonSource = async () => {
         let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
-        window.open(routeHelper.globalRoute("pythonSource", {
-            simulation_type: appName,
-            simulation_id: simulationId,
-            name: name as string
-        }), "_blank")
+
+        let r = await fetch(routeHelper.globalRoute("pythonSource2", { simulation_type: appName }), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(
+                {
+                    simulationId: simulationId,
+                    name: name
+                }
+            )
+        })
+        downloadAs(await r.blob(), getAttachmentFileName(r));
+
     }
 
     let openCopy = async (newName) => {
@@ -173,7 +185,7 @@ function SimulationCogMenu(props) {
             onCancel={() => updateShowCopyModal(false)}/>
             <NavToggleDropdown title={<FontAwesomeIcon icon={Icon.faCog}/>}>
                 <Dropdown.Item onClick={() => exportArchive()}><FontAwesomeIcon icon={Icon.faCloudDownload}/> Export as ZIP</Dropdown.Item>
-                <Dropdown.Item onClick={() => pythonSource()}><FontAwesomeIcon icon={Icon.faCloudDownload}/> Python Source</Dropdown.Item>
+                <Dropdown.Item onClick={() => pythonSource()}><FontAwesomeIcon icon={Icon.faCloudDownload}/> { schema.constants.simSourceDownloadText }</Dropdown.Item>
                 <Dropdown.Item onClick={() => updateShowCopyModal(true)}><FontAwesomeIcon icon={Icon.faCopy}/> Open as a New Copy</Dropdown.Item>
                 {
                     hasSimualtionInfo && (

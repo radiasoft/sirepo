@@ -43,18 +43,22 @@ def fc_module(request):
 @pytest.fixture
 def import_req(request):
     def w(path):
-        import sirepo.srunit
-        import sirepo.http_request
+        from sirepo import srunit
+        from pykern.pkcollections import PKDict
+        from pykern import pkcompat
 
-        with sirepo.srunit.quest_start() as qcall:
+        with srunit.quest_start() as qcall:
             req = qcall.parse_params(
                 filename=path.basename,
                 folder="/import_test",
                 template=True,
                 type=_sim_type(request),
             )
-            # Supports read() for elegant and zgoubi
-            req.file_stream = path
+            # Mock sirepo.request._FormFileBase
+            req.form_file = PKDict(
+                as_str=lambda: pkcompat.from_bytes(path.read_binary()),
+                filename=path.basename,
+            )
             return req
 
     return w
@@ -70,7 +74,7 @@ def pytest_collection_modifyitems(session, config, items):
     from pykern.pkcollections import PKDict
     import importlib
     import os
-    import sirepo.feature_config
+    from sirepo import feature_config
 
     s = PKDict(
         elegant="sdds",
@@ -90,7 +94,7 @@ def pytest_collection_modifyitems(session, config, items):
         if "sbatch" in i.fspath.basename and slurm_not_installed:
             i.add_marker(pytest.mark.skip(reason="slurm not installed"))
             continue
-        c = [x for x in sirepo.feature_config.FOSS_CODES if x in i.name]
+        c = [x for x in feature_config.FOSS_CODES if x in i.name]
         if not c:
             continue
         c = c[0]
@@ -158,15 +162,8 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "sirepo_args: pass parameters to fixtures")
 
 
-@pytest.fixture
-def uwsgi_module(request):
-    with _auth_client_module(request, uwsgi=True) as c:
-        yield c
-
-
 @contextlib.contextmanager
-def _auth_client_module(request, uwsgi=False):
-    import sirepo.srunit
+def _auth_client_module(request):
     from pykern.pkcollections import PKDict
 
     cfg = PKDict(
@@ -192,16 +189,8 @@ def _auth_client_module(request, uwsgi=False):
 
     pkconfig.reset_state_for_testing(cfg)
 
-    with _subprocess_start(request, fc_args=PKDict(cfg=cfg, uwsgi=uwsgi)) as c:
+    with _subprocess_start(request, fc_args=PKDict(cfg=cfg)) as c:
         yield c
-
-
-def _check_port(port):
-    import socket
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((_LOCALHOST, int(port)))
-    return str(port)
 
 
 def _config_sbatch_supervisor_env(env):
@@ -238,8 +227,6 @@ def _fc(request, fc_module, new_user=False):
 
     Defaults to myapp.
     """
-    import sirepo.srunit
-
     if fc_module.sr_uid and new_user:
         fc_module.sr_logout()
 
@@ -256,18 +243,27 @@ def _port():
     import random
     from sirepo import const
 
+    def _check_port(port):
+        import socket
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((_LOCALHOST, int(port)))
+        return str(port)
+
     for p in random.sample(const.TEST_PORT_RANGE, 100):
         try:
             return _check_port(p)
         except Exception:
             pass
-    raise AssertionError(f"ip={_LOCALHOST} unable to allocate port")
+    raise AssertionError(
+        f"ip={_LOCALHOST} unable to bind to port in range={const.TEST_PORT_RANGE}"
+    )
 
 
 def _sim_type(request):
-    import sirepo.feature_config
+    from sirepo import feature_config
 
-    for c in sirepo.feature_config.FOSS_CODES:
+    for c in feature_config.FOSS_CODES:
         f = request.function
         n = getattr(f, "func_name", None) or getattr(f, "__name__")
         if c in n or c in str(request.fspath.purebasename):
@@ -311,34 +307,28 @@ def _subprocess_setup(request, fc_args):
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
     )
     cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
-    if fc_args.uwsgi:
-        cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = _port()
     for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
-        cfg["SIREPO_JOB_{}_SUPERVISOR_URI".format(x)] = "http://{}:{}".format(
-            _LOCALHOST, p
-        )
+        cfg[f"SIREPO_JOB_{x}_SUPERVISOR_URI"] = f"http://{_LOCALHOST}:{p}"
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY="testing@123")
     env.pkupdate(**cfg)
 
-    import sirepo.srunit
+    from sirepo import srunit
 
     c = None
     u = [env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT]
-    c = sirepo.srunit.http_client(
+    c = srunit.http_client(
         env=env,
         empty_work_dir=fc_args.empty_work_dir,
         job_run_mode="sbatch" if sbatch_module else None,
         sim_types=fc_args.sim_types,
-        port=env.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT
-        if fc_args.uwsgi
-        else env.SIREPO_PKCLI_SERVICE_PORT,
+        port=env.SIREPO_PKCLI_SERVICE_PORT,
     )
     u.append(c.port)
     t = fc_args.sim_types
     if isinstance(t, (tuple, list)):
         t = ":".join(t)
-    cfg["SIREPO_FEATURE_CONFIG_SIM_TYPES"] = t
+    cfg.SIREPO_FEATURE_CONFIG_SIM_TYPES = t
     for i in u:
         subprocess.run(["kill -9 $(lsof -t -i :" + i + ") >& /dev/null"], shell=True)
     if sbatch_module:
@@ -349,29 +339,33 @@ def _subprocess_setup(request, fc_args):
 
 @contextlib.contextmanager
 def _subprocess_start(request, fc_args):
-    from pykern import pkunit
+    from pykern import pkunit, pkjson
     from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdlog
-    import sirepo.srunit
+    from pykern.pkdebug import pkdlog, pkdp
+    from sirepo import srunit
     import time
 
     fc_args.pksetdefault(
-        uwsgi=False,
         cfg=PKDict,
         sim_types=None,
         append_package=None,
         empty_work_dir=True,
     )
 
-    def _post(uri, data):
-        for _ in range(30):
+    def _ping_supervisor(uri):
+        l = None
+        for _ in range(100):
             try:
-                r = requests.post(uri, json=data)
-                if r.status_code == 200:
+                r = requests.post(uri, json=None)
+                r.raise_for_status()
+                d = pkjson.load_any(r.text)
+                if d.state == "ok":
                     return
-            except requests.exceptions.ConnectionError:
+                raise RuntimeError(f"state={r.get('state')}")
+            except Exception as e:
+                l = e
                 time.sleep(0.3)
-        pkunit.pkfail("could not connect to {}", uri)
+        pkunit.pkfail("start failed uri={} exception={}", uri, l)
 
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))
@@ -380,14 +374,15 @@ def _subprocess_start(request, fc_args):
     wd = pkunit.work_dir()
     p = []
     try:
+        for k in sorted(env.keys()):
+            if k.endswith("_PORT"):
+                pkdlog("{}={}", k, env[k])
+        _subprocess(("sirepo", "service", "server"))
+        # allow db to be created
+        time.sleep(0.5)
         _subprocess(("sirepo", "job_supervisor"))
-        if fc_args.uwsgi:
-            _subprocess(("sirepo", "service", "nginx-proxy"))
-            _subprocess(("sirepo", "service", "uwsgi"))
-        else:
-            _subprocess(("sirepo", "service", "flask"))
-        _post(c.http_prefix + "/job-supervisor-ping", None)
-        from sirepo import feature_config, template
+        _ping_supervisor(c.http_prefix + "/job-supervisor-ping")
+        from sirepo import template
         from pykern import pkio
 
         if template.is_sim_type("srw"):
@@ -395,9 +390,6 @@ def _subprocess_start(request, fc_args):
                 "~/src/radiasoft/sirepo/sirepo/package_data/template/srw/predefined.json"
             )
             template.import_module("srw").get_predefined_beams()
-        for k in sorted(env.keys()):
-            if k.endswith("_PORT"):
-                pkdlog("{}={}", k, env[k])
         yield c
     finally:
         import sys

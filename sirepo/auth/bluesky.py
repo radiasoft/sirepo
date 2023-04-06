@@ -38,7 +38,7 @@ _AUTH_NONCE_SEPARATOR = "-"
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_cookieless_set_user", sid="SimId")
-    def api_authBlueskyLogin(self):
+    async def api_authBlueskyLogin(self):
         req = self.parse_post(id=True)
         auth_hash(req.req_data, verify=True)
         path = simulation_db.find_global_simulation(
@@ -59,7 +59,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_cookieless_set_user")
-    def api_blueskyAuth(self):
+    async def api_blueskyAuth(self):
         """Deprecated use `api_authBlueskyLogin`"""
         return self.api_authBlueskyLogin()
 

@@ -81,6 +81,7 @@
             ["GaussianDropout", "Gaussian Noise Dropout"],
             ["GaussianNoise", "Gaussian Noise"],
             ["GlobalAveragePooling2D", "Global Average Pooling 2D"],
+            ["Reshape", "Reshape Layer"],
             ["UpSampling2D", "UpSampling2D Layer"],
             ["ZeroPadding2D", "Zero Padding Layer"]
         ],
@@ -361,6 +362,10 @@
             "layer": ["Layer", "NeuralNetLayer", "Activation"],
             "activation": ["Activation", "NeuralNetActivation", "relu"]
         },
+        "reshape": {
+            "layer": ["Layer", "NeuralNetLayer", "Reshape"],
+            "new_shape": ["New Shape", "String", "(64, 64)"]
+        },
         "add": {
             "layer": ["Layer", "NeuralNetLayer", "Add"]
         },
@@ -462,6 +467,11 @@
         "activation": {
             "columns": [
                 "activation"
+            ]
+        },
+        "reshape": {
+            "columns": [
+                "new_shape"
             ]
         },
         "add": {
@@ -743,6 +753,26 @@
         },
         "imageViewer": {
             "title": "Image Samples",
+            "basic": [],
+            "advanced": []
+        },
+        "segmentViewer": {
+            "title": "Segments Sample",
+            "basic": [],
+            "advanced": []
+        },
+        "bestLosses": {
+            "title": "Best Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "worstLosses": {
+            "title": "Worst Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "diceCoefficient": {
+            "title": "Dice Coefficient",
             "basic": [],
             "advanced": []
         },

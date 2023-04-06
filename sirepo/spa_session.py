@@ -8,12 +8,9 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from pykern.pkcollections import PKDict
 import contextlib
 import datetime
-import pykern.pkconfig
-import sirepo.events
 import sirepo.quest
 import sirepo.srtime
 import sirepo.util
-import sqlalchemy
 
 _REFRESH_SESSION = datetime.timedelta(seconds=5 * 60)
 
@@ -29,10 +26,10 @@ def init_module():
     _initialized = True
 
 
-def init_quest(qcall):
-    def _begin():
+async def init_quest(qcall):
+    async def _begin():
         try:
-            qcall.call_api("beginSession")
+            (await qcall.call_api("beginSession")).destroy()
         except Exception as e:
             pkdlog("error={} trying api_beginSession stack={}", e, pkdexc())
 
@@ -52,4 +49,4 @@ def init_quest(qcall):
         return True
 
     if qcall.sreq.method_is_post() and qcall.auth.is_logged_in() and _check():
-        _begin()
+        await _begin()

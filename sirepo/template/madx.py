@@ -353,8 +353,8 @@ def get_data_file(run_dir, model, frame, options):
     assert False, f"no data file for model: {model}"
 
 
-def import_file(req, **kwargs):
-    text = pkcompat.from_bytes(req.file_stream.read())
+async def import_file(req, **kwargs):
+    text = req.form_file.as_str()
     if not bool(re.search(r"\.madx$|\.seq$", req.filename, re.IGNORECASE)):
         raise AssertionError("invalid file extension, expecting .madx or .seq")
     data = madx_parser.parse_file(text, downcase_variables=True)
@@ -365,7 +365,7 @@ def import_file(req, **kwargs):
     return data
 
 
-def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
     return _parse_madx_log(run_dir)
@@ -412,7 +412,7 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
-def stateless_compute_calculate_bunch_parameters(data):
+def stateless_compute_calculate_bunch_parameters(data, **kwargs):
     return _calc_bunch_parameters(
         data.args.bunch, data.args.command_beam, data.args.variables
     )

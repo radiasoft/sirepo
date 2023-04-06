@@ -24,36 +24,35 @@ _timedelta = None
 _initialized = False
 
 
-def adjust_time(days, qcall=None):
+def adjust_time(days):
     """Shift the system time by days
 
     Args:
-        days (str): must be integer. If None or 0, no adjustment.
+        days (str): must be integer. If None or 0, clear the adjustment.
     """
-
     global _timedelta
+
     _timedelta = None
-    try:
-        d = int(days)
-        if d != 0:
-            _timedelta = datetime.timedelta(days=d)
-    except Exception:
-        pass
-    if qcall:
-        if not _timedelta:
-            days = 0
-        qcall.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
+    if not days:
+        return 0
+    d = int(days)
+    if d != 0:
+        _timedelta = datetime.timedelta(days=d)
+    return d
 
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("internal_test", days="TimeDeltaDays optional")
-    def api_adjustTime(self, days=None):
+    async def api_adjustTime(self, days=None):
         """Shift the system time by days and get the adjusted time
 
         Args:
-            days (str): must be integer. If None or 0, no adjustment.
+            days (str): must be integer. If None or 0, clear the adjustment.
         """
-        adjust_time(days, qcall=self)
+        days = adjust_time(days)
+        (
+            await self.call_api("adjustSupervisorSrtime", kwargs=PKDict(days=days))
+        ).destroy()
         return self.reply_ok(
             {
                 "adjustedNow": utc_now().isoformat(),
