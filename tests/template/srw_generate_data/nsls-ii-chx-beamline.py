@@ -183,7 +183,7 @@ varParam = [
     ['name', 's', 'NSLS-II CHX beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_CHX_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -371,7 +371,7 @@ varParam = [
     ['op_S0_HDM_L', 'f', 6.899999999999999, 'length'],
 
     # HDM: mirror
-    ['op_HDM_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_HDM_hfn', 's', 'NSLS-II_CHX_beamline/mirror_1d.dat', 'heightProfileFile'],
     ['op_HDM_dim', 's', 'x', 'orientation'],
     ['op_HDM_ang', 'f', 0.0031415926, 'grazingAngle'],
     ['op_HDM_amp_coef', 'f', 1.0, 'heightAmplification'],

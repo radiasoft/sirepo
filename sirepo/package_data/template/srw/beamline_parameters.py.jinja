@@ -4,7 +4,7 @@
 {%- macro fields(item, type, names) %}
 {% for name in names %}
 {% if type == 'file' %}
-    ['op_{{ item.name }}_{{ nameMap.get(name, name) }}', 's', '{{ nameMap.fDir }}{{ item[name] }}', '{{ name }}'],
+    ['op_{{ item.name }}_{{ nameMap.get(name, name) }}', 's', '{% if item[name] %}{{ fdir }}{{ item[name] }}{% endif %}', '{{ name }}'],
 {% elif type == 's' %}
     ['op_{{ item.name }}_{{ nameMap.get(name, name) }}', '{{ type }}', '{{ item[name] }}', '{{ name }}'],
 {% elif type == 'b' %}
