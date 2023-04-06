@@ -73,7 +73,7 @@ varParam = [
     ['name', 's', 'Boron Fiber (CRL with 3 lenses)', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'Boron_Fiber_CRL_with_3_lenses/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],

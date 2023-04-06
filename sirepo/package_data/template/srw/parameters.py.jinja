@@ -46,7 +46,7 @@ varParam = [
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', '{{fdir}}', 'folder (directory) name for reading-in input and saving output data files'],
 
 {% if rs_type != 'g' %}
 #---Electron Beam
@@ -321,7 +321,7 @@ def setup_magnetic_measurement_files(filename, v):
                     )
                 )
             f = f[0]
-            z.extractall()
+            z.extractall(v.fdir)
         except Exception:
             if c:
                 c.Abort(1)
