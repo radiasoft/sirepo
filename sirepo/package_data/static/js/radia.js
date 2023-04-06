@@ -2421,14 +2421,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
 
-                //const pas = picker.getActors();
-
                 let selectedValue = Number.NaN;
                 let highlightVectColor = [255, 0, 0];
-                // the 1st actor in the array is the closest to the viewer
-                //const actor = pas[0];
+
                 vtkSelection = {};
-                //const info = getInfoForActor(actor);
                 const [actor, info] = getClosestActor(picker.getActors());
                 selectedInfo = info;
                 if (! info || ! info.pData) {
