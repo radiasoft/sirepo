@@ -1599,6 +1599,8 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             }
 
             $scope.$on('fieldPaths.saved', updateTable);
+
+            updateTable();
         },
     };
 });
@@ -2808,20 +2810,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
             });
 
-            $scope.$on('magnetDisplay.changed',  (e, d) => {
-                // does not seem the best way...
-                let interval = null;
-                interval = $interval(function() {
-                    if (interval) {
-                        $interval.cancel(interval);
-                        interval = null;
-                    }
-                    // only fetch if we need different view or field
-                    if (didDisplayValsChange()) {
-                        updateViewer();
-                    }
-                }, 500, 1);
-
+            $scope.$on('magnetDisplay.saved', () => {
+                if (didDisplayValsChange()) {
+                    updateViewer();
+                }
             });
 
             $scope.$on('solve.complete', (e, d) => {
