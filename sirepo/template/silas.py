@@ -228,7 +228,7 @@ def _generate_beamline_elements(data):
             inversion_mesh_extent={element.inversion_mesh_extent},
             inversion_n_cells={element.inversion_n_cells},
             l_scale={element.l_scale},
-            length={element.length},
+            length={element.length * 1e-2},
             n0={[element.n0] * element.nslice},
             n2={[element.n2] * element.nslice},
             nslice={element.nslice},
