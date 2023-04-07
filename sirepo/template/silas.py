@@ -220,7 +220,7 @@ def _generate_beamline_elements(data):
             pass
         elif element.type == "lens":
             state.res += f'(Lens({element.focalLength}), ["default"]),\n'
-        elif element.type == "crystal":
+        elif element.type == "crystal" and element.origin == "new":
             state.res += f"""(
     Crystal(
         params=PKDict(
@@ -252,10 +252,16 @@ def _generate_beamline_indices(data):
             state.idx += 1
         if element.get("isDisabled") or element.type == "watch":
             return
+        if element.type == "crystal":
+            if element.origin == "new":
+                state.id_to_index[element.id] = state.idx
+            else:
+                state.res.append(str(state.id_to_index[element.reuseCrystal]))
+                return
         state.res.append(str(state.idx))
         state.idx += 1
 
-    state = PKDict(res=[], idx=0)
+    state = PKDict(res=[], idx=0, id_to_index=PKDict())
     _iterate_beamline(state, data, _callback)
     return ", ".join(state.res)
 
@@ -285,15 +291,13 @@ def _generate_parameters_file(data):
 
 
 def _get_crystal(data):
-    crystals = [x for x in data.models.beamline if x.type == "crystal"]
-    idx = data.models.crystalCylinder.crystal
-    if idx:
-        idx = int(idx)
-        if idx + 1 > len(crystals):
-            idx = 0
-    else:
-        idx = 0
-    return crystals[idx]
+    crystals = [
+        x for x in data.models.beamline if x.type == "crystal" and x.origin == "new"
+    ]
+    for e in crystals:
+        if e.id == data.models.crystalCylinder.crystal:
+            return e
+    return crystals[0]
 
 
 def _iterate_beamline(state, data, callback):

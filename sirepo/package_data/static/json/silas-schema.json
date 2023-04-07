@@ -5,6 +5,10 @@
         }
     },
     "enum": {
+        "CrystalOrigin": [
+            ["new", "New"],
+            ["reuse", "Use Existing"]
+        ],
         "DataType": [
             ["intensity", "Intensity"],
             ["phase", "Phase"]
@@ -96,7 +100,9 @@
             "crystal_alpha": ["Crystal Alpha [1/m]", "Float", 120.0],
             "pump_waist": ["Pump Waist [m]", "Float", 0.00164],
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
-            "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"]
+            "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"],
+            "origin": ["Crystal", "CrystalOrigin", "new"],
+            "reuseCrystal": ["Select Crystal", "SelectCrystal", 0]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -108,7 +114,7 @@
         },
         "crystalCylinder": {
             "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
-            "crystal": ["Crystal in Beamline", "SelectCrystal", "0"],
+            "crystal": ["Crystal in Beamline", "SelectCrystal", 0],
             "crystalLength": ["Length [cm]", "Float", 2],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
             "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
@@ -173,6 +179,8 @@
             "basic": [],
             "advanced": [
                 ["Geometry", [
+                    "origin",
+                    "reuseCrystal",
                     "title",
                     "position",
                     "length",
