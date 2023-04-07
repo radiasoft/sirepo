@@ -320,12 +320,6 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             'laserPulse.distribution',
         ], updateEditor,
     ];
-
-    $scope.$on('cancelChanges', (e, model) => {
-        if (model === $scope.modelName) {
-            updateEditor();
-        }
-    });
 });
 
 SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasService, $scope) {
