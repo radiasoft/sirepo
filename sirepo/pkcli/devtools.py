@@ -121,9 +121,7 @@ class _Renamer:
             raise AssertionError(
                 f"{m}\n{len(r)} REFERENCES TO {self.old_app_name} FOUND"
             )
-        print(f"No references to old_app_name={self.old_app_name} found")
 
     def rename(self):
-        print(f"renaming {self.old_app_name} to {self.new_app_name}")
         self._rename_paths()
         self._rename_references()
