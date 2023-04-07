@@ -208,7 +208,7 @@ varParam = [
     ['name', 's', 'NSLS-II ESM beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_ESM_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -386,7 +386,7 @@ varParam = [
 
 #---Beamline optics:
     # M1: mirror
-    ['op_M1_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_M1_hfn', 's', 'NSLS-II_ESM_beamline/mirror_1d.dat', 'heightProfileFile'],
     ['op_M1_dim', 's', 'x', 'orientation'],
     ['op_M1_ang', 'f', 0.043633200000000004, 'grazingAngle'],
     ['op_M1_amp_coef', 'f', 1.0, 'heightAmplification'],
@@ -444,7 +444,7 @@ varParam = [
     ['op_M3A_y', 'f', 0.0, 'verticalOffset'],
 
     # M3: ellipsoidMirror
-    ['op_M3_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_M3_hfn', 's', '', 'heightProfileFile'],
     ['op_M3_dim', 's', 'x', 'orientation'],
     ['op_M3_p', 'f', 89.63, 'firstFocusLength'],
     ['op_M3_q', 'f', 8.006, 'focalLength'],
@@ -481,7 +481,7 @@ varParam = [
     ['op_KBAperture_y', 'f', 0.0, 'verticalOffset'],
 
     # KBh: ellipsoidMirror
-    ['op_KBh_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_KBh_hfn', 's', '', 'heightProfileFile'],
     ['op_KBh_dim', 's', 'x', 'orientation'],
     ['op_KBh_p', 'f', 6.01, 'firstFocusLength'],
     ['op_KBh_q', 'f', 0.911, 'focalLength'],
@@ -501,7 +501,7 @@ varParam = [
     ['op_KBh_KBv_L', 'f', 0.5, 'length'],
 
     # KBv: ellipsoidMirror
-    ['op_KBv_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_KBv_hfn', 's', '', 'heightProfileFile'],
     ['op_KBv_dim', 's', 'x', 'orientation'],
     ['op_KBv_p', 'f', 6.51, 'firstFocusLength'],
     ['op_KBv_q', 'f', 0.411, 'focalLength'],

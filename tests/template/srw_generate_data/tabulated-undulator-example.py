@@ -48,7 +48,7 @@ varParam = [
     ['name', 's', 'Tabulated Undulator Example', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'Tabulated_Undulator_Example/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -284,7 +284,7 @@ def setup_magnetic_measurement_files(filename, v):
                     )
                 )
             f = f[0]
-            z.extractall()
+            z.extractall(v.fdir)
         except Exception:
             if c:
                 c.Abort(1)
@@ -301,7 +301,7 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    setup_magnetic_measurement_files("magnetic_measurements.zip", v)
+    setup_magnetic_measurement_files(v.fdir + "magnetic_measurements.zip", v)
     names = ['Aperture','Aperture_Watchpoint']
     op = set_optics(v, names, True)
     v.ws = True
