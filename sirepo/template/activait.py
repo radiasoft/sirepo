@@ -1504,6 +1504,7 @@ def _set_children(neural_net):
 
 
 def _set_fields_by_layer_type(l, new_layer):
+    # TODO (gurhar1133): raise error to UI if failed to import
     def _conv(l):
         return PKDict(
             strides=l.strides[0],
@@ -1541,6 +1542,7 @@ def _set_fields_by_layer_type(l, new_layer):
                 AlphaDropout=lambda l: _dropout(l),
                 Dropout=lambda l: _dropout(l),
                 Flatten=lambda l: PKDict(),
+                Reshape=lambda l: PKDict(new_shape=str(l.target_shape)),
                 SeparableConv2D=lambda l: _conv(l),
                 MaxPooling2D=lambda l: _pool(l),
                 AveragePooling2D=lambda l: _pool(l),
