@@ -1525,6 +1525,9 @@ def _set_fields_by_layer_type(l, new_layer):
         )
 
     if "input" not in l.name:
+        raise sirepo.util.UserAlert(
+                "TESTING THE USER ALERT"
+            )
         return new_layer.pkmerge(
             PKDict(
                 Activation=lambda l: PKDict(activation=l.activation.__name__),
