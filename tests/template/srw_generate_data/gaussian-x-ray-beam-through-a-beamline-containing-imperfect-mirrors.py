@@ -139,7 +139,7 @@ varParam = [
     ['name', 's', 'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'Gaussian_X-ray_beam_through_a_Beamline_containing_Imperfect_Mirrors/', 'folder (directory) name for reading-in input and saving output data files'],
 
 
     ['gbm_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
@@ -295,7 +295,7 @@ varParam = [
     ['op_ApM1_y', 'f', 0.0, 'verticalOffset'],
 
     # M1: mirror
-    ['op_M1_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_M1_hfn', 's', 'Gaussian_X-ray_beam_through_a_Beamline_containing_Imperfect_Mirrors/mirror2_1d.dat', 'heightProfileFile'],
     ['op_M1_dim', 's', 'y', 'orientation'],
     ['op_M1_ang', 'f', 0.0018, 'grazingAngle'],
     ['op_M1_amp_coef', 'f', 1.0, 'heightAmplification'],
@@ -313,7 +313,7 @@ varParam = [
     ['op_ApKB_y', 'f', 0.0, 'verticalOffset'],
 
     # VFM: ellipsoidMirror
-    ['op_VFM_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_VFM_hfn', 's', 'Gaussian_X-ray_beam_through_a_Beamline_containing_Imperfect_Mirrors/mirror2_1d.dat', 'heightProfileFile'],
     ['op_VFM_dim', 's', 'y', 'orientation'],
     ['op_VFM_p', 'f', 928.3, 'firstFocusLength'],
     ['op_VFM_q', 'f', 1.7, 'focalLength'],
@@ -333,7 +333,7 @@ varParam = [
     ['op_VFM_HFM_L', 'f', 0.6000000000000227, 'length'],
 
     # HFM: ellipsoidMirror
-    ['op_HFM_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_HFM_hfn', 's', 'Gaussian_X-ray_beam_through_a_Beamline_containing_Imperfect_Mirrors/mirror2_1d.dat', 'heightProfileFile'],
     ['op_HFM_dim', 's', 'x', 'orientation'],
     ['op_HFM_p', 'f', 928.9, 'firstFocusLength'],
     ['op_HFM_q', 'f', 1.1, 'focalLength'],

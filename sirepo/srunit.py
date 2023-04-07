@@ -93,37 +93,6 @@ def setup_srdb_root(cfg=None):
     )
 
 
-class UwsgiClient(PKDict):
-    def __init__(self, env, *args, **kwargs):
-        from sirepo.pkcli import service
-        from sirepo import modules
-
-        modules.import_and_init("sirepo.uri")
-        c = service._cfg()
-        for k in ("nginx_proxy_port", "ip"):
-            self[f"_{k}"] = env.get(f"SIREPO_PKCLI_SERVICE_{k.upper()}") or c[k]
-
-    def sr_post(self, route_or_uri, data, headers=None):
-        from pykern import pkjson
-        import requests
-
-        r = requests.post(
-            (
-                f"http://{self._ip}:{self._nginx_proxy_port}"
-                + f"{self._server_route(route_or_uri)}"
-            ),
-            json=data,
-            headers=headers,
-        )
-        r.raise_for_status()
-        return pkjson.load_any(r.text)
-
-    def _server_route(self, route_or_uri):
-        from sirepo import uri
-
-        return uri.server_route(route_or_uri, None, None)
-
-
 class _TestClient:
     def __init__(self, env, job_run_mode, port):
         super().__init__()
