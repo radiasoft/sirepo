@@ -64,7 +64,7 @@ varParam = [
     ['name', 's', 'Sample from Image', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'Sample_from_Image/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -242,7 +242,7 @@ varParam = [
 
 #---Beamline optics:
     # Sample: sample
-    ['op_Sample_file_path', 's', 'sample.tif', 'imageFile'],
+    ['op_Sample_file_path', 's', 'Sample_from_Image/sample.tif', 'imageFile'],
     ['op_Sample_outputImageFormat', 's', 'tif', 'outputImageFormat'],
     ['op_Sample_position', 'f', 20.0, 'position'],
     ['op_Sample_resolution', 'f', 2.480469e-09, 'resolution'],
