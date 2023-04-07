@@ -7,7 +7,6 @@ party code, which Sirepo calls as an independent program.
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import csv
 import numpy
 import os
@@ -15,7 +14,7 @@ import pykern.pkyaml
 import random
 import sys
 import time
-
+import sirepo.mpi
 
 _MAX_AGE_BY_WEIGHT = [
     [0, 16],
@@ -27,10 +26,16 @@ _MAX_AGE_BY_WEIGHT = [
 
 def main():
     """Read the input yaml and write the output csv"""
-    # hack support for openmpi/mpich so we can run under mpi with only one output file
-    if os.environ.get("OMPI_COMM_WORLD_RANK", os.environ.get("PMI_RANK", "0")) != "0":
-        sys.stderr.write("does not work with MPI\n")
-        exit(0)
+    sirepo.mpi.restrict_op_to_first_rank(_main)
+
+
+def _factor(v, max_value, exp):
+    return (random.random() * 0.5) * max_value / exp + max_value * (exp - 1.0) / exp * (
+        1.0 - 1.0 / (1.0 + v**2)
+    )
+
+
+def _main():
     if len(sys.argv) != 3:
         sys.stderr.write("usage: hundli input.yml output.csv\n")
         exit(1)
@@ -51,12 +56,6 @@ def main():
         out = csv.writer(f)
         out.writerow(("Year", "Height", "Weight", "Activity"))
         out.writerows(zip(years, heights, weights, activity))
-
-
-def _factor(v, max_value, exp):
-    return (random.random() * 0.5) * max_value / exp + max_value * (exp - 1.0) / exp * (
-        1.0 - 1.0 / (1.0 + v**2)
-    )
 
 
 def _max_age(weight):
