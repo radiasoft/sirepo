@@ -348,9 +348,19 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                 PKDict(),
             )
     with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
+
         d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
         z = d[plot_type]
+        if plot_type == "total_intensity":
+            return PKDict(
+                title=plot_type.capitalize(),
+                x_range=[r.x[0], r.x[1], len(z)],
+                y_range=[r.y[0], r.y[1], len(z)],
+                x_label="Horizontal Position [m]",
+                y_label="Vertical Position [m]",
+                z_matrix=z.im,
+            )
         return PKDict(
             title=plot_type.capitalize() + " Slice #" + str(slice_index + 1),
             x_range=[r.x[0], r.x[1], len(z)],
