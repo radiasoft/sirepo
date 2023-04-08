@@ -662,7 +662,7 @@ SIREPO.viewLogic('watchpointReportView', function(appState, beamlineService, pan
 
         const getAndSavePlot = (model, element) => {
             let p = element.type == 'crystal' ? model.crystalPlot : model.watchpointPlot;
-            model.reportType = p == 'excited_states_longitudinal'
+            model.reportType = p.includes('longitudinal')
                         ? 'parameter'
                         : '3d';
             appState.saveQuietly($scope.modelData.modelKey);

@@ -17,7 +17,8 @@
             ["intensity", "Intensity"],
             ["phase", "Phase"],
             ["photons", "Number of Photons"],
-            ["excited_states_longitudinal", "Excited States Longitudinal Distribution"]
+            ["longitudinal_photons", "Longitudinal Photons"],
+            ["longitudinal_intensity", "Longitudinal Intensity"]
         ],
         "DistributionType": [
             ["gaussian", "Gaussian"],

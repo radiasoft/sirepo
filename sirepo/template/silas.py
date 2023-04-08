@@ -288,7 +288,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
     def _y_value(element, index, file, cell_volume):
         if element.type == "crystal":
             return numpy.sum(numpy.array(file[f"{index}/excited_states"]) * cell_volume)
-        return numpy.sum(numpy.array(file[f"{index}/excited_states"]))
+        return numpy.sum(numpy.array(file[f"{index}/{plot_type}"]))
 
     def _cell_volume(element):
         if element.type == "crystal":
@@ -309,13 +309,20 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return False
         return (
             element.type in ("crystal", "watch")
-            and plot_type == "excited_states_longitudinal"
+            and "longitudinal" in plot_type
         )
 
     def _nslice(element, file):
         if element.type == "watch":
             return len(file)
         return element.nslice
+
+    def _label(element, plot_type):
+        if element.type == "watch" and plot_type == "longitudinal_intensity":
+            return "Intensity"
+        if element.type == "watch" and plot_type == "longitudinal_photons":
+            return "Total Number of Photons"
+        return "Excited States"
 
     filename = _fname(element)
     if _is_longitudinal_plot(element, plot_type):
@@ -332,7 +339,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                 [
                     PKDict(
                         points=y,
-                        label="Excited States",
+                        label=_label(element, plot_type),
                     ),
                 ],
                 PKDict(),
