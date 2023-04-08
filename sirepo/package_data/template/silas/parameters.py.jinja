@@ -48,13 +48,12 @@ class Watchpoint:
         h5_data = PKDict()
         for s in range(pulse.nslice):
             h5_data[s] = PKDict()
-            #print(locals())
             for x in ("ranges", "intensity", "phase", "photons"):
                 h5_data[s][x] = locals()[x](pulse, s)
             h5_data[s]["longitudinal_photons"] = locals()["pulse"].slice[s].n_photons_2d.mesh
-            wfr = locals()['pulse'].slice[s].wfr
-            h5_data[s]["longitudinal_intensity"] = numpy.linspace(wfr.mesh.xStart, wfr.mesh.xFin, wfr.mesh.nx)
-            #print(locals()["pulse"].slice[s].n_photons_2d.mesh)
+            nx = locals()["pulse"].slice[s].nx_slice
+            ny = locals()["pulse"].slice[s].ny_slice
+            h5_data[s]["longitudinal_intensity"] = h5_data[s].intensity[int(nx/2)][int(ny/2)]
         template_common.write_dict_to_h5(h5_data, f"results{self.count}.h5")
         self.count += 1
 
