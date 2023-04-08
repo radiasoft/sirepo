@@ -48,7 +48,7 @@ class Watchpoint:
         h5_data = PKDict()
         for s in range(pulse.nslice):
             h5_data[s] = PKDict()
-            for x in ("ranges", "intensity", "phase", "photons"):
+            for x in ("ranges", "intensity", "phase", "photons", "excited_states"):
                 h5_data[s][x] = locals()[x](pulse, s)
         template_common.write_dict_to_h5(h5_data, f"results{self.count}.h5")
         self.count += 1

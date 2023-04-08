@@ -16,7 +16,8 @@
         "WatchpointPlot": [
             ["intensity", "Intensity"],
             ["phase", "Phase"],
-            ["photons", "Number of Photons"]
+            ["photons", "Number of Photons"],
+            ["excited_states_longitudinal", "Excited States Longitudinal Distribution"]
         ],
         "DistributionType": [
             ["gaussian", "Gaussian"],
@@ -179,7 +180,8 @@
         },
         "watch": {
             "_super": ["_", "model", "beamElement"],
-            "title": ["Element Name", "SafePath", "Watchpoint"]
+            "title": ["Element Name", "SafePath", "Watchpoint"],
+            "nslice": ["Number of Slices", "Integer", 10, "", 1]
         },
         "watchpointReport": {
             "_super": ["_", "model", "initialIntensityReport"],

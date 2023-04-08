@@ -284,16 +284,23 @@ def _extract_initial_phase_report(run_dir, sim_in):
     )
 
 
-def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_index):
-    filename = _RESULTS_FILE
+def _fname(element):
     if element and element.type == "crystal":
-        filename = _CRYSTAL_FILE
+        return _CRYSTAL_FILE
+    return _RESULTS_FILE
+
+
+def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_index):
+    filename = _fname(element)
+    if element and element.type in ("crystal", "watch"):
         if plot_type == "excited_states_longitudinal":
             cell_volume = (
                 ((2 * element.inversion_mesh_extent) / element.inversion_n_cells) ** 2
                 * element.length
                 / element.nslice
-            )
+            ) if  element.type == "crystal" else 1
+            # if element.type == "watch":
+            #     assert 0, element
             with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
                 x = []
                 y = []
