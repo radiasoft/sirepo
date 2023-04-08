@@ -307,7 +307,10 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
     def _is_longitudinal_plot(element, plot_type):
         if not element:
             return False
-        return element.type in ("crystal", "watch") and plot_type == "excited_states_longitudinal"
+        return (
+            element.type in ("crystal", "watch")
+            and plot_type == "excited_states_longitudinal"
+        )
 
     def _nslice(element, file):
         if element.type == "watch":
