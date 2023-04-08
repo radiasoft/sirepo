@@ -284,48 +284,56 @@ def _extract_initial_phase_report(run_dir, sim_in):
     )
 
 
-def _fname(element):
-    if element and element.type == "crystal":
-        return _CRYSTAL_FILE
-    return _RESULTS_FILE
-
-
 def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_index):
+    def _y_value(element, index, file, cell_volume):
+        if element.type == "crystal":
+            return numpy.sum(numpy.array(file[f"{index}/excited_states"]) * cell_volume)
+        return numpy.sum(numpy.array(file[f"{index}/excited_states"]))
+
+    def _cell_volume(element):
+        if element.type == "crystal":
+            return (
+                ((2 * element.inversion_mesh_extent) / element.inversion_n_cells) ** 2
+                * element.length
+                / element.nslice
+            )
+        return None
+
+    def _fname(element):
+        if element and element.type == "crystal":
+            return _CRYSTAL_FILE
+        return _RESULTS_FILE
+
+    def _is_longitudinal_plot(element, plot_type):
+        if not element:
+            return False
+        return element.type in ("crystal", "watch") and plot_type == "excited_states_longitudinal"
+
+    def _nslice(element, file):
+        if element.type == "watch":
+            return len(file)
+        return element.nslice
+
     filename = _fname(element)
-    if element and element.type in ("crystal", "watch"):
-        # TODO (gurhar1133): refactor this
-        if plot_type == "excited_states_longitudinal":
-            if element.type == "crystal":
-                cell_volume = (
-                    ((2 * element.inversion_mesh_extent) / element.inversion_n_cells) ** 2
-                    * element.length
-                    / element.nslice
-                )
-            with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
-                x = []
-                y = []
-                if element.type == "watch":
-                    element.nslice = len(f)
-                for idx in range(element.nslice):
-                    x.append(idx)
-                    if element.type == "crystal":
-                        y.append(
-                            numpy.sum(numpy.array(f[f"{idx}/excited_states"]) * cell_volume)
-                        )
-                    else:
-                        y.append(
-                            numpy.sum(numpy.array(f[f"{idx}/excited_states"]))
-                        )
-                return template_common.parameter_plot(
-                    x,
-                    [
-                        PKDict(
-                            points=y,
-                            label="Excited States",
-                        ),
-                    ],
-                    PKDict(),
-                )
+    if _is_longitudinal_plot(element, plot_type):
+        c = _cell_volume(element)
+        with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
+            x = []
+            y = []
+            element.nslice = _nslice(element, f)
+            for idx in range(element.nslice):
+                x.append(idx)
+                y.append(_y_value(element, idx, f, c))
+            return template_common.parameter_plot(
+                x,
+                [
+                    PKDict(
+                        points=y,
+                        label="Excited States",
+                    ),
+                ],
+                PKDict(),
+            )
     with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
         d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
