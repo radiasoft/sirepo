@@ -294,21 +294,29 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
     filename = _fname(element)
     if element and element.type in ("crystal", "watch"):
         if plot_type == "excited_states_longitudinal":
-            cell_volume = (
-                ((2 * element.inversion_mesh_extent) / element.inversion_n_cells) ** 2
-                * element.length
-                / element.nslice
-            ) if  element.type == "crystal" else 1
-            # if element.type == "watch":
+            if element.type == "crystal":
+                cell_volume = (
+                    ((2 * element.inversion_mesh_extent) / element.inversion_n_cells) ** 2
+                    * element.length
+                    / element.nslice
+                )
             #     assert 0, element
             with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
                 x = []
                 y = []
+                if element.type == "watch":
+                    element.nslice = len(f)
                 for idx in range(element.nslice):
                     x.append(idx)
-                    y.append(
-                        numpy.sum(numpy.array(f[f"{idx}/excited_states"]) * cell_volume)
-                    )
+                    pkdp("\n\n\n trying to acces: {} in {}", f"{idx}/excited_states", f)
+                    if element.type == "crystal":
+                        y.append(
+                            numpy.sum(numpy.array(f[f"{idx}/excited_states"]) * cell_volume)
+                        )
+                    else:
+                        y.append(
+                            numpy.sum(numpy.array(f[f"{idx}/excited_states"]))
+                        )
                 return template_common.parameter_plot(
                     x,
                     [
