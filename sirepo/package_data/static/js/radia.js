@@ -599,18 +599,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const supers = appState.superClasses(o.type);
         let center = o.center;
         let size = o.size;
-        const m = o.members;
-
-        // empty group - do not add a shape
-        if (m && ! m.length ) {
-            return null;
-        }
-
-        const isGroup = m && m.length;
+        const isGroup = o.members && o.members.length;
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
 
         if (isGroup) {
-            const b = groupBounds(m.map(id => self.getObject(id)));
+            const b = groupBounds(o.members.map(id => self.getObject(id)));
             center = b.map(c => (c[0] + c[1]) / 2);
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
@@ -740,9 +733,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                         let mv = self.getObjectView(m_id);
                         if (! mv) {
                             mv = self.viewsForObject(self.getObject(m_id));
-                            if (! mv) {
-                                continue;
-                            }
                             self.views.push(mv);
                         }
                         mv.addCopyingTransform(r);
@@ -789,17 +779,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         ];
         b.forEach(function (c, i) {
             (objs || appState.models.geometryReport.objects || []).forEach(o => {
-                const m = o.members
-                if (m === undefined) {
-                    c[0] = Math.min(c[0], o.center[i] - o.size[i] / 2);
-                    c[1] = Math.max(c[1], o.center[i] + o.size[i] / 2);
-                    return;
-                }
-                if (m.length) {
-                    const g = groupBounds(m.map(mId => self.getObject(mId)));
+                if ((o.members || []).length) {
+                    const g = groupBounds(o.members.map(mId => self.getObject(mId)));
                     c[0] = Math.min(c[0], g[i][0]);
                     c[1] = Math.max(c[1], g[i][1]);
+                    return;
                 }
+                c[0] = Math.min(c[0], o.center[i] - o.size[i] / 2);
+                c[1] = Math.max(c[1], o.center[i] + o.size[i] / 2);
             });
         });
         return b;
@@ -817,6 +804,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function loadObjectViews() {
         self.views = [];
+        if (! self.showDesigner()) {
+            return;
+        }
         appState.models.geometryReport.objects.forEach(addViewsForObject);
         addBeamAxis();
     }
