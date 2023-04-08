@@ -353,10 +353,12 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
         r = d.ranges
         z = d[plot_type]
         if plot_type == "total_intensity":
+            # TODO (gurhar1133): need to refactor for
+            # the total phase as well.
             return PKDict(
                 title="Total Intensity",
                 x_range=[r.x[0], r.x[1], len(z)],
-                y_range=[r.y[0], r.y[1], len(z)],
+                y_range=[r.y[0], r.y[1], len(z[0])],
                 x_label="Horizontal Position [m]",
                 y_label="Vertical Position [m]",
                 z_matrix=z,
