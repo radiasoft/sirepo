@@ -3054,7 +3054,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 prevDomain = null;
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
-                srdbg(json);
                 $scope.width = json.z_matrix[0].length;
                 $scope.height = json.z_matrix.length;
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
