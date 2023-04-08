@@ -1504,7 +1504,6 @@ def _set_children(neural_net):
 
 
 def _set_fields_by_layer_type(l, new_layer):
-    # TODO (gurhar1133): raise error to UI if failed to import
     def _conv(l):
         return PKDict(
             strides=l.strides[0],
