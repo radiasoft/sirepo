@@ -51,7 +51,7 @@ class Watchpoint:
             #print(locals())
             for x in ("ranges", "intensity", "phase", "photons"):
                 h5_data[s][x] = locals()[x](pulse, s)
-            h5_data[s]["excited_states"] = numpy.sum(locals()["pulse"].slice[s].n_photons_2d.mesh)
+            h5_data[s]["excited_states"] = locals()["pulse"].slice[s].n_photons_2d.mesh
             #print(locals()["pulse"].slice[s].n_photons_2d.mesh)
         template_common.write_dict_to_h5(h5_data, f"results{self.count}.h5")
         self.count += 1

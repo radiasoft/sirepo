@@ -293,6 +293,7 @@ def _fname(element):
 def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_index):
     filename = _fname(element)
     if element and element.type in ("crystal", "watch"):
+        # TODO (gurhar1133): refactor this
         if plot_type == "excited_states_longitudinal":
             if element.type == "crystal":
                 cell_volume = (
@@ -300,7 +301,6 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                     * element.length
                     / element.nslice
                 )
-            #     assert 0, element
             with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
                 x = []
                 y = []
@@ -308,7 +308,6 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                     element.nslice = len(f)
                 for idx in range(element.nslice):
                     x.append(idx)
-                    pkdp("\n\n\n trying to acces: {} in {}", f"{idx}/excited_states", f)
                     if element.type == "crystal":
                         y.append(
                             numpy.sum(numpy.array(f[f"{idx}/excited_states"]) * cell_volume)
@@ -330,7 +329,6 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
     with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
         d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
-        pkdp("d keys: {}", d.keys())
         z = d[plot_type]
         return PKDict(
             title=plot_type.capitalize() + " Slice #" + str(slice_index + 1),

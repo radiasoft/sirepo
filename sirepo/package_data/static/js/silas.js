@@ -659,21 +659,24 @@ SIREPO.viewLogic('watchpointReportView', function(appState, beamlineService, pan
             ['crystalPlot'], e.type == 'crystal',
         ]);
         const m = $scope.modelData.getData();
-        if (e.type == 'crystal') {
-            m.reportType = m.crystalPlot == 'excited_states_longitudinal'
-                         ? 'parameter'
-                         : '3d';
-            appState.saveQuietly($scope.modelData.modelKey);
 
-            const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf($scope.modelData.modelKey);
-            if (m.reportType == 'parameter') {
-                if (idx < 0) {
-                    SIREPO.SINGLE_FRAME_ANIMATION.push($scope.modelData.modelKey);
-                }
+        const getAndSavePlot = (model, element) => {
+            let p = element.type == 'crystal' ? model.crystalPlot : model.watchpointPlot;
+            model.reportType = p == 'excited_states_longitudinal'
+                        ? 'parameter'
+                        : '3d';
+            appState.saveQuietly($scope.modelData.modelKey);
+        }
+
+        getAndSavePlot(m, e);
+        const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf($scope.modelData.modelKey);
+        if (m.reportType == 'parameter') {
+            if (idx < 0) {
+                SIREPO.SINGLE_FRAME_ANIMATION.push($scope.modelData.modelKey);
             }
-            else if (idx >= 0) {
-                SIREPO.SINGLE_FRAME_ANIMATION.splice(idx, 1);
-            }
+        }
+        else if (idx >= 0) {
+            SIREPO.SINGLE_FRAME_ANIMATION.splice(idx, 1);
         }
     }
 
