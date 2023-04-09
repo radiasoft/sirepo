@@ -51,13 +51,14 @@ class Watchpoint:
         t = lp.extract_total_2d_elec_fields()
         p = lp.extract_total_2d_phase()
         for s in range(pulse.nslice):
+            phase_s = locals()["phase"](pulse, s)
             nx = lp.slice[s].nx_slice
             ny = lp.slice[s].ny_slice
             i = locals()["intensity"](pulse, s)
             h5_data[s] = PKDict(
                 ranges=locals()["ranges"](pulse, s),
                 intensity=i,
-                phase=locals()["phase"](pulse, s),
+                phase=numpy.unwrap(numpy.unwrap(phase_s,axis=0),axis=1),
                 photons=locals()["photons"](pulse, s),
                 longitudinal_photons=lp.slice[s].n_photons_2d.mesh,
                 longitudinal_intensity=i[int(nx/2)][int(ny/2)],
