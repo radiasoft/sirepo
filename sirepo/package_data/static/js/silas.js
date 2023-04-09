@@ -263,6 +263,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             ['reuseCrystal'], item.origin === 'reuse',
             ['title', 'length', 'nslice'], item.origin === 'new',
             ['A', 'B', 'C', 'D'], item.propagationType == 'abcd_lct',
+            ['n2'], item.propagationType != 'gain_calc',
         ]);
         panelState.showTab(item.type, 2, item.origin === 'new');
         panelState.showTab(item.type, 3, item.origin === 'new'
