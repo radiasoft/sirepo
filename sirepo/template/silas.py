@@ -327,6 +327,11 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return "Total Number of Photons"
         return "Excited States"
 
+    def _title(plot_type, slice_index):
+        if plot_type in ("total_intensity", "total_phase"):
+            return plot_type.replace("_", " ").capitalize()
+        return plot_type.capitalize() + " Slice #" + str(slice_index + 1)
+
     filename = _fname(element)
     if _is_longitudinal_plot(element, plot_type):
         c = _cell_volume(element)
@@ -348,23 +353,11 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                 PKDict(),
             )
     with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
-
         d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
         z = d[plot_type]
-        if plot_type == "total_intensity":
-            # TODO (gurhar1133): need to refactor for
-            # the total phase as well.
-            return PKDict(
-                title="Total Intensity",
-                x_range=[r.x[0], r.x[1], len(z)],
-                y_range=[r.y[0], r.y[1], len(z[0])],
-                x_label="Horizontal Position [m]",
-                y_label="Vertical Position [m]",
-                z_matrix=z,
-            )
         return PKDict(
-            title=plot_type.capitalize() + " Slice #" + str(slice_index + 1),
+            title=_title(plot_type, slice_index),
             x_range=[r.x[0], r.x[1], len(z)],
             y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",

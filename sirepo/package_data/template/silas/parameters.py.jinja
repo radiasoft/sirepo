@@ -52,10 +52,10 @@ class Watchpoint:
             for x in ("ranges", "intensity", "phase", "photons"):
                 h5_data[s][x] = locals()[x](pulse, s)
             h5_data[s]["longitudinal_photons"] = locals()["pulse"].slice[s].n_photons_2d.mesh
-            print(locals()["pulse"].extract_total_2d_elec_fields())
-            # TODO (gurhar1133): needs to be slice agnostic
+            # TODO (gurhar1133): refactor
             t = locals()["pulse"].extract_total_2d_elec_fields()
             h5_data[s]["total_intensity"] = 0.5 *const.c *const.epsilon_0 *(t.re**2.0 + t.im**2.0)
+            h5_data[s]["total_phase"] = locals()["pulse"].extract_total_2d_phase()
             nx = locals()["pulse"].slice[s].nx_slice
             ny = locals()["pulse"].slice[s].ny_slice
             h5_data[s]["longitudinal_intensity"] = h5_data[s].intensity[int(nx/2)][int(ny/2)]

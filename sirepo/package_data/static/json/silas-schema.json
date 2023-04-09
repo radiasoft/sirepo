@@ -19,7 +19,8 @@
             ["photons", "Number of Photons"],
             ["longitudinal_photons", "Longitudinal Photons"],
             ["longitudinal_intensity", "Longitudinal Intensity"],
-            ["total_intensity", "Total Intensity"]
+            ["total_intensity", "Total Intensity"],
+            ["total_phase", "Total Phase"]
         ],
         "DistributionType": [
             ["gaussian", "Gaussian"],
