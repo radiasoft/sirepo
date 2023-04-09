@@ -669,8 +669,9 @@ SIREPO.viewLogic('watchpointReportView', function(appState, beamlineService, pan
         }
 
         getAndSavePlot(m, e);
+        srdbg(m.reportType);
         const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf($scope.modelData.modelKey);
-        if (m.reportType == 'parameter') {
+        if (m.reportType == 'parameter' || m.watchpointPlot == 'total_intensity') {
             if (idx < 0) {
                 SIREPO.SINGLE_FRAME_ANIMATION.push($scope.modelData.modelKey);
             }
