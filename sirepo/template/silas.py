@@ -332,16 +332,14 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return plot_type.replace("_", " ").capitalize()
         return plot_type.capitalize() + " Slice #" + str(slice_index + 1)
 
-    filename = _fname(element)
-    if _is_longitudinal_plot(element, plot_type):
-        c = _cell_volume(element)
-        with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
+    with h5py.File(run_dir.join(_fname(element).format(element_index)), "r") as f:
+        if _is_longitudinal_plot(element, plot_type):
             x = []
             y = []
             element.nslice = _nslice(element, f)
             for idx in range(element.nslice):
                 x.append(idx)
-                y.append(_y_value(element, idx, f, c))
+                y.append(_y_value(element, idx, f, _cell_volume(element)))
             return template_common.parameter_plot(
                 x,
                 [
@@ -352,7 +350,6 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                 ],
                 PKDict(),
             )
-    with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
         d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
         z = d[plot_type]
