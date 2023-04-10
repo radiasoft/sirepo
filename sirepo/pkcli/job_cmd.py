@@ -46,9 +46,11 @@ def default_command(in_file):
     try:
         f = pkio.py_path(in_file)
         pkdp("\n\n\n\nf={}\n\n\n", f)
-        if "sourceIntensityReport" in f.dirname:
-            shutil.copyfile(f, "/home/vagrant/src/radiasoft/sirepo/t/src_intensity.json")
+        # if "sourceIntensityReport" in f.dirname:
+        #     shutil.copyfile(f, "/home/vagrant/src/radiasoft/sirepo/t/src_intensity.json")
         msg = pkjson.load_any(f)
+        # if "sourceIntensityReport" in f.dirname:
+        pkdp("\n\n\n\nreport={}", msg.data.report)
         # TODO(e-carlin): find common place to serialize/deserialize paths
         msg.runDir = pkio.py_path(msg.runDir)
         pkdp("\n\n\n {} \n\n\n", 1)
