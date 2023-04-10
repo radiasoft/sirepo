@@ -229,7 +229,7 @@ varParam = [
     ['name', 's', 'NSLS-II SRX beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_SRX_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -417,7 +417,7 @@ varParam = [
     ['op_S0_HFM_L', 'f', 1.081000000000003, 'length'],
 
     # HFM: sphericalMirror
-    ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HFM_hfn', 's', '', 'heightProfileFile'],
     ['op_HFM_dim', 's', 'x', 'orientation'],
     ['op_HFM_r', 'f', 8871.45, 'radius'],
     ['op_HFM_size_tang', 'f', 0.95, 'tangentialSize'],
@@ -622,7 +622,7 @@ def setup_magnetic_measurement_files(filename, v):
                     )
                 )
             f = f[0]
-            z.extractall()
+            z.extractall(v.fdir)
         except Exception:
             if c:
                 c.Abort(1)
@@ -639,7 +639,7 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    setup_magnetic_measurement_files("magn_meas_srx.zip", v)
+    setup_magnetic_measurement_files(v.fdir + "magn_meas_srx.zip", v)
     names = ['S0','S0_HFM','HFM','HFM_S1','S1','S1_DCM_C1','DCM_C1','DCM_C2','DCM_C2_At_BPM1','At_BPM1_Before_SSA','SSA','SSA_AKB','AKB','AKB_KBV','KBV','KBV_KBH','KBH','KBH_At_Sample']
     op = set_optics(v, names, True)
     v.ws = True

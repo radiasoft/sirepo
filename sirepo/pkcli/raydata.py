@@ -5,8 +5,18 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
+import sirepo.raydata.scans
+import sirepo.raydata.replay
+import sirepo.raydata.scan_monitor
+
+
+def create_scans(num_scans, catalog_name, delay=True):
+    sirepo.raydata.scans.create(num_scans, catalog_name, delay)
+
+
+def replay(source_catalog, destination_catalog, num_scans):
+    sirepo.raydata.replay.begin(source_catalog, destination_catalog, num_scans)
 
 
 def run(cfg_dir):
@@ -16,6 +26,10 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     _run()
+
+
+def scan_monitor():
+    sirepo.raydata.scan_monitor.start()
 
 
 def _run():

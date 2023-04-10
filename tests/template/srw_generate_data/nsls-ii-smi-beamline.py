@@ -238,7 +238,7 @@ varParam = [
     ['name', 's', 'NSLS-II SMI beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_SMI_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -416,7 +416,7 @@ varParam = [
 
 #---Beamline optics:
     # MOAT_1: crystal
-    ['op_MOAT_1_hfn', 's', 'Si_heat204.dat', 'heightProfileFile'],
+    ['op_MOAT_1_hfn', 's', 'NSLS-II_SMI_beamline/Si_heat204.dat', 'heightProfileFile'],
     ['op_MOAT_1_dim', 's', 'y', 'orientation'],
     ['op_MOAT_1_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
     ['op_MOAT_1_psi0r', 'f', -2.3340005016580434e-06, 'psi0r'],
@@ -442,7 +442,7 @@ varParam = [
     ['op_MOAT_1_MOAT_2_L', 'f', 0.04999999999999716, 'length'],
 
     # MOAT_2: crystal
-    ['op_MOAT_2_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_MOAT_2_hfn', 's', '', 'heightProfileFile'],
     ['op_MOAT_2_dim', 's', 'x', 'orientation'],
     ['op_MOAT_2_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
     ['op_MOAT_2_psi0r', 'f', -2.3340005016580434e-06, 'psi0r'],
@@ -468,7 +468,7 @@ varParam = [
     ['op_MOAT_2_HFM_L', 'f', 2.892440000000004, 'length'],
 
     # HFM: sphericalMirror
-    ['op_HFM_hfn', 's', 'HFM_Rh7.6km.dat', 'heightProfileFile'],
+    ['op_HFM_hfn', 's', 'NSLS-II_SMI_beamline/HFM_Rh7.6km.dat', 'heightProfileFile'],
     ['op_HFM_dim', 's', 'x', 'orientation'],
     ['op_HFM_r', 'f', 7100.0, 'radius'],
     ['op_HFM_size_tang', 'f', 0.5, 'tangentialSize'],
@@ -487,7 +487,7 @@ varParam = [
     ['op_HFM_VFM_L', 'f', 3.4199999999999946, 'length'],
 
     # VFM: sphericalMirror
-    ['op_VFM_hfn', 's', 'VFM_Rh5.4km.dat', 'heightProfileFile'],
+    ['op_VFM_hfn', 's', 'NSLS-II_SMI_beamline/VFM_Rh5.4km.dat', 'heightProfileFile'],
     ['op_VFM_dim', 's', 'y', 'orientation'],
     ['op_VFM_r', 'f', 6100.0, 'radius'],
     ['op_VFM_size_tang', 'f', 0.4, 'tangentialSize'],
@@ -506,7 +506,7 @@ varParam = [
     ['op_VFM_VDM_L', 'f', 0.6975600000000028, 'length'],
 
     # VDM: sphericalMirror
-    ['op_VDM_hfn', 's', 'VDM.dat', 'heightProfileFile'],
+    ['op_VDM_hfn', 's', 'NSLS-II_SMI_beamline/VDM.dat', 'heightProfileFile'],
     ['op_VDM_dim', 's', 'y', 'orientation'],
     ['op_VDM_r', 'f', 300000.0, 'radius'],
     ['op_VDM_size_tang', 'f', 0.4, 'tangentialSize'],
