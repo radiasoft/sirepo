@@ -1,9 +1,10 @@
 import React from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useStore } from "react-redux";
 import { AnyAction, Dispatch } from "redux";
 import { StoreState } from "../store/common";
+import { ModelState } from "../store/models";
 import { Schema } from "../utility/schema";
-import { getModelReadSelector, getModelWriteActionCreator, getValueSelector, StoreType } from "./data";
+import { getModelReadSelector, getModelWriteActionCreator, getValueSelector, StoreType, StoreTypes } from "./data";
 import { Dependency } from "./dependency";
 
 export const CHandleFactory = React.createContext<HandleFactory>(undefined);
@@ -61,6 +62,11 @@ export class BaseHandleFactory extends HandleFactory {
     }
 }
 
+export type DependencyValuePair<V> = {
+    dependency: Dependency,
+    value: V
+};
+
 /**
  * Read-only alternative to handles that supports wildcards
  */
@@ -76,27 +82,52 @@ export class DependencyReader<F> {
         return [dependency];
     }
 
-    hook = (): any[] => {
+    hook = (): DependencyValuePair<F>[] => {
         let vs = getValueSelector(this.type);
-        return this.dependencies.flatMap(d => {
+        let newDeps = this.dependencies.flatMap(d => this.expandWildcard(d));
+
+        return newDeps.map(d => {
             let c = (d: Dependency) => {
                 let ms = getModelReadSelector(this.type)(d.modelName);
                 return useSelector(ms)[d.fieldName];
             }
 
-            return this.expandWildcard(d).map(d => vs(c(d)));
+            return {
+                value: vs(c(d)),
+                dependency: d
+            }
         })
     }
 
-    initialize = (state: any): any[] => {
+    initialize = (state: any): DependencyValuePair<F>[] => {
         let vs = getValueSelector(this.type);
-        return this.dependencies.flatMap(d => {
+        let newDeps = this.dependencies.flatMap(d => this.expandWildcard(d));
+
+        return newDeps.map(d => {
             let c = (d: Dependency) => {
                 let ms = getModelReadSelector(this.type)(d.modelName);
                 return ms(state)[d.fieldName];
             }
 
-            return this.expandWildcard(d).map(d => vs(c(d)));
+            return {
+                value: vs(c(d)),
+                dependency: d
+            }
         })
     }
+}
+
+
+export function useModelValue<M, F>(modelName: string, type: StoreType<M, F>): M {
+    let ms = getModelReadSelector(type);
+    return useSelector(ms(modelName))
+
+    /*return Object.fromEntries(new DependencyReader([new Dependency(`${modelName}.*`)], StoreTypes.Models, schema).hook().map(pair => {
+        return [
+            pair.dependency.fieldName,
+            pair.value
+        ]
+    }));*/
+
+
 }

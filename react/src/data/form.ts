@@ -3,8 +3,10 @@ import { Dispatch, AnyAction, Store } from "redux";
 import { StoreState } from "../store/common";
 import { FormModelState, initialFormStateFromValue } from "../store/formState";
 import { ModelState } from "../store/models";
+import { mapProperties } from "../utility/object";
 import { Schema } from "../utility/schema";
 import { StoreType, StoreTypes } from "./data";
+import { Dependency } from "./dependency";
 import { BaseHandleFactory, DataHandle, EmptyDataHandle, HandleFactory } from "./handle";
 
 type FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => void

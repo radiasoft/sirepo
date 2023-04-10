@@ -38,7 +38,7 @@ export const makeSlice = <M>(name: string): {
         name,
         initialState: {},
         reducers: {
-            updateFormState: (state, {payload: {name, value}}: {payload: ModelStateUpdate<M>}) => {
+            updateModel: (state, {payload: {name, value}}: {payload: ModelStateUpdate<M>}) => {
                 (state[name] as any) = value;
             }
         }

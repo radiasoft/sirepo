@@ -1,5 +1,4 @@
 import React from "react";
-import { CModelsWrapper } from "../data/wrapper";
 import { Col, Row } from "react-bootstrap";
 import { LAYOUTS } from "./layouts";
 import { LayoutProps, Layout } from "./layout";
@@ -7,8 +6,10 @@ import { Panel } from "../component/reusable/panel";
 import { ReportAnimationController, useAnimationReader } from "./report"
 import { SchemaLayout } from "../utility/schema";
 import { useContext } from "react";
-import { interpolate, ValueSelectors } from "../utility/string";
+import { interpolate } from "../utility/string";
 import { useWindowSize } from "../hook/breakpoint";
+import { CHandleFactory } from "../data/handle";
+import { StoreTypes } from "../data/data";
 
 export type MultiPanelConfig = {
     items: SchemaLayout[],
@@ -28,8 +29,8 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
 
     component = (props: LayoutProps<{}>) => {
         let { reportName, reportGroupName, frameIdFields } = this.config;
-        let modelsWrapper = useContext(CModelsWrapper);
-        let title = interpolate(this.config.title).withDependencies(modelsWrapper, ValueSelectors.Models).raw();
+        let handleFactory = useContext(CHandleFactory);
+        let title = interpolate(this.config.title).withDependencies(handleFactory, StoreTypes.Models).raw();
         // allow subplots to respond to window resize
         useWindowSize();
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);

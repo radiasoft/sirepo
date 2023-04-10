@@ -13,12 +13,13 @@ import {
     formStatesSlice,
     initialFormStateFromValue
 } from "../../store/formState";
-import { useStore } from "react-redux";
+import { useDispatch, useStore } from "react-redux";
 import { AppWrapper, CSchema } from "../../data/appwrapper";
 import { SimulationInfo } from "../simulation";
 import { AnyAction, Dispatch, Store } from "redux";
 import { FormStateHandleFactory } from "../../data/form";
-import { modelsSlice } from "../../store/models";
+import { modelActions, modelsSlice } from "../../store/models";
+import { mapProperties } from "../../utility/object";
 
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
@@ -76,6 +77,7 @@ export function FormStateInitializer(props) {
     let schema = useContext(CSchema);
 
     let store = useStore();
+    let dispatch = useDispatch();
 
     let ms = store.getState()[modelsSlice.name]
     let fs = store.getState()[formStatesSlice.name];
@@ -96,9 +98,11 @@ export function FormStateInitializer(props) {
             if(!modelSchema) {
                 throw new Error(`could not get schema for model=${modelName}`);
             }
-            fs[modelName] = mapProperties(ms, ([_, fv]) => initialFormStateFromValue(fv));
+            dispatch(modelActions.updateModel({
+                name: modelName,
+                value: mapProperties(ms, ([_, fv]) => initialFormStateFromValue(fv))
+            }));
         });
-
         updateHasInit(true);
     }, [])
 

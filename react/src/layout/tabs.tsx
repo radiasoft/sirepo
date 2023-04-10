@@ -1,12 +1,10 @@
-import { useContext } from "react";
 import { LayoutProps, Layout } from "./layout";
 import { Tab, Tabs } from "react-bootstrap";
 import { useShown } from "../hook/shown";
 import React from "react";
-import { CModelsWrapper } from "../data/wrapper";
-import { ValueSelectors } from "../utility/string";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
+import { StoreTypes } from "../data/data";
 
 export type TabConfig = {
     items: SchemaLayout[],
@@ -42,12 +40,10 @@ export class TabLayout extends Layout<TabsConfig, {}> {
 
         let firstTabKey = undefined;
 
-        let modelsWrapper = useContext(CModelsWrapper);
-
         for (let tabConfig of this.tabs) {
             let { name, shown: shownConfig, layouts } = tabConfig;
 
-            let shown = useShown(shownConfig, true, modelsWrapper, ValueSelectors.Models);
+            let shown = useShown(shownConfig, true, StoreTypes.Models);
 
             let layoutElements = layouts.map((layout, idx) => {
                 let LayoutElement = layout.component;

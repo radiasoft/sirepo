@@ -49,7 +49,7 @@ export class InterpolationBase {
         let valuesArr = mappingsArr.map(mapping => {
             return {
                 ...mapping,
-                value: (valueSelector)(handleFactory.createHandle<F>(mapping.dependency, type).hook().value)
+                value: (valueSelector)(handleFactory.createHandle<M, F>(mapping.dependency, type).hook().value)
             }
         })
 

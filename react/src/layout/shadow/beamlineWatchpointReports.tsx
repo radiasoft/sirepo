@@ -1,12 +1,12 @@
 import React from "react";
 import { FunctionComponent, useContext } from "react";
-import { ModelsAccessor } from "../../data/accessor";
+import { ArrayAliases, HandleFactoryWithArrayAliases } from "../../data/alias";
+import { CSchema } from "../../data/appwrapper";
+import { StoreTypes } from "../../data/data";
 import { Dependency } from "../../data/dependency";
-import { CFormStateWrapper } from "../../data/wrapper";
-import { FormModelState } from "../../store/formState";
-import { SchemaLayout } from "../../utility/schema";
-import { AliasedFormControllerWrapper, FormControllerAliases } from "../form";
-import { ArrayField } from "../input/array";
+import { CHandleFactory } from "../../data/handle";
+import { ArrayFieldState } from "../../store/common";
+import { ModelState } from "../../store/models";
 import { Layout } from "../layout";
 import { LAYOUTS } from "../layouts";
 
@@ -19,40 +19,43 @@ export class BeamlineWatchpointReports extends Layout<BeamlineWatchpointReportsC
     component: FunctionComponent<{ [key: string]: any; }> = (props) => {
         let watchpointReportsDependency = new Dependency(this.config.watchpointReportsDependency);
         let beamlineDependency = new Dependency(this.config.beamlineDependency);
-        let formStateWrapper = useContext(CFormStateWrapper);
-        let accessor = new ModelsAccessor(formStateWrapper, [watchpointReportsDependency, beamlineDependency]);
-        let reportsValue: ArrayField<FormModelState> = accessor.getFieldValue(watchpointReportsDependency) as any as ArrayField<FormModelState>;
-        let elementsValue: ArrayField<FormModelState> = accessor.getFieldValue(beamlineDependency) as any as ArrayField<FormModelState>;
+        let handleFactory = useContext(CHandleFactory);
+        let reportsHandle = handleFactory.createHandle(watchpointReportsDependency, StoreTypes.Models).hook();
+        let elementsHandle = handleFactory.createHandle(beamlineDependency, StoreTypes.Models).hook();
+        let reportsValue = reportsHandle.value as ArrayFieldState<ModelState>;
+        let elementsValue = elementsHandle.value as ArrayFieldState<ModelState>;
+        let schema = useContext(CSchema);
 
-        let findElementById = (id: number) => elementsValue.find(e => e.item.id.value === id);
+        let findElementById = (id: any) => elementsValue.find(e => e.item.id == id);
 
-        let reportElements = (reportsValue as any[]).map((report, index) => {
-            let id = report.item.id.value;
+        let reportElements = reportsValue.map((report, index) => {
+            let id = report.item.id;
             let ele = findElementById(id);
-            let position = ele.item.position.value;
+            let position = ele.item.position;
             let cfg = createPanelConfig(`watchpointReport${index}`, `Intensity Report, ${position}`);
             return {
                 id: id,
                 layout: LAYOUTS.getLayoutForSchema(cfg)
             }
         }).map((e, index) => {
-            let aliases: FormControllerAliases = [
+            let aliases: ArrayAliases = [
                 {
-                    real: {
+                    realDataLocation: {
                         modelName: watchpointReportsDependency.modelName,
                         fieldName: watchpointReportsDependency.fieldName,
                         index
                     },
-                    fake: "watchpointReport",
-                    realSchemaName: "watchpointReport"
+                    realSchemaName: "watchpointReport",
+                    fake: "watchpointReport"
                 }
             ];
+            let aliasedHandleFactory = new HandleFactoryWithArrayAliases(schema, aliases, handleFactory);
             let Comp = e.layout.component;
             return (
-                <React.Fragment key={e.id}>
-                    <AliasedFormControllerWrapper aliases={aliases}>
+                <React.Fragment key={e.id as any}>
+                    <CHandleFactory.Provider value={aliasedHandleFactory}>
                         <Comp></Comp>
-                    </AliasedFormControllerWrapper>
+                    </CHandleFactory.Provider>
                 </React.Fragment>
             )
         })

@@ -13,7 +13,6 @@ import { CSchema } from "../data/appwrapper";
 import { FormStateHandleFactory } from "../data/form";
 import { CHandleFactory } from "../data/handle";
 import { StoreTypes } from "../data/data";
-import { FormFieldState } from "../store/formState";
 
 export function FormControllerElement(props: {children?: React.ReactNode}) {
     let schema = useContext(CSchema);

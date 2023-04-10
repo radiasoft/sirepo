@@ -17,7 +17,7 @@ import { SchemaLayout } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
 import { ModelState } from "../store/models";
 import { useShown } from "../hook/shown";
-import { CHandleFactory, DependencyReader } from "../data/handle";
+import { CHandleFactory, DependencyReader, useModelValue } from "../data/handle";
 import { StoreTypes, ValueSelectors } from "../data/data";
 import { FormFieldState } from "../store/formState";
 
@@ -182,11 +182,9 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         let showAnimationController = 'showAnimationController' in this.config
                                     ? !!this.config.showAnimationController
                                     : true;
-        let handleFactory = useContext(CHandleFactory);
-        let store = useStore();
         let shown = useShown(this.config.shown, true, StoreTypes.Models);
         //let model = getModelValues([reportName], modelsWrapper, store.getState())[reportName];
-        let reportModel = // need to deal with *
+        let reportModel = useModelValue(reportName, StoreTypes.Models);
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
         return (
             <>
@@ -201,7 +199,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                             return (
                                 <>
                                 {
-                                    canShowReport && <LayoutComponent data={reportLayoutConfig} model={model}/>
+                                    canShowReport && <LayoutComponent data={reportLayoutConfig} model={reportModel}/>
                                 }
                                 </>
                             )
@@ -313,7 +311,6 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
         let appName = useContext(CAppName);
         let routeHelper = useContext(CRouteHelper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
-        let modelsWrapper = useContext(CModelsWrapper);
         let schema = useContext(CSchema);
         let modelNames = Object.keys(schema.models);
 
@@ -344,10 +341,9 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
         useEffect(() => {
             // recover from previous runs on server
             simulationInfoPromise.then(({simulationId}) => {
-                let models = getModelValues(modelNames, modelsWrapper, store.getState());
                 reportEventManager.getRunStatusOnce({
                     appName,
-                    models,
+                    models: store.getState()[StoreTypes.Models.name],
                     simulationId,
                     report: reportGroupName
                 }).then(simulationData => {
@@ -357,7 +353,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                         listenForReportData();
                         reportEventManager.pollRunStatus({
                             appName,
-                            models,
+                            models: store.getState()[StoreTypes.Models.name],
                             simulationId,
                             report: reportGroupName
                         })
@@ -378,7 +374,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
             simulationInfoPromise.then(({simulationId}) => {
                 reportEventManager.startReport({
                     appName,
-                    models: getModelValues(modelNames, modelsWrapper, store.getState()),
+                    models: store.getState()[StoreTypes.Models.name],
                     simulationId,
                     report: reportGroupName
                 })
@@ -393,7 +389,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
             simulationInfoPromise.then(({simulationId}) => {
                 cancelReport(routeHelper, {
                     appName,
-                    models: getModelValues(modelNames, modelsWrapper, store.getState()),
+                    models: store.getState()[StoreTypes.Models.name],
                     simulationId,
                     report: reportGroupName
                 })

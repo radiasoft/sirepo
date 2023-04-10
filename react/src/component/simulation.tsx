@@ -45,9 +45,7 @@ export type SimulationInfo = SimulationInfoRaw & {
     simulationId: string
 }
 
-function SimulationInfoInitializer(props: { simulationId: string } & {[key: string]: any}) {
-    let { simulationId } = props;
-
+function SimulationStoreInitializer(props: {[key: string]: any}) {
     const modelsStore = configureStore({ // TODO: this belongs on the simulation root component
         reducer: {
             [modelsSlice.name]: modelsSlice.reducer,
@@ -55,12 +53,26 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
         },
     });
 
+    return (
+        <Provider store={modelsStore}>
+            {props.children}
+        </Provider>
+    )
+}
+
+function SimulationInfoInitializer(props: { simulationId: string } & {[key: string]: any}) {
+    let { simulationId } = props;
+
+    
+
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
     let appName = useContext(CAppName);
     let schema = useContext(CSchema);
     let routeHelper = useContext(CRouteHelper);
     let dispatch = useDispatch();
+
+    console.log("modelActions", modelActions);
 
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
@@ -86,13 +98,11 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
     }, [])
 
     return hasInit && simulationInfoPromise && (
-        <Provider store={modelsStore}>
-            <CHandleFactory.Provider value={new BaseHandleFactory(schema)}>
-                <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
-                    {props.children}
-                </CSimulationInfoPromise.Provider>
-            </CHandleFactory.Provider>
-        </Provider>
+        <CHandleFactory.Provider value={new BaseHandleFactory(schema)}>
+            <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
+                {props.children}
+            </CSimulationInfoPromise.Provider>
+        </CHandleFactory.Provider>
     )
 }
 
@@ -289,17 +299,19 @@ export function SimulationRoot(props: {simulationId: string}) {
 
     // TODO: use multiple rows
     return (
-        <SimulationInfoInitializer simulationId={simulationId}>
-            <SimulationOuter>
-                <ReportEventManagerInitializer>
-                    <FormStateInitializer>
-                        <Portal targetId={NavbarRightContainerId} className="order-2">
-                            <SimulationCogMenu/>
-                        </Portal>
-                        {layoutComponents}
-                    </FormStateInitializer>
-                </ReportEventManagerInitializer>
-            </SimulationOuter>
-        </SimulationInfoInitializer>
+        <SimulationStoreInitializer>
+            <SimulationInfoInitializer simulationId={simulationId}>
+                <SimulationOuter>
+                    <ReportEventManagerInitializer>
+                        <FormStateInitializer>
+                            <Portal targetId={NavbarRightContainerId} className="order-2">
+                                <SimulationCogMenu/>
+                            </Portal>
+                            {layoutComponents}
+                        </FormStateInitializer>
+                    </ReportEventManagerInitializer>
+                </SimulationOuter>
+            </SimulationInfoInitializer>
+        </SimulationStoreInitializer>
     )
 }
