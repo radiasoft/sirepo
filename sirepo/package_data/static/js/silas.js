@@ -92,7 +92,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     self.beamlineService = beamlineService;
     self.prepareToSave = () => {};
     self.toolbarItemNames = [
-        ['Optics', ['crystal', 'lens']],
+        ['Optics', ['crystal', 'lens', 'mirror']],
         'watch',
     ];
 
@@ -250,7 +250,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
                 || item.radial_n2 === '1' || item.calc_gain == '1',
             [
                 'inversion_n_cells', 'inversion_mesh_extent', 'crystal_alpha',
-                'pump_wavelength', 'pump_energy',
+                'pump_wavelength', 'pump_energy', 'pump_type',
             ], item.calc_gain === '1' || item.propagationType === 'gain_calc',
             ['calc_gain'], item.propagationType !== 'gain_calc',
             ['radial_n2'], item.propagationType == 'n0n2_srw',
@@ -297,17 +297,28 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
     }
 
     function updateEditor() {
-        const useFiles = appState.models[$scope.modelName].distribution === 'file';
+        const m = appState.models[$scope.modelName];
+        const useFiles = m.distribution === 'file';
         panelState.showFields($scope.modelName, [
             _FILES, useFiles,
             ['poltype', 'sigx_waist', 'sigy_waist'], ! useFiles,
         ]);
-        panelState.enableFields($scope.modelName, [
-            ['nx_slice', 'ny_slice'], ! useFiles,
-        ]);
         if (useFiles && hasFiles()) {
             updateMesh();
         }
+        updateMeshPoints();
+    }
+
+    function updateMeshPoints() {
+        const m = appState.models[$scope.modelName];
+        const useFiles = m.distribution === 'file';
+        if (m.nx_slice && ! useFiles) {
+            m.ny_slice = m.nx_slice;
+        }
+        panelState.enableFields($scope.modelName, [
+            ['nx_slice'], ! useFiles,
+            ['ny_slice'], false,
+        ]);
     }
 
     $scope.whenSelected = () => {
@@ -322,6 +333,7 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             'laserPulse.wfs',
             'laserPulse.distribution',
         ], updateEditor,
+        ['laserPulse.nx_slice'], updateMeshPoints,
     ];
 });
 

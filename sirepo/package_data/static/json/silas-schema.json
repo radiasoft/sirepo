@@ -27,6 +27,11 @@
             ["gain_calc", "Gain Calculation"],
             ["n0n2_srw", "N0N2 SRW"],
             ["n0n2_lct", "N0N2 LCT"]
+        ],
+        "PumpType": [
+            ["dual", "Dual"],
+            ["left", "Left"],
+            ["right", "Right"]
         ]
     },
     "dynamicFiles": {
@@ -101,6 +106,7 @@
             "pump_waist": ["Pump Waist [m]", "Float", 0.00164],
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
             "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"],
+            "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0]
         },
@@ -156,9 +162,8 @@
             "title": ["Element Name", "String", "Lens"]
         },
         "mirror": {
-            "title": ["Element Name", "String", "Planar Mirror"],
-            "position": ["Central Position [m]", "Float"],
-            "focusingError": ["Focusing Error [m]", "Float", 0]
+            "title": ["Element Name", "String", "Mirror"],
+            "position": ["Central Position [m]", "Float"]
         },
         "plotAnimation": {},
         "plot2Animation": {},
@@ -198,6 +203,7 @@
                     "inversion_n_cells",
                     "inversion_mesh_extent",
                     "crystal_alpha",
+                    "pump_type",
                     "pump_waist",
                     "pump_wavelength",
                     "pump_energy"
@@ -239,12 +245,11 @@
             "advanced": []
         },
         "mirror": {
-            "title": "Mirror",
+            "title": "Ideal Mirror",
             "basic": [],
             "advanced": [
                 "title",
-                "position",
-                "focusingError"
+                "position"
             ]
         },
         "laserPulse": {

@@ -216,29 +216,18 @@ def _generate_beamline_elements(data):
     def _callback(state, element, dz):
         if dz:
             state.res += f'(Drift({dz}), ["default"]),\n'
-        if element.get("isDisabled"):
-            pass
-        elif element.type == "lens":
+        if element.type == "watch" or element.get("isDisabled"):
+            return
+        if element.type == "lens":
             state.res += f'(Lens({element.focalLength}), ["default"]),\n'
-        elif element.type == "crystal" and element.origin == "new":
-            state.res += f"""(
-    Crystal(
-        params=PKDict(
-            crystal_alpha={element.crystal_alpha},
-            inversion_mesh_extent={element.inversion_mesh_extent},
-            inversion_n_cells={element.inversion_n_cells},
-            l_scale={element.l_scale},
-            length={element.length * 1e-2},
-            n0={_slice_n_field(element, 'n0')},
-            n2={_slice_n_field(element, 'n2')},
-            nslice={element.nslice},
-            pump_waist={element.pump_waist},
-            pump_wavelength={element.pump_wavelength},
-        ),
-    ),
-    ["{element.propagationType}", {element.calc_gain == "1"}, {element.radial_n2 == "1"}],
-),
-"""
+        elif element.type == "mirror":
+            state.res += "(Mirror(), []),\n"
+        elif element.type == "crystal":
+            if element.origin == "reuseCrystal":
+                return
+            state.res += _generate_crystal(element)
+        else:
+            raise AssertionError("unknown element type={}".format(element.type))
 
     state = PKDict(res="")
     _iterate_beamline(state, data, _callback)
@@ -264,6 +253,31 @@ def _generate_beamline_indices(data):
     state = PKDict(res=[], idx=0, id_to_index=PKDict())
     _iterate_beamline(state, data, _callback)
     return ", ".join(state.res)
+
+
+def _generate_crystal(crystal):
+    return f"""(
+        Crystal(
+            params=PKDict(
+                l_scale={crystal.l_scale},
+                length={crystal.length * 1e-2},
+                n0={_slice_n_field(crystal, 'n0')},
+                n2={_slice_n_field(crystal, 'n2')},
+                nslice={crystal.nslice},
+                population_inversion=PKDict(
+                    n_cells={crystal.inversion_n_cells},
+                    mesh_extent={crystal.inversion_mesh_extent},
+                    crystal_alpha={crystal.crystal_alpha},
+                    pump_waist={crystal.pump_waist},
+                    pump_wavelength={crystal.pump_wavelength},
+                    pump_energy={crystal.pump_energy},
+                    pump_type="{crystal.pump_type}",
+                ),
+            ),
+        ),
+        ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
+    ),
+    """
 
 
 def _generate_parameters_file(data):

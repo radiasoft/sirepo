@@ -9,6 +9,12 @@ import numpy
 import scipy.interpolate
 
 
+class Mirror:
+    def propagate(self, laser_pulse):
+        laser_pulse.ideal_mirror_180()
+        return laser_pulse
+
+
 def interpolate_across_slice(length, nslice, values):
     return scipy.interpolate.splev(
         (length / nslice) * (numpy.arange(nslice) + 0.5),
