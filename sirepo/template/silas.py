@@ -229,8 +229,8 @@ def _generate_beamline_elements(data):
             inversion_n_cells={element.inversion_n_cells},
             l_scale={element.l_scale},
             length={element.length * 1e-2},
-            n0={[element.n0] * element.nslice},
-            n2={[element.n2] * element.nslice},
+            n0={_slice_n_field(element, 'n0')},
+            n2={_slice_n_field(element, 'n2')},
             nslice={element.nslice},
             pump_waist={element.pump_waist},
             pump_wavelength={element.pump_wavelength},
@@ -353,6 +353,14 @@ def _parse_silas_log(run_dir):
     if res:
         return res
     return "An unknown error occurred"
+
+
+def _slice_n_field(crystal, field):
+    return (
+        crystal[field][0 : crystal.nslice]
+        if crystal.nslice <= 6
+        else f"interpolate_across_slice({crystal.length * 1e-2}, {crystal.nslice}, {crystal[field]})"
+    )
 
 
 def _slice_number(data, report_name):

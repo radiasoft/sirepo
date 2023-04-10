@@ -23,6 +23,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="SliceNumber" data-ng-class="fieldClass">
           <div data-slice-number="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="Float6">
+          <div data-float-6="" data-model-name="modelName" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.appDownloadLinks = [
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
@@ -590,6 +593,37 @@ SIREPO.app.directive('sliceNumber', function(appState) {
                     }
                 }
                 return numbers;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('float6', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            modelName: '=',
+            field: '=',
+        },
+        template: `
+            <div class="clearfix" data-ng-if="model.nslice > 3"></div>
+            <div class="col-sm-2" data-ng-repeat="idx in indices() track by $index">
+              <input data-string-to-number="" data-ng-model="model[field][$index]" class="form-control" style="text-align: right" data-lpignore="true" required />
+            </div>
+        `,
+        controller: function($scope) {
+            const max = 6;
+            const indices = [];
+            $scope.indices = () => {
+                let size = max;
+                if ($scope.model && $scope.model[$scope.field]) {
+                    if ($scope.model.nslice && $scope.model.nslice < max) {
+                        size = $scope.model.nslice;
+                    }
+                }
+                indices.length = size;
+                return indices;
             };
         },
     };

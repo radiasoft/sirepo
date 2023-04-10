@@ -6,6 +6,16 @@ from rslaser.pulse.pulse import LaserPulse
 from rslaser.utils import srwl_uti_data
 from sirepo.template import template_common
 import numpy
+import scipy.interpolate
+
+
+def interpolate_across_slice(length, nslice, values):
+    return scipy.interpolate.splev(
+        (length / nslice) * (numpy.arange(nslice) + 0.5),
+        scipy.interpolate.splrep(
+            numpy.linspace(0, length, len(values)),
+            values),
+    ).tolist()
 
 
 def propagate(pulse, elements, beamline):
@@ -19,7 +29,7 @@ def save_wavefront(pulse):
     def intensity(wavefront):
         return srwl_uti_data.calc_int_from_elec(wavefront).tolist()
 
-    
+
     def phase(wavefront):
         z, m = srwl_uti_data.calc_int_from_wfr(
             wavefront,
@@ -28,7 +38,7 @@ def save_wavefront(pulse):
         )
         return numpy.array(z).reshape(wavefront.mesh.ny, wavefront.mesh.nx).tolist()
 
-    
+
     def ranges(wavefront):
         m = wavefront.mesh
         return {
@@ -69,7 +79,7 @@ pulse = LaserPulse(
     ),
     {% endif %}
 )
-    
+
 {% if report in ("initialIntensityReport","initialPhaseReport")  %}
 save_wavefront(pulse)
 {% else %}
