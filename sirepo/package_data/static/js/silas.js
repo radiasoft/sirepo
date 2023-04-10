@@ -667,10 +667,9 @@ SIREPO.viewLogic('watchpointReportView', function(appState, beamlineService, pan
                         ? 'parameter'
                         : '3d';
             appState.saveQuietly($scope.modelData.modelKey);
-        }
+        };
 
         getAndSavePlot(m, e);
-        srdbg(m.reportType);
         const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf($scope.modelData.modelKey);
         // TODO (gurhar1133): refactor
         if (m.reportType == 'parameter' || m.watchpointPlot == 'total_intensity' || m.watchpointPlot == 'total_phase') {

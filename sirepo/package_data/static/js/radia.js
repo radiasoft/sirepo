@@ -315,12 +315,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.validateMagnetization = (magnetization, material) => {
-        const mag = Math.hypot(magnetization || SIREPO.ZERO_ARR);
+        const mag = Math.hypot(...(magnetization || SIREPO.ZERO_ARR));
         validationService.validateField(
             'geomObject',
             'material',
             'select',
-            SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(material) < 0 || mag > 0,
+            ! SIREPO.APP_SCHEMA.constants.anisotropicMaterials.includes(material) || mag > 0,
             'Anisotropic materials require non-zero magnetization'
         );
     };
@@ -1873,7 +1873,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 }
                 const o = selectedItem.object;
                 radiaService.validateMagnetization(o.magnetization, o.material);
-            });
+            }, true);
 
         },
     };
@@ -2208,12 +2208,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 radiaService.objBounds = bounds;
 
                 const acfg = {};
+                const scale = SIREPO.APP_SCHEMA.constants.objectScale;
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
-                    acfg[dim].label = dim + ' [mm]';
-                    acfg[dim].max = bounds[2 * i + 1];
-                    acfg[dim].min = bounds[2 * i];
+                    acfg[dim].label = dim + ' [m]';
+                    acfg[dim].max = scale * bounds[2 * i + 1];
+                    acfg[dim].min = scale * bounds[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
                     acfg[dim].showCentral = true;
@@ -2374,6 +2375,17 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function handlePick(callData) {
+
+                function getClosestActor(pickedActors) {
+                    for (const a of pickedActors) {
+                        const i = getInfoForActor(a);
+                        if (i) {
+                            return [a, i];
+                        }
+                    }
+                    return [null, null];
+                }
+
                 if (renderer !== callData.pokedRenderer) {
                     return;
                 }
@@ -2407,14 +2419,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
 
-                const pas = picker.getActors();
-
                 let selectedValue = Number.NaN;
                 let highlightVectColor = [255, 0, 0];
-                // the 1st actor in the array is the closest to the viewer
-                const actor = pas[0];
+
                 vtkSelection = {};
-                const info = getInfoForActor(actor);
+                const [actor, info] = getClosestActor(picker.getActors());
                 selectedInfo = info;
                 if (! info || ! info.pData) {
                     return;
@@ -3171,6 +3180,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
     let editedModels = [];
+    const materialFields = ['geomObject.magnetization', 'geomObject.material'];
     const parent = $scope.$parent;
 
     $scope.watchFields = [
@@ -3337,6 +3347,9 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.enableField('extrudedPoints', 'pointsFile', ! hasPoints());
     }
 
+    appState.watchModelFields($scope, materialFields, () => {
+        radiaService.validateMagnetization($scope.modelData.magnetization, $scope.modelData.material);
+    }, true);
 
     buildTriangulationLevelDelegate();
     const self = {};
@@ -3414,6 +3427,7 @@ for(const m of ['Dipole', 'Undulator']) {
             ];
 
             let editedModels = [];
+            const materialFields = ['geomObject.magnetization', 'geomObject.material'];
             let models = {};
             for (const p of $scope.$parent.advancedFields) {
                 const page = p[0];
@@ -3509,11 +3523,14 @@ for(const m of ['Dipole', 'Undulator']) {
                 );
             }
 
-            //TODO(mvk): implement validation for parameterized magnets - this is a placeholder
-            const e = `watch${m}Editor`;
-            if (e in SIREPO) {
-                SIREPO[e]($scope, appState, panelState, radiaService, validationService);
-            }
+            appState.watchModelFields($scope, materialFields, () => {
+                const o = getObjFromGeomRpt();
+                if (! o) {
+                    return;
+                }
+                radiaService.validateMagnetization(o.magnetization, o.material);
+            }, true);
+
         });
     }
 }

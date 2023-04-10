@@ -75,6 +75,7 @@
         "commands": [
             {
                 "_id": 1,
+                "_super": "_COMMAND",
                 "_type": "run_setup",
                 "acceptance": "",
                 "always_change_p0": "0",
@@ -89,6 +90,7 @@
                 "expand_for": "distr/distribution.sdds",
                 "final": "",
                 "final_pass": "0",
+                "isDisabled": "0",
                 "lattice": "lattice.lte",
                 "load_balancing_on": 0.0,
                 "losses": "",
@@ -112,9 +114,11 @@
             },
             {
                 "_id": 2,
+                "_super": "_COMMAND",
                 "_type": "run_control",
                 "bunch_frequency": 0.0,
                 "first_is_fiducial": "0",
+                "isDisabled": "0",
                 "n_indices": 0.0,
                 "n_passes": 1.0,
                 "n_passes_fiducial": 0.0,
@@ -124,6 +128,7 @@
             },
             {
                 "_id": 3,
+                "_super": "_COMMAND",
                 "_type": "sdds_beam",
                 "center_arrival_time": "0",
                 "center_transversely": "0",
@@ -131,6 +136,7 @@
                 "fiducialization_bunch": 0.0,
                 "input": "distr/distribution.sdds",
                 "input_type": "elegant",
+                "isDisabled": "0",
                 "n_duplicates": 0.0,
                 "n_particles_per_ring": 0.0,
                 "n_tables_to_skip": 0.0,

@@ -310,10 +310,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
     def _is_longitudinal_plot(element, plot_type):
         if not element:
             return False
-        return (
-            element.type in ("crystal", "watch")
-            and "longitudinal" in plot_type
-        )
+        return element.type in ("crystal", "watch") and "longitudinal" in plot_type
 
     def _nslice(element, file):
         if element.type == "watch":
@@ -430,9 +427,9 @@ def _generate_crystal(crystal):
                     crystal_alpha={crystal.crystal_alpha},
                     pump_waist={crystal.pump_waist},
                     pump_wavelength={crystal.pump_wavelength},
+                    pump_gaussian_order={crystal.pump_gaussian_order},
                     pump_energy={crystal.pump_energy},
                     pump_type="{crystal.pump_type}",
-                    pump_gaussian_order={crystal.pump_gaussian_order},
                 ),
             ),
         ),
