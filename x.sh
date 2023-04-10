@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+# mkdir -p '.'
+cd './t'
+export SIREPO_MPI_CORES='1'
+export SIREPO_SIM_DATA_LIB_FILE_URI='http://127.0.0.1:8001/job-cmd-lib-file/wONSRKK8b4m1lmszSJ78ppXayiAhNkWQ/'
+export SIREPO_SIM_DATA_LIB_FILE_LIST='/home/vagrant/src/radiasoft/sirepo/run/user/J2JhzvZR/srw/tDb9SeDP/sourceIntensityReport/sirepo-lib-file-list.txt'
+export SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI='http://127.0.0.1:8001/sim-db-file/J2JhzvZR/'
+export SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN='fj2lIVMDztnxGmJpOmPxupgLdk2N5L8S'
+export PYKERN_PKCONFIG_CHANNEL='dev'
+export PYKERN_PKDEBUG_WANT_PID_TIME='1'
+export PYTHONUNBUFFERED='1'
+export SIREPO_AUTH_LOGGED_IN_USER='J2JhzvZR'
+export SIREPO_JOB_MAX_MESSAGE_BYTES='200000000'
+export SIREPO_JOB_PING_INTERVAL_SECS='120'
+export SIREPO_JOB_PING_TIMEOUT_SECS='240'
+export SIREPO_JOB_VERIFY_TLS='False'
+export SIREPO_SIMULATION_DB_LOGGED_IN_USER='J2JhzvZR'
+export SIREPO_SRDB_ROOT='/home/vagrant/src/radiasoft/sirepo/run'
+export PYTHONPATH=''
+export PYTHONSTARTUP=''
+pwd
+cp 'src_intensity.json' 'in.json'
+cp 'in.json' 'cpin.json'
+exec 'sirepo' 'job_cmd' 'cpin.json'
+
