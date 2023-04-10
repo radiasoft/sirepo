@@ -8,7 +8,7 @@ import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
 import { LayoutProps } from "../layout";
 import { pollStatefulCompute } from "../../utility/compute";
 import { CHandleFactory } from "../../data/handle";
-import { StoreTypes } from "../../data/data";
+import { getValueSelector, StoreTypes } from "../../data/data";
 
 export type EnumAllowedValues = { value: string, displayName: string }[]
 
@@ -120,8 +120,8 @@ export class SimulationListEnumInputLayout extends EnumInputBaseLayout<EnumConfi
         const handleFactory = useContext(CHandleFactory);
         //TODO(pjm): these 2 lines are specific to the omega app but could be generalized
         const suffix = props.dependency.fieldName.match(/_\d+/);
-        const simType = handleFactory.createHandle(new Dependency(
-            `simWorkflow.simType${suffix}`), StoreTypes.FormState).hook().value as string;
+        const simType = getValueSelector(StoreTypes.FormState)(handleFactory.createHandle(new Dependency(
+            `simWorkflow.simType${suffix}`), StoreTypes.FormState).hook().value) as string;
             
         useEffect(() => {
             if (! simType) {

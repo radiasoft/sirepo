@@ -58,6 +58,7 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
     let appName = useContext(CAppName);
+    let schema = useContext(CSchema);
     let routeHelper = useContext(CRouteHelper);
     let dispatch = useDispatch();
 
@@ -86,7 +87,7 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
 
     return hasInit && simulationInfoPromise && (
         <Provider store={modelsStore}>
-            <CHandleFactory.Provider value={new BaseHandleFactory()}>
+            <CHandleFactory.Provider value={new BaseHandleFactory(schema)}>
                 <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
                     {props.children}
                 </CSimulationInfoPromise.Provider>

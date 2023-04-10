@@ -26,10 +26,6 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
         this.items = config.items.map(LAYOUTS.getLayoutForSchema);
     }
 
-    getFormDependencies = () => {
-        return [...(this.items)].map(childLayout => childLayout.getFormDependencies()).flat();
-    }
-
     component = (props: LayoutProps<{}>) => {
         let { reportName, reportGroupName, frameIdFields } = this.config;
         let modelsWrapper = useContext(CModelsWrapper);

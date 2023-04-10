@@ -1,19 +1,19 @@
 import React, { useContext, useState } from "react";
 import { FunctionComponent } from "react";
 import { Container, Modal } from "react-bootstrap";
-import { useStore } from "react-redux";
+import { useDispatch, useStore } from "react-redux";
 import { formActionFunctions } from "../component/reusable/form";
 import { ViewPanelActionButtons } from "../component/reusable/panel";
-import { ModelsAccessor } from "../data/accessor";
-import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { ArrayAliases, HandleFactoryWithArrayAliases } from "../data/alias";
+import { CAppWrapper, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { newModelFromSchema, StoreTypes } from "../data/data";
 import { Dependency } from "../data/dependency";
-import { CFormController, formStateFromModel } from "../data/formController";
-import { AbstractModelsWrapper, CFormStateWrapper, CModelsWrapper, ModelAliases, ModelHandle, ModelsWrapper, ModelsWrapperWithAliases } from "../data/wrapper";
+import { formStateFromModelState, FormStateHandleFactory } from "../data/form";
+import { CHandleFactory } from "../data/handle";
+import { ArrayFieldState } from "../store/common";
 import { FormFieldState, FormModelState } from "../store/formState";
 import { CRouteHelper } from "../utility/route";
 import { Schema, SchemaLayout } from "../utility/schema";
-import { AliasedFormControllerWrapper, FormControllerAliases, FormControllerElement } from "./form";
-import { ArrayField, ArrayModelElement } from "./input/array";
 import { Layout, LayoutProps } from "./layout";
 import { createLayouts } from "./layouts";
 
@@ -44,16 +44,22 @@ export function BeamlineItem(props: { baseElement: BeamlineElement & { layouts: 
     let { baseElement, onClick, modalShown, onHideModal } = props;
     
     let routeHelper = useContext(CRouteHelper);
-    let formController = useContext(CFormController);
     let store = useStore();
     let simulationInfoPromise = useContext(CSimulationInfoPromise);
-    let modelsWrapper = useContext(CModelsWrapper);
-    let schema = useContext(CSchema);
+    let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
+    let dispatch = useDispatch();
+    let appWrapper = useContext(CAppWrapper);
 
-    let { submit: _submit, cancel: _cancel } = formActionFunctions(formController, store, simulationInfoPromise, schema, modelsWrapper as ModelsWrapper);
+    let { submit: _submit, cancel: _cancel } = formActionFunctions({
+        formHandleFactory,
+        store,
+        simulationInfoPromise,
+        appWrapper,
+        dispatch
+    });
 
-    let isDirty = formController.isFormStateDirty();
-    let isValid = formController.isFormStateValid();
+    let isDirty = formHandleFactory.isDirty();
+    let isValid = formHandleFactory.isValid(store.getState());
     let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
     return (
         <>
@@ -89,49 +95,47 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
         this.elements = config.elements.map(e => createLayouts(e, "items"));
     }
 
-    getFormDependencies(): Dependency[] {
-        return [new Dependency(this.config.beamlineDependency)];
-    }
-
     component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
         console.log("RENDER BEAMLINE");
         let routeHelper = useContext(CRouteHelper);
-        let formStateWrapper = useContext(CFormStateWrapper);
-        let modelsWrapper = useContext(CModelsWrapper);
-        let formController = useContext(CFormController);
         let store = useStore();
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let schema = useContext(CSchema);
+        let dispatch = useDispatch();
+        let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
+        let appWrapper = useContext(CAppWrapper);
 
         let beamlineDependency: Dependency = new Dependency(this.config.beamlineDependency);
 
         let [shownModal, updateShownModal] = useState<number>(undefined);
 
-        let accessor = new ModelsAccessor(formStateWrapper, [beamlineDependency]);
-
-        let beamlineValue: ArrayField<FormModelState> = accessor.getFieldValue(beamlineDependency) as any as ArrayField<FormModelState>;
+        let handle = formHandleFactory.createHandle<FormModelState, FormFieldState<ArrayFieldState<FormModelState>>>(beamlineDependency, StoreTypes.FormState).hook(); // TODO: form or model?
 
         let addBeamlineElement = (element: BeamlineElement) => {
             console.log("AAA");
             let ms = schema.models[element.model];
             // TODO: use generic methods
-            let prev: FormModelState | undefined = beamlineValue.length > 0 ? beamlineValue[beamlineValue.length - 1].item : undefined
+            let l = handle.value.value.length;
+            let prev: FormModelState | undefined = l > 0 ? handle.value.value[l - 1].item : undefined
             let nextPosition: string = prev ? `${parseFloat(prev.position.value) + 5}` : "0";
             let nextId: string = prev ? `${parseInt(prev.id.value) + 1}` : "1";
-            let mv = formStateFromModel({
+            let mv = newModelFromSchema(ms, {
                 id: nextId,
                 position: nextPosition,
                 type: element.model
-            }, ms, schema);
+            })
+            
             console.log("new beamline element mv", mv);
-            let bv = [...beamlineValue];
+            let bv = [...handle.value.value];
             bv.push({
-                item: mv,
+                item: formStateFromModelState(mv),
                 model: element.model
             });
-            let m = formStateWrapper.getModel(beamlineDependency.modelName, store.getState());
-            m = formStateWrapper.setFieldInModel(beamlineDependency.fieldName, m, bv as any as FormFieldState<unknown>);
-            formStateWrapper.updateModel(beamlineDependency.modelName, m, store.getState());
+            handle.write({
+                ...handle.value,
+                touched: true,
+                value: bv
+            }, store.getState()[StoreTypes.FormState.name], dispatch);
             console.log("ADD ELEMENT");
         }
 
@@ -151,37 +155,42 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
 
         console.log("MAPPING BEAMLINE ELEMENTS");
 
-        let beamlineComponents = beamlineValue.map((e, i) => {
+        let beamlineComponents = handle.value.value.map((e, i) => {
             let model = e.model;
             let ele: FormModelState = e.item;
             let id = ele.id.value;
             console.log("id", id);
             let baseElement = findBaseElementByModel(model);
-            let deps = baseElement.layouts.flatMap(l => l.getFormDependencies());
-            let aliases: FormControllerAliases = [
+            let aliases: ArrayAliases = [
                 {
-                    real: {
+                    realDataLocation: {
                         modelName: beamlineDependency.modelName,
                         fieldName: beamlineDependency.fieldName,
                         index: i
                     },
-                    fake: model,
-                    realSchemaName: model
+                    realSchemaName: model,
+                    fake: model
                 }
             ];
+
+            let aliasedHandleFactory = new HandleFactoryWithArrayAliases(schema, aliases, formHandleFactory);
             return (
-                <AliasedFormControllerWrapper key={id} aliases={aliases}>
-                    <FormControllerElement dependencies={deps}>
-                        <BeamlineItem baseElement={baseElement} onClick={() => updateShownModal(i)} modalShown={shownModal === i} onHideModal={() => shownModal === i && updateShownModal(undefined)}/>
-                    </FormControllerElement>
-                </AliasedFormControllerWrapper>
+                <CHandleFactory.Provider value={aliasedHandleFactory}>
+                    <BeamlineItem baseElement={baseElement} onClick={() => updateShownModal(i)} modalShown={shownModal === i} onHideModal={() => shownModal === i && updateShownModal(undefined)}/>
+                </CHandleFactory.Provider>
             )
         })
 
-        let { submit: _submit, cancel: _cancel } = formActionFunctions(formController, store, simulationInfoPromise, schema, modelsWrapper as ModelsWrapper);
+        let { submit: _submit, cancel: _cancel } = formActionFunctions({
+            formHandleFactory,
+            store,
+            simulationInfoPromise,
+            appWrapper,
+            dispatch
+        });
 
-        let isDirty = formController.isFormStateDirty();
-        let isValid = formController.isFormStateValid();
+        let isDirty = formHandleFactory.isDirty();
+        let isValid = formHandleFactory.isValid(store.getState());
         let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
 
         return (

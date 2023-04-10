@@ -1,27 +1,23 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import { AnyAction, Dispatch } from "redux";
-import { ArrayFieldElement, ArrayFieldState } from "../store/common";
-import { getModelReadSelector, getModelWriteActionCreator, getValueSelector, StoreType, StoreTypes } from "./data";
+import { StoreState } from "../store/common";
+import { Schema } from "../utility/schema";
+import { getModelReadSelector, getModelWriteActionCreator, getValueSelector, StoreType } from "./data";
+import { Dependency } from "./dependency";
 
 export const CHandleFactory = React.createContext<HandleFactory>(undefined);
 
-export abstract class DataHandle<V> {
-    constructor(protected currentValue: V) {
+export abstract class DataHandle<M, F> {
+    constructor(protected currentValue: F) {
         this.value = currentValue;
     }
 
-    abstract write(value: V, dispatch: Dispatch<AnyAction>);
-    readonly value: V; 
+    abstract write(value: F, state: StoreState<M>, dispatch: Dispatch<AnyAction>);
+    readonly value: F; 
 }
 
-export abstract class ArrayDataHandle<V extends ArrayFieldState<V>> extends DataHandle<V> {
-    abstract append(element: ArrayFieldElement<V>, dispatch: Dispatch<AnyAction>);
-    abstract appendAt(index: number, element: ArrayFieldElement<V>, dispatch: Dispatch<AnyAction>);
-    abstract removeAt(index: number, dispatch: Dispatch<AnyAction>);
-}
-
-export interface EmptyDataHandle<V, D extends DataHandle<V> = DataHandle<V>> {
+export interface EmptyDataHandle<M, F, D extends DataHandle<M, F> = DataHandle<M, F>> {
     /**
      * use the current state to populate the data in the handle without subscribing to updates
      * @param state current state
@@ -33,88 +29,74 @@ export interface EmptyDataHandle<V, D extends DataHandle<V> = DataHandle<V>> {
     hook(): D;
 }
 
+export type SelectorUser = <M>(selector: (state: any) => M) => M;
+
 export abstract class HandleFactory {
-    abstract createHandle<V>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V>;
-    abstract createArrayHandle<V extends ArrayFieldState<V>>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V>;
+    constructor(protected schema: Schema) {}
+    abstract createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F>;
+    //abstract createArrayHandle<F>(dependency: Dependency, type: StoreType<any, F>): EmptyDataHandle<F>;
 }
 
 export class BaseHandleFactory extends HandleFactory {
-    createHandle<V>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V> {
-        let ms = getModelReadSelector<V>(type)(dependency.modelName);
-        let mac = getModelWriteActionCreator<V>(type);
-        let vs = getValueSelector(type);
-        let cdh = (value: V): DataHandle<V> => {
-            return new (class extends DataHandle<V> {
-                write = (value: V, dispatch: Dispatch<AnyAction>) => {
-                    dispatch(mac(dependency.modelName, value));
+    createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F> {
+        let ms = getModelReadSelector(type)(dependency.modelName);
+        let mac = getModelWriteActionCreator(type);
+        let cdh = (value: F): DataHandle<M, F> => {
+            return new (class extends DataHandle<M, F> {
+                write = (value: F, state: StoreState<M>, dispatch: Dispatch<AnyAction>) => {
+                    let mv = {...state[type.name][dependency.modelName]};
+                    mv[dependency.fieldName] = value;
+                    dispatch(mac(dependency.modelName, mv));
                 }
             })(value);
         }
         return {
             initialize: (state: any) => {
-                return cdh(vs(ms(state)));
+                return cdh(ms(state)[dependency.fieldName]);
             },
             hook: () => {
-                return cdh(vs(useSelector(ms)));
+                return cdh(useSelector(ms)[dependency.fieldName]);
             }
         }
     }
-
-    createArrayHandle<V extends ArrayFieldState<V>>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V, ArrayDataHandle<V>> {
-        let ms = getModelReadSelector<V>(type)(dependency.modelName);
-        let mac = getModelWriteActionCreator<V>(type);
-        let vs = getValueSelector(type);
-        let cdh = (value: V): ArrayDataHandle<V> => {
-            return new (class extends ArrayDataHandle<V> {
-                write = (value: V, dispatch: Dispatch<AnyAction>) => {
-                    dispatch(mac(dependency.modelName, value));
-                }
-                appendAt = (index: number, element: ArrayFieldElement<V>, dispatch: Dispatch<AnyAction>) => {
-                    this.currentValue.splice(index, 0, element);
-                    this.write(this.currentValue, dispatch);
-                }
-                append = (element: ArrayFieldElement<V>, dispatch: Dispatch<AnyAction>) => {
-                    this.currentValue.push(element);
-                    this.write(this.currentValue, dispatch);
-                }
-                removeAt = (index: number, dispatch: Dispatch<AnyAction>) => {
-                    this.currentValue.splice(index, 1);
-                    this.write(this.currentValue, dispatch);
-                }
-            })(value);
-        }
-        return {
-            initialize: (state: any) => {
-                return cdh(vs(ms(state)));
-            },
-            hook: () => {
-                return cdh(vs(useSelector(ms)));
-            }
-        }
-    }
-}
-
-export type DependencyValues<F> = {
-    getValues: () => F[]
 }
 
 /**
  * Read-only alternative to handles that supports wildcards
  */
 export class DependencyReader<F> {
-    constructor(private dependencies: Dependency[], private type: StoreType<any, F>) {
+    constructor(private dependencies: Dependency[], private type: StoreType<any, F>, private schema: Schema) {
         
     }
 
-    hook = (): DependencyValues<F> => {
-        let vs = getModelReadSelector(this.type)
-
-
-        let ms = getModelReadSelector(this.type)(dependency.modelName);
-        
+    private expandWildcard(dependency: Dependency): Dependency[] {
+        if(dependency.fieldName === `*`) {
+            return Object.keys(this.schema.models[dependency.fieldName]).map(fName => new Dependency(`${dependency.modelName}.${fName}`));
+        }
+        return [dependency];
     }
 
-    initialize = (state: any): DependencyValues<F> => {
+    hook = (): any[] => {
+        let vs = getValueSelector(this.type);
+        return this.dependencies.flatMap(d => {
+            let c = (d: Dependency) => {
+                let ms = getModelReadSelector(this.type)(d.modelName);
+                return useSelector(ms)[d.fieldName];
+            }
 
+            return this.expandWildcard(d).map(d => vs(c(d)));
+        })
+    }
+
+    initialize = (state: any): any[] => {
+        let vs = getValueSelector(this.type);
+        return this.dependencies.flatMap(d => {
+            let c = (d: Dependency) => {
+                let ms = getModelReadSelector(this.type)(d.modelName);
+                return ms(state)[d.fieldName];
+            }
+
+            return this.expandWildcard(d).map(d => vs(c(d)));
+        })
     }
 }

@@ -10,16 +10,15 @@ import React, {
     useEffect
 } from "react";
 import {
-    formActions,
-    formSelectors
+    formStatesSlice,
+    initialFormStateFromValue
 } from "../../store/formState";
-import { FormController, formStateFromModel } from "../../data/formController";
 import { useStore } from "react-redux";
-import { CModelsWrapper, CFormStateWrapper, FormStateWrapper, ModelsWrapper, AbstractModelsWrapper } from "../../data/wrapper";
-import { CSchema, CSimulationInfoPromise } from "../../data/appwrapper";
+import { AppWrapper, CSchema } from "../../data/appwrapper";
 import { SimulationInfo } from "../simulation";
-import { Schema } from "../../utility/schema";
-import { AnyAction, Store } from "redux";
+import { AnyAction, Dispatch, Store } from "redux";
+import { FormStateHandleFactory } from "../../data/form";
+import { modelsSlice } from "../../store/models";
 
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
@@ -46,13 +45,26 @@ export function EditorForm(props) {
     );
 }
 
-export function formActionFunctions(formController: FormController, store: Store<any, AnyAction>, simulationInfoPromise: Promise<SimulationInfo>, schema: Schema, modelsWrapper: ModelsWrapper): { cancel: () => void, submit: () => void } {
+export function formActionFunctions(config: {
+    formHandleFactory: FormStateHandleFactory, 
+    store: Store<any, AnyAction>, 
+    simulationInfoPromise: Promise<SimulationInfo>,
+    appWrapper: AppWrapper,
+    dispatch: Dispatch<AnyAction>
+}): { cancel: () => void, submit: () => void } {
+    let {
+        formHandleFactory,
+        store,
+        simulationInfoPromise,
+        appWrapper,
+        dispatch
+    } = config;
     return {
-        cancel: () => formController.cancelChanges(store.getState()),
+        cancel: () => formHandleFactory.cancel(store.getState(), dispatch),
         submit: () => {
-            formController.saveToModels(store.getState());
+            formHandleFactory.save(store.getState(), dispatch);
             simulationInfoPromise.then(simulationInfo => {
-                modelsWrapper.saveToServer(simulationInfo, Object.keys(schema.models), store.getState())
+                appWrapper.saveModelsToServer(simulationInfo, store.getState()[modelsSlice.name]);
             })
         }
     } 
@@ -65,20 +77,16 @@ export function FormStateInitializer(props) {
 
     let store = useStore();
 
-    let models = useContext(CModelsWrapper);
-    let formState = new FormStateWrapper({
-        formActions,
-        formSelectors
-    })
-
-    let modelNames = (models as ModelsWrapper).getModelNames(store.getState());
+    let ms = store.getState()[modelsSlice.name]
+    let fs = store.getState()[formStatesSlice.name];
+    let modelNames = Object.keys(ms);
 
     useEffect(() => {
         let state = store.getState();
         modelNames.map(mn => {
             return {
                 modelName: mn,
-                value: models.getModel(mn, state)
+                value: ms[mn]
             }
         }).forEach(({ modelName, value }) => {
             if(!value) {
@@ -88,15 +96,13 @@ export function FormStateInitializer(props) {
             if(!modelSchema) {
                 throw new Error(`could not get schema for model=${modelName}`);
             }
-            formState.updateModel(modelName, formStateFromModel(value, modelSchema, schema), store.getState());
+            fs[modelName] = mapProperties(ms, ([_, fv]) => initialFormStateFromValue(fv));
         });
 
         updateHasInit(true);
     }, [])
 
     return hasInit && (
-        <CFormStateWrapper.Provider value={formState}>
-            {props.children}
-        </CFormStateWrapper.Provider>
+        <>{props.children}</>
     );
 }

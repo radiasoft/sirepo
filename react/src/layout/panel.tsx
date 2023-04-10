@@ -31,10 +31,6 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         this.advanced = (!!config.advanced) ? config.advanced.map(LAYOUTS.getLayoutForSchema) : undefined;
     }
 
-    getFormDependencies = () => {
-        return [...(this.basic || []), ...(this.advanced || [])].map(childLayout => childLayout.getFormDependencies()).flat();
-    }
-
     component = (props: LayoutProps<{}>) => {
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;

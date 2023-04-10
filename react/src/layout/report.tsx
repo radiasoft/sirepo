@@ -17,7 +17,7 @@ import { SchemaLayout } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
 import { ModelState } from "../store/models";
 import { useShown } from "../hook/shown";
-import { CHandleFactory } from "../data/handle";
+import { CHandleFactory, DependencyReader } from "../data/handle";
 import { StoreTypes, ValueSelectors } from "../data/data";
 import { FormFieldState } from "../store/formState";
 
@@ -43,20 +43,17 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         this.reportLayout = LAYOUTS.getLayoutForSchema(config.reportLayout) as ReportVisual;
     }
 
-    getFormDependencies = () => {
-        return this.reportLayout.getFormDependencies();
-    }
-
     component = (props: LayoutProps<{}>) => {
         let { report, dependencies } = this.config;
 
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
+        let schema = useContext(CSchema);
         let routeHelper = useContext(CRouteHelper);
         let handleFactory = useContext(CHandleFactory);
 
         let reportDependencies = dependencies.map(dependencyString => new Dependency(dependencyString));
-        let dependentValues = reportDependencies.map(d => ValueSelectors.Form(handleFactory.createHandle(d, StoreTypes.FormState).hook().value as FormFieldState<unknown>));
+        let dependentValues = new DependencyReader(reportDependencies, StoreTypes.Models, schema).hook();
         let [simulationData, updateSimulationData] = useState(undefined);
 
         let simulationPollingVersionRef = useRef(uuidv4())
@@ -178,10 +175,6 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         super(config);
 
         this.reportLayout = LAYOUTS.getLayoutForSchema(config.reportLayout) as ReportVisual;
-    }
-
-    getFormDependencies = () => {
-        return this.reportLayout.getFormDependencies();
     }
 
     component = (props: LayoutProps<{}>) => {
@@ -312,11 +305,7 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
 
         this.childLayouts = (config.items || []).map(LAYOUTS.getLayoutForSchema);
     }
-
-    getFormDependencies = () => {
-        return (this.childLayouts || []).flatMap(v => v.getFormDependencies());
-    }
-
+    
     component = (props: LayoutProps<{}>) => {
         let { reportGroupName } = this.config;
 

@@ -4,8 +4,7 @@ import React, { ChangeEventHandler, useEffect, useRef } from "react";
 import { FunctionComponent, useContext, useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
 import { CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
-import { CModelsWrapper } from "../../data/wrapper";
-import { interpolate, ValueSelectors } from "../../utility/string";
+import { interpolate } from "../../utility/string";
 import { downloadAs } from "../../utility/download";
 import { SchemaLayout } from "../../utility/schema";
 import { LayoutProps } from "../layout";
@@ -13,6 +12,8 @@ import { LAYOUTS } from "../layouts";
 import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
 import "./file.scss";
 import { CRouteHelper } from "../../utility/route";
+import { CHandleFactory } from "../../data/handle";
+import { StoreTypes } from "../../data/data";
 
 export type FileInputConfig = {
     pattern: string,
@@ -35,7 +36,7 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
         let appName = useContext(CAppName);
         let routeHelper = useContext(CRouteHelper);
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
-        let modelsWrapper = useContext(CModelsWrapper);
+        let handleFactory = useContext(CHandleFactory);
 
         let [modalShown, updateModalShown] = useState(false);
         let modal = this.config.inspectModal ? {
@@ -44,7 +45,7 @@ export class FileInputLayout extends InputLayout<FileInputConfig, string, string
                 let Component = layout.component;
                 return <Component key={idx}/>
             }),
-            title: interpolate(this.config.inspectModal.title).withDependencies(modelsWrapper, ValueSelectors.Models).raw()
+            title: interpolate(this.config.inspectModal.title).withDependencies(handleFactory, StoreTypes.Models).raw()
         } : undefined;
 
         let [fileNameList, updateFileNameList] = useState(undefined);

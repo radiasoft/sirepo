@@ -16,10 +16,6 @@ export type BeamlineWatchpointReportsConfig = {
 }
 
 export class BeamlineWatchpointReports extends Layout<BeamlineWatchpointReportsConfig, {}> {
-    getFormDependencies(): Dependency[] {
-        return [];
-    }
-
     component: FunctionComponent<{ [key: string]: any; }> = (props) => {
         let watchpointReportsDependency = new Dependency(this.config.watchpointReportsDependency);
         let beamlineDependency = new Dependency(this.config.beamlineDependency);

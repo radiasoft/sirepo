@@ -66,10 +66,6 @@ export class Histogram2dFromApi extends ReportVisual<undefined, {}, Histogram2dC
         return !!this.getConfigFromApiResponse(apiResponse);
     }
 
-    getFormDependencies = () => {
-        return [];
-    }
-
     component = (props: LayoutProps<{}> & ReportVisualProps<Graph2dConfig>) => {
         let { data, model } = props;
         if(!data) {

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Dispatch, AnyAction } from "redux";
-import { ArrayFieldElement, ArrayFieldState } from "../store/common";
-import { initialFormStateFromValue } from "../store/formState";
+import { Dispatch, AnyAction, Store } from "redux";
+import { StoreState } from "../store/common";
+import { FormModelState, initialFormStateFromValue } from "../store/formState";
+import { ModelState } from "../store/models";
 import { Schema } from "../utility/schema";
 import { StoreType, StoreTypes } from "./data";
-import { ArrayDataHandle, BaseHandleFactory, DataHandle, EmptyDataHandle } from "./handle";
+import { BaseHandleFactory, DataHandle, EmptyDataHandle, HandleFactory } from "./handle";
 
 type FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => void
 type FormSelectorFunc<V> = (state: any) => V
@@ -16,42 +17,34 @@ type FormActionsKeyPair = {
     valid: FormSelectorFunc<boolean>
 }
 
-export class FormStateHandleFactory extends BaseHandleFactory {
+export function formStateFromModelState(modelState: ModelState): FormModelState {
+    return mapProperties(modelState, (name, value) => initialFormStateFromValue(value));
+}
+
+export class FormStateHandleFactory extends HandleFactory {
     private updated: FormActionsKeyPair[] = []
     private listeners: (() => void)[] = [];
 
-    constructor(private schema: Schema) {
-        super();
+    constructor(schema: Schema, private parent: HandleFactory) {
+        super(schema);
     }
 
-    private emptyDataHandleFor<V, D extends DataHandle<V>>(parent: EmptyDataHandle<V>, updateCallback: (dh: D) => void): EmptyDataHandle<V, D> {
-        return new (class implements EmptyDataHandle<V, D> {
-            private dataHandleFor<V>(parent: DataHandle<V>): D {
-                let dh = new (class extends ArrayDataHandle<any> {
-                    append(element: ArrayFieldElement<V>, dispatch: Dispatch<AnyAction>) {
-                        (parent as ArrayDataHandle<any>).append(element, dispatch);
+    private emptyDataHandleFor<M, F>(parent: EmptyDataHandle<M, F>, updateCallback: (dh: DataHandle<M, F>) => void): EmptyDataHandle<M, F> {
+        return new (class implements EmptyDataHandle<M, F> {
+            private dataHandleFor(parent: DataHandle<M, F>): DataHandle<M, F> {
+                let dh: DataHandle<M, F> = new (class extends DataHandle<M, F> {
+                    write = (value: F, state: StoreState<M>, dispatch: Dispatch<AnyAction>) => {
+                        parent.write(value, state, dispatch);
                         updateCallback(dh);
                     }
-                    appendAt(index: number, element: ArrayFieldElement<V>, dispatch: Dispatch<AnyAction>) {
-                        (parent as ArrayDataHandle<any>).appendAt(index, element, dispatch);
-                        updateCallback(dh);
-                    }
-                    removeAt(index: number, dispatch: Dispatch<AnyAction>) {
-                        (parent as ArrayDataHandle<any>).removeAt(index, dispatch);
-                        updateCallback(dh);
-                    }
-                    write = (value: V, dispatch: Dispatch<AnyAction>) => {
-                        parent.write(value, dispatch);
-                        updateCallback(dh);
-                    }
-                })(parent.value) as any as D;
+                })(parent.value);
                 return dh;
             }
 
-            initialize(state: any): D {
+            initialize(state: any): DataHandle<M, F> {
                 return this.dataHandleFor(parent.initialize(state));
             }
-            hook(): D {
+            hook(): DataHandle<M, F> {
                 return this.dataHandleFor(parent.hook());
             }
             
@@ -95,44 +88,20 @@ export class FormStateHandleFactory extends BaseHandleFactory {
         this.listeners.push(() => u({}));
     }
 
-    createHandle<V>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V> {
-        let edh = super.createHandle<V>(dependency, type);
+    createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F> {
+        let edh = this.parent.createHandle<M, F>(dependency, type);
         if(type === StoreTypes.FormState) {
-            return this.emptyDataHandleFor<V, DataHandle<V>>(edh, (dh: DataHandle<V>) => {
-                let f = (state: any) => super.createHandle<any>(dependency, StoreTypes.FormState).initialize(state);
-                let m = (state: any) => super.createHandle<any>(dependency, StoreTypes.Models).initialize(state);
+            return this.emptyDataHandleFor<M, F>(edh, (dh: DataHandle<M, F>) => {
+                let f = (state: any) => this.parent.createHandle(dependency, StoreTypes.FormState).initialize(state);
+                let m = (state: any) => this.parent.createHandle(dependency, StoreTypes.Models).initialize(state);
                 this.addToUpdated({
                     key: dh,
-                    save: (state: any, dispatch: Dispatch<AnyAction>) => {
+                    save: (state: StoreState<any>, dispatch: Dispatch<AnyAction>) => {
                         let v = this.schema.models[dependency.modelName][dependency.fieldName].type.toModelValue(f(state).value);
-                        m(state).write(v, dispatch);
+                        m(state).write(v, state, dispatch);
                     },
-                    cancel: (state: any, dispatch: Dispatch<AnyAction>) => {
-                        f(state).write(initialFormStateFromValue(m(state).value), dispatch);
-                    },
-                    valid: (state: any): boolean => {
-                        return f(state).value.valid;
-                    }
-                });
-            })
-        }
-        return edh;
-    }
-
-    createArrayHandle<V extends ArrayFieldState<V>>(dependency: Dependency, type: StoreType<any, V>): EmptyDataHandle<V, ArrayDataHandle<V>> {
-        let edh = super.createArrayHandle<V>(dependency, type);
-        if(type === StoreTypes.FormState) {
-            return this.emptyDataHandleFor<V, ArrayDataHandle<V>>(edh, (dh: ArrayDataHandle<V>) => {
-                let f = (state) => super.createArrayHandle<any>(dependency, StoreTypes.FormState).initialize(state);
-                let m = (state) => super.createArrayHandle<any>(dependency, StoreTypes.Models).initialize(state);
-                this.addToUpdated({
-                    key: dh,
-                    save: (state: any, dispatch: Dispatch<AnyAction>) => {
-                        let v = this.schema.models[dependency.modelName][dependency.fieldName].type.toModelValue(f(state).value);
-                        m(state).write(v, dispatch);
-                    },
-                    cancel: (state: any, dispatch: Dispatch<AnyAction>) => {
-                        f(state).write(initialFormStateFromValue(m(state).value), dispatch);
+                    cancel: (state: StoreState<any>, dispatch: Dispatch<AnyAction>) => {
+                        f(state).write(initialFormStateFromValue(m(state).value), state, dispatch);
                     },
                     valid: (state: any): boolean => {
                         return f(state).value.valid;

@@ -8,7 +8,7 @@ import {
 import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
 import { useShown } from "../hook/shown";
-import { useDispatch } from "react-redux";
+import { useDispatch, useStore } from "react-redux";
 import { CSchema } from "../data/appwrapper";
 import { FormStateHandleFactory } from "../data/form";
 import { CHandleFactory } from "../data/handle";
@@ -17,9 +17,10 @@ import { FormFieldState } from "../store/formState";
 
 export function FormControllerElement(props: {children?: React.ReactNode}) {
     let schema = useContext(CSchema);
-    let formHandleFactory = new FormStateHandleFactory(schema);
-    formHandleFactory.useUpdates();
+    let handleFactory = useContext(CHandleFactory);
+    let formHandleFactory = new FormStateHandleFactory(schema, handleFactory);
     // TODO: form controller might need to "subscribe to updates" during save
+    formHandleFactory.useUpdates();
 
     return (
         <CHandleFactory.Provider value={formHandleFactory}>
@@ -61,18 +62,11 @@ export type FieldGridConfig = {
 }
 
 export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
-    getFormDependencies = () => {
-        let fields = [];
-        for(let row of this.config.rows) {
-            fields.push(...(row.fields));
-        }
-        return fields.map(f => new Dependency(f));
-    }
-
     component = (props: LayoutProps<{}>) => {
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         let schema = useContext(CSchema);
         let dispatch = useDispatch();
+        let store = useStore();
         let gridShown = useShown(this.config.shown, true, StoreTypes.FormState);
 
         if (! gridShown) {
@@ -102,7 +96,7 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
                     {labelElement ? <Col className="text-end">{labelElement}</Col> : undefined}
                     {columns.map((_, index) => {
                         let fieldDependency = new Dependency(fields[index]);
-                        let fieldHandle = formHandleFactory.createHandle<FormFieldState<unknown>>(fieldDependency, StoreTypes.FormState).hook();
+                        let fieldHandle = formHandleFactory.createHandle(fieldDependency, StoreTypes.FormState).hook();
                         let fieldType = schema.models[fieldDependency.modelName][fieldDependency.fieldName].type;
                         return (<Col key={index}>
                             <FieldInput
@@ -113,7 +107,7 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
                                         valid: fieldType.validate(value),
                                         touched: true,
                                         value
-                                    }, dispatch)
+                                    }, store.getState()[StoreTypes.FormState.name], dispatch)
                                 }}
                                 dependency={fieldDependency}
                                 inputComponent={fieldType.component}/>
@@ -137,21 +131,18 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
         super(config);
     }
 
-    getFormDependencies = () => {
-        return (this.config.fields || []).map(f => new Dependency(f));
-    }
-
     component = (props: LayoutProps<{}>) => {
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         let schema = useContext(CSchema);
         let dispatch = useDispatch();
+        let store = useStore();
 
         let fields = this.config.fields;
 
         return <>
             {fields.map((fieldDepString, idx) => {
                 let fieldDep = new Dependency(fieldDepString);
-                let fieldHandle = formHandleFactory.createHandle<FormFieldState<unknown>>(fieldDep, StoreTypes.FormState).hook();
+                let fieldHandle = formHandleFactory.createHandle(fieldDep, StoreTypes.FormState).hook();
                 let fieldType = schema.models[fieldDep.modelName][fieldDep.fieldName].type;
                 let fieldSchema = schema.models[fieldDep.modelName][fieldDep.fieldName];
                 let shown = useShown(fieldSchema.shown, true, StoreTypes.FormState);
@@ -168,7 +159,7 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
                             valid: fieldType.validate(value),
                             touched: true,
                             value
-                        }, dispatch)
+                        }, store.getState()[StoreTypes.FormState.name], dispatch)
                     }}
                     inputComponent={fieldSchema.type.component}/>
                 }

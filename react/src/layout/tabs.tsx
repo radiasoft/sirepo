@@ -36,18 +36,6 @@ export class TabLayout extends Layout<TabsConfig, {}> {
         })
     }
 
-    getFormDependencies = () => {
-        let fields = [];
-
-        for (let tab of this.tabs) {
-            for (let layout of tab.layouts) {
-                fields.push(...layout.getFormDependencies());
-            }
-        }
-
-        return fields;
-    }
-
     component = (props: LayoutProps<{}>) => {
 
         let tabEls = [];

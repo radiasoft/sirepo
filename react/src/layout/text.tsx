@@ -15,10 +15,6 @@ export type TextConfig = {
 }
 
 export class TextLayout extends Layout<TextConfig, {}> {
-    getFormDependencies(): Dependency[] {
-        return [];
-    }
-
     component: FunctionComponent<{ [key: string]: any; }> = (props) => {
         let modelsWrapper = useContext(CModelsWrapper);
         

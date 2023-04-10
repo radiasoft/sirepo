@@ -46,11 +46,6 @@ export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
 
         return bins;
     }
-
-
-    getFormDependencies(): Dependency[] {
-        return (this.children || []).flatMap(c => c.getFormDependencies());
-    }
     
     getMarginStyles = (): string => {
         if(!this.config.gutters) {
