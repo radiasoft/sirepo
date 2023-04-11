@@ -10,15 +10,15 @@ import numpy
 # simulation parameters
 # -- crystal properties
 # cm^2/s diffusion constant of sapphire
-a_saph = {{ crystal.diffusionConstant }}
+a_saph = {{ crystalCylinder_diffusionConstant }}
 # -- time step
 T = {{ crystalSettings_time }}
 n_steps = {{ crystalSettings_steps }}
 dt = T / n_steps  # size of time step
 nip = {{ crystalSettings_plotInterval }} # number of intervals between records
 # -- crystal dimensions
-diam = {{ crystal.diameter }}
-leng = {{ crystal.width }}
+diam = {{ crystalCylinder_diameter }}
+leng = {{ crystalLength }}
 # --  mesh density within cylinder
 md = {{ crystalSettings_meshDensity }}
 

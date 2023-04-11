@@ -3376,6 +3376,8 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
           <div style="margin-bottom: 1em" class="clearfix"></div>
           <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
             <div data-watchpoint-report="" data-item-id="report.id"></div>
+            <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
+            <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
           </div>
         `,
         controller: function($scope, $rootScope) {
