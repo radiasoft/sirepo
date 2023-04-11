@@ -41,14 +41,16 @@ def default_command(in_file):
     Returns:
         str: json output of command, e.g. status msg
     """
-    import shutil
+    import json
 
     try:
         f = pkio.py_path(in_file)
         pkdp("\n\n\n\nf={}\n\n\n", f)
-        # if "sourceIntensityReport" in f.dirname:
-        #     shutil.copyfile(f, "/home/vagrant/src/radiasoft/sirepo/t/src_intensity.json")
+
         msg = pkjson.load_any(f)
+        # if "sourceIntensityReport" in f.dirname:
+        #     with open("/home/vagrant/src/radiasoft/sirepo/t/src_intensity_1.json", "w") as jfile:
+        #         json.dump(msg, jfile)
         # if "sourceIntensityReport" in f.dirname:
         # pkdp("\n\n\n\nreport={}", msg.data.report)
         # TODO(e-carlin): find common place to serialize/deserialize paths

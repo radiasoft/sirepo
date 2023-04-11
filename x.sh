@@ -20,7 +20,7 @@ export SIREPO_SRDB_ROOT='/home/vagrant/src/radiasoft/sirepo/run'
 export PYTHONPATH=''
 export PYTHONSTARTUP=''
 pwd
-cp 'src_intensity.json' 'in.json'
+cp 'src_intensity_1.json' 'in.json'
 cp 'in.json' 'cpin.json'
 exec 'sirepo' 'job_cmd' 'cpin.json'
 
