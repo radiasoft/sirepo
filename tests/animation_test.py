@@ -122,31 +122,6 @@ def test_srw(fc):
     )
 
 
-def test_synergia(fc):
-    fc.sr_animation_run(
-        fc.sr_sim_data("Simple FODO"),
-        "animation",
-        PKDict(
-            beamEvolutionAnimation=PKDict(
-                frame_index=7,
-                expect_y_range="^.0.00262.*, 0.00572",
-            ),
-            bunchAnimation=PKDict(
-                frame_count_key="bunchAnimation.frameCount",
-                expect_title=lambda i: r"turn {}\b".format(i),
-                expect_y_range=lambda i: [
-                    "-0.01.*, 0.01.*, 200",
-                    "-0.01.*, 0.01.*, 200",
-                ][i],
-            ),
-            turnComparisonAnimation=PKDict(
-                frame_index=0,
-                expect_y_range="^.0.0026.*, 0.0057",
-            ),
-        ),
-    )
-
-
 def test_warppba(fc):
     data = fc.sr_sim_data("Laser Pulse")
     data.models.simulationGrid.update(

@@ -31,7 +31,6 @@ PROD_FOSS_CODES = frozenset(
         "radia",
         "shadow",
         "srw",
-        "synergia",
         "warppba",
         "warpvnd",
         "zgoubi",

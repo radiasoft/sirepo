@@ -27,7 +27,7 @@ import urllib.parse
 # TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
 if any(
     k in sirepo.feature_config.cfg().sim_types
-    for k in ("flash", "radia", "synergia", "silas", "warppba", "warpvnd")
+    for k in ("flash", "radia", "silas", "warppba", "warpvnd")
 ):
     import h5py
 
