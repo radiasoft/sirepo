@@ -138,7 +138,7 @@ def _do_compute(msg, template):
             stdout=run_log,
             stderr=run_log,
         )
-    pkdp("\n\n p={}", p)
+    pkdp("\n\n p.args={}", p.args)
     while True:
         for j in range(20):
             time.sleep(0.1)
