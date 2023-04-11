@@ -656,6 +656,7 @@ def post_execution_processing(
     success_exit,
     **kwargs,
 ):
+    pkdp("\n\n\n success_exit? ={}", success_exit)
     if success_exit:
         if _SIM_DATA.is_for_ml(compute_model):
             f = _SIM_DATA.ML_OUTPUT
@@ -787,6 +788,7 @@ def run_epilogue():
     # POSIT: only called from template.run_epilogue
     def _op():
         sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        pkdp("\n\n\n sim_in = {}", sim_in)
         if sim_in.report == "coherentModesAnimation":
             # this sim creates _really_ large intermediate files which should get removed
             for p in pkio.sorted_glob("*_mi.h5"):

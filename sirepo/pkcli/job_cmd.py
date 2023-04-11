@@ -50,15 +50,16 @@ def default_command(in_file):
         #     shutil.copyfile(f, "/home/vagrant/src/radiasoft/sirepo/t/src_intensity.json")
         msg = pkjson.load_any(f)
         # if "sourceIntensityReport" in f.dirname:
-        pkdp("\n\n\n\nreport={}", msg.data.report)
+        # pkdp("\n\n\n\nreport={}", msg.data.report)
         # TODO(e-carlin): find common place to serialize/deserialize paths
         msg.runDir = pkio.py_path(msg.runDir)
-        pkdp("\n\n\n {} \n\n\n", 1)
+        # pkdp("\n\n\nmsg.jobCmd {} \n\n\n", msg.jobCmd)
+        # pkdp("\n\n\nglobals() {} \n\n\n", globals())
         f.remove()
         res = globals()["_do_" + msg.jobCmd](
             msg, sirepo.template.import_module(msg.simulationType)
         )
-        pkdp("\n\n\n {} \n\n\n {} \n\n\n", 2, res)
+        # pkdp("\n\n\n res {} \n\n\n", res)
         if res is None:
             return
         r = PKDict(res).pksetdefault(state=job.COMPLETED)
@@ -137,6 +138,7 @@ def _do_compute(msg, template):
             stdout=run_log,
             stderr=run_log,
         )
+    pkdp("\n\n p={}", p)
     while True:
         for j in range(20):
             time.sleep(0.1)
@@ -321,7 +323,7 @@ def _on_do_compute_exit(
     # locals() must be called before anything else so we only get the function
     # arguments
     kwargs = locals()
-
+    pkdp("\n\n\n template={}, locals={}", template, locals())
     def _failure_exit():
         a = _post_processing()
         if not a:
