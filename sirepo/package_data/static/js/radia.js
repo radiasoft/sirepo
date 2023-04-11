@@ -804,6 +804,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function loadObjectViews() {
         self.views = [];
+        if (! self.showDesigner()) {
+            return;
+        }
         appState.models.geometryReport.objects.forEach(addViewsForObject);
         addBeamAxis();
     }
