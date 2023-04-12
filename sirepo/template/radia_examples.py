@@ -387,45 +387,6 @@ def undulator_example():
     return und
 
 
-def wiggler_example():
-    # current densities in A / mm^2
-    j1 = 128
-    j2 = 256
-
-    # number of arc segments
-    n1 = 3
-    n2 = 6
-
-    # create 5 racetrack coils above the mid-plane:
-    #   lower inside, lower outside, upper inside, upper outside, and circular
-    # radia.ObjRaceTrk[ctr:[x,y,z], rad:[r1,r2], lstr:[lx,ly], ht, nseg, j]
-    rt1 = radia.ObjRaceTrk([0.0, 0.0, 38.0], [9.5, 24.5], [120.0, 0.0], 36, n1, j1)
-    rt2 = radia.ObjRaceTrk([0.0, 0.0, 38.0], [24.5, 55.5], [120.0, 0.0], 36, n1, j2)
-    rt3 = radia.ObjRaceTrk([0.0, 0.0, 76.0], [10.0, 25.0], [90.0, 0.0], 24, n1, j1)
-    rt4 = radia.ObjRaceTrk([0.0, 0.0, 76.0], [25.0, 55.0], [90.0, 0.0], 24, n1, j2)
-    rt5 = radia.ObjRaceTrk([0.0, 0.0, 60.0], [150.0, 166.3], [0.0, 0.0], 39, n2, -j2)
-
-    c1 = [0.0, 1.0, 1.0]  # blue/green
-    c2 = [1.0, 0.4, 0.0]  # orange-red
-    thcn = 0.001
-    radia.ObjDrwAtr(rt1, c1, thcn)
-    radia.ObjDrwAtr(rt2, c2, thcn)
-    radia.ObjDrwAtr(rt3, c1, thcn)
-    radia.ObjDrwAtr(rt4, c2, thcn)
-    radia.ObjDrwAtr(rt5, c2, thcn)
-
-    # assemble into a group
-    geom = radia.ObjCnt([rt1, rt2, rt3, rt4, rt5])
-
-    # and reflect in the (x,y) plane [plane through (0,0,0) with normal (0,0,1)]
-    radia.TrfZerPara(geom, [0, 0, 0], [0, 0, 1])
-
-    return geom, {
-        geom: "48022af9-3b43-424f-b43b-5cbeb0d36bd6",
-    }
-
-
 EXAMPLES = {
     "Dipole": dipole_example,
-    "Wiggler": wiggler_example,
 }
