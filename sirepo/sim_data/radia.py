@@ -53,13 +53,15 @@ class SimData(sirepo.sim_data.SimDataBase):
         sim = models.simulation
         if not sim.get("exampleName"):
             sim.exampleName = sim.name
-        if sim.name in cls.schema().constants.rawExamples:
-            sim.appMode = "imported"
         if sim.name == "Dipole":
+            sim.folder = "/Examples/Accelerator Magnets"
             sim.beamAxis = "x"
             sim.heightAxis = "z"
             sim.widthAxis = "y"
+        if sim.name == "Undulator":
+            sim.folder = "/Examples/Insertion Devices"
         if sim.name == "Wiggler":
+            sim.folder = "/Examples/Insertion Devices"
             models.geometryReport.isSolvable = "0"
             if not len(models.fieldPaths.paths):
                 models.fieldPaths.paths.append(
