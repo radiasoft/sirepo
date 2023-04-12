@@ -151,7 +151,6 @@
             "item": ":"
         },
         "objectScale": 0.001,
-        "rawExamples": ["Dipole"],
         "toolbarItems": [
             {
                 "canDrag": true,

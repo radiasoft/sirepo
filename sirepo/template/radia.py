@@ -17,7 +17,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
-from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
 import copy
@@ -899,12 +898,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
                 f"{SCHEMA.constants.fileTypeRadiaDmp}.{data.models.simulation.dmpImportFile}"
             )
         )
-    v.isExample = (
-        data.models.simulation.get("isExample", False)
-        and data.models.simulation.name in radia_examples.EXAMPLES
-    )
-    v.exampleName = data.models.simulation.get("exampleName", None)
-    v.is_raw = v.exampleName in SCHEMA.constants.rawExamples
+    v.isExample = data.models.simulation.get("isExample", False)
     v.magnetType = data.models.simulation.get("magnetType", "freehand")
     dirs = _geom_directions(
         data.models.simulation.beamAxis, data.models.simulation.heightAxis
@@ -912,17 +906,16 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.matrix = _get_coord_matrix(dirs, data.models.simulation.coordinateSystem)
     st = f"{v.magnetType}Type"
     v[st] = data.models.simulation[st]
-    if not v.is_raw:
-        pkinspect.module_functions("_update_geom_from_")[
-            f"_update_geom_from_{v.magnetType}"
-        ](
-            g.objects,
-            data.models[v[st]],
-            height_dir=dirs.height_dir,
-            length_dir=dirs.length_dir,
-            width_dir=dirs.width_dir,
-            qcall=qcall,
-        )
+    pkinspect.module_functions("_update_geom_from_")[
+        f"_update_geom_from_{v.magnetType}"
+    ](
+        g.objects,
+        data.models[v[st]],
+        height_dir=dirs.height_dir,
+        length_dir=dirs.length_dir,
+        width_dir=dirs.width_dir,
+        qcall=qcall,
+    )
     v.objects = g.get("objects", [])
     _validate_objects(v.objects)
 
