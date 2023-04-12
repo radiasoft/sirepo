@@ -430,6 +430,29 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
+def bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
+    def _points(file, frame_index, name):
+        return np.array(file["/Step#{}/{}".format(frame_index, name)])
+
+    def _title(file, frame_index):
+        t = "Step {}".format(frame_index)
+        if "SPOS" in file["/Step#{}".format(frame_index)].attrs:
+            t += ", SPOS {0:.5f}m".format(
+                file["/Step#{}".format(frame_index)].attrs["SPOS"][0]
+            )
+        return t
+
+    return hdf5_util.HDF5Util(str(run_dir.join(filename))).heatmap(
+        PKDict(
+            format_plot=_units_from_hdf5,
+            frame_index=frame_index,
+            model=model,
+            points=_points,
+            title=_title,
+        )
+    )
+
+
 def code_var(variables):
     class _P(code_variable.PurePythonEval):
         # TODO(pjm): parse from opal files into schema
@@ -531,7 +554,7 @@ def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
     if "bunchReport" in data.report:
-        res = _bunch_plot(report, run_dir, 0)
+        res = bunch_plot(report, run_dir, 0)
         res.title = ""
     else:
         raise AssertionError("unknown report: {}".format(report))
@@ -543,7 +566,7 @@ def save_sequential_report_data(data, run_dir):
 
 def sim_frame(frame_args):
     # elementAnimations
-    return _bunch_plot(
+    return bunch_plot(
         frame_args,
         frame_args.run_dir,
         frame_args.frameIndex,
@@ -588,7 +611,7 @@ def sim_frame_beamline3dAnimation(frame_args):
 def sim_frame_bunchAnimation(frame_args):
     a = frame_args.sim_in.models.bunchAnimation
     a.update(frame_args)
-    return _bunch_plot(a, a.run_dir, a.frameIndex)
+    return bunch_plot(a, a.run_dir, a.frameIndex)
 
 
 def sim_frame_plotAnimation(frame_args):
@@ -833,29 +856,6 @@ def _compute_3d_bounds(run_dir):
 
 def _generate_parameters_file(data, qcall=None):
     return _Generate(data, qcall=qcall).sim()
-
-
-def _bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
-    def _points(file, frame_index, name):
-        return np.array(file["/Step#{}/{}".format(frame_index, name)])
-
-    def _title(file, frame_index):
-        t = "Step {}".format(frame_index)
-        if "SPOS" in file["/Step#{}".format(frame_index)].attrs:
-            t += ", SPOS {0:.5f}m".format(
-                file["/Step#{}".format(frame_index)].attrs["SPOS"][0]
-            )
-        return t
-
-    return hdf5_util.HDF5Util(str(run_dir.join(filename))).heatmap(
-        PKDict(
-            format_plot=_units_from_hdf5,
-            frame_index=frame_index,
-            model=model,
-            points=_points,
-            title=_title,
-        )
-    )
 
 
 def _compute_range_across_frames(run_dir, **kwargs):
