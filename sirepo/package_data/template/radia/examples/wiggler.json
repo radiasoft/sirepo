@@ -82,7 +82,7 @@
         "freehand": {},
         "geometryReport": {
             "doGenerate": "1",
-            "id": "34mtzrBxyxS7ct5k",
+            "id": "44mtzrBxyxS7ct5k",
             "isSolvable": "0",
             "lastModified": 1681249546824,
             "name": "Wiggler",
@@ -376,12 +376,9 @@
             "folder": "/Examples/Insertion Devices",
             "freehandType": "freehand",
             "heightAxis": "z",
-            "lastModified": 1681252840284,
             "magnetType": "freehand",
             "name": "Wiggler",
             "notes": "",
-            "simulationId": "j8oOU3mG",
-            "simulationSerial": 1681252840278304,
             "undulatorType": "undulatorBasic",
             "widthAxis": "x"
         },
