@@ -24,7 +24,8 @@
         "fieldIntegralReport": {},
         "fieldLineoutAnimation": {
             "fieldPath": {
-                "_super": "fieldPath",
+                "_super": "linePath",
+                "axis": "x",
                 "begin": [
                     -100,
                     0,
@@ -35,10 +36,12 @@
                     0,
                     0
                 ],
-                "id": "VOWU9NPTSkDkUJjzTUiLv0uHKCwXHtaC",
-                "name": "reference_gap_field",
+                "id": "tRlCGj7BJ3OEOFmZ17tG5ZiatwhxlVpy",
+                "name": "X-Axis",
                 "numPoints": 51,
-                "type": "linePath"
+                "start": -100,
+                "stop": 100,
+                "type": "axisPath"
             },
             "fieldPaths": [],
             "fieldType": "B",
@@ -55,7 +58,8 @@
         "fieldPaths": {
             "paths": [
                 {
-                    "_super": "fieldPath",
+                    "_super": "linePath",
+                    "axis": "x",
                     "begin": [
                         -100,
                         0,
@@ -66,10 +70,12 @@
                         0,
                         0
                     ],
-                    "id": "VOWU9NPTSkDkUJjzTUiLv0uHKCwXHtaC",
-                    "name": "reference_gap_field",
+                    "id": "tRlCGj7BJ3OEOFmZ17tG5ZiatwhxlVpy",
+                    "name": "X-Axis",
                     "numPoints": 51,
-                    "type": "linePath"
+                    "start": -100,
+                    "stop": 100,
+                    "type": "axisPath"
                 }
             ]
         },
@@ -78,7 +84,7 @@
             "id": "jPo9xnU03SbodgWf",
             "isSolvable": "1",
             "lastModified": 1681235701249,
-            "name": "reference_basic_dipole_take2",
+            "name": "Basic Dipole",
             "objects": [
                 {
                     "_super": "geomObject",
