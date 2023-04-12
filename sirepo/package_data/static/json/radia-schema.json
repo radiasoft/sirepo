@@ -151,7 +151,7 @@
             "item": ":"
         },
         "objectScale": 0.001,
-        "rawExamples": ["Dipole", "Wiggler"],
+        "rawExamples": ["Dipole"],
         "toolbarItems": [
             {
                 "canDrag": true,
