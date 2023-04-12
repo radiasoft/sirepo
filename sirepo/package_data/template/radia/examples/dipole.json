@@ -826,7 +826,7 @@
             "isExample":true,
             "magnetType": "dipole",
             "name": "Parameterized C-Bend Dipole",
-            "notes": "C-bend dipole with a single coil",
+            "notes": "",
             "undulatorType": "undulatorBasic",
             "widthAxis": "y"
         },
