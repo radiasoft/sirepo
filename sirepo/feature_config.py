@@ -125,9 +125,13 @@ def _init():
 
     global _cfg
 
+    c = pkconfig.init(
+        developer_mode=b("Turn on developer features", c, dev=True),
+    )
+
     def b(msg, dev=False):
         return (
-            pkconfig.channel_in("dev") if dev else pkconfig.channel_in_internal_test(),
+            c.developer_mode if dev else pkconfig.channel_in_internal_test(),
             bool,
             msg,
         )
@@ -147,9 +151,7 @@ def _init():
             set,
             "codes where all users are authorized by default but that authorization can be revoked",
         ),
-        schema_common=dict(
-            hide_guest_warning=b("Hide the guest warning in the UI", dev=True),
-        ),
+        developer_mode=b("Turn on developer features", dev=True),
         jspec=dict(
             derbenevskrinsky_force_formula=b("Include Derbenev-Skrinsky force formula"),
         ),
@@ -163,15 +165,15 @@ def _init():
             tuple,
             "Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.",
         ),
-        proprietary_sim_types=(
-            frozenset(),
-            set,
-            "codes that contain proprietary information and authorization to use is granted manually",
-        ),
         proprietary_oauth_sim_types=(
             frozenset(),
             set,
             "codes that contain proprietary information and authorization to use is granted through oauth",
+        ),
+        proprietary_sim_types=(
+            frozenset(),
+            set,
+            "codes that contain proprietary information and authorization to use is granted manually",
         ),
         raydata=dict(
             scan_monitor_url=(
@@ -183,10 +185,13 @@ def _init():
         # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
         react_sim_types=(
             ("jspec", "genesis", "warppba", "omega", "myapp")
-            if pkconfig.channel_in("dev")
+            if c.developer_mode
             else (),
             set,
             "React apps",
+        ),
+        schema_common=dict(
+            hide_guest_warning=b("Hide the guest warning in the UI", dev=True),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         slack_uri=(
