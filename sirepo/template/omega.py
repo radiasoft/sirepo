@@ -38,8 +38,9 @@ _PLOT_TITLE = PKDict(
 )
 _PLOT_Y_LABEL = PKDict(
     opal={
-        "x-px": "β_x γ",
-        "y-py": "β_y γ",
+        "x-px": "px [β_x γ]",
+        "y-py": "py [β_y γ]",
+        "z-pz": "pz [β γ]",
     }
 )
 
