@@ -125,17 +125,6 @@ def _init():
 
     global _cfg
 
-    c = pkconfig.init(
-        developer_mode=b("Turn on developer features", c, dev=True),
-    )
-
-    def b(msg, dev=False):
-        return (
-            c.developer_mode if dev else pkconfig.channel_in_internal_test(),
-            bool,
-            msg,
-        )
-
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, "optional api modules, e.g. status"),
@@ -151,9 +140,12 @@ def _init():
             set,
             "codes where all users are authorized by default but that authorization can be revoked",
         ),
-        developer_mode=b("Turn on developer features", dev=True),
         jspec=dict(
-            derbenevskrinsky_force_formula=b("Include Derbenev-Skrinsky force formula"),
+            derbenevskrinsky_force_formula=(
+                pkconfig.channel_in_internal_test(),
+                bool,
+                "Include Derbenev-Skrinsky force formula",
+            ),
         ),
         moderated_sim_types=(
             frozenset(),
@@ -185,13 +177,17 @@ def _init():
         # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
         react_sim_types=(
             ("jspec", "genesis", "warppba", "omega", "myapp")
-            if c.developer_mode
+            if pkconfig.in_dev_mode(),
             else (),
             set,
             "React apps",
         ),
         schema_common=dict(
-            hide_guest_warning=b("Hide the guest warning in the UI", dev=True),
+            hide_guest_warning=(
+                pkconfig.in_dev_mode(),
+                bool,
+                "Hide the guest warning in the UI",
+            ),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         slack_uri=(
@@ -201,7 +197,11 @@ def _init():
         ),
         srw=dict(
             app_url=("/en/xray-beamlines.html", str, "URL for SRW link"),
-            mask_in_toolbar=b("Show the mask element in toolbar"),
+            mask_in_toolbar=(
+                pkconfig.channel_in_internal_test(),
+                bool,
+                "Show the mask element in toolbar",
+            ),
             show_video_links=(False, bool, "Display instruction video links"),
             show_open_shadow=(
                 pkconfig.channel_in_internal_test(),
@@ -221,8 +221,10 @@ def _init():
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),
-            display_test_boxes=b(
-                "Display test boxes to visualize 3D -> 2D projections"
+            display_test_boxes=(
+                pkconfig.in_dev_mode(),
+                bool,
+                "Display test boxes to visualize 3D -> 2D projections",
             ),
         ),
     )
