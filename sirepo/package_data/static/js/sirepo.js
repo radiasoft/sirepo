@@ -3813,14 +3813,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             });
     }
 
-    function beginSession() {
-        requestSender.sendRequest(
-            'beginSession',
-            () => {},
-            {simulationType: SIREPO.APP_SCHEMA.simulationType}
-            );
-    }
-
     self.canDelete = function(item) {
         if (item.isFolder) {
             return item.children.length === 0;
