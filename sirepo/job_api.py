@@ -14,8 +14,8 @@ import inspect
 import pykern.pkconfig
 import pykern.pkio
 import re
-import sirepo.flask
 import sirepo.auth
+import sirepo.flask
 import sirepo.job
 import sirepo.quest
 import sirepo.sim_data
