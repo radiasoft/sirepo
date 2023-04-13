@@ -4,6 +4,7 @@ import { Schema } from "../utility/schema";
 import { getValueSelector, StoreType } from "./data";
 import { Dependency } from "./dependency";
 import { DataHandle, EmptyDataHandle, HandleFactory } from "./handle";
+import cloneDeep from 'lodash/cloneDeep';
 
 export type ArrayAliases = {
     realDataLocation: {
@@ -16,23 +17,28 @@ export type ArrayAliases = {
 }[]
 
 export class HandleFactoryWithArrayAliases extends HandleFactory {
-    constructor(schema: Schema, private aliases: ArrayAliases, private parent: HandleFactory) {
-        super(schema);
+    constructor(schema: Schema, private aliases: ArrayAliases, public parent: HandleFactory) {
+        super(schema, parent);
     }
 
     createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F, DataHandle<M, F>> {
+        console.log("creating aliased handle");
         let alias = this.aliases.find(a => a.fake === dependency.modelName);
+        console.log("alias", alias);
         if(alias !== undefined) {
             let edh = this.parent.createHandle(new Dependency(`${alias.realDataLocation.modelName}.${alias.realDataLocation.fieldName}`), type);
             return new (class implements EmptyDataHandle<M, F> {
                 private createDummyHandle(dh: DataHandle<M, F>): DataHandle<M, F> {
                     let mv = getValueSelector(type)(dh.value)[alias.realDataLocation.index];
-                    let fv = mv[dependency.fieldName];
+                    console.log("array element value", mv);
+                    let fv = mv.item[dependency.fieldName];
+                    console.log("array element field value", fv);
                     return new (class extends DataHandle<M, F> {
                         write(value: F, state: StoreState<M>, dispatch: Dispatch<AnyAction>) {
-                            let av = getValueSelector(type)(dh.value) as ArrayFieldState<M>;
-                            av[alias.realDataLocation.index][dependency.fieldName] = value;
-                            dh.write(dh.value, state, dispatch);
+                            let v = cloneDeep(dh.value);
+                            let av = getValueSelector(type)(v) as ArrayFieldState<M>;
+                            av[alias.realDataLocation.index].item[dependency.fieldName] = value;
+                            dh.write(v, state, dispatch);
                         }
                     })(fv);
                 }

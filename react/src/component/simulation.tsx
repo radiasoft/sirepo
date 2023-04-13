@@ -28,7 +28,7 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
 import { downloadAs, getAttachmentFileName } from "../utility/download";
-import { Provider, useDispatch } from "react-redux";
+import { Provider, useDispatch, useStore } from "react-redux";
 import { StoreState } from "../store/common";
 import { configureStore } from "@reduxjs/toolkit";
 import { formStatesSlice } from "../store/formState";
@@ -46,12 +46,12 @@ export type SimulationInfo = SimulationInfoRaw & {
 }
 
 function SimulationStoreInitializer(props: {[key: string]: any}) {
-    const modelsStore = configureStore({ // TODO: this belongs on the simulation root component
+    const [modelsStore, _] = useState(() => configureStore({ 
         reducer: {
             [modelsSlice.name]: modelsSlice.reducer,
             [formStatesSlice.name]: formStatesSlice.reducer,
         },
-    });
+    }));
 
     return (
         <Provider store={modelsStore}>
@@ -71,8 +71,6 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
     let schema = useContext(CSchema);
     let routeHelper = useContext(CRouteHelper);
     let dispatch = useDispatch();
-
-    console.log("modelActions", modelActions);
 
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
@@ -97,8 +95,10 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
         }))
     }, [])
 
+    let [handleFactory, _] = useState(new BaseHandleFactory(schema))
+
     return hasInit && simulationInfoPromise && (
-        <CHandleFactory.Provider value={new BaseHandleFactory(schema)}>
+        <CHandleFactory.Provider value={handleFactory}>
             <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
                 {props.children}
             </CSimulationInfoPromise.Provider>
@@ -266,6 +266,8 @@ export function SimulationOuter(props) {
     let currentRelativeRouter = new RelativeRouteHelper(pathPrefix);
 
     let handleFactory = useContext(CHandleFactory);
+    let store = useStore();
+    console.log("models", store.getState()[StoreTypes.Models.name]);
     let simNameHandle = handleFactory.createHandle(new Dependency("simulation.name"), StoreTypes.Models).hook();
 
     useEffect(() => {
@@ -300,18 +302,20 @@ export function SimulationRoot(props: {simulationId: string}) {
     // TODO: use multiple rows
     return (
         <SimulationStoreInitializer>
-            <SimulationInfoInitializer simulationId={simulationId}>
-                <SimulationOuter>
-                    <ReportEventManagerInitializer>
-                        <FormStateInitializer>
+            
+                <SimulationInfoInitializer simulationId={simulationId}>
+                    <SimulationOuter>
+                    <FormStateInitializer>
+                        <ReportEventManagerInitializer>
                             <Portal targetId={NavbarRightContainerId} className="order-2">
                                 <SimulationCogMenu/>
                             </Portal>
                             {layoutComponents}
-                        </FormStateInitializer>
-                    </ReportEventManagerInitializer>
-                </SimulationOuter>
-            </SimulationInfoInitializer>
+                        </ReportEventManagerInitializer>
+                    </FormStateInitializer>
+                    </SimulationOuter>
+                </SimulationInfoInitializer>
+            
         </SimulationStoreInitializer>
     )
 }

@@ -32,8 +32,10 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
+        console.log("PANEL RENDER");
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
+        formHandleFactory.useUpdates(PanelLayout);
         let appWrapper = useContext(CAppWrapper);
 
         let shown = useShown(this.config.shown, true, StoreTypes.Models);
@@ -61,7 +63,7 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
 
         let formProps = {
             submit: submit,
-            cancel: formHandleFactory.cancel(store.getState(), dispatch),
+            cancel: () => formHandleFactory.cancel(store.getState(), dispatch),
             showButtons: formHandleFactory.isDirty(),
             formValid: formHandleFactory.isValid(store.getState()),
             mainChildren,

@@ -50,7 +50,6 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         let appName = useContext(CAppName);
         let schema = useContext(CSchema);
         let routeHelper = useContext(CRouteHelper);
-        let handleFactory = useContext(CHandleFactory);
 
         let reportDependencies = dependencies.map(dependencyString => new Dependency(dependencyString));
         let dependentValues = new DependencyReader(reportDependencies, StoreTypes.Models, schema).hook();
@@ -60,6 +59,8 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         let [model, updateModel] = useState(undefined);
 
         useEffect(() => {
+            console.log("EFFECT");
+            console.log("dependent values", dependentValues);
             updateSimulationData(undefined);
             simulationInfoPromise.then(({ models, simulationId }) => {
                 updateModel(models[report]);

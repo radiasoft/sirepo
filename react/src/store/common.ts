@@ -29,16 +29,17 @@ export type StoreState<M> = {
     [key: string]: M
 }
 
-export const makeSlice = <M>(name: string): {
+export const makeSlice = <M>(sliceName: string): {
     slice: Slice<StoreState<M>>,
     actions: StoreActions<M>,
     selectors: StoreSelectors<M>
 } => {
     let slice: Slice<StoreState<M>> = createSlice({
-        name,
+        name: sliceName,
         initialState: {},
         reducers: {
             updateModel: (state, {payload: {name, value}}: {payload: ModelStateUpdate<M>}) => {
+                console.log(`UPDATE MODEL ${name} IN ${sliceName}`);
                 (state[name] as any) = value;
             }
         }

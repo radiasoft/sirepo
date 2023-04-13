@@ -1,19 +1,18 @@
 import { useState } from "react";
-import { Dispatch, AnyAction, Store } from "redux";
+import { Dispatch, AnyAction } from "redux";
 import { StoreState } from "../store/common";
-import { FormModelState, initialFormStateFromValue } from "../store/formState";
+import { FormFieldState, FormModelState } from "../store/formState";
 import { ModelState } from "../store/models";
-import { mapProperties } from "../utility/object";
+import { Dictionary, mapProperties } from "../utility/object";
 import { Schema } from "../utility/schema";
-import { StoreType, StoreTypes } from "./data";
+import { StoreType, StoreTypes, expandDataStructure, revertDataStructure, getValueSelector } from "./data";
 import { Dependency } from "./dependency";
-import { BaseHandleFactory, DataHandle, EmptyDataHandle, HandleFactory } from "./handle";
+import { DataHandle, EmptyDataHandle, HandleFactory } from "./handle";
 
 type FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => void
 type FormSelectorFunc<V> = (state: any) => V
 
-type FormActionsKeyPair = {
-    key: any,
+type FormActions = {
     save: FormActionFunc,
     cancel: FormActionFunc,
     valid: FormSelectorFunc<boolean>
@@ -23,15 +22,27 @@ export function formStateFromModelState(modelState: ModelState): FormModelState 
     return mapProperties(modelState, (name, value) => initialFormStateFromValue(value));
 }
 
-export class FormStateHandleFactory extends HandleFactory {
-    private updated: FormActionsKeyPair[] = []
-    private listeners: (() => void)[] = [];
+function formStateFromSingleValue<T>(value: T): FormFieldState<T> {
+    return {
+        valid: true,
+        value,
+        touched: false
+    }
+}
 
-    constructor(schema: Schema, private parent: HandleFactory) {
-        super(schema);
+export function initialFormStateFromValue<T>(value: T): FormFieldState<T> {
+    return expandDataStructure(value, formStateFromSingleValue);
+}
+
+export class FormStateHandleFactory extends HandleFactory {
+    private updated: Dictionary<any, FormActions> = new Dictionary();
+    private listeners: Dictionary<any, () => void> = new Dictionary();
+
+    constructor(schema: Schema, public parent: HandleFactory) {
+        super(schema, parent);
     }
 
-    private emptyDataHandleFor<M, F>(parent: EmptyDataHandle<M, F>, updateCallback: (dh: DataHandle<M, F>) => void): EmptyDataHandle<M, F> {
+    private emptyDataHandleFor = <M, F>(parent: EmptyDataHandle<M, F>, updateCallback: (dh: DataHandle<M, F>) => void): EmptyDataHandle<M, F> => {
         return new (class implements EmptyDataHandle<M, F> {
             private dataHandleFor(parent: DataHandle<M, F>): DataHandle<M, F> {
                 let dh: DataHandle<M, F> = new (class extends DataHandle<M, F> {
@@ -53,57 +64,84 @@ export class FormStateHandleFactory extends HandleFactory {
         })();
     }
 
-    private addToUpdated = (kp: FormActionsKeyPair) => {
-        let idx = this.updated.findIndex(u => u.key === kp.key);
-        if(idx >= 0) {
-            this.updated.splice(idx, 1);
+    private addToUpdated = (key: any, value: FormActions) => {
+        console.log("add to updated");
+        this.updated.put(key, value);
+        console.log("updated", this.updated);
+        this.notifyListeners();
+    }
+
+    private notifyListeners = () => {
+        this.listeners.items().forEach(l => l.value());
+    }
+
+    private callParentFunctions = (fnName: 'save' | 'cancel', state: any, dispatch: Dispatch<AnyAction>) => {
+        console.log(`${fnName} ------------>`)
+        let p = this.parent;
+        while(p) {
+            let fn: FormActionFunc = p[fnName];
+            if(fn) {
+                fn(state, dispatch);
+            }
+            p = p.parent;
         }
-        this.updated.push(kp)
+        console.log(`${fnName} <-------------`)
     }
 
-    private notifyListeners() {
-        this.listeners.forEach(l => l());
-    }
-
-    save(state: any, dispatch: Dispatch<AnyAction>) {
-        this.updated.forEach(u => u.save(state, dispatch));
-        this.updated = [];
+    save: FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => {
+        console.log("SAVE CALLED");
+        this.updated.items().forEach(u => u.value.save(state, dispatch));
+        this.updated = new Dictionary();
         this.notifyListeners();
+        this.callParentFunctions("save", state, dispatch);
     }
 
-    cancel(state: any, dispatch: Dispatch<AnyAction>) {
-        this.updated.forEach(u => u.cancel(state, dispatch));
-        this.updated = [];
+    cancel: FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => {
+        console.log("CANCEL CALLED");
+        this.updated.items().forEach(u => u.value.cancel(state, dispatch));
+        this.updated = new Dictionary();
         this.notifyListeners();
+        this.callParentFunctions("cancel", state, dispatch);
     }
 
-    isDirty(): boolean {
-        return this.updated.length > 0;
+    isDirty = (): boolean => {
+        console.log("IS DIRTY CALLED", this.updated);
+        //debugger;
+        return this.updated.items().length > 0;
     }
 
-    isValid(state: any): boolean {
-        return !this.updated.map(u => !!u.valid(state)).includes(false);
+    isValid = (state: any): boolean => {
+        return !this.updated.items().map(u => !!u.value.valid(state)).includes(false);
     }
 
-    useUpdates() {
+    useUpdates = (key: any) => {
         let [v, u] = useState({});
-        this.listeners.push(() => u({}));
+        this.listeners.put(key, () => u({}));
     }
 
-    createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F> {
+    createHandle = <M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F> => {
         let edh = this.parent.createHandle<M, F>(dependency, type);
         if(type === StoreTypes.FormState) {
             return this.emptyDataHandleFor<M, F>(edh, (dh: DataHandle<M, F>) => {
                 let f = (state: any) => this.parent.createHandle(dependency, StoreTypes.FormState).initialize(state);
                 let m = (state: any) => this.parent.createHandle(dependency, StoreTypes.Models).initialize(state);
-                this.addToUpdated({
-                    key: dh,
+                this.addToUpdated(dh,
+                {
                     save: (state: StoreState<any>, dispatch: Dispatch<AnyAction>) => {
-                        let v = this.schema.models[dependency.modelName][dependency.fieldName].type.toModelValue(f(state).value);
+                        console.log(`SAVING ${dependency.getDependencyString()}`);
+                        /*if(dependency.getDependencyString() === "beamline.elements") {
+                            debugger;
+                        }*/
+                        let type = this.schema.models[dependency.modelName][dependency.fieldName].type
+                        console.log("type", type);
+                        let rawValue = revertDataStructure(f(state).value, getValueSelector(StoreTypes.FormState));
+                        console.log("rawValue", rawValue);
+                        let v = type.toModelValue(rawValue);
+                        console.log("value", v);
                         m(state).write(v, state, dispatch);
                     },
                     cancel: (state: StoreState<any>, dispatch: Dispatch<AnyAction>) => {
-                        f(state).write(initialFormStateFromValue(m(state).value), state, dispatch);
+                        //f(state).write(initialFormStateFromValue(m(state).value), state, dispatch);
                     },
                     valid: (state: any): boolean => {
                         return f(state).value.valid;

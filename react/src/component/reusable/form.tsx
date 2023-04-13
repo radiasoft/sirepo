@@ -10,15 +10,15 @@ import React, {
     useEffect
 } from "react";
 import {
-    formStatesSlice,
-    initialFormStateFromValue
+    formActions,
+    formStatesSlice
 } from "../../store/formState";
 import { useDispatch, useStore } from "react-redux";
 import { AppWrapper, CSchema } from "../../data/appwrapper";
 import { SimulationInfo } from "../simulation";
 import { AnyAction, Dispatch, Store } from "redux";
-import { FormStateHandleFactory } from "../../data/form";
-import { modelActions, modelsSlice } from "../../store/models";
+import { FormStateHandleFactory, initialFormStateFromValue } from "../../data/form";
+import { modelsSlice } from "../../store/models";
 import { mapProperties } from "../../utility/object";
 
 export function FormField(props) {
@@ -80,11 +80,9 @@ export function FormStateInitializer(props) {
     let dispatch = useDispatch();
 
     let ms = store.getState()[modelsSlice.name]
-    let fs = store.getState()[formStatesSlice.name];
     let modelNames = Object.keys(ms);
 
     useEffect(() => {
-        let state = store.getState();
         modelNames.map(mn => {
             return {
                 modelName: mn,
@@ -98,13 +96,14 @@ export function FormStateInitializer(props) {
             if(!modelSchema) {
                 throw new Error(`could not get schema for model=${modelName}`);
             }
-            dispatch(modelActions.updateModel({
+            dispatch(formActions.updateModel({
                 name: modelName,
-                value: mapProperties(ms, ([_, fv]) => initialFormStateFromValue(fv))
+                value: mapProperties(value, (_, fv) => initialFormStateFromValue(fv))
             }));
         });
+        console.log("formState", store.getState()[formStatesSlice.name]);
         updateHasInit(true);
-    }, [])
+    })
 
     return hasInit && (
         <>{props.children}</>

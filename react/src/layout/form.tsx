@@ -1,5 +1,5 @@
 import { LayoutProps, LayoutType, Layout } from "./layout";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import {
     Row,
     Col,
@@ -15,11 +15,12 @@ import { CHandleFactory } from "../data/handle";
 import { StoreTypes } from "../data/data";
 
 export function FormControllerElement(props: {children?: React.ReactNode}) {
+    console.log("FORM CTRL RENDER");
     let schema = useContext(CSchema);
     let handleFactory = useContext(CHandleFactory);
-    let formHandleFactory = new FormStateHandleFactory(schema, handleFactory);
+    let [formHandleFactory, _] = useState(new FormStateHandleFactory(schema, handleFactory));
     // TODO: form controller might need to "subscribe to updates" during save
-    formHandleFactory.useUpdates();
+    formHandleFactory.useUpdates(FormControllerElement);
 
     return (
         <CHandleFactory.Provider value={formHandleFactory}>
@@ -106,7 +107,7 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
                                         valid: fieldType.validate(value),
                                         touched: true,
                                         value
-                                    }, store.getState()[StoreTypes.FormState.name], dispatch)
+                                    }, store.getState(), dispatch)
                                 }}
                                 dependency={fieldDependency}
                                 inputComponent={fieldType.component}/>
@@ -158,7 +159,7 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
                             valid: fieldType.validate(value),
                             touched: true,
                             value
-                        }, store.getState()[StoreTypes.FormState.name], dispatch)
+                        }, store.getState(), dispatch)
                     }}
                     inputComponent={fieldSchema.type.component}/>
                 }

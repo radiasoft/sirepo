@@ -40,29 +40,42 @@ export function BeamlineThumbnail(props: { name: string, iconSrc: string, onClic
     )
 }
 
-export function BeamlineItem(props: { baseElement: BeamlineElement & { layouts: Layout[] }, onClick?: () => void, modalShown: boolean, onHideModal?: () => void }) {
-    let { baseElement, onClick, modalShown, onHideModal } = props;
+export function BeamlineItem(props: { baseElement: BeamlineElement & { layouts: Layout[] }, aliases: ArrayAliases, onClick?: () => void, modalShown: boolean, onHideModal?: () => void }) {
+    let { baseElement, aliases, onClick, modalShown, onHideModal } = props;
     
     let routeHelper = useContext(CRouteHelper);
     let store = useStore();
     let simulationInfoPromise = useContext(CSimulationInfoPromise);
-    let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
+    let schema = useContext(CSchema);
+    let handleFactory = useContext(CHandleFactory);
+    let [aliasedHandleFactory, _] = useState(new FormStateHandleFactory(schema, new HandleFactoryWithArrayAliases(schema, aliases, handleFactory)));
+    //aliasedHandleFactory.useUpdates(BeamlineItem);
     let dispatch = useDispatch();
     let appWrapper = useContext(CAppWrapper);
 
-    let { submit: _submit, cancel: _cancel } = formActionFunctions({
-        formHandleFactory,
+    let actionFunctions = formActionFunctions({
+        formHandleFactory: aliasedHandleFactory,
         store,
         simulationInfoPromise,
         appWrapper,
         dispatch
     });
 
-    let isDirty = formHandleFactory.isDirty();
-    let isValid = formHandleFactory.isValid(store.getState());
+    let _submit = () => {
+        actionFunctions.submit();
+        onHideModal();
+    }
+
+    let _cancel = () => {
+        actionFunctions.cancel();
+        onHideModal();
+    }
+
+    let isDirty = aliasedHandleFactory.isDirty();
+    let isValid = aliasedHandleFactory.isValid(store.getState());
     let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
     return (
-        <>
+        <CHandleFactory.Provider value={aliasedHandleFactory}>
             <div onClick={onClick}>
                 <BeamlineThumbnail name={baseElement.name} iconSrc={routeHelper.globalRoute("svg", { fileName: baseElement.icon })}/>
             </div>
@@ -83,7 +96,7 @@ export function BeamlineItem(props: { baseElement: BeamlineElement & { layouts: 
                     {isDirty && actionButtons}
                 </Modal.Body>
             </Modal>
-        </>     
+        </CHandleFactory.Provider>  
     )
 }
 
@@ -103,6 +116,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
         let schema = useContext(CSchema);
         let dispatch = useDispatch();
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
+        formHandleFactory.useUpdates(BeamlineLayout);
         let appWrapper = useContext(CAppWrapper);
 
         let beamlineDependency: Dependency = new Dependency(this.config.beamlineDependency);
@@ -111,17 +125,18 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
 
         let handle = formHandleFactory.createHandle<FormModelState, FormFieldState<ArrayFieldState<FormModelState>>>(beamlineDependency, StoreTypes.FormState).hook(); // TODO: form or model?
 
+        console.log("beamline handle value", handle);
+
         let addBeamlineElement = (element: BeamlineElement) => {
             console.log("AAA");
             let ms = schema.models[element.model];
             // TODO: use generic methods
             let l = handle.value.value.length;
-            let prev: FormModelState | undefined = l > 0 ? handle.value.value[l - 1].item : undefined
-            let nextPosition: string = prev ? `${parseFloat(prev.position.value) + 5}` : "0";
-            let nextId: string = prev ? `${parseInt(prev.id.value) + 1}` : "1";
+            let nextId = handle.value.value.reduce((prev, cur) => Math.max(prev, parseInt(cur.item.id.value) + 1), 1);
+            let nextPos = handle.value.value.reduce((prev, cur) => Math.max(prev, parseFloat(cur.item.position.value) + 5), 0);
             let mv = newModelFromSchema(ms, {
-                id: nextId,
-                position: nextPosition,
+                id: `${nextId}`,
+                position: `${nextPos}`,
                 type: element.model
             })
             
@@ -135,7 +150,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
                 ...handle.value,
                 touched: true,
                 value: bv
-            }, store.getState()[StoreTypes.FormState.name], dispatch);
+            }, store.getState(), dispatch);
             console.log("ADD ELEMENT");
         }
 
@@ -158,9 +173,11 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
         let beamlineComponents = handle.value.value.map((e, i) => {
             let model = e.model;
             let ele: FormModelState = e.item;
+            console.log("ele", ele);
             let id = ele.id.value;
             console.log("id", id);
             let baseElement = findBaseElementByModel(model);
+
             let aliases: ArrayAliases = [
                 {
                     realDataLocation: {
@@ -172,12 +189,9 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
                     fake: model
                 }
             ];
-
-            let aliasedHandleFactory = new HandleFactoryWithArrayAliases(schema, aliases, formHandleFactory);
+            
             return (
-                <CHandleFactory.Provider value={aliasedHandleFactory}>
-                    <BeamlineItem baseElement={baseElement} onClick={() => updateShownModal(i)} modalShown={shownModal === i} onHideModal={() => shownModal === i && updateShownModal(undefined)}/>
-                </CHandleFactory.Provider>
+                <BeamlineItem key={id} baseElement={baseElement} aliases={aliases} onClick={() => updateShownModal(i)} modalShown={shownModal === i} onHideModal={() => shownModal === i && updateShownModal(undefined)}/>
             )
         })
 

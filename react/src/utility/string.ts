@@ -90,3 +90,10 @@ export function titleCaseString(str: string): string {
         return word.substring(0,1).toUpperCase() + (word.length > 1 ? word.substring(1) : "");
     }).join(" ");
 }
+
+export function hashCode(s: string): number {
+    return s.split("").reduce(function(a, b) {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+  }

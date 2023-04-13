@@ -1,10 +1,9 @@
 import React from "react";
-import { useSelector, useStore } from "react-redux";
+import { useSelector } from "react-redux";
 import { AnyAction, Dispatch } from "redux";
-import { StoreState } from "../store/common";
-import { ModelState } from "../store/models";
 import { Schema } from "../utility/schema";
-import { getModelReadSelector, getModelWriteActionCreator, getValueSelector, StoreType, StoreTypes } from "./data";
+import { hashCode } from "../utility/string";
+import { getModelReadSelector, getModelWriteActionCreator, getValueSelector, revertDataStructure, StoreType } from "./data";
 import { Dependency } from "./dependency";
 
 export const CHandleFactory = React.createContext<HandleFactory>(undefined);
@@ -14,7 +13,7 @@ export abstract class DataHandle<M, F> {
         this.value = currentValue;
     }
 
-    abstract write(value: F, state: StoreState<M>, dispatch: Dispatch<AnyAction>);
+    abstract write(value: F, state: any, dispatch: Dispatch<AnyAction>);
     readonly value: F; 
 }
 
@@ -33,9 +32,8 @@ export interface EmptyDataHandle<M, F, D extends DataHandle<M, F> = DataHandle<M
 export type SelectorUser = <M>(selector: (state: any) => M) => M;
 
 export abstract class HandleFactory {
-    constructor(protected schema: Schema) {}
+    constructor(protected schema: Schema, public parent?: HandleFactory) {}
     abstract createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F>;
-    //abstract createArrayHandle<F>(dependency: Dependency, type: StoreType<any, F>): EmptyDataHandle<F>;
 }
 
 export class BaseHandleFactory extends HandleFactory {
@@ -44,7 +42,7 @@ export class BaseHandleFactory extends HandleFactory {
         let mac = getModelWriteActionCreator(type);
         let cdh = (value: F): DataHandle<M, F> => {
             return new (class extends DataHandle<M, F> {
-                write = (value: F, state: StoreState<M>, dispatch: Dispatch<AnyAction>) => {
+                write = (value: F, state: any, dispatch: Dispatch<AnyAction>) => {
                     let mv = {...state[type.name][dependency.modelName]};
                     mv[dependency.fieldName] = value;
                     dispatch(mac(dependency.modelName, mv));
@@ -56,7 +54,9 @@ export class BaseHandleFactory extends HandleFactory {
                 return cdh(ms(state)[dependency.fieldName]);
             },
             hook: () => {
-                return cdh(useSelector(ms)[dependency.fieldName]);
+                let mv = useSelector(ms);
+                //console.log("dependency", dependency.getDependencyString(), mv);
+                return cdh(mv[dependency.fieldName]);
             }
         }
     }
@@ -77,43 +77,37 @@ export class DependencyReader<F> {
 
     private expandWildcard(dependency: Dependency): Dependency[] {
         if(dependency.fieldName === `*`) {
-            return Object.keys(this.schema.models[dependency.fieldName]).map(fName => new Dependency(`${dependency.modelName}.${fName}`));
+            return Object.keys(this.schema.models[dependency.modelName]).map(fName => new Dependency(`${dependency.modelName}.${fName}`));
         }
         return [dependency];
     }
 
-    hook = (): DependencyValuePair<F>[] => {
-        let vs = getValueSelector(this.type);
-        let newDeps = this.dependencies.flatMap(d => this.expandWildcard(d));
-
-        return newDeps.map(d => {
-            let c = (d: Dependency) => {
-                let ms = getModelReadSelector(this.type)(d.modelName);
-                return useSelector(ms)[d.fieldName];
-            }
-
-            return {
-                value: vs(c(d)),
-                dependency: d
-            }
-        })
+    private hashify = <T>(x: T): T | number => {
+        if(typeof(x) == "object") {
+            return hashCode(JSON.stringify(x));
+        }
+        return x;
     }
 
-    initialize = (state: any): DependencyValuePair<F>[] => {
+    getData = (su: SelectorUser): F[] => {
         let vs = getValueSelector(this.type);
         let newDeps = this.dependencies.flatMap(d => this.expandWildcard(d));
-
         return newDeps.map(d => {
             let c = (d: Dependency) => {
                 let ms = getModelReadSelector(this.type)(d.modelName);
-                return ms(state)[d.fieldName];
+                return su(ms)[d.fieldName];
             }
 
-            return {
-                value: vs(c(d)),
-                dependency: d
-            }
+            return this.hashify(revertDataStructure(c(d), vs));
         })
+    } 
+
+    hook = (): F[] => {
+        return this.getData(s => useSelector(s));
+    }
+
+    initialize = (state: any): F[] => {
+        return this.getData(s => s(state));
     }
 }
 
