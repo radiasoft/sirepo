@@ -15,7 +15,7 @@ import pathlib
 def default_command():
     global cfg
 
-    assert pkconfig.channel_in("dev"), "Only to be used in dev. channel={}".format(
+    assert pkconfig.in_dev_mode(), "Only to be used in dev. channel={}".format(
         pkconfig.cfg.channel
     )
     cfg = pkconfig.init(

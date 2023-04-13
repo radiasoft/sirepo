@@ -99,11 +99,7 @@ class _Cookie(sirepo.quest.Attr):
     def _crypto(self):
         if "_crypto_alg" not in self:
             if _cfg.private_key is None:
-                assert pkconfig.channel_in(
-                    "dev"
-                ), "must configure private_key in non-dev channel={}".format(
-                    pkconfig.cfg.channel
-                )
+                assert pkconfig.in_dev_mode(), "must configure private_key in non-dev"
                 _cfg.private_key = base64.urlsafe_b64encode(
                     b"01234567890123456789012345678912"
                 )
@@ -195,9 +191,9 @@ def init_module():
         ),
         private_key=(None, str, "urlsafe base64 encrypted 32-byte key"),
         is_secure=(
-            not pkconfig.channel_in("dev"),
+            not pkconfig.in_dev_mode(),
             pkconfig.parse_bool,
-            "Add secure attriute to Set-Cookie",
+            "Add secure attribute to Set-Cookie",
         ),
     )
     sirepo.events.register(PKDict(end_api_call=_end_api_call))
