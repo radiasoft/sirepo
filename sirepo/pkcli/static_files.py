@@ -14,18 +14,18 @@ import sirepo.resource
 _ROOT_FILES = frozenset(("static/img/favicon.ico", "static/img/favicon.png"))
 
 
-def gen(target_d):
-    """Generate static files into `target_d`
+def gen(target_dir):
+    """Generate static files into `target_dir`
 
     Args:
-        target_d (str): directory must exist or be creatable
+        target_dir (str): directory must exist or be creatable
     """
 
     def _root_copy(dst, rel, src):
         if rel in _ROOT_FILES:
             src.copy(dst.join(src.basename))
 
-    d = pykern.pkio.py_path(target_d)
+    d = pykern.pkio.py_path(target_dir)
     for r, s in sirepo.resource.static_files():
         t = d.join(r)
         pykern.pkio.mkdir_parent_only(t)
