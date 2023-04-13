@@ -131,6 +131,7 @@
         "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "exportJupyterNotebook2": "/export-jupyter-notebook2/<simulation_type>",
         "favicon": "/favicon.ico",
+        "faviconPng": "/favicon.png",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "forbidden": "/forbidden",
