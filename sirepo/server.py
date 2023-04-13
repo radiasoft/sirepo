@@ -11,6 +11,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 import re
+import sirepo.const
 import sirepo.feature_config
 import sirepo.flask
 import sirepo.quest
@@ -177,6 +178,15 @@ class API(sirepo.quest.API):
         return self.reply_file(
             sirepo.resource.static("img", "favicon.ico"),
             content_type="image/vnd.microsoft.icon",
+        )
+
+    @sirepo.quest.Spec("allow_visitor")
+    async def api_faviconPng(self):
+        """Routes to favicon.png file."""
+        # SECURITY: We control the path of the file so using send_file is ok.
+        return self.reply_file(
+            sirepo.resource.static("img", "favicon.png"),
+            content_type="image/png",
         )
 
     @sirepo.quest.Spec("allow_visitor")
@@ -612,7 +622,7 @@ class API(sirepo.quest.API):
         """
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
-        self._proxy_react("static/" + path_info)
+        self._proxy_react(f"{sirepo.const.STATIC_D}/" + path_info)
         p = sirepo.resource.static(sirepo.util.validate_path(path_info))
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
             return self.headers_for_cache(
@@ -841,15 +851,15 @@ def _init_proxy_react():
     p = [
         "asset-manifest.json",
         "manifest.json",
-        "static/js/bundle.js",
-        "static/js/bundle.js.map",
+        f"{sirepo.const.STATIC_D}/js/bundle.js",
+        f"{sirepo.const.STATIC_D}/js/bundle.js.map",
     ]
     _PROXY_REACT_URI_SET = set(p)
     r = "^react/"
     for x in sirepo.feature_config.cfg().react_sim_types:
         r += rf"|^{x}(?:\/|$)"
     if cfg.react_server == _REACT_SERVER_BUILD:
-        r += r"|^static/(css|js)/main\."
+        r += rf"|^{sirepo.const.STATIC_D}/(css|js)/main\."
     _PROXY_REACT_URI_RE = re.compile(r)
 
 

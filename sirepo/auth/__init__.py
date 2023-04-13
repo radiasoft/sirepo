@@ -92,7 +92,7 @@ def init_quest(qcall, internal_req=None):
     if (
         not _cfg.logged_in_user
         and internal_req
-        or qcall.bucket_unchecked_get("in_srunit")
+        or qcall.bucket_unchecked_get("in_pkcli")
     ):
         sirepo.request.init_quest(qcall, internal_req)
         sirepo.reply.init_quest(qcall)
