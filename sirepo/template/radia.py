@@ -1703,7 +1703,7 @@ def _update_geom_obj(o, qcall=None, **kwargs):
         o.points = pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
             o, _get_stemmed_info(o)
         )
-    if "points" in o:
+    if o.get("points"):
         o.area = _poly_area(o.points)
     if o.type == "stl":
         mesh = _read_stl_file(o.file, qcall=qcall)
