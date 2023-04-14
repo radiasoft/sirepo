@@ -125,6 +125,12 @@ def _init():
 
     global _cfg
 
+    def _dev(msg):
+        return (pkconfig.in_dev_mode(), bool, msg)
+
+    def _test(msg):
+        return (pkconfig.channel_in_internal_test(), bool, msg)
+
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, "optional api modules, e.g. status"),
@@ -141,10 +147,8 @@ def _init():
             "codes where all users are authorized by default but that authorization can be revoked",
         ),
         jspec=dict(
-            derbenevskrinsky_force_formula=(
-                pkconfig.channel_in_internal_test(),
-                bool,
-                "Include Derbenev-Skrinsky force formula",
+            derbenevskrinsky_force_formula=_test(
+                "Include Derbenev-Skrinsky force formula"
             ),
         ),
         moderated_sim_types=(
@@ -183,11 +187,7 @@ def _init():
             "React apps",
         ),
         schema_common=dict(
-            hide_guest_warning=(
-                pkconfig.in_dev_mode(),
-                bool,
-                "Hide the guest warning in the UI",
-            ),
+            hide_guest_warning=_dev("Hide the guest warning in the UI"),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         slack_uri=(
@@ -197,22 +197,10 @@ def _init():
         ),
         srw=dict(
             app_url=("/en/xray-beamlines.html", str, "URL for SRW link"),
-            mask_in_toolbar=(
-                pkconfig.channel_in_internal_test(),
-                bool,
-                "Show the mask element in toolbar",
-            ),
+            mask_in_toolbar=_test("Show the mask element in toolbar"),
             show_video_links=(False, bool, "Display instruction video links"),
-            show_open_shadow=(
-                pkconfig.channel_in_internal_test(),
-                bool,
-                'Show "Open as a New Shadow Simulation" menu item',
-            ),
-            show_rsopt_ml=(
-                pkconfig.channel_in_internal_test(),
-                bool,
-                'Show "Export ML Script" menu item',
-            ),
+            show_open_shadow=_test('Show "Open as a New Shadow Simulation" menu item'),
+            show_rsopt_ml=_test('Show "Export ML Script" menu item'),
         ),
         trust_sh_env=(
             False,
@@ -221,10 +209,8 @@ def _init():
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),
-            display_test_boxes=(
-                pkconfig.in_dev_mode(),
-                bool,
-                "Display test boxes to visualize 3D -> 2D projections",
+            display_test_boxes=_dev(
+                "Display test boxes to visualize 3D -> 2D projections"
             ),
         ),
     )
