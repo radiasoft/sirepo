@@ -3224,6 +3224,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwSe
                     container: $('.sr-beamline3d-content')[0],
                 });
                 labelCanvas = document.createElement('canvas');
+                labelCanvas.getContext('2d', { willReadFrequently: true,});
                 fsRenderer.getInteractor().onAnimation(vtk.macro.debounce(updateOrientation, 250));
                 plotToPNG.initVTK($element, fsRenderer);
             };
