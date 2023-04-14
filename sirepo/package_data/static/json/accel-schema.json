@@ -1,5 +1,13 @@
 {
-    "enum": {},
+    "constants": {
+        "inProgressText": "Reading"
+    },
+    "enum": {
+        "Run": [
+            ["RUN", "RUN"],
+            ["STOP", "STOP"]
+        ]
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": ["accel.js"]
@@ -14,25 +22,50 @@
         }
     },
     "model": {
-        "processVariables": {
-            "a": ["a", "Float"],
-            "b": ["b", "Float"],
-            "c": ["c", "Float"]
+        "MTEST": {
+            "Run": ["Run Status", "Run", "STOP"],
+            "MaxPoints": ["Max Points", "Integer", 1000],
+            "UpdateTime": ["Update Time", "Float", 1],
+            "TimePerDivision": ["Time Per Division", "Float", 0.001],
+            "TriggerDelay": ["Trigger Delay", "Float", 0.2],
+            "VoltOffset": ["Volt Offset", "Float", 0],
+            "NoiseAmplitude": ["Noise Amplitude", "Float", 0.2],
+            "Waveform": ["Waveform", "String", ""],
+            "TimeBase": ["Time Base", "String", ""],
+            "MinValue": ["Min Value", "Float", 0],
+            "MaxValue": ["Max Value", "Float", 0],
+            "MeanValue": ["Mean Value", "Float", 0]
         },
-        "simulationStatus": {}
+        "simulationStatus": {},
+        "waveformReport": {}
+    },
+    "strings": {
+        "completionState": "",
+        "typeOfSimulation": "monitor"
     },
     "view": {
-        "processVariables": {
-            "title": "Process Variables",
+        "MTEST": {
+            "title": "PCASPY simscope",
             "basic": [
-                "a",
-                "b",
-                "c"
+                "Run",
+                "MaxPoints",
+                "UpdateTime",
+                "TimePerDivision",
+                "TriggerDelay",
+                "VoltOffset",
+                "NoiseAmplitude",
+                "MinValue",
+                "MaxValue",
+                "MeanValue"
             ],
             "advanced": []
         },
         "simulationStatus": {
-            "title": "Simulation status",
+            "title": "EPICS Monitor",
+            "advanced": []
+        },
+        "waveformReport": {
+            "title": "Waveform",
             "advanced": []
         }
     }

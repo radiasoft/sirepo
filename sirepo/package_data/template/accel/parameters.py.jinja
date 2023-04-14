@@ -1,5 +1,28 @@
-def run():
-    print("PV SUM:")
-    print({{a}} + {{b}} + {{c}})
+from pykern.pkcollections import PKDict
+import json
+import re
+import select
+import shutil
+import sys
 
-run()
+
+STATUS_FILE = '{{ statusFile }}'
+OUT_FILE = 'out.json'
+pvs = PKDict()
+
+for line in sys.stdin:
+    if line != '\n':
+        m = re.match(r'^(\S+)\s+(\S+\s\S+)\s+(.*?)\s*((UDF INVALID)|(STATE .*))?$', line)
+        if not m:
+            print(f'unmatched: {line}')
+            continue
+        name, time, value = m.group(1, 2, 3)
+        pvs[name] = [value, time]
+        if name == 'MTEST:MinValue':
+            print(f'time: {time}')
+    if not select.select([sys.stdin, ], [], [], 0.0)[0]:
+        # no remaining data, save input file info
+        with open(OUT_FILE, 'w') as f:
+            json.dump(pvs, f)
+        # move is atomic, so full file will be available for reader
+        shutil.move(OUT_FILE, STATUS_FILE)
