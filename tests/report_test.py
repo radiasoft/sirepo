@@ -52,7 +52,7 @@ def test_opal(fc):
 def test_radia(fc):
     _r(
         fc,
-        "Dipole",
+        "Parameterized C-Bend Dipole",
         "geometryReport",
     )
 
