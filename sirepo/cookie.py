@@ -32,7 +32,7 @@ _cfg = None
 def init_quest(qcall):
     c = _Cookie(qcall)
     qcall.attr_set("cookie", c)
-    if qcall.bucket_unchecked_get("in_srunit"):
+    if qcall.bucket_unchecked_get("in_pkcli"):
         c.set_sentinel()
 
 
