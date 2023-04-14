@@ -520,7 +520,7 @@
         "coherentModesAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
@@ -805,7 +805,7 @@
         },
         "machineLearningAnimation": {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
@@ -852,7 +852,7 @@
         "multiElectronAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
