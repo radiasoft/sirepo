@@ -177,7 +177,7 @@ def _init():
         # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
         react_sim_types=(
             ("jspec", "genesis", "warppba", "omega", "myapp")
-            if pkconfig.in_dev_mode(),
+            if pkconfig.in_dev_mode()
             else (),
             set,
             "React apps",
