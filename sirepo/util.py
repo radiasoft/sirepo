@@ -253,7 +253,7 @@ def err(obj, fmt="", *args, **kwargs):
 def files_to_watch_for_reload(*extensions):
     from sirepo import feature_config
 
-    if not pkconfig.channel_in("dev"):
+    if not pkconfig.in_dev_mode():
         return []
     for e in extensions:
         for p in sorted(set(["sirepo", *feature_config.cfg().package_path])):
