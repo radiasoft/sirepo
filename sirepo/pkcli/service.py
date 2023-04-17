@@ -45,7 +45,7 @@ def flask():
     with pkio.save_chdir(_run_dir()) as r:
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
-        assert pkconfig.channel_in("dev")
+        assert pkconfig.in_dev_mode()
         app = sirepo.modules.import_and_init("sirepo.server").init_app(
             use_reloader=_cfg().use_reloader,
             is_server=True,
@@ -129,7 +129,7 @@ def http():
             )
         )
 
-    assert pkconfig.channel_in("dev")
+    assert pkconfig.in_dev_mode()
     try:
         with pkio.save_chdir(_run_dir()), _handle_signals(
             (signal.SIGINT, signal.SIGTERM)
@@ -159,7 +159,7 @@ def http():
 
 
 def jupyterhub():
-    assert pkconfig.channel_in("dev")
+    assert pkconfig.in_dev_mode()
     sirepo.template.assert_sim_type("jupyterhublogin")
     # POSIT: versions same in container-beamsim-jupyter/build.sh
     # Order is important: jupyterlab-server should be last so it isn't
@@ -208,7 +208,7 @@ def nginx_proxy():
     """
     import sirepo.template
 
-    assert pkconfig.channel_in("dev")
+    assert pkconfig.in_dev_mode()
     run_dir = _run_dir().join("nginx_proxy").ensure(dir=True)
     with pkio.save_chdir(run_dir) as d:
         f = run_dir.join("default.conf")
@@ -235,7 +235,7 @@ def server():
 
 def tornado():
     with pkio.save_chdir(_run_dir()) as r:
-        d = pkconfig.channel_in("dev")
+        d = pkconfig.in_dev_mode()
         if d:
             sirepo.pkcli.setup_dev.default_command()
             if _cfg().use_reloader:
@@ -257,7 +257,7 @@ def uwsgi():
     with pkio.save_chdir(run_dir):
         values = _cfg().copy()
         values["logto"] = (
-            None if pkconfig.channel_in("dev") else str(run_dir.join("uwsgi.log"))
+            None if pkconfig.in_dev_mode() else str(run_dir.join("uwsgi.log"))
         )
         # uwsgi.py must be first, because values['uwsgi_py'] referenced by uwsgi.yml
         for f in ("uwsgi.py", "uwsgi.yml"):
@@ -305,7 +305,7 @@ def _cfg():
             # this application.
             threads=(10, _cfg_int(1, 128), "how many uwsgi threads in each process"),
             tornado=(False, bool, "use tornado for server"),
-            use_reloader=(pkconfig.channel_in("dev"), bool, "use the server reloader"),
+            use_reloader=(pkconfig.in_dev_mode(), bool, "use the server reloader"),
         )
     return __cfg
 

@@ -610,7 +610,7 @@ class _SbatchCmd(_Cmd):
     def job_cmd_env(self):
         # POSIT: sirepo.mpi cfg sentinel for running in slurm
         e = PKDict(SIREPO_MPI_IN_SLURM=1)
-        if pkconfig.channel_in("dev"):
+        if pkconfig.in_dev_mode():
             h = pkio.py_path("~/src/radiasoft")
             e.PYTHONPATH = "{}:{}".format(h.join("sirepo"), h.join("pykern"))
         return super().job_cmd_env(e)
