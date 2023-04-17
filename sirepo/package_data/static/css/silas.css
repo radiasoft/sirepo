@@ -12,11 +12,11 @@
 }
 
 .srw-drop-between-zone {
-  width: 1.5em;
+  width: 10px;
   max-width: 10px;
 }
 
 .srw-drop-between-zone.drag-enter {
-  width: 1em !important;
-  max-width: 1em;
+  width: 10px !important;
+  max-width: 10px;
 }
