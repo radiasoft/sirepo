@@ -2216,12 +2216,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 radiaService.objBounds = bounds;
 
                 const acfg = {};
+                const scale = SIREPO.APP_SCHEMA.constants.objectScale;
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
-                    acfg[dim].label = dim + ' [mm]';
-                    acfg[dim].max = bounds[2 * i + 1];
-                    acfg[dim].min = bounds[2 * i];
+                    acfg[dim].label = dim + ' [m]';
+                    acfg[dim].max = scale * bounds[2 * i + 1];
+                    acfg[dim].min = scale * bounds[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
                     acfg[dim].showCentral = true;
