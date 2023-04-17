@@ -74,7 +74,7 @@ def quest_start(want_user=False, cfg=None):
 
     from sirepo import quest
 
-    with quest.start(in_srunit=True) as qcall:
+    with quest.start(in_pkcli=True) as qcall:
         qcall.auth_db.create_or_upgrade()
         if want_user:
             qcall.auth.login(is_mock=True)

@@ -25,7 +25,7 @@ _FORM_FILE_NAME = "file"
 
 
 def init_quest(qcall, internal_req=None):
-    if qcall.bucket_unchecked_get("in_srunit"):
+    if qcall.bucket_unchecked_get("in_pkcli"):
         sreq = _SRequest(
             http_authorization=None,
             http_headers=PKDict(),
