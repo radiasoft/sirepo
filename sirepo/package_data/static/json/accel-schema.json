@@ -1,6 +1,12 @@
 {
     "constants": {
-        "inProgressText": "Reading"
+        "inProgressText": "Reading",
+        "epicsPlots": {
+            "waveformReport": {
+                "x": "MTEST:TimeBase",
+                "y": "MTEST:Waveform"
+            }
+        }
     },
     "enum": {
         "Run": [
@@ -23,18 +29,18 @@
     },
     "model": {
         "MTEST": {
-            "Run": ["Run Status", "Run", "STOP"],
-            "MaxPoints": ["Max Points", "Integer", 1000],
-            "UpdateTime": ["Update Time", "Float", 1],
-            "TimePerDivision": ["Time Per Division", "Float", 0.001],
-            "TriggerDelay": ["Trigger Delay", "Float", 0.2],
-            "VoltOffset": ["Volt Offset", "Float", 0],
-            "NoiseAmplitude": ["Noise Amplitude", "Float", 0.2],
-            "Waveform": ["Waveform", "String", ""],
-            "TimeBase": ["Time Base", "String", ""],
-            "MinValue": ["Min Value", "Float", 0],
-            "MaxValue": ["Max Value", "Float", 0],
-            "MeanValue": ["Mean Value", "Float", 0]
+            "Run": ["Run Status", "EpicsEnum", "STOP"],
+            "MaxPoints": ["Max Points", "EpicsInteger", 1000],
+            "UpdateTime": ["Update Time", "EpicsFloat", 1],
+            "TimePerDivision": ["Time Per Division", "EpicsFloat", 0.001],
+            "TriggerDelay": ["Trigger Delay", "EpicsFloat", 0.2],
+            "VoltOffset": ["Volt Offset", "EpicsFloat", 0],
+            "NoiseAmplitude": ["Noise Amplitude", "EpicsFloat", 0.2],
+            "Waveform": ["Waveform", "ReadOnlyFloatArray", []],
+            "TimeBase": ["Time Base", "ReadOnlyFloatArray", []],
+            "MinValue": ["Min Value", "ReadOnlyFloat", 0],
+            "MaxValue": ["Max Value", "ReadOnlyFloat", 0],
+            "MeanValue": ["Mean Value", "ReadOnlyFloat", 0]
         },
         "simulationStatus": {},
         "waveformReport": {}
