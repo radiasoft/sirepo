@@ -109,5 +109,14 @@ np.save('{{ testFile }}', {% if image_data %}o.testy{% else %}testy{% endif %})
 np.save('{{ predictFile }}', p)
 {% if imageOut %}
 np.save('{{ bestFile }}', o.best)
+if len(testx.original_shape_x) > 2:
+    c = 0
+    original_x = numpy.array([])
+    for batch in testx:
+        for img in batch:
+            c += 1
+            original_x = np.append([original_x], [img])
+    original_x = np.reshape(original_x, (c, *testx.original_shape_x[1:]))
+    np.save('{{ originalImageInFile }}', original_x)
 np.save('{{ worstFile }}', o.worst)
 {% endif %}
