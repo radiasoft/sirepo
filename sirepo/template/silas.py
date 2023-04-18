@@ -215,7 +215,7 @@ def _laser_pulse_plot(run_dir, data_type, sim_in):
 def _generate_beamline_elements(data):
     def _callback(state, element, dz):
         if dz:
-            state.res += f'(Drift({dz}), ["default"]),\n'
+            state.res += f'(Drift({round(dz, 9)}), ["default"]),\n'
         if element.type == "watch" or element.get("isDisabled"):
             return
         if element.type == "lens":
@@ -223,7 +223,7 @@ def _generate_beamline_elements(data):
         elif element.type == "mirror":
             state.res += "(Mirror(), []),\n"
         elif element.type == "crystal":
-            if element.origin == "reuseCrystal":
+            if element.origin == "reuse":
                 return
             state.res += _generate_crystal(element)
         else:
@@ -280,8 +280,7 @@ def _generate_crystal(crystal):
             ),
         ),
         ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
-    ),
-    """
+    ),\n"""
 
 
 def _generate_parameters_file(data):

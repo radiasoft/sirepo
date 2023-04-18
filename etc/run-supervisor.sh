@@ -25,20 +25,20 @@ radia_run redhat-docker
         ;;
     nersc)
         if [[ ! ${2:-} || ! ${3:-} ]]; then
-            echo 'you need to supply a proxy NERSC can reach and NERSC user '
+            echo 'you need to supply a host:port (proxy) NERSC can reach and NERSC user '
             exit 1
         fi
-        nersc_proxy=$2
+        supervisor_proxy=$2
         nersc_user=$3
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
-        export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
-        export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE="$docker_image"
+        export SIREPO_JOB_DRIVER_SBATCH_HOST=perlmutter-p1.nersc.gov
+        export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE="${SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE:-$docker_image}"
         export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${nersc_user::1}/$nersc_user/.pyenv/versions/$(pyenv version-name)/bin/sirepo
-        export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo-dev'
+        export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/pscratch/sd/{sbatch_user:.1}/{sbatch_user}/sirepo-dev'
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=15
-        export SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI=http://$nersc_proxy:8001
+        export SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI=http://$supervisor_proxy
         export SIREPO_PKCLI_JOB_SUPERVISOR_IP=0.0.0.0
-        export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC'
+        export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Perlmutter@NERSC'
         ;;
     sbatch)
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
