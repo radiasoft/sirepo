@@ -245,7 +245,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             item.radial_n2 = '0';
         }
         panelState.showFields(item.type, [
-            ['l_scale'], item.propagationType === 'n0n2_lct',
+            ['l_scale'], item.propagationType === 'n0n2_lct' || item.propagationType === 'abcd_lct',
             ['pump_waist'], item.propagationType === 'gain_calc'
                 || item.radial_n2 === '1' || item.calc_gain == '1',
             [
@@ -257,6 +257,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             ['origin'], hasCrystals,
             ['reuseCrystal'], item.origin === 'reuse',
             ['title', 'length', 'nslice'], item.origin === 'new',
+            ['A', 'B', 'C', 'D'], item.propagationType == 'abcd_lct',
         ]);
         panelState.showTab(item.type, 2, item.origin === 'new');
         panelState.showTab(item.type, 3, item.origin === 'new');

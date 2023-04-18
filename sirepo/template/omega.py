@@ -28,6 +28,21 @@ _PHASE_PLOTS = PKDict(
         ["t", "p"],
     ],
 )
+_PLOT_TITLE = PKDict(
+    opal={
+        "x-px": "Horizontal",
+        "y-py": "Vertical",
+        "x-y": "Cross-section",
+        "z-pz": "Longitudinal",
+    }
+)
+_PLOT_Y_LABEL = PKDict(
+    opal={
+        "x-px": "px [β_x γ]",
+        "y-py": "py [β_y γ]",
+        "z-pz": "pz [β γ]",
+    }
+)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -65,15 +80,21 @@ def sim_frame(frame_args):
     if sim_type == "opal":
         import sirepo.template.opal
 
-        return sirepo.template.opal._bunch_plot(
+        r = sirepo.template.opal.bunch_plot(
             frame_args,
             frame_args.run_dir.join(run_dir),
             frame_args.frameIndex,
         )
+        return r.pkupdate(
+            title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
+            y_label=_PLOT_Y_LABEL[sim_type].get(
+                frame_args.x + "-" + frame_args.y, r.y_label
+            ),
+        )
     if sim_type == "elegant":
         import sirepo.template.elegant
 
-        return sirepo.template.elegant._extract_report_data(
+        return sirepo.template.elegant.extract_report_data(
             str(frame_args.run_dir.join(f"{run_dir}/run_setup.output.sdds")),
             frame_args,
         )

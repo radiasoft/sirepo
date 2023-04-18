@@ -218,7 +218,7 @@
         "sbatchHours": 0.4,
         "sbatchProject": "",
         "sbatchQueue": "debug",
-        "tasksPerNode": 32,
+        "tasksPerNode": 128,
         "useIntensityLimits": "0",
         "usePlotRange": "0",
         "verticalOffset": 0,
@@ -264,6 +264,7 @@
     "exportRsOpt": {
         "characteristic": "1",
         "elements": [],
+        "maxOuputDimension": 32,
         "numCores": 4,
         "numSamples": 100,
         "numWorkers": 1,
@@ -376,7 +377,7 @@
         "sbatchHours": 0.4,
         "sbatchProject": "",
         "sbatchQueue": "debug",
-        "tasksPerNode": 32
+        "tasksPerNode": 128
     },
     "mirrorReport": {
         "intensityPlotsWidth": "0",
@@ -411,7 +412,7 @@
         "sbatchProject": "",
         "sbatchQueue": "debug",
         "stokesParameter": "0",
-        "tasksPerNode": 32,
+        "tasksPerNode": 128,
         "useIntensityLimits": "0",
         "usePlotRange": "0",
         "verticalOffset": 0,

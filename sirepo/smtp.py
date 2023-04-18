@@ -84,7 +84,7 @@ def _init():
         _SEND = _send_directly
         return
     _SEND = _send_with_auth
-    if pkconfig.channel_in("dev"):
+    if pkconfig.in_dev_mode():
         if cfg.server is None:
             cfg.server = _DEV_SMTP_SERVER
         return
