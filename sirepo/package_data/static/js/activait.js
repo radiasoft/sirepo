@@ -285,16 +285,16 @@ SIREPO.app.controller('AnalysisController', function (appState, activaitService,
 SIREPO.app.controller('DataController', function (activaitService, appState, $scope) {
     const self = this;
     self.activaitService = activaitService;
-    const c = appState.models.columnInfo;
 
     const hasInOut = inputOutput => ['input', 'output'].map(x => inputOutput.includes(x)).reduce((p, c) => p && c);
 
     $scope.$on('columnInfo.changed', () => {
-        if (hasInOut(c.inputOutput) && c.header) {
-                appState.models.imageViewerShow = true;
-                appState.saveChanges('imageViewerShow');
-                return;
-            }
+        const c = appState.models.columnInfo;
+        if (c.inputOutput && hasInOut(c.inputOutput) && c.header) {
+            appState.models.imageViewerShow = true;
+            appState.saveChanges('imageViewerShow');
+            return;
+        }
         appState.models.imageViewerShow = false;
         appState.saveChanges('imageViewerShow');
     });
