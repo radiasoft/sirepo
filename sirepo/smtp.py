@@ -34,8 +34,9 @@ def send(recipient, subject, body):
     return True
 
 
-def _cfg_email(value):
-    assert pyisemail.is_email(value)
+def _cfg_from_email(value):
+    if not pyisemail.is_email(value):
+        pkconfig.raise_error(f"invalid from_email={value}")
     return value.lower()
 
 
@@ -80,7 +81,7 @@ def _init():
     if _cfg:
         return
     _cfg = pkconfig.init(
-        from_email=("support@sirepo.com", _cfg_email, "Email address of sender"),
+        from_email=("support@sirepo.com", _cfg_from_email, "Email address of sender"),
         from_name=("Sirepo Support", str, "Name of email sender"),
         password=(None, str, "SMTP password"),
         port=(587, int, "SMTP Port"),
