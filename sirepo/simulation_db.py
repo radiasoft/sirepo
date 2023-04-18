@@ -97,7 +97,7 @@ def app_version():
     Returns:
         str: chronological version
     """
-    if pkconfig.channel_in("dev"):
+    if pkconfig.in_dev_mode():
         return _timestamp()
     return SCHEMA_COMMON.version
 
@@ -928,7 +928,7 @@ def _init_schemas():
     for s in _SCHEMA_CACHE.values():
         s.appInfo = a
     # In development, any schema update creates a new version
-    if pkconfig.channel_in("dev"):
+    if pkconfig.in_dev_mode():
         SCHEMA_COMMON.version = str(sirepo.srtime.utc_now_as_float())
     else:
         SCHEMA_COMMON.version = max(

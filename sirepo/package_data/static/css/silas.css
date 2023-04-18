@@ -10,3 +10,13 @@
 .srw-beamline-container > div {
   margin-top: 30px;
 }
+
+.srw-drop-between-zone {
+  width: 10px;
+  max-width: 10px;
+}
+
+.srw-drop-between-zone.drag-enter {
+  width: 10px !important;
+  max-width: 10px;
+}
