@@ -16,7 +16,7 @@ case ${1:-} in
     local)
         ;;
     nersc)
-        export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC'
+        export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Perlmutter@NERSC'
         ;;
     sbatch)
         export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Vagrant Cluster'
@@ -27,4 +27,4 @@ case ${1:-} in
         ;;
 esac
 echo "${SIREPO_SIMULATION_DB_SBATCH_DISPLAY:-without sbatch}"
-sirepo service flask
+sirepo service server

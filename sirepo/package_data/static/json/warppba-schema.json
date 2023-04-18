@@ -161,7 +161,7 @@
         "animation": {
             "sbatchCores": ["Cores", "Integer", 4],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""]
