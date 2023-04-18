@@ -91,13 +91,16 @@
             "_super": ["_", "model", "beamElement"],
             "icon": ["", "String", "ti-sapphire-crystal.png"],
             "nslice": ["Number of Slices", "Integer", 10, "", 1],
-            "position": ["Central Position [m]", "Float", 4.0],
             "propagationType": ["Propagation Type", "PropagationType", "n0n2_srw"],
             "n0": ["Index of Refraction ($n_0$)", "Float6", [1.75, 1.75, 1.75, 1.75, 1.75, 1.75], "On axis index of refraction", 1e-24],
             "n2": ["Thermal Lensing ($n_2$)", "Float6", [30.5, 18.3, 10.4, 5.9, 3.3, 1.9], "Quadratic variations of index of refraction, with $n(r) = n_0 - \\frac{n_2 r^2} 2  [\\frac 1 {m^2}]$", 0.0],
             "title": ["Element Name", "String", "Crystal"],
+            "A": ["A", "Float", 0.99736924],
+            "B": ["B", "Float", 0.0141972275],
+            "C": ["C", "Float", -0.260693],
+            "D": ["D", "Float", 0.99892682],
             "length": ["Length [cm]", "Float", 2],
-            "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 1],
+            "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
             "radial_n2": ["Include Transverse Variation", "Boolean", "0"],
             "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
             "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
@@ -162,8 +165,8 @@
             "title": ["Element Name", "String", "Lens"]
         },
         "mirror": {
-            "title": ["Element Name", "String", "Mirror"],
-            "position": ["Central Position [m]", "Float"]
+            "_super": ["_", "model", "beamElement"],
+            "title": ["Element Name", "String", "Mirror"]
         },
         "plotAnimation": {},
         "plot2Animation": {},
@@ -192,9 +195,13 @@
                     "nslice"
                 ]],
                 ["Propagation", [
+                    "propagationType",
                     "n0",
                     "n2",
-                    "propagationType",
+                    "A",
+                    "B",
+                    "C",
+                    "D",
                     "l_scale"
                 ]],
                 ["Gain", [
