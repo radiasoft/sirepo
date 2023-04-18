@@ -2283,6 +2283,7 @@ def _rsopt_jinja_context(data):
         fileBase=_SIM_DATA.EXPORT_RSOPT,
         forRSOpt=True,
         libFiles=_SIM_DATA.lib_file_basenames(data),
+        maxOuputDimension=model.maxOuputDimension,
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
