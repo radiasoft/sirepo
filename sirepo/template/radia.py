@@ -1005,7 +1005,6 @@ def _get_cee_points(o, stemmed_info):
             [p.ax2, sy2],
             [p.ax2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )
@@ -1034,7 +1033,6 @@ def _get_ell_points(o, stemmed_info):
             [p.sx2, p.ay2],
             [p.sx2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )
@@ -1091,7 +1089,6 @@ def _get_jay_points(o, stemmed_info):
             [p.sx2, p.ay2],
             [p.sx2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )

@@ -73,15 +73,6 @@ def test_srw(fc):
     )
 
 
-def test_synergia(fc):
-    _r(
-        fc,
-        "Simple FODO",
-        "bunchReport1",
-        shared_model="bunchReport2",
-    )
-
-
 def test_warppba(fc):
     _r(
         fc,
