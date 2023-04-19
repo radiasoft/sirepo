@@ -500,7 +500,7 @@ def run_epics_command(server_address, cmd):
     return template_common.subprocess_output(cmd, epics_env(server_address))
 
 
-def stateful_compute_column_info(data):
+def stateful_compute_column_info(data, **kwargs):
     data = PKDict(
         models=PKDict(
             analysisData=data.args["analysisData"],

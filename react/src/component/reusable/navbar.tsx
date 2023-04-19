@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { AlignType } from "react-bootstrap/esm/types";
 import { DropDirection } from "react-bootstrap/esm/DropdownContext";
+import { useLocation } from "react-router-dom";
 
 export const NavbarRightContainerId = "nav-tabs-right-container";
 export const NavbarLeftContainerId = "nav-tabs-left-container";
@@ -14,6 +15,8 @@ export const NavbarHelpMenuContainerId = "nav-help-container";
 // TODO: this is no longer reusable
 export function SrNavbar(props) {
     let { title, titleHref, simulationsHref } = props;
+    let location = useLocation();
+    const isSimulations = location.pathname.startsWith(simulationsHref);
     return (
         <Navbar className="sr-navbar" bg="light">
             <div className="sr-navbar-container">
@@ -22,14 +25,14 @@ export function SrNavbar(props) {
                         <img
                         alt=""
                         src="/react/img/sirepo.gif"
-                        width="30"
-                        height="30"
+                        width="38"
+                        height="38"
                         className="d-inline-block align-top"
                         />{' '}
-                        {title}
+                        <div className="sr-app-title">{title}</div>
                     </Navbar.Brand>
                     <Nav className="order-1">
-                        <Nav.Link href={simulationsHref}><span className="sr-navbar-simulations-button">Simulations</span></Nav.Link>
+                        <Nav.Link href={simulationsHref} className={isSimulations ? "active" : ""}>Simulations</Nav.Link>
                     </Nav>
                     <div className="sr-navbar-spacer order-1"/>
                 </div>

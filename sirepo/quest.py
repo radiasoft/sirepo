@@ -29,9 +29,9 @@ _SPEC_SIM_TYPE_CONST = re.compile(r"\s*SimType\s+const=(\S+)")
 
 
 @contextlib.contextmanager
-def start(in_srunit=False):
+def start(in_pkcli=False):
     auth = sirepo.modules.import_and_init("sirepo.auth")
-    qcall = API(in_srunit=in_srunit)
+    qcall = API(in_pkcli=in_pkcli)
     c = False
     try:
         auth.init_quest(qcall)
@@ -44,10 +44,10 @@ def start(in_srunit=False):
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
-    def __init__(self, in_srunit=False):
+    def __init__(self, in_pkcli=False):
         super().__init__()
         self.attr_set("_bucket", _Bucket())
-        self.bucket_set("in_srunit", in_srunit)
+        self.bucket_set("in_pkcli", in_pkcli)
 
     def absolute_uri(self, uri):
         """Convert to an absolute uri
@@ -75,7 +75,7 @@ class API(pykern.quest.API):
     def bucket_unchecked_get(self, name):
         return self._bucket.get(name)
 
-    def call_api(self, name, kwargs=None, data=None):
+    async def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
 
         Args:
@@ -85,7 +85,16 @@ class API(pykern.quest.API):
         Returns:
             Reply: result
         """
-        return uri_router.call_api(self, name, kwargs=kwargs, data=data)
+        return await uri_router.call_api(self, name, kwargs=kwargs, data=data)
+
+    def call_api_sync(self, *args, **kwargs):
+        """Synchronous call_api
+
+        Only use in tests.
+        """
+        import asyncio
+
+        return asyncio.run(self.call_api(*args, **kwargs))
 
     def destroy(self, commit=False):
         for k, v in reversed(list(self.items())):
@@ -125,7 +134,7 @@ class API(pykern.quest.API):
                 assert k not in self
                 self[k] = v
         self._bucket[_PARENT_ATTR] = qcall
-        self._bucket.in_srunit = qcall.bucket_unchecked_get("in_srunit")
+        self._bucket.in_pkcli = qcall.bucket_unchecked_get("in_pkcli")
         if "sreply" in qcall:
             qcall.sreply.init_child(self)
 

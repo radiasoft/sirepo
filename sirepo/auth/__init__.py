@@ -22,7 +22,6 @@ import sirepo.job
 import sirepo.quest
 import sirepo.reply
 import sirepo.request
-import sirepo.spa_session
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -93,7 +92,7 @@ def init_quest(qcall, internal_req=None):
     if (
         not _cfg.logged_in_user
         and internal_req
-        or qcall.bucket_unchecked_get("in_srunit")
+        or qcall.bucket_unchecked_get("in_pkcli")
     ):
         sirepo.request.init_quest(qcall, internal_req)
         sirepo.reply.init_quest(qcall)
@@ -102,7 +101,6 @@ def init_quest(qcall, internal_req=None):
         sirepo.cookie.init_quest(qcall)
         # TODO(robnagler) auth_db
         o._set_log_user()
-        sirepo.spa_session.init_quest(qcall)
 
 
 def init_module(**imports):

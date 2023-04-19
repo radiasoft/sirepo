@@ -27,6 +27,11 @@
             "sourceCatalog": null,
             "destinationCatalog": null,
             "numScans": null
+        },
+        "runAnalysis": {
+            "searchStartTime": null,
+            "searchStopTime": null,
+            "scans": []
         }
     },
     "simulationType": "raydata"

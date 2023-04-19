@@ -119,7 +119,7 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("unknown model={}".format(model))
 
 
-def import_file(req, **kwargs):
+async def import_file(req, **kwargs):
     text = req.form_file.as_str()
     if not bool(re.search(r"\.in$", req.filename, re.IGNORECASE)):
         raise AssertionError("invalid file extension, expecting .in")

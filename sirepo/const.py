@@ -9,6 +9,8 @@ from pykern.pkcollections import PKDict
 
 ASYNC_CANCELED_ERROR = asyncio.CancelledError
 
+STATIC_D = "static"
+
 JSON_SUFFIX = ".json"
 
 MPI_LOG = "mpi_run.log"

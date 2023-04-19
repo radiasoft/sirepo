@@ -10,16 +10,52 @@
         ]
     },
     "frameIdFields": {
-        "sim1Animation": [
+        "sim1Phase1Animation": [
             "histogramBins"
         ],
-        "sim2Animation": [
+        "sim1Phase2Animation": [
             "histogramBins"
         ],
-        "sim3Animation": [
+        "sim1Phase3Animation": [
             "histogramBins"
         ],
-        "sim4Animation": [
+        "sim1Phase4Animation": [
+            "histogramBins"
+        ],
+        "sim2Phase1Animation": [
+            "histogramBins"
+        ],
+        "sim2Phase2Animation": [
+            "histogramBins"
+        ],
+        "sim2Phase3Animation": [
+            "histogramBins"
+        ],
+        "sim2Phase4Animation": [
+            "histogramBins"
+        ],
+        "sim3Phase1Animation": [
+            "histogramBins"
+        ],
+        "sim3Phase2Animation": [
+            "histogramBins"
+        ],
+        "sim3Phase3Animation": [
+            "histogramBins"
+        ],
+        "sim3Phase4Animation": [
+            "histogramBins"
+        ],
+        "sim4Phase1Animation": [
+            "histogramBins"
+        ],
+        "sim4Phase2Animation": [
+            "histogramBins"
+        ],
+        "sim4Phase3Animation": [
+            "histogramBins"
+        ],
+        "sim4Phase4Animation": [
             "histogramBins"
         ]
     },
@@ -43,13 +79,61 @@
         "sim1Animation": {
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
+        "sim1Phase1Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim1Phase2Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim1Phase3Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim1Phase4Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
         "sim2Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim2Phase1Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim2Phase2Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim2Phase3Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim2Phase4Animation": {
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim3Animation": {
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
+        "sim3Phase1Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim3Phase2Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim3Phase3Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim3Phase4Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
         "sim4Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim4Phase1Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim4Phase2Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim4Phase3Animation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "sim4Phase4Animation": {
             "histogramBins": ["Histogram Bins", "Integer", 200]
         }
     },

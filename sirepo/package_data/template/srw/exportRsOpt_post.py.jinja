@@ -19,14 +19,21 @@
 def main():
     import h5py
     import numpy
+    import skimage.transform
+
+    MAX_SIZE = {{ maxOuputDimension }}
     beams = []
     param_vals = []
     for r in numpy.load("{{ fileBase }}.npy"):
-        beams.append(
-            numpy.flipud(
-                numpy.load(f"ensemble/worker{r['sim_worker']}/sim{r['sim_id']}/beam.npy").tolist()[0]
-            )
+        img = numpy.flipud(
+            numpy.load(
+                f"ensemble/worker{r['sim_worker']}/sim{r['sim_id']}/beam.npy"
+            ).tolist()[0]
         )
+        newshape = tuple(map(lambda x: MAX_SIZE if x > MAX_SIZE else x, img.shape))
+        if newshape != img.shape:
+            img = skimage.transform.resize(img, newshape)
+        beams.append(img)
         param_vals.append(r["x"])
     with h5py.File("{{ resultsFileName }}", "w") as f:
         m = f.create_dataset("metadata", data=param_vals)
@@ -36,6 +43,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

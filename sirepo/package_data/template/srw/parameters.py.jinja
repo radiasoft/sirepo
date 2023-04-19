@@ -46,7 +46,7 @@ varParam = [
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', '{{fdir}}', 'folder (directory) name for reading-in input and saving output data files'],
 
 {% if rs_type != 'g' %}
 #---Electron Beam
@@ -207,7 +207,7 @@ varParam = [
     #Single-Electron Wavefront Propagation
     ['ws', '', '', 'calculate single-electron (/ fully coherent) wavefront propagation', 'store_true'],
     #Multi-Electron (partially-coherent) Wavefront Propagation
-    ['wm', '', '{{multiElectronAnimation}}', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
+    ['wm', '', '', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
 
     ['w_e', 'f', {{simulation_photonEnergy}}, 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ef', 'f', {{simulation_finalPhotonEnergy}}, 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
@@ -321,7 +321,7 @@ def setup_magnetic_measurement_files(filename, v):
                     )
                 )
             f = f[0]
-            z.extractall()
+            z.extractall(v.fdir)
         except Exception:
             if c:
                 c.Abort(1)

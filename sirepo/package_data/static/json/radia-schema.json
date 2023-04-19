@@ -359,6 +359,10 @@
             ["4", "4"],
             ["5", "5"]
         ],
+        "SolverMode": [
+            ["solve", "Solve"],
+            ["reset", "Reset"]
+        ],
         "SymmetryType": [
             ["perpendicular", "Parallel"],
             ["parallel", "Perpendicular"]
@@ -512,26 +516,36 @@
                 "stemPosition": "1"
             }],
             "pole": ["Pole", "model.cuboid", {
-                "bevels": [
+                "center": [0.0, 0.0, 30.0],
+                "color": "#0000ff",
+                "segments": [4, 4, 4],
+                "magnetization": [0.0, 0.0, 1.0],
+                "modifications": [
                     {
                         "amountHoriz": 8,
                         "amountVert": 8,
                         "cutAxis": "x",
                         "cutDir": [
-                            1,
-                            0,
-                            0
-                        ],
-                        "cutRemoval": 1,
-                        "edge": "2",
-                        "heightDir": [
                             0,
                             0,
                             1
                         ],
-                        "widthDir": [
+                        "cutPoint": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "cutRemoval": "1",
+                        "edge": "2",
+                        "heightDir": [
                             0,
                             1,
+                            0
+                        ],
+                        "type": "objectBevel",
+                        "widthDir": [
+                            1,
+                            0,
                             0
                         ]
                     },
@@ -540,39 +554,23 @@
                         "amountVert": 8,
                         "cutAxis": "x",
                         "cutDir": [
-                            1,
+                            0,
+                            0,
+                            1
+                        ],
+                        "cutPoint": [
+                            0,
                             0,
                             0
                         ],
-                        "cutRemoval": 1,
+                        "cutRemoval": "1",
                         "edge": "3",
                         "heightDir": [
                             0,
-                            0,
-                            1
-                        ],
-                        "widthDir": [
-                            0,
-                            1,
-                            0
-                        ]
-                    },
-                    {
-                        "amountHoriz": 8,
-                        "amountVert": 8,
-                        "cutAxis": "y",
-                        "cutDir": [
-                            0,
                             1,
                             0
                         ],
-                        "cutRemoval": 1,
-                        "edge": "2",
-                        "heightDir": [
-                            0,
-                            0,
-                            1
-                        ],
+                        "type": "objectBevel",
                         "widthDir": [
                             1,
                             0,
@@ -585,16 +583,50 @@
                         "cutAxis": "y",
                         "cutDir": [
                             0,
+                            0,
+                            1
+                        ],
+                        "cutPoint": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "cutRemoval": "1",
+                        "edge": "0",
+                        "heightDir": [
+                            0,
                             1,
                             0
                         ],
-                        "cutRemoval": 1,
-                        "edge": "3",
-                        "heightDir": [
+                        "type": "objectBevel",
+                        "widthDir": [
+                            1,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "y",
+                        "cutDir": [
                             0,
                             0,
                             1
                         ],
+                        "cutPoint": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "cutRemoval": "1",
+                        "edge": "3",
+                        "heightDir": [
+                            0,
+                            1,
+                            0
+                        ],
+                        "type": "objectBevel",
                         "widthDir": [
                             1,
                             0,
@@ -602,10 +634,6 @@
                         ]
                     }
                 ],
-                "center": [0.0, 0.0, 30.0],
-                "color": "#0000ff",
-                "segments": [4, 4, 4],
-                "magnetization": [0.0, 0.0, 1.0],
                 "name": "pole",
                 "remanentMag": 1.0,
                 "material": "Xc06",
@@ -658,34 +686,25 @@
                 "transforms": []
             }],
             "pole": ["Pole", "model.cuboid", {
-                "bevels": [
+                "center": [0.0, 2.5, 1.5],
+                "color": "#0066cd",
+                "magnetization": [0.0, 0.0, 1.0],
+                "material": "Xc06",
+                "modifications": [
                     {
                         "amountHoriz": 0.5,
                         "amountVert": 0.5,
                         "cutAxis": "x",
-                        "edge": "2",
                         "cutDir": [
                             1,
                             0,
                             0
                         ],
                         "cutRemoval": 1,
-                        "heightDir": [
-                            0,
-                            0,
-                            1
-                        ],
-                        "widthDir": [
-                            0,
-                            1,
-                            0
-                        ]
+                        "edge": "2",
+                        "type": "objectBevel"
                     }
                 ],
-                "center": [0.0, 2.5, 1.5],
-                "color": "#0066cd",
-                "magnetization": [0.0, 0.0, 1.0],
-                "material": "Xc06",
                 "name": "pole",
                 "remanentMag": 1.0,
                 "segments": [4, 4, 4],
@@ -744,7 +763,7 @@
             "inProgressText": ["_", "String", "Calculating"],
             "plotAxis": ["Plot Axis", "BeamAxis", "z"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Tasks per node", "Integer", 32],
+            "tasksPerNode": ["Tasks per node", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchCores": ["Cores", "Integer", 1],
@@ -857,7 +876,7 @@
             "amountVert": ["Vertical Cut [mm]", "Float", 1.0],
             "amountHoriz": ["Horizontal Cut [mm]", "Float", 1.0],
             "cutDir": ["", "Array", [0, 0, 1]],
-            "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
+            "edge": ["Corner", "BevelEdge", "0", "Corner of cross-sectional footprint to cut"],
             "heightDir": ["", "Array", [0, 1, 0]],
             "type": ["_", "ObjectCutType", "objectBevel"],
             "widthDir": ["", "Array", [1, 0, 0]]
@@ -902,8 +921,6 @@
             "name": ["Name", "String", ""],
             "transforms": ["", "ModelArrayTable", [], "", ["cloneTransform" ,"rotate", "symmetryTransform"]]
         },
-        "reset": {
-        },
         "rotate": {
             "_super": ["_", "model", "spatialTransform"],
             "angle": ["Angle [deg]", "Float", "0.0"],
@@ -938,10 +955,11 @@
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
             "method": ["Method", "SolveMethod", "4"],
+            "mode": ["Action", "SolverMode", "solve"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchCores": ["Cores", "Integer", 1],
@@ -1079,7 +1097,9 @@
     },
     "strings": {
         "completionState": "",
-        "typeOfSimulation": "solve",
+        "solverAnimation": {
+            "typeOfSimulation": "Solve"
+        },
         "fieldLineoutAnimation": {
             "typeOfSimulation": "Field Plot"
         }
@@ -1392,15 +1412,15 @@
             "basic": [
                 "cutAxis",
                 "edge",
-                "amountVert",
                 "amountHoriz",
+                "amountVert",
                 "cutRemoval"
             ],
             "advanced": [
                 "cutAxis",
                 "edge",
-                "amountVert",
                 "amountHoriz",
+                "amountVert",
                 "cutRemoval"
             ]
         },

@@ -1,19 +1,14 @@
-import { LayoutProps, LayoutType, Layout } from "./layout";
 import React, { useContext } from "react";
-import {
-    Row,
-    Col,
-    Form,
-    Container
-} from "react-bootstrap";
+import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
+import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
+import { CSchema } from "../data/appwrapper";
+import { Col, Form, Row } from "react-bootstrap";
 import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
-import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
-import { useShown } from "../hook/shown";
-import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
-import { useStore } from "react-redux";
-import { CSchema } from "../data/appwrapper";
+import { Layout, LayoutProps, LayoutType } from "./layout";
 import { ValueSelectors } from "../hook/string";
+import { useShown } from "../hook/shown";
+import { useStore } from "react-redux";
 
 export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
     return class extends Child {
@@ -135,7 +130,9 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
 }
 
 export type FieldListConfig = {
-    fields: string[]
+    fields: string[],
+    heading?: string,
+    shown?: string,
 }
 
 export class FieldListLayout extends Layout<FieldListConfig, {}> {
@@ -154,8 +151,23 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
         let store = useStore();
 
         let fields = this.config.fields;
+        let listShown = useShown(this.config.shown, true, formState, ValueSelectors.Fields);
 
+        if (! listShown) {
+            return <></>
+        }
+        const heading = this.config.heading
+            ? (
+                <Row className="mb-2">
+                    <Col>
+                        <div className={"lead text-end"}>{ this.config.heading }</div>
+                    </Col>
+                    <Col></Col>
+                </Row>
+            )
+            : undefined;
         return <>
+            {heading}
             {fields.map((fieldDepString, idx) => {
                 let fieldDep = new Dependency(fieldDepString);
                 let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDep);

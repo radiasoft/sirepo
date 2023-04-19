@@ -102,7 +102,7 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
             continue
         d = sirepo.srdb.proprietary_code_dir(t)
         assert d.exists(), f"{d} proprietary_code_dir must exist" + (
-            "; run: sirepo setup_dev" if pykern.pkconfig.channel_in("dev") else ""
+            "; run: sirepo setup_dev" if pykern.pkconfig.in_dev_mode() else ""
         )
         r = qcall.auth_db.model("UserRole").has_role(
             role=sirepo.auth_role.for_sim_type(t),

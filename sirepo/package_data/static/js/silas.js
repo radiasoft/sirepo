@@ -4,19 +4,27 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.INITIAL_INTENSITY_REPORT_TITLE = 'Initial Intensity';
     SIREPO.SINGLE_FRAME_ANIMATION = [
-        'wavefrontSummaryAnimation',
-        'laserPulse1Animation',
-        'laserPulse2Animation',
-        'laserPulse3Animation',
-        'laserPulse4Animation',
         'plotAnimation',
         'plot2Animation',
         'crystal3dAnimation',
     ];
     SIREPO.appFieldEditors += `
-        <div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">
-          <div data-select-element="" data-model="model" data-field="field"></div>
+        <div data-ng-switch-when="FloatArray" class="col-sm-7">
+            <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
+        </div>
+        <div data-ng-switch-when="IntArray" class="col-sm-7">
+            <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
+        </div>
+        <div data-ng-switch-when="SelectCrystal" data-ng-class="fieldClass">
+          <div data-select-crystal="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="SliceNumber" data-ng-class="fieldClass">
+          <div data-slice-number="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="Float6">
+          <div data-float-6="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
     `;
     SIREPO.appDownloadLinks = [
@@ -28,118 +36,91 @@ SIREPO.app.config(function() {
 });
 
 SIREPO.app.factory('silasService', function(appState) {
-    var self = {};
+    const self = {};
+
     self.computeModel = (analysisModel) => {
         if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'].indexOf(analysisModel) >= 0) {
             return 'crystalAnimation';
         }
         return 'animation';
     };
-    self.getCrystal = () => {
-        return appState.models.beamline[1];
+
+    self.getCrystal = itemId =>  appState.models.beamline.filter(e => e.id === itemId)[0];
+
+    self.getCrystals = () => appState.models.beamline.filter(
+        e => e.type === 'crystal' && e.origin === 'new',
+    );
+
+    self.getPriorCrystals = itemId => {
+        const res = [];
+        for (const c of appState.models.beamline.filter(e => e.type == 'crystal')) {
+            if (c.id === itemId) {
+                break;
+            }
+            if (c.origin === 'new') {
+                res.push(c);
+            }
+        }
+        return res;
     };
-    self.getFirstMirror = () => {
-        return appState.models.beamline[0];
+
+    self.getThermalCrystal = () => {
+        const cc = appState.models.crystalCylinder;
+        for (const e of appState.applicationState().beamline) {
+            if (cc.crystal == e.id) {
+                return e;
+            }
+        }
+        const c = self.getCrystals()[0];
+        cc.crystal = c.id;
+        return c;
     };
+
+    self.hasCrystal = () => (appState.models.beamline || []).some(e => e.type === 'crystal');
+
     appState.setAppService(self);
     return self;
 });
 
+SIREPO.app.controller('SourceController', function (appState, silasService, $scope) {
+});
+
 SIREPO.app.controller('BeamlineController', function (appState, beamlineService, frameCache, persistentSimulation, silasService, $scope) {
     var self = this;
-    self.simScope = $scope;
     self.appState = appState;
     self.beamlineModels = ['beamline'];
+    self.beamlineService = beamlineService;
     self.prepareToSave = () => {};
-    self.toolbarItemNames = ['crystal', 'mirror'];
+    self.toolbarItemNames = [
+        ['Optics', ['crystal', 'lens', 'mirror']],
+        'watch',
+    ];
 
-    function updateCavityDistance() {
-        var pos = 0;
-        appState.models.beamline.forEach((item) => {
-            item.position = pos;
-            pos += appState.models.simulationSettings.cavity_length / 2;
-        });
-        appState.saveChanges('beamline');
-    }
-
-    function updateWavefrontModels() {
-        var names = [];
-        self.wavefronts = [];
-        appState.models.beamline.forEach((item) => names.push(wavefront(item)));
-        appState.saveChanges(names);
-    }
-
-    function wavefront(item) {
-        var modelKey = wavefrontAnimationName(item);
-        if (! appState.models[modelKey]) {
-            appState.models[modelKey] = {};
-        }
-        appState.models[modelKey].id = item.id;
-        self.wavefronts.push({
-            title: item.title,
-            modelKey: modelKey,
-            getData: () => appState.models[modelKey],
-        });
-        return modelKey;
-    }
-
-    function wavefrontAnimationName(item) {
-        return 'wavefrontAnimation' + item.id;
-    }
-
-    self.hasFrames = frameCache.hasFrames;
-
-    self.hasLaserProfile = function(isInitial) {
-        if (! self.hasFrames()) {
-            return false;
-        }
-        if (isInitial) {
-            return true;
-        }
-        return self.simState.getPercentComplete() == 100;
-    };
-
-    self.simHandleStatus = (data) => {
-        if (! appState.isLoaded()) {
-            return;
-        }
-        if ((data.frameCount || 0) > 1) {
-            appState.models.beamline.forEach((item, idx) => {
-                frameCache.setFrameCount(
-                    data.wavefrontsFrameCount[idx],
-                    wavefrontAnimationName(item));
-            });
-            frameCache.setFrameCount(data.frameCount);
-        }
-    };
-
-    self.simState = persistentSimulation.initSimulationState(self);
-    beamlineService.setEditable(false);
-    appState.whenModelsLoaded($scope, () => {
-        var oldWidth = silasService.getCrystal().width;
-        updateWavefrontModels();
-        $scope.$on('modelChanged', (e, name) => {
-            if (! appState.isReportModelName(name)) {
-                updateWavefrontModels();
-            }
-            if (name == 'simulationSettings') {
-                updateCavityDistance();
-            }
-            else if (name == 'beamline') {
-                var width = silasService.getCrystal().width;
-                if (oldWidth != width) {
-                    oldWidth = width;
-                    appState.models.crystalCylinder.crystalWidth = width;
-                    appState.saveQuietly('crystalCylinder');
-                    frameCache.setFrameCount(0);
+    function updateCrystals() {
+        let c = 0;
+        const byId = {};
+        for (const e of appState.models.beamline) {
+            if (e.type === 'crystal') {
+                if (e.origin === 'new') {
+                    byId[e.id] = e;
+                    c += 1;
+                    const t = e.title.replace(/\s+#\d+$/, '');
+                    if (t === 'Crystal') {
+                        e.title = `${t} #${c}`;
+                    }
+                }
+                else {
+                    e.title = byId[e.reuseCrystal]?.title || '';
                 }
             }
-        });
-        $scope.$on('wavefrontSummaryAnimation.summaryData', function (e, data) {
-            if (data.crystalWidth && data.crystalWidth != silasService.getCrystal().width) {
-                frameCache.setFrameCount(0);
-            }
-        });
+        }
+    }
+
+    // uniquely name all the crystals in beamline order
+    $scope.$watchCollection('appState.models.beamline', updateCrystals);
+    $scope.$on('beamline.changed', () => {
+        updateCrystals();
+        appState.saveQuietly('beamline');
     });
 });
 
@@ -164,7 +145,7 @@ SIREPO.app.controller('CrystalController', function (appState, frameCache, persi
 
     appState.whenModelsLoaded($scope, () => {
         $scope.$on('plotAnimation.summaryData', function (e, data) {
-            if (data.crystalWidth && data.crystalWidth != silasService.getCrystal().width) {
+            if (data.crystalLength && data.crystalLength != silasService.getThermalCrystal().length) {
                 frameCache.setFrameCount(0);
             }
         });
@@ -184,7 +165,7 @@ SIREPO.app.directive('appFooter', function(appState, silasService) {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState) {
+SIREPO.app.directive('appHeader', function(appState, silasService) {
     return {
         restrict: 'A',
         scope: {
@@ -196,8 +177,9 @@ SIREPO.app.directive('appHeader', function(appState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'laser-cavity\')}"><a href data-ng-click="nav.openSection(\'laser-cavity\')"><span class="glyphicon glyphicon-option-horizontal"></span> Laser Cavity</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'crystal\')}"><a href data-ng-click="nav.openSection(\'crystal\')"><span class="glyphicon glyphicon-th"></span> Crystal</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Laser Pulse</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
+                  <li data-ng-show="hasCrystal()" class="sim-section" data-ng-class="{active: nav.isActive('thermal-transport')}"><a href data-ng-click="nav.openSection('thermal-transport')"><span class="glyphicon glyphicon-th"></span> Thermal Transport</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -209,10 +191,13 @@ SIREPO.app.directive('appHeader', function(appState) {
               </app-header-right-sim-list>
             </div>
         `,
+        controller:  function($scope) {
+            $scope.hasCrystal = () => silasService.hasCrystal();
+        },
     };
 });
 
-SIREPO.app.directive('selectElement', function(appState) {
+SIREPO.app.directive('selectCrystal', function(appState, silasService) {
     return {
         restrict: 'A',
         scope: {
@@ -220,93 +205,162 @@ SIREPO.app.directive('selectElement', function(appState) {
             field: '=',
         },
         template: `
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in elementList()"></select>
+            <select class="form-control" data-ng-model="model[field]"
+              data-ng-options="item.id as name(item) for item in crystals()"></select>
         `,
         controller: function($scope) {
-            var list;
+            let crystals;
 
-            $scope.elementList = () => {
-                if (! appState.isLoaded() || ! $scope.model) {
-                    return null;
+            $scope.crystals = () => {
+                const c = $scope.model && $scope.model.type === 'crystal'
+                        ? silasService.getPriorCrystals($scope.model.id)
+                        : silasService.getCrystals();
+                if (! crystals || (crystals.length != c.length)) {
+                    crystals = appState.clone(c);
                 }
-                if (! list) {
-                    list = [{
-                        id: 'all',
-                        name: 'All Elements',
-                    }];
-                    appState.models.beamline.forEach((item) => {
-                        list.push({
-                            id: item.id,
-                            name: item.title,
-                        });
-                    });
-                }
-                return list;
+                return crystals;
             };
 
-            $scope.$on('beamline.changed', () => {
-                list = null;
-            });
+            $scope.name = item => `${item.title} (${item.position}m)`;
         },
     };
 });
 
-SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, $scope) {
-    $scope.whenSelected = () => panelState.enableField('crystal', 'position', false);
+SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scope) {
+    function updateCrystalFields(item) {
+        const crystals = silasService.getPriorCrystals(item.id);
+        const hasCrystals = crystals.length > 0;
+        if (hasCrystals) {
+            if (! item.reuseCrystal) {
+                item.reuseCrystal = crystals[crystals.length - 1].id;
+            }
+        }
+        else {
+            item.origin = 'new';
+        }
+        if (item.origin === 'reuse') {
+            item.title = silasService.getCrystal(item.reuseCrystal)?.title || '';
+        }
+        if (item.radial_n2 === '1' && item.propagationType !== 'n0n2_srw') {
+            item.radial_n2 = '0';
+        }
+        panelState.showFields(item.type, [
+            ['l_scale'], item.propagationType === 'n0n2_lct' || item.propagationType === 'abcd_lct',
+            ['pump_waist'], item.propagationType === 'gain_calc'
+                || item.radial_n2 === '1' || item.calc_gain == '1',
+            [
+                'inversion_n_cells', 'inversion_mesh_extent', 'crystal_alpha',
+                'pump_wavelength', 'pump_energy', 'pump_type',
+            ], item.calc_gain === '1' || item.propagationType === 'gain_calc',
+            ['calc_gain'], item.propagationType !== 'gain_calc',
+            ['radial_n2'], item.propagationType == 'n0n2_srw',
+            ['origin'], hasCrystals,
+            ['reuseCrystal'], item.origin === 'reuse',
+            ['title', 'length', 'nslice'], item.origin === 'new',
+            ['A', 'B', 'C', 'D'], item.propagationType == 'abcd_lct',
+        ]);
+        panelState.showTab(item.type, 2, item.origin === 'new');
+        panelState.showTab(item.type, 3, item.origin === 'new');
+    }
+
+    $scope.whenSelected = updateCrystalFields;
+    $scope.watchFields = [
+        ['propagationType', 'radial_n2', 'calc_gain', 'origin', 'reuseCrystal'], updateCrystalFields,
+    ];
 });
 
-SIREPO.beamlineItemLogic('mirrorView', function(appState, panelState, $scope) {
-    $scope.whenSelected = () => panelState.enableField('mirror', 'position', false);
-});
+SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender, silasService, $scope) {
+    const _FILES = ['ccd', 'meta', 'wfs'];
 
-SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, requestSender, silasService, $scope) {
+    function hasFiles() {
+        return _FILES.every(f => $scope.model[f]);
+    }
 
-    function computeRMSSize(field, saveChanges) {
-        var beamline = appState.applicationState().beamline;
-        requestSender.sendStatelessCompute(
+    function updateMesh() {
+        requestSender.sendStatefulCompute(
             appState,
-            (data) => {
-                if (data.rmsSize) {
-                    appState.models.gaussianBeam.rmsSize = appState.formatFloat(data.rmsSize * 1e6, 4);
-                    if (saveChanges) {
-                        appState.saveQuietly('gaussianBeam');
-                    }
-                }
+            data => {
+                $scope.model.nx_slice = data.numSliceMeshPoints[0];
+                $scope.model.ny_slice = data.numSliceMeshPoints[1];
             },
             {
-                method: 'rms_size',
+                method: 'mesh_dimensions',
                 args: {
-                    gaussianBeam: appState.models.gaussianBeam,
-                    simulationSettings: appState.models.simulationSettings,
-                    mirror: silasService.getFirstMirror(),
-                    crystal: silasService.getCrystal(),
+                    ccd: $scope.model.ccd,
+                    meta: $scope.model.meta,
+                    wfs: $scope.model.wfs,
                 }
+            },
+            err => {
+                throw new Error(err);
             }
         );
     }
 
-    $scope.whenSelected = () => panelState.enableField('gaussianBeam', 'rmsSize', false);
+    function updateEditor() {
+        const m = appState.models[$scope.modelName];
+        const useFiles = m.distribution === 'file';
+        panelState.showFields($scope.modelName, [
+            _FILES, useFiles,
+            ['poltype', 'sigx_waist', 'sigy_waist'], ! useFiles,
+        ]);
+        if (useFiles && hasFiles()) {
+            updateMesh();
+        }
+        updateMeshPoints();
+    }
+
+    function updateMeshPoints() {
+        const m = appState.models[$scope.modelName];
+        const useFiles = m.distribution === 'file';
+        if (m.nx_slice && ! useFiles) {
+            m.ny_slice = m.nx_slice;
+        }
+        panelState.enableFields($scope.modelName, [
+            ['nx_slice'], ! useFiles,
+            ['ny_slice'], false,
+        ]);
+    }
+
+    $scope.whenSelected = () => {
+        $scope.model = appState.models[$scope.modelName];
+        updateEditor();
+    };
+
     $scope.watchFields = [
         [
-            'simulationSettings.cavity_length',
-            'gaussianBeam.photonEnergy',
-        ], computeRMSSize,
+            'laserPulse.ccd',
+            'laserPulse.meta',
+            'laserPulse.wfs',
+            'laserPulse.distribution',
+        ], updateEditor,
+        ['laserPulse.nx_slice'], updateMeshPoints,
     ];
-
-    $scope.$on('modelChanged', (e, name) => {
-        if (name == 'beamline') {
-            computeRMSSize(name, true);
-        }
-    });
 });
 
 SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasService, $scope) {
-    $scope.whenSelected = () => {
-        appState.models.crystalCylinder.crystalWidth = silasService.getCrystal().width;
+
+    const parent = $scope.$parent;
+    parent.silasService = silasService;
+
+    function updateCylinder(saveChanges)  {
+        const cc = appState.models.crystalCylinder;
+        const c = silasService.getThermalCrystal();
+        cc.crystalLength = c.length;
         panelState.enableFields('crystalCylinder', [
-            'crystalWidth', false,
+            ['crystalLength'], false,
         ]);
-    };
+        if (saveChanges) {
+            appState.saveChanges('crystalCylinder');
+        }
+    }
+
+    $scope.whenSelected = () => updateCylinder(true);
+    $scope.watchFields = [
+        [
+            'crystalCylinder.crystal',
+        ], () => updateCylinder(false),
+    ];
 });
 
 SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plotToPNG, utilities) {
@@ -408,7 +462,7 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
                 let indices = [];
                 let verts = data.vertices;
                 let size = $scope.boundAxis == 'Z'
-                    ? silasService.getCrystal().width
+                    ? silasService.getThermalCrystal().length
                     : appState.applicationState().crystalCylinder.diameter;
                 let axisIdx = $scope.axes.indexOf($scope.boundAxis);
                 $scope.bound = (size + 0.01) * ($scope.sliderValue - 50) / 100;
@@ -527,6 +581,63 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
         },
         link: function link(scope, element) {
             plotting.vtkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('sliceNumber', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in sliceNumbers()"></select>
+        `,
+        controller: function($scope) {
+            let numbers = [];
+            $scope.sliceNumbers = () => {
+                const count = appState.applicationState().laserPulse.nslice;
+                if (numbers.length != count) {
+                    numbers = [];
+                    for (let i = 0; i < count; i++) {
+                        numbers.push([i, i + 1]);
+                    }
+                }
+                return numbers;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('float6', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            modelName: '=',
+            field: '=',
+        },
+        template: `
+            <div class="clearfix" data-ng-if="model.nslice > 3"></div>
+            <div class="col-sm-2" data-ng-repeat="idx in indices() track by $index">
+              <input data-string-to-number="" data-ng-model="model[field][$index]" class="form-control" style="text-align: right" data-lpignore="true" required />
+            </div>
+        `,
+        controller: function($scope) {
+            const max = 6;
+            const indices = [];
+            $scope.indices = () => {
+                let size = max;
+                if ($scope.model && $scope.model[$scope.field]) {
+                    if ($scope.model.nslice && $scope.model.nslice < max) {
+                        size = $scope.model.nslice;
+                    }
+                }
+                indices.length = size;
+                return indices;
+            };
         },
     };
 });
