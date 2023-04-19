@@ -8,14 +8,16 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
-def test_synergia(fc):
+def test_srw(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp, pkdlog
     from pykern.pkunit import pkre
     import sirepo.sim_data
     import time
 
-    data = fc.sr_sim_data("IOTA 6-6 with NL Element")
+    data = fc.sr_sim_data(
+        "Gaussian X-ray beam through a Beamline containing Imperfect Mirrors"
+    )
     cancel = None
     # this provokes an 'invalid data error'
     #    data.models.simulationSettings.space_charge = '2d-bassetti_erskine'
@@ -44,7 +46,7 @@ def test_synergia(fc):
                         "simulationFrame",
                         PKDict(
                             frame_id=s.frame_id(
-                                data, r, "beamEvolutionAnimation", r.frameCount - i
+                                data, r, "fluxAnimation", r.frameCount - i
                             )
                         ),
                     )

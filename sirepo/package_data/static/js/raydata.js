@@ -392,9 +392,9 @@ SIREPO.app.directive('scansTable', function() {
                 </div>
               </div>
             </div>
-            <div data-view-log-iframe-wrapper data-scan-id="runLogScanId" data-modal-id="runLogModalId"></div>
+            <div data-view-log-iframe-wrapper data-scan-id="runLogScanId" data-modal-id="runLogModalId" data-show-log="showLog"></div>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval, $timeout) {
+        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
@@ -632,11 +632,9 @@ SIREPO.app.directive('scansTable', function() {
             $scope.showRunLogModal = (scan, event) => {
                 event.stopPropagation();
                 $scope.runLogScanId = scan.uid;
-                $timeout(function(){
-                    $('#' + $scope.runLogModalId).modal('show');
-                });
+                $scope.showLog = true;
             };
-            
+
             $scope.showSelectAllButton = (index) => {
                 return index === 0;
             };
@@ -711,16 +709,29 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
         scope: {
             scanId: '<',
             modalId: '<',
+            showLog: '=',
         },
         template: `
+            <div data-ng-if="showLogModal()"></div>
             <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
         `,
-        controller: function(appState, errorService, panelState, requestSender, $scope) {
+        controller: function(appState, errorService, panelState, requestSender, $scope, $element) {
             $scope.logIsLoading = false;
             $scope.log = null;
             $scope.logPath = null;
 
-            $(document).on('show.bs.modal','#' + $scope.modalId, function() {
+            $scope.showLogModal = () => {
+                if ($scope.showLog) {
+                    $scope.showLog = false;
+                    $('#' + $scope.modalId).modal('show');
+                }
+            };
+
+            $scope.$on('$destroy', () => {
+                $($element).off();
+            });
+
+            $($element).on('show.bs.modal','#' + $scope.modalId, function() {
                 $scope.logIsLoading = true;
                 requestSender.sendStatelessCompute(
                     appState,
