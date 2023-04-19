@@ -79,7 +79,6 @@ def pytest_collection_modifyitems(session, config, items):
     s = PKDict(
         elegant="sdds",
         srw="srwl_bl",
-        synergia="synergia",
         warp="warp",
     )
     codes = set()
