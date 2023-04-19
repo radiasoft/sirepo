@@ -1,68 +1,394 @@
 {
     "models": {
         "electronTrajectoryReport": {
-            "finalBeamPosition": 250,
-            "initialAngles": [0.0, 0.0],
-            "initialPosition": [0.0, -250, 0]
+            "energy": 0.0015,
+            "finalBeamPosition": 100,
+            "hidePanel": false,
+            "inProgressText": "Calculating",
+            "initialAngles": [
+                0,
+                0
+            ],
+            "initialPosition": [
+                0,
+                -100,
+                0
+            ],
+            "lastModified": 1681249546824,
+            "numPoints": 201
         },
         "fieldDisplay": {
             "colorMap": "viridis",
-            "scaling": "linear"
+            "scaling": "uniform"
         },
+        "fieldIntegralReport": {},
         "fieldLineoutAnimation": {
-            "plotAxis": "y"
+            "fieldPath": {
+                "_super": "linePath",
+                "axis": "y",
+                "begin": [
+                    0,
+                    -300,
+                    0
+                ],
+                "end": [
+                    0,
+                    300,
+                    0
+                ],
+                "id": "AipNOp7gB5vJ8SilTkIPycyDTvCbUaAd",
+                "name": "Y-Axis",
+                "numPoints": 101,
+                "start": -300,
+                "stop": 300,
+                "type": "axisPath"
+            },
+            "fieldPaths": [],
+            "fieldType": "B",
+            "inProgressText": "Calculating",
+            "jobRunMode": "parallel",
+            "lastModified": 1681260489362,
+            "plotAxis": "y",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 32
         },
         "fieldPaths": {
-            "path": "line",
             "paths": [
                 {
-                    "_super": "fieldPath",
+                    "_super": "linePath",
                     "axis": "y",
-                    "begin": [0, -225, 0],
-                    "end": [0, 225, 0],
-                    "id": 0,
+                    "begin": [
+                        0,
+                        -300,
+                        0
+                    ],
+                    "end": [
+                        0,
+                        300,
+                        0
+                    ],
+                    "id": "AipNOp7gB5vJ8SilTkIPycyDTvCbUaAd",
                     "name": "Y-Axis",
                     "numPoints": 101,
-                    "start": -225,
-                    "stop": 225,
-                    "type": "axis"
+                    "start": -300,
+                    "stop": 300,
+                    "type": "axisPath"
                 }
             ]
         },
+        "freehand": {},
         "geometryReport": {
+            "doGenerate": "1",
+            "id": "44mtzrBxyxS7ct5k",
             "isSolvable": "0",
+            "lastModified": 1681249546824,
             "name": "Wiggler",
-            "beamAxis": "y",
             "objects": [
                 {
-                    "id": "48022af9-3b43-424f-b43b-5cbeb0d36bd6",
-                    "material": "",
-                    "name": "Wiggler.Geom.0.polygons",
-                    "type": ""
+                    "_super": "radiaObject",
+                    "axis": "z",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        38
+                    ],
+                    "color": "#00ffff",
+                    "currentDensity": 128,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "2HcI114TkwAa6Otnc4WNzB1I8Lm3F8jQ",
+                    "height": 36,
+                    "id": "CEvewI8Z2y2k0WHzZPbMTZyMBFknxi7l",
+                    "layoutShape": "rect",
+                    "modifications": [],
+                    "name": "Lower Inside",
+                    "numSegments": 3,
+                    "planeAxis1": "x",
+                    "planeAxis2": "y",
+                    "radii": [
+                        9.5,
+                        24.5
+                    ],
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        120,
+                        0
+                    ],
+                    "size": [
+                        169,
+                        49,
+                        36
+                    ],
+                    "transforms": [],
+                    "type": "racetrack"
+                },
+                {
+                    "_super": "radiaObject",
+                    "axis": "z",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        38
+                    ],
+                    "color": "#ff6600",
+                    "currentDensity": 256,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "2HcI114TkwAa6Otnc4WNzB1I8Lm3F8jQ",
+                    "height": 36,
+                    "id": "Ab0Nf1kYoGIMRfpn",
+                    "layoutShape": "rect",
+                    "modifications": [],
+                    "name": "Lower Outside",
+                    "numSegments": 3,
+                    "planeAxis1": "x",
+                    "planeAxis2": "y",
+                    "radii": [
+                        24.5,
+                        55.5
+                    ],
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        120,
+                        0
+                    ],
+                    "size": [
+                        231,
+                        111,
+                        36
+                    ],
+                    "transforms": [],
+                    "type": "racetrack"
+                },
+                {
+                    "_super": "radiaObject",
+                    "axis": "z",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        76
+                    ],
+                    "color": "#00ffff",
+                    "currentDensity": 128,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "2HcI114TkwAa6Otnc4WNzB1I8Lm3F8jQ",
+                    "height": 24,
+                    "id": "7QoCqq0Co5jd29NMvS1c13sQOtGfKsbh",
+                    "layoutShape": "rect",
+                    "modifications": [],
+                    "name": "Upper Inside",
+                    "numSegments": 3,
+                    "planeAxis1": "x",
+                    "planeAxis2": "y",
+                    "radii": [
+                        10,
+                        25
+                    ],
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        90,
+                        0
+                    ],
+                    "size": [
+                        140,
+                        50,
+                        24
+                    ],
+                    "transforms": [],
+                    "type": "racetrack"
+                },
+                {
+                    "_super": "radiaObject",
+                    "axis": "z",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        76
+                    ],
+                    "color": "#ff6600",
+                    "currentDensity": 256,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "2HcI114TkwAa6Otnc4WNzB1I8Lm3F8jQ",
+                    "height": 24,
+                    "id": "AAI8L7WsDqIxSvuf",
+                    "layoutShape": "rect",
+                    "modifications": [],
+                    "name": "Upper Outside",
+                    "numSegments": 3,
+                    "planeAxis1": "x",
+                    "planeAxis2": "y",
+                    "radii": [
+                        25,
+                        55
+                    ],
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        90,
+                        0
+                    ],
+                    "size": [
+                        200,
+                        110,
+                        24
+                    ],
+                    "transforms": [],
+                    "type": "racetrack"
+                },
+                {
+                    "_super": "radiaObject",
+                    "axis": "z",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        60
+                    ],
+                    "color": "#ff6600",
+                    "currentDensity": -256,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "2HcI114TkwAa6Otnc4WNzB1I8Lm3F8jQ",
+                    "height": 39,
+                    "id": "ggzqTcc8nkzACJZ5",
+                    "layoutShape": "rect",
+                    "modifications": [],
+                    "name": "Circle",
+                    "numSegments": 6,
+                    "planeAxis1": "x",
+                    "planeAxis2": "y",
+                    "radii": [
+                        150,
+                        166.3
+                    ],
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        332.6,
+                        332.6,
+                        39
+                    ],
+                    "transforms": [],
+                    "type": "racetrack"
+                },
+                {
+                    "_super": "radiaObject",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "color": "#cccccc",
+                    "fillets": [],
+                    "groupId": "",
+                    "id": "2HcI114TkwAa6Otnc4WNzB1I8Lm3F8jQ",
+                    "layoutShape": "rect",
+                    "members": [
+                        "CEvewI8Z2y2k0WHzZPbMTZyMBFknxi7l",
+                        "Ab0Nf1kYoGIMRfpn",
+                        "7QoCqq0Co5jd29NMvS1c13sQOtGfKsbh",
+                        "AAI8L7WsDqIxSvuf",
+                        "ggzqTcc8nkzACJZ5"
+                    ],
+                    "model": "geomGroup",
+                    "modifications": [],
+                    "name": "Coils",
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "size": [
+                        332.6000061035156,
+                        332.6000061035156,
+                        176
+                    ],
+                    "transforms": [
+                        {
+                            "_super": "transform",
+                            "id": "Kw60Eu6YXpUBB70nNGkvKaUKF801e8P3",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                0,
+                                0,
+                                1
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "perpendicular",
+                            "type": "symmetryTransform"
+                        }
+                    ],
+                    "type": "geomGroup"
                 }
             ]
         },
         "magnetDisplay": {
+            "alpha": 1,
             "bgColor": "#ffffff",
-            "fieldPoints": [],
             "fieldType": "B",
             "notes": "",
             "viewType": "objects"
         },
         "simFolder": {},
         "simulation": {
-            "appMode": "imported",
+            "appMode": "default",
             "beamAxis": "y",
+            "coordinateSystem": "standard",
+            "dipoleType": "dipoleBasic",
             "documentationUrl": "",
             "enableKickMaps": "0",
-            "exampleName": "Wiggler",
-            "folder": "/Examples",
+            "folder": "/Examples/Insertion Devices",
+            "freehandType": "freehand",
             "heightAxis": "z",
-            "isExample": true,
+            "magnetType": "freehand",
             "name": "Wiggler",
             "notes": "",
-            "outOfSessionSimulationId": ""
+            "undulatorType": "undulatorBasic",
+            "widthAxis": "x"
+        },
+        "threeDBuilder": {
+            "autoFit": true,
+            "elevation": "side",
+            "snapGridSize": "1",
+            "snapToGrid": false
         }
     },
-    "simulationType": "radia"
+    "simulationType": "radia",
+    "version": "1681250380.783552"
 }
