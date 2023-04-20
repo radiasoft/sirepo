@@ -1,4 +1,5 @@
 User-agent: *
+Disallow: /accel
 Disallow: /activait
 Disallow: /cloudmc
 Disallow: /controls
