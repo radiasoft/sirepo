@@ -2712,32 +2712,39 @@ SIREPO.app.directive('objectTable', function(appState) {
                 for (const o of $scope.getObjects()) {
                     expanded[o.id] = false;
                 }
-                srdbg($scope.modelName, appState.models[$scope.modelName], expanded);
             }
 
             function arrange(objects) {
 
-                let arranged = [];
+                const arranged = [];
 
-                function add(o) {
-                    arranged.push(o);
-                    arranged = arranged.concat(arrange(objects.splice(i, 1)));
+                function addGroup(o) {
+                    if (! arranged.includes(o)) {
+                        arranged.push(o);
+                    }
+                    for (const m of $scope.memberObjects(o)) {
+                        if ($scope.isGroup(m)) {
+                            addGroup(m);
+                        }
+                        else {
+                            arranged.push(m);
+                        }
+                    }
                 }
 
-                for (let i = 0; i < objects.length; ++i) {
-                    const o = objects[i];
-                    // no group, add right away
-                    if ($scope.isNotInGroup(o)) {
-                        add(o);
+                for (const o of objects) {
+                    if (arranged.includes(o)) {
+                        continue;
                     }
-                    if (arranged.includes(o.groupId)) {
-
+                    if ($scope.isNotInGroup(o)) {
+                        arranged.push(o);
+                    }
+                    if ($scope.isGroup(o)) {
+                        addGroup(o);
                     }
                 }
                 return arranged;
             }
-
-            $scope.groupedObjects = [];
 
             $scope.align = (o, alignType) => {
                 $scope.$parent.align(o, alignType);
@@ -2760,7 +2767,7 @@ SIREPO.app.directive('objectTable', function(appState) {
             $scope.getParent = o => $scope.source.getObject(o.groupId);
 
             $scope.getObjects = () => {
-                return (appState.models[$scope.modelName] || {}).objects;
+                return arrange((appState.models[$scope.modelName] || {}).objects);
             };
 
             $scope.isInGroup = o => $scope.source.isInGroup(o);
@@ -2768,6 +2775,10 @@ SIREPO.app.directive('objectTable', function(appState) {
             $scope.isNotInGroup = o => ! $scope.isInGroup(o);
 
             $scope.isGroup = o => $scope.source.isGroup(o);
+
+            $scope.memberObjects = o => {
+                return ($scope.source.getMembers(o) || []).map(mId => $scope.source.getObject(mId));
+            };
 
             $scope.nestLevel = o => {
                 let n = 0;
@@ -2858,7 +2869,7 @@ SIREPO.app.directive('groupedObject', function(appState, $sce) {
             $scope.isGroup = o => $scope.source.isGroup(o);
 
             $scope.memberObjects = o => {
-                return (o.members || []).map(mId => $scope.source.getObject(mId));
+                return ($scope.source.getMembers(o) || []).map(mId => $scope.source.getObject(mId));
             };
 
             $scope.nestLevel = o => {

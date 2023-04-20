@@ -498,6 +498,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.magnetType;
     };
 
+    self.getMembers = o => o.members;
+
     self.getObject = id => {
         return radiaService.getObject(id);
     };
