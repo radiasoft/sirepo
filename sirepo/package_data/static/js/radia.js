@@ -427,6 +427,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.align = (group, alignType, axesInds) => {
         const m = group.members;
         for (let i = 1; i < m.length; ++i) {
+            if (self.isGroup(m[i])) {
+                self.align(self.getObject(m[i]), alignType, axesInds);
+                continue;
+            }
             self[alignType](
                 self.getObject(m[i]),
                 self.getObject(m[0]),

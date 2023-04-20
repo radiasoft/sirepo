@@ -2640,7 +2640,7 @@ SIREPO.app.directive('groupedObjects', function(appState, $sce) {
             }
 
             $scope.align = (o, alignType) => {
-                $scope.$parent.align(o, alignType);
+                $scope.source.align(o, alignType);
             };
 
             $scope.copyObject = o =>  {
@@ -2699,7 +2699,7 @@ SIREPO.app.directive('objectTable', function(appState) {
               <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
                 <thead></thead>
                   <tbody>
-                    <tr data-ng-attr-id="{{ obj.id }}"data-grouped-object="obj" data-parent="getParent(obj)" data-source="source" data-overlay-buttons="overlayButtons" data-ng-repeat="obj in getObjects() track by $index"></tr>
+                    <tr data-ng-attr-id="{{ obj.id }}" data-grouped-object="obj" data-parent="getParent(obj)" data-source="source" data-overlay-buttons="overlayButtons" data-ng-repeat="obj in getObjects() track by $index"></tr>
                   </tbody>
                 </table>
             </div>
@@ -2719,6 +2719,10 @@ SIREPO.app.directive('objectTable', function(appState) {
                 const arranged = [];
 
                 function addGroup(o) {
+                    const p = $scope.getParent(o);
+                    if (p && ! arranged.includes(p)) {
+                        return;
+                    }
                     if (! arranged.includes(o)) {
                         arranged.push(o);
                     }
@@ -2747,7 +2751,7 @@ SIREPO.app.directive('objectTable', function(appState) {
             }
 
             $scope.align = (o, alignType) => {
-                $scope.$parent.align(o, alignType);
+                $scope.source.align(o, alignType);
             };
 
             $scope.copyObject = o =>  {
@@ -2789,7 +2793,6 @@ SIREPO.app.directive('objectTable', function(appState) {
             };
 
             $scope.toggleExpand = o => {
-                srdbg('TOGGLEE', o.id);
                 expanded[o.id] = ! expanded[o.id];
             };
 
@@ -2839,7 +2842,7 @@ SIREPO.app.directive('groupedObject', function(appState, $sce) {
             $scope.expanded = false;
 
             $scope.align = (o, alignType) => {
-                $scope.$parent.align(o, alignType);
+                $scope.source.align(o, alignType);
             };
 
             $scope.copyObject = o =>  {
@@ -2886,35 +2889,6 @@ SIREPO.app.directive('groupedObject', function(appState, $sce) {
 
             $scope.$on($scope.modelName + '.changed', function(e, name) {
 
-            });
-        },
-        link: function link(scope, element) {
-            // add/rm sibling trs
-            function refreshSiblings() {
-
-                function updateRow(s) {
-                    srdbg('update', s);
-                    //s.class('grouped-child');
-                    //s.attr('data-grouped-object', 'obj')
-                    //    .attr('data-ng-attr-id', '{{ o.id }}')
-                    //    .attr('data-ng-repeat', 'o in getObjects() track by o.id')
-                    //    .attr('data-source', 'source');
-                }
-
-                if (! scope.isGroup(scope.obj)) {
-                    return;
-                }
-                const ds = d3.select(`div[data-grouped-objects] table tbody tr#${scope.obj.id}`).selectAll('.grouped-child')
-                    .data(scope.memberObjects(scope.obj));
-                srdbg(ds);
-                //ds.exit().remove();
-                ds.enter()
-                    .insert('tr')
-                    .call(updateRow);
-            }
-
-            appState.whenModelsLoaded(scope, () => {
-                refreshSiblings();
             });
         },
     };
