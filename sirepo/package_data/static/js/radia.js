@@ -964,15 +964,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
             $scope.showImportModal = function() {
                 $('#simulation-import').modal('show');
             };
-            $scope.isImported = function() {
-                let sim = appState.models.simulation || {};
-                return isRawExample(sim.exampleName) || sim.dmpImportFile;
-            };
-
-            // "raw" examples are from radia_examples.py - a temporary repository
-            function isRawExample(name) {
-                return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) >= 0;
-            }
+            $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
         }
     };
 });
