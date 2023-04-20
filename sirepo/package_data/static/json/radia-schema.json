@@ -151,7 +151,6 @@
             "item": ":"
         },
         "objectScale": 0.001,
-        "rawExamples": ["Dipole", "Wiggler"],
         "toolbarItems": [
             {
                 "canDrag": true,
@@ -458,11 +457,11 @@
             "dipoleType": ["_", "DipoleType", "dipoleBasic"],
             "gap": ["Gap [mm]", "Float", 1.0, "", 0.0],
             "pole": ["Pole", "model.geomObject", {
-                "bevels": [],
                 "center": [0.0, 0.0, 1.0],
                 "color": "#ff00ff",
                 "segments": [4, 4, 4],
                 "magnetization": [0.0, 0.0, 1.0],
+                "modifications": [],
                 "name": "pole",
                 "remanentMag": 1.0,
                 "material": "NdFeB",
@@ -905,7 +904,7 @@
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
             "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "currentDensity": ["Current Density [A/$mm^2$]", "Float", -2000.0],
+            "currentDensity": ["Current Density [A/$mm^2$]", "Float", -0.5],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
             "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "Float", 105.0, "Measured along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
@@ -1054,11 +1053,11 @@
             "magnetCrossSection": ["Cross Section [mm]", "FloatArray", [65.0, 45.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
             "magnetLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 18.0],
             "pole": ["Pole", "model.geomObject", {
-                "bevels": [],
                 "color": "#ff00ff",
                 "segments": [2, 5, 2],
                 "magnetization": [0.0, 0.0, 0.0],
                 "materialFile": "VaPermendur.csv",
+                "modifications": [],
                 "name": "pole",
                 "remanentMag": 0.0,
                 "material": "custom",

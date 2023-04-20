@@ -17,7 +17,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
-from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
 import copy
@@ -899,12 +898,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
                 f"{SCHEMA.constants.fileTypeRadiaDmp}.{data.models.simulation.dmpImportFile}"
             )
         )
-    v.isExample = (
-        data.models.simulation.get("isExample", False)
-        and data.models.simulation.name in radia_examples.EXAMPLES
-    )
-    v.exampleName = data.models.simulation.get("exampleName", None)
-    v.is_raw = v.exampleName in SCHEMA.constants.rawExamples
+    v.isExample = data.models.simulation.get("isExample", False)
     v.magnetType = data.models.simulation.get("magnetType", "freehand")
     dirs = _geom_directions(
         data.models.simulation.beamAxis, data.models.simulation.heightAxis
@@ -912,17 +906,16 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.matrix = _get_coord_matrix(dirs, data.models.simulation.coordinateSystem)
     st = f"{v.magnetType}Type"
     v[st] = data.models.simulation[st]
-    if not v.is_raw:
-        pkinspect.module_functions("_update_geom_from_")[
-            f"_update_geom_from_{v.magnetType}"
-        ](
-            g.objects,
-            data.models[v[st]],
-            height_dir=dirs.height_dir,
-            length_dir=dirs.length_dir,
-            width_dir=dirs.width_dir,
-            qcall=qcall,
-        )
+    pkinspect.module_functions("_update_geom_from_")[
+        f"_update_geom_from_{v.magnetType}"
+    ](
+        g.objects,
+        data.models[v[st]],
+        height_dir=dirs.height_dir,
+        length_dir=dirs.length_dir,
+        width_dir=dirs.width_dir,
+        qcall=qcall,
+    )
     v.objects = g.get("objects", [])
     _validate_objects(v.objects)
 
@@ -1012,7 +1005,6 @@ def _get_cee_points(o, stemmed_info):
             [p.ax2, sy2],
             [p.ax2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )
@@ -1041,7 +1033,6 @@ def _get_ell_points(o, stemmed_info):
             [p.sx2, p.ay2],
             [p.sx2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )
@@ -1098,7 +1089,6 @@ def _get_jay_points(o, stemmed_info):
             [p.sx2, p.ay2],
             [p.sx2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )
@@ -1710,7 +1700,7 @@ def _update_geom_obj(o, qcall=None, **kwargs):
         o.points = pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
             o, _get_stemmed_info(o)
         )
-    if "points" in o:
+    if o.get("points"):
         o.area = _poly_area(o.points)
     if o.type == "stl":
         mesh = _read_stl_file(o.file, qcall=qcall)

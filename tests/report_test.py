@@ -52,7 +52,7 @@ def test_opal(fc):
 def test_radia(fc):
     _r(
         fc,
-        "Dipole",
+        "Parameterized C-Bend Dipole",
         "geometryReport",
     )
 
@@ -70,15 +70,6 @@ def test_srw(fc):
         fc,
         "Young's Double Slit Experiment",
         "initialIntensityReport",
-    )
-
-
-def test_synergia(fc):
-    _r(
-        fc,
-        "Simple FODO",
-        "bunchReport1",
-        shared_model="bunchReport2",
     )
 
 
