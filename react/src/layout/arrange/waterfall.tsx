@@ -27,7 +27,14 @@ export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
         });
     }
 
-    numBinsForBreakpoint(breakpoint: Breakpoint) {
+    formatValue = (v: number | string) => {
+        if(typeof(v) === 'number') {
+            return `${v}px`;
+        }
+        return v;
+    }
+
+    numColumnsForBreakpoint(breakpoint: Breakpoint) {
         let bins = 1; // TODO: place default somewhere
         if(!this.config.breakpoints) {
             //return bins;
@@ -46,105 +53,55 @@ export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
 
         return bins;
     }
-    
-    getMarginStyles = (): string => {
-        if(!this.config.gutters) {
-            return "";
-        }
-
-        let formatValue = (v: number | string) => {
-            if(typeof(v) === 'number') {
-                return `${v}px`;
-            }
-            return v;
-        }
-
-        let ret = {};
-        if(this.config.gutters.horizontal) {
-            let h = formatValue(this.config.gutters.horizontal);
-            ret['margin-left'] = h;
-            ret['margin-right'] = h;
-        }
-        if(this.config.gutters.vertical) {
-            let v = formatValue(this.config.gutters.vertical);
-            ret['margin-top'] = v;
-            ret['margin-bottom'] = v;
-        }
-
-        return Object.entries(ret).map(([name, value]) => `${name}: ${value}`).join("; ")
-    }
-
-    waterfallBins = (props: { children: React.ReactNode }) => {
-        let windowSize = useWindowSize();
-        let breakpoint = resolveBreakpoint(windowSize);
-        let numBins = this.numBinsForBreakpoint(breakpoint);
-
-        let bins: JSX.Element[] = [];
-        for(let b = 0; b < numBins; b++) {
-            bins.push(<div key={b}>
-
-            </div>)
-        }
-
-        let gridStyle = {
-            "gridTemplateColumns": bins.map(() => `${(100/bins.length).toFixed(2)}%`).join(" "),
-            "gridTemplateRows": "1fr"
-        }
-
-        useEffect(() => {
-            if(!containerRef.current) {
-                return () => {};
-            }
-
-            if(!waterfallRef.current) {
-                return () => {};
-            }
-
-            let binEles = Array.from(waterfallRef.current.children);
-
-            let container = containerRef.current;
-            // needs to be done this way, avoids mutating length during for loop
-            let children = Array.from(container.children);
-            let cleanups = [];
-            children.forEach((e, i) => {
-                let b = binEles[i % binEles.length];
-                b.appendChild(e);
-                e.setAttribute("style", this.getMarginStyles())
-                cleanups.push(() => {
-                    container.appendChild(e);
-                })
-            })
-
-            return () => cleanups.forEach(c => c())
-        }, [bins.length])
-
-        let waterfallRef = useRef<HTMLDivElement>();
-        let containerRef = useRef<HTMLDivElement>();
-
-        return (
-            <>
-                <div style={gridStyle} ref={waterfallRef} className="sr-waterfall-container">
-                    {bins}
-                </div>
-                <div style={{display: "none"}} ref={containerRef}>
-                    {props.children}
-                </div>
-            </>
-        )
-    }
 
     component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
-        
         let c: JSX.Element[] = this.children.map((c, idx) => {
             let LayoutComponent = c.component;
             return <LayoutComponent key={idx}/>
         });
-        
 
-        let WaterfallBins = this.waterfallBins;
+        let windowSize = useWindowSize();
+        let breakpoint = resolveBreakpoint(windowSize);
+        let numColumns = this.numColumnsForBreakpoint(breakpoint);
+
+        let containerRef = useRef<HTMLDivElement>();
+
+        let fixupStyles = () => {
+            if(containerRef.current) {
+                let children = [...containerRef.current.children];
+                children.map(c => c as HTMLElement).forEach(c => {
+                    c.style.width = "100%";
+                    c.style.padding = "0";
+                    c.style.marginBottom = this.formatValue(this.config.gutters.vertical);
+                    c.style.boxSizing = "border-box";
+                    c.style.breakInside = "avoid";
+                })
+            }  
+        }
+
+        useEffect(() => {
+            if(containerRef.current) {
+                fixupStyles();
+                let observer = new MutationObserver((mutations) => {
+                    fixupStyles();
+                })
+                observer.observe(containerRef.current, { childList: true });
+                return () => observer.disconnect();
+            }
+            return () => {}
+        })
 
         return (
-            <WaterfallBins>{c}</WaterfallBins>
+            <>
+                <div style={{
+                    listStyle: "none",
+                    columnGap: this.formatValue(this.config.gutters.horizontal),
+                    padding: "0",
+                    columnCount: `${numColumns}`
+                }} ref={containerRef}>
+                    {c}
+                </div>
+            </>
         )
     };
 }

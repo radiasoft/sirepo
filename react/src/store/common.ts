@@ -39,7 +39,6 @@ export const makeSlice = <M>(sliceName: string): {
         initialState: {},
         reducers: {
             updateModel: (state, {payload: {name, value}}: {payload: ModelStateUpdate<M>}) => {
-                console.log(`UPDATE MODEL ${name} IN ${sliceName}`);
                 (state[name] as any) = value;
             }
         }

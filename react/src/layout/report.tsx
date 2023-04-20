@@ -19,7 +19,7 @@ import { ModelState } from "../store/models";
 import { useShown } from "../hook/shown";
 import { CHandleFactory, DependencyReader, useModelValue } from "../data/handle";
 import { StoreTypes, ValueSelectors } from "../data/data";
-import { FormFieldState } from "../store/formState";
+import { interpolate } from "../utility/string";
 
 
 export type ReportVisualProps<L> = { data: L, model: ModelState };
@@ -44,12 +44,14 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        let { report, dependencies } = this.config;
+        let { dependencies } = this.config;
 
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
         let schema = useContext(CSchema);
+        let handleFactory = useContext(CHandleFactory);
         let routeHelper = useContext(CRouteHelper);
+        let report = interpolate(this.config.report).withDependencies(handleFactory, StoreTypes.Models).raw();
 
         let reportDependencies = dependencies.map(dependencyString => new Dependency(dependencyString));
         let dependentValues = new DependencyReader(reportDependencies, StoreTypes.Models, schema).hook();
@@ -59,8 +61,6 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         let [model, updateModel] = useState(undefined);
 
         useEffect(() => {
-            console.log("EFFECT");
-            console.log("dependent values", dependentValues);
             updateSimulationData(undefined);
             simulationInfoPromise.then(({ models, simulationId }) => {
                 updateModel(models[report]);

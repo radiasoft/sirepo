@@ -32,7 +32,6 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        console.log("PANEL RENDER");
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         formHandleFactory.useUpdates(PanelLayout);

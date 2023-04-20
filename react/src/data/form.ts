@@ -76,7 +76,6 @@ export class FormStateHandleFactory extends HandleFactory {
     }
 
     private callParentFunctions = (fnName: 'save' | 'cancel', state: any, dispatch: Dispatch<AnyAction>) => {
-        console.log(`${fnName} ------------>`)
         let p = this.parent;
         while(p) {
             let fn: FormActionFunc = p[fnName];
@@ -85,11 +84,9 @@ export class FormStateHandleFactory extends HandleFactory {
             }
             p = p.parent;
         }
-        console.log(`${fnName} <-------------`)
     }
 
     save: FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => {
-        console.log("SAVE CALLED");
         this.updated.items().forEach(u => u.value.save(state, dispatch));
         this.updated = new Dictionary();
         this.notifyListeners();
@@ -97,7 +94,6 @@ export class FormStateHandleFactory extends HandleFactory {
     }
 
     cancel: FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => {
-        console.log("CANCEL CALLED");
         this.updated.items().forEach(u => u.value.cancel(state, dispatch));
         this.updated = new Dictionary();
         this.notifyListeners();
@@ -105,7 +101,6 @@ export class FormStateHandleFactory extends HandleFactory {
     }
 
     isDirty = (): boolean => {
-        console.log("IS DIRTY CALLED", this.updated);
         //debugger;
         return this.updated.items().length > 0;
     }
@@ -132,9 +127,10 @@ export class FormStateHandleFactory extends HandleFactory {
                         /*if(dependency.getDependencyString() === "beamline.elements") {
                             debugger;
                         }*/
+                        let fr = f(state);
                         let type = this.schema.models[dependency.modelName][dependency.fieldName].type
                         console.log("type", type);
-                        let rawValue = revertDataStructure(f(state).value, getValueSelector(StoreTypes.FormState));
+                        let rawValue = revertDataStructure(fr.value, getValueSelector(StoreTypes.FormState));
                         console.log("rawValue", rawValue);
                         let v = type.toModelValue(rawValue);
                         console.log("value", v);

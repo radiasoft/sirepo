@@ -16,6 +16,10 @@ import { CRouteHelper } from "../utility/route";
 import { Schema, SchemaLayout } from "../utility/schema";
 import { Layout, LayoutProps } from "./layout";
 import { createLayouts } from "./layouts";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import * as Icon from "@fortawesome/free-solid-svg-icons";
+import "./beamline.scss";
+import { useCoupledState } from "../hook/coupling";
 
 export type BeamlineElement = {
     items: SchemaLayout[],
@@ -40,15 +44,21 @@ export function BeamlineThumbnail(props: { name: string, iconSrc: string, onClic
     )
 }
 
-export function BeamlineItem(props: { baseElement: BeamlineElement & { layouts: Layout[] }, aliases: ArrayAliases, onClick?: () => void, modalShown: boolean, onHideModal?: () => void }) {
-    let { baseElement, aliases, onClick, modalShown, onHideModal } = props;
+export function BeamlineItem(props: { index: number, baseElement: BeamlineElement & { layouts: Layout[] }, header: string, aliases: ArrayAliases, onClick?: () => void, onDeleteClick?: () => void, modalShown: boolean, onHideModal?: () => void }) {
+    let { index, baseElement, aliases, onClick, onDeleteClick, modalShown, onHideModal, header } = props;
     
     let routeHelper = useContext(CRouteHelper);
     let store = useStore();
     let simulationInfoPromise = useContext(CSimulationInfoPromise);
     let schema = useContext(CSchema);
     let handleFactory = useContext(CHandleFactory);
-    let [aliasedHandleFactory, _] = useState(new FormStateHandleFactory(schema, new HandleFactoryWithArrayAliases(schema, aliases, handleFactory)));
+    let createHandleFactory = () => new FormStateHandleFactory(schema, new HandleFactoryWithArrayAliases(schema, aliases, handleFactory))
+    let [aliasedHandleFactory, _, indexChanged] = useCoupledState(index, createHandleFactory);
+    if(indexChanged) {
+        return <></>
+    }
+
+    let [isHover, updateIsHover] = useState(false);
     //aliasedHandleFactory.useUpdates(BeamlineItem);
     let dispatch = useDispatch();
     let appWrapper = useContext(CAppWrapper);
@@ -76,8 +86,17 @@ export function BeamlineItem(props: { baseElement: BeamlineElement & { layouts: 
     let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
     return (
         <CHandleFactory.Provider value={aliasedHandleFactory}>
-            <div onClick={onClick}>
-                <BeamlineThumbnail name={baseElement.name} iconSrc={routeHelper.globalRoute("svg", { fileName: baseElement.icon })}/>
+            <div className="d-flex flex-column flex-nowrap justify-content-center align-items-center" onMouseEnter={() => updateIsHover(true)} onMouseLeave={() => updateIsHover(false)} onClick={onClick}>
+                <div className="beamline-item-header">{header}</div>
+                <div style={{ position: "relative" }}>
+                    <div style={{position: "absolute", zIndex: "10", right: "7px", top: "1px", display: isHover ? undefined : "none"}} onClick={(e) => { e.stopPropagation(); if(onDeleteClick) onDeleteClick() }}>
+                        <FontAwesomeIcon icon={Icon.faRemove}/>
+                    </div>
+                    <div style={{position: "relative"}}>
+                        <BeamlineThumbnail name={baseElement.name} iconSrc={routeHelper.globalRoute("svg", { fileName: baseElement.icon })}/>
+                    </div>
+                </div>
+                
             </div>
             <Modal show={modalShown} onHide={() => {
                 //_cancel();
@@ -121,17 +140,12 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
 
         let beamlineDependency: Dependency = new Dependency(this.config.beamlineDependency);
 
-        let [shownModal, updateShownModal] = useState<number>(undefined);
+        let [shownModal, updateShownModal] = useState<string>(undefined);
 
         let handle = formHandleFactory.createHandle<FormModelState, FormFieldState<ArrayFieldState<FormModelState>>>(beamlineDependency, StoreTypes.FormState).hook(); // TODO: form or model?
 
-        console.log("beamline handle value", handle);
-
         let addBeamlineElement = (element: BeamlineElement) => {
-            console.log("AAA");
             let ms = schema.models[element.model];
-            // TODO: use generic methods
-            let l = handle.value.value.length;
             let nextId = handle.value.value.reduce((prev, cur) => Math.max(prev, parseInt(cur.item.id.value) + 1), 1);
             let nextPos = handle.value.value.reduce((prev, cur) => Math.max(prev, parseFloat(cur.item.position.value) + 5), 0);
             let mv = newModelFromSchema(ms, {
@@ -140,7 +154,6 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
                 type: element.model
             })
             
-            console.log("new beamline element mv", mv);
             let bv = [...handle.value.value];
             bv.push({
                 item: formStateFromModelState(mv),
@@ -151,7 +164,16 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
                 touched: true,
                 value: bv
             }, store.getState(), dispatch);
-            console.log("ADD ELEMENT");
+        }
+
+        let removeBeamlineElement = (index: number) => {
+            let bv = [...handle.value.value];
+            bv.splice(index, 1);
+            handle.write({
+                ...handle.value,
+                touched: true,
+                value: bv
+            }, store.getState(), dispatch);
         }
 
         let elementThumbnails = this.elements.map((e, i) => {
@@ -168,14 +190,12 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
             return r[0];
         }
 
-        console.log("MAPPING BEAMLINE ELEMENTS");
-
         let beamlineComponents = handle.value.value.map((e, i) => {
+            console.log(`BE ${i} = ${e.item.position.value}`)
+
             let model = e.model;
             let ele: FormModelState = e.item;
-            console.log("ele", ele);
             let id = ele.id.value;
-            console.log("id", id);
             let baseElement = findBaseElementByModel(model);
 
             let aliases: ArrayAliases = [
@@ -191,7 +211,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
             ];
             
             return (
-                <BeamlineItem key={id} baseElement={baseElement} aliases={aliases} onClick={() => updateShownModal(i)} modalShown={shownModal === i} onHideModal={() => shownModal === i && updateShownModal(undefined)}/>
+                <BeamlineItem key={id} index={i} header={`${ele.position.value} m`} baseElement={baseElement} aliases={aliases} onClick={() => updateShownModal(id)} onDeleteClick={() => removeBeamlineElement(i)} modalShown={shownModal === id} onHideModal={() => shownModal === id && updateShownModal(undefined)}/>
             )
         })
 

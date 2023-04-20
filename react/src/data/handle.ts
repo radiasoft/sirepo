@@ -89,7 +89,7 @@ export class DependencyReader<F> {
         return x;
     }
 
-    getData = (su: SelectorUser): F[] => {
+    private getData = (su: SelectorUser): F[] => {
         let vs = getValueSelector(this.type);
         let newDeps = this.dependencies.flatMap(d => this.expandWildcard(d));
         return newDeps.map(d => {

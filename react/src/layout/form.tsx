@@ -13,12 +13,15 @@ import { CSchema } from "../data/appwrapper";
 import { FormStateHandleFactory } from "../data/form";
 import { CHandleFactory } from "../data/handle";
 import { StoreTypes } from "../data/data";
+import { useCoupledState } from "../hook/coupling";
 
 export function FormControllerElement(props: {children?: React.ReactNode}) {
-    console.log("FORM CTRL RENDER");
     let schema = useContext(CSchema);
     let handleFactory = useContext(CHandleFactory);
-    let [formHandleFactory, _] = useState(new FormStateHandleFactory(schema, handleFactory));
+    let [formHandleFactory, _, hfChanged] = useCoupledState(handleFactory, new FormStateHandleFactory(schema, handleFactory));
+    if(hfChanged) {
+        return <></>
+    }
     // TODO: form controller might need to "subscribe to updates" during save
     formHandleFactory.useUpdates(FormControllerElement);
 

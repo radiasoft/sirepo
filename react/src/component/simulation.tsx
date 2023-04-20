@@ -29,11 +29,12 @@ import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
 import { downloadAs, getAttachmentFileName } from "../utility/download";
 import { Provider, useDispatch, useStore } from "react-redux";
-import { StoreState } from "../store/common";
-import { configureStore } from "@reduxjs/toolkit";
-import { formStatesSlice } from "../store/formState";
+import { ArrayFieldState, StoreState } from "../store/common";
+import { configureStore, Middleware } from "@reduxjs/toolkit";
+import { formActions, formSelectors, formStatesSlice } from "../store/formState";
 import { BaseHandleFactory, CHandleFactory } from "../data/handle";
-import { StoreTypes } from "../data/data";
+import { getValueSelector, newModelFromSchema, StoreType, StoreTypes } from "../data/data";
+import { useCoupledState } from "../hook/coupling";
 
 export type SimulationInfoRaw = {
     models: StoreState<ModelState>,
@@ -46,11 +47,96 @@ export type SimulationInfo = SimulationInfoRaw & {
 }
 
 function SimulationStoreInitializer(props: {[key: string]: any}) {
+    let schema = useContext(CSchema);
+
+    let shadowBeamlineWatchpointReportsMiddleware: Middleware = store => next => action => {
+        if(action.type === "models/updateModel") {
+            let { name, value } = action.payload;
+            if(name === "beamline") {
+                let watchpointReportsModel: ModelState = modelSelectors.selectModel("watchpointReports")(store.getState());
+                if(watchpointReportsModel) {
+                    let watchpointReports = watchpointReportsModel.reports as ArrayFieldState<ModelState>;
+                    let bv: ArrayFieldState<ModelState> = value.elements;
+                    let findWatchpointReportById = (id) => watchpointReports.find(e => e.item.id === id);
+                    let reportsValue = bv.filter(e => e.model == "watch").map(e => {
+                        let id = e.item.id;
+                        let watchpointReport = findWatchpointReportById(id); // TODO: these ids need to be made more unique or errors will occur
+                        if(!watchpointReport) {
+                            watchpointReport = {
+                                item: newModelFromSchema(schema.models["watchpointReport"], { id }),
+                                model: "watchpointReport"
+                            };
+                        }
+            
+                        return {
+                            report: watchpointReport,
+                            position: e.item.position as number
+                        }
+                    }).sort((e1, e2) => e1.position - e2.position).map(e => e.report);
+
+                    store.dispatch(modelActions.updateModel({ name: "watchpointReports", value: {
+                        reports: reportsValue
+                    }}));
+                }
+            }
+        }
+        return next(action);
+    }
+
+    let shadowBeamlineSortingMiddleware: Middleware = store => next => action => {
+        let sortValues = (v, vs) => v.sort((a, b) => {
+            return parseFloat(vs(a.item.position)) - parseFloat(vs(b.item.position))
+        });
+
+        if(action.type === "models/updateModel") {
+            let { name, value } = action.payload;
+            if(name === "beamline") {
+                let vs = getValueSelector(StoreTypes.Models)
+                let v = vs(value.elements);
+                let nv = sortValues(v, vs);
+
+                let formBeamlineModel: ModelState = formSelectors.selectModel("beamline")(store.getState());
+                if(formBeamlineModel !== undefined) {
+                    let fvs = getValueSelector(StoreTypes.FormState);
+                    console.log("fbm", formBeamlineModel);
+                    store.dispatch(formActions.updateModel({
+                        name,
+                        value: {
+                            ...formBeamlineModel,
+                            elements: {
+                                ...(formBeamlineModel.elements as any),
+                                value: sortValues([...fvs(formBeamlineModel.elements as any)], fvs)
+                            }
+                        }
+                    }))
+                }
+                
+
+                return next(modelActions.updateModel({
+                    name,
+                    value: {
+                        ...value,
+                        elements: nv
+                    }
+                }));
+            }
+        }
+
+        return next(action);
+    }
+
+    // TODO make server saving middleware
+
+
     const [modelsStore, _] = useState(() => configureStore({ 
         reducer: {
             [modelsSlice.name]: modelsSlice.reducer,
             [formStatesSlice.name]: formStatesSlice.reducer,
         },
+        middleware: [
+            shadowBeamlineWatchpointReportsMiddleware,
+            shadowBeamlineSortingMiddleware
+        ]
     }));
 
     return (
@@ -95,7 +181,7 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
         }))
     }, [])
 
-    let [handleFactory, _] = useState(new BaseHandleFactory(schema))
+    let [handleFactory, _] = useCoupledState(schema, new BaseHandleFactory(schema))
 
     return hasInit && simulationInfoPromise && (
         <CHandleFactory.Provider value={handleFactory}>

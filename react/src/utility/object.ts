@@ -28,8 +28,16 @@ export class Dictionary<K, V> {
     }
 
     items = (): KeyValuePair<K, V>[] => {
-        return this.records;
+        return [...this.records];
     }
+
+    remove = (key: K): V => {
+        let idx = this.records.findIndex(this.comparator(key));
+        if(idx >= 0) {
+            return this.records.splice(idx, 1)[0].value;
+        }
+        return undefined;
+    } 
 
     put = (key: K, value: V): void => {
         let idx = this.records.findIndex(this.comparator(key));
@@ -40,5 +48,9 @@ export class Dictionary<K, V> {
             key,
             value
         })
+    }
+
+    clear = (): void => {
+        this.records = [];
     }
 }

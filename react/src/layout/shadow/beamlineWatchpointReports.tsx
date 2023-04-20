@@ -1,14 +1,14 @@
 import React, { RefObject, useRef } from "react";
 import { FunctionComponent, useContext, useState } from "react";
-import { ArrayAliases, HandleFactoryWithArrayAliases } from "../../data/alias";
+import { ArrayAliases, HandleFactoryOverrides, HandleFactoryWithArrayAliases, HandleFactoryWithOverrides } from "../../data/alias";
 import { CSchema } from "../../data/appwrapper";
 import { StoreTypes } from "../../data/data";
 import { Dependency } from "../../data/dependency";
 import { FormStateHandleFactory } from "../../data/form";
 import { CHandleFactory } from "../../data/handle";
+import { useCoupledState } from "../../hook/coupling";
 import { ArrayFieldState } from "../../store/common";
 import { ModelState } from "../../store/models";
-import { Dictionary } from "../../utility/object";
 import { Layout } from "../layout";
 import { LAYOUTS } from "../layouts";
 
@@ -17,11 +17,24 @@ export type BeamlineWatchpointReportsConfig = {
     watchpointReportsDependency: string
 }
 
-function BeamlineWatchpointItem(props: {child: Layout, aliases: ArrayAliases} & {[key: string]: any}) {
-    let { aliases, child } = props;
+function BeamlineWatchpointItem(props: {beamlineIndex: number, aliases: ArrayAliases, overrides: HandleFactoryOverrides, child: Layout} & {[key: string]: any}) {
+    let { aliases, overrides, child, beamlineIndex } = props;
     let handleFactory = useContext(CHandleFactory);
     let schema = useContext(CSchema);
-    let [aliasedHandleFactory, _] = useState(new FormStateHandleFactory(schema, new HandleFactoryWithArrayAliases(schema, aliases, handleFactory)));
+    let createHandleFactory = () => new FormStateHandleFactory(schema, 
+        new HandleFactoryWithArrayAliases(schema, aliases, 
+            new HandleFactoryWithOverrides(schema, overrides, handleFactory)
+        )
+    )
+    let [aliasedHandleFactory, _, indexChanged] = useCoupledState(beamlineIndex, createHandleFactory);
+    console.log(`RENDER WATCHPOINT ITEM index=${beamlineIndex}`, aliases);
+
+    if(indexChanged) {
+        console.log(`INDEX CHANGE`)
+        console.log("ALIASES", aliases);
+        return <></>
+    }
+
     aliasedHandleFactory.useUpdates(BeamlineWatchpointItem)
     let Comp = child.component;
     return (
@@ -32,33 +45,34 @@ function BeamlineWatchpointItem(props: {child: Layout, aliases: ArrayAliases} & 
 }
 
 export class BeamlineWatchpointReports extends Layout<BeamlineWatchpointReportsConfig, {}> {
+    private reportLayout: Layout;
+
+    constructor(config: BeamlineWatchpointReportsConfig) {
+        super(config);
+
+        this.reportLayout = LAYOUTS.getLayoutForSchema(createPanelConfig(new Dependency("iteration.index"), new Dependency("beamlineElement.position"), new Dependency("beamlineElement.id")))
+    }
+
     component: FunctionComponent<{ [key: string]: any; }> = (props) => {
         let watchpointReportsDependency = new Dependency(this.config.watchpointReportsDependency);
         let beamlineDependency = new Dependency(this.config.beamlineDependency);
         let handleFactory = useContext(CHandleFactory);
         let reportsHandle = handleFactory.createHandle(watchpointReportsDependency, StoreTypes.Models).hook();
         let elementsHandle = handleFactory.createHandle(beamlineDependency, StoreTypes.Models).hook();
-        let reportsValue = reportsHandle.value as ArrayFieldState<ModelState>;
         let elementsValue = elementsHandle.value as ArrayFieldState<ModelState>;
 
         let findElementIndexById = (id: any) => elementsValue.findIndex(e => e.item.id == id);
-        let findElementById = (id: any) => elementsValue[findElementIndexById(id)]
-         
+        let findElementById = (id: any) => elementsValue[findElementIndexById(id)];
 
-        let reportLayoutsRef: RefObject<Dictionary<string, Layout>> = useRef(new Dictionary());
+        console.log("WATCHPOINT REPORTS VALUE", reportsHandle.value);
 
-        reportsValue.forEach((report, index) => {
-            let id = `${report.item.id}`;
-            let ele = findElementById(id);
-            if(!reportLayoutsRef.current.contains(id)) {
-                let cfg = createPanelConfig(`watchpointReport${index}`, new Dependency("beamlineElement.position"));
-                reportLayoutsRef.current.put(id, LAYOUTS.getLayoutForSchema(cfg));
-            }
-        })
-
-        let reportElements = reportLayoutsRef.current.items().map((e, index) => {
-            let beamlineIndex = findElementIndexById(e.key);
-            let beamlineElement = findElementById(e.key);
+        let comps = (reportsHandle.value as ArrayFieldState<ModelState>).map(i => i.item).map((report, index) => {
+            let id = report.id;
+            console.log("ID", id);
+            let beamlineIndex = findElementIndexById(id);
+            console.log("BEAMLINE INDEX", beamlineIndex);
+            let beamlineElement = findElementById(id);
+            console.log("BEAMLINE ELEMENT", beamlineElement);
             let aliases: ArrayAliases = [
                 {
                     realDataLocation: {
@@ -79,22 +93,30 @@ export class BeamlineWatchpointReports extends Layout<BeamlineWatchpointReportsC
                     fake: "beamlineElement"
                 }
             ];
-            
+
+            let overrides: HandleFactoryOverrides = [
+                {
+                    fake: "iteration",
+                    value: {
+                        index
+                    }
+                }
+            ]
             
             return (
-                <React.Fragment key={e.key as any}>
-                    <BeamlineWatchpointItem child={e.value} aliases={aliases}/>
-                </React.Fragment>
+                <BeamlineWatchpointItem beamlineIndex={beamlineIndex} key={`watchpointReport${id}`} aliases={aliases} overrides={overrides} child={this.reportLayout}/>
             )
         })
 
+        console.log("ELEMENTS", comps);
+
         return (<>{
-            reportElements
+            comps
         }</>);
     };
 }
 
-function createPanelConfig(reportName: string, titleDep: Dependency) {
+function createPanelConfig(indexDep: Dependency, titleDep: Dependency, idDep: Dependency) {
     return {
         "layout": "panel",
         "config": {
@@ -103,7 +125,7 @@ function createPanelConfig(reportName: string, titleDep: Dependency) {
                 {
                     "layout": "autoRunReport",
                     "config": {
-                        "report": reportName,
+                        "report": `watchpointReport$(${indexDep.getDependencyString()})`,
                         "dependencies": [
                             "beamline.*",
                             "bendingMagnet.*",

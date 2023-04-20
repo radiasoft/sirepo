@@ -1,4 +1,4 @@
-import { getValueSelector, StoreType, StoreTypes } from "../data/data";
+import { getValueSelector, StoreType } from "../data/data";
 import { Dependency } from "../data/dependency";
 import { HandleFactory } from "../data/handle";
 
@@ -91,6 +91,7 @@ export function titleCaseString(str: string): string {
     }).join(" ");
 }
 
+// https://stackoverflow.com/a/15710692
 export function hashCode(s: string): number {
     return s.split("").reduce(function(a, b) {
       a = ((a << 5) - a) + b.charCodeAt(0);
