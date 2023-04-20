@@ -2763,7 +2763,7 @@ SIREPO.app.directive('groupedObject', function(appState, $sce) {
 
                 function updateRow(s) {
                     srdbg('update', s);
-                    s.class('grouped-child');
+                    //s.class('grouped-child');
                     //s.attr('data-grouped-object', 'obj')
                     //    .attr('data-ng-attr-id', '{{ o.id }}')
                     //    .attr('data-ng-repeat', 'o in getObjects() track by o.id')
