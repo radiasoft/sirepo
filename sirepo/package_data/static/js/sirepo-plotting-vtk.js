@@ -2684,11 +2684,123 @@ SIREPO.app.directive('groupedObjects', function(appState, $sce) {
     };
 });
 
+SIREPO.app.directive('objectTable', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            overlayButtons: '=',
+            source: '=',
+        },
+        template: `
+          <div class="panel panel-info">
+            <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
+            <div class="panel-body">
+              <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
+                <thead></thead>
+                  <tbody>
+                    <tr data-ng-attr-id="{{ obj.id }}"data-grouped-object="obj" data-parent="getParent(obj)" data-source="source" data-overlay-buttons="overlayButtons" data-ng-repeat="obj in getObjects() track by $index"></tr>
+                  </tbody>
+                </table>
+            </div>
+          </div>
+        `,
+        controller: function($scope) {
+            const expanded = {};
+
+            function init() {
+                for (const o of $scope.getObjects()) {
+                    expanded[o.id] = false;
+                }
+                srdbg($scope.modelName, appState.models[$scope.modelName], expanded);
+            }
+
+            function arrange(objects) {
+
+                let arranged = [];
+
+                function add(o) {
+                    arranged.push(o);
+                    arranged = arranged.concat(arrange(objects.splice(i, 1)));
+                }
+
+                for (let i = 0; i < objects.length; ++i) {
+                    const o = objects[i];
+                    // no group, add right away
+                    if ($scope.isNotInGroup(o)) {
+                        add(o);
+                    }
+                    if (arranged.includes(o.groupId)) {
+
+                    }
+                }
+                return arranged;
+            }
+
+            $scope.groupedObjects = [];
+
+            $scope.align = (o, alignType) => {
+                $scope.$parent.align(o, alignType);
+            };
+
+            $scope.copyObject = o =>  {
+                $scope.source.copyObject(o);
+            };
+
+            $scope.deleteObject = o => {
+                $scope.source.deleteObject(o);
+            };
+
+            $scope.editObject = o =>  {
+                $scope.source.editObject(o);
+            };
+
+            $scope.isExpanded = o => expanded[o.id];
+
+            $scope.getParent = o => $scope.source.getObject(o.groupId);
+
+            $scope.getObjects = () => {
+                return (appState.models[$scope.modelName] || {}).objects;
+            };
+
+            $scope.isInGroup = o => $scope.source.isInGroup(o);
+
+            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
+
+            $scope.isGroup = o => $scope.source.isGroup(o);
+
+            $scope.nestLevel = o => {
+                let n = 0;
+                if ($scope.isInGroup(o)) {
+                    n += (1 + $scope.nestLevel($scope.source.getObject(o.groupId)));
+                }
+                return n;
+            };
+
+            $scope.toggleExpand = o => {
+                srdbg('TOGGLEE', o.id);
+                expanded[o.id] = ! expanded[o.id];
+            };
+
+            $scope.isParentExpanded = o => {
+                if ($scope.isNotInGroup(o)) {
+                    return true;
+                }
+                srdbg(o.id, o.groupId, 'GRP?', expanded[o.groupId]);
+                return expanded[o.groupId];
+            }
+
+            init();
+        },
+    };
+});
+
 SIREPO.app.directive('groupedObject', function(appState, $sce) {
     return {
         restrict: 'A',
         scope: {
             obj: '=groupedObject',
+            parent: '=',
             overlayButtons: '=',
             source: '=',
         },
@@ -2734,6 +2846,14 @@ SIREPO.app.directive('groupedObject', function(appState, $sce) {
             $scope.isInGroup = o => $scope.source.isInGroup(o);
 
             $scope.isNotInGroup = o => ! $scope.isInGroup(o);
+
+            $scope.isParentExpanded = o => {
+                if ($scope.isNotInGroup(o)) {
+                    return true;
+                }
+                srdbg(o.id, o.groupId, 'GRP?', expanded[o.groupId]);
+                return expanded[o.groupId];
+            }
 
             $scope.isGroup = o => $scope.source.isGroup(o);
 
