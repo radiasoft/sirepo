@@ -192,6 +192,9 @@ function convertSchema(schema: OldSchema) {
 function convertModel(model: OldSchemaModel): SchemaModelJson {
     let newModel = {};
     for(let [fieldName, field] of Object.entries(model)) {
+        if(field === undefined) {
+            continue;
+        }
         let [name, typeString, defaultValue, description, min, max] = field;
         newModel[fieldName] = {
             displayName: name,
