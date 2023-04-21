@@ -168,7 +168,7 @@ def _auth_client_module(request):
     cfg = PKDict(
         SIREPO_AUTH_BASIC_PASSWORD="pass",
         SIREPO_AUTH_BASIC_UID="dev-no-validate",
-        SIREPO_SMTP_FROM_EMAIL="x",
+        SIREPO_SMTP_FROM_EMAIL="x@x.x",
         SIREPO_SMTP_FROM_NAME="x",
         SIREPO_SMTP_PASSWORD="x",
         SIREPO_SMTP_SERVER="dev",
