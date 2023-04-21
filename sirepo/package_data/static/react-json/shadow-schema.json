@@ -3395,6 +3395,23 @@
             }
         }
     },
+    "middleware": [
+        {
+            "type": "shadowWatchpointsFromBeamline",
+            "config": {
+                "beamlineDependency": "beamline.elements",
+                "watchpointReportsDependency": "watchpointReports.reports",
+                "watchpointModelName": "watch",
+                "watchpointReportModelName": "watchpointReport"
+            }
+        },
+        {
+            "type": "shadowBeamlineSorting",
+            "config": {
+                "beamlineDependency": "beamline.elements"
+            }
+        }
+    ],
     "view": [
         {
             "layout": "navbarModalButton",

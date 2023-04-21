@@ -32,13 +32,19 @@ export type SchemaRoutesJson = {
     [key: string]: string
 }
 
+export type SchemaMiddlewareJson = {
+    type: string,
+    config: {[key: string]: any}
+}
+
 export type SchemaJson = {
     constants: {[key: string]: any},
     type: {[typeName: string]: SchemaTypeJson},
     model: SchemaModelsJson,
     view: SchemaLayoutJson[],
     route: SchemaRoutesJson,
-    reactRoute: SchemaRoutesJson
+    reactRoute: SchemaRoutesJson,
+    middleware: SchemaMiddlewareJson[]
 }
 
 export type SchemaLayout = SchemaLayoutJson;
@@ -64,19 +70,22 @@ export type SchemaRoutes = {
     [key: string]: string
 }
 
+export type SchemaMiddleware = SchemaMiddlewareJson;
+
 export type Schema = {
     constants: {[key: string]: any},
     models: SchemaModels,
     views: SchemaLayout[],
     route: SchemaRoutes,
-    reactRoute: SchemaRoutes
+    reactRoute: SchemaRoutes,
+    middleware: SchemaMiddleware[]
 }
 
 export const getAppCombinedSchema = (appName: string): Promise<Schema> => {
     return new Promise<Schema>((resolve, reject) => {
         Promise.all([
             fetch(`/static/react-json/common-schema.json`),
-            fetch(`/static/react-json/${appName}-schema.json`)
+            fetch(`/static/react-json/${appName.toLocaleLowerCase()}-schema.json`)
         ]).then(([commonResp, appResp]) => {
             Promise.all([
                 commonResp.json(), 
@@ -121,7 +130,11 @@ export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): Sc
         reactRoute: {
             ...(original.reactRoute || {}),
             ...(overrides.reactRoute || {})
-        }
+        },
+        middleware: [
+            ...(original.middleware || []),
+            ...(overrides.middleware || [])
+        ]
     }
 }
 
@@ -178,6 +191,7 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
         views: schemaObj.view,
         models,
         route: schemaObj.route,
-        reactRoute: schemaObj.reactRoute
+        reactRoute: schemaObj.reactRoute,
+        middleware: schemaObj.middleware
     }
 }
