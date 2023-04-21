@@ -14,7 +14,8 @@ export type WaterfallConfig = {
     gutters?: {
         vertical?: string | number,
         horizontal?: string | number
-    }
+    },
+    padding: string
 }
 
 export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
@@ -96,7 +97,7 @@ export class WaterfallLayout extends Layout<WaterfallConfig, {}> {
                 <div style={{
                     listStyle: "none",
                     columnGap: this.formatValue(this.config.gutters.horizontal),
-                    padding: "0",
+                    padding: this.formatValue(this.config.padding),
                     columnCount: `${numColumns}`
                 }} ref={containerRef}>
                     {c}
