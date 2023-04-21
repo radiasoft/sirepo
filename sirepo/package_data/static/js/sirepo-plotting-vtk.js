@@ -2608,21 +2608,21 @@ SIREPO.app.directive('objectTable', function(appState) {
               <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
                 <thead></thead>
                   <tbody>
-                    <tr data-ng-show="areAllParentsExpanded(obj)" data-ng-attr-id="{{ obj.id }}" data-ng-repeat="obj in getObjects() track by $index">
-                      <td style="padding-left: {{ nestLevel(obj) }}em; cursor: pointer; white-space: nowrap">
-                        <span style="font-size: large; color: {{obj.color || '#cccccc'}};">■</span>
-                          <span data-ng-if="isGroup(obj)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[obj.id], 'glyphicon-chevron-up': ! expanded[obj.id]}"  data-ng-click="toggleExpand(obj)"></span>
-                            <span>{{ obj.name }}</span>
-                            <span class="sr-button-bar-parent" data-ng-if="isGroup(obj)">
-                              <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(obj, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                    <tr data-ng-show="areAllParentsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
+                      <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
+                        <span style="font-size: large; color: {{o.color || '#cccccc'}};">■</span>
+                          <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
+                            <span>{{ o.name }}</span>
+                            <span class="sr-button-bar-parent" data-ng-if="isGroup(o)">
+                              <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
                             </span>
                       </td>
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
                             <div class="sr-button-bar sr-button-bar-active">
-                               <button data-ng-if="! isGroup(obj)" class="btn btn-info btn-xs" data-ng-click="copyObject(obj)" title="copy">Copy</button>
-                               <button data-ng-click="editObject(obj)" class="btn btn-info btn-xs" title="edit">Edit</button>
-                               <button data-ng-click="deleteObject(obj)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                               <button data-ng-if="! isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy">Copy</button>
+                               <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit">Edit</button>
+                               <button data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
                         </td>                    
