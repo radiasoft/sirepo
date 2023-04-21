@@ -2525,8 +2525,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.source.editObject(o);
             };
 
-            $scope.isExpanded = o => expanded[o.id];
-
             $scope.fitToShapes = () => {
                 replot(true);
             };
@@ -2712,8 +2710,6 @@ SIREPO.app.directive('objectTable', function(appState) {
                 $scope.source.editObject(o);
             };
 
-            $scope.isExpanded = o => expanded[o.id];
-
             $scope.getParent = o => $scope.source.getObject(o.groupId);
 
             $scope.getObjects = () => {
@@ -2751,7 +2747,7 @@ SIREPO.app.directive('objectTable', function(appState) {
                     return false;
                 }
                 return $scope.areAllParentsExpanded(p);
-            }
+            };
 
             init();
         },
