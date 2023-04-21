@@ -441,6 +441,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
 
         const d = getDescendents(group);
+        if (d.length <= 1) {
+            return;
+        }
         const [start, m0] = getFirstNotInGroup(d);
         if (! m0) {
             return;
