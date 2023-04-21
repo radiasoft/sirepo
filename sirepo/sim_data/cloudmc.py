@@ -23,7 +23,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return [
             cls.lib_file_name_with_model_field("source", "file", x.file)
             for x in data.models.settings.sources
-            if x.get("file")
+            if x.get("type") == "file" and x.get("file")
         ]
 
     @classmethod

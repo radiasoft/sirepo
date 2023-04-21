@@ -1770,7 +1770,6 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
 
 SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     $scope.whenSelected = () => {
-        srdbg($scope.$parent.activePage.name);
         $scope.modelData = appState.models[$scope.modelName];
         updateEditor();
     }
@@ -1783,6 +1782,9 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
 
     function updateEditor() {
         const isFile = $scope.modelData.type === 'file';
+        if (! isFile) {
+            $scope.modelData.file = '';
+        }
         panelState.showField($scope.modelName, 'file', isFile);
         $scope.$parent.advancedFields.filter(x => x[0] !== 'Type').forEach(p => {
             for (const f of p[1]) {
