@@ -2377,10 +2377,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return pts;
             }
 
-            function itemIndex(item) {
-                return $scope.getObjects().indexOf(item);
-            }
-
             function linePoints(shape) {
                 if (! shape.line || getElevation().coordPlane !== shape.coordPlane) {
                     return null;
@@ -2512,9 +2508,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
             };
 
-            $scope.editObject = o =>  {
-                $scope.source.editObject(o);
-            };
+            $scope.editObject = $scope.source.editObject;
 
             $scope.fitToShapes = () => {
                 replot(true);
