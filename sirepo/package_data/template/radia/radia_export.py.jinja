@@ -3,7 +3,6 @@ import os
 import re
 from pykern.pkcollections import PKDict
 import sirepo.mpi
-from sirepo.template import radia_examples
 
 VIEW_TYPE_OBJ = "objects"
 VIEW_TYPE_FIELD = "fields"
@@ -22,7 +21,7 @@ _GROUP_MODELS = [_MODEL_GROUP]
 _OBJ_MODELS = [_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT] + _EXTRUDED_MODELS
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
-{% if not is_raw and not dmpImportFile %}
+{% if not dmpImportFile %}
 sirepo_objs = {{ objects }}
 
 # sirepo.util functions
@@ -133,7 +132,7 @@ def _add_object(o, radia_objs, id_map):
                 )
         g_id = build_container(grp)
     for transform in o["transforms"]:
-        apply_transform(g_id, PKDict(transform))
+        apply_transform(g_id, **transform)
     id_map[g_id] = o["id"]
     # don't add objects if they are already in a group
     if not o["groupId"]:
@@ -145,9 +144,7 @@ def _add_object(o, radia_objs, id_map):
 def _build_radia_geom():
     id_map = {}
     radia_objs = []
-{% if is_raw %}
-    g_id, id_map = radia_examples.EXAMPLES['{{ exampleName }}']()
-{% elif dmpImportFile %}
+{% if dmpImportFile %}
     with open('{{ dmpImportFile }}', 'rb') as f:
         b = f.read()
         g_id = load_bin(b)

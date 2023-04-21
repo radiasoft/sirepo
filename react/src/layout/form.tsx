@@ -126,7 +126,9 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
 }
 
 export type FieldListConfig = {
-    fields: string[]
+    fields: string[],
+    heading?: string,
+    shown?: string,
 }
 
 export class FieldListLayout extends Layout<FieldListConfig, {}> {
@@ -141,8 +143,23 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
         let store = useStore();
 
         let fields = this.config.fields;
+        let listShown = useShown(this.config.shown, true, StoreTypes.FormState);
 
+        if (! listShown) {
+            return <></>
+        }
+        const heading = this.config.heading
+            ? (
+                <Row className="mb-2">
+                    <Col>
+                        <div className={"lead text-end"}>{ this.config.heading }</div>
+                    </Col>
+                    <Col></Col>
+                </Row>
+            )
+            : undefined;
         return <>
+            {heading}
             {fields.map((fieldDepString, idx) => {
                 let fieldDep = new Dependency(fieldDepString);
                 let fieldHandle = formHandleFactory.createHandle(fieldDep, StoreTypes.FormState).hook();

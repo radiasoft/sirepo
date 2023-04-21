@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['S0', 'S0_HDM', 'HDM', 'HDM_S1', 'S1', 'S1_S2', 'S2', 'S2_CRL1', 'CRL1', 'CRL2', 'CRL2_KLA', 'KLA', 'KL', 'KL_S3', 'S3', 'S3_Sample', 'Sample']
+        names = ['S0', 'S0_HDM', 'HDM', 'HDM_S1', 'S1', 'S1_S2', 'S2', 'S2_CRL1', 'CRL1', 'CRL2', 'CRL2_KLA', 'KLA', 'KL', 'KL_S3', 'S3', 'S3_Sample']
     for el_name in names:
         if el_name == 'S0':
             # S0: aperture 20.5m
@@ -172,9 +172,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_S3_Sample_L,
             ))
             pp.append(v.op_S3_Sample_pp)
-        elif el_name == 'Sample':
-            # Sample: watch 48.7m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -186,7 +183,7 @@ varParam = [
     ['name', 's', 'NSLS-II CHX beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_CHX_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -374,7 +371,7 @@ varParam = [
     ['op_S0_HDM_L', 'f', 6.899999999999999, 'length'],
 
     # HDM: mirror
-    ['op_HDM_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_HDM_hfn', 's', 'NSLS-II_CHX_beamline/mirror_1d.dat', 'heightProfileFile'],
     ['op_HDM_dim', 's', 'x', 'orientation'],
     ['op_HDM_ang', 'f', 0.0031415926, 'grazingAngle'],
     ['op_HDM_amp_coef', 'f', 1.0, 'heightAmplification'],
@@ -505,10 +502,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['S0','S0_HDM','HDM','HDM_S1','S1','S1_S2','S2','S2_CRL1','CRL1','CRL2','CRL2_KLA','KLA','KL','KL_S3','S3','S3_Sample','Sample']
+    names = ['S0','S0_HDM','HDM','HDM_S1','S1','S1_S2','S2','S2_CRL1','CRL1','CRL2','CRL2_KLA','KLA','KL','KL_S3','S3','S3_Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

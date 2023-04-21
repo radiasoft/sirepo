@@ -31,7 +31,7 @@ _ONE_DAY = datetime.timedelta(days=1)
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel")
-    def api_authGuestLogin(self, simulation_type):
+    async def api_authGuestLogin(self, simulation_type):
         """You have to be an anonymous or logged in user at this point"""
         req = self.parse_params(type=simulation_type)
         # if already logged in as guest, just redirect

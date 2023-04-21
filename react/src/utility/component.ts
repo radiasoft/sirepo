@@ -61,8 +61,8 @@ export function getRefSize(ref: RefObject<HTMLElement>): Dimension {
 
 export function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispatch<React.SetStateAction<Dimension>>] {
     const [dim, setDim] = useState({
-        width: 1000,
-        height: 1000,
+        width: 400,
+        height: 400,
     });
     useLayoutEffect(() => {
         if (! ref || ! ref.current || ! ref.current.offsetWidth) {

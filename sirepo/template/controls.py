@@ -188,7 +188,7 @@ def sim_frame(frame_args):
     )
 
 
-def stateful_compute_get_madx_sim_list(data):
+def stateful_compute_get_madx_sim_list(data, **kwargs):
     res = []
     for f in pkio.sorted_glob(
         _SIM_DATA.controls_madx_dir().join(
@@ -211,7 +211,7 @@ def stateful_compute_get_madx_sim_list(data):
     return PKDict(simList=res)
 
 
-def stateful_compute_get_external_lattice(data):
+def stateful_compute_get_external_lattice(data, **kwargs):
     madx = sirepo.simulation_db.read_json(
         _SIM_DATA.controls_madx_dir().join(
             data.args.simulationId,
@@ -238,7 +238,7 @@ def stateful_compute_get_external_lattice(data):
     )
 
 
-def stateful_compute_get_log_file_time_list(data):
+def stateful_compute_get_log_file_time_list(data, **kwargs):
     import h5py
 
     with h5py.File(_log_file_path(data.lib_file), "r") as f:
@@ -247,11 +247,11 @@ def stateful_compute_get_log_file_time_list(data):
         )
 
 
-def stateful_compute_get_log_file_values_at_index(data):
+def stateful_compute_get_log_file_values_at_index(data, **kwargs):
     return PKDict(values=_log_file_values(data.models, data.index, data.lib_file))
 
 
-def stateless_compute_current_to_kick(data):
+def stateless_compute_current_to_kick(data, **kwargs):
     return PKDict(
         kick=AmpConverter(
             data.args.command_beam, data.args.amp_table, data.args.default_factor
@@ -259,7 +259,7 @@ def stateless_compute_current_to_kick(data):
     )
 
 
-def stateless_compute_kick_to_current(data):
+def stateless_compute_kick_to_current(data, **kwargs):
     return PKDict(
         current=AmpConverter(
             data.args.command_beam, data.args.amp_table, data.args.default_factor

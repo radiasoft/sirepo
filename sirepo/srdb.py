@@ -65,9 +65,7 @@ def _init_root():
     _root = _cfg.root
     if _root:
         return _root
-    assert pkconfig.channel_in(
-        "dev"
-    ), "SIREPO_SRDB_ROOT must be configured except in dev"
+    assert pkconfig.in_dev_mode(), "SIREPO_SRDB_ROOT must be configured except in dev"
     r = (
         pkio.py_path(
             sys.modules[pkinspect.root_package(_init_root)].__file__,

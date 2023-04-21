@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['VFM', 'VFM_HFM', 'HFM', 'HFM_Watchpoint', 'Watchpoint', 'Watchpoint_Mask', 'Mask', 'Watchpoint2']
+        names = ['VFM', 'VFM_HFM', 'HFM', 'HFM_Watchpoint', 'Watchpoint_Mask', 'Mask']
     for el_name in names:
         if el_name == 'VFM':
             # VFM: ellipsoidMirror 50.0m
@@ -68,9 +68,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_HFM_Watchpoint_L,
             ))
             pp.append(v.op_HFM_Watchpoint_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 50.4m
-            pass
         elif el_name == 'Watchpoint_Mask':
             # Watchpoint_Mask: drift 50.4m
             el.append(srwlib.SRWLOptD(
@@ -99,9 +96,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _mask_y0=v.op_Mask_mask_y0,
             ))
             pp.append(v.op_Mask_pp)
-        elif el_name == 'Watchpoint2':
-            # Watchpoint2: watch 50.6m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -113,7 +107,7 @@ varParam = [
     ['name', 's', 'Mask example', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'Mask_example/', 'folder (directory) name for reading-in input and saving output data files'],
 
 
     ['gbm_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
@@ -262,7 +256,7 @@ varParam = [
 
 #---Beamline optics:
     # VFM: ellipsoidMirror
-    ['op_VFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_VFM_hfn', 's', '', 'heightProfileFile'],
     ['op_VFM_dim', 's', 'x', 'orientation'],
     ['op_VFM_p', 'f', 50.0, 'firstFocusLength'],
     ['op_VFM_q', 'f', 0.4, 'focalLength'],
@@ -282,7 +276,7 @@ varParam = [
     ['op_VFM_HFM_L', 'f', 0.20000000000000284, 'length'],
 
     # HFM: ellipsoidMirror
-    ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HFM_hfn', 's', '', 'heightProfileFile'],
     ['op_HFM_dim', 's', 'x', 'orientation'],
     ['op_HFM_p', 'f', 50.0, 'firstFocusLength'],
     ['op_HFM_q', 'f', 0.2, 'focalLength'],
@@ -359,10 +353,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['VFM','VFM_HFM','HFM','HFM_Watchpoint','Watchpoint','Watchpoint_Mask','Mask','Watchpoint2']
+    names = ['VFM','VFM_HFM','HFM','HFM_Watchpoint','Watchpoint_Mask','Mask']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.si = True
     v.si_pl = 'xy'
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)

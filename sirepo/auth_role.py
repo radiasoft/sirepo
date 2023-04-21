@@ -38,7 +38,7 @@ def for_moderated_sim_types():
 
 
 def for_new_user(is_guest):
-    if is_guest and pkconfig.channel_in("dev"):
+    if is_guest and pkconfig.in_dev_mode():
         return get_all()
     return []
 

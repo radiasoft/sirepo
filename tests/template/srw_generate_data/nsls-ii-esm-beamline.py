@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['M1', 'M1_Grating', 'Grating', 'GA', 'GA_M3A', 'M3A', 'M3', 'M3_SSA', 'SSA', 'SSA_KBAperture', 'KBAperture', 'KBh', 'KBh_KBv', 'KBv', 'KBv_Sample', 'Sample']
+        names = ['M1', 'M1_Grating', 'Grating', 'GA', 'GA_M3A', 'M3A', 'M3', 'M3_SSA', 'SSA', 'SSA_KBAperture', 'KBAperture', 'KBh', 'KBh_KBv', 'KBv', 'KBv_Sample']
     for el_name in names:
         if el_name == 'M1':
             # M1: mirror 34.366m
@@ -197,9 +197,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_KBv_Sample_L,
             ))
             pp.append(v.op_KBv_Sample_pp)
-        elif el_name == 'Sample':
-            # Sample: watch 104.557m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -211,7 +208,7 @@ varParam = [
     ['name', 's', 'NSLS-II ESM beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_ESM_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -389,7 +386,7 @@ varParam = [
 
 #---Beamline optics:
     # M1: mirror
-    ['op_M1_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_M1_hfn', 's', 'NSLS-II_ESM_beamline/mirror_1d.dat', 'heightProfileFile'],
     ['op_M1_dim', 's', 'x', 'orientation'],
     ['op_M1_ang', 'f', 0.043633200000000004, 'grazingAngle'],
     ['op_M1_amp_coef', 'f', 1.0, 'heightAmplification'],
@@ -411,7 +408,7 @@ varParam = [
     ['op_Grating_tvy', 'f', 0.012955216577138128, 'tvy'],
     ['op_Grating_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Grating_y', 'f', 0.0, 'verticalOffset'],
-    ['op_Grating_m', 'f', 1.0, 'diffractionOrder'],
+    ['op_Grating_m', 'f', 1, 'diffractionOrder'],
     ['op_Grating_grDen', 'f', 1800.0, 'grooveDensity0'],
     ['op_Grating_grDen1', 'f', 0.08997, 'grooveDensity1'],
     ['op_Grating_grDen2', 'f', 3.004e-06, 'grooveDensity2'],
@@ -447,7 +444,7 @@ varParam = [
     ['op_M3A_y', 'f', 0.0, 'verticalOffset'],
 
     # M3: ellipsoidMirror
-    ['op_M3_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_M3_hfn', 's', '', 'heightProfileFile'],
     ['op_M3_dim', 's', 'x', 'orientation'],
     ['op_M3_p', 'f', 89.63, 'firstFocusLength'],
     ['op_M3_q', 'f', 8.006, 'focalLength'],
@@ -484,7 +481,7 @@ varParam = [
     ['op_KBAperture_y', 'f', 0.0, 'verticalOffset'],
 
     # KBh: ellipsoidMirror
-    ['op_KBh_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_KBh_hfn', 's', '', 'heightProfileFile'],
     ['op_KBh_dim', 's', 'x', 'orientation'],
     ['op_KBh_p', 'f', 6.01, 'firstFocusLength'],
     ['op_KBh_q', 'f', 0.911, 'focalLength'],
@@ -504,7 +501,7 @@ varParam = [
     ['op_KBh_KBv_L', 'f', 0.5, 'length'],
 
     # KBv: ellipsoidMirror
-    ['op_KBv_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_KBv_hfn', 's', '', 'heightProfileFile'],
     ['op_KBv_dim', 's', 'x', 'orientation'],
     ['op_KBv_p', 'f', 6.51, 'firstFocusLength'],
     ['op_KBv_q', 'f', 0.411, 'focalLength'],
@@ -568,10 +565,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['M1','M1_Grating','Grating','GA','GA_M3A','M3A','M3','M3_SSA','SSA','SSA_KBAperture','KBAperture','KBh','KBh_KBv','KBv','KBv_Sample','Sample']
+    names = ['M1','M1_Grating','Grating','GA','GA_M3A','M3A','M3','M3_SSA','SSA','SSA_KBAperture','KBAperture','KBh','KBh_KBv','KBv','KBv_Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

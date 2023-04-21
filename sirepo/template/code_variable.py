@@ -127,25 +127,23 @@ class CodeVar:
         self.recompute_cache(data.cache)
         return data
 
-    def stateful_compute_recompute_rpn_cache_values(
+    def stateful_compute_validate_rpn_delete(
         self, data, schema, ignore_array_values, **kwargs
     ):
         from sirepo import simulation_db
 
-        if args.method == "validate_rpn_delete":
-            model_data = simulation_db.read_json(
-                simulation_db.sim_data_file(
-                    args.simulationType,
-                    args.simulationId,
-                )
+        model_data = simulation_db.read_json(
+            simulation_db.sim_data_file(
+                data.simulationType,
+                data.simulationId,
             )
-            args.error = self.validate_var_delete(
-                args.name,
-                model_data,
-                schema,
-            )
-            return True
-        return False
+        )
+        data.error = self.validate_var_delete(
+            data.name,
+            model_data,
+            schema,
+        )
+        return data
 
     def validate_var_delete(self, name, data, schema):
         search = self.canonicalize(name)

@@ -4,9 +4,11 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdformat, pkdexc
+from sirepo.template import template_common
 import pygments
 import pygments.formatters
 import pygments.lexers
@@ -19,11 +21,11 @@ import sirepo.util
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
-def stateless_compute_analysis_output(data):
+def stateless_compute_analysis_output(data, **kwargs):
     return _request_scan_monitor(PKDict(method="analysis_output", uid=data.args.uid))
 
 
-def stateless_compute_analysis_run_log(data):
+def stateless_compute_analysis_run_log(data, **kwargs):
     def _log_to_html(log):
         return pygments.highlight(
             log,
@@ -39,19 +41,29 @@ def stateless_compute_analysis_run_log(data):
     return r
 
 
-def stateless_compute_catalog_names(_):
-    return _request_scan_monitor(PKDict(method="catalog_names"))
-
-
-def stateless_compute_begin_replay(data):
+def stateless_compute_begin_replay(data, **kwargs):
     return PKDict(data=_request_scan_monitor(PKDict(method="begin_replay", data=data)))
 
 
-def stateless_compute_scans(data):
+def stateless_compute_catalog_names(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="catalog_names"))
+
+
+def stateless_compute_download_analysis_pdfs(data, data_file_uri=None, **kwargs):
+    assert data_file_uri, f"expected data_file_uri={data_file_uri}"
+    data.dataFileUri = data_file_uri
+    return _request_scan_monitor(PKDict(method="download_analysis_pdfs", data=data))
+
+
+def stateless_compute_run_analysis(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="run_analysis", data=data))
+
+
+def stateless_compute_scans(data, **kwargs):
     return _request_scan_monitor(PKDict(method="get_scans", data=data))
 
 
-def stateless_compute_scan_fields(data):
+def stateless_compute_scan_fields(data, **kwargs):
     return _request_scan_monitor(PKDict(method="scan_fields", data=data))
 
 

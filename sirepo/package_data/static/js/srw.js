@@ -1733,8 +1733,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
 
             $scope.showOpenShadow = function() {
                 return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
-                    && $scope.nav.isActive('beamline')
-                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator() || srwService.isMultipole());
+                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator() || srwService.isMultipole()
+                     || (srwService.isTabulatedUndulator() && ! srwService.isTabulatedUndulatorWithMagenticFile()));
             };
 
             $scope.showRsOptML = function() {
@@ -2682,7 +2682,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (isCoherentModes() && $scope.particleCount) {
                     return 'Calculating 4D cross-spectral density';
                 }
-                return 'Initializing Simulation';
+                return 'Running: awaiting output';
             };
 
             $scope.isFluxWithApproximateMethod = function() {
@@ -3376,6 +3376,8 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
           <div style="margin-bottom: 1em" class="clearfix"></div>
           <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
             <div data-watchpoint-report="" data-item-id="report.id"></div>
+            <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
+            <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
           </div>
         `,
         controller: function($scope, $rootScope) {

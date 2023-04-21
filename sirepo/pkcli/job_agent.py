@@ -17,7 +17,9 @@ import os
 import re
 import shutil
 import signal
+import sirepo.feature_config
 import sirepo.modules
+import sirepo.nersc
 import sirepo.tornado
 import socket
 import subprocess
@@ -471,6 +473,8 @@ class _Cmd(PKDict):
         )
 
     def job_cmd_source_bashrc(self):
+        if sirepo.feature_config.cfg().trust_sh_env:
+            return ""
         return "source $HOME/.bashrc"
 
     async def on_stderr_read(self, text):
@@ -606,7 +610,7 @@ class _SbatchCmd(_Cmd):
     def job_cmd_env(self):
         # POSIT: sirepo.mpi cfg sentinel for running in slurm
         e = PKDict(SIREPO_MPI_IN_SLURM=1)
-        if pkconfig.channel_in("dev"):
+        if pkconfig.in_dev_mode():
             h = pkio.py_path("~/src/radiasoft")
             e.PYTHONPATH = "{}:{}".format(h.join("sirepo"), h.join("pykern"))
         return super().job_cmd_env(e)
@@ -751,33 +755,16 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
-        def _assert_project():
-            p = self.msg.sbatchProject
-            if not p:
-                return ""
-            o = subprocess.check_output(["hpssquota"], text=True)
-            assert re.search(r"^[-\w]+$", p), f"invalid NERSC project={p}"
-            assert re.search(
-                r"{}\s+\d+\.".format(p), o
-            ), f"sbatchProject={p} is invalid. hpssquota={o}"
-            return f"#SBATCH --account={p}"
-
-        def _processor():
-            if self.msg.sbatchQueue == "debug" and pkconfig.channel_in("dev"):
-                return "knl"
-            return "haswell"
-
         i = self.msg.shifterImage
         s = o = ""
         # POSIT: job_api has validated values
         if i:
             o = f"""#SBATCH --image={i}
-#SBATCH --constraint={_processor()}
+#SBATCH --constraint=cpu
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node={self.msg.tasksPerNode}
-{_assert_project()}"""
+{sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
             s = "--cpu-bind=cores shifter --entrypoint"
-        m = "--mpi=pmi2" if pkconfig.channel_in("dev") else ""
         f = self.run_dir.join(self.jid + ".sbatch")
         f.write(
             f"""#!/bin/bash
@@ -788,7 +775,7 @@ class _SbatchRun(_SbatchCmd):
 {o}
 {self.job_cmd_env()}
 {self.job_cmd_source_bashrc()}
-exec srun {m} {s} python {template_common.PARAMETERS_PYTHON_FILE}
+exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
 """
         )
         return f

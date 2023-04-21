@@ -17,13 +17,14 @@ def test_importer(import_req):
     from sirepo import srunit
     from sirepo.template import zgoubi
     from sirepo import sim_data
+    import asyncio
 
     with pkunit.save_chdir_work() as w:
         for fn in pkio.sorted_glob(pkunit.data_dir().join("*.dat")):
             error = None
             req = import_req(fn)
             try:
-                data = zgoubi.import_file(req, unit_test_mode=True)
+                data = asyncio.run(zgoubi.import_file(req, unit_test_mode=True))
                 sim_data.get_class("zgoubi").fixup_old_data(
                     data,
                     qcall=req.qcall,

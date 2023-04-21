@@ -38,7 +38,7 @@ def default_command():
     global cfg
 
     cfg = pkconfig.init(
-        debug=(pkconfig.channel_in("dev"), bool, "run supervisor in debug mode"),
+        debug=(pkconfig.in_dev_mode(), bool, "run supervisor in debug mode"),
         ip=(sirepo.job.DEFAULT_IP, str, "ip to listen on"),
         port=(sirepo.const.PORT_DEFAULTS.supervisor, int, "what port to listen on"),
     )
@@ -155,7 +155,7 @@ class _ServerReq(_JsonPostRequestHandler):
 
 
 class _ServerSrtime(_JsonPostRequestHandler):
-    def post(self):
+    async def post(self):
         assert (
             pkconfig.channel_in_internal_test()
         ), "You can only adjust time in internal test"

@@ -74,7 +74,7 @@ def quest_start(want_user=False, cfg=None):
 
     from sirepo import quest
 
-    with quest.start(in_srunit=True) as qcall:
+    with quest.start(in_pkcli=True) as qcall:
         qcall.auth_db.create_or_upgrade()
         if want_user:
             qcall.auth.login(is_mock=True)
@@ -91,37 +91,6 @@ def setup_srdb_root(cfg=None):
     e.update(
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join(_DB_DIR))),
     )
-
-
-class UwsgiClient(PKDict):
-    def __init__(self, env, *args, **kwargs):
-        from sirepo.pkcli import service
-        from sirepo import modules
-
-        modules.import_and_init("sirepo.uri")
-        c = service._cfg()
-        for k in ("nginx_proxy_port", "ip"):
-            self[f"_{k}"] = env.get(f"SIREPO_PKCLI_SERVICE_{k.upper()}") or c[k]
-
-    def sr_post(self, route_or_uri, data, headers=None):
-        from pykern import pkjson
-        import requests
-
-        r = requests.post(
-            (
-                f"http://{self._ip}:{self._nginx_proxy_port}"
-                + f"{self._server_route(route_or_uri)}"
-            ),
-            json=data,
-            headers=headers,
-        )
-        r.raise_for_status()
-        return pkjson.load_any(r.text)
-
-    def _server_route(self, route_or_uri):
-        from sirepo import uri
-
-        return uri.server_route(route_or_uri, None, None)
 
 
 class _TestClient:

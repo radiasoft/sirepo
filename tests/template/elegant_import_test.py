@@ -14,6 +14,7 @@ import pytest
 def test_importer(import_req):
     from pykern.pkcollections import PKDict
     from sirepo.template import elegant
+    import asyncio
     import sirepo.lib
 
     for fn in pkio.sorted_glob(pkunit.data_dir().join("*")):
@@ -25,13 +26,13 @@ def test_importer(import_req):
         pkdlog("file={}", fn)
         if fn.basename.startswith("deviance-"):
             try:
-                data = elegant.import_file(import_req(fn))
+                data = asyncio.run(elegant.import_file(import_req(fn)))
             except Exception as e:
                 k.actual = f"{e}\n"
             else:
                 k.actual = "did not raise exception"
         elif fn.ext == ".lte":
-            data = elegant.import_file(import_req(fn))
+            data = asyncio.run(elegant.import_file(import_req(fn)))
             data["models"]["commands"] = []
             g = elegant._Generate(data)
             g.sim()

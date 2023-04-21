@@ -2,21 +2,17 @@ import React from "react";
 import { Col, Row } from "react-bootstrap";
 import { LAYOUTS } from "./layouts";
 import { LayoutProps, Layout } from "./layout";
-import { Panel } from "../component/reusable/panel";
 import { ReportAnimationController, useAnimationReader } from "./report"
 import { SchemaLayout } from "../utility/schema";
-import { useContext } from "react";
-import { interpolate } from "../utility/string";
 import { useWindowSize } from "../hook/breakpoint";
-import { CHandleFactory } from "../data/handle";
-import { StoreTypes } from "../data/data";
+import { SimulationFrame } from "../data/report";
 
 export type MultiPanelConfig = {
     items: SchemaLayout[],
-    title: string,
     reportName: string,
     reportGroupName: string,
     frameIdFields: string[],
+    columns?: number,
 }
 
 export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
@@ -24,13 +20,14 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
 
     constructor(config: MultiPanelConfig) {
         super(config);
+        if (! config.columns) {
+            config.columns = 3;
+        }
         this.items = config.items.map(LAYOUTS.getLayoutForSchema);
     }
 
     component = (props: LayoutProps<{}>) => {
         let { reportName, reportGroupName, frameIdFields } = this.config;
-        let handleFactory = useContext(CHandleFactory);
-        let title = interpolate(this.config.title).withDependencies(handleFactory, StoreTypes.Models).raw();
         // allow subplots to respond to window resize
         useWindowSize();
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
@@ -38,35 +35,31 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
             return <></>
         }
         let showAnimationController = animationReader.getFrameCount() > 1;
-        let mapLayoutsToComponents = (views: Layout[], currentFrameIndex) => views.map((child, idx) => {
+        let mapLayoutsToComponents = (views: Layout[], currentFrameIndex: number) => views.map((child, idx) => {
             let LayoutComponent = child.component;
             return (
-                <Col sm="4" key={idx}>
+                <Col sm={ 12 / this.config.columns } key={idx} className="p-0">
                     <LayoutComponent key={idx} currentFrameIndex={currentFrameIndex}></LayoutComponent>
                 </Col>
             );
         });
         return (
-            <Col sm={12} className="px-3 py-2">
-                <Panel title={title} panelBodyShown={true}>
-                    <Row>
-                        <ReportAnimationController
-                            animationReader={animationReader}
-                            showAnimationController={showAnimationController}
-                            currentFrameIndex={undefined}
-                        >
-                            {
-                                (currentFrame: any) => {
-                                    let mainChildren = mapLayoutsToComponents(this.items, currentFrame?.index);
-                                    return <>
-                                        {mainChildren}
-                                    </>
-                                }
-                            }
-                        </ReportAnimationController>
-                    </Row>
-                </Panel>
-            </Col>
+            <Row className="ps-3 pt-3">
+                <ReportAnimationController
+                    animationReader={animationReader}
+                    showAnimationController={showAnimationController}
+                    currentFrameIndex={undefined}
+                >
+                    {
+                        (currentFrame: SimulationFrame) => {
+                            let mainChildren = mapLayoutsToComponents(this.items, currentFrame.index);
+                            return <>
+                                {mainChildren}
+                            </>
+                        }
+                    }
+                </ReportAnimationController>
+            </Row>
         )
     }
 }

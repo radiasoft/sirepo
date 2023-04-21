@@ -17,7 +17,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
-from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
 import copy
@@ -134,13 +133,13 @@ def background_percent_complete(report, run_dir, is_running):
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
-        res.percentComplete = 0.0
+        res.percentComplete = 0
         return res
-    return PKDict(
-        percentComplete=100,
-        frameCount=1,
-        solution=_read_solution(),
-    )
+    res.percentComplete = 100
+    res.frameCount = 1
+    if report == "solverAnimation":
+        res.solution = _read_solution()
+    return res
 
 
 def create_archive(sim, qcall):
@@ -271,7 +270,7 @@ def get_data_file(run_dir, model, frame, options):
         return f
 
 
-def import_file(req, tmp_dir=None, **kwargs):
+async def import_file(req, tmp_dir=None, **kwargs):
     data = simulation_db.default_data(req.type)
     data.models.simulation.pkupdate(
         {k: v for k, v in req.req_data.items() if k in data.models.simulation}
@@ -317,7 +316,7 @@ def sim_frame_fieldLineoutAnimation(frame_args):
     )
 
 
-def stateless_compute_build_shape_points(data):
+def stateless_compute_build_shape_points(data, **kwargs):
     o = data.args.object
     if not o.get("pointsFile"):
         return PKDict(
@@ -338,7 +337,7 @@ def stateless_compute_build_shape_points(data):
     return PKDict(points=pts)
 
 
-def stateless_compute_stl_size(data):
+def stateless_compute_stl_size(data, **kwargs):
     f = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
     )
@@ -667,13 +666,13 @@ _FIELD_PT_BUILDERS = {
 def _electron_trajectory_plot(sim_id, **kwargs):
     d = PKDict(kwargs)
     t = _generate_electron_trajectory(sim_id, get_g_id(), **kwargs)
-    pts = (0.001 * t[radia_util.axes_index(d.beam_axis)]).tolist()
+    pts = (_MILLIS_TO_METERS * t[radia_util.axes_index(d.beam_axis)]).tolist()
     plots = []
     a = [d.width_axis, d.height_axis]
     for i in range(2):
         plots.append(
             PKDict(
-                points=(0.001 * t[radia_util.axes_index(a[i])]).tolist(),
+                points=(_MILLIS_TO_METERS * t[radia_util.axes_index(a[i])]).tolist(),
                 label=f"{a[i]}",
                 style="line",
             )
@@ -702,7 +701,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
             .vectors
         )
     )
-    pts = numpy.array(v.vertices).reshape(-1, 3)
+    pts = _MILLIS_TO_METERS * numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     f = numpy.array(v.directions).reshape(-1, 3)
     m = numpy.array(v.magnitudes)
@@ -722,7 +721,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
         PKDict(
             title=f"{f_type} on {f_path.name}",
             y_label=f_type,
-            x_label=f"{plot_axis} [mm]",
+            x_label=f"{plot_axis} [m]",
             summaryData=PKDict(),
         ),
     )
@@ -865,9 +864,11 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     g = data.models.geometryReport
     v.simId = data.models.simulation.simulationId
 
-    v.doSolve = "solver" in report or for_export
-    v.doReset = "reset" in report
-    do_generate = _normalize_bool(g.get("doGenerate", True)) or v.doSolve or v.doReset
+    if report == "solverAnimation":
+        v.solverMode = data.models.solverAnimation.get("mode")
+    elif for_export:
+        v.solverMode = "solve"
+    do_generate = _normalize_bool(g.get("doGenerate", True)) or v.get("solverMode")
     if not do_generate:
         try:
             # use the previous results
@@ -882,7 +883,6 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     for f in _SIM_FILES:
         pkio.unchecked_remove(f)
 
-    v.doReset = False
     v.isParallel = is_parallel
 
     # include methods from non-template packages
@@ -898,12 +898,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
                 f"{SCHEMA.constants.fileTypeRadiaDmp}.{data.models.simulation.dmpImportFile}"
             )
         )
-    v.isExample = (
-        data.models.simulation.get("isExample", False)
-        and data.models.simulation.name in radia_examples.EXAMPLES
-    )
-    v.exampleName = data.models.simulation.get("exampleName", None)
-    v.is_raw = v.exampleName in SCHEMA.constants.rawExamples
+    v.isExample = data.models.simulation.get("isExample", False)
     v.magnetType = data.models.simulation.get("magnetType", "freehand")
     dirs = _geom_directions(
         data.models.simulation.beamAxis, data.models.simulation.heightAxis
@@ -911,17 +906,16 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.matrix = _get_coord_matrix(dirs, data.models.simulation.coordinateSystem)
     st = f"{v.magnetType}Type"
     v[st] = data.models.simulation[st]
-    if not v.is_raw:
-        pkinspect.module_functions("_update_geom_from_")[
-            f"_update_geom_from_{v.magnetType}"
-        ](
-            g.objects,
-            data.models[v[st]],
-            height_dir=dirs.height_dir,
-            length_dir=dirs.length_dir,
-            width_dir=dirs.width_dir,
-            qcall=qcall,
-        )
+    pkinspect.module_functions("_update_geom_from_")[
+        f"_update_geom_from_{v.magnetType}"
+    ](
+        g.objects,
+        data.models[v[st]],
+        height_dir=dirs.height_dir,
+        length_dir=dirs.length_dir,
+        width_dir=dirs.width_dir,
+        qcall=qcall,
+    )
     v.objects = g.get("objects", [])
     _validate_objects(v.objects)
 
@@ -954,14 +948,11 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         v.fieldPaths = data.models.fieldPaths.get("paths", [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get("paths", []))
     v.kickMap = data.models.get("kickMapReport")
-    if "solver" in report or for_export:
-        v.doSolve = True
+    if v.get("solverMode") == "solve":
         s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
         v.solveMethod = s.method
-    if "reset" in report:
-        v.doReset = True
     v.h5FieldPath = _geom_h5_path(SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(SCHEMA.constants.viewTypeObjects)
@@ -1014,7 +1005,6 @@ def _get_cee_points(o, stemmed_info):
             [p.ax2, sy2],
             [p.ax2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )
@@ -1043,7 +1033,6 @@ def _get_ell_points(o, stemmed_info):
             [p.sx2, p.ay2],
             [p.sx2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )
@@ -1100,7 +1089,6 @@ def _get_jay_points(o, stemmed_info):
             [p.sx2, p.ay2],
             [p.sx2, p.sy1],
             [p.sx1, p.sy1],
-            [p.ax1, p.ay1],
         ],
         stemmed_info.plane_ctr,
     )
@@ -1152,10 +1140,10 @@ def _kick_map_plot(model):
     z = km[component]
     return PKDict(
         title=f'{srschema.get_enums(SCHEMA, "KickMapComponent")[component]} (T2m2)',
-        x_range=[km.x[0], km.x[-1], len(z)],
-        y_range=[km.y[0], km.y[-1], len(z[0])],
-        x_label="x [mm]",
-        y_label="y [mm]",
+        x_range=[_MILLIS_TO_METERS * km.x[0], _MILLIS_TO_METERS * km.x[-1], len(z)],
+        y_range=[_MILLIS_TO_METERS * km.y[0], _MILLIS_TO_METERS * km.y[-1], len(z[0])],
+        x_label="x [m]",
+        y_label="y [m]",
         z_matrix=z,
     )
 
@@ -1712,7 +1700,7 @@ def _update_geom_obj(o, qcall=None, **kwargs):
         o.points = pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
             o, _get_stemmed_info(o)
         )
-    if "points" in o:
+    if o.get("points"):
         o.area = _poly_area(o.points)
     if o.type == "stl":
         mesh = _read_stl_file(o.file, qcall=qcall)

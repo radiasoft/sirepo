@@ -70,7 +70,6 @@ export const SimulationListInitializer = (props) => {
     let appWrapper = useContext(CAppWrapper);
 
     const [hasSimulationList, simulationList] = useSetup(true, appWrapper.getSimulationList());
-
     return (
         <>
             {hasSimulationList && 

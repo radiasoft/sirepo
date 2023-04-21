@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -12,19 +11,25 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from scipy import constants
 from sirepo import simulation_db
 from sirepo.template import template_common
+from rslaser.pulse import pulse
 import csv
 import h5py
 import math
-import numpy as np
+import numpy
 import re
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = "crystal.csv"
-_SUMMARY_CSV_FILE = "wavefront.csv"
-_INITIAL_LASER_FILE = "initial-laser.npy"
-_FINAL_LASER_FILE = "final-laser.npy"
+_RESULTS_FILE = "results.h5"
+
+_DATA_PATHS = PKDict(
+    crystalAnimation=(),
+    initialIntensityReport=("ranges", "intensity"),
+    initialPhaseReport=("ranges", "phase"),
+    watchpointReport=("ranges", "intensity", "phase"),
+)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -33,17 +38,6 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=0,
         frameCount=0,
     )
-    if report == "animation":
-        line = template_common.read_last_csv_line(run_dir.join(_SUMMARY_CSV_FILE))
-        m = re.search(r"^(\d+)", line)
-        if m and int(m.group(1)) > 0:
-            res.frameCount = int((int(m.group(1)) + 1) / 2)
-            res.wavefrontsFrameCount = _counts_for_beamline(
-                res.frameCount, data.models.beamline
-            )[0]
-            total_count = _total_frame_count(data)
-            res.percentComplete = res.frameCount * 100 / total_count
-        return res
     assert report == "crystalAnimation"
     count = 0
     path = run_dir.join(_CRYSTAL_CSV_FILE)
@@ -74,23 +68,15 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model in ("laserPulseAnimation", "laserPulse2Animation"):
-        return _INITIAL_LASER_FILE
-    if model in ("laserPulse3Animation", "laserPulse4Animation"):
-        return _FINAL_LASER_FILE
-    if model == "wavefrontSummaryAnimation":
-        return _SUMMARY_CSV_FILE
-    if "wavefrontAnimation" in model:
-        sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        return _wavefront_filename_for_index(
-            sim_in,
-            sim_in.models[model].id,
-            frame,
-        )
-    if "plotAnimation" in model:
+    if model in ("plotAnimation", "plot2Animation"):
         return _CRYSTAL_CSV_FILE
     if model == "crystal3dAnimation":
         return "intensity.npy"
+    if model in (
+        "initialIntensityReport",
+        "initialPhaseReport",
+    ) or _SIM_DATA.is_watchpoint(model):
+        return _RESULTS_FILE
     raise AssertionError("unknown model={}".format(model))
 
 
@@ -98,64 +84,28 @@ def python_source_for_model(data, model, qcall, **kwargs):
     if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
         data.report = "crystalAnimation"
     else:
-        data.report = "animation"
+        data.report = model or _last_watchpoint(data) or "initialIntensityReport"
     return _generate_parameters_file(data)
 
 
-def sim_frame(frame_args):
-    filename = _wavefront_filename_for_index(
-        frame_args.sim_in,
-        frame_args.id,
-        frame_args.frameIndex,
-    )
-    with h5py.File(filename, "r") as f:
-        wfr = f["wfr"]
-        points = np.array(wfr)
-        return PKDict(
-            title="S={}m (E={} eV)".format(
-                _format_float(wfr.attrs["pos"]),
-                frame_args.sim_in.models.gaussianBeam.photonEnergy,
-            ),
-            subtitle="",
-            x_range=[wfr.attrs["xStart"], wfr.attrs["xFin"], len(points[0])],
-            x_label="Horizontal Position [m]",
-            y_range=[wfr.attrs["yStart"], wfr.attrs["yFin"], len(points)],
-            y_label="Vertical Position [m]",
-            z_matrix=points.tolist(),
-            summaryData=_summary_data(frame_args),
-        )
+def save_sequential_report_data(run_dir, sim_in):
+    r = sim_in.report
+    if r == "initialIntensityReport":
+        _extract_initial_intensity_report(run_dir, sim_in)
+    if r == "initialPhaseReport":
+        _extract_initial_phase_report(run_dir, sim_in)
+    if _SIM_DATA.is_watchpoint(r):
+        _extract_watchpoint_report(run_dir, sim_in)
 
 
 def sim_frame_crystal3dAnimation(frame_args):
-    intensity = np.load("intensity.npy")
+    intensity = numpy.load("intensity.npy")
     return PKDict(
         title=" ",
-        indices=np.load("indices.npy").flatten().tolist(),
-        vertices=np.load("vertices.npy").flatten().tolist(),
+        indices=numpy.load("indices.npy").flatten().tolist(),
+        vertices=numpy.load("vertices.npy").flatten().tolist(),
         intensity=intensity.tolist(),
-        intensity_range=[np.min(intensity), np.max(intensity)],
-    )
-
-
-def sim_frame_laserPulse1Animation(frame_args):
-    return _laser_pulse_report(
-        1, _INITIAL_LASER_FILE, "Before Propagation", "RMS x [m]"
-    )
-
-
-def sim_frame_laserPulse2Animation(frame_args):
-    return _laser_pulse_report(
-        3, _INITIAL_LASER_FILE, "Before Propagation", "Pulse Intensity"
-    )
-
-
-def sim_frame_laserPulse3Animation(frame_args):
-    return _laser_pulse_report(1, _FINAL_LASER_FILE, "After Propagation", "RMS x [m]")
-
-
-def sim_frame_laserPulse4Animation(frame_args):
-    return _laser_pulse_report(
-        3, _FINAL_LASER_FILE, "After Propagation", "Pulse Intensity"
+        intensity_range=[numpy.min(intensity), numpy.max(intensity)],
     )
 
 
@@ -167,56 +117,15 @@ def sim_frame_plot2Animation(frame_args):
     return _crystal_plot(frame_args, "zv", "uz", "[m]", 1e-2)
 
 
-def sim_frame_wavefrontSummaryAnimation(frame_args):
-    beamline = frame_args.sim_in.models.beamline
-    if "element" not in frame_args:
-        frame_args.element = "all"
-    idx = 0
-    title = ""
-    if frame_args.element != "all":
-        # find the element index from the element id
-        for item in beamline:
-            if item.id == int(frame_args.element):
-                title = item.title
-                break
-            idx += 1
-    # TODO(pjm): use column headings from csv
-    cols = ["count", "pos", "sx", "sy", "xavg", "yavg"]
-    v = np.genfromtxt(
-        str(frame_args.run_dir.join(_SUMMARY_CSV_FILE)), delimiter=",", skip_header=1
-    )
-    if frame_args.element != "all":
-        # the wavefront csv include intermediate values, so take every other row
-        counts = _counts_for_beamline(int((v[-1][0] + 1) / 2), beamline)[1]
-        v2 = []
-        for row in counts[idx]:
-            v2.append(v[(row - 1) * 2])
-        v = np.array(v2)
-    # TODO(pjm): generalize, use template_common parameter_plot()?
-    plots = []
-    for col in ("sx", "sy"):
-        plots.append(
-            PKDict(
-                points=v[:, cols.index(col)].tolist(),
-                label=f"{col} [m]",
-            )
+def stateful_compute_mesh_dimensions(data, **kwargs):
+    f = {
+        k: _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field("laserPulse", k, data.args[k])
         )
-    x = v[:, cols.index("pos")].tolist()
-    return PKDict(
-        aspectRatio=1 / 5.0,
-        title="{} Wavefront Dimensions".format(title),
-        x_range=[float(min(x)), float(max(x))],
-        y_label="",
-        x_label="s [m]",
-        x_points=x,
-        plots=plots,
-        y_range=template_common.compute_plot_color_and_range(plots),
-        summaryData=_summary_data(frame_args),
-    )
-
-
-def stateless_compute_rms_size(data):
-    return _compute_rms_size(data.args)
+        for k in data.args
+    }
+    m = pulse.LaserPulse(params=PKDict(nslice=1), files=PKDict(f)).slice_wfr(0).mesh
+    return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -224,35 +133,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
-
-
-def _compute_rms_size(data):
-    wavefrontEnergy = data.gaussianBeam.photonEnergy
-    n0 = data.crystal.refractionIndex
-    L_cryst = data.crystal.width * 1e-2
-    dfL = data.mirror.focusingError
-    L_cav = data.simulationSettings.cavity_length
-    L_eff = L_cav + (1 / n0 - 1) * L_cryst
-    beta0 = math.sqrt(L_eff * (L_cav / 4 + dfL) - L_eff**2 / 4)
-    lam = constants.c * constants.value("Planck constant in eV/Hz") / wavefrontEnergy
-    return PKDict(rmsSize=math.sqrt(lam * beta0 / 4 / math.pi))
-
-
-def _counts_for_beamline(total_frames, beamline):
-    # start at 2nd element, loop forward and backward across beamline
-    counts = [0 for _ in beamline]
-    idx = 1
-    direction = 1
-    frames = [[] for _ in beamline]
-
-    for i in range(total_frames):
-        counts[idx] += 1
-        frames[idx].append(i + 1)
-        idx += direction
-        if idx < 0 or idx > len(counts) - 1:
-            direction *= -1
-            idx += 2 * direction
-    return counts, frames
 
 
 def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
@@ -285,34 +165,170 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
     )
 
 
-def _format_float(v):
-    return float("{:.4f}".format(v))
+def _data_paths(report):
+    r = _SIM_DATA.WATCHPOINT_REPORT if _SIM_DATA.is_watchpoint(report) else report
+    return _DATA_PATHS[r]
+
+
+def _extract_initial_intensity_report(run_dir, sim_in):
+    template_common.write_sequential_result(
+        _laser_pulse_plot(run_dir, "intensity", sim_in),
+        run_dir=run_dir,
+    )
+
+
+def _extract_initial_phase_report(run_dir, sim_in):
+    template_common.write_sequential_result(
+        _laser_pulse_plot(run_dir, "phase", sim_in),
+        run_dir=run_dir,
+    )
+
+
+def _extract_watchpoint_report(run_dir, sim_in):
+    template_common.write_sequential_result(
+        _laser_pulse_plot(
+            run_dir,
+            sim_in.models[sim_in.report].dataType,
+            sim_in,
+        ),
+        run_dir=run_dir,
+    )
+
+
+def _laser_pulse_plot(run_dir, data_type, sim_in):
+    with h5py.File(run_dir.join(_RESULTS_FILE), "r") as f:
+        d = template_common.h5_to_dict(f)
+        r = d.ranges
+        z = d[data_type]
+        return PKDict(
+            title=data_type.capitalize()
+            + " Slice #"
+            + str(_slice_number(sim_in, sim_in.report) + 1),
+            x_range=[r.x[0], r.x[1], len(z)],
+            y_range=[r.y[0], r.y[1], len(z[0])],
+            x_label="Horizontal Position [m]",
+            y_label="Vertical Position [m]",
+            z_matrix=z,
+        )
+
+
+def _generate_beamline_elements(data):
+    def _callback(state, element, dz):
+        if dz:
+            state.res += f'(Drift({round(dz, 9)}), ["default"]),\n'
+        if element.type == "watch" or element.get("isDisabled"):
+            return
+        if element.type == "lens":
+            state.res += f'(Lens({element.focalLength}), ["default"]),\n'
+        elif element.type == "mirror":
+            state.res += "(Mirror(), []),\n"
+        elif element.type == "crystal":
+            if element.origin == "reuse":
+                return
+            state.res += _generate_crystal(element)
+        else:
+            raise AssertionError("unknown element type={}".format(element.type))
+
+    state = PKDict(res="")
+    _iterate_beamline(state, data, _callback)
+    return state.res
+
+
+def _generate_beamline_indices(data):
+    def _callback(state, element, dz):
+        if dz:
+            state.res.append(str(state.idx))
+            state.idx += 1
+        if element.get("isDisabled") or element.type == "watch":
+            return
+        if element.type == "crystal":
+            if element.origin == "new":
+                state.id_to_index[element.id] = state.idx
+            else:
+                state.res.append(str(state.id_to_index[element.reuseCrystal]))
+                return
+        state.res.append(str(state.idx))
+        state.idx += 1
+
+    state = PKDict(res=[], idx=0, id_to_index=PKDict())
+    _iterate_beamline(state, data, _callback)
+    return ", ".join(state.res)
+
+
+def _generate_crystal(crystal):
+    return f"""(
+        Crystal(
+            params=PKDict(
+                l_scale={crystal.l_scale},
+                length={crystal.length * 1e-2},
+                n0={_slice_n_field(crystal, 'n0')},
+                n2={_slice_n_field(crystal, 'n2')},
+                nslice={crystal.nslice},
+                A={crystal.A},
+                B={crystal.B},
+                C={crystal.C},
+                D={crystal.D},
+                population_inversion=PKDict(
+                    n_cells={crystal.inversion_n_cells},
+                    mesh_extent={crystal.inversion_mesh_extent},
+                    crystal_alpha={crystal.crystal_alpha},
+                    pump_waist={crystal.pump_waist},
+                    pump_wavelength={crystal.pump_wavelength},
+                    pump_energy={crystal.pump_energy},
+                    pump_type="{crystal.pump_type}",
+                ),
+            ),
+        ),
+        ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
+    ),\n"""
 
 
 def _generate_parameters_file(data):
-    if data.report == "animation":
-        beamline = data.models.beamline
-        data.models.crystal = _get_crystal(data)
-        res, v = template_common.generate_parameters_file(data)
-        v.leftMirrorFocusingError = beamline[0].focusingError
-        v.rightMirrorFocusingError = beamline[-1].focusingError
-        v.summaryCSV = _SUMMARY_CSV_FILE
-        v.initialLaserFile = _INITIAL_LASER_FILE
-        v.finalLaserFile = _FINAL_LASER_FILE
-        return res + template_common.render_jinja(SIM_TYPE, v)
-    if data.report == "crystalAnimation":
-        res, v = template_common.generate_parameters_file(data)
+    r = data.report
+    res, v = template_common.generate_parameters_file(data)
+    v.simId = data.models.simulation.simulationId
+    v.report = r
+    v.dataPaths = _data_paths(r)
+    v.laserPulse = data.models.laserPulse
+    v.resultsFile = _RESULTS_FILE
+    v.sliceNumber = _slice_number(data, r)
+    if r == "crystalAnimation":
+        v.crystalLength = _get_crystal(data).length
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
-    assert False, "invalid param report: {}".format(data.report)
+    if data.models.laserPulse.distribution == "file":
+        for f in ("ccd", "meta", "wfs"):
+            v[f"{f}File"] = _SIM_DATA.lib_file_name_with_model_field(
+                "laserPulse", f, data.models.laserPulse[f]
+            )
+    if _SIM_DATA.is_watchpoint(r):
+        v.beamlineElements = _generate_beamline_elements(data)
+        v.beamlineIndices = _generate_beamline_indices(data)
+    return res + template_common.render_jinja(SIM_TYPE, v)
 
 
 def _get_crystal(data):
-    return data.models.beamline[1]
+    crystals = [
+        x for x in data.models.beamline if x.type == "crystal" and x.origin == "new"
+    ]
+    for e in crystals:
+        if e.id == data.models.crystalCylinder.crystal:
+            return e
+    return crystals[0]
+
+
+def _iterate_beamline(state, data, callback):
+    prev = 0
+    for e in data.models.beamline:
+        dz = e.position - prev
+        prev = e.position
+        callback(state, e, dz)
+        if e.id == _SIM_DATA.watchpoint_id(data.report):
+            break
 
 
 def _laser_pulse_report(value_index, filename, title, label):
-    values = np.load(filename)
+    values = numpy.load(filename)
     return template_common.parameter_plot(
         values[0].tolist(),
         [
@@ -328,6 +344,14 @@ def _laser_pulse_report(value_index, filename, title, label):
             x_label="s [m]",
         ),
     )
+
+
+def _last_watchpoint(data):
+    res = None
+    for b in data.models.beamline:
+        if b.type == "watch":
+            res = b
+    return f"watchpointReport{b.id}" if res else None
 
 
 def _parse_silas_log(run_dir):
@@ -348,30 +372,28 @@ def _parse_silas_log(run_dir):
     return "An unknown error occurred"
 
 
+def _slice_n_field(crystal, field):
+    return (
+        crystal[field][0 : crystal.nslice]
+        if crystal.nslice <= 6
+        else f"interpolate_across_slice({crystal.length * 1e-2}, {crystal.nslice}, {crystal[field]})"
+    )
+
+
+def _slice_number(data, report_name):
+    n = (
+        data.models[report_name].sliceNumber
+        if report_name in data.models
+        and "sliceNumber" in data.models[report_name]
+        and data.models[report_name].sliceNumber
+        else 0
+    )
+    if n + 1 > data.models.laserPulse.nslice:
+        n = 0
+    return n
+
+
 def _summary_data(frame_args):
     return PKDict(
-        crystalWidth=frame_args.sim_in.models.beamline[1].width,
+        crystalLength=_get_crystal(frame_args.sim_in).length,
     )
-
-
-def _total_frame_count(data):
-    return (
-        data.models.simulationSettings.n_reflections
-        * 2
-        * (len(data.models.beamline) - 1)
-        + 1
-    )
-
-
-def _wavefront_filename_for_index(sim_in, item_id, frame):
-    idx = 0
-    beamline = sim_in.models.beamline
-    for item in beamline:
-        if str(item_id) == str(item.id):
-            break
-        idx += 1
-    total_count = _total_frame_count(sim_in)
-    counts = _counts_for_beamline(total_count, beamline)[1]
-    counts = counts[idx]
-    file_index = counts[frame]
-    return f"wfr{file_index:05d}.h5"

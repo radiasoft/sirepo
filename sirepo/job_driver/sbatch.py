@@ -156,7 +156,7 @@ disown
                 f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log'
             )
             r = pkjson.dump_pretty(PKDict(stdout=stdout, stderr=stderr, filename=f), f)
-            if pkconfig.channel_in("dev"):
+            if pkconfig.in_dev_mode():
                 pkdlog(r)
 
         async def get_agent_log(connection, before_start=True):
@@ -170,8 +170,6 @@ disown
                     write_to_log(
                         o, e, f"remote-{'before' if before_start else 'after'}-start"
                     )
-            except sirepo.util.ASYNC_CANCELED_ERROR:
-                raise
             except Exception as e:
                 pkdlog(
                     "{} e={} stack={}",
@@ -219,7 +217,7 @@ disown
             self.pkdel("_creds")
 
     def _agent_start_dev(self):
-        if not pkconfig.channel_in("dev"):
+        if not pkconfig.in_dev_mode():
             return ""
         res = """
 scancel -u $USER >& /dev/null || true

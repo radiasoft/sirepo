@@ -1,27 +1,42 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import React, { useContext, useEffect, useState } from "react"
-import { Button, Col, Container, Dropdown, Form, Image, Nav, Row } from "react-bootstrap"
+import React, { MutableRefObject, useContext, useEffect, useRef, useState } from "react"
+import { Button, Col, Container, Dropdown, Form, Image, Nav, Row, Modal } from "react-bootstrap"
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router"
-import { AuthMethod, CAppName, CAppWrapper, CLoginStatus, CSchema } from "../../data/appwrapper"
+import { AppWrapper, AuthMethod, CAppName, CAppWrapper, CLoginStatusRef, CSchema, LoginStatus } from "../../data/appwrapper"
 import { useSetup } from "../../hook/setup"
 import { NavbarRightContainerId, NavToggleDropdown } from "../reusable/navbar";
 import { Portal } from "../reusable/portal";
 import "./login.scss";
 import { LoginEmailConfirm, LoginWithEmail } from "./email";
 import { CRouteHelper } from "../../utility/route";
+import { LoginWithGuest } from "./guest";
+import { useLocation } from "react-router-dom";
+
+export async function updateLoginStatusRef(ref: MutableRefObject<LoginStatus>, appWrapper: AppWrapper) {
+    let status = await appWrapper.getLoginStatus();
+    ref.current = status;
+}
 
 export const LoginRouter = (props) => {
     let appWrapper = useContext(CAppWrapper);
     let routeHelper = useContext(CRouteHelper);
-    const [hasLoginStatus, loginStatus] = useSetup(true, appWrapper.getLoginStatus());
+    let loginStatusRef = useRef(undefined);
+    let location = useLocation();
+    const [hasLoginStatus, _] = useSetup(true, updateLoginStatusRef(loginStatusRef, appWrapper));
+    const isSimulations = location.pathname.startsWith(routeHelper.localRoute("simulations"));
 
     return hasLoginStatus && (
-        <CLoginStatus.Provider value={loginStatus}>
-            <Portal targetId={NavbarRightContainerId} className="order-3">
+        <CLoginStatusRef.Provider value={loginStatusRef}>
+            { isSimulations &&
+              <Portal targetId={NavbarRightContainerId} className="order-1 navbar-nav">
+                  <NavbarNewSimulation/>
+              </Portal>
+            }
+            <Portal targetId={NavbarRightContainerId} className="order-3 navbar-nav">
                 <NavbarSlack/>
             </Portal>
-            <Portal targetId={NavbarRightContainerId} className="order-5">
+            <Portal targetId={NavbarRightContainerId} className="order-5 navbar-nav">
                 <NavbarAuthStatus/>
             </Portal>
             <Routes>
@@ -30,12 +45,73 @@ export const LoginRouter = (props) => {
                 <Route path={routeHelper.localRoutePattern("loginConfirm")} element={<LoginConfirm/>}/>
                 <Route path="*" element={<CatchLoggedOut>{props.children}</CatchLoggedOut>}/>
             </Routes>
-        </CLoginStatus.Provider>
+        </CLoginStatusRef.Provider>
+    )
+}
+
+export const NavbarNewSimulation = (props) => {
+    const appName = useContext(CAppName);
+    const routeHelper = useContext(CRouteHelper);
+    const [modalShown, updateModalShown] = useState(false);
+    const [name, updateName] = useState<string>("");
+    const navigate = useNavigate();
+    const location = useLocation();
+    const _cancel = () => {
+        updateName('');
+        updateModalShown(false);
+    };
+    const onComplete = (data: { [key: string]: any }) => {
+        const folder = location.pathname.replace(/^.*?\/simulations/, '');
+        fetch(routeHelper.globalRoute("newSimulation"), {
+            method: "POST",
+            body: JSON.stringify({ ...data, simulationType: appName, folder: folder || '/' }),
+            headers: {
+                "Content-Type": "application/json",
+            },
+        }).then(response => response.json())
+        .then(data => {
+            //TODO(pjm): source is hardcoded and should be default route from schema
+            const path = routeHelper.localRoute("source", {
+                simulationId: data.models.simulation.simulationId
+            });
+            updateName('');
+            navigate(path);
+        });
+    }
+    const validateSimName = (value) => {
+        const invalidCharacters = /[\\/|&:+?'*"<>]/;
+        updateName(value.replace(/^\s+/, '').replace(invalidCharacters, ''));
+    }
+    return (
+        <>
+        <Nav.Link
+            onClick={() => updateModalShown(true)}
+        >New Simulation</Nav.Link>
+        <Modal show={modalShown} onHide={() => _cancel()} size="lg">
+            <Modal.Header className="lead bg-info bg-opacity-25">
+                New Simulation
+            </Modal.Header>
+            <Modal.Body>
+            <Form.Group as={Row} className="mb-3">
+                <Form.Label className="text-end" column sm="5">
+                    Name
+                </Form.Label>
+                <Col sm="7">
+                    <Form.Control autoFocus size="sm" value={name} onChange={(e) => validateSimName(e.target.value)}/>
+                </Col>
+            </Form.Group>
+            { name && <div className="text-center sr-form-action-buttons">
+                <Button variant="primary" onClick={() => onComplete({ name })}>Save Changes</Button>
+                <Button className="ms-1" variant="light" onClick={() => _cancel()}>Cancel</Button>
+            </div>}
+            </Modal.Body>
+        </Modal>
+        </>
     )
 }
 
 export const NavbarSlack = (props) => {
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatusRef).current;
 
     return (
         <>
@@ -49,12 +125,12 @@ export const NavbarSlack = (props) => {
 }
 
 export const NavbarAuthStatus = (props) => {
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatusRef).current;
     let schema = useContext(CSchema);
     let appWrapper = useContext(CAppWrapper);
     let routeHelper = useContext(CRouteHelper);
 
-    if(loginStatus.method === "guest") {
+    if(loginStatus.visibleMethod === "guest") {
         return (<></>)
     }
 
@@ -98,12 +174,11 @@ export const NavbarAuthStatus = (props) => {
 
 export const CatchLoggedOut = (props) => {
     let routeHelper = useContext(CRouteHelper);
-    let loginStatus = useContext(CLoginStatus);
-
+    let loginStatus = useContext(CLoginStatusRef).current;
     return (
         <>
             {
-                (loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) || loginStatus.method === "guest" ?
+                (loginStatus.isLoggedIn && !loginStatus.needCompleteRegistration) ?
                 (
                     props.children
                 ) : (
@@ -171,7 +246,7 @@ export const LoginExtraInfoForm = (props: { onComplete: ({displayName}) => void 
 }
 
 export const LoginRoot = (props) => {
-    let loginStatus = useContext(CLoginStatus);
+    let loginStatus = useContext(CLoginStatusRef).current;
     let routeHelper = useContext(CRouteHelper);
 
     let getLoginComponent = (method: string): JSX.Element => {
@@ -179,7 +254,7 @@ export const LoginRoot = (props) => {
             case "email":
                 return <LoginWithEmail/>
             case "guest":
-                return <Navigate to={routeHelper.localRoute("root")}/>
+                return <LoginWithGuest/>
             default:
                 throw new Error(`could not handle login method=${method}`)
         }

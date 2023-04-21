@@ -4,7 +4,6 @@ import re
 from pykern.pkcollections import PKDict
 import sirepo.mpi
 import sirepo.util
-from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
 
@@ -145,9 +144,7 @@ def _add_object(o, radia_objs, id_map):
 def _build_radia_geom():
     id_map = PKDict()
     radia_objs = []
-{% if is_raw %}
-    g_id, id_map = radia_examples.EXAMPLES['{{ exampleName }}']()
-{% elif dmpImportFile %}
+{% if dmpImportFile %}
     with open('{{ dmpImportFile }}', 'rb') as f:
         b = f.read()
         g_id = radia_util.load_bin(b)
@@ -177,7 +174,7 @@ def _write_dmp(g_id, f_path):
         f.write(radia_util.dump_bin(g_id))
 
 with radia_util.MPI() as m:
-{% if doReset %}
+{% if solverMode == "reset" %}
     radia_util.reset()
 {% endif %}
     g_id, id_map = _build_radia_geom()
@@ -185,7 +182,7 @@ with radia_util.MPI() as m:
     _write_dict_to_h5(g_data, '{{ h5ObjPath }}')
     _write_dict_to_h5(id_map, '{{ h5IdMapPath }}')
 
-{% if doSolve %}
+{% if solverMode == "solve" %}
     res = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
     m.barrier()
     _write_dict_to_h5(res, '{{ h5SolutionPath }}')

@@ -11,6 +11,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 import re
+import sirepo.const
 import sirepo.feature_config
 import sirepo.flask
 import sirepo.quest
@@ -26,7 +27,7 @@ import urllib.parse
 # TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
 if any(
     k in sirepo.feature_config.cfg().sim_types
-    for k in ("flash", "radia", "synergia", "silas", "warppba", "warpvnd")
+    for k in ("flash", "radia", "silas", "warppba", "warpvnd")
 ):
     import h5py
 
@@ -53,7 +54,7 @@ _REACT_SERVER_BUILD = "build"
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sid="SimId")
-    def api_copyNonSessionSimulation(self):
+    async def api_copyNonSessionSimulation(self):
         req = self.parse_post(id=True, template=True)
         src = pkio.py_path(
             simulation_db.find_global_simulation(
@@ -89,7 +90,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_user", sid="SimId", folder="SimFolderName", name="SimName"
     )
-    def api_copySimulation(self):
+    async def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
         req = self.parse_post(id=True, folder=True, name=True, template=True)
         d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
@@ -102,7 +103,7 @@ class API(sirepo.quest.API):
         return self._save_new_and_reply(req, d)
 
     @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
-    def api_deleteFile(self):
+    async def api_deleteFile(self):
         req = self.parse_post(filename=True, file_type=True)
         e = _simulations_using_file(req)
         if len(e):
@@ -119,7 +120,7 @@ class API(sirepo.quest.API):
         return self.reply_ok()
 
     @sirepo.quest.Spec("require_user", sid="SimId")
-    def api_deleteSimulation(self):
+    async def api_deleteSimulation(self):
         req = self.parse_post(id=True)
         simulation_db.delete_simulation(req.type, req.id, qcall=self)
         return self.reply_ok()
@@ -127,7 +128,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_user", sid="SimId optional", filename="SimFileName", sim_data="SimData"
     )
-    def api_downloadFile(self, simulation_type, simulation_id, filename):
+    async def api_downloadFile(self, simulation_type, simulation_id, filename):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, filename=filename)
         n = req.sim_data.lib_file_name_without_type(req.filename)
@@ -140,7 +141,7 @@ class API(sirepo.quest.API):
             raise
 
     @sirepo.quest.Spec("allow_visitor", spec="ErrorLoggingSpec")
-    def api_errorLogging(self):
+    async def api_errorLogging(self):
         ip = self.sreq.remote_addr
         try:
             pkdlog(
@@ -159,7 +160,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_user", simulation_id="SimId", filename="SimExportFileName"
     )
-    def api_exportArchive(self, simulation_type, simulation_id, filename):
+    async def api_exportArchive(self, simulation_type, simulation_id, filename):
         req = self.parse_params(
             template=True,
             filename=filename,
@@ -171,7 +172,7 @@ class API(sirepo.quest.API):
         return exporter.create_archive(req, self)
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_favicon(self):
+    async def api_favicon(self):
         """Routes to favicon.ico file."""
         # SECURITY: We control the path of the file so using send_file is ok.
         return self.reply_file(
@@ -180,7 +181,16 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_forbidden(self):
+    async def api_faviconPng(self):
+        """Routes to favicon.png file."""
+        # SECURITY: We control the path of the file so using send_file is ok.
+        return self.reply_file(
+            sirepo.resource.static("img", "favicon.png"),
+            content_type="image/png",
+        )
+
+    @sirepo.quest.Spec("allow_visitor")
+    async def api_forbidden(self):
         raise sirepo.util.Forbidden("app forced forbidden")
 
     @sirepo.quest.Spec(
@@ -189,7 +199,7 @@ class API(sirepo.quest.API):
         file_type="LibFileType",
         sim_data="SimData",
     )
-    def api_listFiles(self, simulation_type, simulation_id, file_type):
+    async def api_listFiles(self, simulation_type, simulation_id, file_type):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, file_type=file_type)
         return self.reply_json(
@@ -199,7 +209,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "allow_visitor", application_mode="AppMode", simulation_name="SimName"
     )
-    def api_findByName(self, simulation_type, application_mode, simulation_name):
+    async def api_findByName(self, simulation_type, application_mode, simulation_name):
         req = self.parse_params(type=simulation_type)
         return self.reply_redirect_for_local_route(
             req.type,
@@ -213,7 +223,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_user", application_mode="AppMode", simulation_name="SimName"
     )
-    def api_findByNameWithAuth(
+    async def api_findByNameWithAuth(
         self, simulation_type, application_mode, simulation_name
     ):
         req = self.parse_params(type=simulation_type)
@@ -264,7 +274,7 @@ class API(sirepo.quest.API):
         sid="SimId",
         arguments="ImportArgs optional",
     )
-    def api_importFile(self, simulation_type):
+    async def api_importFile(self, simulation_type):
         """
         Args:
             simulation_type (str): which simulation type
@@ -310,7 +320,7 @@ class API(sirepo.quest.API):
                         req,
                     )
                 with simulation_db.tmp_dir(qcall=self) as d:
-                    data = req.template.import_file(
+                    data = await req.template.import_file(
                         req,
                         tmp_dir=d,
                         reply_op=s,
@@ -338,8 +348,8 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo optional")
-    def api_homePage(self, path_info=None):
-        return self.call_api(
+    async def api_homePage(self, path_info=None):
+        return await self.call_api(
             "staticFile", kwargs=PKDict(path_info="en/" + (path_info or "landing.html"))
         )
 
@@ -349,7 +359,7 @@ class API(sirepo.quest.API):
         model="Model optional",
         title="DownloadNamePostfix optional",
     )
-    def api_exportJupyterNotebook(
+    async def api_exportJupyterNotebook(
         self, simulation_type, simulation_id, model=None, title=None
     ):
         def _filename(req):
@@ -380,7 +390,7 @@ class API(sirepo.quest.API):
         model="Model optional",
         title="DownloadNamePostfix optional",
     )
-    def api_exportJupyterNotebook2(self, simulation_type):
+    async def api_exportJupyterNotebook2(self, simulation_type):
         def _filename(req):
             res = d.models.simulation.name
             if req.title:
@@ -410,7 +420,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_user", folder="FolderName", name="SimName")
-    def api_newSimulation(self):
+    async def api_newSimulation(self):
         req = self.parse_post(template=True, folder=True, name=True)
         d = simulation_db.default_data(req.type)
         d.models.simulation.pkupdate(
@@ -425,7 +435,7 @@ class API(sirepo.quest.API):
         return self._save_new_and_reply(req, d)
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_notFound(self):
+    async def api_notFound(self):
         raise sirepo.util.NotFound("app forced not found (uri parsing error)")
 
     @sirepo.quest.Spec(
@@ -434,7 +444,9 @@ class API(sirepo.quest.API):
         model="ComputeModelName optional",
         title="DownloadNamePostfix optional",
     )
-    def api_pythonSource(self, simulation_type, simulation_id, model=None, title=None):
+    async def api_pythonSource(
+        self, simulation_type, simulation_id, model=None, title=None
+    ):
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         m = model and req.sim_data.parse_model(model)
         d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
@@ -455,7 +467,7 @@ class API(sirepo.quest.API):
         model="ComputeModelName optional",
         title="DownloadNamePostfix optional",
     )
-    def api_pythonSource2(self, simulation_type):
+    async def api_pythonSource2(self, simulation_type):
         req = self.parse_post(
             type=simulation_type,
             id=True,
@@ -475,7 +487,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_robotsTxt(self):
+    async def api_robotsTxt(self):
         """Disallow the app (dev, prod) or / (alpha, beta)"""
         global _ROBOTS_TXT
         if not _ROBOTS_TXT:
@@ -493,7 +505,7 @@ class API(sirepo.quest.API):
         return self.reply(content=_ROBOTS_TXT, content_type="text/plain")
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo")
-    def api_root(self, path_info=None):
+    async def api_root(self, path_info=None):
         from sirepo import template
 
         self._proxy_react(path_info)
@@ -507,7 +519,7 @@ class API(sirepo.quest.API):
         raise sirepo.util.NotFound(f"unknown path={path_info}")
 
     @sirepo.quest.Spec("require_user", sid="SimId", data="SimData all_input")
-    def api_saveSimulationData(self):
+    async def api_saveSimulationData(self):
         # do not fixup_old_data yet
         req = self.parse_post(id=True, template=True)
         d = req.req_data
@@ -522,7 +534,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_user", simulation_id="SimId", pretty="Bool optional", section="Section"
     )
-    def api_simulationData(
+    async def api_simulationData(
         self, simulation_type, simulation_id, pretty=False, section=None
     ):
         """First entry point for a simulation
@@ -562,7 +574,7 @@ class API(sirepo.quest.API):
             return _not_found(req)
 
     @sirepo.quest.Spec("require_user", search="SearchSpec")
-    def api_listSimulations(self):
+    async def api_listSimulations(self):
         req = self.parse_post()
         return self.reply_json(
             sorted(
@@ -577,7 +589,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_user")
-    def api_simulationRedirect(self, simulation_type, local_route, simulation_id):
+    async def api_simulationRedirect(self, simulation_type, local_route, simulation_id):
         return self.reply_redirect_for_local_route(
             sim_type=simulation_type,
             route=local_route,
@@ -586,7 +598,7 @@ class API(sirepo.quest.API):
 
     # visitor rather than user because error pages are rendered by the application
     @sirepo.quest.Spec("allow_visitor")
-    def api_simulationSchema(self):
+    async def api_simulationSchema(self):
         return self.reply_json(
             simulation_db.get_schema(
                 self.parse_params(
@@ -596,11 +608,11 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_visitor")
-    def api_srwLight(self):
+    async def api_srwLight(self):
         return self._render_root_page("light", PKDict())
 
     @sirepo.quest.Spec("allow_visitor", path_info="FilePath")
-    def api_staticFile(self, path_info=None):
+    async def api_staticFile(self, path_info=None):
         """Send file from static folder.
 
         Args:
@@ -610,7 +622,7 @@ class API(sirepo.quest.API):
         """
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
-        self._proxy_react("static/" + path_info)
+        self._proxy_react(f"{sirepo.const.STATIC_D}/" + path_info)
         p = sirepo.resource.static(sirepo.util.validate_path(path_info))
         if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
             return self.headers_for_cache(
@@ -627,7 +639,7 @@ class API(sirepo.quest.API):
         return self.reply_file(p)
 
     @sirepo.quest.Spec("require_user", oldName="SimFolderPath", newName="SimFolderPath")
-    def api_updateFolder(self):
+    async def api_updateFolder(self):
         # TODO(robnagler) Folder should have a serial, or should it be on data
         req = self.parse_post()
         o = sirepo.srschema.parse_folder(req.req_data["oldName"])
@@ -667,7 +679,7 @@ class API(sirepo.quest.API):
         simulation_id="SimId",
         confirm="Bool optional",
     )
-    def api_uploadFile(self, simulation_type, simulation_id, file_type):
+    async def api_uploadFile(self, simulation_type, simulation_id, file_type):
         f = self.sreq.form_file_get()
         req = self.parse_params(
             file_type=file_type,
@@ -715,12 +727,9 @@ class API(sirepo.quest.API):
         import requests
 
         def _build():
-            if re.search(r"^react/\w+$", path):
+            p = path
+            if re.search(r"^\w+$", p):
                 p = "index.html"
-            elif path in sirepo.feature_config.cfg().react_sim_types:
-                raise sirepo.util.Redirect(f"/react/{path}")
-            else:
-                p = path
             # do not call api_staticFile due to recursion of proxy_react
             raise sirepo.util.SReplyExc(
                 self.reply_file(
@@ -842,15 +851,15 @@ def _init_proxy_react():
     p = [
         "asset-manifest.json",
         "manifest.json",
-        "static/js/bundle.js",
-        "static/js/bundle.js.map",
+        f"{sirepo.const.STATIC_D}/js/bundle.js",
+        f"{sirepo.const.STATIC_D}/js/bundle.js.map",
     ]
     _PROXY_REACT_URI_SET = set(p)
     r = "^react/"
     for x in sirepo.feature_config.cfg().react_sim_types:
-        r += rf"|^{x}(?:/|$)"
+        r += rf"|^{x}(?:\/|$)"
     if cfg.react_server == _REACT_SERVER_BUILD:
-        r += r"|^static/(css|js)/main\."
+        r += rf"|^{sirepo.const.STATIC_D}/(css|js)/main\."
     _PROXY_REACT_URI_RE = re.compile(r)
 
 

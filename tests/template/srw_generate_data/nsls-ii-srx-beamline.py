@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['S0', 'S0_HFM', 'HFM', 'HFM_S1', 'S1', 'S1_DCM_C1', 'DCM_C1', 'DCM_C2', 'DCM_C2_At_BPM1', 'At_BPM1', 'At_BPM1_Before_SSA', 'Before_SSA', 'SSA', 'SSA_AKB', 'AKB', 'AKB_KBV', 'KBV', 'KBV_KBH', 'KBH', 'KBH_At_Sample', 'At_Sample']
+        names = ['S0', 'S0_HFM', 'HFM', 'HFM_S1', 'S1', 'S1_DCM_C1', 'DCM_C1', 'DCM_C2', 'DCM_C2_At_BPM1', 'At_BPM1_Before_SSA', 'SSA', 'SSA_AKB', 'AKB', 'AKB_KBV', 'KBV', 'KBV_KBH', 'KBH', 'KBH_At_Sample']
     for el_name in names:
         if el_name == 'S0':
             # S0: aperture 33.1798m
@@ -130,18 +130,12 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_DCM_C2_At_BPM1_L,
             ))
             pp.append(v.op_DCM_C2_At_BPM1_pp)
-        elif el_name == 'At_BPM1':
-            # At_BPM1: watch 38.6904m
-            pass
         elif el_name == 'At_BPM1_Before_SSA':
             # At_BPM1_Before_SSA: drift 38.6904m
             el.append(srwlib.SRWLOptD(
                 _L=v.op_At_BPM1_Before_SSA_L,
             ))
             pp.append(v.op_At_BPM1_Before_SSA_pp)
-        elif el_name == 'Before_SSA':
-            # Before_SSA: watch 50.6572m
-            pass
         elif el_name == 'SSA':
             # SSA: aperture 50.6572m
             el.append(srwlib.SRWLOptA(
@@ -224,9 +218,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_KBH_At_Sample_L,
             ))
             pp.append(v.op_KBH_At_Sample_pp)
-        elif el_name == 'At_Sample':
-            # At_Sample: watch 63.3m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -238,7 +229,7 @@ varParam = [
     ['name', 's', 'NSLS-II SRX beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_SRX_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -426,7 +417,7 @@ varParam = [
     ['op_S0_HFM_L', 'f', 1.081000000000003, 'length'],
 
     # HFM: sphericalMirror
-    ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HFM_hfn', 's', '', 'heightProfileFile'],
     ['op_HFM_dim', 's', 'x', 'orientation'],
     ['op_HFM_r', 'f', 8871.45, 'radius'],
     ['op_HFM_size_tang', 'f', 0.95, 'tangentialSize'],
@@ -631,7 +622,7 @@ def setup_magnetic_measurement_files(filename, v):
                     )
                 )
             f = f[0]
-            z.extractall()
+            z.extractall(v.fdir)
         except Exception:
             if c:
                 c.Abort(1)
@@ -648,11 +639,12 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    setup_magnetic_measurement_files("magn_meas_srx.zip", v)
-    names = ['S0','S0_HFM','HFM','HFM_S1','S1','S1_DCM_C1','DCM_C1','DCM_C2','DCM_C2_At_BPM1','At_BPM1','At_BPM1_Before_SSA','Before_SSA','SSA','SSA_AKB','AKB','AKB_KBV','KBV','KBV_KBH','KBH','KBH_At_Sample','At_Sample']
+    setup_magnetic_measurement_files(v.fdir + "magn_meas_srx.zip", v)
+    names = ['S0','S0_HFM','HFM','HFM_S1','S1','S1_DCM_C1','DCM_C1','DCM_C2','DCM_C2_At_BPM1','At_BPM1_Before_SSA','SSA','SSA_AKB','AKB','AKB_KBV','KBV','KBV_KBH','KBH','KBH_At_Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

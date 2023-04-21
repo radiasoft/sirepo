@@ -18,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['Sample', 'Watchpoint']
+        names = ['Sample']
     for el_name in names:
         if el_name == 'Sample':
             # Sample: sample 20.0m
@@ -53,9 +53,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 output_image_format=v.op_Sample_outputImageFormat,
             ))
             pp.append(v.op_Sample_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 20.0m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -67,7 +64,7 @@ varParam = [
     ['name', 's', 'Sample from Image', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'Sample_from_Image/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -245,7 +242,7 @@ varParam = [
 
 #---Beamline optics:
     # Sample: sample
-    ['op_Sample_file_path', 's', 'sample.tif', 'imageFile'],
+    ['op_Sample_file_path', 's', 'Sample_from_Image/sample.tif', 'imageFile'],
     ['op_Sample_outputImageFormat', 's', 'tif', 'outputImageFormat'],
     ['op_Sample_position', 'f', 20.0, 'position'],
     ['op_Sample_resolution', 'f', 2.480469e-09, 'resolution'],
@@ -322,10 +319,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['Sample','Watchpoint']
+    names = ['Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

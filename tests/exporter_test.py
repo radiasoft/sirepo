@@ -29,7 +29,7 @@ def test_create_zip(fc):
         (
             "srw",
             "Tabulated Undulator Example",
-            ["magnetic_measurements.zip", "run.py", "sirepo-data.json"],
+            ["anything/magnetic_measurements.zip", "run.py", "sirepo-data.json"],
         ),
         ("warppba", "Laser Pulse", ["run.py", "sirepo-data.json"]),
     ]:
@@ -64,7 +64,7 @@ def _import(fc):
     res = []
     for f in pkio.sorted_glob(pkunit.data_dir().join("*.zip")):
         with zipfile.ZipFile(str(f)) as z:
-            expect = sorted(z.namelist() + ["run.py"])
+            expect = sorted([x for x in z.namelist() if not x[-1] == "/"] + ["run.py"])
         d = fc.sr_post_form(
             "importFile",
             PKDict(folder="/exporter_test"),

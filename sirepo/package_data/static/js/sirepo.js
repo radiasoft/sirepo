@@ -2733,6 +2733,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             isReadyForModelChanges: false,
             model: controller.simComputeModel || appState.appService.computeModel(controller.simAnalysisModel || null),
             percentComplete: 0,
+            queueState: null,
             simulationQueueItem: null,
             timeData: {},
         };
@@ -2754,6 +2755,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             }
             if (data.hasOwnProperty('percentComplete')) {
                 state.percentComplete = data.percentComplete;
+            }
+            if (data.hasOwnProperty('queueState')) {
+                state.queueState = data.queueState;
             }
             if (state.isProcessing()) {
                 state.dots += '.';
@@ -2858,6 +2862,13 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 return 100;
             }
             return state.percentComplete;
+        };
+
+        state.getQueueState = function() {
+            if (state.queueState) {
+                return stringsService.ucfirst(state.queueState);
+            }
+            return state.stateAsText();
         };
 
         state.hasFrames = function() {
@@ -3800,14 +3811,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 appState.autoSave(clearModels, errorCallback);
                 self.selectedItem = null;
             });
-    }
-
-    function beginSession() {
-        requestSender.sendRequest(
-            'beginSession',
-            () => {},
-            {simulationType: SIREPO.APP_SCHEMA.simulationType}
-            );
     }
 
     self.canDelete = function(item) {
