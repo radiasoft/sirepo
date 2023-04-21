@@ -2681,17 +2681,11 @@ SIREPO.app.directive('objectTable', function(appState) {
                 $scope.source.align(o, alignType, $scope.elevation.labAxisIndices());
             };
 
-            $scope.copyObject = o =>  {
-                $scope.source.copyObject(o);
-            };
+            $scope.copyObject = $scope.source.copyObject;
 
-            $scope.deleteObject = o => {
-                $scope.source.deleteObject(o);
-            };
+            $scope.deleteObject = $scope.source.deleteObject;
 
-            $scope.editObject = o =>  {
-                $scope.source.editObject(o);
-            };
+            $scope.editObject = $scope.source.editObject;
 
             $scope.getParent = o => $scope.source.getObject(o.groupId);
 
@@ -2699,11 +2693,11 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return arrange((appState.models[$scope.modelName] || {}).objects);
             };
 
-            $scope.isInGroup = o => $scope.source.isInGroup(o);
+            $scope.isInGroup = $scope.source.isInGroup;
 
             $scope.isNotInGroup = o => ! $scope.isInGroup(o);
 
-            $scope.isGroup = o => $scope.source.isGroup(o);
+            $scope.isGroup = $scope.source.isGroup;
 
             $scope.memberObjects = o => {
                 return ($scope.source.getMembers(o) || []).map(mId => $scope.source.getObject(mId));
