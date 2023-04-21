@@ -2531,6 +2531,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 replot(true);
             };
 
+            $scope.getElevation = getElevation;
+
             $scope.getObjects = () => {
                 return (appState.models[$scope.modelName] || {}).objects;
             };
@@ -2613,6 +2615,7 @@ SIREPO.app.directive('objectTable', function(appState) {
     return {
         restrict: 'A',
         scope: {
+            elevation: '=',
             modelName: '@',
             overlayButtons: '=',
             source: '=',
@@ -2652,6 +2655,7 @@ SIREPO.app.directive('objectTable', function(appState) {
             $scope.expanded = {};
 
             function init() {
+                srdbg($scope.$parent);
                 for (const o of $scope.getObjects()) {
                     $scope.expanded[o.id] = true;
                 }
