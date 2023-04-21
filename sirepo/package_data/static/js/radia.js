@@ -509,23 +509,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.dipoleType;
     };
 
-    self.getGroup = id => {
-        return radiaService.getGroup(id);
-    };
+    self.getGroup = radiaService.getGroup;
 
-    self.getMagnetType = () => {
-        return appState.models.simulation.magnetType;
-    };
+    self.getMagnetType = () => appState.models.simulation.magnetType;
 
     self.getMembers = o => o.members;
 
-    self.getObject = id => {
-        return radiaService.getObject(id);
-    };
+    self.getObject = radiaService.getObject;
 
-    self.getObjects = () => {
-        return radiaService.getObjects();
-    };
+    self.getObjects = radiaService.getObjects;
 
     self.getShape = id => {
         return self.shapes.filter(s => s.id === id)[0];
@@ -542,9 +534,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.shapes.concat(s);
     };
 
-    self.getObjectView = id => {
-        return self.views.filter( s => s.id === id)[0];
-    };
+    self.getObjectView = id => self.views.filter(s => s.id === id)[0];
 
     self.getObjectViews = () => self.views;
 
