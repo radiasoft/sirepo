@@ -425,18 +425,30 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.align = (group, alignType, axesInds) => {
-        const m = group.members;
-        for (let i = 1; i < m.length; ++i) {
-            if (self.isGroup(m[i])) {
-                self.align(self.getObject(m[i]), alignType, axesInds);
-                continue;
+
+        function getFirstNotInGroup(arr) {
+            let m0 = null;
+            let i = 0;
+            for (i = 0; i < arr.length; ++i) {
+                const m = self.getObject(arr[i]);
+                if (self.isGroup(m)) {
+                    continue;
+                }
+                m0 = m;
+                break;
             }
-            self[alignType](
-                self.getObject(m[i]),
-                self.getObject(m[0]),
-                axesInds
-            );
-            self.saveObject(m[i]);
+            return [i + 1, m0];
+        }
+
+        const d = getDescendents(group);
+        const [start, m0] = getFirstNotInGroup(d);
+        if (! m0) {
+            return;
+        }
+        for (let i = start; i < d.length; ++i) {
+            const m = self.getObject(d[i]);
+            self[alignType](m, m0, axesInds);
+            self.saveObject(m.id);
         }
         radiaService.saveGeometry(true);
     };
@@ -786,6 +798,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function deleteShapesForObject(o) {
         self.views.splice(indexOfViews(self.viewsForObject(o)), 1);
+    }
+
+    function getDescendents(group) {
+        let d = [];
+        for (const m of (group.members || [])) {
+            d.push(m);
+            const o = self.getObject(m);
+            if (self.isGroup(o)) {
+                d = d.concat(getDescendents(o));
+            }
+        }
+        return d;
     }
 
     function groupBounds(objs) {

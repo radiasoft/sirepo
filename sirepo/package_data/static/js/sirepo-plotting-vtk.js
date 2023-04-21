@@ -2655,7 +2655,6 @@ SIREPO.app.directive('objectTable', function(appState) {
             $scope.expanded = {};
 
             function init() {
-                srdbg($scope.$parent);
                 for (const o of $scope.getObjects()) {
                     $scope.expanded[o.id] = true;
                 }
@@ -2698,7 +2697,7 @@ SIREPO.app.directive('objectTable', function(appState) {
             }
 
             $scope.align = (o, alignType) => {
-                $scope.source.align(o, alignType);
+                $scope.source.align(o, alignType, $scope.elevation.labAxisIndices());
             };
 
             $scope.copyObject = o =>  {
