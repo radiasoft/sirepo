@@ -19,6 +19,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
+    def source_filenames(cls, data):
+        return [
+            cls.lib_file_name_with_model_field("source", "file", x.file)
+            for x in data.models.settings.sources
+            if x.get("file")
+        ]
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         cls._init_models(
@@ -50,4 +58,4 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _lib_file_basenames(cls, data):
         return [
             cls.dagmc_filename(data),
-        ]
+        ] + cls.source_filenames(data)

@@ -309,14 +309,16 @@ def _generate_range(filter):
 
 
 def _generate_source(source):
+    if source.get("file"):
+        return f"openmc.Source(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
     return f"""openmc.Source(
-    space={_generate_space(source.space)},
-    angle={_generate_angle(source.angle)},
-    energy={_generate_distribution(source.energy)},
-    time={_generate_distribution(source.time)},
-    strength={source.strength},
-    particle="{source.particle}",
-)"""
+        space={_generate_space(source.space)},
+        angle={_generate_angle(source.angle)},
+        energy={_generate_distribution(source.energy)},
+        time={_generate_distribution(source.time)},
+        strength={source.strength},
+        particle="{source.particle}",
+    )"""
 
 
 def _generate_sources(data):

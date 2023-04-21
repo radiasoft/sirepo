@@ -1768,6 +1768,32 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
     ];
 });
 
+SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
+    $scope.whenSelected = () => {
+        srdbg($scope.$parent.activePage.name);
+        $scope.modelData = appState.models[$scope.modelName];
+        updateEditor();
+    }
+
+    $scope.watchFields = [
+        [
+            'source.type',
+        ], updateEditor,
+    ];
+
+    function updateEditor() {
+        const isFile = $scope.modelData.type === 'file';
+        panelState.showField($scope.modelName, 'file', isFile);
+        $scope.$parent.advancedFields.filter(x => x[0] !== 'Type').forEach(p => {
+            for (const f of p[1]) {
+                panelState.enableField($scope.modelName, f, ! isFile);
+            }
+        })
+    }
+
+});
+
+
 SIREPO.app.directive('simpleListEditor', function(panelState) {
     return {
         restrict: 'A',

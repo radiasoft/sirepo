@@ -91,6 +91,10 @@
             ["eigenvalue", "eigenvalue"],
             ["fixed source", "fixed source"]
         ],
+        "SourceSettings": [
+            ["manual", "Manual"],
+            ["file", "From File"]
+        ],
         "SpatialDistribution": [
             ["None", "None"],
             ["box", "Box"],
@@ -403,12 +407,14 @@
         },
         "simulationStatus": {},
         "source": {
-            "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
             "energy": ["Energy distribution", "Univariate", {"_type": "None"}],
-            "time": ["Time distribution", "Univariate", {"_type": "None"}],
+            "file": ["File", "InputFile", "", "", false],
+            "particle": ["Particle", "Particle", "neutron"],
+            "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
             "strength": ["Strength", "Float", 1],
-            "particle": ["Particle", "Particle", "neutron"]
+            "time": ["Time distribution", "Univariate", {"_type": "None"}],
+            "type": ["Source Settings", "SourceSettings", "manual"]
         },
         "spatial": {
             "_type": ["", "SpatialDistribution"]
@@ -689,6 +695,10 @@
         "source": {
             "title": "Source",
             "advanced": [
+                ["Type", [
+                    "type",
+                    "file"
+                ]],
                 ["Space", [
                     "space"
                 ]],
