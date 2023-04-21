@@ -2001,7 +2001,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             const fitDomainPct = 1.01;
 
-            let expanded = {};
             let screenRect = null;
             let selectedObject = null;
             const objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
@@ -2536,10 +2535,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.init = () => {
-                for (const o in $scope.getObjects()) {
-                    expanded[o.id] = false;
-                }
-
                 $scope.shapes = $scope.source.getShapes(getElevation());
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
@@ -2589,10 +2584,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
                 });
                 replot();
-            };
-
-            $scope.toggleExpand = o => {
-                expanded[o.id] = ! expanded[o.id];
             };
 
             appState.watchModelFields($scope, settingsFields, () => {
