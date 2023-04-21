@@ -128,7 +128,6 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
     }
 
     component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
-        console.log("RENDER BEAMLINE");
         let routeHelper = useContext(CRouteHelper);
         let store = useStore();
         let simulationInfoPromise = useContext(CSimulationInfoPromise);
@@ -191,8 +190,6 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
         }
 
         let beamlineComponents = handle.value.value.map((e, i) => {
-            console.log(`BE ${i} = ${e.item.position.value}`)
-
             let model = e.model;
             let ele: FormModelState = e.item;
             let id = ele.id.value;

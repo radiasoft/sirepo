@@ -272,7 +272,6 @@ export function SimulationOuter(props) {
 
     let handleFactory = useContext(CHandleFactory);
     let store = useStore();
-    console.log("models", store.getState()[StoreTypes.Models.name]);
     let simNameHandle = handleFactory.createHandle(new Dependency("simulation.name"), StoreTypes.Models).hook();
 
     useEffect(() => {

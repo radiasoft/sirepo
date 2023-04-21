@@ -101,7 +101,6 @@ export function FormStateInitializer(props) {
                 value: mapProperties(value, (_, fv) => initialFormStateFromValue(fv))
             }));
         });
-        console.log("formState", store.getState()[formStatesSlice.name]);
         updateHasInit(true);
     })
 

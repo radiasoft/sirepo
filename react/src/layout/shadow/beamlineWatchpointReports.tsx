@@ -27,11 +27,8 @@ function BeamlineWatchpointItem(props: {beamlineIndex: number, aliases: ArrayAli
         )
     )
     let [aliasedHandleFactory, _, indexChanged] = useCoupledState(beamlineIndex, createHandleFactory);
-    console.log(`RENDER WATCHPOINT ITEM index=${beamlineIndex}`, aliases);
 
     if(indexChanged) {
-        console.log(`INDEX CHANGE`)
-        console.log("ALIASES", aliases);
         return <></>
     }
 
@@ -64,15 +61,10 @@ export class BeamlineWatchpointReports extends Layout<BeamlineWatchpointReportsC
         let findElementIndexById = (id: any) => elementsValue.findIndex(e => e.item.id == id);
         let findElementById = (id: any) => elementsValue[findElementIndexById(id)];
 
-        console.log("WATCHPOINT REPORTS VALUE", reportsHandle.value);
-
         let comps = (reportsHandle.value as ArrayFieldState<ModelState>).map(i => i.item).map((report, index) => {
             let id = report.id;
-            console.log("ID", id);
             let beamlineIndex = findElementIndexById(id);
-            console.log("BEAMLINE INDEX", beamlineIndex);
             let beamlineElement = findElementById(id);
-            console.log("BEAMLINE ELEMENT", beamlineElement);
             let aliases: ArrayAliases = [
                 {
                     realDataLocation: {
@@ -107,8 +99,6 @@ export class BeamlineWatchpointReports extends Layout<BeamlineWatchpointReportsC
                 <BeamlineWatchpointItem beamlineIndex={beamlineIndex} key={`watchpointReport${id}`} aliases={aliases} overrides={overrides} child={this.reportLayout}/>
             )
         })
-
-        console.log("ELEMENTS", comps);
 
         return (<>{
             comps
