@@ -2476,14 +2476,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
             }
 
-            $scope.copyObject = o =>  {
-                $scope.source.copyObject(o);
-            };
-
-            $scope.deleteObject = o => {
-                $scope.source.deleteObject(o);
-            };
-
             $scope.destroy = () => {
                 if (zoom) {
                     zoom.on('zoom', null);
