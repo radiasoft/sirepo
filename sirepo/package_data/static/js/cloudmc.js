@@ -1772,7 +1772,7 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
         updateEditor();
-    }
+    };
 
     $scope.watchFields = [
         [
@@ -1790,7 +1790,7 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
             for (const f of p[1]) {
                 panelState.enableField($scope.modelName, f, ! isFile);
             }
-        })
+        });
     }
 
 });
