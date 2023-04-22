@@ -409,7 +409,7 @@
         "source": {
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
             "energy": ["Energy distribution", "Univariate", {"_type": "None"}],
-            "file": ["File", "InputFile", "", "", false],
+            "file": ["File", "InputFile", "", "openmc source file in hdf5 format", false],
             "particle": ["Particle", "Particle", "neutron"],
             "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
             "strength": ["Strength", "Float", 1],
