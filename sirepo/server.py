@@ -510,7 +510,7 @@ class API(sirepo.quest.API):
 
         self._proxy_react(path_info)
         if path_info is None:
-            return self.reply_redirect(cfg.home_page_uri)
+            return self.reply_redirect(_cfg.home_page_uri)
         if template.is_sim_type(path_info):
             return self._render_root_page("index", PKDict(app_name=path_info))
         u = sirepo.uri.unchecked_root_redirect(path_info)
@@ -738,7 +738,7 @@ class API(sirepo.quest.API):
             )
 
         def _dev():
-            r = requests.get(cfg.react_server + path)
+            r = requests.get(_cfg.react_server + path)
             # We want to throw an exception here, because it shouldn't happen
             r.raise_for_status()
             raise sirepo.util.SReplyExc(
@@ -748,10 +748,12 @@ class API(sirepo.quest.API):
                 ),
             )
 
-        if not path or not cfg.react_server:
-            return
-        if path in _PROXY_REACT_URI_SET or _PROXY_REACT_URI_RE.search(path):
-            _build() if cfg.react_server == _REACT_SERVER_BUILD else _dev()
+        if (
+            path
+            and _cfg.react_server
+            and (path in _PROXY_REACT_URI_SET or _PROXY_REACT_URI_RE.search(path))
+        ):
+            _build() if _cfg.react_server == _REACT_SERVER_BUILD else _dev()
 
     def _render_root_page(self, page, values):
         values.update(
@@ -812,9 +814,9 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
         with sirepo.quest.start() as qcall:
             qcall.auth_db.create_or_upgrade()
 
-        if cfg.google_tag_manager_id:
+        if _cfg.google_tag_manager_id:
             _google_tag_manager = f"""<script>
-        (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
+        (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
         </script>"""
 
         # Avoid unnecessary logging
@@ -845,7 +847,7 @@ def _cfg_react_server(value):
 
 
 def _init_proxy_react():
-    if not cfg.react_server:
+    if not _cfg.react_server:
         return
     global _PROXY_REACT_URI_RE, _PROXY_REACT_URI_SET
     p = [
@@ -858,7 +860,7 @@ def _init_proxy_react():
     r = "^react/"
     for x in sirepo.feature_config.cfg().react_sim_types:
         r += rf"|^{x}(?:\/|$)"
-    if cfg.react_server == _REACT_SERVER_BUILD:
+    if _cfg.react_server == _REACT_SERVER_BUILD:
         r += rf"|^{sirepo.const.STATIC_D}/(css|js)/main\."
     _PROXY_REACT_URI_RE = re.compile(r)
 
@@ -898,12 +900,12 @@ def _simulations_using_file(req, ignore_sim_id=None):
 
 
 def _source_cache_key():
-    if cfg.enable_source_cache_key:
+    if _cfg.enable_source_cache_key:
         return "?{}".format(simulation_db.app_version())
     return ""
 
 
-cfg = pkconfig.init(
+_cfg = pkconfig.init(
     db_dir=pkconfig.ReplacedBy("sirepo.srdb.root"),
     enable_source_cache_key=(
         True,
@@ -912,6 +914,10 @@ cfg = pkconfig.init(
     ),
     google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
-    react_server=(None, _cfg_react_server, "Base URL of npm start server"),
+    react_server=(
+        None if pkconfig.in_dev_mode() else _REACT_SERVER_BUILD,
+        _cfg_react_server,
+        "Base URL of npm start server",
+    ),
     react_sim_types=pkconfig.ReplacedBy("sirepo.feature_config.react_sim_types"),
 )
