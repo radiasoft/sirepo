@@ -27,6 +27,9 @@ build_as_run_user() {
     sirepo_boot_init
     git clone -q --depth=50 https://github.com/radiasoft/pykern
     git clone -q --depth=50 https://github.com/radiasoft/sirepo
+    if [[ ${SIREPO_COMMIT:-} ]]; then
+        git checkout $SIREPO_COMMIT
+    fi
     cd sirepo
     sirepo_fix_srw
     cd ../pykern
