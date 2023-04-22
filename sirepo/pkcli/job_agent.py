@@ -79,7 +79,7 @@ def start():
             "how to connect to the supervisor",
         ),
     )
-    pkdlog("{}", cfg)
+    pkdlog("{}", _cfg)
     if pkconfig.channel_in_internal_test() and _cfg.start_delay:
         pkdlog("start_delay={}", _cfg.start_delay)
         time.sleep(_cfg.start_delay)

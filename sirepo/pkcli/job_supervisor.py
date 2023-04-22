@@ -39,7 +39,7 @@ def default_command():
 
     _cfg = pkconfig.init(
         debug=(
-            sirepo.feature_config.cfg().dev_mode,
+            sirepo.feature_config.cfg().debug_mode,
             bool,
             "run supervisor in debug mode",
         ),

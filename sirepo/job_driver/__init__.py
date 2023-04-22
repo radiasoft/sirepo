@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
 import importlib
 import pykern.pkio
+import os
 import re
 import sirepo.auth
 import sirepo.const
