@@ -26,15 +26,12 @@ build_as_run_user() {
     umask 022
     sirepo_boot_init
     sirepo_fix_srw
-    git clone -q --depth=50 https://github.com/radiasoft/pykern
+    git clone ${SIREPO_COMMIT:+--branch $SIREPO_COMMIT} -q --depth=50 https://github.com/radiasoft/pykern
     git clone -q --depth=50 https://github.com/radiasoft/sirepo
     cd pykern
     pip uninstall -y pykern || true
     pip install .
     cd ../sirepo
-    if [[ ${SIREPO_COMMIT:-} ]]; then
-        git checkout $SIREPO_COMMIT
-    fi
     pip install -e .
     cd react
     npm install
