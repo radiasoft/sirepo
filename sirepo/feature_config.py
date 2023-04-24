@@ -178,7 +178,6 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
-        # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
         react_sim_types=(
             ("jspec", "genesis", "warppba", "omega", "myapp")
             if pkconfig.in_dev_mode()
