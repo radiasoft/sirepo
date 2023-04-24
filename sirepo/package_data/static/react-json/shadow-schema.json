@@ -4249,7 +4249,7 @@
                                 "config": {
                                     "items": [
                                         {
-                                            "layout": "beamline",
+                                            "layout": "shadowBeamline",
                                             "config": {
                                                 "beamlineDependency": "beamline.elements",
                                                 "elements": [
@@ -5155,7 +5155,7 @@
                                                         "_NAME": "initialIntensityReport"
                                                     },
                                                     {
-                                                        "layout": "beamlineWatchpointReports",
+                                                        "layout": "shadowBeamlineWatchpointReports",
                                                         "config": {
                                                             "beamlineDependency": "beamline.elements",
                                                             "watchpointReportsDependency": "watchpointReports.reports"

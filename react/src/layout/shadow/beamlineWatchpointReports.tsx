@@ -12,12 +12,12 @@ import { ModelState } from "../../store/models";
 import { Layout } from "../layout";
 import { LAYOUTS } from "../layouts";
 
-export type BeamlineWatchpointReportsConfig = {
+export type ShadowWatchpointReportsConfig = {
     beamlineDependency: string,
     watchpointReportsDependency: string
 }
 
-function BeamlineWatchpointItem(props: {beamlineIndex: number, aliases: ArrayAliases, overrides: HandleFactoryOverrides, child: Layout} & {[key: string]: any}) {
+function ShadowBeamlineWatchpointItem(props: {beamlineIndex: number, aliases: ArrayAliases, overrides: HandleFactoryOverrides, child: Layout} & {[key: string]: any}) {
     let { aliases, overrides, child, beamlineIndex } = props;
     let handleFactory = useContext(CHandleFactory);
     let schema = useContext(CSchema);
@@ -32,7 +32,7 @@ function BeamlineWatchpointItem(props: {beamlineIndex: number, aliases: ArrayAli
         return <></>
     }
 
-    aliasedHandleFactory.useUpdates(BeamlineWatchpointItem)
+    aliasedHandleFactory.useUpdates(ShadowBeamlineWatchpointItem)
     let Comp = child.component;
     return (
         <CHandleFactory.Provider value={aliasedHandleFactory}>
@@ -41,10 +41,10 @@ function BeamlineWatchpointItem(props: {beamlineIndex: number, aliases: ArrayAli
     )
 }
 
-export class BeamlineWatchpointReports extends Layout<BeamlineWatchpointReportsConfig, {}> {
+export class ShadowBeamlineWatchpointReports extends Layout<ShadowWatchpointReportsConfig, {}> {
     private reportLayout: Layout;
 
-    constructor(config: BeamlineWatchpointReportsConfig) {
+    constructor(config: ShadowWatchpointReportsConfig) {
         super(config);
 
         this.reportLayout = LAYOUTS.getLayoutForSchema(createPanelConfig(new Dependency("iteration.index"), new Dependency("beamlineElement.position"), new Dependency("beamlineElement.id")))
@@ -96,7 +96,7 @@ export class BeamlineWatchpointReports extends Layout<BeamlineWatchpointReportsC
             ]
             
             return (
-                <BeamlineWatchpointItem beamlineIndex={beamlineIndex} key={`watchpointReport${id}`} aliases={aliases} overrides={overrides} child={this.reportLayout}/>
+                <ShadowBeamlineWatchpointItem beamlineIndex={beamlineIndex} key={`watchpointReport${id}`} aliases={aliases} overrides={overrides} child={this.reportLayout}/>
             )
         })
 

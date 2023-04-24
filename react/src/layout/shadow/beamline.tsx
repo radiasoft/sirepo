@@ -2,38 +2,38 @@ import React, { useContext, useState } from "react";
 import { FunctionComponent } from "react";
 import { Container, Modal } from "react-bootstrap";
 import { useDispatch, useStore } from "react-redux";
-import { formActionFunctions } from "../component/reusable/form";
-import { ViewPanelActionButtons } from "../component/reusable/panel";
-import { ArrayAliases, HandleFactoryWithArrayAliases } from "../data/alias";
-import { CAppWrapper, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
-import { newModelFromSchema, StoreTypes } from "../data/data";
-import { Dependency } from "../data/dependency";
-import { formStateFromModelState, FormStateHandleFactory } from "../data/form";
-import { CHandleFactory } from "../data/handle";
-import { ArrayFieldState } from "../store/common";
-import { FormFieldState, FormModelState } from "../store/formState";
-import { CRouteHelper } from "../utility/route";
-import { Schema, SchemaLayout } from "../utility/schema";
-import { Layout, LayoutProps } from "./layout";
-import { createLayouts } from "./layouts";
+import { formActionFunctions } from "../../component/reusable/form";
+import { ViewPanelActionButtons } from "../../component/reusable/panel";
+import { ArrayAliases, HandleFactoryWithArrayAliases } from "../../data/alias";
+import { CAppWrapper, CSchema, CSimulationInfoPromise } from "../../data/appwrapper";
+import { newModelFromSchema, StoreTypes } from "../../data/data";
+import { Dependency } from "../../data/dependency";
+import { formStateFromModelState, FormStateHandleFactory } from "../../data/form";
+import { CHandleFactory } from "../../data/handle";
+import { ArrayFieldState } from "../../store/common";
+import { FormFieldState, FormModelState } from "../../store/formState";
+import { CRouteHelper } from "../../utility/route";
+import { Schema, SchemaLayout } from "../../utility/schema";
+import { Layout, LayoutProps } from "../layout";
+import { createLayouts } from "../layouts";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./beamline.scss";
-import { useCoupledState } from "../hook/coupling";
+import { useCoupledState } from "../../hook/coupling";
 
-export type BeamlineElement = {
+export type ShadowBeamlineElement = {
     items: SchemaLayout[],
     name: string,
     model: string,
     icon: string
 }
 
-export type BeamlineConfig = {
+export type ShadowBeamlineConfig = {
     beamlineDependency: string,
-    elements: BeamlineElement[]
+    elements: ShadowBeamlineElement[]
 }
 
-export function BeamlineThumbnail(props: { name: string, iconSrc: string, onClick?: () => void }) {
+export function ShadowBeamlineThumbnail(props: { name: string, iconSrc: string, onClick?: () => void }) {
     return (
         <div onClick={props.onClick} style={{ width: '100px', border: "1px solid #ccc", borderRadius: "4px", backgroundColor: "#fff", margin: "2px", minWidth: "80px" }}>
             <div style={{height: "100px", width: "100%", display: "flex", flexFlow: "column nowrap", justifyContent: "center"}}>
@@ -44,7 +44,7 @@ export function BeamlineThumbnail(props: { name: string, iconSrc: string, onClic
     )
 }
 
-export function BeamlineItem(props: { index: number, baseElement: BeamlineElement & { layouts: Layout[] }, header: string, aliases: ArrayAliases, onClick?: () => void, onDeleteClick?: () => void, modalShown: boolean, onHideModal?: () => void }) {
+export function ShadowBeamlineItem(props: { index: number, baseElement: ShadowBeamlineElement & { layouts: Layout[] }, header: string, aliases: ArrayAliases, onClick?: () => void, onDeleteClick?: () => void, modalShown: boolean, onHideModal?: () => void }) {
     let { index, baseElement, aliases, onClick, onDeleteClick, modalShown, onHideModal, header } = props;
     
     let routeHelper = useContext(CRouteHelper);
@@ -93,7 +93,7 @@ export function BeamlineItem(props: { index: number, baseElement: BeamlineElemen
                         <FontAwesomeIcon icon={Icon.faRemove}/>
                     </div>
                     <div style={{position: "relative"}}>
-                        <BeamlineThumbnail name={baseElement.name} iconSrc={routeHelper.globalRoute("svg", { fileName: baseElement.icon })}/>
+                        <ShadowBeamlineThumbnail name={baseElement.name} iconSrc={routeHelper.globalRoute("svg", { fileName: baseElement.icon })}/>
                     </div>
                 </div>
                 
@@ -119,10 +119,10 @@ export function BeamlineItem(props: { index: number, baseElement: BeamlineElemen
     )
 }
 
-export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
-    private elements: (BeamlineElement & {layouts: Layout[]})[];
+export class ShadowBeamlineLayout extends Layout<ShadowBeamlineConfig, {}> {
+    private elements: (ShadowBeamlineElement & {layouts: Layout[]})[];
 
-    constructor(config: BeamlineConfig) {
+    constructor(config: ShadowBeamlineConfig) {
         super(config);
         this.elements = config.elements.map(e => createLayouts(e, "items"));
     }
@@ -134,7 +134,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
         let schema = useContext(CSchema);
         let dispatch = useDispatch();
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
-        formHandleFactory.useUpdates(BeamlineLayout);
+        formHandleFactory.useUpdates(ShadowBeamlineLayout);
         let appWrapper = useContext(CAppWrapper);
 
         let beamlineDependency: Dependency = new Dependency(this.config.beamlineDependency);
@@ -143,7 +143,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
 
         let handle = formHandleFactory.createHandle<FormModelState, FormFieldState<ArrayFieldState<FormModelState>>>(beamlineDependency, StoreTypes.FormState).hook(); // TODO: form or model?
 
-        let addBeamlineElement = (element: BeamlineElement) => {
+        let addBeamlineElement = (element: ShadowBeamlineElement) => {
             let ms = schema.models[element.model];
             let nextId = handle.value.value.reduce((prev, cur) => Math.max(prev, parseInt(cur.item.id.value) + 1), 1);
             let nextPos = handle.value.value.reduce((prev, cur) => Math.max(prev, parseFloat(cur.item.position.value) + 5), 0);
@@ -177,7 +177,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
 
         let elementThumbnails = this.elements.map((e, i) => {
             return (
-                <BeamlineThumbnail onClick={() => addBeamlineElement(e)} key={i} name={e.name} iconSrc={routeHelper.globalRoute("svg", { fileName: e.icon })}/>
+                <ShadowBeamlineThumbnail onClick={() => addBeamlineElement(e)} key={i} name={e.name} iconSrc={routeHelper.globalRoute("svg", { fileName: e.icon })}/>
             )
         })
 
@@ -208,7 +208,7 @@ export class BeamlineLayout extends Layout<BeamlineConfig, {}> {
             ];
             
             return (
-                <BeamlineItem key={id} index={i} header={`${ele.position.value} m`} baseElement={baseElement} aliases={aliases} onClick={() => updateShownModal(id)} onDeleteClick={() => removeBeamlineElement(i)} modalShown={shownModal === id} onHideModal={() => shownModal === id && updateShownModal(undefined)}/>
+                <ShadowBeamlineItem key={id} index={i} header={`${ele.position.value} m`} baseElement={baseElement} aliases={aliases} onClick={() => updateShownModal(id)} onDeleteClick={() => removeBeamlineElement(i)} modalShown={shownModal === id} onHideModal={() => shownModal === id && updateShownModal(undefined)}/>
             )
         })
 

@@ -17,8 +17,8 @@ import { HorizontalStackLayout, VerticalStackLayout } from "./arrange/stack";
 import { ColumnLayout } from "./arrange/column";
 import { WaterfallLayout } from "./arrange/waterfall";
 import { Histogram2dFromApi } from "./report/histogram2d";
-import { BeamlineWatchpointReports } from "./shadow/beamlineWatchpointReports";
-import { BeamlineLayout } from "./beamline";
+import { ShadowBeamlineWatchpointReports } from "./shadow/beamlineWatchpointReports";
+import { ShadowBeamlineLayout } from "./shadow/beamline";
 
 
 // TODO rename to LayoutsWrapper
@@ -45,8 +45,8 @@ class LayoutWrapper {
         hStack: HorizontalStackLayout,
         vStack: VerticalStackLayout,
         waterfall: WaterfallLayout,
-        beamlineWatchpointReports: BeamlineWatchpointReports,
-        beamline: LayoutWithFormController(BeamlineLayout)
+        shadowBeamlineWatchpointReports: ShadowBeamlineWatchpointReports,
+        shadowBeamline: LayoutWithFormController(ShadowBeamlineLayout)
     }
 
     constructor () {
