@@ -730,12 +730,16 @@ class API(sirepo.quest.API):
             p = path
             if re.search(r"^\w+$", p):
                 p = "index.html"
-            # do not call api_staticFile due to recursion of proxy_react
-            raise sirepo.util.SReplyExc(
-                self.reply_file(
-                    sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
-                ),
+            # do not call api_staticFile due to recursion of proxy_react()
+            r = self.reply_file(
+                sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
             )
+            if p == "index.html":
+                # Ensures latest react is always returned, because index.html contains
+                # version-tagged values but index.html does not. It's likely that
+                # a check would be made on a refresh, this ensures no caching.
+                r.headers_for_no_cache()
+            raise sirepo.util.SReplyExc(r)
 
         def _dev():
             r = requests.get(_cfg.react_server + path)
