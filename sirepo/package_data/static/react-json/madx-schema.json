@@ -6361,6 +6361,339 @@
     },
     "view": [
         {
+            "layout": "navTabs",
+            "config": {
+                "tabs": [
+                    {
+                        "name": "lattic",
+                        "title": "Lattice",
+                        "items": [
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "source",
+                        "title": "Source",
+                        "items": [
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "basic": [
+                                                    {
+                                                        "layout": "tabs",
+                                                        "config": {
+                                                            "tabs": [
+                                                                {
+                                                                    "name": "Main",
+                                                                    "items": [
+                                                                        {
+                                                                            "layout": "fieldList",
+                                                                            "config": {
+                                                                                "fields": [
+                                                                                    "command_beam.particle",
+                                                                                    "command_beam.mass",
+                                                                                    "command_beam.charge",
+                                                                                    "bunch.beamDefinition",
+                                                                                    "command_beam.energy",
+                                                                                    "command_beam.pc",
+                                                                                    "command_beam.gamma",
+                                                                                    "command_beam.beta",
+                                                                                    "command_beam.brho"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "name": "Distribution",
+                                                                    "items": [
+                                                                        {
+                                                                            "layout": "fieldList",
+                                                                            "config": {
+                                                                                "fields": [
+                                                                                    "bunch.matchTwissParameters",
+                                                                                    "simulation.visualizationBeamlineId"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "layout": "fieldTable",
+                                                                            "config": {
+                                                                                "columns": [
+                                                                                    "Horizontal",
+                                                                                    "Vertical"
+                                                                                ],
+                                                                                "rows": [
+                                                                                    {
+                                                                                        "label": "EX [m]",
+                                                                                        "description": "The horizontal emittance.",
+                                                                                        "fields": [
+                                                                                            "command_beam.ex",
+                                                                                            "command_beam.ey"
+                                                                                        ]
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "Horizontal Beta [m]",
+                                                                                        "fields": [
+                                                                                            "bunch.betx",
+                                                                                            "bunch.bety"
+                                                                                        ]
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "Horizontal Alpha",
+                                                                                        "fields": [
+                                                                                            "bunch.alfx",
+                                                                                            "bunch.alfy"
+                                                                                        ]
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "layout": "fieldList",
+                                                                            "config": {
+                                                                                "fields": [
+                                                                                    "command_beam.et",
+                                                                                    "command_beam.sigt",
+                                                                                    "command_beam.sige"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "name": "Position",
+                                                                    "items": [
+                                                                        {
+                                                                            "layout": "fieldTable",
+                                                                            "config": {
+                                                                                "columns": [
+                                                                                    "Horizontal",
+                                                                                    "Vertical"
+                                                                                ],
+                                                                                "rows": [
+                                                                                    {
+                                                                                        "label": "Horizontal Centroid [m]",
+                                                                                        "fields": [
+                                                                                            "bunch.x",
+                                                                                            "bunch.y"
+                                                                                        ]
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "Horizontal Canonical Momentum of $p_x$",
+                                                                                        "fields": [
+                                                                                            "bunch.px",
+                                                                                            "bunch.py"
+                                                                                        ]
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "name": "Particle Count",
+                                                                    "items": [
+                                                                        {
+                                                                            "layout": "fieldList",
+                                                                            "config": {
+                                                                                "fields": [
+                                                                                    "bunch.numberOfParticles",
+                                                                                    "bunch.randomSeed"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [],
+                                                "title": "Bunch"
+                                            },
+                                            "_NAME": "bunch"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "control",
+                        "title": "Control",
+                        "items": [
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "visualization",
+                        "title": "Visualization",
+                        "items": [
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2,
+                                        "xl": 3
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "basic": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "simulation.visualizationBeamlineId",
+                                                                "bunch.numberOfParticles",
+                                                                "simulation.computeTwissFromParticles"
+                                                            ]
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [],
+                                                "title": "Simulation Settings"
+                                            },
+                                            "_NAME": "simulationSettings"
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "advanced": [
+                                                    {
+                                                        "layout": "hStack",
+                                                        "config": {
+                                                            "items": [
+                                                                {
+                                                                    "layout": "vStack",
+                                                                    "config": {
+                                                                        "items": [
+                                                                            {
+                                                                                "layout": "text",
+                                                                                "config": {
+                                                                                    "type": "header",
+                                                                                    "align": "left",
+                                                                                    "text": "Horizontal"
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "layout": "fieldList",
+                                                                                "config": {
+                                                                                    "fields": [
+                                                                                        "twissFromParticlesAnimation.x"
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "vStack",
+                                                                    "config": {
+                                                                        "items": [
+                                                                            {
+                                                                                "layout": "text",
+                                                                                "config": {
+                                                                                    "type": "header",
+                                                                                    "align": "left",
+                                                                                    "text": "Vertical"
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "layout": "fieldList",
+                                                                                "config": {
+                                                                                    "fields": [
+                                                                                        "twissFromParticlesAnimation.y1",
+                                                                                        "twissFromParticlesAnimation.y2",
+                                                                                        "twissFromParticlesAnimation.y3"
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "twissFromParticlesAnimation.includeLattice",
+                                                                "twissFromParticlesAnimation.notes"
+                                                            ]
+                                                        }
+                                                    }
+                                                ],
+                                                "title": "Twiss From Particles"
+                                            },
+                                            "_NAME": "twissFromParticlesAnimation"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
             "layout": "panel",
             "config": {
                 "advanced": [
@@ -6394,145 +6727,7 @@
             },
             "_NAME": "beamlineReport"
         },
-        {
-            "layout": "panel",
-            "config": {
-                "basic": [
-                    {
-                        "layout": "tabs",
-                        "config": {
-                            "tabs": [
-                                {
-                                    "name": "Main",
-                                    "items": [
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "command_beam.particle",
-                                                    "command_beam.mass",
-                                                    "command_beam.charge",
-                                                    "bunch.beamDefinition",
-                                                    "command_beam.energy",
-                                                    "command_beam.pc",
-                                                    "command_beam.gamma",
-                                                    "command_beam.beta",
-                                                    "command_beam.brho"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                },
-                                {
-                                    "name": "Distribution",
-                                    "items": [
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "bunch.matchTwissParameters",
-                                                    "simulation.visualizationBeamlineId"
-                                                ]
-                                            }
-                                        },
-                                        {
-                                            "layout": "fieldTable",
-                                            "config": {
-                                                "columns": [
-                                                    "Horizontal",
-                                                    "Vertical"
-                                                ],
-                                                "rows": [
-                                                    {
-                                                        "label": "EX [m]",
-                                                        "description": "The horizontal emittance.",
-                                                        "fields": [
-                                                            "command_beam.ex",
-                                                            "command_beam.ey"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "label": "Horizontal Beta [m]",
-                                                        "fields": [
-                                                            "bunch.betx",
-                                                            "bunch.bety"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "label": "Horizontal Alpha",
-                                                        "fields": [
-                                                            "bunch.alfx",
-                                                            "bunch.alfy"
-                                                        ]
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "command_beam.et",
-                                                    "command_beam.sigt",
-                                                    "command_beam.sige"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                },
-                                {
-                                    "name": "Position",
-                                    "items": [
-                                        {
-                                            "layout": "fieldTable",
-                                            "config": {
-                                                "columns": [
-                                                    "Horizontal",
-                                                    "Vertical"
-                                                ],
-                                                "rows": [
-                                                    {
-                                                        "label": "Horizontal Centroid [m]",
-                                                        "fields": [
-                                                            "bunch.x",
-                                                            "bunch.y"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "label": "Horizontal Canonical Momentum of $p_x$",
-                                                        "fields": [
-                                                            "bunch.px",
-                                                            "bunch.py"
-                                                        ]
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                },
-                                {
-                                    "name": "Particle Count",
-                                    "items": [
-                                        {
-                                            "layout": "fieldList",
-                                            "config": {
-                                                "fields": [
-                                                    "bunch.numberOfParticles",
-                                                    "bunch.randomSeed"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-                ],
-                "advanced": [],
-                "title": "Bunch"
-            },
-            "_NAME": "bunch"
-        },
+        
         {
             "layout": "panel",
             "config": {
@@ -7585,34 +7780,6 @@
         {
             "layout": "panel",
             "config": {
-                "basic": [
-                    {
-                        "layout": "fieldList",
-                        "config": {
-                            "fields": [
-                                "simulation.visualizationBeamlineId",
-                                "bunch.numberOfParticles",
-                                "simulation.computeTwissFromParticles"
-                            ]
-                        }
-                    }
-                ],
-                "advanced": [],
-                "title": "Simulation Settings"
-            },
-            "_NAME": "simulationSettings"
-        },
-        {
-            "layout": "panel",
-            "config": {
-                "advanced": [],
-                "title": "Simulation Status"
-            },
-            "_NAME": "simulationStatus"
-        },
-        {
-            "layout": "panel",
-            "config": {
                 "advanced": [
                     {
                         "layout": "fieldList",
@@ -7626,79 +7793,6 @@
                 "title": "Twiss Ellipse"
             },
             "_NAME": "twissEllipseReport"
-        },
-        {
-            "layout": "panel",
-            "config": {
-                "advanced": [
-                    {
-                        "layout": "hStack",
-                        "config": {
-                            "items": [
-                                {
-                                    "layout": "vStack",
-                                    "config": {
-                                        "items": [
-                                            {
-                                                "layout": "text",
-                                                "config": {
-                                                    "type": "header",
-                                                    "align": "left",
-                                                    "text": "Horizontal"
-                                                }
-                                            },
-                                            {
-                                                "layout": "fieldList",
-                                                "config": {
-                                                    "fields": [
-                                                        "twissFromParticlesAnimation.x"
-                                                    ]
-                                                }
-                                            }
-                                        ]
-                                    }
-                                },
-                                {
-                                    "layout": "vStack",
-                                    "config": {
-                                        "items": [
-                                            {
-                                                "layout": "text",
-                                                "config": {
-                                                    "type": "header",
-                                                    "align": "left",
-                                                    "text": "Vertical"
-                                                }
-                                            },
-                                            {
-                                                "layout": "fieldList",
-                                                "config": {
-                                                    "fields": [
-                                                        "twissFromParticlesAnimation.y1",
-                                                        "twissFromParticlesAnimation.y2",
-                                                        "twissFromParticlesAnimation.y3"
-                                                    ]
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "layout": "fieldList",
-                        "config": {
-                            "fields": [
-                                "twissFromParticlesAnimation.includeLattice",
-                                "twissFromParticlesAnimation.notes"
-                            ]
-                        }
-                    }
-                ],
-                "title": "Twiss From Particles"
-            },
-            "_NAME": "twissFromParticlesAnimation"
         },
         {
             "layout": "panel",
