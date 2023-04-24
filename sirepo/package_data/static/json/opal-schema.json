@@ -486,6 +486,7 @@
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "_ELEMENT": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
             "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
@@ -500,9 +501,12 @@
             "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
             "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
         },
+        "_COMMAND": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "isDisabled": ["", "Boolean", "0"]
+        },
         "CCOLLIMATOR": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "xstart": ["XSTART [mm]", "RPNValue", 0, "Start of x coordinate"],
             "xend": ["XEND [mm]", "RPNValue", 0, "End of x coordinate,"],
             "ystart": ["YSTART [mm]", "RPNValue", 0, "Start of y coordinate,"],
@@ -544,27 +548,23 @@
         },
         "DEGRADER": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "outfn": ["OUTFN", "OutputFile", "", "Degrader output filename"],
             "xsize": ["XSIZE [m]", "RPNValue", 1e6, "Major axis of the transverse elliptical shape"],
             "ysize": ["YSIZE [m]", "RPNValue", 1e6, "Minor axis of the transverse elliptical shape"]
         },
         "DRIFT": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "geometry": ["GEOMETRY", "GeometryList", "", "BoundaryGeometry for Drifts"],
             "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"]
         },
         "ECOLLIMATOR": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "xsize": ["XSIZE [m]", "RPNValue", 0, "Horizontal half-aperture"],
             "ysize": ["YSIZE [m]", "RPNValue", 0, "Vertical half-aperture"],
             "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"]
         },
         "FLEXIBLECOLLIMATOR": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "fname": ["FNAME", "InputFile", "", "File name containing description of holes"],
             "description": ["DESCRIPTION", "OptionalString", "", "String describing the distribution of holes"],
             "outfn": ["OUTFN", "OutputFile", "", "File name of log file for deleted particles"],
@@ -572,38 +572,32 @@
         },
         "HKICKER": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "kick": ["KICK [rad]", "RPNValue", 0, "Horizontal deflection"],
             "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"]
         },
         "KICKER": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "hkick": ["HKICK [rad]", "RPNValue", 0, "Horizontal deflection"],
             "vkick": ["VKICK [rad]", "RPNValue", 0, "Vertical deflection"],
             "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"]
         },
         "LOCAL_CARTESIAN_OFFSET": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "end_position_x": ["END POSITION X [m]", "RPNValue", 0, "x component of position of end of the offset in coordinate system of the end of the upstream element [m]."],
             "end_position_y": ["END POSITION Y [m]", "RPNValue", 0, "y component of position of end of the offset in coordinate system of the end of the upstream element [m]."],
             "end_normal_x": ["END NORMAL X [m]", "RPNValue", 0, "x component of normal of end of the offset in coordinate system of the end of the upstream element [m]."],
             "end_normal_y": ["END NORMAL Y [m]", "RPNValue", 0, "y component of normal of end of the offset in coordinate system of the end of the upstream element [m]."]
         },
         "MARKER": {
-            "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""]
+            "_super": ["_", "model", "_ELEMENT"]
         },
         "MONITOR": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"],
             "monitor_type": ["TYPE", "MonitorMonitor_type", "SPATIAL", ""]
         },
         "MULTIPOLE": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "kn": ["KN [$\\bf Tm^{-n}$]", "RPNValue", 0, "Normalised multipole coefficients"],
             "dkn": ["DKN [$\\bf Tm^{-n}$]", "RPNValue", 0, "Normalised multipole strengths errors"],
             "ks": ["KS [$\\bf Tm^{-n}$]", "RPNValue", 0, "Normalised multipole coefficients (skew)"],
@@ -611,7 +605,6 @@
         },
         "MULTIPOLET": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "tp": ["TP [$\\bf Tm^{-n}$", "RPNValue", 0, "Transverse Profile derivatives"],
             "lfringe": ["LFRINGE [m]", "RPNValue", 0, "The length of the left end field"],
             "rfringe": ["RFRINGE [m]", "RPNValue", 0, "The length of the right end field"],
@@ -627,7 +620,6 @@
         },
         "OCTUPOLE": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "k3": ["K3 [$\\bf Tm^{-3}$]", "RPNValue", 0, "Normalised upright octupole component"],
             "dk3": ["DK3", "RPNValue", 0, "Normalised upright octupole coefficient error"],
             "k3s": ["K3S [$\\bf Tm^{-3}$]", "RPNValue", 0, "Normalised skew octupole component"],
@@ -635,7 +627,6 @@
         },
         "PROBE": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "xstart": ["XSTART [mm]", "RPNValue", 0, "Start of x coordinate"],
             "xend": ["XEND [mm]", "RPNValue", 0, "End of x coordinate"],
             "ystart": ["YSTART [mm]", "RPNValue", 0, "Start of y coordinate"],
@@ -645,7 +636,6 @@
         },
         "QUADRUPOLE": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "k1": ["K1 [$\\bf Tm^{-1}$]", "RPNValue", 0, "The normal quadrupole component"],
             "dk1": ["DK1", "RPNValue", 0, "Normalised upright quadrupole coefficient error"],
             "k1s": ["K1S [$\\bf Tm^{-1}$]", "RPNValue", 0, "The skew quadrupole component"],
@@ -654,7 +644,6 @@
         },
         "RBEND": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "angle": ["ANGLE [rad]", "RPNValue", 0, "Bend angle (radians). Field amplitude of bend will be adjusted to achieve this angle."],
             "k0": ["K0 [T]", "RPNValue", 0, "Field amplitude in y direction. If the ANGLE attribute is set, K0 is ignored."],
             "k0s": ["K0S [T]", "RPNValue", 0, "Field amplitude in x direction. If the ANGLE attribute is set, K0S is ignored."],
@@ -666,7 +655,6 @@
         },
         "RBEND3D": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "angle": ["ANGLE [rad]", "RPNValue", 0, "Bend angle. Field amplitude of bend will be adjusted to achieve this angle."],
             "k0": ["K0 [T]", "RPNValue", 0, "Field amplitude in y direction. If the ANGLE attribute is set, K0 is ignored."],
             "k0s": ["K0S [T]", "RPNValue", 0, "Field amplitude in x direction. If the ANGLE attribute is set, K0S is ignored."],
@@ -678,14 +666,12 @@
         },
         "RCOLLIMATOR": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "xsize": ["XSIZE [m]", "RPNValue", 0, "Horizontal half-aperture"],
             "ysize": ["YSIZE [m]", "RPNValue", 0, "Vertical half-aperture"],
             "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"]
         },
         "RFCAVITY": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "volt": ["VOLT [MV]", "RPNValue", 0, "RF voltage"],
             "dvolt": ["DVOLT [MV]", "RPNValue", 0, "RF voltage error"],
             "freq": ["FREQ [MHz]", "RPNValue", 0, "RF frequency"],
@@ -709,7 +695,6 @@
         },
         "RINGDEFINITION": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "harmonic_number": ["HARMONIC_NUMBER", "RPNValue", 0, "The assumed harmonic number of the ring (i.e. number of bunches in the ring on a given turn)."],
             "lat_rinit": ["LAT_RINIT [m]", "RPNValue", 0, "The initial radius of the first element to be placed in the ring"],
             "lat_phiinit": ["LAT_PHIINIT [deg]", "RPNValue", 0, "The initial angle around the ring of the first element to be placed."],
@@ -726,7 +711,6 @@
         },
         "SBEND": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "angle": ["ANGLE [rad]", "RPNValue", 0, "Bend angle. Field amplitude of the bend will be adjusted to achieve this angle."],
             "k0": ["K0 [T]", "RPNValue", 0, "Field amplitude in y direction. If the ANGLE attribute is set, K0 is ignored."],
             "k0s": ["K0S [T]", "RPNValue", 0, "Field amplitude in x direction. If the ANGLE attribute is set, K0S is ignored."],
@@ -740,14 +724,12 @@
         },
         "SBEND3D": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "fmapfn": ["FMAPFN", "InputFile", "", "The name of the field map."],
             "field_units": ["FIELD_UNITS", "RPNValue", 0, "Scale the field map up or down by this factor (default 1. is T)."],
             "length_units": ["LENGTH_UNITS", "RPNValue", 0, "Units for length coordinates (default 1. is mm)."]
         },
         "SCALINGFFAMAGNET": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "b0": ["B0 [T]", "RPNValue", 0, "The nominal dipole field of the magnet"],
             "r0": ["R0 [m]", "RPNValue", 0, "Radial scale"],
             "field_index": ["FIELD_INDEX", "RPNValue", 0, "The scaling magnet field index."],
@@ -764,7 +746,6 @@
         },
         "SEPTUM": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "xstart": ["XSTART", "RPNValue", 0, "Start of x coordinate"],
             "xend": ["XEND", "RPNValue", 0, "End of x coordinate"],
             "ystart": ["YSTART", "RPNValue", 0, "Start of y coordinate"],
@@ -774,7 +755,6 @@
         },
         "SEXTUPOLE": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "k2": ["K2 [$\\bf Tm^{-2}$]", "RPNValue", 0, "Normalised upright sextupole coefficient"],
             "dk2": ["DK2", "RPNValue", 0, "Normalised upright sextupole coefficient error"],
             "k2s": ["K2S [$\\bf Tm^{-2}$]", "RPNValue", 0, "Normalised skew sextupole coefficient"],
@@ -782,20 +762,17 @@
         },
         "SOLENOID": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "ks": ["KS [$\\bf Tm^{-1}$]", "RPNValue", 0, "The solenoid strength"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Solenoid field map filename"],
             "fast": ["FAST", "Boolean", "1", "Faster but less accurate"]
         },
         "SOURCE": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "distribution": ["DISTRIBUTION", "DistributionList", "", "List of particle distributions to be used"],
             "transparent": ["TRANSPARENT", "Boolean", "0", "Make the source element transparent to impacting elements"]
         },
         "TRAVELINGWAVE": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "volt": ["VOLT [MV/m]", "RPNValue", 0, "RF voltage"],
             "dvolt": ["DVOLT [MV/m]", "RPNValue", 0, "RF voltage error"],
             "freq": ["FREQ [MHz]", "RPNValue", 0, "RF frequency"],
@@ -824,7 +801,6 @@
         },
         "UNDULATOR": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "k": ["K [unitless]", "RPNValue", 1, "Undulator strength parameter"],
             "lambda": ["LAMBDA [m]", "RPNValue", 0, "Undulator period"],
             "numperiods": ["NUMPERIODS", "RPNValue", 0, "Number of undulator periods."],
@@ -839,7 +815,6 @@
         },
         "VACUUM": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "pressure": ["PRESSURE [mbar]", "RPNValue", 0, "Pressure in the accelerator,"],
             "temperature": ["TEMPERATURE [K]", "RPNValue", 0, "Temperature of the accelerator,"],
             "pmapfn": ["PMAPFN", "InputFile", "", "Filename for the Pressure fieldmap"],
@@ -850,7 +825,6 @@
         },
         "VERTICALFFAMAGNET": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "b0": ["B0 [T]", "RPNValue", 0, "The nominal dipole field of the magnet at zero height"],
             "field_index": ["FIELD_INDEX [m^(-1)]", "RPNValue", 0, "Exponent term in the field index"],
             "width": ["WIDTH", "RPNValue", 0, "The full width of the magnet. Particles moving more than WIDTH/2 horizontally, in either direction, are out of the aperture."],
@@ -864,7 +838,6 @@
         },
         "VARIABLE_RF_CAVITY": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "phase_model": ["PHASE_MODEL [rad]", "OptionalString", "", "The name of the phase time dependence model"],
             "amplitude_model": ["AMPLITUDE_MODEL [MV/m]", "OptionalString", "", "The name of the amplitude time dependence model"],
             "frequency_model": ["FREQUENCY_MODEL [MHz]", "OptionalString", "", "The name of the frequency time dependence model"],
@@ -873,7 +846,6 @@
         },
         "VARIABLE_RF_CAVITY_FRINGE_FIELD": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "phase_model": ["PHASE_MODEL [rad]", "OptionalString", "", "The name of the phase time dependence model"],
             "amplitude_model": ["AMPLITUDE_MODEL [MV/m]", "OptionalString", "", "The name of the amplitude time dependence model"],
             "frequency_model": ["FREQUENCY_MODEL [MHz]", "OptionalString", "", "The name of the frequency time dependence model"],
@@ -887,12 +859,11 @@
         },
         "VKICKER": {
             "_super": ["_", "model", "_ELEMENT"],
-            "name": ["NAME", "ValidatedString", "", ""],
             "kick": ["KICK [rad]", "RPNValue", 0, "Vertical deflection"],
             "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"]
         },
         "command_beam": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "particle": ["PARTICLE", "BeamParticle", "", "Name of particle to be used"],
             "mass": ["MASS [GeV]", "RPNValue", 0, "Particle rest mass"],
             "charge": ["CHARGE", "RPNValue", 0, "Particle charge in proton charges"],
@@ -904,7 +875,7 @@
             "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"]
         },
         "command_distribution": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "type": ["TYPE", "DistributionType", "", "Distribution type: FROMFILE, GAUSS, BINOMIAL, FLATTOP, GUNGAUSSFLATTOPTH, ASTRAFLATTOPTH"],
             "line": ["LINE", "OptionalLatticeBeamlineList", "", "Beamline that contains a cyclotron or ring"],
             "ex": ["EX", "RPNValue", 1e-06, "Projected normalized emittance EX (m-rad), used to create matched distribution"],
@@ -999,7 +970,7 @@
             "cutoff": ["CUTOFF", "RPNValue", 3, "Longitudinal cutoff for Gaussian in units of sigma."]
         },
         "command_dumpemfields": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "file_name": ["FILE_NAME", "OutputFile", "", "Name of the file to which field data is dumped"],
             "coordinate_system": ["COORDINATE_SYSTEM", "OptionalString", "{CARTESIAN, CYLINDRICAL}, CARTESIAN", "Choose to use CARTESIAN or CYLINDRICAL coordinates"],
             "x_start": ["X_START [m]", "RPNValue", 0, "(Cartesian) Start point in the grid in x"],
@@ -1022,7 +993,7 @@
             "phi_steps": ["PHI_STEPS [phi]", "RPNValue", 0, "(Cylindrical) Number of steps"]
         },
         "command_dumpfields": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "file_name": ["FILE_NAME", "OutputFile", "", "Name of the file to which field data is dumped"],
             "x_start": ["X_START [m]", "RPNValue", 0, "Start point in the grid in x"],
             "dx": ["DX [m]", "RPNValue", 0, "Grid step size in x"],
@@ -1035,7 +1006,7 @@
             "z_steps": ["Z_STEPS [z]", "RPNValue", 0, "Number of steps"]
         },
         "command_fieldsolver": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "fstype": ["FSTYPE", "FieldsolverFstype", "", "Name of the attached field solver: FFT, FFTPERIODIC, SAAMG, AMR, and NONE"],
             "mx": ["X M", "RPNValue", 0, "Meshsize"],
             "my": ["Y M", "RPNValue", 0, "Meshsize"],
@@ -1060,7 +1031,7 @@
             "precmode": ["PRECMODE", "FieldsolverPrecmode", "HIERARCHY", "Preconditioner Mode [STD | HIERARCHY | REUSE]"]
         },
         "command_filter": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "type": ["TYPE", "FilterType", "", "Specifies the type of filter: SavitzkyGolay, fixedFFTLowPass, relativeFFTLowPass, Stencil"],
             "nfreq": ["NFREQ", "RPNValue", 9, "Number of frequencies to use in fixedFFTLowPass filter"],
             "threshold": ["THRESHOLD", "RPNValue", 1e-06, "Relative threshold for amplitude of frequencies in relativeFFTLowPass filter"],
@@ -1070,7 +1041,7 @@
             "polyorder": ["POLYORDER", "RPNValue", 1, "Polynomial order for local fit-function in Savitzky-Golay filter"]
         },
         "command_geometry": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "fgeom": ["FGEOM [h5fed]", "InputFile", "", "Specifies the geometry file"],
             "topo": ["TOPO", "GeometryTopo", "ELLIPTIC", "BOX, BOXCORNER, ELLIPTIC if FGEOM is selected topo is over-written"],
             "insidepoint": ["INSIDEPOINT", "RPNValue", 0, "A point inside the geometry"],
@@ -1088,6 +1059,7 @@
             "zshift": ["ZSHIFT", "RPNValue", 0, "Shift in z direction"]
         },
         "command_option": {
+            "_super": ["_", "model", "_COMMAND"],
             "enablevtk": ["ENABLEVTK", "Boolean", "1", "If true, writing of VTK files are enabled"],
             "delpartfreq": ["DELPARTFREQ", "RPNValue", 0, "The frequency to delete particles, i.e. delete when step%delPartFreq == 0"],
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1129,13 +1101,14 @@
             "haloshift": ["HALOSHIFT", "RPNValue", 0, "Constant parameter to shift halo value (default: 0.0)"]
         },
         "command_particlematterinteraction": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "lowenergythr": ["LOWENERGYTHR [MeV]", "RPNValue", 0.01, "Lower Energy threshold for energy loss calculation"],
             "type": ["TYPE", "ParticlematterinteractionType", "", "Specifies the particle mater interaction handler: Collimator"],
             "material": ["MATERIAL", "ParticlematterinteractionMaterial", "", "The material of the surface"],
             "enablerutherford": ["ENABLERUTHERFORD", "Boolean", "1", "Enable large angle scattering"]
         },
         "command_run": {
+            "_super": ["_", "model", "_COMMAND"],
             "method": ["METHOD", "RunMethod", "THIN", "Name of tracking algorithm to use:\n\t\t\tTHIN (default) or THICK, OPAL-T,OPAL-T3D, OPAL-CYCL."],
             "turns": ["TURNS [cyclotron]", "RPNValue", 1, "Number of turns to be tracked; Number of neighboring bunches to be tracked"],
             "mbmode": ["MBMODE", "RunMbmode", "FORCE", "The working way for multi-bunch mode for OPAL-cycl: FORCE or AUTO"],
@@ -1149,7 +1122,7 @@
             "trackback": ["TRACKBACK", "Boolean", "0", "Track in reverse direction, default: false"]
         },
         "command_select": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "line": ["LINE", "OptionalLatticeBeamlineList", "", "Name of the lattice to be affected by selections"],
             "full": ["FULL", "Boolean", "0", "If true, all elements are selected"],
             "clear": ["CLEAR", "Boolean", "0", "If true, all selections are cleared"],
@@ -1159,10 +1132,11 @@
             "pattern": ["PATTERN", "OptionalString", "", "Regular expression for matching names (default: all names)"]
         },
         "command_title": {
+            "_super": ["_", "model", "_COMMAND"],
             "string": ["STRING", "String", "", ""]
         },
         "command_track": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "line": ["LINE", "OptionalLatticeBeamlineList", "", "Name of lattice to be tracked"],
             "beam": ["BEAM", "BeamList", "", "Name of beam to be used"],
             "dt": ["DT", "RPNValue", 0, "THE INTEGRATION TIMESTEP IN SECONDS"],
@@ -1188,7 +1162,7 @@
             "run_trackback": ["TRACKBACK", "Boolean", "0", "Track in reverse direction, default: false"]
         },
         "command_wake": {
-            "name": ["NAME", "ValidatedString", "", ""],
+            "_super": ["_", "model", "_COMMAND"],
             "type": ["TYPE", "WakeType", "", "Specifies the wake function: 1D-CSR, 1D-CSR-IGF, LONG-SHORT-RANGE, TRANSV-SHORT-RANGE, LONG-TRANSV-SHORT-RANGE"],
             "nbin": ["NBIN", "RPNValue", 0, "Number of bins for the line density calculation"],
             "const_length": ["CONST_LENGTH", "Boolean", "0", "True if the length of the Bunch is considered as constant"],
