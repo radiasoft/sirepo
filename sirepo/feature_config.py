@@ -27,6 +27,7 @@ PROD_FOSS_CODES = frozenset(
         "genesis",
         "jspec",
         "madx",
+        "omega",
         "opal",
         "radia",
         "shadow",
@@ -42,7 +43,6 @@ _NON_PROD_FOSS_CODES = frozenset(
     (
         "myapp",
         "silas",
-        "omega",
         "rshellweg",
     )
 )
