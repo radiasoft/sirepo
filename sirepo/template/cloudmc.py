@@ -21,6 +21,16 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def _percent_complete(run_dir, is_running):
+
+    def _parse_eigenval(txt):
+        res = []
+        for v in txt.split():
+            try:
+                res.append(float(v))
+            except ValueError:
+                continue
+        return res
+
     res = PKDict(
         frameCount=0,
         percentComplete=0,
@@ -31,9 +41,12 @@ def _percent_complete(run_dir, is_running):
             if m:
                 res.frameCount = int(m.group(1))
                 continue
-            m = re.match(r"^\s+(\d+)/1\s+\d", line)
+            # regex for floats
+            re_f = "[+-]?(\d*[.])?\d+"
+            m = re.match(rf"^\s+(\d+)/1\s+({re_f})\s+?({re_f})?", line)
             if m:
                 res.frameCount = int(m.group(1))
+                res.eigenValue = _parse_eigenval(line)
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
         res.percentComplete = res.frameCount * 100 / data.models.settings.batches
