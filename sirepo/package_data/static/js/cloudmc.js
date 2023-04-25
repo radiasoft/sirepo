@@ -191,7 +191,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
 
 SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, $scope) {
     const self = this;
-    self.eigenValue = null;
+    self.eigenvalue = null;
     self.frameCache = frameCache;
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
@@ -205,7 +205,7 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
 
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
-        self.eigenValue = data.eigenValue;
+        self.eigenvalue = data.eigenvalue;
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }

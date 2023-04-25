@@ -6,8 +6,24 @@
     <div class="col-md-6 col-xl-4">
       <div data-simple-panel="simulationStatus">
         <div data-sim-status-panel="visualization.simState"></div>
-        <div>
-          {{ visualization.eigenValue }}
+        <div data-ng-show="visualization.eigenvalue">
+          <table class="table-condensed table-bordered">
+            <caption style="text-align: center; font-weight: bold;">K Eigenvalue</caption>
+            <thead>
+              <th>Batch</th>
+              <th>K</th>
+              <th>&lt;K&gt;</th>
+              <th>σ</th>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ visualization.frameCache.getFrameCount() }}</td>
+                <td>{{ visualization.eigenvalue[0] }}</td>
+                <td>{{ visualization.eigenvalue[1] || 'N/A' }}</td>
+                <td>{{ visualization.eigenvalue[2] || 'N/A' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
