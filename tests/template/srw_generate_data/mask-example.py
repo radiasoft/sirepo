@@ -107,7 +107,7 @@ varParam = [
     ['name', 's', 'Mask example', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'Mask_example/', 'folder (directory) name for reading-in input and saving output data files'],
 
 
     ['gbm_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
@@ -256,7 +256,7 @@ varParam = [
 
 #---Beamline optics:
     # VFM: ellipsoidMirror
-    ['op_VFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_VFM_hfn', 's', '', 'heightProfileFile'],
     ['op_VFM_dim', 's', 'x', 'orientation'],
     ['op_VFM_p', 'f', 50.0, 'firstFocusLength'],
     ['op_VFM_q', 'f', 0.4, 'focalLength'],
@@ -276,7 +276,7 @@ varParam = [
     ['op_VFM_HFM_L', 'f', 0.20000000000000284, 'length'],
 
     # HFM: ellipsoidMirror
-    ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HFM_hfn', 's', '', 'heightProfileFile'],
     ['op_HFM_dim', 's', 'x', 'orientation'],
     ['op_HFM_p', 'f', 50.0, 'firstFocusLength'],
     ['op_HFM_q', 'f', 0.2, 'focalLength'],

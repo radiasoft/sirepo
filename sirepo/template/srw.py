@@ -335,6 +335,12 @@ def clean_run_dir(run_dir):
         zip_dir.remove()
 
 
+def export_filename(sim_filename, filename):
+    if filename not in ("run.py", "sirepo-data.json"):
+        return f"{sim_filename.replace('.zip', '')}/{filename}"
+    return filename
+
+
 def _extract_coherent_modes(model, out_info):
     out_file = "combined-modes.dat"
     wfr = srwlib.srwl_uti_read_wfr_cm_hdf5(_file_path=out_info.filename)
@@ -772,6 +778,8 @@ def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
     data.report = model or _SIM_DATA.SRW_RUN_ALL_MODEL
     data.report = re.sub("beamlineAnimation0", "initialIntensityReport", data.report)
     data.report = re.sub("beamlineAnimation", "watchpointReport", data.report)
+    if not _SIM_DATA.is_for_ml(data.report):
+        data.fdir = sirepo.util.secure_filename(data.models.simulation.name) + "/"
     return _generate_parameters_file(data, plot_reports=plot_reports, qcall=qcall)
 
 
@@ -1802,6 +1810,7 @@ def _generate_beamline_optics(report, data, qcall=None):
         names=[n for n in res.names if n not in res.exclude],
         postPropagation=models.postPropagation,
         maxNameSize=max_name_size,
+        fdir=data.get("fdir", ""),
         nameMap=PKDict(
             apertureShape="ap_shape",
             asymmetryAngle="ang_as",
@@ -1901,6 +1910,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         data,
         is_run_mpi=_SIM_DATA.is_run_mpi(data),
     )
+    v.fdir = data.get("fdir", "")
     v.rs_type = dm.simulation.sourceType
     if v.rs_type == "t" and dm.tabulatedUndulator.undulatorType == "u_i":
         v.rs_type = "u"
@@ -1936,7 +1946,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     ]
     if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append(
-            'setup_magnetic_measurement_files("{}", v)'.format(
+            'setup_magnetic_measurement_files(v.fdir + "{}", v)'.format(
                 data.models.tabulatedUndulator.magneticFile
             )
         )
@@ -2015,7 +2025,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             content.append("v.ss = True")
             if plot_reports:
                 content.append("v.ss_pl = 'e'")
-        if (run_all and source_type not in ("g", "m")) or report in "fluxReport":
+        if (run_all and source_type not in ("g", "m", "a")) or report in "fluxReport":
             content.append("v.sm = True")
             if plot_reports:
                 content.append("v.sm_pl = 'e'")
@@ -2273,6 +2283,7 @@ def _rsopt_jinja_context(data):
         fileBase=_SIM_DATA.EXPORT_RSOPT,
         forRSOpt=True,
         libFiles=_SIM_DATA.lib_file_basenames(data),
+        maxOuputDimension=model.maxOuputDimension,
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
