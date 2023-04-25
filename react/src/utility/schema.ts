@@ -76,6 +76,7 @@ export type Schema = {
     constants: {[key: string]: any},
     models: SchemaModels,
     views: SchemaLayout[],
+    types: {[key: string]: InputLayout},
     route: SchemaRoutes,
     reactRoute: SchemaRoutes,
     middleware: SchemaMiddleware[]
@@ -190,6 +191,7 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
         constants: schemaObj.constants,
         views: schemaObj.view,
         models,
+        types,
         route: schemaObj.route,
         reactRoute: schemaObj.reactRoute,
         middleware: schemaObj.middleware

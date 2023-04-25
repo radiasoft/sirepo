@@ -102,7 +102,82 @@
                 "defaultValue": ""
             }
         },
-        "bunchReport": {
+        "bunchReport1": {
+            "x": {
+                "displayName": "Phase Space Coordinate",
+                "type": "PhaseSpaceCoordinate"
+            },
+            "y": {
+                "displayName": "Phase Space Coordinate",
+                "type": "PhaseSpaceCoordinate"
+            },
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer",
+                "defaultValue": 200
+            },
+            "colorMap": {
+                "displayName": "Color Map",
+                "type": "ColorMap",
+                "defaultValue": "afmhot"
+            },
+            "notes": {
+                "displayName": "Notes",
+                "type": "Text",
+                "defaultValue": ""
+            }
+        },
+        "bunchReport2": {
+            "x": {
+                "displayName": "Phase Space Coordinate",
+                "type": "PhaseSpaceCoordinate"
+            },
+            "y": {
+                "displayName": "Phase Space Coordinate",
+                "type": "PhaseSpaceCoordinate"
+            },
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer",
+                "defaultValue": 200
+            },
+            "colorMap": {
+                "displayName": "Color Map",
+                "type": "ColorMap",
+                "defaultValue": "afmhot"
+            },
+            "notes": {
+                "displayName": "Notes",
+                "type": "Text",
+                "defaultValue": ""
+            }
+        },
+        "bunchReport3": {
+            "x": {
+                "displayName": "Phase Space Coordinate",
+                "type": "PhaseSpaceCoordinate"
+            },
+            "y": {
+                "displayName": "Phase Space Coordinate",
+                "type": "PhaseSpaceCoordinate"
+            },
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer",
+                "defaultValue": 200
+            },
+            "colorMap": {
+                "displayName": "Color Map",
+                "type": "ColorMap",
+                "defaultValue": "afmhot"
+            },
+            "notes": {
+                "displayName": "Notes",
+                "type": "Text",
+                "defaultValue": ""
+            }
+        },
+        "bunchReport4": {
             "x": {
                 "displayName": "Phase Space Coordinate",
                 "type": "PhaseSpaceCoordinate"
