@@ -92,10 +92,10 @@ export function FormStateInitializer(props) {
             if(!value) {
                 throw new Error(`could not get model=${modelName}`);
             }
-            let modelSchema = schema.models[modelName];
+            /*let modelSchema = schema.models[modelName];
             if(!modelSchema) {
                 throw new Error(`could not get schema for model=${modelName}`);
-            }
+            }*/
             dispatch(formActions.updateModel({
                 name: modelName,
                 value: mapProperties(value, (_, fv) => initialFormStateFromValue(fv))
