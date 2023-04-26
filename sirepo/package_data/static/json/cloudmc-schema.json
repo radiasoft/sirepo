@@ -84,6 +84,7 @@
             ["normal", "Normal"],
             ["powerLaw", "PowerLaw"],
             ["tabular", "Tabular"],
+            ["tabularFromFile", "From File"],
             ["uniform", "Uniform"],
             ["watt", "Watt"]
         ],
@@ -426,6 +427,12 @@
             "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
             "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
         },
+        "tabularFromFile": {
+            "_super": [ "_", "model", "univariate"],
+            "file": ["File", "InputFile", "", "", false],
+            "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
+            "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
+        },
         "tally": {
             "name": ["Name", "String"],
             "filter1": ["Filter", "Filter", {"_type": "None"}],
@@ -721,6 +728,13 @@
                 "interpolation",
                 "ignore_negative",
                 "probabilityValue"
+            ]
+        },
+        "tabularFromFile": {
+            "advanced": [
+                "file",
+                "interpolation",
+                "ignore_negative"
             ]
         },
         "tally": {

@@ -19,6 +19,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
+    def tabulated_dist_filenames(cls, data):
+        return cls.lib_file_name_with_model_field(
+            "tabularFromFile",
+            "file",
+            data.models.geometryInput.dagmcFile,
+        )
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         cls._init_models(
