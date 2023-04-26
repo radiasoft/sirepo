@@ -193,8 +193,11 @@ def _generate_call(name, args):
 
 
 def _generate_distribution(dist):
+    import sirepo.csv
+
     if dist._type == "None":
         return dist._type
+    t = dist._type
     args = []
     if "probabilityValue" in dist:
         x = []
@@ -205,6 +208,17 @@ def _generate_distribution(dist):
             x.append(v.x)
             p.append(v.p)
         for v in (x, p):
+            args.append(_generate_array(v))
+    if "file" in dist:
+        for v in numpy.array(
+            sirepo.csv.read_as_number_list(
+                _SIM_DATA.lib_file_abspath(
+                    _SIM_DATA.lib_file_name_with_model_field(
+                        dist._type, "file", dist.file
+                    )
+                )
+            )
+        ).T.tolist():
             args.append(_generate_array(v))
     if dist._type == "discrete":
         pass
@@ -218,7 +232,9 @@ def _generate_distribution(dist):
         args += [str(v) for v in [dist.mean_value, dist.std_dev]]
     elif dist._type == "powerLaw":
         args += [str(v) for v in [dist.a, dist.b, dist.n]]
-    elif dist._type == "tabular":
+    elif dist._type in ("tabular", "tabularFromFile"):
+        if dist._type == "tabularFromFile":
+            t = "tabular"
         args += [
             f'"{dist.interpolation}"',
             "True" if dist.ignore_negative == "1" else "False",
@@ -227,7 +243,7 @@ def _generate_distribution(dist):
         args += [str(v) for v in [dist.a, dist.b]]
     else:
         raise AssertionError("unknown distribution type: {}".format(dist._type))
-    return _generate_call(dist._type, args)
+    return _generate_call(t, args)
 
 
 def _generate_materials(data):
