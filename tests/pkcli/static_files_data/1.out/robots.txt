@@ -10,6 +10,7 @@ Disallow: /myapp
 Disallow: /omega
 Disallow: /opal
 Disallow: /radia
+Disallow: /rshellweg
 Disallow: /shadow
 Disallow: /silas
 Disallow: /srw
