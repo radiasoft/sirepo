@@ -1,3 +1,4 @@
+import { layoutForArrayLike } from "../layout/input/array";
 import { InputLayout } from "../layout/input/input";
 import { TYPE_BASES } from "../layout/input/inputs";
 import { mapProperties } from "./object";
@@ -161,12 +162,17 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
         models = mapProperties(schemaObj.model, (modelName, modelObj) => {
             return mapProperties(modelObj, (fieldName, field): SchemaField<unknown> => {
                 let { displayName, type: typeName, defaultValue, description, shown, min, max } = field;
-                let type = types[typeName];
                 if(!typeName) {
                     throw new Error(`type not defined for model=${modelName} field=${fieldName}`)
                 }
+                let type = types[typeName];
                 if(!type) {
-                    missingTypeNames.push(typeName);
+                    let maybeArrayLike = layoutForArrayLike(typeName, (name) => types[name]);
+                    if(maybeArrayLike !== undefined) {
+                        types[typeName] = maybeArrayLike;
+                    } else {
+                        missingTypeNames.push(typeName);
+                    }
                 }
                 return {
                     displayName,

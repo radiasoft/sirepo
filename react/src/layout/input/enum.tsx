@@ -8,7 +8,7 @@ import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
 import { LayoutProps } from "../layout";
 import { pollStatefulCompute } from "../../utility/compute";
 import { CHandleFactory } from "../../data/handle";
-import { getValueSelector, StoreTypes } from "../../data/data";
+import { getValueSelector, StoreType, StoreTypes } from "../../data/data";
 
 export type EnumAllowedValues = { value: string, displayName: string }[]
 
@@ -47,6 +47,72 @@ abstract class EnumInputBaseLayout<C extends EnumConfig = any> extends InputLayo
 
     component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = props => {
         return this.formElement(props)
+    }
+}
+
+export type ArrayElementEnumInputConfig = {
+    arrayDependency: string,
+    valueFieldName: string,
+    displayFieldName?: string
+} & InputConfigBase
+
+type ArrayElementEnumOptions = {
+    value: string,
+    display: string
+}[]
+
+export class ArrayElementEnumInputLayout extends InputLayout<ArrayElementEnumInputConfig, string, string> {
+
+    private lastOptionValues: ArrayElementEnumOptions = undefined;
+
+    constructor(config: ArrayElementEnumInputConfig) {
+        super(config);
+    }
+
+    toModelValue: (value: string) => string = (v) => v;
+    fromModelValue: (value: string) => string = (v) => v;
+    validate: (value: string) => boolean = (value) => {
+        if(this.lastOptionValues === undefined) {
+            return true;
+        }
+
+        return this.lastOptionValues.filter(ov => {
+            if(!!!ov.value) {
+                return !!!value;
+            }
+
+            return ov.value == value
+        }).length > 0;
+    };
+
+    component: FunctionComponent<InputComponentProps<string>> = (props) => {
+        let handleFactory = useContext(CHandleFactory);
+        let depHandle = handleFactory.createHandle(new Dependency(this.config.arrayDependency), StoreTypes.Models).hook();
+
+        let optionValues = ((depHandle.value || []) as any[]).map(rv => {
+            return {
+                display: `${rv[this.config.displayFieldName || this.config.valueFieldName]}`,
+                value: `${rv[this.config.valueFieldName]}`
+            }
+        })
+
+        if(!this.config.isRequired) {
+            optionValues = [{ value: undefined, display: "" }, ...optionValues];
+        }
+
+        this.lastOptionValues = optionValues;
+
+        const onChange: ChangeEventHandler<HTMLSelectElement> = event => {
+            props.onChange(event.target.value);
+        }
+        const options = optionValues.map(v => (
+            <option key={v.value} value={v.value}>
+                {v.display}
+            </option>
+        ));
+        return <Form.Select {...props} size="sm" onChange={onChange}>
+            { options }
+        </Form.Select>
     }
 }
 

@@ -4,6 +4,42 @@
             "name": {
                 "displayName": "Name",
                 "type": "ValidatedString"
+            },
+            "items": {
+                "displayName": "Items",
+                "type": "IdArray"
+            },
+            "id": {
+                "displayName": "ID",
+                "type": "Integer"
+            },
+            "angle": {
+                "displayName": "Angle",
+                "type": "Float"
+            },
+            "length": {
+                "displayName": "Length",
+                "type": "Float"
+            },
+            "distance": {
+                "displayName": "Distance",
+                "type": "Float"
+            },
+            "count": {
+                "displayName": "Count",
+                "type": "Integer"
+            }
+        },
+        "lattice": {
+            "beamlines": {
+                "displayName": "Beamlines",
+                "type": "BeamlinesArray"
+            }
+        },
+        "elements": {
+            "elements": {
+                "displayName": "Elements",
+                "type": "BeamlineElementsArray"
             }
         },
         "bunch": {
@@ -3102,7 +3138,7 @@
             },
             "l": {
                 "displayName": "L",
-                "type": "RPNValue [m]",
+                "type": "RPNValue",
                 "defaultValue": 0,
                 "description": "The collimator length."
             },
@@ -6171,6 +6207,15 @@
                 ]
             }
         },
+        "BeamlinesArray": {
+            "base": "Array"
+        },
+        "BeamlineElementsArray": {
+            "base": "Array"
+        },
+        "IdArray": {
+            "base": "Array"
+        },
         "CommandMakethinStyle": {
             "base": "Enum",
             "config": {
@@ -6230,6 +6275,22 @@
                         "None"
                     ]
                 ]
+            }
+        },
+        "LatticeBeamlineList": {
+            "base": "ArrayElementEnum",
+            "config": {
+                "arrayDependency": "lattice.beamlines",
+                "valueFieldName": "name",
+                "isRequired": true
+            }
+        },
+        "OptionalLatticeBeamlineList": {
+            "base": "ArrayElementEnum",
+            "config": {
+                "arrayDependency": "lattice.beamlines",
+                "valueFieldName": "name",
+                "isRequired": false
             }
         },
         "ParticleType": {

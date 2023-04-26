@@ -126,6 +126,36 @@
                 "isRequired": false
             }
         },
+        "OutputFile": {
+            "base": "OutputFile",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "RPNValue": {
+            "base": "Float",
+            "config": {
+                "isRequired": true
+            }
+        },
+        "OptionalRPNValue": {
+            "base": "Float",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "ValidatedString": {
+            "base": "String",
+            "config": {
+                "isRequired": true
+            }
+        },
+        "ValueList": {
+            "base": "ValueList",
+            "config": {
+                "isRequired": true
+            }
+        },
         "AspectRatio": {
             "base": "Enum",
             "config": {
