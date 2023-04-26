@@ -25,7 +25,18 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
         for container in ("commands", "elements"):
             for m in dm[container]:
+                if not isinstance(m, list):
+                    continue
                 cls.update_model_defaults(m, LatticeUtil.model_name_for_data(m))
+        if "beamlines" in dm and isinstance(dm.beamlines, list):
+            dm.lattice = PKDict(
+                beamlines=list(map(lambda i: PKDict(model="Beamline", item=i), dm.beamlines))
+            )
+            del dm["beamlines"]
+        if isinstance(dm.elements, list):
+            dm.elements = PKDict(
+                elements=list(map(lambda i: PKDict(model=i.type, item=i), dm.elements))
+            )
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -39,7 +50,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             ]
         if r == "twissReport":
             res += [
-                "beamlines",
+                "lattice",
                 "elements",
                 "simulation.activeBeamlineId",
                 "rpnVariables",

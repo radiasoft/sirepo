@@ -91,7 +91,8 @@ class MadXParser(lattice.LatticeParser):
             # assert name not in name_to_id, 'duplicate name: {}'.format(name)
             name_to_id[name] = id
         for container in ("elements", "commands"):
-            for el in self.data.models[container]:
+            dm = map(lambda i: i.item, self.data.models[container].elements) if container == "elements" else self.data.models[container]
+            for el in dm:
                 model_schema = self.schema.model[
                     lattice.LatticeUtil.model_name_for_data(el)
                 ]
@@ -154,7 +155,10 @@ class MadXParser(lattice.LatticeParser):
                     if d:
                         beamline["items"].append(d)
                 beamline.id = self.parser.next_id()
-                data.models.beamlines.append(beamline)
+                data.models.lattice.beamlines.append(PKDict(
+                    item=beamline,
+                    model="Beamline"
+                ))
         del data.models["sequences"]
         util.sort_elements_and_beamlines()
 

@@ -247,9 +247,10 @@ def eval_code_var(data):
     for k, v in data.models.items():
         if k in SCHEMA.model:
             _model(v, k)
-    for x in ("elements", "commands"):
-        for m in data.models[x]:
-            _model(m, LatticeUtil.model_name_for_data(m))
+    for m in data.models["commands"]:
+        _model(m, LatticeUtil.model_name_for_data(m))
+    for m in map(lambda i: i.item, data.models.elements.elements):
+        _model(m, LatticeUtil.model_name_for_data(m))
 
 
 def extract_parameter_report(
@@ -372,6 +373,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def prepare_for_client(data, qcall, **kwargs):
+    pkdp(data.models.rpnVariables)
     code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
 
@@ -432,8 +434,9 @@ def to_string(value):
 
 def uniquify_elements(data):
     def _do_unique(elem_ids):
-        element_map = PKDict({e._id: e for e in data.models.elements})
-        names = set([e.name for e in data.models.elements])
+        ae = map(lambda i: i.item, data.model.elements.elements)
+        element_map = PKDict({e._id: e for e in ae})
+        names = set([e.name for e in ae])
         max_id = LatticeUtil.max_id(data)
         res = []
         for el_id in elem_ids:
@@ -444,7 +447,8 @@ def uniquify_elements(data):
             el.name = _unique_name(el.name, names)
             max_id += 1
             el._id = max_id
-            data.models.elements.append(el)
+            #data.models.elements.append(el) garsuga: why mutate this when res is returned???
+            data.models.elements.elements.append(PKDict(model=el.type, item=el))
             res.append(el._id)
         return res
 
@@ -500,10 +504,10 @@ def uniquify_elements(data):
 
     def _remove_unused_elements(items):
         res = []
-        for el in data.models.elements:
-            if el._id in items:
+        for el in data.models.elements.elements:
+            if el.item._id in items:
                 res.append(el)
-        data.models.elements = res
+        data.models.elements.elements = res
 
     def _unique_name(name, names):
         assert name in names
@@ -517,12 +521,12 @@ def uniquify_elements(data):
         names.add(f"{name}{count}")
         return f"{name}{count}"
 
-    beamline_map = PKDict({b.id: b for b in data.models.beamlines})
+    beamline_map = PKDict({b.id: b for b in map(lambda i: i.item, data.models.lattice.beamlines)})
     b = beamline_map[data.models.simulation.visualizationBeamlineId]
     _reduce_to_elements_with_reflection(b)
     _remove_unused_elements(b["items"])
     b["items"] = _do_unique(b["items"])
-    data.models.beamlines = [b]
+    data.models.lattice.beamlines = [PKDict(item=b, model="Beamline")]
 
 
 def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
@@ -575,13 +579,13 @@ def _add_commands(data, util):
 def _add_marker_and_observe(data):
     def _add_marker(data):
         assert (
-            len(data.models.beamlines) == 1
-        ), f"should have only one beamline reduced to elements. beamlines={data.models.beamlines}"
-        beam = data.models.beamlines[0]
+            len(data.models.lattice.beamlines) == 1
+        ), f"should have only one beamline reduced to elements. beamlines={data.models.lattice.beamlines}"
+        beam = data.models.lattice.beamlines[0].item
         markers = PKDict()
         m = LatticeUtil.max_id(data)
         el_map = PKDict()
-        for el in data.models.elements:
+        for el in map(lambda i: i.item, data.models.elements.elements):
             el_map[el._id] = el
         items_copy = beam["items"].copy()
         bi = 0
@@ -598,12 +602,16 @@ def _add_marker_and_observe(data):
             bi += 1
             n = f"Marker{m}_{el.type}"
             markers[m] = n
-            data.models.elements.append(
+            data.models.elements.elements.append(
                 PKDict(
-                    _id=m,
-                    name=n,
-                    type="MARKER",
+                    model="MARKER",
+                    item=PKDict(
+                        _id=m,
+                        name=n,
+                        type="MARKER",
+                    )
                 )
+                
             )
         return markers, m
 
