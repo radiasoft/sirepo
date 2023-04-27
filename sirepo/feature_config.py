@@ -43,7 +43,6 @@ _NON_PROD_FOSS_CODES = frozenset(
         "myapp",
         "silas",
         "omega",
-        "rshellweg",
     )
 )
 
