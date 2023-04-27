@@ -10,24 +10,34 @@ from pykern.pkdebug import pkdp, pkdlog
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 import email
+import email.utils
+import pyisemail
 import smtplib
 
 _DEV_SMTP_SERVER = "dev"
 _SEND = None
-cfg = None
+_FROM_DOMAIN = None
+_cfg = None
 
 
 def send(recipient, subject, body):
-    if cfg.server == _DEV_SMTP_SERVER:
+    if _cfg.server == _DEV_SMTP_SERVER:
         pkdlog("DEV configuration so not sending to {}", recipient)
         return False
     m = email.message.EmailMessage()
-    m["From"] = f"{cfg.from_name} <{cfg.from_email}>"
+    m["From"] = f"{_cfg.from_name} <{_cfg.from_email}>"
     m["To"] = recipient
     m["Subject"] = subject
+    m["Message-Id"] = email.utils.make_msgid(domain=_FROM_DOMAIN)
     m.set_content(body)
     _SEND(m)
     return True
+
+
+def _cfg_from_email(value):
+    if not pyisemail.is_email(value):
+        pkconfig.raise_error(f"invalid from_email={value}")
+    return value.lower()
 
 
 def _mx(msg):
@@ -59,19 +69,19 @@ def _send_directly(msg):
 
 
 def _send_with_auth(msg):
-    with smtplib.SMTP(cfg.server, cfg.port) as s:
+    with smtplib.SMTP(_cfg.server, _cfg.port) as s:
         s.starttls()
         s.ehlo()
-        s.login(cfg.user, cfg.password)
+        s.login(_cfg.user, _cfg.password)
         s.send_message(msg)
 
 
 def _init():
-    global cfg, _SEND
-    if cfg:
+    global _cfg, _SEND, _FROM_DOMAIN
+    if _cfg:
         return
-    cfg = pkconfig.init(
-        from_email=("support@sirepo.com", str, "Email address of sender"),
+    _cfg = pkconfig.init(
+        from_email=("support@sirepo.com", _cfg_from_email, "Email address of sender"),
         from_name=("Sirepo Support", str, "Name of email sender"),
         password=(None, str, "SMTP password"),
         port=(587, int, "SMTP Port"),
@@ -79,18 +89,19 @@ def _init():
         server=(None, str, "SMTP TLS server"),
         user=(None, str, "SMTP user"),
     )
-    if cfg.send_directly:
-        cfg.server = "not " + _DEV_SMTP_SERVER
+    _FROM_DOMAIN = _cfg.from_email.split("@")[1]
+    if _cfg.send_directly:
+        _cfg.server = "not " + _DEV_SMTP_SERVER
         _SEND = _send_directly
         return
     _SEND = _send_with_auth
     if pkconfig.in_dev_mode():
-        if cfg.server is None:
-            cfg.server = _DEV_SMTP_SERVER
+        if _cfg.server is None:
+            _cfg.server = _DEV_SMTP_SERVER
         return
-    if cfg.server is None or cfg.user is None or cfg.password is None:
+    if _cfg.server is None or _cfg.user is None or _cfg.password is None:
         pkconfig.raise_error(
-            f"server={cfg.server}, user={cfg.user}, and password={cfg.password} must be defined",
+            f"server={_cfg.server}, user={_cfg.user}, and password={_cfg.password} must be defined",
         )
 
 
