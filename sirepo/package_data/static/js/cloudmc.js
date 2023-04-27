@@ -1768,6 +1768,28 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
     ];
 });
 
+SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
+
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+        updateEditor();
+    }
+
+    $scope.watchFields = [
+        [
+            'material.components',
+            'material.standardType',
+        ], updateEditor,
+    ];
+
+    function updateEditor() {
+        srdbg('UPD', $scope.modelData);
+        if ($scope.modelData.standardType !== 'None') {
+            $scope.modelData = appState.setModelDefaults({}, appState.models[$scope.modelName].standardType);
+        }
+    }
+});
+
 SIREPO.app.directive('simpleListEditor', function(panelState) {
     return {
         restrict: 'A',

@@ -35,6 +35,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "voxels",
             ),
         )
+        for v in dm.volumes:
+            if "material" not in dm.volumes[v]:
+                continue
+            if not dm.volumes[v].material.get("standardType"):
+                dm.volumes[v].material.standardType = "None"
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
