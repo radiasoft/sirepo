@@ -102,7 +102,7 @@
         "StandardMaterial": [
             ["None", "None"],
             ["materialStandardConcreteHanford", "Concrete, Hanford Dry"],
-            ["materialStandardConcreteLosAlimos", "Concrete, Los Alamos (MCNP)"],
+            ["materialStandardConcreteLosAlamos", "Concrete, Los Alamos (MCNP)"],
             ["materialStandardConcreteOrdinary", "Concrete, Ordinary (NIST)"],
             ["materialStandardPolyethylene", "Polyethylene"],
             ["materialStandardPolyethyleneBorated", "Polyethylene, Borated"],
@@ -425,9 +425,10 @@
                     "percent_with_type": ""
                 }
             ]],
-            "name": "Concrete, Hanford Dry"
+            "name": ["Name", "String", "Concrete, Hanford Dry"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteHanford"]
         },
-        "materialStandardConcreteLosAlimos": {
+        "materialStandardConcreteLosAlamos": {
             "_super": ["_", "model", "materialStandard"],
             "density": ["Density", "Float", 2.25],
             "components": ["", "MaterialComponents", [
@@ -502,7 +503,8 @@
                     "percent_with_type": ""
                 }
             ]],
-            "name": "Concrete, Los Alamos (MCNP)"
+            "name": ["Name", "String", "Concrete, Los Alamos (MCNP)"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteLosAlamos"]
         },
         "materialStandardConcreteOrdinary": {
             "_super": ["_", "model", "materialStandard"],
@@ -609,7 +611,8 @@
                     "percent_with_type": ""
                 }
             ]],
-            "name": "Concrete, Ordinary (NIST)"
+            "name": ["Name", "String", "Concrete, Ordinary (NIST)"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteOrdinary"]
         },
         "materialStandardPolyethylene": {
             "_super": ["_", "model", "materialStandard"],
@@ -636,7 +639,8 @@
                     "percent_with_type": ""
                 }
             ]],
-            "name": "Polyethylene"
+            "name": ["Name", "String", "Polyethylene"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardPolyethylene"]
         },
         "materialStandardPolyethyleneBorated": {
             "_super": ["_", "model", "materialStandard"],
@@ -673,7 +677,8 @@
                     "percent_with_type": ""
                 }
             ]],
-            "name": "Polyethylene, Borated"
+            "name": ["Name", "String", "Polyethylene, Borated"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardPolyethyleneBorated"]
         },
         "materialStandardSteelStainless304": {
             "_super": ["_", "model", "materialStandard"],
@@ -760,7 +765,8 @@
                     "percent_with_type": ""
                 }
             ]],
-            "name": "Steel, Stainless 304"
+            "name": ["Name", "String", "Steel, Stainless 304"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardSteelStainless304"]
         },
         "materialStandardSteelStainless316": {
             "_super": ["_", "model", "materialStandard"],
@@ -857,7 +863,8 @@
                     "percent_with_type": ""
                 }
             ]],
-            "name": "Steel, Stainless 316"
+            "name": ["Name", "String", "Steel, Stainless 316"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardSteelStainless316"]
         },
         "materialValue": {
             "value": ["Material", "MaterialValue"]

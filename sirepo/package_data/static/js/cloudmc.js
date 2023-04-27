@@ -1772,20 +1772,19 @@ SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
-        updateEditor();
     }
 
     $scope.watchFields = [
         [
-            'material.components',
             'material.standardType',
-        ], updateEditor,
+        ], updateMaterial,
     ];
 
-    function updateEditor() {
-        srdbg('UPD', $scope.modelData);
-        if ($scope.modelData.standardType !== 'None') {
-            $scope.modelData = appState.setModelDefaults({}, appState.models[$scope.modelName].standardType);
+    function updateMaterial() {
+        const t = appState.models[$scope.modelName].standardType;
+        if (t !== 'None') {
+            // don't change the name as it came from the volume
+            appState.models[$scope.modelName] = appState.setModelDefaults({name: $scope.modelData.name}, t);
         }
     }
 });
