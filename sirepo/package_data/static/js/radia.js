@@ -3418,6 +3418,7 @@ for(const m of ['Dipole', 'Undulator']) {
             ];
 
             let editedModels = [];
+            const materialFields = ['geomObject.magnetization', 'geomObject.material'];
             let models = {};
             for (const p of $scope.$parent.advancedFields) {
                 const page = p[0];
@@ -3513,11 +3514,14 @@ for(const m of ['Dipole', 'Undulator']) {
                 );
             }
 
-            //TODO(mvk): implement validation for parameterized magnets - this is a placeholder
-            const e = `watch${m}Editor`;
-            if (e in SIREPO) {
-                SIREPO[e]($scope, appState, panelState, radiaService, validationService);
-            }
+            appState.watchModelFields($scope, materialFields, () => {
+                const o = getObjFromGeomRpt();
+                if (! o) {
+                    return;
+                }
+                radiaService.validateMagnetization(o.magnetization, o.material);
+            }, true);
+
         });
     }
 }
