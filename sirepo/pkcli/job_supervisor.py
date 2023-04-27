@@ -31,16 +31,21 @@ import tornado.ioloop
 import tornado.web
 import tornado.websocket
 
-cfg = None
+_cfg = None
 
 
 def default_command():
-    global cfg
+    global _cfg
 
-    cfg = pkconfig.init(
-        debug=(pkconfig.in_dev_mode(), bool, "run supervisor in debug mode"),
+    _cfg = pkconfig.init(
+        debug=(
+            sirepo.feature_config.cfg().debug_mode,
+            bool,
+            "run supervisor in debug mode",
+        ),
         ip=(sirepo.job.DEFAULT_IP, str, "ip to listen on"),
         port=(sirepo.const.PORT_DEFAULTS.supervisor, int, "what port to listen on"),
+        use_reloader=(pkconfig.in_dev_mode(), bool, "use the server reloader"),
     )
     sirepo.modules.import_and_init("sirepo.job_supervisor")
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
@@ -55,7 +60,7 @@ def default_command():
             (sirepo.job.DATA_FILE_URI + "/(.*)", _DataFileReq),
             (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.FileReq),
         ],
-        debug=cfg.debug,
+        debug=_cfg.debug,
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
         # tornado expects a trailing slash
         static_url_prefix=sirepo.job.LIB_FILE_URI + "/",
@@ -63,19 +68,18 @@ def default_command():
         websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
     )
-    if cfg.debug:
+    if _cfg.use_reloader:
         for f in sirepo.util.files_to_watch_for_reload("json", "py"):
             tornado.autoreload.watch(f)
-
     server = tornado.httpserver.HTTPServer(
         app,
         xheaders=True,
         max_buffer_size=sirepo.job.cfg().max_message_bytes,
     )
-    server.listen(cfg.port, cfg.ip)
+    server.listen(_cfg.port, _cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
-    pkdlog("ip={} port={}", cfg.ip, cfg.port)
+    pkdlog("ip={} port={}", _cfg.ip, _cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
 

@@ -191,7 +191,7 @@ def register_api_module(module):
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
-def start_tornado(ip, port, debug=False):
+def start_tornado(ip, port, debug):
     """Start tornado server, does not return"""
     from tornado import httpserver, ioloop, web, log
 
@@ -222,7 +222,7 @@ def start_tornado(ip, port, debug=False):
     s = httpserver.HTTPServer(
         web.Application(
             [("/.*", _Handler)],
-            debug=pkconfig.in_dev_mode(),
+            debug=debug,
         ),
         xheaders=True,
         max_buffer_size=sirepo.job.cfg().max_message_bytes,
