@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+# NOTE: limit sirepo imports here
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
@@ -24,7 +25,7 @@ import unicodedata
 import zipfile
 
 
-cfg = None
+_cfg = None
 
 #: Http auth header name
 AUTH_HEADER = "Authorization"
@@ -238,9 +239,9 @@ def assert_sim_type(sim_type):
 
 
 def create_token(value):
-    if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
+    if pkconfig.channel_in_internal_test() and _cfg.create_token_secret:
         v = base64.b32encode(
-            hashlib.sha256(pkcompat.to_bytes(value + cfg.create_token_secret)).digest()
+            hashlib.sha256(pkcompat.to_bytes(value + _cfg.create_token_secret)).digest()
         )
         return pkcompat.from_bytes(v[:TOKEN_SIZE])
     return random_base62(TOKEN_SIZE)
@@ -253,8 +254,6 @@ def err(obj, fmt="", *args, **kwargs):
 def files_to_watch_for_reload(*extensions):
     from sirepo import feature_config
 
-    if not pkconfig.in_dev_mode():
-        return []
     for e in extensions:
         for p in sorted(set(["sirepo", *feature_config.cfg().package_path])):
             d = pykern.pkio.py_path(
@@ -489,6 +488,6 @@ def write_zip(path):
     )
 
 
-cfg = pkconfig.init(
+_cfg = pkconfig.init(
     create_token_secret=("oh so secret!", str, "used for internal test only"),
 )
