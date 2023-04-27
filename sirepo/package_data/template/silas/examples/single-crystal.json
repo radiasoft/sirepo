@@ -9,7 +9,7 @@
                 "id": 2,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 1,
+                "l_scale": 0.001,
                 "length": 2,
                 "n0": [
                     1.75,

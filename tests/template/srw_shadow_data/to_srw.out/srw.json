@@ -246,6 +246,7 @@
     "exportRsOpt": {
         "characteristic": "1",
         "elements": [],
+        "maxOuputDimension": 32,
         "numCores": 4,
         "numSamples": 100,
         "numWorkers": 1,

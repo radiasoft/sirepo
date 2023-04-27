@@ -76,15 +76,6 @@ _CODES = PKDict(
             ),
         ),
     ),
-    synergia=(
-        PKDict(
-            name="IOTA 6-6 Bare",
-            reports=(
-                PKDict(report="beamEvolutionAnimation", binary_data_file=True),
-                PKDict(report="bunchReport1", binary_data_file=False),
-            ),
-        ),
-    ),
     warppba=(
         PKDict(
             name="Laser Pulse",

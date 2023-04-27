@@ -658,6 +658,61 @@ def copy_related_files(data, source_path, target_path):
             f.copy(t)
 
 
+def extract_report_data(filename, frame_args, page_count=0):
+    def _label(plot, sdds_units):
+        if plot.label in _FIELD_LABEL:
+            plot.label = _FIELD_LABEL[plot.label]
+            return
+        if sdds_units in _SIMPLE_UNITS:
+            plot.label = "{} [{}]".format(plot.label, sdds_units)
+            return
+        plot.label = plot.label
+        return
+
+    def _title(xfield, yfield, page_index, page_count):
+        title_key = xfield + "-" + yfield
+        if title_key in _PLOT_TITLE:
+            title = _PLOT_TITLE[title_key]
+        else:
+            title = "{} / {}".format(xfield, yfield)
+        if page_count > 1:
+            title += ", Plot {} of {}".format(page_index + 1, page_count)
+        return title
+
+    x_field = "x" if "x" in frame_args else _X_FIELD
+    plot_attrs = PKDict(
+        format_plot=_label,
+        page_index=frame_args.frameIndex,
+        model=template_common.model_from_frame_args(frame_args),
+        x_field=x_field,
+    )
+    _sdds_init()
+
+    if not _is_histogram_file(
+        filename,
+        sdds_util.extract_sdds_column(filename, frame_args[x_field], 0)["column_names"],
+    ):
+        if page_count > 1:
+            plot_attrs.pkupdate(
+                title="Plot {} of {}".format(plot_attrs.page_index + 1, page_count)
+            )
+
+        return sdds_util.SDDSUtil(filename).lineplot(plot_attrs=plot_attrs)
+
+    y_field = "y1" if "y1" in frame_args else "y"
+    return sdds_util.SDDSUtil(filename).heatmap(
+        plot_attrs=plot_attrs.pkupdate(
+            title=_title(
+                frame_args[x_field],
+                frame_args[y_field],
+                plot_attrs.page_index,
+                page_count,
+            ),
+            y_field=y_field,
+        )
+    )
+
+
 def generate_parameters_file(data, is_parallel=False, qcall=None):
     return _Generate(data, qcall=qcall).sim(full=is_parallel)
 
@@ -803,7 +858,7 @@ def save_sequential_report_data(data, run_dir):
         a.x = "s"
         a.y = a.y1
     a.frameIndex = 0
-    # _extract_report_data() is expecting something that looks like frameArgs
+    # extract_report_data() is expecting something that looks like frameArgs
     a.sim_in = PKDict(
         models=PKDict(
             {
@@ -812,7 +867,7 @@ def save_sequential_report_data(data, run_dir):
         )
     )
     template_common.write_sequential_result(
-        _extract_report_data(
+        extract_report_data(
             str(run_dir.join(_report_output_filename(a.frameReport))), a
         ),
         run_dir=run_dir,
@@ -830,7 +885,7 @@ def sim_frame(frame_args):
             page_count = info.pageCount
             frame_args.fieldRange = info.fieldRange
     frame_args.y = frame_args.y1
-    return _extract_report_data(
+    return extract_report_data(
         _id(
             frame_args.xFileId,
             frame_args.sim_in,
@@ -1142,61 +1197,6 @@ def _build_filename_map(data):
 
 def _build_filename_map_from_util(util, update_filenames=True):
     return util.iterate_models(OutputFileIterator(update_filenames)).result
-
-
-def _extract_report_data(filename, frame_args, page_count=0):
-    def _label(plot, sdds_units):
-        if plot.label in _FIELD_LABEL:
-            plot.label = _FIELD_LABEL[plot.label]
-            return
-        if sdds_units in _SIMPLE_UNITS:
-            plot.label = "{} [{}]".format(plot.label, sdds_units)
-            return
-        plot.label = plot.label
-        return
-
-    def _title(xfield, yfield, page_index, page_count):
-        title_key = xfield + "-" + yfield
-        if title_key in _PLOT_TITLE:
-            title = _PLOT_TITLE[title_key]
-        else:
-            title = "{} / {}".format(xfield, yfield)
-        if page_count > 1:
-            title += ", Plot {} of {}".format(page_index + 1, page_count)
-        return title
-
-    x_field = "x" if "x" in frame_args else _X_FIELD
-    plot_attrs = PKDict(
-        format_plot=_label,
-        page_index=frame_args.frameIndex,
-        model=template_common.model_from_frame_args(frame_args),
-        x_field=x_field,
-    )
-    _sdds_init()
-
-    if not _is_histogram_file(
-        filename,
-        sdds_util.extract_sdds_column(filename, frame_args[x_field], 0)["column_names"],
-    ):
-        if page_count > 1:
-            plot_attrs.pkupdate(
-                title="Plot {} of {}".format(plot_attrs.page_index + 1, page_count)
-            )
-
-        return sdds_util.SDDSUtil(filename).lineplot(plot_attrs=plot_attrs)
-
-    y_field = "y1" if "y1" in frame_args else "y"
-    return sdds_util.SDDSUtil(filename).heatmap(
-        plot_attrs=plot_attrs.pkupdate(
-            title=_title(
-                frame_args[x_field],
-                frame_args[y_field],
-                plot_attrs.page_index,
-                page_count,
-            ),
-            y_field=y_field,
-        )
-    )
 
 
 def _format_rpn_value(value, is_command=False):

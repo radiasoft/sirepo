@@ -1,0 +1,747 @@
+{
+    "models": {
+        "electronTrajectoryReport": {
+            "energy": 1,
+            "finalBeamPosition": 350,
+            "hidePanel": false,
+            "inProgressText": "Calculating",
+            "initialAngles": [
+                0,
+                0
+            ],
+            "initialPosition": [
+                0,
+                10,
+                -350
+            ],
+            "lastModified": 1681310317419,
+            "numPoints": 101
+        },
+        "fieldDisplay": {
+            "colorMap": "viridis",
+            "scaling": "linear"
+        },
+        "fieldIntegralReport": {},
+        "fieldLineoutAnimation": {
+            "fieldPath": {
+                "_super": "fieldPath",
+                "begin": [
+                    0,
+                    10,
+                    -350
+                ],
+                "end": [
+                    0,
+                    10,
+                    350
+                ],
+                "id": "ETVCGGo7ZsUlkwmfi1UoasnTbB8eQ8uX",
+                "name": "Center Offset",
+                "numPoints": 101,
+                "type": "linePath"
+            },
+            "fieldPaths": [],
+            "fieldType": "B",
+            "inProgressText": "Calculating",
+            "jobRunMode": "parallel",
+            "lastModified": 1681311850012,
+            "plotAxis": "z",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 32
+        },
+        "fieldPaths": {
+            "paths": [
+                {
+                    "_super": "fieldPath",
+                    "begin": [
+                        0,
+                        10,
+                        -350
+                    ],
+                    "end": [
+                        0,
+                        10,
+                        350
+                    ],
+                    "id": "ETVCGGo7ZsUlkwmfi1UoasnTbB8eQ8uX",
+                    "name": "Center Offset",
+                    "numPoints": 101,
+                    "type": "linePath"
+                }
+            ],
+            "selectedPath": "line"
+        },
+        "freehand": {},
+        "geomObject": {
+            "_super": "extrudedPoly",
+            "area": 0,
+            "bevels": [],
+            "center": [
+                225,
+                225,
+                0
+            ],
+            "color": "#0004ff",
+            "extrusionAxis": "z",
+            "extrusionAxisSegments": 1,
+            "fillets": [],
+            "groupId": "mktaCgCMNV09LrFL7fczFl0kM1AYLLyG",
+            "heightAxis": "y",
+            "id": "4NR9zyrj4lOex2doJJznSWUuZmz4jK2O",
+            "layoutShape": "polygon",
+            "magnetization": [
+                0,
+                0,
+                0
+            ],
+            "material": "Xc06",
+            "materialFile": "",
+            "modifications": [],
+            "name": "Yoke",
+            "points": [
+                [
+                    0,
+                    350
+                ],
+                [
+                    100,
+                    350
+                ],
+                [
+                    150,
+                    300
+                ],
+                [
+                    300,
+                    150
+                ],
+                [
+                    350,
+                    100
+                ],
+                [
+                    350,
+                    0
+                ],
+                [
+                    450,
+                    0
+                ],
+                [
+                    450,
+                    100
+                ],
+                [
+                    400,
+                    150
+                ],
+                [
+                    250,
+                    300
+                ],
+                [
+                    100,
+                    450
+                ],
+                [
+                    0,
+                    450
+                ]
+            ],
+            "pointsFile": "yoke_test_1.csv",
+            "referencePoints": [
+                [
+                    0,
+                    350
+                ],
+                [
+                    100,
+                    350
+                ],
+                [
+                    150,
+                    300
+                ],
+                [
+                    300,
+                    150
+                ],
+                [
+                    350,
+                    100
+                ],
+                [
+                    350,
+                    0
+                ],
+                [
+                    450,
+                    0
+                ],
+                [
+                    450,
+                    100
+                ],
+                [
+                    400,
+                    150
+                ],
+                [
+                    250,
+                    300
+                ],
+                [
+                    100,
+                    450
+                ],
+                [
+                    0,
+                    450
+                ]
+            ],
+            "remanentMag": 0,
+            "segments": [
+                1,
+                1,
+                1
+            ],
+            "shapeButton": {},
+            "size": [
+                450,
+                450,
+                250
+            ],
+            "transforms": [],
+            "triangulationLevel": 0.5,
+            "type": "extrudedPoints",
+            "widthAxis": "x"
+        },
+        "geometryReport": {
+            "doGenerate": "1",
+            "id": "o9DCUU5vLHsWpdQc",
+            "isSolvable": "1",
+            "lastModified": 1681310317419,
+            "name": "Basic Quadrupole",
+            "objects": [
+                {
+                    "_super": "extrudedPoly",
+                    "area": 0,
+                    "bevels": [],
+                    "center": [
+                        175,
+                        175,
+                        0
+                    ],
+                    "color": "#0000ff",
+                    "extrusionAxis": "z",
+                    "extrusionAxisSegments": 1,
+                    "fillets": [],
+                    "groupId": "mktaCgCMNV09LrFL7fczFl0kM1AYLLyG",
+                    "heightAxis": "y",
+                    "id": "xTsefD9olMqxAA5s",
+                    "layoutShape": "polygon",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "Xc06",
+                    "materialFile": "",
+                    "modifications": [],
+                    "name": "Pole",
+                    "points": [
+                        [
+                            50,
+                            200
+                        ],
+                        [
+                            60,
+                            166.6666667
+                        ],
+                        [
+                            70,
+                            142.85714289999999
+                        ],
+                        [
+                            80,
+                            125
+                        ],
+                        [
+                            90,
+                            111.11111110000002
+                        ],
+                        [
+                            100,
+                            100
+                        ],
+                        [
+                            110,
+                            90.90909091000003
+                        ],
+                        [
+                            120,
+                            83.33333333000002
+                        ],
+                        [
+                            130,
+                            76.92307692
+                        ],
+                        [
+                            140,
+                            71.42857143
+                        ],
+                        [
+                            150,
+                            66.66666666999998
+                        ],
+                        [
+                            160,
+                            62.5
+                        ],
+                        [
+                            170,
+                            58.82352940999999
+                        ],
+                        [
+                            180,
+                            55.555555560000016
+                        ],
+                        [
+                            190,
+                            52.631578950000005
+                        ],
+                        [
+                            200,
+                            50
+                        ],
+                        [
+                            300,
+                            150
+                        ],
+                        [
+                            150,
+                            300
+                        ]
+                    ],
+                    "pointsFile": "pole_test_1.csv",
+                    "referencePoints": [
+                        [
+                            50,
+                            200
+                        ],
+                        [
+                            60,
+                            166.6666667
+                        ],
+                        [
+                            70,
+                            142.85714289999999
+                        ],
+                        [
+                            80,
+                            125
+                        ],
+                        [
+                            90,
+                            111.11111110000002
+                        ],
+                        [
+                            100,
+                            100
+                        ],
+                        [
+                            110,
+                            90.90909091000003
+                        ],
+                        [
+                            120,
+                            83.33333333000002
+                        ],
+                        [
+                            130,
+                            76.92307692
+                        ],
+                        [
+                            140,
+                            71.42857143
+                        ],
+                        [
+                            150,
+                            66.66666666999998
+                        ],
+                        [
+                            160,
+                            62.5
+                        ],
+                        [
+                            170,
+                            58.82352940999999
+                        ],
+                        [
+                            180,
+                            55.555555560000016
+                        ],
+                        [
+                            190,
+                            52.631578950000005
+                        ],
+                        [
+                            200,
+                            50
+                        ],
+                        [
+                            300,
+                            150
+                        ],
+                        [
+                            150,
+                            300
+                        ]
+                    ],
+                    "remanentMag": 0,
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        250,
+                        250,
+                        250
+                    ],
+                    "transforms": [],
+                    "triangulationLevel": 0.5,
+                    "type": "extrudedPoints",
+                    "widthAxis": "x"
+                },
+                {
+                    "_super": "extrudedPoly",
+                    "area": 0,
+                    "bevels": [],
+                    "center": [
+                        225,
+                        225,
+                        0
+                    ],
+                    "color": "#0004ff",
+                    "extrusionAxis": "z",
+                    "extrusionAxisSegments": 1,
+                    "fillets": [],
+                    "groupId": "mktaCgCMNV09LrFL7fczFl0kM1AYLLyG",
+                    "heightAxis": "y",
+                    "id": "4NR9zyrj4lOex2doJJznSWUuZmz4jK2O",
+                    "layoutShape": "polygon",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "Xc06",
+                    "materialFile": "",
+                    "modifications": [],
+                    "name": "Yoke",
+                    "points": [
+                        [
+                            0,
+                            350
+                        ],
+                        [
+                            100,
+                            350
+                        ],
+                        [
+                            150,
+                            300
+                        ],
+                        [
+                            300,
+                            150
+                        ],
+                        [
+                            350,
+                            100
+                        ],
+                        [
+                            350,
+                            0
+                        ],
+                        [
+                            450,
+                            0
+                        ],
+                        [
+                            450,
+                            100
+                        ],
+                        [
+                            400,
+                            150
+                        ],
+                        [
+                            250,
+                            300
+                        ],
+                        [
+                            100,
+                            450
+                        ],
+                        [
+                            0,
+                            450
+                        ]
+                    ],
+                    "pointsFile": "yoke_test_1.csv",
+                    "referencePoints": [
+                        [
+                            0,
+                            350
+                        ],
+                        [
+                            100,
+                            350
+                        ],
+                        [
+                            150,
+                            300
+                        ],
+                        [
+                            300,
+                            150
+                        ],
+                        [
+                            350,
+                            100
+                        ],
+                        [
+                            350,
+                            0
+                        ],
+                        [
+                            450,
+                            0
+                        ],
+                        [
+                            450,
+                            100
+                        ],
+                        [
+                            400,
+                            150
+                        ],
+                        [
+                            250,
+                            300
+                        ],
+                        [
+                            100,
+                            450
+                        ],
+                        [
+                            0,
+                            450
+                        ]
+                    ],
+                    "remanentMag": 0,
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        450,
+                        450,
+                        250
+                    ],
+                    "transforms": [],
+                    "triangulationLevel": 0.5,
+                    "type": "extrudedPoints",
+                    "widthAxis": "x"
+                },
+                {
+                    "_super": "radiaObject",
+                    "axis": "y",
+                    "bevels": [],
+                    "center": [
+                        175.32496078275094,
+                        174.8752109846803,
+                        0
+                    ],
+                    "color": "#ff0000",
+                    "currentDensity": -2000,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "mktaCgCMNV09LrFL7fczFl0kM1AYLLyG",
+                    "height": 105,
+                    "id": "Q5H5hoalcZ6cAQ9UE2OhY1pyUAQcOcPn",
+                    "layoutShape": "rect",
+                    "modifications": [],
+                    "name": "Coil",
+                    "numSegments": 3,
+                    "planeAxis1": "z",
+                    "planeAxis2": "x",
+                    "radii": [
+                        5,
+                        40
+                    ],
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        225,
+                        208
+                    ],
+                    "size": [
+                        288,
+                        105,
+                        305
+                    ],
+                    "transforms": [
+                        {
+                            "_super": "spatialTransform",
+                            "angle": -45,
+                            "axis": [
+                                0,
+                                0,
+                                1
+                            ],
+                            "center": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "id": "kYqnjQYTdNy1wfHboeJM4tMQAXwJw4GZ",
+                            "name": "Rotate",
+                            "type": "rotate",
+                            "useObjectCenter": "1"
+                        }
+                    ],
+                    "type": "racetrack"
+                },
+                {
+                    "_super": "radiaObject",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "color": "#cccccc",
+                    "fillets": [],
+                    "groupId": "",
+                    "id": "mktaCgCMNV09LrFL7fczFl0kM1AYLLyG",
+                    "layoutShape": "rect",
+                    "members": [
+                        "xTsefD9olMqxAA5s",
+                        "4NR9zyrj4lOex2doJJznSWUuZmz4jK2O",
+                        "Q5H5hoalcZ6cAQ9UE2OhY1pyUAQcOcPn"
+                    ],
+                    "model": "geomGroup",
+                    "modifications": [],
+                    "name": "Quadrupole",
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "size": [
+                        900,
+                        900,
+                        130
+                    ],
+                    "transforms": [
+                        {
+                            "_super": "transform",
+                            "id": "6WHga3KvnFwIgZgcWTPD4abDk90uStFP",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                1,
+                                0,
+                                0
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "parallel",
+                            "type": "symmetryTransform"
+                        },
+                        {
+                            "_super": "transform",
+                            "id": "4DftMvG8pEhmHy7b3GarG1Tew6HAdrPI",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                0,
+                                1,
+                                0
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "parallel",
+                            "type": "symmetryTransform"
+                        }
+                    ],
+                    "type": "geomGroup"
+                }
+            ]
+        },
+        "magnetDisplay": {
+            "alpha": 1,
+            "bgColor": "#ffffff",
+            "fieldPoints": [],
+            "fieldType": "B",
+            "notes": "",
+            "viewType": "objects"
+        },
+        "simFolder": {},
+        "simulation": {
+            "appMode": "default",
+            "beamAxis": "z",
+            "coordinateSystem": "standard",
+            "dipoleType": "dipoleBasic",
+            "documentationUrl": "",
+            "enableKickMaps": "0",
+            "folder": "/Examples/Accelerator Magnets",
+            "freehandType": "freehand",
+            "heightAxis": "y",
+            "isExample": true,
+            "magnetType": "freehand",
+            "name": "Basic Quadrupole",
+            "notes": "",
+            "undulatorType": "undulatorBasic",
+            "widthAxis": "x"
+        },
+        "solverAnimation": {
+            "jobRunMode": "parallel",
+            "lastSolved": "-1",
+            "maxIterations": 1500,
+            "method": "4",
+            "mode": "solve",
+            "precision": 0.0001,
+            "result": "",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 32
+        },
+        "threeDBuilder": {
+            "autoFit": true,
+            "elevation": "front",
+            "snapGridSize": "1",
+            "snapToGrid": false
+        }
+    },
+    "simulationType": "radia",
+    "version": "1681264522.9918723"
+}
