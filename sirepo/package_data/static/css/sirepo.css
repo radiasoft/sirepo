@@ -1148,3 +1148,7 @@ label .katex {
 .latex-title .katex {
     font-size: 18px;
 }
+
+.sr-disabled-item {
+  background-color: lightgray !important;
+}
