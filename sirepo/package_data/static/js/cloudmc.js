@@ -1775,7 +1775,6 @@ SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
     $scope.whenSelected = () => {
         $scope.appState = appState;
         name = model().name;
-        updateEditor();
     };
 
     function isStd() {
@@ -1784,10 +1783,6 @@ SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
 
     function model() {
         return appState.models[$scope.modelName];
-    }
-
-    function updateEditor() {
-        $('.material-components').prop('disabled', isStd());
     }
 
     function updateMaterial() {
@@ -1806,7 +1801,6 @@ SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
             return;
         }
         updateMaterial();
-        updateEditor();
     });
 
 });
