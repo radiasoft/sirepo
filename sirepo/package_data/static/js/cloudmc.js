@@ -1278,7 +1278,7 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
                 <tr>
                   <td style="width: 15em">
                     <b>Add Component</b>
-                      <select class="form-control material-components" data-ng-model="selectedComponent"
+                      <select class="form-control" data-ng-model="selectedComponent"
                         data-ng-options="item[0] as item[1] for item in componentEnum"
                         data-ng-change="addComponent()"></select>
                   </td>
@@ -1778,7 +1778,7 @@ SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
     };
 
     function isStd() {
-        return model() && model().standardType !== 'None'
+        return model() && model().standardType !== 'None';
     }
 
     function model() {
