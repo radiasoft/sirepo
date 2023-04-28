@@ -1,73 +1,856 @@
 {
     "models": {
+        "dipoleC": {
+            "_super": "dipoleBasic",
+            "coil": {
+                "_super": "radiaObject",
+                "axis": "z",
+                "bevels": [],
+                "center": [
+                    0,
+                    126.25,
+                    0
+                ],
+                "color": "#ff0000",
+                "currentDensity": -0.54421768707482,
+                "fieldCalc": "auto",
+                "fillets": [],
+                "groupId": "SQxTmUYEiAPrWy2q",
+                "h_m_curve": null,
+                "height": 105,
+                "id": "lpjAHPssJE4GLL8M",
+                "layoutShape": "rect",
+                "magnetization": [
+                    0,
+                    0,
+                    0
+                ],
+                "modifications": [],
+                "name": "coil",
+                "numSegments": 3,
+                "planeAxis1": "x",
+                "planeAxis2": "y",
+                "radii": [
+                    5,
+                    40
+                ],
+                "segments": [
+                    1,
+                    1,
+                    1
+                ],
+                "sides": [
+                    50,
+                    62.5
+                ],
+                "size": [
+                    130,
+                    142.5,
+                    105
+                ],
+                "stlCentroid": [],
+                "stlFaces": [],
+                "stlVertices": [],
+                "transforms": [],
+                "type": "racetrack"
+            },
+            "color": "#cccccc",
+            "corePoleGroup": {
+                "_super": "radiaObject",
+                "center": [
+                    0,
+                    0,
+                    0
+                ],
+                "color": "#cccccc",
+                "groupId": "SQxTmUYEiAPrWy2q",
+                "h_m_curve": null,
+                "id": "Jmbsuq59t4EWDwtB",
+                "layoutShape": "rect",
+                "magnetization": [
+                    0,
+                    0,
+                    0
+                ],
+                "members": [
+                    "HmtykosSeXLK1DRm",
+                    "RYvXZYlNtscL7dd2"
+                ],
+                "model": "geomGroup",
+                "name": "core + pole",
+                "segments": [
+                    1,
+                    1,
+                    1
+                ],
+                "size": [
+                    1,
+                    1,
+                    1
+                ],
+                "stlCentroid": [],
+                "stlFaces": [],
+                "stlVertices": [],
+                "transforms": [],
+                "type": "geomGroup"
+            },
+            "dipoleType": "dipoleC",
+            "gap": 10,
+            "groupId": "",
+            "id": "sMhjPflqtHHK2cXp",
+            "layoutShape": "rect",
+            "magnet": {
+                "_super": "stemmed",
+                "area": 25125,
+                "armHeight": 50,
+                "armPosition": "1",
+                "bevels": [],
+                "center": [
+                    0,
+                    66.25,
+                    0
+                ],
+                "color": "#0000ff",
+                "extrusionAxis": "x",
+                "extrusionAxisSegments": 2,
+                "fillets": [],
+                "groupId": "Jmbsuq59t4EWDwtB",
+                "h_m_curve": null,
+                "heightAxis": "z",
+                "id": "HmtykosSeXLK1DRm",
+                "layoutShape": "polygon",
+                "magnetization": [
+                    0,
+                    0,
+                    0
+                ],
+                "material": "Xc06",
+                "materialFile": "",
+                "modifications": [],
+                "name": "core",
+                "points": [
+                    [
+                        157.5,
+                        -105
+                    ],
+                    [
+                        -25,
+                        -105
+                    ],
+                    [
+                        -25,
+                        -55
+                    ],
+                    [
+                        95,
+                        -55
+                    ],
+                    [
+                        95,
+                        55
+                    ],
+                    [
+                        -25,
+                        55
+                    ],
+                    [
+                        -25,
+                        105
+                    ],
+                    [
+                        157.5,
+                        105
+                    ],
+                    [
+                        157.5,
+                        -105
+                    ]
+                ],
+                "remanentMag": 0,
+                "segments": [
+                    "2",
+                    "1",
+                    "1"
+                ],
+                "shapeButton": {},
+                "size": [
+                    50,
+                    182.5,
+                    210
+                ],
+                "stemPosition": "1",
+                "stemWidth": 62.5,
+                "stlCentroid": [],
+                "stlFaces": [],
+                "stlVertices": [],
+                "transforms": [],
+                "triangulationLevel": 0.85,
+                "type": "cee",
+                "widthAxis": "y"
+            },
+            "magnetCoilGroup": {
+                "_super": "radiaObject",
+                "center": [
+                    0,
+                    0,
+                    0
+                ],
+                "color": "#cccccc",
+                "groupId": "",
+                "h_m_curve": null,
+                "id": "SQxTmUYEiAPrWy2q",
+                "layoutShape": "rect",
+                "magnetization": [
+                    0,
+                    0,
+                    0
+                ],
+                "members": [
+                    "Jmbsuq59t4EWDwtB",
+                    "lpjAHPssJE4GLL8M"
+                ],
+                "model": "geomGroup",
+                "name": "magnet + coil",
+                "segments": [
+                    1,
+                    1,
+                    1
+                ],
+                "size": [
+                    1,
+                    1,
+                    1
+                ],
+                "stlCentroid": [],
+                "stlFaces": [],
+                "stlVertices": [],
+                "transforms": [],
+                "type": "geomGroup"
+            },
+            "name": "",
+            "pole": {
+                "_super": "geomObject",
+                "bevels": [],
+                "center": [
+                    0,
+                    0,
+                    30
+                ],
+                "color": "#0000ff",
+                "fillets": [],
+                "groupId": "Jmbsuq59t4EWDwtB",
+                "h_m_curve": null,
+                "id": "RYvXZYlNtscL7dd2",
+                "layoutShape": "rect",
+                "magnetization": [
+                    0,
+                    0,
+                    0
+                ],
+                "material": "Xc06",
+                "materialFile": "",
+                "modifications": [
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "x",
+                        "cutDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "cutPoint": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "cutRemoval": "1",
+                        "edge": "2",
+                        "type": "objectBevel"
+                    },
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "x",
+                        "cutDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "cutPoint": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "cutRemoval": "1",
+                        "edge": "3",
+                        "type": "objectBevel"
+                    },
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "y",
+                        "cutDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "cutPoint": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "cutRemoval": "1",
+                        "edge": "0",
+                        "type": "objectBevel"
+                    },
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "y",
+                        "cutDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "cutPoint": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "cutRemoval": "1",
+                        "edge": "3",
+                        "type": "objectBevel"
+                    }
+                ],
+                "name": "pole",
+                "remanentMag": 0,
+                "segments": [
+                    4,
+                    4,
+                    4
+                ],
+                "shapeButton": {},
+                "size": [
+                    50,
+                    50,
+                    50
+                ],
+                "stlCentroid": [],
+                "stlFaces": [],
+                "stlVertices": [],
+                "transforms": [
+                    {
+                        "_super": "transform",
+                        "id": "nCLWF8v9haGDMb3C",
+                        "model": "symmetryTransform",
+                        "name": "Symmetry",
+                        "symmetryPlane": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "symmetryPoint": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "symmetryType": "parallel",
+                        "type": "symmetryTransform"
+                    }
+                ],
+                "type": "cuboid"
+            },
+            "poleWidth": 40,
+            "transforms": []
+        },
         "electronTrajectoryReport": {
+            "energy": 1,
             "finalBeamPosition": 100,
-            "initialAngles": [0.0, 0.0],
-            "initialPosition": [-100, 0.0, 0]
+            "hidePanel": false,
+            "inProgressText": "Calculating",
+            "initialAngles": [
+                0,
+                0
+            ],
+            "initialPosition": [
+                -100,
+                0,
+                0
+            ],
+            "lastModified": 1681320038121,
+            "numPoints": 101
         },
         "fieldDisplay": {
             "colorMap": "jet",
             "scaling": "uniform"
         },
+        "fieldIntegralReport": {},
         "fieldLineoutAnimation": {
-            "plotAxis": "x"
+            "fieldPath": {
+                "_super": "fieldPath",
+                "begin": [
+                    -60,
+                    0,
+                    3
+                ],
+                "end": [
+                    60,
+                    0,
+                    3
+                ],
+                "id": "iaeAwpyajiVrI9Ou9d5m9oxjmi4UbBYe",
+                "name": "X-Axis Offset",
+                "numPoints": 101,
+                "type": "linePath"
+            },
+            "fieldPaths": [],
+            "fieldType": "B",
+            "inProgressText": "Calculating",
+            "jobRunMode": "parallel",
+            "lastModified": 1681314356798,
+            "plotAxis": "x",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 32
         },
         "fieldPaths": {
-            "path": "line",
             "paths": [
                 {
                     "_super": "fieldPath",
-                    "begin": [-60, 0, 10],
-                    "end": [60, 0, 10],
-                    "id": 0,
-                    "name": "X Axis Offset",
+                    "begin": [
+                        -60,
+                        0,
+                        3
+                    ],
+                    "end": [
+                        60,
+                        0,
+                        3
+                    ],
+                    "id": "iaeAwpyajiVrI9Ou9d5m9oxjmi4UbBYe",
+                    "name": "X-Axis Offset",
                     "numPoints": 101,
-                    "type": "line"
+                    "type": "linePath"
+                }
+            ]
+        },
+        "freehand": {},
+        "geometryReport": {
+            "doGenerate": "0",
+            "id": "OAXVHdpS0yKKFCpo",
+            "isSolvable": "1",
+            "lastModified": 1681320038121,
+            "name": "Parameterized C-Bend Dipole",
+            "objects": [
+                {
+                    "_super": "geomObject",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        30
+                    ],
+                    "color": "#0000ff",
+                    "fillets": [],
+                    "groupId": "Jmbsuq59t4EWDwtB",
+                    "h_m_curve": null,
+                    "id": "RYvXZYlNtscL7dd2",
+                    "layoutShape": "rect",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "Xc06",
+                    "materialFile": "",
+                    "modifications": [
+                        {
+                            "amountHoriz": 8,
+                            "amountVert": 8,
+                            "cutAxis": "x",
+                            "cutDir": [
+                                0,
+                                0,
+                                1
+                            ],
+                            "cutPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "cutRemoval": "1",
+                            "edge": "2",
+                            "type": "objectBevel"
+                        },
+                        {
+                            "amountHoriz": 8,
+                            "amountVert": 8,
+                            "cutAxis": "x",
+                            "cutDir": [
+                                0,
+                                0,
+                                1
+                            ],
+                            "cutPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "cutRemoval": "1",
+                            "edge": "3",
+                            "type": "objectBevel"
+                        },
+                        {
+                            "amountHoriz": 8,
+                            "amountVert": 8,
+                            "cutAxis": "y",
+                            "cutDir": [
+                                0,
+                                0,
+                                1
+                            ],
+                            "cutPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "cutRemoval": "1",
+                            "edge": "0",
+                            "type": "objectBevel"
+                        },
+                        {
+                            "amountHoriz": 8,
+                            "amountVert": 8,
+                            "cutAxis": "y",
+                            "cutDir": [
+                                0,
+                                0,
+                                1
+                            ],
+                            "cutPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "cutRemoval": "1",
+                            "edge": "3",
+                            "type": "objectBevel"
+                        }
+                    ],
+                    "name": "pole",
+                    "remanentMag": 0,
+                    "segments": [
+                        4,
+                        4,
+                        4
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        50,
+                        50,
+                        50
+                    ],
+                    "stlCentroid": [],
+                    "stlFaces": [],
+                    "stlVertices": [],
+                    "transforms": [
+                        {
+                            "_super": "transform",
+                            "id": "nCLWF8v9haGDMb3C",
+                            "model": "symmetryTransform",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                0,
+                                0,
+                                1
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "parallel",
+                            "type": "symmetryTransform"
+                        }
+                    ],
+                    "type": "cuboid"
+                },
+                {
+                    "_super": "stemmed",
+                    "area": 25125,
+                    "armHeight": 50,
+                    "armPosition": "1",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        66.25,
+                        0
+                    ],
+                    "color": "#0000ff",
+                    "extrusionAxis": "x",
+                    "extrusionAxisSegments": 2,
+                    "fillets": [],
+                    "groupId": "Jmbsuq59t4EWDwtB",
+                    "h_m_curve": null,
+                    "heightAxis": "z",
+                    "id": "HmtykosSeXLK1DRm",
+                    "layoutShape": "polygon",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "Xc06",
+                    "materialFile": "",
+                    "modifications": [],
+                    "name": "core",
+                    "points": [
+                        [
+                            157.5,
+                            -105
+                        ],
+                        [
+                            -25,
+                            -105
+                        ],
+                        [
+                            -25,
+                            -55
+                        ],
+                        [
+                            95,
+                            -55
+                        ],
+                        [
+                            95,
+                            55
+                        ],
+                        [
+                            -25,
+                            55
+                        ],
+                        [
+                            -25,
+                            105
+                        ],
+                        [
+                            157.5,
+                            105
+                        ],
+                        [
+                            157.5,
+                            -105
+                        ]
+                    ],
+                    "remanentMag": 0,
+                    "segments": [
+                        "2",
+                        "1",
+                        "1"
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        50,
+                        182.5,
+                        210
+                    ],
+                    "stemPosition": "1",
+                    "stemWidth": 62.5,
+                    "stlCentroid": [],
+                    "stlFaces": [],
+                    "stlVertices": [],
+                    "transforms": [],
+                    "triangulationLevel": 0.85,
+                    "type": "cee",
+                    "widthAxis": "y"
+                },
+                {
+                    "_super": "radiaObject",
+                    "axis": "z",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        126.25,
+                        0
+                    ],
+                    "color": "#ff0000",
+                    "currentDensity": -0.54421768707482,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "SQxTmUYEiAPrWy2q",
+                    "h_m_curve": null,
+                    "height": 105,
+                    "id": "lpjAHPssJE4GLL8M",
+                    "layoutShape": "rect",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "modifications": [],
+                    "name": "coil",
+                    "numSegments": 3,
+                    "planeAxis1": "x",
+                    "planeAxis2": "y",
+                    "radii": [
+                        5,
+                        40
+                    ],
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        50,
+                        62.5
+                    ],
+                    "size": [
+                        130,
+                        142.5,
+                        105
+                    ],
+                    "stlCentroid": [],
+                    "stlFaces": [],
+                    "stlVertices": [],
+                    "transforms": [],
+                    "type": "racetrack"
+                },
+                {
+                    "_super": "radiaObject",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "color": "#cccccc",
+                    "fillets": [],
+                    "groupId": "SQxTmUYEiAPrWy2q",
+                    "h_m_curve": null,
+                    "id": "Jmbsuq59t4EWDwtB",
+                    "layoutShape": "rect",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "members": [
+                        "HmtykosSeXLK1DRm",
+                        "RYvXZYlNtscL7dd2"
+                    ],
+                    "model": "geomGroup",
+                    "modifications": [],
+                    "name": "core + pole",
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "size": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "stlCentroid": [],
+                    "stlFaces": [],
+                    "stlVertices": [],
+                    "transforms": [],
+                    "type": "geomGroup"
+                },
+                {
+                    "_super": "radiaObject",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "color": "#cccccc",
+                    "fillets": [],
+                    "groupId": "",
+                    "h_m_curve": null,
+                    "id": "SQxTmUYEiAPrWy2q",
+                    "layoutShape": "rect",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "members": [
+                        "Jmbsuq59t4EWDwtB",
+                        "lpjAHPssJE4GLL8M"
+                    ],
+                    "model": "geomGroup",
+                    "modifications": [],
+                    "name": "magnet + coil",
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "size": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "stlCentroid": [],
+                    "stlFaces": [],
+                    "stlVertices": [],
+                    "transforms": [],
+                    "type": "geomGroup"
                 }
             ]
         },
         "magnetDisplay": {
+            "alpha": 1,
             "bgColor": "#ffffff",
-            "fieldPoints": [],
             "fieldType": "M",
             "notes": "",
             "viewType": "objects"
         },
-       "geometryReport": {
-           "isSolvable": "1",
-            "name": "Dipole",
-            "beamAxis": "x",
-            "objects": [
-                {
-                    "color": "#ff0000",
-                    "id": "1c3a32be-c19b-42f8-a303-28fecaa5c1f0",
-                    "material": "",
-                    "name": "Dipole.Geom.0.polygons",
-                    "type": ""
-                },
-                {
-                    "color": "#0000ff",
-                    "id": "f904f1d1-93d5-4a84-bafb-cebf9efa0b35",
-                    "material": "",
-                    "name": "Dipole.Geom.1.polygons",
-                    "type": ""
-                }
-            ]
-        },
         "simFolder": {},
         "simulation": {
-            "appMode": "imported",
+            "appMode": "default",
             "beamAxis": "x",
+            "coordinateSystem": "standard",
+            "dipoleType": "dipoleC",
             "documentationUrl": "",
             "enableKickMaps": "0",
-            "exampleName": "Dipole",
-            "folder": "/Examples",
+            "folder": "/Examples/Accelerator Magnets",
+            "freehandType": "freehand",
             "heightAxis": "z",
-            "isExample": true,
-            "name": "Dipole",
+            "isExample":true,
+            "magnetType": "dipole",
+            "name": "Parameterized C-Bend Dipole",
             "notes": "",
-            "outOfSessionSimulationId": ""
+            "undulatorType": "undulatorBasic",
+            "widthAxis": "y"
+        },
+        "solverAnimation": {
+            "jobRunMode": "parallel",
+            "lastSolved": "-1",
+            "maxIterations": 1500,
+            "method": "4",
+            "mode": "solve",
+            "precision": 0.0001,
+            "result": "",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 32
+        },
+        "threeDBuilder": {
+            "autoFit": true,
+            "elevation": "front",
+            "snapGridSize": "1",
+            "snapToGrid": false
         }
     },
-    "simulationType": "radia"
+    "simulationType": "radia",
+    "version": "1681274445.6685493"
 }

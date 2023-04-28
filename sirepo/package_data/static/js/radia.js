@@ -953,15 +953,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
             $scope.showImportModal = function() {
                 $('#simulation-import').modal('show');
             };
-            $scope.isImported = function() {
-                let sim = appState.models.simulation || {};
-                return isRawExample(sim.exampleName) || sim.dmpImportFile;
-            };
-
-            // "raw" examples are from radia_examples.py - a temporary repository
-            function isRawExample(name) {
-                return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) >= 0;
-            }
+            $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
         }
     };
 });
@@ -2216,12 +2208,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 radiaService.objBounds = bounds;
 
                 const acfg = {};
+                const scale = SIREPO.APP_SCHEMA.constants.objectScale;
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
-                    acfg[dim].label = dim + ' [mm]';
-                    acfg[dim].max = bounds[2 * i + 1];
-                    acfg[dim].min = bounds[2 * i];
+                    acfg[dim].label = dim + ' [m]';
+                    acfg[dim].max = scale * bounds[2 * i + 1];
+                    acfg[dim].min = scale * bounds[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
                     acfg[dim].showCentral = true;

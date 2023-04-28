@@ -168,6 +168,8 @@ class MadxOutputFileIterator(lattice.ModelIterator):
         self.model_index = PKDict()
 
     def field(self, model, field_schema, field):
+        if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
+            return
         self.field_index += 1
         if field_schema[1] == "OutputFile":
             b = "{}{}.{}".format(
