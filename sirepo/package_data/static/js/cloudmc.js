@@ -1774,12 +1774,6 @@ SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
         $scope.modelData = appState.models[$scope.modelName];
     }
 
-    $scope.watchFields = [
-        [
-            'material.standardType',
-        ], updateMaterial,
-    ];
-
     function updateMaterial() {
         const t = appState.models[$scope.modelName].standardType;
         if (t !== 'None') {
@@ -1787,6 +1781,15 @@ SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
             appState.models[$scope.modelName] = appState.setModelDefaults({name: $scope.modelData.name}, t);
         }
     }
+
+    // only update when the user makes a change, not on the initial model load
+    $scope.$watch('modelData.standardType', (n, o) => {
+        if (o === undefined || o === n) {
+            return;
+        }
+        updateMaterial();
+    });
+
 });
 
 SIREPO.app.directive('simpleListEditor', function(panelState) {
