@@ -1772,7 +1772,7 @@ SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
-    }
+    };
 
     function updateMaterial() {
         const t = appState.models[$scope.modelName].standardType;
