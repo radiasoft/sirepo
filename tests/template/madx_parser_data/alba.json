@@ -208,6 +208,7 @@
         "commands": [
             {
                 "_id": 101,
+                "_super": "_COMMAND",
                 "_type": "beam",
                 "bcurrent": 0.0,
                 "beta": 0.0,
@@ -222,6 +223,7 @@
                 "ey": 1.0,
                 "eyn": 0.0,
                 "gamma": 0.0,
+                "isDisabled": "0",
                 "kbunch": 1,
                 "mass": 0.0005109989461,
                 "name": null,
@@ -235,12 +237,14 @@
             },
             {
                 "_id": 102,
+                "_super": "_COMMAND",
                 "_type": "option",
                 "bborbit": "",
                 "debug": "",
                 "echo": "",
                 "echomacro": "",
                 "info": "",
+                "isDisabled": "0",
                 "name": null,
                 "no_fatal_stop": "",
                 "rbarc": "0",
@@ -257,6 +261,7 @@
             },
             {
                 "_id": 164,
+                "_super": "_COMMAND",
                 "_type": "twiss",
                 "alfx": 0.0,
                 "alfy": 0.0,
@@ -278,6 +283,7 @@
                 "dy": 0.0,
                 "energy": 0.0,
                 "file": "",
+                "isDisabled": "0",
                 "keeporbit": "",
                 "line": "",
                 "mux": 0.0,
@@ -347,8 +353,10 @@
             },
             {
                 "_id": 165,
+                "_super": "_COMMAND",
                 "_type": "emit",
                 "deltap": 0.0,
+                "isDisabled": "0",
                 "name": null,
                 "tol": 1.000001
             }
