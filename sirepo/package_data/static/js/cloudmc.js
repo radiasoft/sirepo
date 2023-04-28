@@ -1278,7 +1278,7 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
                 <tr>
                   <td style="width: 15em">
                     <b>Add Component</b>
-                      <select class="form-control" data-ng-model="selectedComponent"
+                      <select class="form-control material-components" data-ng-model="selectedComponent"
                         data-ng-options="item[0] as item[1] for item in componentEnum"
                         data-ng-change="addComponent()"></select>
                   </td>
@@ -1770,24 +1770,43 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
 
+    let name = null;
+
     $scope.whenSelected = () => {
-        $scope.modelData = appState.models[$scope.modelName];
+        $scope.appState = appState;
+        name = model().name;
+        updateEditor();
     };
 
+    function isStd() {
+        return model() && model().standardType !== 'None'
+    }
+
+    function model() {
+        return appState.models[$scope.modelName];
+    }
+
+    function updateEditor() {
+        $('.material-components').prop('disabled', isStd());
+    }
+
     function updateMaterial() {
-        const t = appState.models[$scope.modelName].standardType;
-        if (t !== 'None') {
-            // don't change the name as it came from the volume
-            appState.models[$scope.modelName] = appState.setModelDefaults({name: $scope.modelData.name}, t);
+        if (! model()) {
+            return;
+        }
+        if (isStd()) {
+            // don't change the name as it came from the loaded volume
+            appState.models[$scope.modelName] = appState.setModelDefaults({name: name}, model().standardType);
         }
     }
 
     // only update when the user makes a change, not on the initial model load
-    $scope.$watch('modelData.standardType', (n, o) => {
-        if (o === undefined || o === n) {
+    $scope.$watch(`appState.models['${$scope.modelName}']['standardType']`, (newVal, oldVal) => {
+        if (oldVal === undefined || oldVal === newVal) {
             return;
         }
         updateMaterial();
+        updateEditor();
     });
 
 });
