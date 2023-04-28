@@ -34,6 +34,8 @@ class ModelIterator(object):
 class ElementIterator(ModelIterator):
     """Iterate all fields, adding any set to non-default values to the results."""
 
+    IS_DISABLED_FIELD = "isDisabled"
+
     def __init__(self, filename_map, formatter):
         self.result = []
         self.filename_map = filename_map
@@ -43,6 +45,8 @@ class ElementIterator(ModelIterator):
         self.result.append([model, self.fields])
 
     def field(self, model, field_schema, field):
+        if field == self.IS_DISABLED_FIELD or field == "_super":
+            return
         self.field_index += 1
         if self.is_ignore_field(field) or self.__is_default(model, field_schema, field):
             return
@@ -704,6 +708,7 @@ class LatticeUtil(object):
         want_name=True,
         want_var_assign=False,
         madx_name=False,
+        comment="//",
     ):
         """Render lattice elements."""
         from sirepo.template.code_variable import CodeVar
@@ -712,6 +717,11 @@ class LatticeUtil(object):
         for el in fields:
             # el is [model, [[f, v], [f, v]...]]
             el_type = self.type_for_data(el[0])
+            if (
+                ElementIterator.IS_DISABLED_FIELD in el[0]
+                and el[0][ElementIterator.IS_DISABLED_FIELD] == "1"
+            ):
+                res += comment + " "
             if want_name:
                 name = self.__format_name(el[0].name, quote_name, madx_name)
                 res += "{}: {},".format(name, el_type)

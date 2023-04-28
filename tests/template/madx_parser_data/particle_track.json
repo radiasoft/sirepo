@@ -113,6 +113,7 @@
         "commands": [
             {
                 "_id": 126,
+                "_super": "_COMMAND",
                 "_type": "beam",
                 "bcurrent": 0.0,
                 "beta": 0.0,
@@ -127,6 +128,7 @@
                 "ey": 1.0,
                 "eyn": 0.0,
                 "gamma": "GAMMA",
+                "isDisabled": "0",
                 "kbunch": 1,
                 "mass": "E0*NN",
                 "name": null,
@@ -140,12 +142,14 @@
             },
             {
                 "_id": 128,
+                "_super": "_COMMAND",
                 "_type": "select",
                 "class": "",
                 "clear": "1",
                 "column": "",
                 "flag": "TWISS",
                 "full": "0",
+                "isDisabled": "0",
                 "name": null,
                 "pattern": "",
                 "range": "",
@@ -155,12 +159,14 @@
             },
             {
                 "_id": 129,
+                "_super": "_COMMAND",
                 "_type": "select",
                 "class": "",
                 "clear": "0",
                 "column": "name, keyword, s, betx, bety, k1l, alfx, alfy, mux, muy, Dx, Dy, Dpx, Dpy, x, px, y, py, L, angle, gamma",
                 "flag": "twiss",
                 "full": "0",
+                "isDisabled": "0",
                 "name": null,
                 "pattern": "",
                 "range": "",
@@ -170,6 +176,7 @@
             },
             {
                 "_id": 131,
+                "_super": "_COMMAND",
                 "_type": "twiss",
                 "alfx": -3.237,
                 "alfy": 0.986,
@@ -191,6 +198,7 @@
                 "dy": 0.0,
                 "energy": 0.0,
                 "file": "1",
+                "isDisabled": "0",
                 "keeporbit": "",
                 "line": "",
                 "mux": 0.0,
@@ -260,7 +268,9 @@
             },
             {
                 "_id": 132,
+                "_super": "_COMMAND",
                 "_type": "ptc_create_universe",
+                "isDisabled": "0",
                 "name": null,
                 "ntpsa": "0",
                 "sector_nmul": -1,
@@ -269,10 +279,12 @@
             },
             {
                 "_id": 133,
+                "_super": "_COMMAND",
                 "_type": "ptc_create_layout",
                 "errors_out": "0",
                 "even": "1",
                 "exact": "0",
+                "isDisabled": "0",
                 "magnet_name": "",
                 "method": "2",
                 "model": "2",
@@ -286,6 +298,7 @@
             },
             {
                 "_id": 136,
+                "_super": "_COMMAND",
                 "_type": "ptc_track",
                 "beam_envelope": "0",
                 "closed_orbit": "0",
@@ -294,6 +307,7 @@
                 "ffile": "1",
                 "file": "1",
                 "icase": "6",
+                "isDisabled": "0",
                 "maxaper": "0, 0, 0, 0, 0, 0",
                 "name": null,
                 "norm_no": 1,
@@ -309,12 +323,16 @@
             },
             {
                 "_id": 137,
+                "_super": "_COMMAND",
                 "_type": "ptc_track_end",
+                "isDisabled": "0",
                 "name": null
             },
             {
                 "_id": 138,
+                "_super": "_COMMAND",
                 "_type": "ptc_end",
+                "isDisabled": "0",
                 "name": null
             }
         ],
