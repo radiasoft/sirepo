@@ -109,6 +109,7 @@
             "pump_waist": ["Pump Waist [m]", "Float", 0.00164],
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
             "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"],
+            "pump_gaussian_order": ["Pump Gaussian Order", "Float", 2.0],
             "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0]
