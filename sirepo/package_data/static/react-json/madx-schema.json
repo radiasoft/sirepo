@@ -6402,25 +6402,6 @@
                 ]
             }
         },
-        "OptionalBoolean": {
-            "base": "Enum",
-            "config": {
-                "allowedValues": [
-                    [
-                        "",
-                        "NOT SELECTED"
-                    ],
-                    [
-                        "1",
-                        "Yes"
-                    ],
-                    [
-                        "0",
-                        "No"
-                    ]
-                ]
-            }
-        },
         "PtccreatelayoutModel": {
             "base": "Enum",
             "config": {
@@ -6691,7 +6672,6 @@
                                                         "config": {
                                                             "report": "bunchReport1",
                                                             "dependencies": [
-                                                                "simulationSettings.*",
                                                                 "lattice.*",
                                                                 "elements.*",
                                                                 "bunch.*"
@@ -6747,7 +6727,6 @@
                                                         "config": {
                                                             "report": "bunchReport2",
                                                             "dependencies": [
-                                                                "simulationSettings.*",
                                                                 "lattice.*",
                                                                 "elements.*",
                                                                 "bunch.*"
@@ -6803,7 +6782,6 @@
                                                         "config": {
                                                             "report": "bunchReport3",
                                                             "dependencies": [
-                                                                "simulationSettings.*",
                                                                 "lattice.*",
                                                                 "elements.*",
                                                                 "bunch.*"
@@ -6859,7 +6837,6 @@
                                                         "config": {
                                                             "report": "bunchReport4",
                                                             "dependencies": [
-                                                                "simulationSettings.*",
                                                                 "lattice.*",
                                                                 "elements.*",
                                                                 "bunch.*"
@@ -6906,30 +6883,6 @@
                                             },
                                             "_NAME": "bunchReport4"
                                         }
-                                    ]
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "name": "control",
-                        "title": "Control",
-                        "items": [
-                            {
-                                "layout": "waterfall",
-                                "config": {
-                                    "breakpoints": {
-                                        "sm": 1,
-                                        "md": 2,
-                                        "xl": 3
-                                    },
-                                    "gutters": {
-                                        "horizontal": ".5em",
-                                        "vertical": ".5em"
-                                    },
-                                    "padding": ".5em",
-                                    "items": [
-                                        
                                     ]
                                 }
                             }
@@ -7051,6 +7004,7 @@
                             }
                         ]
                     }
+                    
                 ]
             }
         }

@@ -150,7 +150,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         return (
             <>
                 <Portal targetId={NavbarRightContainerId} className="order-1">
-                    <Nav variant="tabs" defaultActiveKey={selectedTabName}>
+                    <Nav variant="tabs" navbar={true} defaultActiveKey={selectedTabName}>
                         {
                             this.tabs.map(tab => {
                                 let route = routerHelper.getRelativePath(tab.name);

@@ -89,7 +89,7 @@ export class ArrayElementEnumInputLayout extends InputLayout<ArrayElementEnumInp
         let handleFactory = useContext(CHandleFactory);
         let depHandle = handleFactory.createHandle(new Dependency(this.config.arrayDependency), StoreTypes.Models).hook();
 
-        let optionValues = ((depHandle.value || []) as any[]).map(rv => {
+        let optionValues = ((depHandle.value || []) as any[]).map(x => x.item).map(rv => {
             return {
                 display: `${rv[this.config.displayFieldName || this.config.valueFieldName]}`,
                 value: `${rv[this.config.valueFieldName]}`
@@ -106,7 +106,7 @@ export class ArrayElementEnumInputLayout extends InputLayout<ArrayElementEnumInp
             props.onChange(event.target.value);
         }
         const options = optionValues.map(v => (
-            <option key={v.value} value={v.value}>
+            <option key={v.display} value={v.value}>
                 {v.display}
             </option>
         ));
