@@ -16,8 +16,6 @@ INITIAL_REPORTS = frozenset(
     )
 )
 
-WATCHPOINT_REPORT = "watchpointReport"
-
 
 class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(("colorMap",))
@@ -38,9 +36,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "plotAnimation",
                 "plot2Animation",
                 "simulation",
-                "watchpointReport",
             ),
         )
+        for n in dm:
+            if "beamlineAnimation" in n:
+                if "dataType" in dm[n]:
+                    del dm[n]["dataType"]
+                cls.update_model_defaults(dm[n], cls.WATCHPOINT_REPORT)
         for m in dm.beamline:
             if m.type == "crystal" and "n0" in m and not isinstance(m.n0, list):
                 del m["n0"]
@@ -53,10 +55,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         return INITIAL_REPORTS
 
     @classmethod
-    def is_watchpoint(cls, name):
-        return cls.WATCHPOINT_REPORT in name
-
-    @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model in (
             "crystalAnimation",
@@ -65,15 +63,20 @@ class SimData(sirepo.sim_data.SimDataBase):
             "plot2Animation",
         ):
             return "crystalAnimation"
+        if analysis_model in (
+            "initialIntensityReport",
+            "initialPhaseReport",
+        ):
+            return "initialIntensityReport"
+        if "beamlineAnimation" in analysis_model:
+            return "beamlineAnimation"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
-        if r in INITIAL_REPORTS or cls.is_watchpoint(r):
-            res += ["laserPulse"] + cls._non_analysis_fields(data, r)
-            if cls.is_watchpoint(r):
-                res.append("beamline")
+        if r in INITIAL_REPORTS:
+            res += ["laserPulse"]
         return res
 
     @classmethod

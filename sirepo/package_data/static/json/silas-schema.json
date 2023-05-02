@@ -9,9 +9,14 @@
             ["new", "New"],
             ["reuse", "Use Existing"]
         ],
-        "DataType": [
+        "CrystalPlot": [
+            ["excited_states", "Excited States by Slice"],
+            ["excited_states_longitudinal", "Excited States Longitudinal Distribution"]
+        ],
+        "WatchpointPlot": [
             ["intensity", "Intensity"],
-            ["phase", "Phase"]
+            ["phase", "Phase"],
+            ["photons", "Number of Photons"]
         ],
         "DistributionType": [
             ["gaussian", "Gaussian"],
@@ -21,10 +26,9 @@
             ["1", "Linear Horizontal"]
         ],
         "PropagationType": [
-            ["abcd_lct", "ABCD LCT"],
-            ["attenuate", "Attenuate"],
             ["default", "Default"],
-            ["gain_calc", "Gain Calculation"],
+            ["abcd_lct", "ABCD LCT"],
+            ["gain_calc", "Laser Gain Calculation Only"],
             ["n0n2_srw", "N0N2 SRW"],
             ["n0n2_lct", "N0N2 LCT"]
         ],
@@ -77,6 +81,7 @@
         }
     },
     "frameIdFields": {
+        "beamlineAnimation": ["watchpointPlot", "crystalPlot"],
         "crystalAnimation": [],
         "crystal3dAnimation": [],
         "plotAnimation": [],
@@ -101,7 +106,7 @@
             "D": ["D", "Float", 0.99892682],
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
-            "radial_n2": ["Include Transverse Variation", "Boolean", "0"],
+            "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0"],
             "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
             "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
             "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
@@ -109,6 +114,7 @@
             "pump_waist": ["Pump Waist [m]", "Float", 0.00164],
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
             "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"],
+            "pump_gaussian_order": ["Pump Gaussian Order", "Float", 2.0],
             "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0]
@@ -151,13 +157,11 @@
             "sigy_waist": ["Vertical RMS Waist Size [m]", "Float", 0.001]
         },
         "initialIntensityReport": {
-            "dataType": ["Value to Plot", "DataType", "intensity"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "sliceNumber": ["Slice Number", "SliceNumber", 0]
         },
         "initialPhaseReport": {
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "sliceNumber": ["Slice Number", "SliceNumber", 0]
+            "_super": ["_", "model", "initialIntensityReport"]
         },
         "lens": {
             "_super": ["_", "model", "beamElement"],
@@ -178,7 +182,9 @@
             "title": ["Element Name", "SafePath", "Watchpoint"]
         },
         "watchpointReport": {
-            "_super": ["_", "model", "initialIntensityReport"]
+            "_super": ["_", "model", "initialIntensityReport"],
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "intensity"],
+            "crystalPlot": ["Value to Plot", "CrystalPlot", "excited_states"]
         }
     },
     "view": {
@@ -202,18 +208,19 @@
                     "B",
                     "C",
                     "D",
-                    "l_scale"
-                ]],
-                ["Gain", [
+                    "l_scale",
                     "radial_n2",
-                    "calc_gain",
+                    "calc_gain"
+                ]],
+                ["Laser Gain", [
                     "inversion_n_cells",
                     "inversion_mesh_extent",
                     "crystal_alpha",
                     "pump_type",
                     "pump_waist",
                     "pump_wavelength",
-                    "pump_energy"
+                    "pump_energy",
+                    "pump_gaussian_order"
                 ]]
             ]
         },
@@ -339,7 +346,8 @@
         "watchpointReport": {
             "_super": ["_", "view", "initialIntensityReport"],
             "advanced": [
-                "dataType"
+                "watchpointPlot",
+                "crystalPlot"
             ]
         }
     }

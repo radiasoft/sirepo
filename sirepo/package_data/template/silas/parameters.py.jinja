@@ -15,6 +15,45 @@ class Mirror:
         return laser_pulse
 
 
+class Watchpoint:
+    def __init__(self):
+        self.count = 0
+
+    def propagate(self, laser_pulse):
+        self.save_wavefront(laser_pulse)
+        return laser_pulse
+
+    def save_wavefront(self, pulse):
+        def intensity(pulse, idx):
+            return srwl_uti_data.calc_int_from_elec(pulse.slice_wfr(idx)).tolist()
+
+        def phase(pulse, idx):
+            wavefront =  pulse.slice_wfr(idx)
+            z, m = srwl_uti_data.calc_int_from_wfr(
+                wavefront,
+                _int_type=4,
+                _pr=False,
+            )
+            return numpy.array(z).reshape(wavefront.mesh.ny, wavefront.mesh.nx).tolist()
+
+        def photons(pulse, idx):
+            return numpy.reshape(
+                pulse.slice[idx].n_photons_2d.mesh,
+                (pulse.slice_wfr(0).mesh.ny, pulse.slice_wfr(0).mesh.nx),
+            )
+
+        def ranges(pulse, idx):
+            return laser_pulse_ranges(pulse.slice_wfr(idx))
+
+        h5_data = PKDict()
+        for s in range(pulse.nslice):
+            h5_data[s] = PKDict()
+            for x in ("ranges", "intensity", "phase", "photons"):
+                h5_data[s][x] = locals()[x](pulse, s)
+        template_common.write_dict_to_h5(h5_data, f"results{self.count}.h5")
+        self.count += 1
+
+
 def interpolate_across_slice(length, nslice, values):
     return scipy.interpolate.splev(
         (length / nslice) * (numpy.arange(nslice) + 0.5),
@@ -24,38 +63,29 @@ def interpolate_across_slice(length, nslice, values):
     ).tolist()
 
 
+def laser_pulse_ranges(wavefront):
+    m = wavefront.mesh
+    return {
+        "x": [m.xStart, m.xFin],
+        "y": [m.yStart, m.yFin],
+    }
+
+
 def propagate(pulse, elements, beamline):
+    crystal_count = 0
     for idx in beamline:
         e = elements[idx]
         pulse = e[0].propagate(pulse, *e[1])
+        if isinstance(e[0], Crystal):
+            h5_data = PKDict()
+            for s in range(e[0].nslice):
+                h5_data[s] = PKDict(
+                    excited_states=e[0].slice[s].pop_inversion_mesh,
+                    ranges=laser_pulse_ranges(pulse.slice_wfr(0)),
+                )
+            crystal_count += 1
+            template_common.write_dict_to_h5(h5_data, f"crystal{crystal_count}.h5")
     return pulse
-
-
-def save_wavefront(pulse):
-    def intensity(wavefront):
-        return srwl_uti_data.calc_int_from_elec(wavefront).tolist()
-
-
-    def phase(wavefront):
-        z, m = srwl_uti_data.calc_int_from_wfr(
-            wavefront,
-            _int_type=4,
-            _pr=False,
-        )
-        return numpy.array(z).reshape(wavefront.mesh.ny, wavefront.mesh.nx).tolist()
-
-
-    def ranges(wavefront):
-        m = wavefront.mesh
-        return {
-            "x": [m.xStart, m.xFin],
-            "y": [m.yStart, m.yFin],
-        }
-
-    h5_data = PKDict()
-    for x in {{ dataPaths }}:
-        h5_data[x] = locals()[x](pulse.slice_wfr({{ sliceNumber }}))
-    template_common.write_dict_to_h5(h5_data, "{{ resultsFile }}")
 
 
 pulse = LaserPulse(
@@ -86,10 +116,6 @@ pulse = LaserPulse(
     {% endif %}
 )
 
-{% if report in ("initialIntensityReport","initialPhaseReport")  %}
-save_wavefront(pulse)
-{% else %}
-
 elements = [
     {% filter indent(width=4) %}
     {{ beamlineElements }}
@@ -98,5 +124,4 @@ elements = [
 
 beamline = [{{ beamlineIndices }}]
 
-save_wavefront(propagate(pulse, elements, beamline))
-{% endif %}
+propagate(pulse, elements, beamline)

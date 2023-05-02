@@ -19,26 +19,65 @@ import numpy
 import re
 import sirepo.sim_data
 
+# TODO(pjm): currently aligned with rslaser version
+# git checkout `git rev-list -n 1 --first-parent --before="2009-07-27 13:37" master`
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = "crystal.csv"
-_RESULTS_FILE = "results.h5"
-
-_DATA_PATHS = PKDict(
-    crystalAnimation=(),
-    initialIntensityReport=("ranges", "intensity"),
-    initialPhaseReport=("ranges", "phase"),
-    watchpointReport=("ranges", "intensity", "phase"),
-)
+_RESULTS_FILE = "results{}.h5"
+_CRYSTAL_FILE = "crystal{}.h5"
 
 
-def background_percent_complete(report, run_dir, is_running):
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    res = PKDict(
-        percentComplete=0,
-        frameCount=0,
+def _beamline_animation_percent_complete(run_dir, res, data):
+    res.outputInfo = []
+    if run_dir.join(_RESULTS_FILE.format(0)).exists():
+        res.outputInfo.append(
+            PKDict(
+                modelKey="beamlineAnimation0",
+                filename=_RESULTS_FILE.format(0),
+                id=0,
+                frameCount=data.models.laserPulse.nslice,
+            )
+        )
+        res.frameCount += 1
+    count = PKDict(
+        watch=1,
+        crystal=1,
     )
-    assert report == "crystalAnimation"
+    for e in data.models.beamline:
+        if e.type == "watch":
+            if run_dir.join(_RESULTS_FILE.format(count.watch)).exists():
+                res.outputInfo.append(
+                    PKDict(
+                        modelKey="beamlineAnimation{}".format(e.id),
+                        filename=_RESULTS_FILE.format(count.watch),
+                        id=e.id,
+                        frameCount=data.models.laserPulse.nslice,
+                    )
+                )
+                count.watch += 1
+                res.frameCount += 1
+            else:
+                break
+        elif e.type == "crystal":
+            if run_dir.join(_CRYSTAL_FILE.format(count.crystal)).exists():
+                res.outputInfo.append(
+                    PKDict(
+                        modelKey="beamlineAnimation{}".format(e.id),
+                        filename=_CRYSTAL_FILE.format(count.crystal),
+                        id=e.id,
+                        frameCount=e.nslice,
+                    )
+                )
+                count.crystal += 1
+                res.frameCount += 1
+
+    return res
+
+
+def _crystal_animation_percent_complete(run_dir, res, data):
+    assert data.report == "crystalAnimation"
     count = 0
     path = run_dir.join(_CRYSTAL_CSV_FILE)
     if path.exists():
@@ -61,6 +100,17 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
+def background_percent_complete(report, run_dir, is_running):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    res = PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
+    if report == "beamlineAnimation":
+        return _beamline_animation_percent_complete(run_dir, res, data)
+    return _crystal_animation_percent_complete(run_dir, res, data)
+
+
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
@@ -72,30 +122,76 @@ def get_data_file(run_dir, model, frame, options):
         return _CRYSTAL_CSV_FILE
     if model == "crystal3dAnimation":
         return "intensity.npy"
-    if model in (
-        "initialIntensityReport",
-        "initialPhaseReport",
-    ) or _SIM_DATA.is_watchpoint(model):
+    if (
+        model in _SIM_DATA.initial_reports()
+        # TODO(pjm): different result file for each beamlineAnimation
+        or "beamlineAnimation" in model
+    ):
         return _RESULTS_FILE
     raise AssertionError("unknown model={}".format(model))
+
+
+def prepare_sequential_output_file(run_dir, data):
+    if data.report in _SIM_DATA.initial_reports():
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            output_file = run_dir.join(_RESULTS_FILE.format(0))
+            if output_file.exists():
+                save_sequential_report_data(data, run_dir)
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
     if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
         data.report = "crystalAnimation"
     else:
-        data.report = model or _last_watchpoint(data) or "initialIntensityReport"
+        if model:
+            model = re.sub("beamlineAnimation", "watchpointReport", model)
+        data.report = model or ""
     return _generate_parameters_file(data)
 
 
-def save_sequential_report_data(run_dir, sim_in):
+def save_sequential_report_data(sim_in, run_dir):
     r = sim_in.report
     if r == "initialIntensityReport":
         _extract_initial_intensity_report(run_dir, sim_in)
     if r == "initialPhaseReport":
         _extract_initial_phase_report(run_dir, sim_in)
-    if _SIM_DATA.is_watchpoint(r):
-        _extract_watchpoint_report(run_dir, sim_in)
+
+
+def _report_to_file_index(sim_in, report):
+    m = re.search(r"beamlineAnimation(\d+)", report)
+    if not m:
+        raise AssertionError("invalid watch report: {}".format(report))
+    i = int(m.group(1))
+    if i == 0:
+        return 0, None
+    count_by_type = PKDict()
+    for e in sim_in.models.beamline:
+        if not e.type in count_by_type:
+            count_by_type[e.type] = 1
+        if e.id == i:
+            return count_by_type[e.type], e
+        count_by_type[e.type] += 1
+    raise AssertionError("{} report not found: {}".format(element_type, report))
+
+
+def sim_frame(frame_args):
+    r = frame_args.frameReport
+    frame_args.sim_in.report = r
+    count, element = _report_to_file_index(frame_args.sim_in, r)
+    if "beamlineAnimation" in r:
+        return _laser_pulse_plot(
+            frame_args.run_dir,
+            frame_args.crystalPlot
+            if element and element.type == "crystal"
+            else frame_args.watchpointPlot,
+            frame_args.sim_in,
+            count,
+            element,
+            frame_args.frameIndex,
+        )
+    raise AssertionError("unknown sim_frame report: {}".format(r))
 
 
 def sim_frame_crystal3dAnimation(frame_args):
@@ -165,45 +261,64 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
     )
 
 
-def _data_paths(report):
-    r = _SIM_DATA.WATCHPOINT_REPORT if _SIM_DATA.is_watchpoint(report) else report
-    return _DATA_PATHS[r]
-
-
 def _extract_initial_intensity_report(run_dir, sim_in):
     template_common.write_sequential_result(
-        _laser_pulse_plot(run_dir, "intensity", sim_in),
+        _laser_pulse_plot(
+            run_dir,
+            "intensity",
+            sim_in,
+            0,
+            None,
+            _slice_number(sim_in, sim_in.report),
+        ),
         run_dir=run_dir,
     )
 
 
 def _extract_initial_phase_report(run_dir, sim_in):
     template_common.write_sequential_result(
-        _laser_pulse_plot(run_dir, "phase", sim_in),
-        run_dir=run_dir,
-    )
-
-
-def _extract_watchpoint_report(run_dir, sim_in):
-    template_common.write_sequential_result(
         _laser_pulse_plot(
-            run_dir,
-            sim_in.models[sim_in.report].dataType,
-            sim_in,
+            run_dir, "phase", sim_in, 0, None, _slice_number(sim_in, sim_in.report)
         ),
         run_dir=run_dir,
     )
 
 
-def _laser_pulse_plot(run_dir, data_type, sim_in):
-    with h5py.File(run_dir.join(_RESULTS_FILE), "r") as f:
-        d = template_common.h5_to_dict(f)
+def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_index):
+    filename = _RESULTS_FILE
+    if element and element.type == "crystal":
+        filename = _CRYSTAL_FILE
+        if plot_type == "excited_states_longitudinal":
+            cell_volume = (
+                ((2 * element.inversion_mesh_extent) / element.inversion_n_cells) ** 2
+                * element.length
+                / element.nslice
+            )
+            with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
+                x = []
+                y = []
+                for idx in range(element.nslice):
+                    x.append(idx)
+                    y.append(
+                        numpy.sum(numpy.array(f[f"{idx}/excited_states"]) * cell_volume)
+                    )
+                return template_common.parameter_plot(
+                    x,
+                    [
+                        PKDict(
+                            points=y,
+                            label="Excited States",
+                        ),
+                    ],
+                    PKDict(),
+                )
+    with h5py.File(run_dir.join(filename.format(element_index)), "r") as f:
+        d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
-        z = d[data_type]
+        pkdp("d keys: {}", d.keys())
+        z = d[plot_type]
         return PKDict(
-            title=data_type.capitalize()
-            + " Slice #"
-            + str(_slice_number(sim_in, sim_in.report) + 1),
+            title=plot_type.capitalize() + " Slice #" + str(slice_index + 1),
             x_range=[r.x[0], r.x[1], len(z)],
             y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",
@@ -229,8 +344,9 @@ def _generate_beamline_elements(data):
         else:
             raise AssertionError("unknown element type={}".format(element.type))
 
-    state = PKDict(res="")
-    _iterate_beamline(state, data, _callback)
+    state = PKDict(res="(Watchpoint(), []),\n")
+    if data.report not in _SIM_DATA.initial_reports():
+        _iterate_beamline(state, data, _callback)
     return state.res
 
 
@@ -239,7 +355,10 @@ def _generate_beamline_indices(data):
         if dz:
             state.res.append(str(state.idx))
             state.idx += 1
-        if element.get("isDisabled") or element.type == "watch":
+        if element.get("isDisabled"):
+            return
+        if element.type == "watch":
+            state.res.append("0")
             return
         if element.type == "crystal":
             if element.origin == "new":
@@ -250,8 +369,9 @@ def _generate_beamline_indices(data):
         state.res.append(str(state.idx))
         state.idx += 1
 
-    state = PKDict(res=[], idx=0, id_to_index=PKDict())
-    _iterate_beamline(state, data, _callback)
+    state = PKDict(res=["0"], idx=1, id_to_index=PKDict())
+    if data.report not in _SIM_DATA.initial_reports():
+        _iterate_beamline(state, data, _callback)
     return ", ".join(state.res)
 
 
@@ -276,6 +396,7 @@ def _generate_crystal(crystal):
                     pump_wavelength={crystal.pump_wavelength},
                     pump_energy={crystal.pump_energy},
                     pump_type="{crystal.pump_type}",
+                    pump_gaussian_order={crystal.pump_gaussian_order},
                 ),
             ),
         ),
@@ -284,26 +405,19 @@ def _generate_crystal(crystal):
 
 
 def _generate_parameters_file(data):
-    r = data.report
     res, v = template_common.generate_parameters_file(data)
-    v.simId = data.models.simulation.simulationId
-    v.report = r
-    v.dataPaths = _data_paths(r)
-    v.laserPulse = data.models.laserPulse
-    v.resultsFile = _RESULTS_FILE
-    v.sliceNumber = _slice_number(data, r)
-    if r == "crystalAnimation":
+    if data.report == "crystalAnimation":
         v.crystalLength = _get_crystal(data).length
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
+    v.laserPulse = data.models.laserPulse
     if data.models.laserPulse.distribution == "file":
         for f in ("ccd", "meta", "wfs"):
             v[f"{f}File"] = _SIM_DATA.lib_file_name_with_model_field(
                 "laserPulse", f, data.models.laserPulse[f]
             )
-    if _SIM_DATA.is_watchpoint(r):
-        v.beamlineElements = _generate_beamline_elements(data)
-        v.beamlineIndices = _generate_beamline_indices(data)
+    v.beamlineElements = _generate_beamline_elements(data)
+    v.beamlineIndices = _generate_beamline_indices(data)
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
@@ -323,8 +437,6 @@ def _iterate_beamline(state, data, callback):
         dz = e.position - prev
         prev = e.position
         callback(state, e, dz)
-        if e.id == _SIM_DATA.watchpoint_id(data.report):
-            break
 
 
 def _laser_pulse_report(value_index, filename, title, label):
@@ -344,14 +456,6 @@ def _laser_pulse_report(value_index, filename, title, label):
             x_label="s [m]",
         ),
     )
-
-
-def _last_watchpoint(data):
-    res = None
-    for b in data.models.beamline:
-        if b.type == "watch":
-            res = b
-    return f"watchpointReport{b.id}" if res else None
 
 
 def _parse_silas_log(run_dir):

@@ -33,6 +33,7 @@ SIREPO.app.config(function() {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
+    SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
 });
 
 SIREPO.app.factory('silasService', function(appState) {
@@ -42,7 +43,10 @@ SIREPO.app.factory('silasService', function(appState) {
         if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'].indexOf(analysisModel) >= 0) {
             return 'crystalAnimation';
         }
-        return 'animation';
+        if (analysisModel == 'initialIntensityReport' || analysisModel == 'initialPhaseReport') {
+            return 'initialIntensityReport';
+        }
+        return 'beamlineAnimation';
     };
 
     self.getCrystal = itemId =>  appState.models.beamline.filter(e => e.id === itemId)[0];
@@ -120,6 +124,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     $scope.$watchCollection('appState.models.beamline', updateCrystals);
     $scope.$on('beamline.changed', () => {
         updateCrystals();
+        beamlineService.createWatchModel(0);
         appState.saveQuietly('beamline');
     });
 });
@@ -250,7 +255,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
                 || item.radial_n2 === '1' || item.calc_gain == '1',
             [
                 'inversion_n_cells', 'inversion_mesh_extent', 'crystal_alpha',
-                'pump_wavelength', 'pump_energy', 'pump_type',
+                'pump_wavelength', 'pump_energy', 'pump_type', 'pump_gaussian_order',
             ], item.calc_gain === '1' || item.propagationType === 'gain_calc',
             ['calc_gain'], item.propagationType !== 'gain_calc',
             ['radial_n2'], item.propagationType == 'n0n2_srw',
@@ -260,7 +265,9 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             ['A', 'B', 'C', 'D'], item.propagationType == 'abcd_lct',
         ]);
         panelState.showTab(item.type, 2, item.origin === 'new');
-        panelState.showTab(item.type, 3, item.origin === 'new');
+        panelState.showTab(item.type, 3, item.origin === 'new'
+            && ((item.propagationType == 'n0n2_srw' && item.radial_n2 == '1')
+             || item.calc_gain === '1' || item.propagationType === 'gain_calc'));
     }
 
     $scope.whenSelected = updateCrystalFields;
@@ -640,4 +647,40 @@ SIREPO.app.directive('float6', function(appState) {
             };
         },
     };
+});
+
+SIREPO.viewLogic('watchpointReportView', function(appState, beamlineService, panelState, $scope) {
+
+    function updateIntensityReport() {
+        //TODO(pjm): maybe keep the id on the model
+        const e = beamlineService.getItemById($scope.modelData.modelKey.match(/(\d+)/)[1]);
+        panelState.showFields('watchpointReport', [
+            ['watchpointPlot'], e.type == 'watch',
+            ['crystalPlot'], e.type == 'crystal',
+        ]);
+        const m = $scope.modelData.getData();
+        if (e.type == 'crystal') {
+            m.reportType = m.crystalPlot == 'excited_states_longitudinal'
+                         ? 'parameter'
+                         : '3d';
+            appState.saveQuietly($scope.modelData.modelKey);
+
+            const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf($scope.modelData.modelKey);
+            if (m.reportType == 'parameter') {
+                if (idx < 0) {
+                    SIREPO.SINGLE_FRAME_ANIMATION.push($scope.modelData.modelKey);
+                }
+            }
+            else if (idx >= 0) {
+                SIREPO.SINGLE_FRAME_ANIMATION.splice(idx, 1);
+            }
+        }
+    }
+
+    $scope.whenSelected = updateIntensityReport;
+    $scope.$on('modelChanged', (e, name) => {
+        if (name == $scope.modelData.modelKey) {
+            updateIntensityReport();
+        }
+    });
 });

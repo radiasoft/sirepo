@@ -58,7 +58,7 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
     };
 
     self.getReportTitle = function(modelName, itemId) {
-        if (modelName == 'initialIntensityReport'
+        if (itemId == 0
             && SIREPO.INITIAL_INTENSITY_REPORT_TITLE) {
             return SIREPO.INITIAL_INTENSITY_REPORT_TITLE;
         }
@@ -104,7 +104,7 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
             var beamline = appState.applicationState().beamline;
             var res = [];
             for (var i = 0; i < beamline.length; i++) {
-                if (beamline[i].type == 'watch') {
+                if (beamline[i].type == 'watch' || beamline[i].type == 'crystal') {
                     res.push(beamline[i]);
                     self.createWatchModel(beamline[i].id);
                 }
@@ -295,7 +295,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 if (newItem.type == 'ellipsoidMirror') {
                     newItem.firstFocusLength = newItem.position;
                 }
-                if (newItem.type == 'watch') {
+                if (newItem.type == 'watch' || newItem.type == 'crystal') {
                     beamlineService.createWatchModel(newItem.id);
                 }
                 appState.models.beamline.push(newItem);
@@ -407,7 +407,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 };
                 for (var i = 0; i < appState.models.beamline.length; i++) {
                     var item = appState.models.beamline[i];
-                    if (item.type == 'watch') {
+                    if (item.type == 'watch' || item.type == 'crystal') {
                         watchpoints[beamlineService.watchpointReportName(item.id)] = true;
                     }
                 }
@@ -793,7 +793,7 @@ SIREPO.app.directive('watchpointReport', function(beamlineService) {
         },
         template: `
             <div data-column-for-aspect-ratio="{{ watchpointModelName }}">
-              <div data-report-panel="3d" data-request-priority="2" data-model-name="{{ modelName }}" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>
+              <div data-report-panel="{{ modelAccess.getData().reportType || '3d' }}" data-request-priority="2" data-model-name="{{ modelName }}" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>
             </div>
         `,
         controller: function($scope) {
@@ -825,6 +825,87 @@ SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
             }
             appState.whenModelsLoaded($scope, updateWatchItems);
             $scope.$on('modelChanged', updateWatchItems);
+        },
+    };
+});
+
+SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+          <div class="col-sm-3">
+            <button class="btn btn-default pull-right" data-ng-click="start()" data-ng-show="simState.isStopped()">Start New Simulation</button>
+            <button class="btn btn-default pull-right" data-ng-click="simState.cancelSimulation()" data-ng-show="simState.isProcessing()">End Simulation</button>
+          </div>
+          <div data-ng-show="simState.isStateError()" class="col-sm-9" style="margin-top: 1ex">
+            Error: {{ simState.getError() }}
+          </div>
+          <div class="col-sm-5 col-md-4 col-lg-3" style="margin-top: 1ex">
+            <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
+            <div data-ng-show="simState.isStateRunning()">
+              <div class="progress">
+                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-bottom: 1em" class="clearfix"></div>
+          <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
+            <div data-watchpoint-report="" data-item-id="report.id"></div>
+            <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
+            <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
+          </div>
+        `,
+        controller: function($scope, $rootScope) {
+            $scope.reports = [];
+            $scope.simScope = $scope;
+            $scope.simComputeModel = 'beamlineAnimation';
+            $scope.$on('framesCleared', () => {
+                $scope.reports = [];
+            });
+
+            $scope.start = function() {
+                $rootScope.$broadcast('saveLattice', appState.models);
+                appState.models.simulation.framesCleared = false;
+                appState.saveChanges(
+                    [$scope.simState.model, 'simulation'],
+                    $scope.simState.runSimulation);
+            };
+
+            $scope.simHandleStatus = (data) => {
+                if (appState.models.simulation.framesCleared) {
+                    return;
+                }
+                if (! data.outputInfo) {
+                    return;
+                }
+                for (let i = 0; i < data.frameCount; i++) {
+                    if ($scope.reports.length != i) {
+                        continue;
+                    }
+                    let info = data.outputInfo[i];
+                    $scope.reports.push({
+                        id: info.id,
+                        modelAccess: {
+                            modelKey: info.modelKey,
+                        },
+                    });
+                    frameCache.setFrameCount(info.frameCount || 1, info.modelKey);
+                }
+                frameCache.setFrameCount(data.frameCount || 0);
+            };
+
+            $scope.simState = persistentSimulation.initSimulationState($scope);
+
+            $scope.$on('modelChanged', (e, name) => {
+                if (! appState.isReportModelName(name)) {
+                    if (frameCache.getFrameCount() > 0) {
+                        frameCache.setFrameCount(0);
+                        appState.models.simulation.framesCleared = true;
+                        appState.saveQuietly('simulation');
+                    }
+                }
+            });
         },
     };
 });

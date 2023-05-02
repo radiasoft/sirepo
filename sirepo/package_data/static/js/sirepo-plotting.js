@@ -615,6 +615,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
+            if (zMin == zMax) {
+                // draw single value plot as lowest colormap value
+                zMax += 1;
+            }
             if (m.colorRangeType == 'fixed') {
                 zMin = m.colorMin;
                 zMax = m.colorMax;
@@ -3027,7 +3031,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.y.grid = axes.y.createAxis('left');
                 resetZoom();
                 canvas = select('canvas').node();
-                ctx = canvas.getContext('2d');
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 axes.x.cutLine = d3.svg.line()
                     .x(function(d) {return axes.x.scale(d[0]);})
@@ -3335,7 +3339,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     mouseMovePoint = d3.mouse(this);
                     mouseMove();
                 });
-                ctx = canvas.getContext('2d');
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()
                     .margin({top: 10, right: 100, bottom: 20, left: 10})
