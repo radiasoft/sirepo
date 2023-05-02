@@ -65,8 +65,8 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
                 simulation_id: simulationId,
                 pretty: "0"
             })).then(async (resp) => {
-                let simulationInfo = await resp.json();
-                let models = simulationInfo['models'] as ModelState[];
+                let simulationInfo = {...(await resp.json() as SimulationInfoRaw), simulationId} as SimulationInfo;
+                let models = simulationInfo['models'] as StoreState<ModelState>;
 
                 let _store = configureStore({ 
                     reducer: {
@@ -85,7 +85,7 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
                     }))
                 }
                 
-                resolve({...simulationInfo, simulationId});
+                resolve(simulationInfo);
                 updateHasInit(true);
             })
         }))

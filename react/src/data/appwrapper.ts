@@ -107,16 +107,4 @@ export class AppWrapper {
             })
         }).then();
     }
-
-    /*saveModelsToServer = (simulationInfo: SimulationInfoRaw, models: StoreState<ModelState>): Promise<Response> => {
-        simulationInfo = {...simulationInfo}; // clone, no mutations
-        simulationInfo.models = models;
-        return fetch("/save-simulation", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(simulationInfo)
-        })
-    }*/
 }

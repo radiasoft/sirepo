@@ -1,8 +1,24 @@
+import { SimulationInfo } from "../../component/simulation";
+import { StoreState } from "../../store/common";
+import { ModelState } from "../../store/models";
+import { StoreTypes } from "../data";
 import { ConfigurableMiddleware } from "./middleware"
 
 export type SaveMiddlewareConfig = {
     debounceDelaySeconds: number,
     maxIntervalSeconds: number
+}
+
+const saveModelsToServer = (simulationInfo: SimulationInfo, models: StoreState<ModelState>): Promise<Response> => {
+    simulationInfo = {...simulationInfo}; // clone, no mutations
+    simulationInfo.models = models;
+    return fetch("/save-simulation", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(simulationInfo)
+    })
 }
 
 export const saveMiddleware: ConfigurableMiddleware<SaveMiddlewareConfig> = (config, schema, simulationInfo) => {
@@ -21,7 +37,9 @@ export const saveMiddleware: ConfigurableMiddleware<SaveMiddlewareConfig> = (con
 
             saveTimeout = setTimeout(() => {
                 firstUpdateInSave = undefined;
-                
+                console.log("simulationInfo", simulationInfo);
+                console.log("models", store.getState()[StoreTypes.Models.name])
+                saveModelsToServer(simulationInfo, store.getState()[StoreTypes.Models.name])
             }, timeUntilSave)
         }
         return next(action);
