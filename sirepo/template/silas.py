@@ -20,7 +20,7 @@ import re
 import sirepo.sim_data
 
 # TODO(pjm): currently aligned with rslaser version
-# git checkout `git rev-list -n 1 --first-parent --before="2009-07-27 13:37" master`
+# git checkout `git rev-list -n 1 --first-parent --before="2023-04-24 13:37" main`
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
