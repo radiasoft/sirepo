@@ -61,13 +61,13 @@ export function panelLayout(settings: {
     
             let submit = () => {
                 formHandleFactory.save(store.getState(), dispatch);
-                simulationInfoPromise.then(simulationInfo => {
+                /*simulationInfoPromise.then(simulationInfo => {
                     appWrapper.saveModelsToServer(simulationInfo, store.getState()[modelsSlice.name]);
-                })
+                })*/
     
             }
 
-            let _cancel = 
+            //let _cancel = 
     
             let formProps = {
                 submit: submit,

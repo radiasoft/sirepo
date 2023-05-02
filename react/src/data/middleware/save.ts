@@ -1,11 +1,11 @@
 import { ConfigurableMiddleware } from "./middleware"
 
 export type SaveMiddlewareConfig = {
-    minIntervalSeconds: number,
+    debounceDelaySeconds: number,
     maxIntervalSeconds: number
 }
 
-export const saveMiddleware: ConfigurableMiddleware<SaveMiddlewareConfig> = (config, schema) => {
+export const saveMiddleware: ConfigurableMiddleware<SaveMiddlewareConfig> = (config, schema, simulationInfo) => {
     let saveTimeout = undefined;
     let firstUpdateInSave = undefined;
     return store => next => action => {
@@ -17,7 +17,7 @@ export const saveMiddleware: ConfigurableMiddleware<SaveMiddlewareConfig> = (con
                 clearTimeout(saveTimeout);
             }
 
-            let timeUntilSave = Math.min(config.minIntervalSeconds, Math.min(0, config.maxIntervalSeconds - (Date.now() - firstUpdateInSave) / 1000))
+            let timeUntilSave = Math.min(config.debounceDelaySeconds, Math.min(0, config.maxIntervalSeconds - (Date.now() - firstUpdateInSave) / 1000))
 
             saveTimeout = setTimeout(() => {
                 firstUpdateInSave = undefined;

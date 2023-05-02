@@ -64,9 +64,9 @@ export function formActionFunctions(config: {
         cancel: () => formHandleFactory.cancel(store.getState(), dispatch),
         submit: () => {
             formHandleFactory.save(store.getState(), dispatch);
-            simulationInfoPromise.then(simulationInfo => {
+            /*simulationInfoPromise.then(simulationInfo => {
                 appWrapper.saveModelsToServer(simulationInfo, store.getState()[modelsSlice.name]);
-            })
+            })*/
         }
     } 
 }

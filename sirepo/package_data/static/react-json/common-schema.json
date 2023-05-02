@@ -53,6 +53,15 @@
             
         }
     },
+    "middleware": [
+        {
+            "type": "save",
+            "config": {
+                "debounceDelaySeconds": 0.5,
+                "maxIntervalSeconds": 1
+            }
+        }
+    ],
     "constants": {
         "paymentPlans": {
             "basic": "Sirepo Basic",

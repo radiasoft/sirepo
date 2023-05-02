@@ -46,35 +46,17 @@ export type SimulationInfo = SimulationInfoRaw & {
     simulationId: string
 }
 
-function SimulationStoreInitializer(props: {[key: string]: any}) {
-    let schema = useContext(CSchema);
-
-    const [modelsStore, _] = useState(() => configureStore({ 
-        reducer: {
-            [modelsSlice.name]: modelsSlice.reducer,
-            [formStatesSlice.name]: formStatesSlice.reducer,
-        },
-        middleware: [...middlewaresForSchema(schema)]
-    }));
-
-    return (
-        <Provider store={modelsStore}>
-            {props.children}
-        </Provider>
-    )
-}
-
 function SimulationInfoInitializer(props: { simulationId: string } & {[key: string]: any}) {
     let { simulationId } = props;
 
-    
+    let schema = useContext(CSchema);
+
+    const [modelsStore, updateModelsStore] = useState(undefined);
 
     let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
     let [hasInit, updateHasInit] = useState(false);
     let appName = useContext(CAppName);
-    let schema = useContext(CSchema);
     let routeHelper = useContext(CRouteHelper);
-    let dispatch = useDispatch();
 
     useEffect(() => {
         updateSimulationInfoPromise(new Promise((resolve, reject) => {
@@ -86,8 +68,18 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
                 let simulationInfo = await resp.json();
                 let models = simulationInfo['models'] as ModelState[];
 
+                let _store = configureStore({ 
+                    reducer: {
+                        [modelsSlice.name]: modelsSlice.reducer,
+                        [formStatesSlice.name]: formStatesSlice.reducer,
+                    },
+                    middleware: [...middlewaresForSchema(schema, simulationInfo)]
+                })
+
+                updateModelsStore(_store)
+
                 for(let [modelName, model] of Object.entries(models)) {
-                    dispatch(modelActions.updateModel({
+                    _store.dispatch(modelActions.updateModel({
                         name: modelName,
                         value: model
                     }))
@@ -102,11 +94,13 @@ function SimulationInfoInitializer(props: { simulationId: string } & {[key: stri
     let [handleFactory, _] = useCoupledState(schema, new BaseHandleFactory(schema))
 
     return hasInit && simulationInfoPromise && (
-        <CHandleFactory.Provider value={handleFactory}>
-            <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
-                {props.children}
-            </CSimulationInfoPromise.Provider>
-        </CHandleFactory.Provider>
+        <Provider store={modelsStore}>
+            <CHandleFactory.Provider value={handleFactory}>
+                <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
+                    {props.children}
+                </CSimulationInfoPromise.Provider>
+            </CHandleFactory.Provider>
+        </Provider>
     )
 }
 
@@ -303,23 +297,18 @@ export function SimulationRoot(props: {simulationId: string}) {
         )
     });
 
-    // TODO: use multiple rows
     return (
-        <SimulationStoreInitializer>
-            
-                <SimulationInfoInitializer simulationId={simulationId}>
-                    <SimulationOuter>
-                    <FormStateInitializer>
-                        <ReportEventManagerInitializer>
-                            <Portal targetId={NavbarRightContainerId} className="order-2">
-                                <SimulationCogMenu/>
-                            </Portal>
-                            {layoutComponents}
-                        </ReportEventManagerInitializer>
-                    </FormStateInitializer>
-                    </SimulationOuter>
-                </SimulationInfoInitializer>
-            
-        </SimulationStoreInitializer>
+        <SimulationInfoInitializer simulationId={simulationId}>
+            <SimulationOuter>
+            <FormStateInitializer>
+                <ReportEventManagerInitializer>
+                    <Portal targetId={NavbarRightContainerId} className="order-2">
+                        <SimulationCogMenu/>
+                    </Portal>
+                    {layoutComponents}
+                </ReportEventManagerInitializer>
+            </FormStateInitializer>
+            </SimulationOuter>
+        </SimulationInfoInitializer>
     )
 }

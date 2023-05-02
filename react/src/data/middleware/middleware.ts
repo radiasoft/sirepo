@@ -1,10 +1,11 @@
 import { Middleware } from "redux";
+import { SimulationInfo } from "../../component/simulation";
 import { Schema } from "../../utility/schema";
 import { saveMiddleware } from "./save";
 import { shadowBeamlineSortingMiddleware } from "./shadow/beamline";
 import { shadowBeamlineWatchpointReportsMiddleware } from "./shadow/watchpoint";
 
-export type ConfigurableMiddleware<C> = (config: C, schema: Schema) => Middleware
+export type ConfigurableMiddleware<C> = (config: C, schema: Schema, simulationInfo: SimulationInfo) => Middleware
 
 export const Middlewares: {[key: string]: ConfigurableMiddleware<any>} = {
     shadowWatchpointsFromBeamline: shadowBeamlineWatchpointReportsMiddleware,
@@ -12,6 +13,6 @@ export const Middlewares: {[key: string]: ConfigurableMiddleware<any>} = {
     save: saveMiddleware
 }
 
-export function middlewaresForSchema(schema: Schema): Middleware[] {
-    return (schema.middleware || []).map(sm => Middlewares[sm.type](sm.config, schema));
+export function middlewaresForSchema(schema: Schema, simulationInfo: SimulationInfo): Middleware[] {
+    return (schema.middleware || []).map(sm => Middlewares[sm.type](sm.config, schema, simulationInfo));
 }

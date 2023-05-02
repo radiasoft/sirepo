@@ -108,7 +108,8 @@ export class AppWrapper {
         }).then();
     }
 
-    saveModelsToServer = (simulationInfo: SimulationInfoRaw, models: StoreState<ModelState>): Promise<Response> => {
+    /*saveModelsToServer = (simulationInfo: SimulationInfoRaw, models: StoreState<ModelState>): Promise<Response> => {
+        simulationInfo = {...simulationInfo}; // clone, no mutations
         simulationInfo.models = models;
         return fetch("/save-simulation", {
             method: 'POST',
@@ -117,5 +118,5 @@ export class AppWrapper {
             },
             body: JSON.stringify(simulationInfo)
         })
-    }
+    }*/
 }
