@@ -9,7 +9,7 @@ import { StoreType, StoreTypes, expandDataStructure, revertDataStructure, getVal
 import { Dependency } from "./dependency";
 import { DataHandle, EmptyDataHandle, HandleFactory } from "./handle";
 
-type FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => void
+export type FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => void
 type FormSelectorFunc<V> = (state: any) => V
 
 type FormActions = {
@@ -22,7 +22,7 @@ export function formStateFromModelState(modelState: ModelState): FormModelState 
     return mapProperties(modelState, (name, value) => initialFormStateFromValue(value));
 }
 
-function formStateFromSingleValue<T>(value: T): FormFieldState<T> {
+export function formStateFromSingleValue<T>(value: T): FormFieldState<T> {
     return {
         valid: true,
         value,
@@ -32,6 +32,18 @@ function formStateFromSingleValue<T>(value: T): FormFieldState<T> {
 
 export function initialFormStateFromValue<T>(value: T): FormFieldState<T> {
     return expandDataStructure(value, formStateFromSingleValue);
+}
+
+export const callNextParentFunction = (inst: HandleFactory, fnName: 'save' | 'cancel', state: any, dispatch: Dispatch<AnyAction>) => {
+    let p = inst.parent;
+    while(p) {
+        let fn: FormActionFunc = p[fnName];
+        if(fn) {
+            fn(state, dispatch);
+            return;
+        }
+        p = p.parent;
+    }
 }
 
 export class FormStateHandleFactory extends HandleFactory {
@@ -75,29 +87,18 @@ export class FormStateHandleFactory extends HandleFactory {
         this.listeners.items().forEach(l => l.value());
     }
 
-    private callParentFunctions = (fnName: 'save' | 'cancel', state: any, dispatch: Dispatch<AnyAction>) => {
-        let p = this.parent;
-        while(p) {
-            let fn: FormActionFunc = p[fnName];
-            if(fn) {
-                fn(state, dispatch);
-            }
-            p = p.parent;
-        }
-    }
-
     save: FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => {
         this.updated.items().forEach(u => u.value.save(state, dispatch));
         this.updated = new Dictionary();
         this.notifyListeners();
-        this.callParentFunctions("save", state, dispatch);
+        callNextParentFunction(this, "save", state, dispatch);
     }
 
     cancel: FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => {
         this.updated.items().forEach(u => u.value.cancel(state, dispatch));
         this.updated = new Dictionary();
         this.notifyListeners();
-        this.callParentFunctions("cancel", state, dispatch);
+        callNextParentFunction(this, "cancel", state, dispatch);
     }
 
     isDirty = (): boolean => {
@@ -137,7 +138,7 @@ export class FormStateHandleFactory extends HandleFactory {
                         m(state).write(v, state, dispatch);
                     },
                     cancel: (state: StoreState<any>, dispatch: Dispatch<AnyAction>) => {
-                        //f(state).write(initialFormStateFromValue(m(state).value), state, dispatch);
+                        f(state).write(initialFormStateFromValue(m(state).value), state, dispatch);
                     },
                     valid: (state: any): boolean => {
                         return f(state).value.valid;

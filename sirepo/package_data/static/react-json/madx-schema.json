@@ -6500,7 +6500,1081 @@
                                     },
                                     "padding": ".5em",
                                     "items": [
-                                        
+                                        {
+                                            "layout": "madxBeamlineElements",
+                                            "config": {
+                                                "elementsDependency": "elements.elements",
+                                                "templateGroups": [
+                                                    {
+                                                        "name": "Basic",
+                                                        "types": ["SBEND", "RBEND", "DRIFT", "COLLIMATOR", "ECOLLIMATOR", "RCOLLIMATOR", "KICKER", "MARKER", "QUADRUPOLE", "SEXTUPOLE"]
+                                                    },
+                                                    {
+                                                        "name": "Advanced",
+                                                        "types": ["BEAMBEAM", "CHANGEREF", "CRABCAVITY", "DIPEDGE", "HACDIPOLE", "HKICKER", "HMONITOR", "INSTRUMENT", "MATRIX", "MONITOR", "MULTIPOLE", "NLLENS", "OCTUPOLE", "PLACEHOLDER", "RFCAVITY", "RFMULTIPOLE", "SOLENOID", "SROTATION", "TRANSLATION", "TWCAVITY", "VACDIPOLE", "VKICKER", "VMONITOR", "XROTATION", "YROTATION"] 
+                                                    },
+                                                    {
+                                                        "name": "All Elements",
+                                                        "types": ["SBEND", "RBEND", "DRIFT", "COLLIMATOR", "ECOLLIMATOR", "RCOLLIMATOR", "KICKER", "MARKER", "QUADRUPOLE", "SEXTUPOLE", "BEAMBEAM", "CHANGEREF", "CRABCAVITY", "DIPEDGE", "HACDIPOLE", "HKICKER", "HMONITOR", "INSTRUMENT", "MATRIX", "MONITOR", "MULTIPOLE", "NLLENS", "OCTUPOLE", "PLACEHOLDER", "RFCAVITY", "RFMULTIPOLE", "SOLENOID", "SROTATION", "TRANSLATION", "TWCAVITY", "VACDIPOLE", "VKICKER", "VMONITOR", "XROTATION", "YROTATION"]
+                                                    }
+                                                ],
+                                                "elementTemplates": [
+                                                    {
+                                                        "type": "BEAMBEAM",
+                                                        "name": "BEAMBEAM",
+                                                        "modelName": "BEAMBEAM",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "BEAMBEAM.name",
+                                                                        "BEAMBEAM.sigx",
+                                                                        "BEAMBEAM.sigy",
+                                                                        "BEAMBEAM.xma",
+                                                                        "BEAMBEAM.yma",
+                                                                        "BEAMBEAM.charge",
+                                                                        "BEAMBEAM.bbshape",
+                                                                        "BEAMBEAM.width",
+                                                                        "BEAMBEAM.bbdir",
+                                                                        "BEAMBEAM.apertype",
+                                                                        "BEAMBEAM.aperture",
+                                                                        "BEAMBEAM.aper_offset",
+                                                                        "BEAMBEAM.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "CHANGEREF",
+                                                        "name": "CHANGEREF",
+                                                        "modelName": "CHANGEREF",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "CHANGEREF.name",
+                                                                        "CHANGEREF.patch_ang",
+                                                                        "CHANGEREF.patch_trans",
+                                                                        "CHANGEREF.apertype",
+                                                                        "CHANGEREF.aperture",
+                                                                        "CHANGEREF.aper_offset",
+                                                                        "CHANGEREF.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "COLLIMATOR",
+                                                        "name": "COLLIMATOR",
+                                                        "modelName": "COLLIMATOR",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "COLLIMATOR.name",
+                                                                        "COLLIMATOR.l",
+                                                                        "COLLIMATOR.apertype",
+                                                                        "COLLIMATOR.aperture",
+                                                                        "COLLIMATOR.aper_offset",
+                                                                        "COLLIMATOR.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "CRABCAVITY",
+                                                        "name": "CRABCAVITY",
+                                                        "modelName": "CRABCAVITY",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "CRABCAVITY.name",
+                                                                        "CRABCAVITY.l",
+                                                                        "CRABCAVITY.volt",
+                                                                        "CRABCAVITY.lag",
+                                                                        "CRABCAVITY.freq",
+                                                                        "CRABCAVITY.rv1",
+                                                                        "CRABCAVITY.rv2",
+                                                                        "CRABCAVITY.rv3",
+                                                                        "CRABCAVITY.rv4",
+                                                                        "CRABCAVITY.rph1",
+                                                                        "CRABCAVITY.rph2",
+                                                                        "CRABCAVITY.lagf",
+                                                                        "CRABCAVITY.apertype",
+                                                                        "CRABCAVITY.aperture",
+                                                                        "CRABCAVITY.aper_offset",
+                                                                        "CRABCAVITY.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "DIPEDGE",
+                                                        "name": "DIPEDGE",
+                                                        "modelName": "DIPEDGE",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "DIPEDGE.name",
+                                                                        "DIPEDGE.h",
+                                                                        "DIPEDGE.e1",
+                                                                        "DIPEDGE.fint",
+                                                                        "DIPEDGE.hgap",
+                                                                        "DIPEDGE.tilt",
+                                                                        "DIPEDGE.apertype",
+                                                                        "DIPEDGE.aperture",
+                                                                        "DIPEDGE.aper_offset",
+                                                                        "DIPEDGE.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "DRIFT",
+                                                        "name": "DRIFT",
+                                                        "modelName": "DRIFT",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "DRIFT.name",
+                                                                        "DRIFT.l"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "ECOLLIMATOR",
+                                                        "name": "ECOLLIMATOR",
+                                                        "modelName": "ECOLLIMATOR",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "ECOLLIMATOR.name",
+                                                                        "ECOLLIMATOR.l",
+                                                                        "ECOLLIMATOR.xsize",
+                                                                        "ECOLLIMATOR.ysize",
+                                                                        "ECOLLIMATOR.apertype",
+                                                                        "ECOLLIMATOR.aperture",
+                                                                        "ECOLLIMATOR.aper_offset",
+                                                                        "ECOLLIMATOR.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "HACDIPOLE",
+                                                        "name": "HACDIPOLE",
+                                                        "modelName": "HACDIPOLE",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "HACDIPOLE.name",
+                                                                        "HACDIPOLE.l",
+                                                                        "HACDIPOLE.volt",
+                                                                        "HACDIPOLE.freq",
+                                                                        "HACDIPOLE.lag",
+                                                                        "HACDIPOLE.ramp1",
+                                                                        "HACDIPOLE.ramp2",
+                                                                        "HACDIPOLE.ramp3",
+                                                                        "HACDIPOLE.ramp4",
+                                                                        "HACDIPOLE.apertype",
+                                                                        "HACDIPOLE.aperture",
+                                                                        "HACDIPOLE.aper_offset",
+                                                                        "HACDIPOLE.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "HKICKER",
+                                                        "name": "HKICKER",
+                                                        "modelName": "HKICKER",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "HKICKER.name",
+                                                                        "HKICKER.l",
+                                                                        "HKICKER.kick",
+                                                                        "HKICKER.tilt",
+                                                                        "HKICKER.apertype",
+                                                                        "HKICKER.aperture",
+                                                                        "HKICKER.aper_offset",
+                                                                        "HKICKER.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "HMONITOR",
+                                                        "name": "HMONITOR",
+                                                        "modelName": "HMONITOR",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "HMONITOR.name",
+                                                                        "HMONITOR.l",
+                                                                        "HMONITOR.apertype",
+                                                                        "HMONITOR.aperture",
+                                                                        "HMONITOR.aper_offset",
+                                                                        "HMONITOR.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "INSTRUMENT",
+                                                        "name": "INSTRUMENT",
+                                                        "modelName": "INSTRUMENT",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "INSTRUMENT.name",
+                                                                        "INSTRUMENT.l",
+                                                                        "INSTRUMENT.apertype",
+                                                                        "INSTRUMENT.aperture",
+                                                                        "INSTRUMENT.aper_offset",
+                                                                        "INSTRUMENT.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "KICKER",
+                                                        "name": "KICKER",
+                                                        "modelName": "KICKER",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "KICKER.name",
+                                                                        "KICKER.l",
+                                                                        "KICKER.hkick",
+                                                                        "KICKER.vkick",
+                                                                        "KICKER.tilt",
+                                                                        "KICKER.apertype",
+                                                                        "KICKER.aperture",
+                                                                        "KICKER.aper_offset",
+                                                                        "KICKER.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "MARKER",
+                                                        "name": "MARKER",
+                                                        "modelName": "MARKER",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "MARKER.name",
+                                                                        "MARKER.apertype",
+                                                                        "MARKER.aperture",
+                                                                        "MARKER.aper_offset",
+                                                                        "MARKER.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "MATRIX",
+                                                        "name": "MATRIX",
+                                                        "modelName": "MATRIX",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "MATRIX.name",
+                                                                        "MATRIX.l",
+                                                                        "MATRIX.kick1",
+                                                                        "MATRIX.kick6",
+                                                                        "MATRIX.rm11",
+                                                                        "MATRIX.rm66",
+                                                                        "MATRIX.tm111",
+                                                                        "MATRIX.tm666",
+                                                                        "MATRIX.kick2",
+                                                                        "MATRIX.kick3",
+                                                                        "MATRIX.kick4",
+                                                                        "MATRIX.kick5",
+                                                                        "MATRIX.rm12",
+                                                                        "MATRIX.rm13",
+                                                                        "MATRIX.rm14",
+                                                                        "MATRIX.rm15",
+                                                                        "MATRIX.rm16",
+                                                                        "MATRIX.rm21",
+                                                                        "MATRIX.rm22",
+                                                                        "MATRIX.rm23",
+                                                                        "MATRIX.rm24",
+                                                                        "MATRIX.rm25",
+                                                                        "MATRIX.rm26",
+                                                                        "MATRIX.rm31",
+                                                                        "MATRIX.rm32",
+                                                                        "MATRIX.rm33",
+                                                                        "MATRIX.rm34",
+                                                                        "MATRIX.rm35",
+                                                                        "MATRIX.rm36",
+                                                                        "MATRIX.rm41",
+                                                                        "MATRIX.rm42",
+                                                                        "MATRIX.rm43",
+                                                                        "MATRIX.rm44",
+                                                                        "MATRIX.rm45",
+                                                                        "MATRIX.rm46",
+                                                                        "MATRIX.rm51",
+                                                                        "MATRIX.rm52",
+                                                                        "MATRIX.rm53",
+                                                                        "MATRIX.rm54",
+                                                                        "MATRIX.rm55",
+                                                                        "MATRIX.rm56",
+                                                                        "MATRIX.rm61",
+                                                                        "MATRIX.rm62",
+                                                                        "MATRIX.rm63",
+                                                                        "MATRIX.rm64",
+                                                                        "MATRIX.rm65",
+                                                                        "MATRIX.tm112",
+                                                                        "MATRIX.tm113",
+                                                                        "MATRIX.tm114",
+                                                                        "MATRIX.tm115",
+                                                                        "MATRIX.tm116",
+                                                                        "MATRIX.tm121",
+                                                                        "MATRIX.tm122",
+                                                                        "MATRIX.tm123",
+                                                                        "MATRIX.tm124",
+                                                                        "MATRIX.tm125",
+                                                                        "MATRIX.tm126",
+                                                                        "MATRIX.tm131",
+                                                                        "MATRIX.tm132",
+                                                                        "MATRIX.tm133",
+                                                                        "MATRIX.tm134",
+                                                                        "MATRIX.tm135",
+                                                                        "MATRIX.tm136",
+                                                                        "MATRIX.tm141",
+                                                                        "MATRIX.tm142",
+                                                                        "MATRIX.tm143",
+                                                                        "MATRIX.tm144",
+                                                                        "MATRIX.tm145",
+                                                                        "MATRIX.tm146",
+                                                                        "MATRIX.tm151",
+                                                                        "MATRIX.tm152",
+                                                                        "MATRIX.tm153",
+                                                                        "MATRIX.tm154",
+                                                                        "MATRIX.tm155",
+                                                                        "MATRIX.tm156",
+                                                                        "MATRIX.tm161",
+                                                                        "MATRIX.tm162",
+                                                                        "MATRIX.tm163",
+                                                                        "MATRIX.tm164",
+                                                                        "MATRIX.tm165",
+                                                                        "MATRIX.tm166",
+                                                                        "MATRIX.tm211",
+                                                                        "MATRIX.tm212",
+                                                                        "MATRIX.tm213",
+                                                                        "MATRIX.tm214",
+                                                                        "MATRIX.tm215",
+                                                                        "MATRIX.tm216",
+                                                                        "MATRIX.tm221",
+                                                                        "MATRIX.tm222",
+                                                                        "MATRIX.tm223",
+                                                                        "MATRIX.tm224",
+                                                                        "MATRIX.tm225",
+                                                                        "MATRIX.tm226",
+                                                                        "MATRIX.tm231",
+                                                                        "MATRIX.tm232",
+                                                                        "MATRIX.tm233",
+                                                                        "MATRIX.tm234",
+                                                                        "MATRIX.tm235",
+                                                                        "MATRIX.tm236",
+                                                                        "MATRIX.tm241",
+                                                                        "MATRIX.tm242",
+                                                                        "MATRIX.tm243",
+                                                                        "MATRIX.tm244",
+                                                                        "MATRIX.tm245",
+                                                                        "MATRIX.tm246",
+                                                                        "MATRIX.tm251",
+                                                                        "MATRIX.tm252",
+                                                                        "MATRIX.tm253",
+                                                                        "MATRIX.tm254",
+                                                                        "MATRIX.tm255",
+                                                                        "MATRIX.tm256",
+                                                                        "MATRIX.tm261",
+                                                                        "MATRIX.tm262",
+                                                                        "MATRIX.tm263",
+                                                                        "MATRIX.tm264",
+                                                                        "MATRIX.tm265",
+                                                                        "MATRIX.tm266",
+                                                                        "MATRIX.tm311",
+                                                                        "MATRIX.tm312",
+                                                                        "MATRIX.tm313",
+                                                                        "MATRIX.tm314",
+                                                                        "MATRIX.tm315",
+                                                                        "MATRIX.tm316",
+                                                                        "MATRIX.tm321",
+                                                                        "MATRIX.tm322",
+                                                                        "MATRIX.tm323",
+                                                                        "MATRIX.tm324",
+                                                                        "MATRIX.tm325",
+                                                                        "MATRIX.tm326",
+                                                                        "MATRIX.tm331",
+                                                                        "MATRIX.tm332",
+                                                                        "MATRIX.tm333",
+                                                                        "MATRIX.tm334",
+                                                                        "MATRIX.tm335",
+                                                                        "MATRIX.tm336",
+                                                                        "MATRIX.tm341",
+                                                                        "MATRIX.tm342",
+                                                                        "MATRIX.tm343",
+                                                                        "MATRIX.tm344",
+                                                                        "MATRIX.tm345",
+                                                                        "MATRIX.tm346",
+                                                                        "MATRIX.tm351",
+                                                                        "MATRIX.tm352",
+                                                                        "MATRIX.tm353",
+                                                                        "MATRIX.tm354",
+                                                                        "MATRIX.tm355",
+                                                                        "MATRIX.tm356",
+                                                                        "MATRIX.tm361",
+                                                                        "MATRIX.tm362",
+                                                                        "MATRIX.tm363",
+                                                                        "MATRIX.tm364",
+                                                                        "MATRIX.tm365",
+                                                                        "MATRIX.tm366",
+                                                                        "MATRIX.tm411",
+                                                                        "MATRIX.tm412",
+                                                                        "MATRIX.tm413",
+                                                                        "MATRIX.tm414",
+                                                                        "MATRIX.tm415",
+                                                                        "MATRIX.tm416",
+                                                                        "MATRIX.tm421",
+                                                                        "MATRIX.tm422",
+                                                                        "MATRIX.tm423",
+                                                                        "MATRIX.tm424",
+                                                                        "MATRIX.tm425",
+                                                                        "MATRIX.tm426",
+                                                                        "MATRIX.tm431",
+                                                                        "MATRIX.tm432",
+                                                                        "MATRIX.tm433",
+                                                                        "MATRIX.tm434",
+                                                                        "MATRIX.tm435",
+                                                                        "MATRIX.tm436",
+                                                                        "MATRIX.tm441",
+                                                                        "MATRIX.tm442",
+                                                                        "MATRIX.tm443",
+                                                                        "MATRIX.tm444",
+                                                                        "MATRIX.tm445",
+                                                                        "MATRIX.tm446",
+                                                                        "MATRIX.tm451",
+                                                                        "MATRIX.tm452",
+                                                                        "MATRIX.tm453",
+                                                                        "MATRIX.tm454",
+                                                                        "MATRIX.tm455",
+                                                                        "MATRIX.tm456",
+                                                                        "MATRIX.tm461",
+                                                                        "MATRIX.tm462",
+                                                                        "MATRIX.tm463",
+                                                                        "MATRIX.tm464",
+                                                                        "MATRIX.tm465",
+                                                                        "MATRIX.tm466",
+                                                                        "MATRIX.tm511",
+                                                                        "MATRIX.tm512",
+                                                                        "MATRIX.tm513",
+                                                                        "MATRIX.tm514",
+                                                                        "MATRIX.tm515",
+                                                                        "MATRIX.tm516",
+                                                                        "MATRIX.tm521",
+                                                                        "MATRIX.tm522",
+                                                                        "MATRIX.tm523",
+                                                                        "MATRIX.tm524",
+                                                                        "MATRIX.tm525",
+                                                                        "MATRIX.tm526",
+                                                                        "MATRIX.tm531",
+                                                                        "MATRIX.tm532",
+                                                                        "MATRIX.tm533",
+                                                                        "MATRIX.tm534",
+                                                                        "MATRIX.tm535",
+                                                                        "MATRIX.tm536",
+                                                                        "MATRIX.tm541",
+                                                                        "MATRIX.tm542",
+                                                                        "MATRIX.tm543",
+                                                                        "MATRIX.tm544",
+                                                                        "MATRIX.tm545",
+                                                                        "MATRIX.tm546",
+                                                                        "MATRIX.tm551",
+                                                                        "MATRIX.tm552",
+                                                                        "MATRIX.tm553",
+                                                                        "MATRIX.tm554",
+                                                                        "MATRIX.tm555",
+                                                                        "MATRIX.tm556",
+                                                                        "MATRIX.tm561",
+                                                                        "MATRIX.tm562",
+                                                                        "MATRIX.tm563",
+                                                                        "MATRIX.tm564",
+                                                                        "MATRIX.tm565",
+                                                                        "MATRIX.tm566",
+                                                                        "MATRIX.tm611",
+                                                                        "MATRIX.tm612",
+                                                                        "MATRIX.tm613",
+                                                                        "MATRIX.tm614",
+                                                                        "MATRIX.tm615",
+                                                                        "MATRIX.tm616",
+                                                                        "MATRIX.tm621",
+                                                                        "MATRIX.tm622",
+                                                                        "MATRIX.tm623",
+                                                                        "MATRIX.tm624",
+                                                                        "MATRIX.tm625",
+                                                                        "MATRIX.tm626",
+                                                                        "MATRIX.tm631",
+                                                                        "MATRIX.tm632",
+                                                                        "MATRIX.tm633",
+                                                                        "MATRIX.tm634",
+                                                                        "MATRIX.tm635",
+                                                                        "MATRIX.tm636",
+                                                                        "MATRIX.tm641",
+                                                                        "MATRIX.tm642",
+                                                                        "MATRIX.tm643",
+                                                                        "MATRIX.tm644",
+                                                                        "MATRIX.tm645",
+                                                                        "MATRIX.tm646",
+                                                                        "MATRIX.tm651",
+                                                                        "MATRIX.tm652",
+                                                                        "MATRIX.tm653",
+                                                                        "MATRIX.tm654",
+                                                                        "MATRIX.tm655",
+                                                                        "MATRIX.tm656",
+                                                                        "MATRIX.tm661",
+                                                                        "MATRIX.tm662",
+                                                                        "MATRIX.tm663",
+                                                                        "MATRIX.tm664",
+                                                                        "MATRIX.tm665"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "MONITOR",
+                                                        "name": "MONITOR",
+                                                        "modelName": "MONITOR",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "MONITOR.name",
+                                                                        "MONITOR.l",
+                                                                        "MONITOR.apertype",
+                                                                        "MONITOR.aperture",
+                                                                        "MONITOR.aper_offset",
+                                                                        "MONITOR.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "MULTIPOLE",
+                                                        "name": "MULTIPOLE",
+                                                        "modelName": "MULTIPOLE",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "MULTIPOLE.name",
+                                                                        "MULTIPOLE.lrad",
+                                                                        "MULTIPOLE.tilt",
+                                                                        "MULTIPOLE.knl",
+                                                                        "MULTIPOLE.ksl",
+                                                                        "MULTIPOLE.apertype",
+                                                                        "MULTIPOLE.aperture",
+                                                                        "MULTIPOLE.aper_offset",
+                                                                        "MULTIPOLE.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "NLLENS",
+                                                        "name": "NLLENS",
+                                                        "modelName": "NLLENS",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "NLLENS.name",
+                                                                        "NLLENS.knll",
+                                                                        "NLLENS.cnll",
+                                                                        "NLLENS.apertype",
+                                                                        "NLLENS.aperture",
+                                                                        "NLLENS.aper_offset",
+                                                                        "NLLENS.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "OCTUPOLE",
+                                                        "name": "OCTUPOLE",
+                                                        "modelName": "OCTUPOLE",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "OCTUPOLE.name",
+                                                                        "OCTUPOLE.l",
+                                                                        "OCTUPOLE.k3",
+                                                                        "OCTUPOLE.k3s",
+                                                                        "OCTUPOLE.tilt",
+                                                                        "OCTUPOLE.apertype",
+                                                                        "OCTUPOLE.aperture",
+                                                                        "OCTUPOLE.aper_offset",
+                                                                        "OCTUPOLE.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "PLACEHOLDER",
+                                                        "name": "PLACEHOLDER",
+                                                        "modelName": "PLACEHOLDER",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "PLACEHOLDER.name",
+                                                                        "PLACEHOLDER.l",
+                                                                        "PLACEHOLDER.apertype",
+                                                                        "PLACEHOLDER.aperture",
+                                                                        "PLACEHOLDER.aper_offset",
+                                                                        "PLACEHOLDER.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "QUADRUPOLE",
+                                                        "name": "QUADRUPOLE",
+                                                        "modelName": "QUADRUPOLE",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "QUADRUPOLE.name",
+                                                                        "QUADRUPOLE.l",
+                                                                        "QUADRUPOLE.k1",
+                                                                        "QUADRUPOLE.k1s",
+                                                                        "QUADRUPOLE.tilt",
+                                                                        "QUADRUPOLE.thick",
+                                                                        "QUADRUPOLE.apertype",
+                                                                        "QUADRUPOLE.aperture",
+                                                                        "QUADRUPOLE.aper_offset",
+                                                                        "QUADRUPOLE.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "RBEND",
+                                                        "name": "RBEND",
+                                                        "modelName": "RBEND",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "RBEND.name",
+                                                                        "RBEND.l",
+                                                                        "RBEND.angle",
+                                                                        "RBEND.tilt",
+                                                                        "RBEND.k1",
+                                                                        "RBEND.k2",
+                                                                        "RBEND.e1",
+                                                                        "RBEND.e2",
+                                                                        "RBEND.fint",
+                                                                        "RBEND.fintx",
+                                                                        "RBEND.hgap",
+                                                                        "RBEND.h1",
+                                                                        "RBEND.h2",
+                                                                        "RBEND.add_angle",
+                                                                        "RBEND.thick",
+                                                                        "RBEND.apertype",
+                                                                        "RBEND.aperture",
+                                                                        "RBEND.aper_offset",
+                                                                        "RBEND.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "RCOLLIMATOR",
+                                                        "name": "RCOLLIMATOR",
+                                                        "modelName": "RCOLLIMATOR",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "RCOLLIMATOR.name",
+                                                                        "RCOLLIMATOR.l",
+                                                                        "RCOLLIMATOR.xsize",
+                                                                        "RCOLLIMATOR.ysize",
+                                                                        "RCOLLIMATOR.apertype",
+                                                                        "RCOLLIMATOR.aperture",
+                                                                        "RCOLLIMATOR.aper_offset",
+                                                                        "RCOLLIMATOR.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "RFCAVITY",
+                                                        "name": "RFCAVITY",
+                                                        "modelName": "RFCAVITY",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "RFCAVITY.name",
+                                                                        "RFCAVITY.l",
+                                                                        "RFCAVITY.volt",
+                                                                        "RFCAVITY.lag",
+                                                                        "RFCAVITY.harmon",
+                                                                        "RFCAVITY.freq",
+                                                                        "RFCAVITY.apertype",
+                                                                        "RFCAVITY.aperture",
+                                                                        "RFCAVITY.aper_offset",
+                                                                        "RFCAVITY.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "RFMULTIPOLE",
+                                                        "name": "RFMULTIPOLE",
+                                                        "modelName": "RFMULTIPOLE",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "RFMULTIPOLE.name",
+                                                                        "RFMULTIPOLE.volt",
+                                                                        "RFMULTIPOLE.lag",
+                                                                        "RFMULTIPOLE.harmon",
+                                                                        "RFMULTIPOLE.freq",
+                                                                        "RFMULTIPOLE.lrad",
+                                                                        "RFMULTIPOLE.tilt",
+                                                                        "RFMULTIPOLE.knl",
+                                                                        "RFMULTIPOLE.ksl",
+                                                                        "RFMULTIPOLE.pnl",
+                                                                        "RFMULTIPOLE.psl",
+                                                                        "RFMULTIPOLE.apertype",
+                                                                        "RFMULTIPOLE.aperture",
+                                                                        "RFMULTIPOLE.aper_offset",
+                                                                        "RFMULTIPOLE.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "SBEND",
+                                                        "name": "SBEND",
+                                                        "modelName": "SBEND",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "SBEND.name",
+                                                                        "SBEND.l",
+                                                                        "SBEND.angle",
+                                                                        "SBEND.k1",
+                                                                        "SBEND.k2",
+                                                                        "SBEND.e1",
+                                                                        "SBEND.e2",
+                                                                        "SBEND.tilt",
+                                                                        "SBEND.h1",
+                                                                        "SBEND.h2",
+                                                                        "SBEND.hgap",
+                                                                        "SBEND.fint",
+                                                                        "SBEND.fintx",
+                                                                        "SBEND.thick",
+                                                                        "SBEND.apertype",
+                                                                        "SBEND.aperture",
+                                                                        "SBEND.aper_offset",
+                                                                        "SBEND.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "SEXTUPOLE",
+                                                        "name": "SEXTUPOLE",
+                                                        "modelName": "SEXTUPOLE",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "SEXTUPOLE.name",
+                                                                        "SEXTUPOLE.l",
+                                                                        "SEXTUPOLE.k2",
+                                                                        "SEXTUPOLE.k2s",
+                                                                        "SEXTUPOLE.tilt",
+                                                                        "SEXTUPOLE.apertype",
+                                                                        "SEXTUPOLE.aperture",
+                                                                        "SEXTUPOLE.aper_offset",
+                                                                        "SEXTUPOLE.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "SOLENOID",
+                                                        "name": "SOLENOID",
+                                                        "modelName": "SOLENOID",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "SOLENOID.name",
+                                                                        "SOLENOID.l",
+                                                                        "SOLENOID.ks",
+                                                                        "SOLENOID.ksi",
+                                                                        "SOLENOID.apertype",
+                                                                        "SOLENOID.aperture",
+                                                                        "SOLENOID.aper_offset",
+                                                                        "SOLENOID.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "SROTATION",
+                                                        "name": "SROTATION",
+                                                        "modelName": "SROTATION",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "SROTATION.name",
+                                                                        "SROTATION.angle",
+                                                                        "SROTATION.apertype",
+                                                                        "SROTATION.aperture",
+                                                                        "SROTATION.aper_offset",
+                                                                        "SROTATION.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "TRANSLATION",
+                                                        "name": "TRANSLATION",
+                                                        "modelName": "TRANSLATION",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "TRANSLATION.name",
+                                                                        "TRANSLATION.dx",
+                                                                        "TRANSLATION.dy",
+                                                                        "TRANSLATION.ds"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "TWCAVITY",
+                                                        "name": "TWCAVITY",
+                                                        "modelName": "TWCAVITY",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "TWCAVITY.name",
+                                                                        "TWCAVITY.l",
+                                                                        "TWCAVITY.volt",
+                                                                        "TWCAVITY.freq",
+                                                                        "TWCAVITY.lag",
+                                                                        "TWCAVITY.psi",
+                                                                        "TWCAVITY.delta_lag",
+                                                                        "TWCAVITY.apertype",
+                                                                        "TWCAVITY.aperture",
+                                                                        "TWCAVITY.aper_offset",
+                                                                        "TWCAVITY.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "VACDIPOLE",
+                                                        "name": "VACDIPOLE",
+                                                        "modelName": "VACDIPOLE",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "VACDIPOLE.name",
+                                                                        "VACDIPOLE.l",
+                                                                        "VACDIPOLE.volt",
+                                                                        "VACDIPOLE.freq",
+                                                                        "VACDIPOLE.lag",
+                                                                        "VACDIPOLE.ramp1",
+                                                                        "VACDIPOLE.ramp2",
+                                                                        "VACDIPOLE.ramp3",
+                                                                        "VACDIPOLE.ramp4",
+                                                                        "VACDIPOLE.apertype",
+                                                                        "VACDIPOLE.aperture",
+                                                                        "VACDIPOLE.aper_offset",
+                                                                        "VACDIPOLE.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "VKICKER",
+                                                        "name": "VKICKER",
+                                                        "modelName": "VKICKER",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "VKICKER.name",
+                                                                        "VKICKER.l",
+                                                                        "VKICKER.kick",
+                                                                        "VKICKER.tilt",
+                                                                        "VKICKER.apertype",
+                                                                        "VKICKER.aperture",
+                                                                        "VKICKER.aper_offset",
+                                                                        "VKICKER.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "VMONITOR",
+                                                        "name": "VMONITOR",
+                                                        "modelName": "VMONITOR",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "VMONITOR.name",
+                                                                        "VMONITOR.l",
+                                                                        "VMONITOR.apertype",
+                                                                        "VMONITOR.aperture",
+                                                                        "VMONITOR.aper_offset",
+                                                                        "VMONITOR.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "XROTATION",
+                                                        "name": "XROTATION",
+                                                        "modelName": "XROTATION",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "XROTATION.name",
+                                                                        "XROTATION.angle",
+                                                                        "XROTATION.apertype",
+                                                                        "XROTATION.aperture",
+                                                                        "XROTATION.aper_offset",
+                                                                        "XROTATION.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "YROTATION",
+                                                        "name": "YROTATION",
+                                                        "modelName": "YROTATION",
+                                                        "items": [
+                                                            {
+                                                                "layout": "fieldList",
+                                                                "config": {
+                                                                    "fields": [
+                                                                        "YROTATION.name",
+                                                                        "YROTATION.angle",
+                                                                        "YROTATION.apertype",
+                                                                        "YROTATION.aperture",
+                                                                        "YROTATION.aper_offset",
+                                                                        "YROTATION.aper_tol"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
                                     ]
                                 }
                             }
@@ -7275,1131 +8349,6 @@
                     "title": "Twiss Parameters"
                 },
                 "_NAME": "twissReport"
-            }
-        ],
-        [
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "BEAMBEAM.name",
-                                    "BEAMBEAM.sigx",
-                                    "BEAMBEAM.sigy",
-                                    "BEAMBEAM.xma",
-                                    "BEAMBEAM.yma",
-                                    "BEAMBEAM.charge",
-                                    "BEAMBEAM.bbshape",
-                                    "BEAMBEAM.width",
-                                    "BEAMBEAM.bbdir",
-                                    "BEAMBEAM.apertype",
-                                    "BEAMBEAM.aperture",
-                                    "BEAMBEAM.aper_offset",
-                                    "BEAMBEAM.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "BEAMBEAM"
-                },
-                "_NAME": "BEAMBEAM"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "CHANGEREF.name",
-                                    "CHANGEREF.patch_ang",
-                                    "CHANGEREF.patch_trans",
-                                    "CHANGEREF.apertype",
-                                    "CHANGEREF.aperture",
-                                    "CHANGEREF.aper_offset",
-                                    "CHANGEREF.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "CHANGEREF"
-                },
-                "_NAME": "CHANGEREF"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "COLLIMATOR.name",
-                                    "COLLIMATOR.l",
-                                    "COLLIMATOR.apertype",
-                                    "COLLIMATOR.aperture",
-                                    "COLLIMATOR.aper_offset",
-                                    "COLLIMATOR.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "COLLIMATOR"
-                },
-                "_NAME": "COLLIMATOR"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "CRABCAVITY.name",
-                                    "CRABCAVITY.l",
-                                    "CRABCAVITY.volt",
-                                    "CRABCAVITY.lag",
-                                    "CRABCAVITY.freq",
-                                    "CRABCAVITY.rv1",
-                                    "CRABCAVITY.rv2",
-                                    "CRABCAVITY.rv3",
-                                    "CRABCAVITY.rv4",
-                                    "CRABCAVITY.rph1",
-                                    "CRABCAVITY.rph2",
-                                    "CRABCAVITY.lagf",
-                                    "CRABCAVITY.apertype",
-                                    "CRABCAVITY.aperture",
-                                    "CRABCAVITY.aper_offset",
-                                    "CRABCAVITY.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "CRABCAVITY"
-                },
-                "_NAME": "CRABCAVITY"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "DIPEDGE.name",
-                                    "DIPEDGE.h",
-                                    "DIPEDGE.e1",
-                                    "DIPEDGE.fint",
-                                    "DIPEDGE.hgap",
-                                    "DIPEDGE.tilt",
-                                    "DIPEDGE.apertype",
-                                    "DIPEDGE.aperture",
-                                    "DIPEDGE.aper_offset",
-                                    "DIPEDGE.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "DIPEDGE"
-                },
-                "_NAME": "DIPEDGE"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "DRIFT.name",
-                                    "DRIFT.l"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "DRIFT"
-                },
-                "_NAME": "DRIFT"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "ECOLLIMATOR.name",
-                                    "ECOLLIMATOR.l",
-                                    "ECOLLIMATOR.xsize",
-                                    "ECOLLIMATOR.ysize",
-                                    "ECOLLIMATOR.apertype",
-                                    "ECOLLIMATOR.aperture",
-                                    "ECOLLIMATOR.aper_offset",
-                                    "ECOLLIMATOR.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "ECOLLIMATOR"
-                },
-                "_NAME": "ECOLLIMATOR"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "HACDIPOLE.name",
-                                    "HACDIPOLE.l",
-                                    "HACDIPOLE.volt",
-                                    "HACDIPOLE.freq",
-                                    "HACDIPOLE.lag",
-                                    "HACDIPOLE.ramp1",
-                                    "HACDIPOLE.ramp2",
-                                    "HACDIPOLE.ramp3",
-                                    "HACDIPOLE.ramp4",
-                                    "HACDIPOLE.apertype",
-                                    "HACDIPOLE.aperture",
-                                    "HACDIPOLE.aper_offset",
-                                    "HACDIPOLE.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "HACDIPOLE"
-                },
-                "_NAME": "HACDIPOLE"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "HKICKER.name",
-                                    "HKICKER.l",
-                                    "HKICKER.kick",
-                                    "HKICKER.tilt",
-                                    "HKICKER.apertype",
-                                    "HKICKER.aperture",
-                                    "HKICKER.aper_offset",
-                                    "HKICKER.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "HKICKER"
-                },
-                "_NAME": "HKICKER"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "HMONITOR.name",
-                                    "HMONITOR.l",
-                                    "HMONITOR.apertype",
-                                    "HMONITOR.aperture",
-                                    "HMONITOR.aper_offset",
-                                    "HMONITOR.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "HMONITOR"
-                },
-                "_NAME": "HMONITOR"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "INSTRUMENT.name",
-                                    "INSTRUMENT.l",
-                                    "INSTRUMENT.apertype",
-                                    "INSTRUMENT.aperture",
-                                    "INSTRUMENT.aper_offset",
-                                    "INSTRUMENT.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "INSTRUMENT"
-                },
-                "_NAME": "INSTRUMENT"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "KICKER.name",
-                                    "KICKER.l",
-                                    "KICKER.hkick",
-                                    "KICKER.vkick",
-                                    "KICKER.tilt",
-                                    "KICKER.apertype",
-                                    "KICKER.aperture",
-                                    "KICKER.aper_offset",
-                                    "KICKER.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "KICKER"
-                },
-                "_NAME": "KICKER"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "MARKER.name",
-                                    "MARKER.apertype",
-                                    "MARKER.aperture",
-                                    "MARKER.aper_offset",
-                                    "MARKER.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "MARKER"
-                },
-                "_NAME": "MARKER"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "MATRIX.name",
-                                    "MATRIX.l",
-                                    "MATRIX.kick1",
-                                    "MATRIX.kick6",
-                                    "MATRIX.rm11",
-                                    "MATRIX.rm66",
-                                    "MATRIX.tm111",
-                                    "MATRIX.tm666",
-                                    "MATRIX.kick2",
-                                    "MATRIX.kick3",
-                                    "MATRIX.kick4",
-                                    "MATRIX.kick5",
-                                    "MATRIX.rm12",
-                                    "MATRIX.rm13",
-                                    "MATRIX.rm14",
-                                    "MATRIX.rm15",
-                                    "MATRIX.rm16",
-                                    "MATRIX.rm21",
-                                    "MATRIX.rm22",
-                                    "MATRIX.rm23",
-                                    "MATRIX.rm24",
-                                    "MATRIX.rm25",
-                                    "MATRIX.rm26",
-                                    "MATRIX.rm31",
-                                    "MATRIX.rm32",
-                                    "MATRIX.rm33",
-                                    "MATRIX.rm34",
-                                    "MATRIX.rm35",
-                                    "MATRIX.rm36",
-                                    "MATRIX.rm41",
-                                    "MATRIX.rm42",
-                                    "MATRIX.rm43",
-                                    "MATRIX.rm44",
-                                    "MATRIX.rm45",
-                                    "MATRIX.rm46",
-                                    "MATRIX.rm51",
-                                    "MATRIX.rm52",
-                                    "MATRIX.rm53",
-                                    "MATRIX.rm54",
-                                    "MATRIX.rm55",
-                                    "MATRIX.rm56",
-                                    "MATRIX.rm61",
-                                    "MATRIX.rm62",
-                                    "MATRIX.rm63",
-                                    "MATRIX.rm64",
-                                    "MATRIX.rm65",
-                                    "MATRIX.tm112",
-                                    "MATRIX.tm113",
-                                    "MATRIX.tm114",
-                                    "MATRIX.tm115",
-                                    "MATRIX.tm116",
-                                    "MATRIX.tm121",
-                                    "MATRIX.tm122",
-                                    "MATRIX.tm123",
-                                    "MATRIX.tm124",
-                                    "MATRIX.tm125",
-                                    "MATRIX.tm126",
-                                    "MATRIX.tm131",
-                                    "MATRIX.tm132",
-                                    "MATRIX.tm133",
-                                    "MATRIX.tm134",
-                                    "MATRIX.tm135",
-                                    "MATRIX.tm136",
-                                    "MATRIX.tm141",
-                                    "MATRIX.tm142",
-                                    "MATRIX.tm143",
-                                    "MATRIX.tm144",
-                                    "MATRIX.tm145",
-                                    "MATRIX.tm146",
-                                    "MATRIX.tm151",
-                                    "MATRIX.tm152",
-                                    "MATRIX.tm153",
-                                    "MATRIX.tm154",
-                                    "MATRIX.tm155",
-                                    "MATRIX.tm156",
-                                    "MATRIX.tm161",
-                                    "MATRIX.tm162",
-                                    "MATRIX.tm163",
-                                    "MATRIX.tm164",
-                                    "MATRIX.tm165",
-                                    "MATRIX.tm166",
-                                    "MATRIX.tm211",
-                                    "MATRIX.tm212",
-                                    "MATRIX.tm213",
-                                    "MATRIX.tm214",
-                                    "MATRIX.tm215",
-                                    "MATRIX.tm216",
-                                    "MATRIX.tm221",
-                                    "MATRIX.tm222",
-                                    "MATRIX.tm223",
-                                    "MATRIX.tm224",
-                                    "MATRIX.tm225",
-                                    "MATRIX.tm226",
-                                    "MATRIX.tm231",
-                                    "MATRIX.tm232",
-                                    "MATRIX.tm233",
-                                    "MATRIX.tm234",
-                                    "MATRIX.tm235",
-                                    "MATRIX.tm236",
-                                    "MATRIX.tm241",
-                                    "MATRIX.tm242",
-                                    "MATRIX.tm243",
-                                    "MATRIX.tm244",
-                                    "MATRIX.tm245",
-                                    "MATRIX.tm246",
-                                    "MATRIX.tm251",
-                                    "MATRIX.tm252",
-                                    "MATRIX.tm253",
-                                    "MATRIX.tm254",
-                                    "MATRIX.tm255",
-                                    "MATRIX.tm256",
-                                    "MATRIX.tm261",
-                                    "MATRIX.tm262",
-                                    "MATRIX.tm263",
-                                    "MATRIX.tm264",
-                                    "MATRIX.tm265",
-                                    "MATRIX.tm266",
-                                    "MATRIX.tm311",
-                                    "MATRIX.tm312",
-                                    "MATRIX.tm313",
-                                    "MATRIX.tm314",
-                                    "MATRIX.tm315",
-                                    "MATRIX.tm316",
-                                    "MATRIX.tm321",
-                                    "MATRIX.tm322",
-                                    "MATRIX.tm323",
-                                    "MATRIX.tm324",
-                                    "MATRIX.tm325",
-                                    "MATRIX.tm326",
-                                    "MATRIX.tm331",
-                                    "MATRIX.tm332",
-                                    "MATRIX.tm333",
-                                    "MATRIX.tm334",
-                                    "MATRIX.tm335",
-                                    "MATRIX.tm336",
-                                    "MATRIX.tm341",
-                                    "MATRIX.tm342",
-                                    "MATRIX.tm343",
-                                    "MATRIX.tm344",
-                                    "MATRIX.tm345",
-                                    "MATRIX.tm346",
-                                    "MATRIX.tm351",
-                                    "MATRIX.tm352",
-                                    "MATRIX.tm353",
-                                    "MATRIX.tm354",
-                                    "MATRIX.tm355",
-                                    "MATRIX.tm356",
-                                    "MATRIX.tm361",
-                                    "MATRIX.tm362",
-                                    "MATRIX.tm363",
-                                    "MATRIX.tm364",
-                                    "MATRIX.tm365",
-                                    "MATRIX.tm366",
-                                    "MATRIX.tm411",
-                                    "MATRIX.tm412",
-                                    "MATRIX.tm413",
-                                    "MATRIX.tm414",
-                                    "MATRIX.tm415",
-                                    "MATRIX.tm416",
-                                    "MATRIX.tm421",
-                                    "MATRIX.tm422",
-                                    "MATRIX.tm423",
-                                    "MATRIX.tm424",
-                                    "MATRIX.tm425",
-                                    "MATRIX.tm426",
-                                    "MATRIX.tm431",
-                                    "MATRIX.tm432",
-                                    "MATRIX.tm433",
-                                    "MATRIX.tm434",
-                                    "MATRIX.tm435",
-                                    "MATRIX.tm436",
-                                    "MATRIX.tm441",
-                                    "MATRIX.tm442",
-                                    "MATRIX.tm443",
-                                    "MATRIX.tm444",
-                                    "MATRIX.tm445",
-                                    "MATRIX.tm446",
-                                    "MATRIX.tm451",
-                                    "MATRIX.tm452",
-                                    "MATRIX.tm453",
-                                    "MATRIX.tm454",
-                                    "MATRIX.tm455",
-                                    "MATRIX.tm456",
-                                    "MATRIX.tm461",
-                                    "MATRIX.tm462",
-                                    "MATRIX.tm463",
-                                    "MATRIX.tm464",
-                                    "MATRIX.tm465",
-                                    "MATRIX.tm466",
-                                    "MATRIX.tm511",
-                                    "MATRIX.tm512",
-                                    "MATRIX.tm513",
-                                    "MATRIX.tm514",
-                                    "MATRIX.tm515",
-                                    "MATRIX.tm516",
-                                    "MATRIX.tm521",
-                                    "MATRIX.tm522",
-                                    "MATRIX.tm523",
-                                    "MATRIX.tm524",
-                                    "MATRIX.tm525",
-                                    "MATRIX.tm526",
-                                    "MATRIX.tm531",
-                                    "MATRIX.tm532",
-                                    "MATRIX.tm533",
-                                    "MATRIX.tm534",
-                                    "MATRIX.tm535",
-                                    "MATRIX.tm536",
-                                    "MATRIX.tm541",
-                                    "MATRIX.tm542",
-                                    "MATRIX.tm543",
-                                    "MATRIX.tm544",
-                                    "MATRIX.tm545",
-                                    "MATRIX.tm546",
-                                    "MATRIX.tm551",
-                                    "MATRIX.tm552",
-                                    "MATRIX.tm553",
-                                    "MATRIX.tm554",
-                                    "MATRIX.tm555",
-                                    "MATRIX.tm556",
-                                    "MATRIX.tm561",
-                                    "MATRIX.tm562",
-                                    "MATRIX.tm563",
-                                    "MATRIX.tm564",
-                                    "MATRIX.tm565",
-                                    "MATRIX.tm566",
-                                    "MATRIX.tm611",
-                                    "MATRIX.tm612",
-                                    "MATRIX.tm613",
-                                    "MATRIX.tm614",
-                                    "MATRIX.tm615",
-                                    "MATRIX.tm616",
-                                    "MATRIX.tm621",
-                                    "MATRIX.tm622",
-                                    "MATRIX.tm623",
-                                    "MATRIX.tm624",
-                                    "MATRIX.tm625",
-                                    "MATRIX.tm626",
-                                    "MATRIX.tm631",
-                                    "MATRIX.tm632",
-                                    "MATRIX.tm633",
-                                    "MATRIX.tm634",
-                                    "MATRIX.tm635",
-                                    "MATRIX.tm636",
-                                    "MATRIX.tm641",
-                                    "MATRIX.tm642",
-                                    "MATRIX.tm643",
-                                    "MATRIX.tm644",
-                                    "MATRIX.tm645",
-                                    "MATRIX.tm646",
-                                    "MATRIX.tm651",
-                                    "MATRIX.tm652",
-                                    "MATRIX.tm653",
-                                    "MATRIX.tm654",
-                                    "MATRIX.tm655",
-                                    "MATRIX.tm656",
-                                    "MATRIX.tm661",
-                                    "MATRIX.tm662",
-                                    "MATRIX.tm663",
-                                    "MATRIX.tm664",
-                                    "MATRIX.tm665"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "MATRIX"
-                },
-                "_NAME": "MATRIX"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "MONITOR.name",
-                                    "MONITOR.l",
-                                    "MONITOR.apertype",
-                                    "MONITOR.aperture",
-                                    "MONITOR.aper_offset",
-                                    "MONITOR.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "MONITOR"
-                },
-                "_NAME": "MONITOR"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "MULTIPOLE.name",
-                                    "MULTIPOLE.lrad",
-                                    "MULTIPOLE.tilt",
-                                    "MULTIPOLE.knl",
-                                    "MULTIPOLE.ksl",
-                                    "MULTIPOLE.apertype",
-                                    "MULTIPOLE.aperture",
-                                    "MULTIPOLE.aper_offset",
-                                    "MULTIPOLE.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "MULTIPOLE"
-                },
-                "_NAME": "MULTIPOLE"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "NLLENS.name",
-                                    "NLLENS.knll",
-                                    "NLLENS.cnll",
-                                    "NLLENS.apertype",
-                                    "NLLENS.aperture",
-                                    "NLLENS.aper_offset",
-                                    "NLLENS.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "NLLENS"
-                },
-                "_NAME": "NLLENS"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "OCTUPOLE.name",
-                                    "OCTUPOLE.l",
-                                    "OCTUPOLE.k3",
-                                    "OCTUPOLE.k3s",
-                                    "OCTUPOLE.tilt",
-                                    "OCTUPOLE.apertype",
-                                    "OCTUPOLE.aperture",
-                                    "OCTUPOLE.aper_offset",
-                                    "OCTUPOLE.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "OCTUPOLE"
-                },
-                "_NAME": "OCTUPOLE"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "PLACEHOLDER.name",
-                                    "PLACEHOLDER.l",
-                                    "PLACEHOLDER.apertype",
-                                    "PLACEHOLDER.aperture",
-                                    "PLACEHOLDER.aper_offset",
-                                    "PLACEHOLDER.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "PLACEHOLDER"
-                },
-                "_NAME": "PLACEHOLDER"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "QUADRUPOLE.name",
-                                    "QUADRUPOLE.l",
-                                    "QUADRUPOLE.k1",
-                                    "QUADRUPOLE.k1s",
-                                    "QUADRUPOLE.tilt",
-                                    "QUADRUPOLE.thick",
-                                    "QUADRUPOLE.apertype",
-                                    "QUADRUPOLE.aperture",
-                                    "QUADRUPOLE.aper_offset",
-                                    "QUADRUPOLE.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "QUADRUPOLE"
-                },
-                "_NAME": "QUADRUPOLE"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "RBEND.name",
-                                    "RBEND.l",
-                                    "RBEND.angle",
-                                    "RBEND.tilt",
-                                    "RBEND.k1",
-                                    "RBEND.k2",
-                                    "RBEND.e1",
-                                    "RBEND.e2",
-                                    "RBEND.fint",
-                                    "RBEND.fintx",
-                                    "RBEND.hgap",
-                                    "RBEND.h1",
-                                    "RBEND.h2",
-                                    "RBEND.add_angle",
-                                    "RBEND.thick",
-                                    "RBEND.apertype",
-                                    "RBEND.aperture",
-                                    "RBEND.aper_offset",
-                                    "RBEND.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "RBEND"
-                },
-                "_NAME": "RBEND"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "RCOLLIMATOR.name",
-                                    "RCOLLIMATOR.l",
-                                    "RCOLLIMATOR.xsize",
-                                    "RCOLLIMATOR.ysize",
-                                    "RCOLLIMATOR.apertype",
-                                    "RCOLLIMATOR.aperture",
-                                    "RCOLLIMATOR.aper_offset",
-                                    "RCOLLIMATOR.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "RCOLLIMATOR"
-                },
-                "_NAME": "RCOLLIMATOR"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "RFCAVITY.name",
-                                    "RFCAVITY.l",
-                                    "RFCAVITY.volt",
-                                    "RFCAVITY.lag",
-                                    "RFCAVITY.harmon",
-                                    "RFCAVITY.freq",
-                                    "RFCAVITY.apertype",
-                                    "RFCAVITY.aperture",
-                                    "RFCAVITY.aper_offset",
-                                    "RFCAVITY.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "RFCAVITY"
-                },
-                "_NAME": "RFCAVITY"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "RFMULTIPOLE.name",
-                                    "RFMULTIPOLE.volt",
-                                    "RFMULTIPOLE.lag",
-                                    "RFMULTIPOLE.harmon",
-                                    "RFMULTIPOLE.freq",
-                                    "RFMULTIPOLE.lrad",
-                                    "RFMULTIPOLE.tilt",
-                                    "RFMULTIPOLE.knl",
-                                    "RFMULTIPOLE.ksl",
-                                    "RFMULTIPOLE.pnl",
-                                    "RFMULTIPOLE.psl",
-                                    "RFMULTIPOLE.apertype",
-                                    "RFMULTIPOLE.aperture",
-                                    "RFMULTIPOLE.aper_offset",
-                                    "RFMULTIPOLE.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "RFMULTIPOLE"
-                },
-                "_NAME": "RFMULTIPOLE"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "SBEND.name",
-                                    "SBEND.l",
-                                    "SBEND.angle",
-                                    "SBEND.k1",
-                                    "SBEND.k2",
-                                    "SBEND.e1",
-                                    "SBEND.e2",
-                                    "SBEND.tilt",
-                                    "SBEND.h1",
-                                    "SBEND.h2",
-                                    "SBEND.hgap",
-                                    "SBEND.fint",
-                                    "SBEND.fintx",
-                                    "SBEND.thick",
-                                    "SBEND.apertype",
-                                    "SBEND.aperture",
-                                    "SBEND.aper_offset",
-                                    "SBEND.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "SBEND"
-                },
-                "_NAME": "SBEND"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "SEXTUPOLE.name",
-                                    "SEXTUPOLE.l",
-                                    "SEXTUPOLE.k2",
-                                    "SEXTUPOLE.k2s",
-                                    "SEXTUPOLE.tilt",
-                                    "SEXTUPOLE.apertype",
-                                    "SEXTUPOLE.aperture",
-                                    "SEXTUPOLE.aper_offset",
-                                    "SEXTUPOLE.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "SEXTUPOLE"
-                },
-                "_NAME": "SEXTUPOLE"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "SOLENOID.name",
-                                    "SOLENOID.l",
-                                    "SOLENOID.ks",
-                                    "SOLENOID.ksi",
-                                    "SOLENOID.apertype",
-                                    "SOLENOID.aperture",
-                                    "SOLENOID.aper_offset",
-                                    "SOLENOID.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "SOLENOID"
-                },
-                "_NAME": "SOLENOID"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "SROTATION.name",
-                                    "SROTATION.angle",
-                                    "SROTATION.apertype",
-                                    "SROTATION.aperture",
-                                    "SROTATION.aper_offset",
-                                    "SROTATION.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "SROTATION"
-                },
-                "_NAME": "SROTATION"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "TRANSLATION.name",
-                                    "TRANSLATION.dx",
-                                    "TRANSLATION.dy",
-                                    "TRANSLATION.ds"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "TRANSLATION"
-                },
-                "_NAME": "TRANSLATION"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "TWCAVITY.name",
-                                    "TWCAVITY.l",
-                                    "TWCAVITY.volt",
-                                    "TWCAVITY.freq",
-                                    "TWCAVITY.lag",
-                                    "TWCAVITY.psi",
-                                    "TWCAVITY.delta_lag",
-                                    "TWCAVITY.apertype",
-                                    "TWCAVITY.aperture",
-                                    "TWCAVITY.aper_offset",
-                                    "TWCAVITY.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "TWCAVITY"
-                },
-                "_NAME": "TWCAVITY"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "VACDIPOLE.name",
-                                    "VACDIPOLE.l",
-                                    "VACDIPOLE.volt",
-                                    "VACDIPOLE.freq",
-                                    "VACDIPOLE.lag",
-                                    "VACDIPOLE.ramp1",
-                                    "VACDIPOLE.ramp2",
-                                    "VACDIPOLE.ramp3",
-                                    "VACDIPOLE.ramp4",
-                                    "VACDIPOLE.apertype",
-                                    "VACDIPOLE.aperture",
-                                    "VACDIPOLE.aper_offset",
-                                    "VACDIPOLE.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "VACDIPOLE"
-                },
-                "_NAME": "VACDIPOLE"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "VKICKER.name",
-                                    "VKICKER.l",
-                                    "VKICKER.kick",
-                                    "VKICKER.tilt",
-                                    "VKICKER.apertype",
-                                    "VKICKER.aperture",
-                                    "VKICKER.aper_offset",
-                                    "VKICKER.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "VKICKER"
-                },
-                "_NAME": "VKICKER"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "VMONITOR.name",
-                                    "VMONITOR.l",
-                                    "VMONITOR.apertype",
-                                    "VMONITOR.aperture",
-                                    "VMONITOR.aper_offset",
-                                    "VMONITOR.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "VMONITOR"
-                },
-                "_NAME": "VMONITOR"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "XROTATION.name",
-                                    "XROTATION.angle",
-                                    "XROTATION.apertype",
-                                    "XROTATION.aperture",
-                                    "XROTATION.aper_offset",
-                                    "XROTATION.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "XROTATION"
-                },
-                "_NAME": "XROTATION"
-            },
-            {
-                "layout": "panel",
-                "config": {
-                    "advanced": [
-                        {
-                            "layout": "fieldList",
-                            "config": {
-                                "fields": [
-                                    "YROTATION.name",
-                                    "YROTATION.angle",
-                                    "YROTATION.apertype",
-                                    "YROTATION.aperture",
-                                    "YROTATION.aper_offset",
-                                    "YROTATION.aper_tol"
-                                ]
-                            }
-                        }
-                    ],
-                    "title": "YROTATION"
-                },
-                "_NAME": "YROTATION"
             }
         ],
         [

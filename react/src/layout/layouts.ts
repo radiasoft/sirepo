@@ -19,6 +19,7 @@ import { WaterfallLayout } from "./arrange/waterfall";
 import { Histogram2dFromApi } from "./report/histogram2d";
 import { ShadowBeamlineWatchpointReports } from "./shadow/beamlineWatchpointReports";
 import { ShadowBeamlineLayout } from "./shadow/beamline";
+import { MadxBeamlineElementsLayout } from "./madx/beamlineElements";
 
 
 // TODO rename to LayoutsWrapper
@@ -46,7 +47,8 @@ class LayoutWrapper {
         vStack: VerticalStackLayout,
         waterfall: WaterfallLayout,
         shadowBeamlineWatchpointReports: ShadowBeamlineWatchpointReports,
-        shadowBeamline: LayoutWithFormController(ShadowBeamlineLayout)
+        shadowBeamline: LayoutWithFormController(ShadowBeamlineLayout),
+        madxBeamlineElements: MadxBeamlineElementsLayout
     }
 
     constructor () {
