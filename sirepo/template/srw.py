@@ -633,23 +633,21 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
 
 
 def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
+
     sim = data.models.simulation
     sim.sourceType = new_simulation_data.sourceType
     if new_simulation_data.get("sourceSimType") == "radia":
         data.models.tabulatedUndulator.pkupdate(new_simulation_data.tabulatedUndulator)
         data.models.electronBeamPosition.pkupdate(new_simulation_data.electronBeamPosition)
-        t_basename = f"{new_simulation_data.sourceSimType}-{new_simulation_data.sourceSimId}-{new_simulation_data.sourceSimFile}"
-        data.models.dataFile.dataOrigin = "file"
-        data.models.dataFile.file = t_basename
         t = simulation_db.simulation_lib_dir(_SIM_DATA.sim_type(), qcall=qcall).join(
-            _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", t_basename)
+            data.models.tabulatedUndulator.magneticFile
         )
-        if t.exists():
-            return
         s = simulation_db.simulation_dir(
-            new_simulation_data.sourceSimType, sid=new_simulation_data.sourceSimId, qcall=qcall
-        ).join(new_simulation_data.sourceSimFile)
-        t.mksymlinkto(s, absolute=False)
+            new_simulation_data.sourceSimType,
+            sid=new_simulation_data.sourceSimId,
+            qcall=qcall
+        ).join("fieldLineoutAnimation").join(data.models.tabulatedUndulator.magneticFile)
+        s.copy(t)
     if _SIM_DATA.srw_is_gaussian_source(sim):
         data.models.initialIntensityReport.sampleFactor = 0
     elif _SIM_DATA.srw_is_dipole_source(sim):

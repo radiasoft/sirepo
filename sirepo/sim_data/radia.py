@@ -334,7 +334,13 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _sim_file_basenames(cls, data):
         # TODO(e-carlin): share filename with template
-        return [
+        res = [
             PKDict(basename="geometry.dat"),
             PKDict(basename="geometryReport.h5"),
         ]
+        if data and data.get("report") == "fieldLineoutAnimation":
+            res += [
+                "fieldLineoutAnimation.zip"
+            ]
+        return res
+

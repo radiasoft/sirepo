@@ -1310,7 +1310,7 @@ SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) 
     };
 });
 
-SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, persistentSimulation, requestSender) {
+SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, persistentSimulation, radiaService, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1321,7 +1321,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
               <div data-ng-if="showFieldLineoutPanel()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
                 <div data-sim-status-panel="simState"></div>
                 <div class="col-sm-6 pull-right" style="padding-top: 8px;">
-                    <button data-ng-disabled="! isExportEnabled()" class="btn btn-default" data-ng-click="createSRWSimulation()">Open in SRW</button>
+                    <button class="btn btn-default" data-ng-click="createSRWSimulation()">Open in SRW</button>
                 </div>
               </div>
             </div>
@@ -1332,14 +1332,14 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
             $scope.simScope = $scope;
             $scope.simComputeModel = modelName;
 
-            self.createSRWSimulation = () => {
+            $scope.createSRWSimulation = () => {
                 const uName = `Undulator ${appState.models.simulation.name}`;
                 requestSender.sendRequest(
                     'newSimulation',
                     data => {
                         requestSender.openSimulation(
                             'srw',
-                            'data',
+                            'source',
                             data.models.simulation.simulationId
                         );
                     },
@@ -1357,8 +1357,8 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
                         sourceType: 't',
                         tabulatedUndulator: {
                             gap: appState.models[appState.models.simulation.undulatorType].gap,
-                            indexFileName: '',
-                            magneticFile: 'FFF',
+                            indexFileName: 'fieldLineoutAnimation_sum.txt',
+                            magneticFile: 'fieldLineoutAnimation.zip',
                             name: uName,
                             undulatorSelector: uName,
                             undulatorType: 'u_t',
