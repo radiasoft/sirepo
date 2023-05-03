@@ -1273,107 +1273,6 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
     };
 });
 
-SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, radiaService, requestSender) {
-
-    return {
-        restrict: 'A',
-        scope: {
-        },
-        template: `
-            <div class="modal fade" tabindex="-1" role="dialog" id="sr-field-download" data-small-element-class="col-sm-2">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header bg-info">
-                            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                            <span class="lead modal-title text-info">{{ svc.selectedPath.name }}</span>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-horizontal">
-                                <div class="form-group form-group-sm" data-ng-show="! isFieldMap()">
-                                    <div class="control-label col-sm-5">
-                                        <label><span>Field</span></label>
-                                    </div>
-                                    <div class="col-sm-5">
-                                        <select data-ng-model="tModel.type" class="form-control">
-                                            <option ng-repeat="t in svc.pointFieldTypes">{{ t }}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="control-label col-sm-5">
-                                    <label><span>Export to</span></label>
-                                </div>
-                                <div class="form-group form-group-sm">
-                                    <div class="col-sm-5">
-                                        <select data-ng-model="tModel.exportType" class="form-control">
-                                            <option ng-repeat="t in svc.pointFieldExportTypes">{{ t }}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div data-ng-show="tModel.exportType == \'SRW\'">
-                                    <div class="control-label col-sm-5">
-                                        <label><span>Magnetic Gap [mm]</span></label>
-                                    </div>
-                                    <div class="form-group form-group-sm">
-                                        <div class="col-sm-5">
-                                            <input data-string-to-number="" data-ng-model="tModel.gap" data-min="0" required />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <button data-ng-click="download()" class="btn btn-default col-sm-offset-6">Download</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `,
-        controller: function($scope, $element) {
-            $scope.svc = radiaService;
-
-            $scope.tModel = {
-                exportType: radiaService.pointFieldExportTypes[0],
-                gap: 0.0,
-                type: radiaService.pointFieldTypes[0],
-            };
-
-            $scope.availableFieldTypes = function() {
-                return radiaService.pointFieldTypes.filter(function(t) {
-
-                });
-            };
-
-            $scope.download = function() {
-                requestSender.newWindow('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': 'fieldLineoutAnimation',
-                    '<frame>': SIREPO.nonDataFileFrame,
-                    '<suffix>': radiaService.pointFieldExports[$scope.tModel.exportType].extension
-                });
-                radiaService.showFieldDownload(false);
-            };
-
-            $scope.fieldType = function() {
-                return $scope.isFieldMap() ? 'B' : $scope.tModel.type;
-            };
-
-            $scope.exportType = function() {
-                return $scope.tModel.exportType;
-            };
-
-            $scope.isFieldMap = function() {
-                return (radiaService.selectedPath || {}).type === 'fieldMapPath';
-            };
-
-            appState.whenModelsLoaded($scope, function () {
-                $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
-            });
-        },
-    };
-});
-
-
 SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -1411,7 +1310,7 @@ SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) 
     };
 });
 
-SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimulation, frameCache) {
+SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, persistentSimulation, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1421,6 +1320,9 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             <div class="col-md-6">
               <div data-ng-if="showFieldLineoutPanel()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
                 <div data-sim-status-panel="simState"></div>
+                <div class="col-sm-6 pull-right" style="padding-top: 8px;">
+                    <button data-ng-disabled="! isExportEnabled()" class="btn btn-default" data-ng-click="createSRWSimulation()">Open in SRW</button>
+                </div>
               </div>
             </div>
         `,
@@ -1429,6 +1331,50 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             $scope.model = appState.models[modelName];
             $scope.simScope = $scope;
             $scope.simComputeModel = modelName;
+
+            self.createSRWSimulation = () => {
+                const uName = `Undulator ${appState.models.simulation.name}`;
+                requestSender.sendRequest(
+                    'newSimulation',
+                    data => {
+                        requestSender.openSimulation(
+                            'srw',
+                            'data',
+                            data.models.simulation.simulationId
+                        );
+                    },
+                    {
+                        electronBeamPosition: {
+                            drift: SIREPO.APP_SCHEMA.constants.objectScale *
+                                appState.models[modelName].fieldPath.begin[radiaService.getAxisIndices().depth],
+                        },
+                        folder: '/',
+                        name: appState.models.simulation.name,
+                        notes: 'Tabulated undulator from radia',
+                        simulationType: 'srw',
+                        sourceSimId: appState.models.simulation.simulationId,
+                        sourceSimType: 'radia',
+                        sourceType: 't',
+                        tabulatedUndulator: {
+                            gap: appState.models[appState.models.simulation.undulatorType].gap,
+                            indexFileName: '',
+                            magneticFile: 'FFF',
+                            name: uName,
+                            undulatorSelector: uName,
+                            undulatorType: 'u_t',
+                        }
+                    },
+                    err => {
+                        throw new Error('Error creating simulation' + err);
+                    }
+                );
+            };
+
+            $scope.isExportEnabled = () => {
+                return appState.models.simulation.magnetType === 'undulator' &&
+                    ! $scope.simState.isProcessing() &&
+                    frameCache.getFrameCount() > 0;
+            }
 
             $scope.simHandleStatus = data => {
                 if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
