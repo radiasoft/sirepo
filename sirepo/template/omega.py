@@ -41,8 +41,9 @@ _PLOT_TITLE = PKDict(
 _PLOT_Y_LABEL = PKDict(
     opal=PKDict(
         {
-            "x-px": "px [β_x γ]",
-            "y-py": "py [β_y γ]",
+            # TODO(pjm): should format px and βx with subscripts
+            "x-px": "px [βx γ]",
+            "y-py": "py [βy γ]",
             "z-pz": "pz [β γ]",
         }
     )

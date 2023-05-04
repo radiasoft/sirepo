@@ -27,11 +27,13 @@ def convert_bunched_beam_to_sdds_beam(data, filename):
     cmd.input = filename
     data.models.bunchSource.inputSource = 'sdds_beam'
 
-def file_name_from_sim_name(sim_name):
+
+def file_name_from_sim_name(sim_type, sim_name):
     res = re.sub(r'[^0-9a-zA-Z]', '_', sim_name)
     res = re.sub(r'^\_+|\_+$', '', res)
     res = re.sub(r'\_+', '_', res)
-    return f'{res}.sdds'
+    ext = "sdds" if sim_type == "elegant" else "dat"
+    return f"{res}.{ext}"
 
 
 def prep_run_dir(run_dir, data):
@@ -49,7 +51,7 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
     data = read_sim('elegant', elegant_id)
     if prev_sim:
         assert prev_sim.outfile_path
-        filename = file_name_from_sim_name(f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        filename = file_name_from_sim_name('elegant', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
         update_elegant_sim(data, filename)
         if prev_sim.sim_type == 'elegant':
             p = pkio.py_path(prev_sim.outfile_path)
@@ -72,12 +74,11 @@ def run_opal(run_dir, opal_id, prev_sim=None):
     data = read_sim('opal', opal_id)
     if prev_sim:
         assert prev_sim.outfile_path
-        filename = file_name_from_sim_name(f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
         update_opal_sim(data, filename)
-        if prev_sim.sim_type == 'elegant':
-            sw = switchyard.Switchyard()
-            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-            sw.write(sim_lib_file('opal', 'bunchFile', 'sourceFile', filename), 'opal')
+        sw = switchyard.Switchyard()
+        sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+        sw.write(sim_lib_file("opal", "command_distribution", "fname", filename), "opal")
     data.computeModel = 'animation'
     LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
     with pkio.save_chdir(prep_run_dir(run_dir, data)):
