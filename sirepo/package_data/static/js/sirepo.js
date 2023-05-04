@@ -138,7 +138,7 @@ angular.element(document).ready(function() {
         error: function(xhr, status, err) {
             if (! SIREPO.APP_SCHEMA) {
                 srlog("schema load failed: ", err);
-                if (err.match(/forbidden/i)) {
+                if (err.toString().match(/forbidden/i)) {
                     window.location.href = "/forbidden";
                     return;
                 }
