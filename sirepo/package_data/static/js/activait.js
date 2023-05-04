@@ -2132,6 +2132,11 @@ SIREPO.viewLogic('mlModelView', function(appState, panelState, requestSender, $s
                     args: {
                         file: appState.models.mlModel.modelFile
                     }
+                },
+                {
+                    onError: data => {
+                        throw new Error(data.error);
+                    }
                 }
             );
         }
